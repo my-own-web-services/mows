@@ -1,0 +1,21 @@
+{
+    "name": "tests",
+    "version": "1.0.0",
+    "main": "main.js",
+    "type": "module",
+    "quokka": {
+        "stdEsm": false,
+        "nativeEsm": true
+    },
+    "scripts": {
+        "dev": "tsc --watch",
+        "start": "tsc && node dist/main.js"
+    },
+    "devDependencies": {
+        "@types/node": "^18.8.5",
+        "typescript": "^4.8.4"
+    },
+    "dependencies": {
+        "arangojs": "^7.8.0"
+    }
+}

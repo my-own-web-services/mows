@@ -1,0 +1,5 @@
+variablePrefix: "$"
+storage:
+    ssd:
+        path: ./storage/
+defaultStorage: ssd
