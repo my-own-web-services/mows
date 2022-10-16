@@ -1,23 +1,40 @@
-import { exec as execOld, spawn } from "node:child_process";
+import { exec as execOld } from "node:child_process";
 import { promises as fs } from "node:fs";
 import util from "node:util";
 const exec = util.promisify(execOld);
 import { Database, aql } from "arangojs";
-
 export const testCreateFile = async () => {
     // start database
-    const { stdout, stderr } = await exec(
-        "docker-compose -f ../dev/docker-compose.yml up -d --remove-orphans"
-    );
+    const { stdout, stderr } = await exec("docker-compose -f ../dev/docker-compose.yml up -d --remove-orphans");
     // prepare database
     await setupDb();
     // Create a new file
-    await createFile();
+    const createdFile = await createFile();
+    // get file
+    await getFile(createdFile.id);
+    // delete file
+    await deleteFile(createdFile.id);
     // stop database
-
     // stop server
 };
-
+export const deleteFile = async (id) => {
+    const res = await fetch(`http://0.0.0.0:8080/delete_file/${id}`, { method: "POST" });
+    if (res.status !== 200) {
+        throw new Error("Could not delete file");
+    }
+    return true;
+};
+export const getFile = async (id) => {
+    const res = await fetch(`http://0.0.0.0:8080/get_file/${id}`);
+    if (res.headers.get("content-type") !== "text/plain") {
+        throw new Error("Wrong content type");
+    }
+    const file = await res.text();
+    if (file !== "abc") {
+        throw new Error("Wrong content");
+    }
+    return file;
+};
 export const createFile = async () => {
     const file = await fs.readFile("test-files/test.txt");
     const res = await fetch("http://0.0.0.0:8080/create_file", {
@@ -27,10 +44,9 @@ export const createFile = async () => {
         method: "POST",
         body: file
     });
-    const json = await res.text();
-    console.log(json);
+    const json = await res.json();
+    return json;
 };
-
 export const setupDb = async () => {
     // setup database
     const db1 = new Database({
@@ -40,14 +56,11 @@ export const setupDb = async () => {
             password: "password"
         }
     });
-
-    await db1.dropDatabase("filez").catch(e => {});
-
+    await db1.dropDatabase("filez").catch(e => { });
     // create database
     const db = await db1.createDatabase("filez").catch(e => {
         return db1.database("filez");
     });
-
     // create collections
     await db.createCollection("files").catch(e => {
         //console.error(e);
@@ -55,11 +68,9 @@ export const setupDb = async () => {
     await db.createCollection("users").catch(e => {
         //console.error(e);
     });
-
     // create default user for tests
     await db
-        .query(
-            aql`
+        .query(aql `
         INSERT {
             "_key": "test",
             "limits": {
@@ -72,11 +83,9 @@ export const setupDb = async () => {
                     "usedBandwidth": 0
                 }
             }
-        } INTO users`
-        )
+        } INTO users`)
         .catch(e => {
-            console.error(e);
-        });
+        console.error(e);
+    });
 };
-
 await testCreateFile();

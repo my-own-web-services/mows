@@ -33,18 +33,39 @@ impl DB {
         Ok(Self { con, db })
     }
 
-    pub async fn get_user(&self) -> anyhow::Result<FilezUser> {
-        let uid = "test";
-
+    pub async fn get_user_by_id(&self, id: &str) -> anyhow::Result<FilezUser> {
         let aql = AqlQuery::builder()
             .query(r#"RETURN DOCUMENT(CONCAT("users/",@uid))"#)
-            .bind_var("uid", uid)
+            .bind_var("uid", id)
             .build();
 
         let res: Vec<Value> = self.db.aql_query(aql).await?;
         let val = some_or_bail!(res.get(0), "User not found");
         let user: FilezUser = serde_json::from_value(val.clone())?;
         Ok(user)
+    }
+
+    pub async fn get_file_by_id(&self, id: &str) -> anyhow::Result<FilezFile> {
+        let aql = AqlQuery::builder()
+            .query(r#"RETURN DOCUMENT(CONCAT("files/",@id))"#)
+            .bind_var("id", id)
+            .build();
+
+        let res: Vec<Value> = self.db.aql_query(aql).await?;
+        let val = some_or_bail!(res.get(0), "File not found");
+        let file: FilezFile = serde_json::from_value(val.clone())?;
+        Ok(file)
+    }
+
+    pub async fn delete_file_by_id(&self, id: &str) -> anyhow::Result<()> {
+        let aql = AqlQuery::builder()
+            .query(r#"REMOVE DOCUMENT(CONCAT("files/",@id)) IN files"#)
+            .bind_var("id", id)
+            .build();
+
+        let _res: Vec<String> = self.db.aql_query(aql).await?;
+
+        Ok(())
     }
 
     pub async fn create_file(&self, file: FilezFile) -> anyhow::Result<()> {

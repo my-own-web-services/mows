@@ -4,7 +4,7 @@ use filez::config::read_config;
 use filez::db::DB;
 use filez::some_or_bail;
 use filez::types::{CreateFileRequest, CreateFileResponse, FilezFile, ServerConfig};
-use filez::utils::generate_id;
+use filez::utils::{generate_id, get_folder_and_file_path};
 use hyper::body::HttpBody;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
@@ -55,33 +55,103 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
 }
 
 async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
-    if req.method() != hyper::Method::POST {
-        return Ok(Response::builder()
-            .status(405)
-            .body(Body::from("Method Not Allowed"))
-            .unwrap());
-    }
     if req.uri().path().starts_with("/get_file") {
         get_file(req).await
     } else if req.uri().path().starts_with("/create_file") {
         create_file(req).await
+    } else if req.uri().path().starts_with("/delete_file") {
+        delete_file(req).await
     } else {
         bail!("Invalid path");
     }
 }
 
 async fn get_file(req: Request<Body>) -> anyhow::Result<Response<Body>> {
+    let user_id = "test";
     let config = &SERVER_CONFIG;
-    Ok(Response::builder().status(200).body(Body::from("OK"))?)
+
+    if req.method() != hyper::Method::GET {
+        return Ok(Response::builder()
+            .status(405)
+            .body(Body::from("Method Not Allowed"))
+            .unwrap());
+    }
+    let file_id = req.uri().path().replacen("/get_file/", "", 1);
+
+    let db = DB::new(
+        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
+    )
+    .await?;
+
+    let file = db.get_file_by_id(&file_id).await?;
+
+    // check if user is allowed to access file
+    if user_id != file.owner {
+        // TODO user is not the owner so we need to check the permissions
+        bail!("User is not allowed to access file");
+    }
+
+    let (folder_path, file_name) =
+        get_folder_and_file_path(&file.id, &config.storage[&file.storage_name].path);
+
+    let file_path = format!("{}/{}", folder_path, file_name);
+
+    // stream the file from disk to the client
+    let file_handle = tokio::fs::File::open(file_path).await?;
+
+    let body = Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle));
+
+    Ok(Response::builder()
+        .status(200)
+        .header("Content-Type", file.mime_type)
+        .body(body)
+        .unwrap())
 }
 
 async fn delete_file(req: Request<Body>) -> anyhow::Result<Response<Body>> {
+    let user_id = "test";
     let config = &SERVER_CONFIG;
+    if req.method() != hyper::Method::POST {
+        return Ok(Response::builder()
+            .status(405)
+            .body(Body::from("Method Not Allowed"))
+            .unwrap());
+    }
+
+    let file_id = req.uri().path().replacen("/delete_file/", "", 1);
+    let db = DB::new(
+        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
+    )
+    .await?;
+
+    let file = db.get_file_by_id(&file_id).await?;
+
+    if user_id != file.owner {
+        // TODO user is not the owner so we need to check the permissions
+        bail!("User is not allowed to access file");
+    }
+
+    let (folder_path, file_name) =
+        get_folder_and_file_path(&file.id, &config.storage[&file.storage_name].path);
+
+    let file_path = format!("{}/{}", folder_path, file_name);
+
+    db.delete_file_by_id(&file_id).await?;
+    fs::remove_file(file_path)?;
+
     Ok(Response::builder().status(200).body(Body::from("OK"))?)
 }
 
 async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
+    let user_id = "test";
     let config = &SERVER_CONFIG;
+
+    if req.method() != hyper::Method::POST {
+        return Ok(Response::builder()
+            .status(405)
+            .body(Body::from("Method Not Allowed"))
+            .unwrap());
+    }
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
     if request_header.len() > 5000 {
@@ -95,7 +165,7 @@ async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
     )
     .await?;
 
-    let user = db.get_user().await?;
+    let user = db.get_user_by_id(user_id).await?;
 
     let storage_name = create_request
         .storage_name
@@ -126,10 +196,12 @@ async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
     .path
     .clone();
 
-    let id = format!("f{}", generate_id());
+    let id = generate_id();
+    let (folder_path, file_name) = get_folder_and_file_path(&id, &storage_path);
 
+    fs::create_dir_all(&folder_path)?;
     // write file to disk but abbort if limits where exceeded
-    let mut file = File::create(format!("{}/{}", &storage_path, id))?;
+    let mut file = File::create(format!("{}/{}", folder_path, file_name))?;
     let mut hasher = Sha256::new();
 
     let mut bytes_written = 0;
@@ -156,7 +228,6 @@ async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
             owner: user.id,
             sha256: hash.clone(),
             storage_name: storage_name.clone(),
-            path: storage_path.clone(),
             size: bytes_written,
             created_at: current_time,
         })

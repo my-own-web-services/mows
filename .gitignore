@@ -1,2 +1,2 @@
-/target
-tests/node_modules/
+server/target
+server/tests/node_modules/
