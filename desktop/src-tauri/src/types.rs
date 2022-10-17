@@ -13,7 +13,7 @@ pub struct FilezClientAppDataFile {
     */
     pub original_path: Option<String>,
     /**
-     Whether the file is encrypted on the server
+     Whether the file is end to end encrypted
     */
     pub encrypted: bool,
 }

@@ -109,6 +109,7 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
             app_data: None,
             accessed: None,
             accessed_count: 0,
+            todeszeitpunkt: None,
         })
         .await;
 

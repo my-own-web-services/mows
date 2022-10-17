@@ -53,7 +53,7 @@ pub struct FilezFile {
     pub accessed_count: u64,
     pub groups: Option<Vec<String>>,
     /**
-        UTC timecode when the file should be deleted
+        UTC timecode after which the file should be deleted (German for time of death)
     */
     pub todeszeitpunkt: Option<i64>,
     /**
