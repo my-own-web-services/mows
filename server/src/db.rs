@@ -13,6 +13,7 @@ pub struct DB {
 pub struct FilezUser {
     #[serde(rename = "_key")]
     pub id: String,
+    pub app_data: Option<HashMap<String, Value>>,
     pub limits: HashMap<String, UserLimits>,
 }
 
@@ -31,6 +32,21 @@ impl DB {
     pub async fn new(con: Connection) -> anyhow::Result<Self> {
         let db = con.db("filez").await?;
         Ok(Self { con, db })
+    }
+
+    pub async fn get_files_by_group_id(&self, group_id: &str) -> anyhow::Result<Vec<FilezFile>> {
+        let query = AqlQuery::builder()
+            .query(
+                r#"
+                FOR file IN files
+                FILTER file.groups[*] ANY == @group_id
+                RETURN file
+            "#,
+            )
+            .bind_var("group_id", group_id)
+            .build();
+        let files: Vec<FilezFile> = self.db.aql_query(query).await?;
+        Ok(files)
     }
 
     pub async fn get_user_by_id(&self, id: &str) -> anyhow::Result<FilezUser> {

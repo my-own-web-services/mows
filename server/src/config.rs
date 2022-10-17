@@ -1,11 +1,16 @@
 use std::fs::read_to_string;
 
 use anyhow::bail;
+use lazy_static::lazy_static;
 
 use crate::types::ServerConfig;
 
 const CONFIG_PATH: &str = "/config.yml";
 const DEV_CONFIG_PATH: &str = "dev/config.yml";
+
+lazy_static! {
+    pub static ref SERVER_CONFIG: ServerConfig = read_config().unwrap();
+}
 
 pub fn read_config() -> anyhow::Result<ServerConfig> {
     let config_file = match read_to_string(CONFIG_PATH) {

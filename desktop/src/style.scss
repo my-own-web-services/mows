@@ -1,6 +1,9 @@
 * {
     --text: #fff;
     --background: #111;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
 }
 
 :root {
@@ -33,6 +36,9 @@ input {
     border-radius: 2px;
     padding: 5px;
     width: 300px;
+    cursor: text;
+    user-select: auto;
+    -webkit-user-select: auto;
 }
 
 .App {

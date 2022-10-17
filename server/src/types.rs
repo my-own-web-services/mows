@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::{collections::HashMap, hash::Hash};
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -47,5 +47,18 @@ pub struct FilezFile {
     pub sha256: String,
     pub storage_name: String,
     pub size: u64,
-    pub created_at: i64,
+    pub created: i64,
+    pub modified: Option<i64>,
+    pub accessed: Option<i64>,
+    pub accessed_count: u64,
+    pub groups: Option<Vec<String>>,
+    /**
+        UTC timecode when the file should be deleted
+    */
+    pub todeszeitpunkt: Option<i64>,
+    /**
+     A key value store for apps to store information
+     The String is the app name and the Value is its data
+    */
+    pub app_data: Option<HashMap<String, Value>>,
 }

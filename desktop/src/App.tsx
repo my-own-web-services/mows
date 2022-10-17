@@ -6,7 +6,16 @@ interface AppState {
     serverUrl: string;
     localFolder: string;
     remoteVolume: string;
+    syncMethod: string;
 }
+
+const syncMode = [
+    { name: "Push" },
+    { name: "PushDelete" },
+    { name: "Pull" },
+    { name: "PullDelete" },
+    { name: "Merge" }
+];
 
 export default class App extends Component<AppProps, AppState> {
     constructor(props: AppProps) {
@@ -14,7 +23,8 @@ export default class App extends Component<AppProps, AppState> {
         this.state = {
             serverUrl: "http://localhost:8080",
             localFolder: "/home/paul/Documents/greeter/public/",
-            remoteVolume: "greeter-public"
+            remoteVolume: "greeter-public",
+            syncMethod: "Push"
         };
     }
 
@@ -38,8 +48,16 @@ export default class App extends Component<AppProps, AppState> {
                             onChange={e => this.setState({ localFolder: e.currentTarget.value })}
                         />
                     </div>
-                    <div style={{ float: "left", padding: "30px 10px" }}>
-                        <IoArrowForward size={24} />
+                    <div style={{ float: "left", marginTop: "25px" }}>
+                        <select
+                            name=""
+                            id=""
+                            onChange={e => this.setState({ syncMethod: e.currentTarget.value })}
+                        >
+                            {syncMode.map(s => {
+                                return <option value={s.name}>{s.name}</option>;
+                            })}
+                        </select>
                     </div>
                     <div style={{ float: "left" }}>
                         <div>Remote Volume</div>
@@ -50,12 +68,14 @@ export default class App extends Component<AppProps, AppState> {
                         />
                     </div>
                     <div style={{ clear: "both" }} />
+
                     <button
                         onClick={async () => {
                             const res = await invoke("sync", {
                                 serverUrl: this.state.serverUrl,
                                 localFolder: this.state.localFolder,
-                                remoteVolume: this.state.remoteVolume
+                                remoteVolume: this.state.remoteVolume,
+                                syncMethod: this.state.syncMethod
                             });
                             console.log(res);
                         }}

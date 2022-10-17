@@ -3,50 +3,32 @@
     windows_subsystem = "windows"
 )]
 
-use std::fs::DirEntry;
-
-use filez::some_or_bail;
+use filez::utils::{get_modified_time_secs, recursive_read_dir};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn sync(server_url: &str, local_folder: &str, remote_volume: &str) -> tauri::Result<()> {
+fn sync(
+    server_url: &str,
+    local_folder: &str,
+    remote_volume: &str,
+    sync_method: &str,
+) -> Result<(), String> {
     println!(
-        "Syncing {} to {} on {}",
-        local_folder, remote_volume, server_url
+        "Syncing {} to {} on {} with sync method {}",
+        local_folder, remote_volume, server_url, sync_method
     );
 
     let files = match recursive_read_dir(local_folder) {
         Ok(files) => files,
-        Err(e) => {
-            return Err(tauri::Error::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                e,
-            )))
-        }
+        Err(e) => return Err(e.to_string()),
     };
 
-    // calculate the hash of each file
+    let fm: Vec<_> = files.iter().filter_map(get_modified_time_secs).collect();
+    dbg!(&fm);
 
     dbg!(files);
 
     Ok(())
-}
-
-pub fn recursive_read_dir(path: &str) -> anyhow::Result<Vec<DirEntry>> {
-    let mut entries = Vec::new();
-    for entry in std::fs::read_dir(path)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            entries.extend(recursive_read_dir(some_or_bail!(
-                path.to_str(),
-                "Could not convert path to sr"
-            ))?);
-        } else {
-            entries.push(entry);
-        }
-    }
-    Ok(entries)
 }
 
 fn main() {
