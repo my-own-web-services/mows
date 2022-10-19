@@ -13,7 +13,7 @@ use filez::{
         get_user_info::get_user_info, set_app_data::set_app_data,
     },
     some_or_bail,
-    types::{FilezClientAppDataFile, FilezClientConfig, LocalFile, SyncOperation, SyncType},
+    types::{FilezClientAppDataFile, FilezClientConfig, IntermediaryFile, SyncOperation, SyncType},
     utils::{generate_id, get_created_time_secs, get_modified_time_secs, recursive_read_dir},
 };
 
@@ -75,7 +75,10 @@ async fn sync(
     }
 }
 
-pub fn dir_entry_to_local_file(d: &DirEntry, local_folder: &str) -> anyhow::Result<LocalFile> {
+pub fn dir_entry_to_intermediary_file(
+    d: &DirEntry,
+    local_folder: &str,
+) -> anyhow::Result<IntermediaryFile> {
     let m = match d.metadata() {
         Ok(metadata) => metadata,
         Err(e) => bail!("Could not get metadata for file: {}", e),
@@ -88,7 +91,7 @@ pub fn dir_entry_to_local_file(d: &DirEntry, local_folder: &str) -> anyhow::Resu
     let real_path = some_or_bail!(p.to_str(), "Could not convert path to string").to_string();
     let path = real_path.replacen(local_folder, "", 1);
 
-    Ok(LocalFile {
+    Ok(IntermediaryFile {
         name,
         modified: get_modified_time_secs(&m),
         created: some_or_bail!(get_created_time_secs(&m), "Could not get created time"),
@@ -102,7 +105,10 @@ pub fn dir_entry_to_local_file(d: &DirEntry, local_folder: &str) -> anyhow::Resu
     })
 }
 
-pub fn filez_file_to_local_file(f: &FilezFile, client_name: &str) -> anyhow::Result<LocalFile> {
+pub fn filez_file_to_intermediary_file(
+    f: &FilezFile,
+    client_name: &str,
+) -> anyhow::Result<IntermediaryFile> {
     let client_app_data = match &f.app_data {
         Some(app_data) => match app_data.get(client_name) {
             Some(client_app_data_value) => {
@@ -118,7 +124,7 @@ pub fn filez_file_to_local_file(f: &FilezFile, client_name: &str) -> anyhow::Res
         None => bail!("Could not find app data"),
     };
 
-    Ok(LocalFile {
+    Ok(IntermediaryFile {
         name: f.name.clone(),
         modified: client_app_data.modified,
         created: client_app_data.created,
@@ -135,34 +141,33 @@ pub async fn exec_sync_operation(
     sync_operation: SyncOperation,
     client_name: &str,
 ) -> anyhow::Result<()> {
-    let local_file_results: Vec<anyhow::Result<LocalFile>> =
+    let local_file_results: Vec<anyhow::Result<IntermediaryFile>> =
         match recursive_read_dir(&sync_operation.local_folder) {
             Ok(files) => files
                 .iter()
-                .map(|f| dir_entry_to_local_file(f, &sync_operation.local_folder))
+                .map(|f| dir_entry_to_intermediary_file(f, &sync_operation.local_folder))
                 .collect(),
             Err(e) => bail!("Failed to read local folder: {}", e),
         };
 
     let mut local_read_errors: Vec<String> = vec![];
-    let mut local_files: Vec<LocalFile> = vec![];
+    let mut local_files: Vec<IntermediaryFile> = vec![];
     for local_file in local_file_results {
         match local_file {
             Ok(local_file) => local_files.push(local_file),
             Err(e) => local_read_errors.push(e.to_string()),
         }
     }
-    dbg!(&local_files);
 
-    let remote_files_results: Vec<anyhow::Result<LocalFile>> =
+    let remote_files_results: Vec<anyhow::Result<IntermediaryFile>> =
         get_file_infos_by_group_id(address, &sync_operation.group_id)
             .await?
             .iter()
-            .map(|f| filez_file_to_local_file(f, client_name))
+            .map(|f| filez_file_to_intermediary_file(f, client_name))
             .collect();
 
     let mut remote_file_errors: Vec<String> = vec![];
-    let mut remote_files: Vec<LocalFile> = vec![];
+    let mut remote_files: Vec<IntermediaryFile> = vec![];
     for remote_file in remote_files_results {
         match remote_file {
             Ok(remote_file) => remote_files.push(remote_file),
@@ -206,7 +211,6 @@ pub async fn exec_sync_operation(
                 LocalRemoteCompareResult::EqualIdDifferentContent => todo!(),
                 LocalRemoteCompareResult::DifferentId => continue,
                 LocalRemoteCompareResult::NotFound => {
-                    dbg!(&local_file);
                     create_file(address, local_file, client_name, &sync_operation.group_id).await?;
                 }
             }
@@ -236,8 +240,8 @@ pub enum LocalRemoteCompareResult {
 }
 
 pub fn compare_local_and_remote_files(
-    local_file: &LocalFile,
-    remote_file: &LocalFile,
+    local_file: &IntermediaryFile,
+    remote_file: &IntermediaryFile,
 ) -> LocalRemoteCompareResult {
     if local_file.id == remote_file.id {
         if local_file.modified == remote_file.modified {

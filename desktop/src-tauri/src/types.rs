@@ -64,7 +64,7 @@ pub enum SyncType {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalFile {
+pub struct IntermediaryFile {
     pub path: Option<String>,
     pub real_path: Option<String>,
     pub id: String,

@@ -27,7 +27,6 @@ pub async fn set_app_data(req: Request<Body>) -> anyhow::Result<Response<Body>> 
     let entity_id = match sadr.app_data_type {
         AppDataType::User => sadr.id.clone(),
         AppDataType::File => db.get_file_by_id(&sadr.id).await?.owner,
-        _ => bail!("Invalid appDataType"),
     };
 
     if user_id != entity_id {

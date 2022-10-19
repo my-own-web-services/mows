@@ -12,11 +12,11 @@ use crate::{
     config::SERVER_CONFIG,
     db::DB,
     some_or_bail,
-    types::{CreateFileRequest, CreateFileResponse, FilezFile},
-    utils::{generate_id, get_folder_and_file_path},
+    types::{UpdateFileRequest, UpdateFileResponse},
+    utils::get_folder_and_file_path,
 };
 
-pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
+pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
     let user_id = "test";
     let config = &SERVER_CONFIG;
 
@@ -32,7 +32,7 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
         bail!("Invalid request header");
     }
 
-    let create_request: CreateFileRequest = serde_json::from_str(request_header)?;
+    let create_request: UpdateFileRequest = serde_json::from_str(request_header)?;
 
     let db = DB::new(
         Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
@@ -40,16 +40,18 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     .await?;
 
     let user = db.get_user_by_id(user_id).await?;
+    let filez_file = db.get_file_by_id(&create_request.file_id).await?;
 
-    let storage_name = create_request
-        .storage_name
-        .unwrap_or_else(|| config.default_storage.clone());
+    let storage_name = filez_file.storage_name.clone();
 
     // first size check
     let size_hint = req.body().size_hint();
     let storage_limits = some_or_bail!(
         user.limits.get(&storage_name),
-        format!("Invalid storage name: {}", storage_name)
+        format!(
+            "Storage name: '{}' is missing specifications on the user entry",
+            storage_name
+        )
     );
     let bytes_left = storage_limits.max_storage - storage_limits.used_storage;
     if size_hint.lower() > bytes_left
@@ -65,16 +67,15 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
 
     let storage_path = some_or_bail!(
         config.storage.get(&storage_name),
-        format!(
-            "Storage name: '{}' is missing specifications on the user entry",
-            storage_name
-        )
+        format!("Invalid storage name: {}", storage_name)
     )
     .path
     .clone();
 
-    let id = generate_id();
+    let id = format!("{}_update", filez_file.id);
     let (folder_path, file_name) = get_folder_and_file_path(&id, &storage_path);
+
+    dbg!(&folder_path);
 
     fs::create_dir_all(&folder_path)?;
     // write file to disk but abbort if limits where exceeded
@@ -97,35 +98,21 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     let hash = hex::encode(hasher.finalize());
     let current_time = chrono::offset::Utc::now().timestamp_millis();
 
-    // update db in this "create file transaction"
+    // update db
     let cft = db
-        .create_file(FilezFile {
-            id: id.clone(),
-            mime_type: create_request.mime_type,
-            name: create_request.name,
-            owner: user.id,
-            sha256: hash.clone(),
-            storage_name: storage_name.clone(),
-            size: bytes_written,
-            created: current_time,
-            modified: None,
-            groups: create_request.groups,
-            app_data: None,
-            accessed: None,
-            accessed_count: 0,
-            time_of_death: None,
-        })
+        .update_file(&filez_file, &hash, bytes_written, current_time)
         .await;
 
     if cft.is_err() {
         fs::remove_file(&file_path)?;
         bail!("Failed to create file in database");
     } else {
-        let cfr = CreateFileResponse {
-            id,
-            storage_name,
-            sha256: hash,
-        };
+        let (old_folder_path, old_file_name) =
+            get_folder_and_file_path(&filez_file.id, &storage_path);
+        let old_file_path = format!("{}/{}", old_folder_path, old_file_name);
+
+        fs::rename(&file_path, &old_file_path)?;
+        let cfr = UpdateFileResponse { sha256: hash };
         Ok(Response::builder()
             .status(200)
             .body(Body::from(serde_json::to_string(&cfr)?))?)

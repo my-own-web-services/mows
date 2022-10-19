@@ -4,6 +4,18 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateFileRequest {
+    pub file_id: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateFileResponse {
+    pub sha256: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateFileRequest {
     pub name: String,
     pub mime_type: String,

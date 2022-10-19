@@ -1,7 +1,7 @@
 use crate::{
     api_types::{AppDataType, CreateFileRequest, CreateFileResponse, SetAppDataRequest},
     some_or_bail,
-    types::{FilezClientAppDataFile, LocalFile},
+    types::{FilezClientAppDataFile, IntermediaryFile},
 };
 use anyhow::bail;
 use reqwest::Body;
@@ -11,7 +11,7 @@ use super::set_app_data::set_app_data;
 
 pub async fn create_file(
     address: &str,
-    local_file: &LocalFile,
+    local_file: &IntermediaryFile,
     client_name: &str,
     group_id: &str,
 ) -> anyhow::Result<()> {
