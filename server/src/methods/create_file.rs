@@ -117,17 +117,20 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
         })
         .await;
 
-    if cft.is_err() {
-        fs::remove_file(&file_path)?;
-        bail!("Failed to create file in database");
-    } else {
-        let cfr = CreateFileResponse {
-            id,
-            storage_name,
-            sha256: hash,
-        };
-        Ok(Response::builder()
-            .status(200)
-            .body(Body::from(serde_json::to_string(&cfr)?))?)
+    match cft {
+        Ok(_) => {
+            let cfr = CreateFileResponse {
+                id,
+                storage_name,
+                sha256: hash,
+            };
+            Ok(Response::builder()
+                .status(200)
+                .body(Body::from(serde_json::to_string(&cfr)?))?)
+        }
+        Err(e) => {
+            fs::remove_file(&file_path)?;
+            bail!("Failed to create file in database: {}", e);
+        }
     }
 }

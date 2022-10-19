@@ -67,7 +67,8 @@ pub enum SyncType {
 pub struct IntermediaryFile {
     pub path: Option<String>,
     pub real_path: Option<String>,
-    pub id: String,
+    pub existing_id: Option<String>,
+    pub client_id: String,
     pub name: String,
     pub modified: Option<u64>,
     pub created: u64,

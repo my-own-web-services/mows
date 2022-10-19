@@ -98,6 +98,7 @@ impl DB {
         let res: Vec<Value> = self.db.aql_query(aql).await?;
         let val = some_or_bail!(res.get(0), "File not found");
         let file: FilezFile = serde_json::from_value(val.clone())?;
+
         Ok(file)
     }
 
@@ -109,8 +110,12 @@ impl DB {
             )
 
             LET oldUser = (
-                RETURN DOCUMENT(CONCAT("users/",@owner))
+                FOR u IN users
+                FILTER u._key == @owner
+                LIMIT 1
+                RETURN u
             )
+
             
             LET updateUserRes = (
                 UPDATE @owner WITH {
@@ -132,7 +137,7 @@ impl DB {
             .bind_var("size", file.size)
             .build();
 
-        let _res: Vec<String> = self.db.aql_query(aql).await?;
+        let _res: Vec<Value> = self.db.aql_query(aql).await?;
 
         Ok(())
     }
@@ -157,8 +162,12 @@ impl DB {
             )
             
             LET oldUser = (
-                RETURN DOCUMENT(CONCAT("users/",@owner))
+                FOR u IN users
+                FILTER u._key == @owner
+                LIMIT 1
+                RETURN u
             )
+
 
             LET updateUserRes = (
                 UPDATE @owner WITH {
@@ -183,7 +192,7 @@ impl DB {
             .bind_var("storageName", file.storage_name.clone())
             .build();
 
-        let _res: Vec<String> = self.db.aql_query(aql).await?;
+        let _res: Vec<Value> = self.db.aql_query(aql).await?;
 
         Ok(())
     }
@@ -195,15 +204,19 @@ impl DB {
         let _res: Vec<Value> = self
             .db
             .aql_bind_vars(
-                r#"LET insertRes = (
+                r#"
+                LET insertRes = (
                     INSERT @file INTO files 
                     RETURN true
                 )
 
                 LET oldUser = (
-                    RETURN DOCUMENT(CONCAT("users/",@file.owner))
-               
+                    FOR u IN users
+                    FILTER u._key == @file.owner
+                    LIMIT 1
+                    RETURN u
                 )
+
 
                 LET updateUserRes = (
                     UPDATE @file.owner WITH {

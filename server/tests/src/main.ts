@@ -53,7 +53,7 @@ export interface CreatedFileResponse {
 
 export const createFile = async (): Promise<CreatedFileResponse> => {
     const file = await fs.readFile("test-files/test.txt");
-    const res = await fetch("http://0.0.0.0:8080/create_file", {
+    const res = await fetch("http://0.0.0.0:8080/create_file/", {
         headers: {
             request: JSON.stringify({ name: "test.txt", mimeType: "text/plain" })
         },

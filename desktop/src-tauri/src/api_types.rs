@@ -4,6 +4,18 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateFileRequest {
+    pub file_id: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateFileResponse {
+    pub sha256: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateFileRequest {
     pub name: String,
     pub mime_type: String,
@@ -36,9 +48,9 @@ pub struct FilezFile {
     pub accessed_count: u64,
     pub groups: Option<Vec<String>>,
     /**
-        UTC timecode after which the file should be deleted (German for time of death)
+        UTC timecode after which the file should be deleted
     */
-    pub todeszeitpunkt: Option<i64>,
+    pub time_of_death: Option<i64>,
     /**
      A key value store for apps to store information
      The String is the app name and the Value is its data

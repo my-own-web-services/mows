@@ -10,7 +10,7 @@ use filez::{
     api_types::{AppDataType, FilezFile, SetAppDataRequest},
     methods::{
         create_file::create_file, get_file_infos_by_group_id::get_file_infos_by_group_id,
-        get_user_info::get_user_info, set_app_data::set_app_data,
+        get_user_info::get_user_info, set_app_data::set_app_data, update_file::update_file,
     },
     some_or_bail,
     types::{FilezClientAppDataFile, FilezClientConfig, IntermediaryFile, SyncOperation, SyncType},
@@ -100,8 +100,9 @@ pub fn dir_entry_to_intermediary_file(
             .first_or_octet_stream()
             .to_string(),
         path: Some(path.clone()),
-        id: path,
+        client_id: path,
         real_path: Some(real_path),
+        existing_id: None,
     })
 }
 
@@ -131,8 +132,9 @@ pub fn filez_file_to_intermediary_file(
         size: f.size,
         mime_type: f.mime_type.clone(),
         path: client_app_data.path.clone(),
-        id: some_or_bail!(client_app_data.path, "Could not get path to set as id"),
+        client_id: some_or_bail!(client_app_data.path, "Could not get path to set as id"),
         real_path: None,
+        existing_id: Some(f.id.clone()),
     })
 }
 
@@ -140,7 +142,9 @@ pub async fn exec_sync_operation(
     address: &str,
     sync_operation: SyncOperation,
     client_name: &str,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<(Vec<String>, Vec<String>, Vec<String>)> {
+    let mut delete_errors: Vec<String> = vec![];
+
     let local_file_results: Vec<anyhow::Result<IntermediaryFile>> =
         match recursive_read_dir(&sync_operation.local_folder) {
             Ok(files) => files
@@ -203,22 +207,60 @@ pub async fn exec_sync_operation(
     } else if sync_operation.sync_type == SyncType::Push
         || sync_operation.sync_type == SyncType::PushDelete
     {
+        let mut files_to_delete: Vec<String> = vec![];
         // push files
         for (i, comp) in comp_results.iter().enumerate() {
             let local_file = &local_files[i];
             match comp {
                 LocalRemoteCompareResult::EqualId => continue,
-                LocalRemoteCompareResult::EqualIdDifferentContent => todo!(),
+                LocalRemoteCompareResult::EqualIdDifferentContent => {
+                    let file_id = remote_files
+                        .iter()
+                        .find(|f| f.client_id == local_file.client_id);
+
+                    match file_id {
+                        Some(file_id) => match &file_id.existing_id {
+                            Some(existing_id) => {
+                                match update_file(address, local_file, client_name, existing_id)
+                                    .await
+                                {
+                                    Ok(_) => match &local_file.real_path {
+                                        Some(real_path) => {
+                                            files_to_delete.push(real_path.to_string())
+                                        }
+                                        None => continue,
+                                    },
+                                    Err(_) => continue,
+                                }
+                            }
+                            None => continue,
+                        },
+                        None => continue,
+                    };
+                }
                 LocalRemoteCompareResult::DifferentId => continue,
                 LocalRemoteCompareResult::NotFound => {
-                    create_file(address, local_file, client_name, &sync_operation.group_id).await?;
+                    match create_file(address, local_file, client_name, &sync_operation.group_id)
+                        .await
+                    {
+                        Ok(_) => match &local_file.real_path {
+                            Some(real_path) => files_to_delete.push(real_path.to_string()),
+                            None => continue,
+                        },
+                        Err(_) => continue,
+                    };
                 }
             }
         }
 
         if sync_operation.sync_type == SyncType::PushDelete {
             // delete files locally that were successfully pushed
-            todo!()
+            files_to_delete.iter().for_each(|f| {
+                match std::fs::remove_file(f) {
+                    Ok(_) => (),
+                    Err(e) => delete_errors.push(e.to_string()),
+                };
+            });
         }
     } else {
         // pull files
@@ -228,7 +270,7 @@ pub async fn exec_sync_operation(
             todo!()
         }
     };
-    Ok(())
+    Ok((local_read_errors, remote_file_errors, delete_errors))
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -243,7 +285,7 @@ pub fn compare_local_and_remote_files(
     local_file: &IntermediaryFile,
     remote_file: &IntermediaryFile,
 ) -> LocalRemoteCompareResult {
-    if local_file.id == remote_file.id {
+    if local_file.client_id == remote_file.client_id {
         if local_file.modified == remote_file.modified {
             return LocalRemoteCompareResult::EqualId;
         } else {

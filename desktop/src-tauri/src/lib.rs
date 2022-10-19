@@ -10,6 +10,7 @@ pub mod methods {
     pub mod get_file_infos_by_group_id;
     pub mod get_user_info;
     pub mod set_app_data;
+    pub mod update_file;
 }
 
 pub mod api_types;
