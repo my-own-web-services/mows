@@ -5,7 +5,7 @@ use filez::methods::create_file::create_file;
 use filez::methods::delete_file::delete_file;
 use filez::methods::get_file::get_file;
 use filez::methods::get_file_info::get_file_info;
-use filez::methods::get_files_by_group_id::get_files_by_group_id;
+use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
 use filez::methods::get_user_info::get_user_info;
 use filez::methods::set_app_data::set_app_data;
 use hyper::service::{make_service_fn, service_fn};
@@ -57,8 +57,8 @@ async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
         delete_file(req).await
     } else if req.uri().path().starts_with("/get_file_info/") {
         get_file_info(req).await
-    } else if req.uri().path().starts_with("/get_files_by_group_id/") {
-        get_files_by_group_id(req).await
+    } else if req.uri().path().starts_with("/get_file_infos_by_group_id/") {
+        get_file_infos_by_group_id(req).await
     } else if req.uri().path().starts_with("/set_app_data/") {
         set_app_data(req).await
     } else if req.uri().path().starts_with("/get_user_info/") {

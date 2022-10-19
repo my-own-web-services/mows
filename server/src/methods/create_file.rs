@@ -73,9 +73,12 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     let id = generate_id();
     let (folder_path, file_name) = get_folder_and_file_path(&id, &storage_path);
 
+    dbg!(&folder_path);
+
     fs::create_dir_all(&folder_path)?;
     // write file to disk but abbort if limits where exceeded
-    let mut file = File::create(format!("{}/{}", folder_path, file_name))?;
+    let file_path = format!("{}/{}", folder_path, file_name);
+    let mut file = File::create(&file_path)?;
     let mut hasher = Sha256::new();
 
     let mut bytes_written = 0;
@@ -83,7 +86,7 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
         let chunk = chunk?;
         bytes_written += chunk.len() as u64;
         if bytes_written > bytes_left {
-            fs::remove_file(&storage_path)?;
+            fs::remove_file(&file_path)?;
             bail!("User storage limit exceeded");
         }
         hasher.write_all(&chunk)?;
@@ -105,16 +108,16 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
             size: bytes_written,
             created: current_time,
             modified: None,
-            groups: None,
+            groups: create_request.groups,
             app_data: None,
             accessed: None,
             accessed_count: 0,
-            todeszeitpunkt: None,
+            time_of_death: None,
         })
         .await;
 
     if cft.is_err() {
-        fs::remove_file(&storage_path)?;
+        fs::remove_file(&file_path)?;
         bail!("Failed to create file in database");
     } else {
         let cfr = CreateFileResponse {

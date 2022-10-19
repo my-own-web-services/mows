@@ -36,9 +36,9 @@ pub struct FilezFile {
     pub accessed_count: u64,
     pub groups: Option<Vec<String>>,
     /**
-        UTC timecode after which the file should be deleted
+        UTC timecode after which the file should be deleted (German for time of death)
     */
-    pub time_of_death: Option<i64>,
+    pub todeszeitpunkt: Option<i64>,
     /**
      A key value store for apps to store information
      The String is the app name and the Value is its data

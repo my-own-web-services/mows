@@ -1,14 +1,35 @@
-use std::fs::DirEntry;
+use std::fs::{DirEntry, Metadata};
 
 use crate::some_or_bail;
 
-pub fn get_modified_time_secs(dir_entry: &DirEntry) -> Option<u64> {
-    match dir_entry.metadata() {
-        Ok(metadata) => match metadata.modified() {
-            Ok(sytem_time) => match sytem_time.duration_since(std::time::UNIX_EPOCH) {
-                Ok(duration) => Some(duration.as_secs()),
-                Err(_) => None,
-            },
+pub fn generate_id() -> String {
+    use rand::Rng;
+    const CHARSET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    const PASSWORD_LEN: usize = 32;
+    let mut rng = rand::thread_rng();
+
+    (0..PASSWORD_LEN)
+        .map(|_| {
+            let idx = rng.gen_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
+}
+
+pub fn get_modified_time_secs(metadata: &Metadata) -> Option<u64> {
+    match metadata.modified() {
+        Ok(sytem_time) => match sytem_time.duration_since(std::time::UNIX_EPOCH) {
+            Ok(duration) => Some(duration.as_secs()),
+            Err(_) => None,
+        },
+        Err(_) => None,
+    }
+}
+
+pub fn get_created_time_secs(metadata: &Metadata) -> Option<u64> {
+    match metadata.modified() {
+        Ok(sytem_time) => match sytem_time.duration_since(std::time::UNIX_EPOCH) {
+            Ok(duration) => Some(duration.as_secs()),
             Err(_) => None,
         },
         Err(_) => None,

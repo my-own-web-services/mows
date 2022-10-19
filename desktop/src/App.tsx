@@ -10,11 +10,11 @@ interface AppState {
 }
 
 const syncMode = [
-    { name: "Push" },
-    { name: "PushDelete" },
-    { name: "Pull" },
-    { name: "PullDelete" },
-    { name: "Merge" }
+    { name: "push" },
+    { name: "pushDelete" },
+    { name: "pull" },
+    { name: "pullDelete" },
+    { name: "merge" }
 ];
 
 export default class App extends Component<AppProps, AppState> {

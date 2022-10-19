@@ -1,25 +1,10 @@
-use crate::db::DB;
+use crate::{
+    db::DB,
+    types::{AppDataType, SetAppDataRequest},
+};
 use anyhow::bail;
 use arangors::Connection;
 use hyper::{Body, Request, Response};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct SetAppDataRequest {
-    pub app_data_type: AppDataType,
-    pub id: String,
-    pub app_name: String,
-    pub app_data: Value,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub enum AppDataType {
-    File,
-    User,
-}
 
 pub async fn set_app_data(req: Request<Body>) -> anyhow::Result<Response<Body>> {
     let user_id = "test";

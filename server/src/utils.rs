@@ -19,5 +19,9 @@ pub fn get_folder_and_file_path(id: &str, storage_path: &str) -> (String, String
         .map(|c| c.to_string())
         .collect::<Vec<_>>()
         .join("/");
-    (format!("{}/{}", storage_path, fd), file_name.to_string())
+    if storage_path.ends_with('/') {
+        (format!("{}{}", storage_path, fd), file_name.to_string())
+    } else {
+        (format!("{}/{}", storage_path, fd), file_name.to_string())
+    }
 }

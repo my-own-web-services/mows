@@ -1,9 +1,8 @@
-use std::fs::read_to_string;
+use std::{collections::HashMap, fs::read_to_string};
 
 use anyhow::bail;
 use lazy_static::lazy_static;
-
-use crate::types::ServerConfig;
+use serde::{Deserialize, Serialize};
 
 const CONFIG_PATH: &str = "/config.yml";
 const DEV_CONFIG_PATH: &str = "dev/config.yml";
@@ -39,4 +38,22 @@ pub fn replace_variables(mut config_file: String) -> anyhow::Result<String> {
     }
 
     Ok(config_file)
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerConfig {
+    pub variable_prefix: String,
+    #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    pub storage: HashMap<String, StorageConfig>,
+    pub default_storage: String,
+}
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageConfig {
+    pub path: String,
+    /**
+    A storage location: either to seperate files onto different drives because of speed or type
+    */
+    pub limit: Option<u64>,
 }

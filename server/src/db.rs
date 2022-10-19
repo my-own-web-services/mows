@@ -1,36 +1,15 @@
 use crate::{
-    methods::set_app_data::{AppDataType, SetAppDataRequest},
     some_or_bail,
-    types::FilezFile,
+    types::{AppDataType, FilezFile, FilezUser, SetAppDataRequest},
 };
 use anyhow::bail;
 use arangors::{uclient::reqwest::ReqwestClient, AqlQuery, Connection, Database};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
 pub struct DB {
     pub con: Connection,
     pub db: Database<ReqwestClient>,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
-pub struct FilezUser {
-    #[serde(rename = "_key")]
-    pub id: String,
-    pub app_data: Option<HashMap<String, Value>>,
-    pub limits: HashMap<String, UserLimits>,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct UserLimits {
-    pub max_storage: u64,
-    pub used_storage: u64,
-    pub max_files: u64,
-    pub used_files: u64,
-    pub max_bandwidth: u64,
-    pub used_bandwidth: u64,
 }
 
 impl DB {
@@ -108,6 +87,7 @@ impl DB {
         let res: Vec<Value> = self.db.aql_query(aql).await?;
         let val = some_or_bail!(res.get(0), "User not found");
         let user: FilezUser = serde_json::from_value(val.clone())?;
+
         Ok(user)
     }
 
