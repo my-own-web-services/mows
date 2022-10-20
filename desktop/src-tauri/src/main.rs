@@ -9,8 +9,9 @@ use anyhow::bail;
 use filez::{
     api_types::{AppDataType, FilezFile, SetAppDataRequest},
     methods::{
-        create_file::create_file, get_file_infos_by_group_id::get_file_infos_by_group_id,
-        get_user_info::get_user_info, set_app_data::set_app_data, update_file::update_file,
+        create_file::create_file, delete_file::delete_file, get_file::get_file,
+        get_file_infos_by_group_id::get_file_infos_by_group_id, get_user_info::get_user_info,
+        set_app_data::set_app_data, update_file::update_file,
     },
     some_or_bail,
     types::{FilezClientAppDataFile, FilezClientConfig, IntermediaryFile, SyncOperation, SyncType},
@@ -155,10 +156,10 @@ pub async fn exec_sync_operation(
         };
 
     let mut local_read_errors: Vec<String> = vec![];
-    let mut local_files: Vec<IntermediaryFile> = vec![];
+    let mut remote_files: Vec<IntermediaryFile> = vec![];
     for local_file in local_file_results {
         match local_file {
-            Ok(local_file) => local_files.push(local_file),
+            Ok(local_file) => remote_files.push(local_file),
             Err(e) => local_read_errors.push(e.to_string()),
         }
     }
@@ -179,27 +180,6 @@ pub async fn exec_sync_operation(
         }
     }
 
-    // compare the files
-    let mut comp_results: Vec<LocalRemoteCompareResult> = vec![];
-    for local_file in &local_files {
-        let mut comp_result = LocalRemoteCompareResult::NotFound;
-        for remote_file in &remote_files {
-            match compare_local_and_remote_files(local_file, remote_file) {
-                LocalRemoteCompareResult::EqualId => {
-                    comp_result = LocalRemoteCompareResult::EqualId;
-                    break;
-                }
-                LocalRemoteCompareResult::EqualIdDifferentContent => {
-                    comp_result = LocalRemoteCompareResult::EqualIdDifferentContent;
-                    break;
-                }
-                LocalRemoteCompareResult::DifferentId => continue,
-                LocalRemoteCompareResult::NotFound => continue,
-            }
-        }
-        comp_results.push(comp_result);
-    }
-
     // perform the sync based on comparison and method
     if sync_operation.sync_type == SyncType::Merge {
         // merge local and remote files
@@ -207,10 +187,30 @@ pub async fn exec_sync_operation(
     } else if sync_operation.sync_type == SyncType::Push
         || sync_operation.sync_type == SyncType::PushDelete
     {
+        let mut comp_results: Vec<LocalRemoteCompareResult> = vec![];
+        for local_file in &remote_files {
+            let mut comp_result = LocalRemoteCompareResult::NotFound;
+            for remote_file in &remote_files {
+                match compare_local_and_remote_files(local_file, remote_file) {
+                    LocalRemoteCompareResult::EqualId => {
+                        comp_result = LocalRemoteCompareResult::EqualId;
+                        break;
+                    }
+                    LocalRemoteCompareResult::EqualIdDifferentContent => {
+                        comp_result = LocalRemoteCompareResult::EqualIdDifferentContent;
+                        break;
+                    }
+                    LocalRemoteCompareResult::DifferentId => continue,
+                    LocalRemoteCompareResult::NotFound => continue,
+                }
+            }
+            comp_results.push(comp_result);
+        }
+
         let mut files_to_delete: Vec<String> = vec![];
-        // push files
+        // push files to remote
         for (i, comp) in comp_results.iter().enumerate() {
-            let local_file = &local_files[i];
+            let local_file = &remote_files[i];
             match comp {
                 LocalRemoteCompareResult::EqualId => continue,
                 LocalRemoteCompareResult::EqualIdDifferentContent => {
@@ -255,19 +255,75 @@ pub async fn exec_sync_operation(
 
         if sync_operation.sync_type == SyncType::PushDelete {
             // delete files locally that were successfully pushed
-            files_to_delete.iter().for_each(|f| {
-                match std::fs::remove_file(f) {
+            files_to_delete.iter().for_each(|file_path| {
+                match std::fs::remove_file(file_path) {
                     Ok(_) => (),
                     Err(e) => delete_errors.push(e.to_string()),
                 };
             });
         }
     } else {
-        // pull files
-        todo!();
+        // pull files from remote
+        let mut comp_results: Vec<LocalRemoteCompareResult> = vec![];
+        for remote_file in &remote_files {
+            let mut comp_result = LocalRemoteCompareResult::NotFound;
+            for local_file in &remote_files {
+                match compare_local_and_remote_files(local_file, remote_file) {
+                    LocalRemoteCompareResult::EqualId => {
+                        comp_result = LocalRemoteCompareResult::EqualId;
+                        break;
+                    }
+                    LocalRemoteCompareResult::EqualIdDifferentContent => {
+                        comp_result = LocalRemoteCompareResult::EqualIdDifferentContent;
+                        break;
+                    }
+                    LocalRemoteCompareResult::DifferentId => continue,
+                    LocalRemoteCompareResult::NotFound => continue,
+                }
+            }
+            comp_results.push(comp_result);
+        }
+
+        let mut files_to_delete: Vec<String> = vec![];
+        for (i, comp) in comp_results.iter().enumerate() {
+            let remote_file = &remote_files[i];
+            if comp == &LocalRemoteCompareResult::EqualIdDifferentContent
+                || comp == &LocalRemoteCompareResult::NotFound
+            {
+                let maybe_imf = remote_files
+                    .iter()
+                    .find(|f| f.client_id == remote_file.client_id);
+
+                match maybe_imf {
+                    Some(imf) => match &imf.existing_id {
+                        Some(existing_id) => match get_file(
+                            address,
+                            existing_id,
+                            imf.path.clone(),
+                            &sync_operation.local_folder,
+                            &remote_file.name,
+                        )
+                        .await
+                        {
+                            Ok(_) => files_to_delete.push(existing_id.to_string()),
+                            Err(_) => continue,
+                        },
+                        None => continue,
+                    },
+                    None => continue,
+                };
+            }
+        }
+
         if sync_operation.sync_type == SyncType::PullDelete {
             // delete files remotely that were successfully pulled
-            todo!()
+
+            for file_id in files_to_delete {
+                match delete_file(address, &file_id).await {
+                    Ok(_) => (),
+                    Err(e) => delete_errors.push(e.to_string()),
+                };
+            }
         }
     };
     Ok((local_read_errors, remote_file_errors, delete_errors))
