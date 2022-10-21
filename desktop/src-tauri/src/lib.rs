@@ -14,3 +14,4 @@ pub mod methods {
 }
 
 pub mod api_types;
+pub mod sync;
