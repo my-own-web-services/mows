@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     api_types::{AppDataType, SetAppDataRequest, UpdateFileRequest, UpdateFileResponse},
     some_or_bail,
@@ -38,19 +40,22 @@ pub async fn update_file(
 
         let cfr = serde_json::from_str::<UpdateFileResponse>(&res_text)?;
     */
-    let app_data = FilezClientAppDataFile {
+    let mut filez_client_app_data: HashMap<String, FilezClientAppDataFile> = HashMap::new();
+
+    let app_data_file = FilezClientAppDataFile {
         modified: intermediary_file.modified,
         created: intermediary_file.created,
         path: intermediary_file.path.clone(),
         id: intermediary_file.client_id.clone(),
         encrypted: false,
     };
+    filez_client_app_data.insert(client_name.to_string(), app_data_file);
 
     let app_data_req = SetAppDataRequest {
         app_data_type: AppDataType::File,
         id: file_id.to_string(),
-        app_name: client_name.to_string(),
-        app_data: serde_json::to_value(app_data)?,
+        app_name: "filezClients".to_string(),
+        app_data: serde_json::to_value(filez_client_app_data)?,
     };
 
     set_app_data(address, &app_data_req).await?;

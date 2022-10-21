@@ -24,7 +24,7 @@ export default class App extends Component<AppProps, AppState> {
             serverUrl: "http://localhost:8080",
             localFolder: "/home/paul/Documents/greeter/public/",
             remoteVolume: "greeter-public",
-            syncMethod: "Push"
+            syncMethod: "push"
         };
     }
 

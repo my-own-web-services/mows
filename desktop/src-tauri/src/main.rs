@@ -13,7 +13,7 @@ async fn sync(
     remote_volume: &str,
     sync_method: &str,
 ) -> Result<(), String> {
-    let client_name = "hartmut";
+    let client_name = "hartmut2";
     let user_id = "test";
 
     match run_sync(

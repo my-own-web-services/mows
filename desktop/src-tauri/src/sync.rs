@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::DirEntry, vec};
+use std::{collections::HashMap, fs::DirEntry, hash::Hash, vec};
 
 use crate::{
     api_types::{AppDataType, FilezFile, SetAppDataRequest},
@@ -112,7 +112,14 @@ pub async fn exec_sync_operation(
     // perform the sync based on comparison and method
     if sync_operation.sync_type == SyncType::Merge {
         // merge local and remote files
-        todo!()
+        run_merge(
+            address,
+            client_name,
+            sync_operation,
+            local_files,
+            remote_files,
+        )
+        .await;
     } else if sync_operation.sync_type == SyncType::Push
         || sync_operation.sync_type == SyncType::PushDelete
     {
@@ -140,17 +147,23 @@ pub async fn exec_sync_operation(
     Ok((local_read_errors, remote_file_errors, delete_errors))
 }
 
-/*
+pub async fn run_merge(
+    address: &str,
+    client_name: &str,
+    sync_operation: SyncOperation,
+    local_files: Vec<IntermediaryFile>,
+    remote_files: Vec<IntermediaryFile>,
+) {
+    // DELETE
+    // compare file changes between last sync and current sync on local as well as remote
+    // get files that were deleted locally and delete them on remote and vice versa
 
-update:
-remote is newer -> update local
-remote is older -> update remote
+    // UPDATE
+    // update changed files in one or the other direction based on their modified time
 
-
-remote does not exist -> create remote
-remote
-
-*/
+    // CREATE
+    // download/upload new files
+}
 
 pub async fn run_pull(
     address: &str,
@@ -252,7 +265,7 @@ pub async fn run_push(
 
     let mut files_to_delete: Vec<String> = vec![];
     for (i, comp) in comp_results.iter().enumerate() {
-        let local_file = &remote_files[i];
+        let local_file = &local_files[i];
         match comp {
             LocalRemoteCompareResult::EqualId => continue,
             LocalRemoteCompareResult::EqualIdDifferentContent => {
@@ -350,18 +363,20 @@ pub async fn create_sync_operation(
             _ => bail!("Invalid sync method"),
         },
     };
+    let mut clients_info: HashMap<String, FilezClientConfig> = HashMap::new();
 
-    let client_info = client_info;
     client_info
         .sync_operations
         .get_or_insert(HashMap::new())
         .insert(sync_id.to_string(), sync_operation.clone());
 
+    clients_info.insert(client_name.to_string(), client_info.clone());
+
     let sadr = SetAppDataRequest {
         app_data_type: AppDataType::User,
         id: user_id.to_string(),
-        app_name: client_name.to_string(),
-        app_data: serde_json::to_value(client_info.clone())?,
+        app_name: "filezClients".to_string(),
+        app_data: serde_json::to_value(clients_info.clone())?,
     };
 
     set_app_data(server_url, &sadr).await?;
@@ -388,15 +403,19 @@ pub async fn create_client_info(
     client_name: &str,
     user_id: &str,
 ) -> anyhow::Result<FilezClientConfig> {
+    let mut clients_info = HashMap::new();
+
     let client_info = FilezClientConfig {
         sync_operations: None,
     };
 
+    clients_info.insert(client_name.to_string(), client_info.clone());
+
     let sadr = SetAppDataRequest {
         app_data_type: AppDataType::User,
         id: user_id.to_string(),
-        app_name: client_name.to_string(),
-        app_data: serde_json::to_value(client_info.clone())?,
+        app_name: "filezClients".to_string(),
+        app_data: serde_json::to_value(clients_info.clone())?,
     };
 
     set_app_data(server_url, &sadr).await?;
@@ -416,14 +435,19 @@ pub async fn get_client_info(
                     match app_data.get(client_name) {
                         Some(client_info) => {
                             // client info exists
-                            let client_info: FilezClientConfig =
-                                match serde_json::from_value(client_info.clone()) {
+                            let client_infos =
+                                match serde_json::from_value::<HashMap<String, FilezClientConfig>>(
+                                    client_info.clone(),
+                                ) {
                                     Ok(client_info) => client_info,
                                     Err(e) => {
                                         bail!("Could not parse client info: {}", e);
                                     }
                                 };
-                            client_info
+                            match client_infos.get(client_name) {
+                                Some(client_info) => client_info.clone(),
+                                None => bail!("No client info found"),
+                            }
                         }
                         None => {
                             // no user info for this client
@@ -479,10 +503,10 @@ pub fn filez_file_to_intermediary_file(
     f: &FilezFile,
     client_name: &str,
 ) -> anyhow::Result<IntermediaryFile> {
-    let client_app_data = match &f.app_data {
-        Some(app_data) => match app_data.get(client_name) {
+    let clients_app_data = match &f.app_data {
+        Some(app_data) => match app_data.get("filezClients") {
             Some(client_app_data_value) => {
-                match serde_json::from_value::<FilezClientAppDataFile>(
+                match serde_json::from_value::<HashMap<String, FilezClientAppDataFile>>(
                     client_app_data_value.clone(),
                 ) {
                     Ok(client_app_data) => client_app_data,
@@ -494,6 +518,11 @@ pub fn filez_file_to_intermediary_file(
         None => bail!("Could not find app data"),
     };
 
+    let client_app_data = match clients_app_data.get(client_name) {
+        Some(client_app_data) => client_app_data,
+        None => bail!("Could not find client app data for client {}", client_name),
+    };
+
     Ok(IntermediaryFile {
         name: f.name.clone(),
         modified: client_app_data.modified,
@@ -501,7 +530,10 @@ pub fn filez_file_to_intermediary_file(
         size: f.size,
         mime_type: f.mime_type.clone(),
         path: client_app_data.path.clone(),
-        client_id: some_or_bail!(client_app_data.path, "Could not get path to set as id"),
+        client_id: some_or_bail!(
+            client_app_data.path.clone(),
+            "Could not get path to set as id"
+        ),
         real_path: None,
         existing_id: Some(f.id.clone()),
     })
