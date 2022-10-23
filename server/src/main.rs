@@ -8,6 +8,7 @@ use filez::methods::get_file_info::get_file_info;
 use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
 use filez::methods::get_user_info::get_user_info;
 use filez::methods::set_app_data::set_app_data;
+use filez::methods::update_file::update_file;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 use std::convert::Infallible;
@@ -63,7 +64,9 @@ async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
         set_app_data(req).await
     } else if req.uri().path().starts_with("/get_user_info/") {
         get_user_info(req).await
+    } else if req.uri().path().starts_with("/update_file/") {
+        update_file(req).await
     } else {
-        bail!("Invalid path");
+        bail!("Request has and invalid path");
     }
 }

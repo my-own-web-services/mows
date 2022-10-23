@@ -80,8 +80,9 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
 
     fs::create_dir_all(&folder_path)?;
     // write file to disk but abbort if limits where exceeded
-    let file_path = Path::new(&folder_path).join(file_name);
-    let mut file = File::create(&file_path)?;
+    let new_file_path = Path::new(&folder_path).join(file_name);
+    dbg!(&new_file_path);
+    let mut file = File::create(&new_file_path)?;
     let mut hasher = Sha256::new();
 
     let mut bytes_written = 0;
@@ -89,7 +90,7 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
         let chunk = chunk?;
         bytes_written += chunk.len() as u64;
         if bytes_written > bytes_left {
-            fs::remove_file(&file_path)?;
+            fs::remove_file(&new_file_path)?;
             bail!("User storage limit exceeded");
         }
         hasher.write_all(&chunk)?;
@@ -110,14 +111,14 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
         .await;
 
     if cft.is_err() {
-        fs::remove_file(&file_path)?;
+        fs::remove_file(&new_file_path)?;
         bail!("Failed to create file in database");
     } else {
         let (old_folder_path, old_file_name) =
             get_folder_and_file_path(&filez_file.id, &storage_path);
         let old_file_path = Path::new(&old_folder_path).join(old_file_name);
 
-        fs::rename(&file_path, &old_file_path)?;
+        fs::rename(&new_file_path, &old_file_path)?;
         let cfr = UpdateFileResponse { sha256: hash };
         Ok(Response::builder()
             .status(200)

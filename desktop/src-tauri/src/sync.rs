@@ -8,7 +8,7 @@ use crate::{
     },
     some_or_bail,
     types::{FilezClientAppDataFile, FilezClientConfig, IntermediaryFile, SyncOperation, SyncType},
-    utils::{generate_id, get_created_time_secs, get_modified_time_secs, recursive_read_dir},
+    utils::{get_created_time_secs, get_modified_time_secs, recursive_read_dir},
 };
 use anyhow::bail;
 
@@ -46,7 +46,7 @@ pub async fn run_sync(
         Some(sync_operation) => sync_operation.clone(),
         None => {
             // create a new sync operation
-            let group_id = generate_id();
+            let group_id = format!("{}-{}", user_id, remote_volume);
             let sync_operation = SyncOperation {
                 local_folder: local_folder.to_string(),
                 remote_volume: remote_volume.to_string(),
@@ -122,8 +122,8 @@ pub async fn exec_sync_operation(
         }
     }
 
-    dbg!(&remote_files);
-    dbg!(&local_files);
+    //dbg!(&remote_files);
+    //dbg!(&local_files);
 
     // perform the sync based on comparison and method
     if sync_operation.sync_type == SyncType::Merge {
@@ -180,10 +180,19 @@ pub async fn run_merge(
         }
 
         for local_file in local_files_to_delete_remote {
+            let remote_id = some_or_bail!(
+                remote_files
+                    .iter()
+                    .find(|f| f.client_id == local_file.client_id),
+                "Could not find corresponding remote file to delete"
+            )
+            .existing_id
+            .clone();
+
             match delete_file(
                 address,
                 some_or_bail!(
-                    &local_file.existing_id,
+                    &remote_id,
                     "Local file has not existing id on server so it cannot be deleted"
                 ),
             )
@@ -261,7 +270,10 @@ pub async fn run_merge(
                     .await
                     {
                         Ok(_) => (),
-                        Err(_) => todo!(),
+                        Err(e) => {
+                            dbg!(e);
+                            todo!();
+                        }
                     }
                 }
                 MergeCompareResult::EqualIdUpdateRemote => {
@@ -280,7 +292,10 @@ pub async fn run_merge(
                     .await
                     {
                         Ok(_) => (),
-                        Err(_) => todo!(),
+                        Err(e) => {
+                            dbg!(e);
+                            todo!();
+                        }
                     }
                 }
                 MergeCompareResult::DifferentId => (),
@@ -291,7 +306,6 @@ pub async fn run_merge(
     // CREATE
     // download/upload new files
     {
-        let mut local_files_to_upload: Vec<IntermediaryFile> = vec![];
         let mut remote_files_to_download: Vec<IntermediaryFile> = vec![];
         for remote_file in &remote_files {
             let mut found = false;
@@ -305,8 +319,9 @@ pub async fn run_merge(
                 remote_files_to_download.push(remote_file.clone());
             }
         }
-        //dbg!(&remote_files);
-        //dbg!(&local_files);
+        dbg!(&remote_files);
+        dbg!(&local_files);
+        let mut local_files_to_upload: Vec<IntermediaryFile> = vec![];
         for local_file in &local_files {
             let mut found = false;
             for remote_file in &remote_files {
@@ -326,7 +341,10 @@ pub async fn run_merge(
         for local_file in local_files_to_upload {
             match create_file(address, &local_file, &sync_operation.group_id).await {
                 Ok(_) => (),
-                Err(_) => todo!(),
+                Err(e) => {
+                    dbg!(e);
+                    todo!();
+                }
             }
         }
         // download new remote files
@@ -343,7 +361,10 @@ pub async fn run_merge(
             .await
             {
                 Ok(_) => (),
-                Err(_) => todo!(),
+                Err(e) => {
+                    dbg!(e);
+                    todo!();
+                }
             }
         }
     }

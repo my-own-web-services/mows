@@ -138,7 +138,7 @@ export default class App extends Component<AppProps, AppState> {
                     <button
                         onClick={async () => {
                             const configDir = await getConfigDir();
-                            this.state.syncConfig.forEach(async cfg => {
+                            for (const cfg of this.state.syncConfig) {
                                 const res = await invoke("sync", {
                                     serverUrl: cfg.serverUrl,
                                     localFolder: cfg.localFolder,
@@ -147,7 +147,7 @@ export default class App extends Component<AppProps, AppState> {
                                     localConfigDir: configDir
                                 });
                                 console.log(res);
-                            });
+                            }
                         }}
                     >
                         Sync
