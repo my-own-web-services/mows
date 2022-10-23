@@ -1,15 +1,8 @@
 import { invoke } from "@tauri-apps/api";
 import { Component, h } from "preact";
 import { IoArrowForward } from "react-icons/io5";
-import { configDir } from "@tauri-apps/api/path";
-
-interface AppProps {}
-interface AppState {
-    serverUrl: string;
-    localFolder: string;
-    remoteVolume: string;
-    syncMethod: string;
-}
+import { configDir as getConfigDir } from "@tauri-apps/api/path";
+import update from "immutability-helper";
 
 const syncMode = [
     { name: "push" },
@@ -19,15 +12,35 @@ const syncMode = [
     { name: "merge" }
 ];
 
+export interface SyncConfig {
+    serverUrl: string;
+    localFolder: string;
+    remoteVolume: string;
+    syncMethod: string;
+}
+
+const defaultConfig: SyncConfig[] = [
+    {
+        serverUrl: "http://localhost:8080",
+        localFolder: "/home/paul/Downloads/filez_test/",
+        remoteVolume: "filez-test",
+        syncMethod: "merge"
+    },
+    {
+        serverUrl: "http://localhost:8080",
+        localFolder: "/home/paul/Downloads/filez_test_2/",
+        remoteVolume: "filez-test",
+        syncMethod: "merge"
+    }
+];
+interface AppProps {}
+interface AppState {
+    syncConfig: SyncConfig[];
+}
 export default class App extends Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
-        this.state = {
-            serverUrl: "http://localhost:8080",
-            localFolder: "/home/paul/Downloads/filez_test/",
-            remoteVolume: "filez-test",
-            syncMethod: "merge"
-        };
+        this.state = { syncConfig: defaultConfig };
     }
 
     render = () => {
@@ -35,53 +48,106 @@ export default class App extends Component<AppProps, AppState> {
             <div className="App">
                 <div style={{ padding: "20px" }}>
                     <h1>Filez Client</h1>
-                    <h2>Server</h2>
-                    <input
-                        type="text"
-                        value={this.state.serverUrl}
-                        onChange={e => this.setState({ serverUrl: e.currentTarget.value })}
-                    />
-                    <h2>Sync Folder</h2>
-                    <div style={{ float: "left" }}>
-                        <div>Local Path</div>
-                        <input
-                            type="text"
-                            value={this.state.localFolder}
-                            onChange={e => this.setState({ localFolder: e.currentTarget.value })}
-                        />
-                    </div>
-                    <div style={{ float: "left", marginTop: "25px" }}>
-                        <select
-                            name=""
-                            id=""
-                            onChange={e => this.setState({ syncMethod: e.currentTarget.value })}
-                            value={this.state.syncMethod}
-                        >
-                            {syncMode.map(s => {
-                                return <option value={s.name}>{s.name}</option>;
-                            })}
-                        </select>
-                    </div>
-                    <div style={{ float: "left" }}>
-                        <div>Remote Volume</div>
-                        <input
-                            type="text"
-                            value={this.state.remoteVolume}
-                            onChange={e => this.setState({ remoteVolume: e.currentTarget.value })}
-                        />
-                    </div>
-                    <div style={{ clear: "both" }} />
+                    {this.state.syncConfig.map((cfg, i) => {
+                        return (
+                            <div>
+                                <input
+                                    type="text"
+                                    value={cfg.serverUrl}
+                                    onChange={e =>
+                                        this.setState(({ syncConfig }) => {
+                                            syncConfig = update(syncConfig, {
+                                                [i]: {
+                                                    serverUrl: { $set: e.currentTarget.value }
+                                                }
+                                            });
+                                            {
+                                                syncConfig;
+                                            }
+                                        })
+                                    }
+                                />
+                                <div style={{ float: "left" }}>
+                                    <div>Local Path</div>
+                                    <input
+                                        type="text"
+                                        value={cfg.localFolder}
+                                        onChange={e =>
+                                            this.setState(({ syncConfig }) => {
+                                                syncConfig = update(syncConfig, {
+                                                    [i]: {
+                                                        localFolder: { $set: e.currentTarget.value }
+                                                    }
+                                                });
+                                                {
+                                                    syncConfig;
+                                                }
+                                            })
+                                        }
+                                    />
+                                </div>
+                                <div style={{ float: "left", marginTop: "25px" }}>
+                                    <select
+                                        name=""
+                                        id=""
+                                        onChange={e =>
+                                            this.setState(({ syncConfig }) => {
+                                                syncConfig = update(syncConfig, {
+                                                    [i]: {
+                                                        syncMethod: { $set: e.currentTarget.value }
+                                                    }
+                                                });
+                                                {
+                                                    syncConfig;
+                                                }
+                                            })
+                                        }
+                                        value={cfg.syncMethod}
+                                    >
+                                        {syncMode.map(s => {
+                                            return <option value={s.name}>{s.name}</option>;
+                                        })}
+                                    </select>
+                                </div>
+                                <div style={{ float: "left" }}>
+                                    <div>Remote Volume</div>
+                                    <input
+                                        type="text"
+                                        value={cfg.remoteVolume}
+                                        onChange={e =>
+                                            this.setState(({ syncConfig }) => {
+                                                syncConfig = update(syncConfig, {
+                                                    [i]: {
+                                                        remoteVolume: {
+                                                            $set: e.currentTarget.value
+                                                        }
+                                                    }
+                                                });
+                                                {
+                                                    syncConfig;
+                                                }
+                                            })
+                                        }
+                                    />
+                                </div>
+                                <div style={{ clear: "both" }} />
+                            </div>
+                        );
+                    })}
 
                     <button
                         onClick={async () => {
-                            const res = await invoke("sync", {
-                                serverUrl: this.state.serverUrl,
-                                localFolder: this.state.localFolder,
-                                remoteVolume: this.state.remoteVolume,
-                                syncMethod: this.state.syncMethod,
-                                localConfigDir: await configDir()
+                            const configDir = await getConfigDir();
+                            this.state.syncConfig.forEach(async cfg => {
+                                const res = await invoke("sync", {
+                                    serverUrl: cfg.serverUrl,
+                                    localFolder: cfg.localFolder,
+                                    remoteVolume: cfg.remoteVolume,
+                                    syncMethod: cfg.syncMethod,
+                                    localConfigDir: configDir
+                                });
+                                console.log(res);
                             });
-                            console.log(res);
                         }}
                     >
                         Sync

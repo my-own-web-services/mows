@@ -1,11 +1,10 @@
 use std::{cmp::Ordering, collections::HashMap, fs::DirEntry, path::Path, vec};
 
 use crate::{
-    api_types::{AppDataType, FilezFile, SetAppDataRequest},
+    api_types::FilezFile,
     methods::{
         create_file::create_file, delete_file::delete_file, get_file::get_file,
-        get_file_infos_by_group_id::get_file_infos_by_group_id, get_user_info::get_user_info,
-        set_app_data::set_app_data, update_file::update_file,
+        get_file_infos_by_group_id::get_file_infos_by_group_id, update_file::update_file,
     },
     some_or_bail,
     types::{FilezClientAppDataFile, FilezClientConfig, IntermediaryFile, SyncOperation, SyncType},
@@ -18,7 +17,6 @@ pub async fn run_sync(
     local_folder: &str,
     remote_volume: &str,
     sync_method: &str,
-    client_name: &str,
     user_id: &str,
     local_config_dir: &str,
 ) -> anyhow::Result<(Vec<String>, Vec<String>, Vec<String>)> {
@@ -32,11 +30,11 @@ pub async fn run_sync(
 
     // check if a sync operation with this id is already registered on the user
     // if not, append the sync job to the user
-    let mut client_info: FilezClientConfig = match get_client_info(server_url, client_name).await {
+    let mut client_info: FilezClientConfig = match get_client_info(local_config_dir).await {
         Ok(client_info) => client_info,
         Err(e) => {
             dbg!(e);
-            match create_client_info(server_url, client_name, user_id).await {
+            match create_or_update_client_info(local_config_dir, None).await {
                 Ok(client_info) => client_info,
                 Err(e) => return Err(e),
             }
@@ -44,37 +42,41 @@ pub async fn run_sync(
     };
     //dbg!(&client_info);
 
-    let sync_operation = match get_sync_operation(&client_info, &sync_id) {
-        Ok(sync_operation) => sync_operation,
-        Err(_) => {
-            match create_sync_operation(
-                server_url,
-                &mut client_info,
-                local_folder,
-                remote_volume,
-                sync_method,
-                &sync_id,
-                user_id,
-                client_name,
-            )
-            .await
-            {
-                Ok(sync_operation) => sync_operation,
-                Err(e) => return Err(e),
-            }
+    let sync_operation = match client_info.sync_operations.get(&sync_id) {
+        Some(sync_operation) => sync_operation.clone(),
+        None => {
+            // create a new sync operation
+            let group_id = generate_id();
+            let sync_operation = SyncOperation {
+                local_folder: local_folder.to_string(),
+                remote_volume: remote_volume.to_string(),
+                last_sync: None,
+                interval: 0,
+                group_id,
+                sync_type: match sync_method {
+                    "push" => SyncType::Push,
+                    "pushDelete" => SyncType::PushDelete,
+                    "pull" => SyncType::Pull,
+                    "pullDelete" => SyncType::PullDelete,
+                    "merge" => SyncType::Merge,
+                    _ => bail!("Invalid sync method"),
+                },
+            };
+
+            client_info
+                .sync_operations
+                .insert(sync_id.clone(), sync_operation.clone());
+
+            create_or_update_client_info(local_config_dir, Some(&client_info)).await?;
+
+            sync_operation
         }
     };
 
+    tokio::fs::create_dir_all(sync_operation.local_folder.to_string()).await?;
+
     // execute the sync job
-    match exec_sync_operation(
-        server_url,
-        sync_operation,
-        client_name,
-        local_config_dir,
-        &sync_id,
-    )
-    .await
-    {
+    match exec_sync_operation(server_url, sync_operation, local_config_dir, &sync_id).await {
         Ok(success_with_errors) => Ok(success_with_errors),
         Err(e) => Err(e),
     }
@@ -83,7 +85,6 @@ pub async fn run_sync(
 pub async fn exec_sync_operation(
     address: &str,
     sync_operation: SyncOperation,
-    client_name: &str,
     local_config_dir: &str,
     sync_id: &str,
 ) -> anyhow::Result<(Vec<String>, Vec<String>, Vec<String>)> {
@@ -129,7 +130,6 @@ pub async fn exec_sync_operation(
         // merge local and remote files
         match run_merge(
             address,
-            client_name,
             sync_operation,
             local_files,
             remote_files,
@@ -145,15 +145,7 @@ pub async fn exec_sync_operation(
         || sync_operation.sync_type == SyncType::PushDelete
     {
         // push files to remote
-        match run_push(
-            address,
-            client_name,
-            sync_operation,
-            local_files,
-            remote_files,
-        )
-        .await
-        {
+        match run_push(address, sync_operation, local_files, remote_files).await {
             Ok(delete_errors) => Ok((local_read_errors, remote_file_errors, delete_errors)),
             Err(e) => bail!(e),
         }
@@ -168,7 +160,6 @@ pub async fn exec_sync_operation(
 
 pub async fn run_merge(
     address: &str,
-    client_name: &str,
     sync_operation: SyncOperation,
     local_files: Vec<IntermediaryFile>,
     remote_files: Vec<IntermediaryFile>,
@@ -270,7 +261,7 @@ pub async fn run_merge(
                     .await
                     {
                         Ok(_) => (),
-                        Err(e) => todo!(),
+                        Err(_) => todo!(),
                     }
                 }
                 MergeCompareResult::EqualIdUpdateRemote => {
@@ -289,7 +280,7 @@ pub async fn run_merge(
                     .await
                     {
                         Ok(_) => (),
-                        Err(e) => todo!(),
+                        Err(_) => todo!(),
                     }
                 }
                 MergeCompareResult::DifferentId => (),
@@ -333,9 +324,9 @@ pub async fn run_merge(
         //dbg!(&remote_files_to_download);
         // upload new local files
         for local_file in local_files_to_upload {
-            match create_file(address, &local_file, client_name, &sync_operation.group_id).await {
+            match create_file(address, &local_file, &sync_operation.group_id).await {
                 Ok(_) => (),
-                Err(e) => todo!(),
+                Err(_) => todo!(),
             }
         }
         // download new remote files
@@ -352,7 +343,7 @@ pub async fn run_merge(
             .await
             {
                 Ok(_) => (),
-                Err(e) => todo!(),
+                Err(_) => todo!(),
             }
         }
     }
@@ -393,7 +384,7 @@ pub async fn save_current_sync_lists(
     remote_files: &[IntermediaryFile],
 ) -> anyhow::Result<()> {
     let full_sync_list_path = Path::new(local_config_dir).join("filez").join("syncLists");
-    tokio::fs::create_dir_all(full_sync_list_path.clone()).await;
+    tokio::fs::create_dir_all(full_sync_list_path.clone()).await?;
 
     let local_file_ids: Vec<String> = local_files.iter().map(|l| l.client_id.clone()).collect();
     let remote_file_ids: Vec<String> = remote_files.iter().map(|l| l.client_id.clone()).collect();
@@ -511,7 +502,6 @@ pub async fn run_pull(
 
 pub async fn run_push(
     address: &str,
-    client_name: &str,
     sync_operation: SyncOperation,
     local_files: Vec<IntermediaryFile>,
     remote_files: Vec<IntermediaryFile>,
@@ -566,8 +556,7 @@ pub async fn run_push(
             }
             LocalRemoteCompareResult::DifferentId => continue,
             LocalRemoteCompareResult::NotFound => {
-                match create_file(address, local_file, client_name, &sync_operation.group_id).await
-                {
+                match create_file(address, local_file, &sync_operation.group_id).await {
                     Ok(_) => match &local_file.real_path {
                         Some(real_path) => files_to_delete.push(real_path.to_string()),
                         None => continue,
@@ -612,123 +601,35 @@ pub fn compare_local_and_remote_files_pp(
     LocalRemoteCompareResult::DifferentId
 }
 
-#[allow(clippy::too_many_arguments)]
-pub async fn create_sync_operation(
-    server_url: &str,
-    client_info: &mut FilezClientConfig,
-    local_folder: &str,
-    remote_volume: &str,
-    sync_method: &str,
-    sync_id: &str,
-    user_id: &str,
-    client_name: &str,
-) -> anyhow::Result<SyncOperation> {
-    let group_id = generate_id();
-    let sync_operation = SyncOperation {
-        local_folder: local_folder.to_string(),
-        remote_volume: remote_volume.to_string(),
-        last_sync: None,
-        interval: 0,
-        group_id,
-        sync_type: match sync_method {
-            "push" => SyncType::Push,
-            "pushDelete" => SyncType::PushDelete,
-            "pull" => SyncType::Pull,
-            "pullDelete" => SyncType::PullDelete,
-            "merge" => SyncType::Merge,
-            _ => bail!("Invalid sync method"),
-        },
-    };
-    let mut clients_info: HashMap<String, FilezClientConfig> = HashMap::new();
-
-    client_info
-        .sync_operations
-        .get_or_insert(HashMap::new())
-        .insert(sync_id.to_string(), sync_operation.clone());
-
-    clients_info.insert(client_name.to_string(), client_info.clone());
-
-    let sadr = SetAppDataRequest {
-        app_data_type: AppDataType::User,
-        id: user_id.to_string(),
-        app_name: "filezClients".to_string(),
-        app_data: serde_json::to_value(clients_info.clone())?,
-    };
-
-    set_app_data(server_url, &sadr).await?;
-    Ok(sync_operation)
-}
-
-pub fn get_sync_operation(
-    client_info: &FilezClientConfig,
-    sync_id: &str,
-) -> anyhow::Result<SyncOperation> {
-    match &client_info.sync_operations {
-        Some(sync_operations) => match sync_operations.get(sync_id) {
-            Some(sync_operation) => Ok(sync_operation.clone()),
-            None => bail!("No sync operation with id {} found", sync_id),
-        },
-        None => {
-            bail!("No sync operations found")
-        }
-    }
-}
-
-pub async fn create_client_info(
-    server_url: &str,
-    client_name: &str,
-    user_id: &str,
+pub async fn create_or_update_client_info(
+    local_config_dir: &str,
+    client_info: Option<&FilezClientConfig>,
 ) -> anyhow::Result<FilezClientConfig> {
-    let mut clients_info = HashMap::new();
-
-    let client_info = FilezClientConfig {
-        sync_operations: None,
+    let client_info = match client_info {
+        Some(client_info) => client_info.clone(),
+        None => FilezClientConfig {
+            sync_operations: HashMap::new(),
+        },
     };
+    let path = Path::new(local_config_dir)
+        .join("filez")
+        .join("config.json");
 
-    clients_info.insert(client_name.to_string(), client_info.clone());
-
-    let sadr = SetAppDataRequest {
-        app_data_type: AppDataType::User,
-        id: user_id.to_string(),
-        app_name: "filezClients".to_string(),
-        app_data: serde_json::to_value(clients_info.clone())?,
-    };
-
-    set_app_data(server_url, &sadr).await?;
+    let contents = serde_json::to_string_pretty(&client_info)?;
+    tokio::fs::write(path, contents).await?;
     Ok(client_info)
 }
 
-pub async fn get_client_info(
-    server_url: &str,
-    client_name: &str,
-) -> anyhow::Result<FilezClientConfig> {
-    Ok(match get_user_info(server_url).await {
-        Ok(user_info) => {
-            // get desktop client info from user info
-            match user_info.app_data {
-                Some(app_data) => {
-                    // app data exists
-                    match app_data.get("filezClients") {
-                        Some(filez_clients) => match filez_clients.get(client_name) {
-                            Some(client_info) => {
-                                // client info exists
-                                match serde_json::from_value::<FilezClientConfig>(
-                                    client_info.clone(),
-                                ) {
-                                    Ok(client_info) => client_info,
-                                    Err(e) => bail!("Could not parse client info: {}", e),
-                                }
-                            }
-                            None => bail!("no user info for this client"),
-                        },
-                        None => bail!("no filezClients app data found"),
-                    }
-                }
-                None => bail!("No app data found"),
-            }
-        }
-        Err(e) => bail!(e),
-    })
+pub async fn get_client_info(local_config_dir: &str) -> anyhow::Result<FilezClientConfig> {
+    let path = Path::new(local_config_dir)
+        .join("filez")
+        .join("config.json");
+    let file_str = tokio::fs::read_to_string(path).await?;
+
+    match serde_json::from_str::<FilezClientConfig>(&file_str) {
+        Ok(client_info) => Ok(client_info),
+        Err(e) => bail!("Could not parse client info: {}", e),
+    }
 }
 
 pub fn dir_entry_to_intermediary_file(
@@ -785,10 +686,7 @@ pub fn filez_file_to_intermediary_file(f: &FilezFile) -> anyhow::Result<Intermed
         size: f.size,
         mime_type: f.mime_type.clone(),
         path: client_app_data.path.clone(),
-        client_id: some_or_bail!(
-            client_app_data.path.clone(),
-            "Could not get path to set as id"
-        ),
+        client_id: some_or_bail!(client_app_data.path, "Could not get path to set as id"),
         real_path: None,
         existing_id: Some(f.id.clone()),
     })

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^1.1.0",
+    "immutability-helper": "^3.1.1",
     "preact": "^10.10.1",
     "react-icons": "^4.6.0",
     "sass": "^1.55.0"

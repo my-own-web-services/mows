@@ -1,15 +1,7 @@
-use std::collections::HashMap;
-
-use crate::{
-    api_types::{AppDataType, SetAppDataRequest, UpdateFileRequest},
-    some_or_bail,
-    types::{FilezClientAppDataFile, IntermediaryFile},
-};
+use crate::{api_types::UpdateFileRequest, some_or_bail, types::IntermediaryFile};
 use anyhow::bail;
 use reqwest::Body;
 use tokio_util::codec::{BytesCodec, FramedRead};
-
-use super::set_app_data::set_app_data;
 
 pub async fn update_file(
     address: &str,

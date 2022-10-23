@@ -17,7 +17,7 @@ pub struct FilezClientAppDataFile {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezClientConfig {
-    pub sync_operations: Option<HashMap<String, SyncOperation>>,
+    pub sync_operations: HashMap<String, SyncOperation>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

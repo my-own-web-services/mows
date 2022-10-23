@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     api_types::{AppDataType, CreateFileRequest, CreateFileResponse, SetAppDataRequest},
     some_or_bail,
@@ -14,7 +12,6 @@ use super::set_app_data::set_app_data;
 pub async fn create_file(
     address: &str,
     local_file: &IntermediaryFile,
-    client_name: &str,
     group_id: &str,
 ) -> anyhow::Result<()> {
     let path = some_or_bail!(&local_file.real_path, "real_path is None");

@@ -14,7 +14,6 @@ async fn sync(
     sync_method: &str,
     local_config_dir: &str,
 ) -> Result<(), String> {
-    let client_name = "hartmut2";
     let user_id = "test";
 
     match run_sync(
@@ -22,7 +21,6 @@ async fn sync(
         local_folder,
         remote_volume,
         sync_method,
-        client_name,
         user_id,
         local_config_dir,
     )

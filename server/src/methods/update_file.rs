@@ -1,6 +1,7 @@
 use std::{
     fs::{self, File},
     io::Write,
+    path::Path,
 };
 
 use anyhow::bail;
@@ -79,7 +80,7 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
 
     fs::create_dir_all(&folder_path)?;
     // write file to disk but abbort if limits where exceeded
-    let file_path = format!("{}/{}", folder_path, file_name);
+    let file_path = Path::new(&folder_path).join(file_name);
     let mut file = File::create(&file_path)?;
     let mut hasher = Sha256::new();
 
@@ -114,7 +115,7 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     } else {
         let (old_folder_path, old_file_name) =
             get_folder_and_file_path(&filez_file.id, &storage_path);
-        let old_file_path = format!("{}/{}", old_folder_path, old_file_name);
+        let old_file_path = Path::new(&old_folder_path).join(old_file_name);
 
         fs::rename(&file_path, &old_file_path)?;
         let cfr = UpdateFileResponse { sha256: hash };
