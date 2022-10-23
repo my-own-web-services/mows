@@ -51,6 +51,7 @@ to create a diff on the client between the last
 sync and the current sync to find out if a file was deleted or not downloaded
 
 this option is better as it does not create more data and load on the db
+but this option fails if the file list from the last sync is missing
 
 ## or
 

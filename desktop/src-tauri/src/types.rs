@@ -13,10 +13,6 @@ pub struct FilezClientAppDataFile {
     */
     pub path: Option<String>,
     pub id: String,
-    /**
-     Whether the file is end to end encrypted
-    */
-    pub encrypted: bool,
 }
 
 // this is appended to the user

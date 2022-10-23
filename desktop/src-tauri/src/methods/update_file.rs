@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    api_types::{AppDataType, SetAppDataRequest, UpdateFileRequest, UpdateFileResponse},
+    api_types::{AppDataType, SetAppDataRequest, UpdateFileRequest},
     some_or_bail,
     types::{FilezClientAppDataFile, IntermediaryFile},
 };
@@ -47,7 +47,6 @@ pub async fn update_file(
         created: intermediary_file.created,
         path: intermediary_file.path.clone(),
         id: intermediary_file.client_id.clone(),
-        encrypted: false,
     };
     filez_client_app_data.insert(client_name.to_string(), app_data_file);
 

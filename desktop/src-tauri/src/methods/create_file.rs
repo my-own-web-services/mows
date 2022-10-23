@@ -50,7 +50,6 @@ pub async fn create_file(
         created: local_file.created,
         path: local_file.path.clone(),
         id: local_file.client_id.clone(),
-        encrypted: false,
     };
 
     filez_client_app_data.insert(client_name.to_string(), app_data_file);

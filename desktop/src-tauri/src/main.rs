@@ -12,6 +12,7 @@ async fn sync(
     local_folder: &str,
     remote_volume: &str,
     sync_method: &str,
+    local_config_dir: &str,
 ) -> Result<(), String> {
     let client_name = "hartmut2";
     let user_id = "test";
@@ -23,6 +24,7 @@ async fn sync(
         sync_method,
         client_name,
         user_id,
+        local_config_dir,
     )
     .await
     {

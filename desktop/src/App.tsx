@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api";
 import { Component, h } from "preact";
 import { IoArrowForward } from "react-icons/io5";
+import { configDir } from "@tauri-apps/api/path";
+
 interface AppProps {}
 interface AppState {
     serverUrl: string;
@@ -75,7 +77,8 @@ export default class App extends Component<AppProps, AppState> {
                                 serverUrl: this.state.serverUrl,
                                 localFolder: this.state.localFolder,
                                 remoteVolume: this.state.remoteVolume,
-                                syncMethod: this.state.syncMethod
+                                syncMethod: this.state.syncMethod,
+                                localConfigDir: configDir
                             });
                             console.log(res);
                         }}

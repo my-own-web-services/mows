@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::DirEntry, hash::Hash, vec};
+use std::{collections::HashMap, fmt::format, fs::DirEntry, path::Path, vec};
 
 use crate::{
     api_types::{AppDataType, FilezFile, SetAppDataRequest},
@@ -12,6 +12,7 @@ use crate::{
     utils::{generate_id, get_created_time_secs, get_modified_time_secs, recursive_read_dir},
 };
 use anyhow::bail;
+use tokio::fs::File;
 
 pub async fn run_sync(
     server_url: &str,
@@ -20,6 +21,7 @@ pub async fn run_sync(
     sync_method: &str,
     client_name: &str,
     user_id: &str,
+    local_config_dir: &str,
 ) -> anyhow::Result<()> {
     println!(
         "Syncing {} to {} on {} with sync method {}",
@@ -62,7 +64,15 @@ pub async fn run_sync(
     };
 
     // execute the sync job
-    match exec_sync_operation(server_url, sync_operation, client_name).await {
+    match exec_sync_operation(
+        server_url,
+        sync_operation,
+        client_name,
+        local_config_dir,
+        &sync_id,
+    )
+    .await
+    {
         Ok(_) => Ok(()),
         Err(e) => Err(e),
     }
@@ -72,6 +82,8 @@ pub async fn exec_sync_operation(
     address: &str,
     sync_operation: SyncOperation,
     client_name: &str,
+    local_config_dir: &str,
+    sync_id: &str,
 ) -> anyhow::Result<(Vec<String>, Vec<String>, Vec<String>)> {
     let mut delete_errors: Vec<String> = vec![];
 
@@ -118,6 +130,8 @@ pub async fn exec_sync_operation(
             sync_operation,
             local_files,
             remote_files,
+            local_config_dir,
+            sync_id,
         )
         .await;
     } else if sync_operation.sync_type == SyncType::Push
@@ -153,16 +167,92 @@ pub async fn run_merge(
     sync_operation: SyncOperation,
     local_files: Vec<IntermediaryFile>,
     remote_files: Vec<IntermediaryFile>,
-) {
+    local_config_dir: &str,
+    sync_id: &str,
+) -> anyhow::Result<()> {
+    let mut delete_errors: Vec<String> = vec![];
     // DELETE
-    // compare file changes between last sync and current sync on local as well as remote
-    // get files that were deleted locally and delete them on remote and vice versa
+    // create file list of remote files
+    // if file list does not exist we dont perform the delete operation on the first sync
+    if let Ok(last_sync_lists) = get_last_sync_lists(local_config_dir, sync_id).await {
+        // delete files remote that have been deleted locally since last sync
+        let mut local_files_to_delete_remote: Vec<IntermediaryFile> = vec![];
+        for local_file in local_files {
+            if !last_sync_lists.0.contains(&local_file.client_id) {
+                local_files_to_delete_remote.push(local_file);
+            }
+        }
+
+        for local_file in local_files_to_delete_remote {
+            match delete_file(
+                address,
+                some_or_bail!(
+                    &local_file.existing_id,
+                    "Local file has not existing id on server so it cannot be deleted"
+                ),
+            )
+            .await
+            {
+                Ok(_) => (),
+                Err(e) => delete_errors.push(e.to_string()),
+            }
+        }
+
+        // delete files local that have been deleted remote since last sync
+        let mut remote_files_to_delete_local: Vec<IntermediaryFile> = vec![];
+        for remote_file in remote_files {
+            if !last_sync_lists.1.contains(&remote_file.client_id) {
+                remote_files_to_delete_local.push(remote_file);
+            }
+        }
+
+        for remote_file in remote_files_to_delete_local {
+            match tokio::fs::remove_file(some_or_bail!(
+                &remote_file.path,
+                "Remote file has no path"
+            ))
+            .await
+            {
+                Ok(_) => {}
+                Err(e) => {
+                    delete_errors.push(format!(
+                        "Failed to delete file {:?}: {}",
+                        remote_file.path, e
+                    ));
+                }
+            }
+        }
+    };
 
     // UPDATE
     // update changed files in one or the other direction based on their modified time
 
     // CREATE
     // download/upload new files
+
+    Ok(())
+}
+
+pub async fn get_last_sync_lists(
+    local_config_dir: &str,
+    sync_id: &str,
+) -> anyhow::Result<(Vec<String>, Vec<String>)> {
+    let local_list_path = Path::new(local_config_dir).join(format!("{}_local", sync_id));
+    let local_list_string = match tokio::fs::read_to_string(local_list_path).await {
+        Ok(local_list_string) => local_list_string,
+        Err(e) => bail!("Failed to read local list file: {}", e),
+    };
+
+    let remote_list_path = Path::new(local_config_dir).join(format!("{}_remote", sync_id));
+    let remote_list_string = match tokio::fs::read_to_string(remote_list_path).await {
+        Ok(remote_list_string) => remote_list_string,
+        Err(e) => bail!("Failed to read remote list file: {}", e),
+    };
+
+    let remote_list: Vec<String> = serde_json::from_str(&remote_list_string)?;
+    let local_list: Vec<String> = serde_json::from_str(&local_list_string)?;
+
+    Ok((local_list, remote_list))
 }
 
 pub async fn run_pull(
