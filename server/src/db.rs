@@ -102,14 +102,11 @@ impl DB {
         Ok(file)
     }
 
-    pub async fn mark_file_deleted(&self, file: &FilezFile) -> anyhow::Result<()> {
+    pub async fn delete_file_by_id(&self, file: &FilezFile) -> anyhow::Result<()> {
         let aql = AqlQuery::builder()
             .query(r#"
-            LET markFileDeletedRes=(
-                UPDATE @id WITH {
-                    deleted: true
-                } IN files
-                RETURN true
+            LET removeFileRes=(
+                REMOVE DOCUMENT(CONCAT("files/",@id)) IN files
             )
 
             LET oldUser = (
@@ -131,7 +128,7 @@ impl DB {
                 } IN users
                 RETURN true
             )
-            RETURN { markFileDeletedRes, updateUserRes }
+            RETURN { removeFileRes, updateUserRes }
 
             "#)
             .bind_var("id", file.id.clone())

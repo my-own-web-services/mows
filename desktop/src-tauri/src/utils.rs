@@ -16,20 +16,23 @@ pub fn generate_id() -> String {
         .collect()
 }
 
-pub fn get_modified_time_secs(metadata: &Metadata) -> Option<u64> {
+pub fn get_modified_time_secs(metadata: &Metadata) -> Option<i64> {
+    // TODO: this will fail for files older than 1970
     match metadata.modified() {
         Ok(sytem_time) => match sytem_time.duration_since(std::time::UNIX_EPOCH) {
-            Ok(duration) => Some(duration.as_secs()),
+            Ok(duration) => Some(duration.as_secs() as i64),
             Err(_) => None,
         },
         Err(_) => None,
     }
 }
 
-pub fn get_created_time_secs(metadata: &Metadata) -> Option<u64> {
+pub fn get_created_time_secs(metadata: &Metadata) -> Option<i64> {
+    // TODO: this will fail for files older than 1970
+
     match metadata.modified() {
         Ok(sytem_time) => match sytem_time.duration_since(std::time::UNIX_EPOCH) {
-            Ok(duration) => Some(duration.as_secs()),
+            Ok(duration) => Some(duration.as_secs() as i64),
             Err(_) => None,
         },
         Err(_) => None,

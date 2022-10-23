@@ -34,7 +34,7 @@ pub async fn delete_file(req: Request<Body>) -> anyhow::Result<Response<Body>> {
 
     let file_path = format!("{}/{}", folder_path, file_name);
 
-    db.mark_file_deleted(&file).await?;
+    db.delete_file_by_id(&file).await?;
     fs::remove_file(file_path)?;
 
     Ok(Response::builder().status(200).body(Body::from("OK"))?)

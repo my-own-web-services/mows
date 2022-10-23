@@ -107,13 +107,14 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
             sha256: hash.clone(),
             storage_name: storage_name.clone(),
             size: bytes_written,
-            created: current_time,
-            modified: None,
+            server_created: current_time,
+            modified: create_request.modified,
             groups: create_request.groups,
             app_data: None,
             accessed: None,
             accessed_count: 0,
             time_of_death: None,
+            created: create_request.created.unwrap_or(current_time),
         })
         .await;
 

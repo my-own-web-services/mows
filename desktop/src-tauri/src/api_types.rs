@@ -6,6 +6,7 @@ use std::collections::HashMap;
 #[serde(rename_all = "camelCase")]
 pub struct UpdateFileRequest {
     pub file_id: String,
+    pub modified: Option<i64>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -21,6 +22,8 @@ pub struct CreateFileRequest {
     pub mime_type: String,
     pub storage_name: Option<String>,
     pub groups: Option<Vec<String>>,
+    pub created: Option<i64>,
+    pub modified: Option<i64>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -42,6 +45,7 @@ pub struct FilezFile {
     pub sha256: String,
     pub storage_name: String,
     pub size: u64,
+    pub server_created: i64,
     pub created: i64,
     pub modified: Option<i64>,
     pub accessed: Option<i64>,

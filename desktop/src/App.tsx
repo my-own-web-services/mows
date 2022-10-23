@@ -24,9 +24,9 @@ export default class App extends Component<AppProps, AppState> {
         super(props);
         this.state = {
             serverUrl: "http://localhost:8080",
-            localFolder: "/home/paul/Documents/greeter/public/",
-            remoteVolume: "greeter-public",
-            syncMethod: "push"
+            localFolder: "/home/paul/Downloads/filez_test/",
+            remoteVolume: "filez-test",
+            syncMethod: "merge"
         };
     }
 
@@ -55,6 +55,7 @@ export default class App extends Component<AppProps, AppState> {
                             name=""
                             id=""
                             onChange={e => this.setState({ syncMethod: e.currentTarget.value })}
+                            value={this.state.syncMethod}
                         >
                             {syncMode.map(s => {
                                 return <option value={s.name}>{s.name}</option>;
@@ -78,7 +79,7 @@ export default class App extends Component<AppProps, AppState> {
                                 localFolder: this.state.localFolder,
                                 remoteVolume: this.state.remoteVolume,
                                 syncMethod: this.state.syncMethod,
-                                localConfigDir: configDir
+                                localConfigDir: await configDir()
                             });
                             console.log(res);
                         }}

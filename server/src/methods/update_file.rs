@@ -32,7 +32,7 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
         bail!("Invalid request header");
     }
 
-    let create_request: UpdateFileRequest = serde_json::from_str(request_header)?;
+    let update_request: UpdateFileRequest = serde_json::from_str(request_header)?;
 
     let db = DB::new(
         Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
@@ -40,7 +40,7 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     .await?;
 
     let user = db.get_user_by_id(user_id).await?;
-    let filez_file = db.get_file_by_id(&create_request.file_id).await?;
+    let filez_file = db.get_file_by_id(&update_request.file_id).await?;
 
     let storage_name = filez_file.storage_name.clone();
 
@@ -100,7 +100,12 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
 
     // update db
     let cft = db
-        .update_file(&filez_file, &hash, bytes_written, current_time)
+        .update_file(
+            &filez_file,
+            &hash,
+            bytes_written,
+            update_request.modified.unwrap_or(current_time),
+        )
         .await;
 
     if cft.is_err() {

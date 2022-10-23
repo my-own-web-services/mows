@@ -6,8 +6,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezClientAppDataFile {
-    pub modified: Option<u64>,
-    pub created: u64,
     /**
      Filez has no notion of folders, so we need to store the path to the file to display a virtual folder structure
     */
@@ -66,8 +64,8 @@ pub struct IntermediaryFile {
     pub existing_id: Option<String>,
     pub client_id: String,
     pub name: String,
-    pub modified: Option<u64>,
-    pub created: u64,
+    pub modified: Option<i64>,
+    pub created: i64,
     pub size: u64,
     pub mime_type: String,
 }

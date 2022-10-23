@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::format, fs::DirEntry, path::Path, vec};
+use std::{cmp::Ordering, collections::HashMap, fs::DirEntry, path::Path, vec};
 
 use crate::{
     api_types::{AppDataType, FilezFile, SetAppDataRequest},
@@ -12,7 +12,6 @@ use crate::{
     utils::{generate_id, get_created_time_secs, get_modified_time_secs, recursive_read_dir},
 };
 use anyhow::bail;
-use tokio::fs::File;
 
 pub async fn run_sync(
     server_url: &str,
@@ -22,25 +21,28 @@ pub async fn run_sync(
     client_name: &str,
     user_id: &str,
     local_config_dir: &str,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<(Vec<String>, Vec<String>, Vec<String>)> {
     println!(
         "Syncing {} to {} on {} with sync method {}",
         local_folder, remote_volume, server_url, sync_method
     );
 
     // stick together the sync id
-    let sync_id = format!("{}-{}-{}", local_folder, sync_method, remote_volume);
+    let sync_id = format!("{}-{}-{}", local_folder, sync_method, remote_volume).replace('/', "-");
 
     // check if a sync operation with this id is already registered on the user
     // if not, append the sync job to the user
     let mut client_info: FilezClientConfig = match get_client_info(server_url, client_name).await {
         Ok(client_info) => client_info,
-        Err(_) => match create_client_info(server_url, client_name, user_id).await {
-            Ok(client_info) => client_info,
-            Err(e) => return Err(e),
-        },
+        Err(e) => {
+            dbg!(e);
+            match create_client_info(server_url, client_name, user_id).await {
+                Ok(client_info) => client_info,
+                Err(e) => return Err(e),
+            }
+        }
     };
-    dbg!(&client_info);
+    //dbg!(&client_info);
 
     let sync_operation = match get_sync_operation(&client_info, &sync_id) {
         Ok(sync_operation) => sync_operation,
@@ -73,7 +75,7 @@ pub async fn run_sync(
     )
     .await
     {
-        Ok(_) => Ok(()),
+        Ok(success_with_errors) => Ok(success_with_errors),
         Err(e) => Err(e),
     }
 }
@@ -85,8 +87,6 @@ pub async fn exec_sync_operation(
     local_config_dir: &str,
     sync_id: &str,
 ) -> anyhow::Result<(Vec<String>, Vec<String>, Vec<String>)> {
-    let mut delete_errors: Vec<String> = vec![];
-
     let local_file_results: Vec<anyhow::Result<IntermediaryFile>> =
         match recursive_read_dir(&sync_operation.local_folder) {
             Ok(files) => files
@@ -109,7 +109,7 @@ pub async fn exec_sync_operation(
         get_file_infos_by_group_id(address, &sync_operation.group_id)
             .await?
             .iter()
-            .map(|f| filez_file_to_intermediary_file(f, client_name))
+            .map(filez_file_to_intermediary_file)
             .collect();
 
     let mut remote_file_errors: Vec<String> = vec![];
@@ -121,10 +121,13 @@ pub async fn exec_sync_operation(
         }
     }
 
+    dbg!(&remote_files);
+    dbg!(&local_files);
+
     // perform the sync based on comparison and method
     if sync_operation.sync_type == SyncType::Merge {
         // merge local and remote files
-        run_merge(
+        match run_merge(
             address,
             client_name,
             sync_operation,
@@ -133,32 +136,34 @@ pub async fn exec_sync_operation(
             local_config_dir,
             sync_id,
         )
-        .await;
+        .await
+        {
+            Ok(delete_errors) => Ok((local_read_errors, remote_file_errors, delete_errors)),
+            Err(e) => Err(e),
+        }
     } else if sync_operation.sync_type == SyncType::Push
         || sync_operation.sync_type == SyncType::PushDelete
     {
         // push files to remote
-        run_push(
+        match run_push(
             address,
             client_name,
             sync_operation,
             local_files,
             remote_files,
-            &mut delete_errors,
         )
-        .await;
+        .await
+        {
+            Ok(delete_errors) => Ok((local_read_errors, remote_file_errors, delete_errors)),
+            Err(e) => bail!(e),
+        }
     } else {
         // pull files from remote
-        run_pull(
-            address,
-            sync_operation,
-            local_files,
-            remote_files,
-            &mut delete_errors,
-        )
-        .await;
-    };
-    Ok((local_read_errors, remote_file_errors, delete_errors))
+        match run_pull(address, sync_operation, local_files, remote_files).await {
+            Ok(delete_errors) => Ok((local_read_errors, remote_file_errors, delete_errors)),
+            Err(e) => bail!(e),
+        }
+    }
 }
 
 pub async fn run_merge(
@@ -169,7 +174,7 @@ pub async fn run_merge(
     remote_files: Vec<IntermediaryFile>,
     local_config_dir: &str,
     sync_id: &str,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Vec<String>> {
     let mut delete_errors: Vec<String> = vec![];
     // DELETE
     // create file list of remote files
@@ -177,9 +182,9 @@ pub async fn run_merge(
     if let Ok(last_sync_lists) = get_last_sync_lists(local_config_dir, sync_id).await {
         // delete files remote that have been deleted locally since last sync
         let mut local_files_to_delete_remote: Vec<IntermediaryFile> = vec![];
-        for local_file in local_files {
+        for local_file in &local_files {
             if !last_sync_lists.0.contains(&local_file.client_id) {
-                local_files_to_delete_remote.push(local_file);
+                local_files_to_delete_remote.push(local_file.clone());
             }
         }
 
@@ -200,9 +205,9 @@ pub async fn run_merge(
 
         // delete files local that have been deleted remote since last sync
         let mut remote_files_to_delete_local: Vec<IntermediaryFile> = vec![];
-        for remote_file in remote_files {
+        for remote_file in &remote_files {
             if !last_sync_lists.1.contains(&remote_file.client_id) {
-                remote_files_to_delete_local.push(remote_file);
+                remote_files_to_delete_local.push(remote_file.clone());
             }
         }
 
@@ -226,9 +231,183 @@ pub async fn run_merge(
 
     // UPDATE
     // update changed files in one or the other direction based on their modified time
+    {
+        // run comparison of local and remote files
+        let mut comp_results: Vec<MergeCompareResult> = vec![];
+        for remote_file in &remote_files {
+            let mut comp_result = MergeCompareResult::DifferentId;
+            for local_file in &local_files {
+                match compare_local_and_remote_files_merge(local_file, remote_file) {
+                    MergeCompareResult::EqualIdSameContent => {
+                        comp_result = MergeCompareResult::EqualIdSameContent;
+                        break;
+                    }
+                    MergeCompareResult::EqualIdUpdateLocal => {
+                        comp_result = MergeCompareResult::EqualIdUpdateLocal;
+                        break;
+                    }
+                    MergeCompareResult::EqualIdUpdateRemote => {
+                        comp_result = MergeCompareResult::EqualIdUpdateRemote;
+                        break;
+                    }
+                    MergeCompareResult::DifferentId => {}
+                }
+            }
+            comp_results.push(comp_result);
+        }
+        // update files
+        for (i, comp_result) in comp_results.iter().enumerate() {
+            match comp_result {
+                MergeCompareResult::EqualIdSameContent => (),
+                MergeCompareResult::EqualIdUpdateLocal => {
+                    let remote_file = &remote_files[i];
+                    match get_file(
+                        address,
+                        some_or_bail!(&remote_file.existing_id, "Remote file has no existing id"),
+                        remote_file.path.clone(),
+                        &sync_operation.local_folder,
+                    )
+                    .await
+                    {
+                        Ok(_) => (),
+                        Err(e) => todo!(),
+                    }
+                }
+                MergeCompareResult::EqualIdUpdateRemote => {
+                    let remote_file = &remote_files[i];
+                    let local_file = some_or_bail!(
+                        local_files
+                            .iter()
+                            .find(|f| f.client_id == remote_file.client_id),
+                        "This should not happen: local file not found"
+                    );
+                    match update_file(
+                        address,
+                        local_file,
+                        some_or_bail!(&remote_file.existing_id, "Remote file has no existing id"),
+                    )
+                    .await
+                    {
+                        Ok(_) => (),
+                        Err(e) => todo!(),
+                    }
+                }
+                MergeCompareResult::DifferentId => (),
+            }
+        }
+    }
 
     // CREATE
     // download/upload new files
+    {
+        let mut local_files_to_upload: Vec<IntermediaryFile> = vec![];
+        let mut remote_files_to_download: Vec<IntermediaryFile> = vec![];
+        for remote_file in &remote_files {
+            let mut found = false;
+            for local_file in &local_files {
+                if local_file.client_id == remote_file.client_id {
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                remote_files_to_download.push(remote_file.clone());
+            }
+        }
+        //dbg!(&remote_files);
+        //dbg!(&local_files);
+        for local_file in &local_files {
+            let mut found = false;
+            for remote_file in &remote_files {
+                if local_file.client_id == remote_file.client_id {
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                local_files_to_upload.push(local_file.clone());
+            }
+        }
+
+        //dbg!(&local_files_to_upload);
+        //dbg!(&remote_files_to_download);
+        // upload new local files
+        for local_file in local_files_to_upload {
+            match create_file(address, &local_file, client_name, &sync_operation.group_id).await {
+                Ok(_) => (),
+                Err(e) => todo!(),
+            }
+        }
+        // download new remote files
+        for remote_file in remote_files_to_download {
+            match get_file(
+                address,
+                some_or_bail!(
+                    &remote_file.existing_id,
+                    "Remote file has no existing id: this should not happen"
+                ),
+                remote_file.path,
+                &sync_operation.local_folder,
+            )
+            .await
+            {
+                Ok(_) => (),
+                Err(e) => todo!(),
+            }
+        }
+    }
+
+    // save the file lists for the next sync
+    save_current_sync_lists(local_config_dir, sync_id, &local_files, &remote_files).await?;
+
+    Ok(delete_errors)
+}
+
+pub fn compare_local_and_remote_files_merge(
+    local_file: &IntermediaryFile,
+    remote_file: &IntermediaryFile,
+) -> MergeCompareResult {
+    if local_file.client_id == remote_file.client_id {
+        match local_file.modified.cmp(&remote_file.modified) {
+            Ordering::Less => MergeCompareResult::EqualIdUpdateLocal,
+            Ordering::Equal => MergeCompareResult::EqualIdSameContent,
+            Ordering::Greater => MergeCompareResult::EqualIdUpdateRemote,
+        }
+    } else {
+        MergeCompareResult::DifferentId
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum MergeCompareResult {
+    EqualIdSameContent,
+    EqualIdUpdateLocal,
+    EqualIdUpdateRemote,
+    DifferentId,
+}
+
+pub async fn save_current_sync_lists(
+    local_config_dir: &str,
+    sync_id: &str,
+    local_files: &[IntermediaryFile],
+    remote_files: &[IntermediaryFile],
+) -> anyhow::Result<()> {
+    let full_sync_list_path = Path::new(local_config_dir).join("filez").join("syncLists");
+    tokio::fs::create_dir_all(full_sync_list_path.clone()).await;
+
+    let local_file_ids: Vec<String> = local_files.iter().map(|l| l.client_id.clone()).collect();
+    let remote_file_ids: Vec<String> = remote_files.iter().map(|l| l.client_id.clone()).collect();
+
+    let local_list_path = full_sync_list_path
+        .clone()
+        .join(format!("{}_local.json", sync_id));
+    let remote_list_path = full_sync_list_path.join(format!("{}_remote.json", sync_id));
+
+    let local_list_string = serde_json::to_string(&local_file_ids)?;
+    let remote_list_string = serde_json::to_string(&remote_file_ids)?;
+
+    tokio::fs::write(local_list_path, local_list_string).await?;
+    tokio::fs::write(remote_list_path, remote_list_string).await?;
 
     Ok(())
 }
@@ -237,13 +416,17 @@ pub async fn get_last_sync_lists(
     local_config_dir: &str,
     sync_id: &str,
 ) -> anyhow::Result<(Vec<String>, Vec<String>)> {
-    let local_list_path = Path::new(local_config_dir).join(format!("{}_local", sync_id));
+    let full_sync_list_path = Path::new(local_config_dir).join("filez").join("syncLists");
+
+    let local_list_path = full_sync_list_path
+        .clone()
+        .join(format!("{}_local.json", sync_id));
     let local_list_string = match tokio::fs::read_to_string(local_list_path).await {
         Ok(local_list_string) => local_list_string,
         Err(e) => bail!("Failed to read local list file: {}", e),
     };
 
-    let remote_list_path = Path::new(local_config_dir).join(format!("{}_remote", sync_id));
+    let remote_list_path = full_sync_list_path.join(format!("{}_remote.json", sync_id));
     let remote_list_string = match tokio::fs::read_to_string(remote_list_path).await {
         Ok(remote_list_string) => remote_list_string,
         Err(e) => bail!("Failed to read remote list file: {}", e),
@@ -260,13 +443,14 @@ pub async fn run_pull(
     sync_operation: SyncOperation,
     local_files: Vec<IntermediaryFile>,
     remote_files: Vec<IntermediaryFile>,
-    delete_errors: &mut Vec<String>,
-) {
+) -> anyhow::Result<Vec<String>> {
+    let mut delete_errors: Vec<String> = vec![];
+
     let mut comp_results: Vec<LocalRemoteCompareResult> = vec![];
     for remote_file in &remote_files {
         let mut comp_result = LocalRemoteCompareResult::NotFound;
         for local_file in &local_files {
-            match compare_local_and_remote_files(local_file, remote_file) {
+            match compare_local_and_remote_files_pp(local_file, remote_file) {
                 LocalRemoteCompareResult::EqualId => {
                     comp_result = LocalRemoteCompareResult::EqualId;
                     break;
@@ -299,7 +483,6 @@ pub async fn run_pull(
                         existing_id,
                         imf.path.clone(),
                         &sync_operation.local_folder,
-                        &remote_file.name,
                     )
                     .await
                     {
@@ -323,6 +506,7 @@ pub async fn run_pull(
             };
         }
     }
+    Ok(delete_errors)
 }
 
 pub async fn run_push(
@@ -331,13 +515,14 @@ pub async fn run_push(
     sync_operation: SyncOperation,
     local_files: Vec<IntermediaryFile>,
     remote_files: Vec<IntermediaryFile>,
-    delete_errors: &mut Vec<String>,
-) {
+) -> anyhow::Result<Vec<String>> {
+    let mut delete_errors: Vec<String> = vec![];
+
     let mut comp_results: Vec<LocalRemoteCompareResult> = vec![];
     for local_file in &local_files {
         let mut comp_result = LocalRemoteCompareResult::NotFound;
         for remote_file in &remote_files {
-            match compare_local_and_remote_files(local_file, remote_file) {
+            match compare_local_and_remote_files_pp(local_file, remote_file) {
                 LocalRemoteCompareResult::EqualId => {
                     comp_result = LocalRemoteCompareResult::EqualId;
                     break;
@@ -366,7 +551,7 @@ pub async fn run_push(
                 match file_id {
                     Some(file_id) => match &file_id.existing_id {
                         Some(existing_id) => {
-                            match update_file(address, local_file, client_name, existing_id).await {
+                            match update_file(address, local_file, existing_id).await {
                                 Ok(_) => match &local_file.real_path {
                                     Some(real_path) => files_to_delete.push(real_path.to_string()),
                                     None => continue,
@@ -402,6 +587,7 @@ pub async fn run_push(
             };
         });
     }
+    Ok(delete_errors)
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -412,7 +598,7 @@ pub enum LocalRemoteCompareResult {
     NotFound,
 }
 
-pub fn compare_local_and_remote_files(
+pub fn compare_local_and_remote_files_pp(
     local_file: &IntermediaryFile,
     remote_file: &IntermediaryFile,
 ) -> LocalRemoteCompareResult {
@@ -522,39 +708,26 @@ pub async fn get_client_info(
             match user_info.app_data {
                 Some(app_data) => {
                     // app data exists
-                    match app_data.get(client_name) {
-                        Some(client_info) => {
-                            // client info exists
-                            let client_infos =
-                                match serde_json::from_value::<HashMap<String, FilezClientConfig>>(
+                    match app_data.get("filezClients") {
+                        Some(filez_clients) => match filez_clients.get(client_name) {
+                            Some(client_info) => {
+                                // client info exists
+                                match serde_json::from_value::<FilezClientConfig>(
                                     client_info.clone(),
                                 ) {
                                     Ok(client_info) => client_info,
-                                    Err(e) => {
-                                        bail!("Could not parse client info: {}", e);
-                                    }
-                                };
-                            match client_infos.get(client_name) {
-                                Some(client_info) => client_info.clone(),
-                                None => bail!("No client info found"),
+                                    Err(e) => bail!("Could not parse client info: {}", e),
+                                }
                             }
-                        }
-                        None => {
-                            // no user info for this client
-                            bail!("no user info for this client");
-                        }
+                            None => bail!("no user info for this client"),
+                        },
+                        None => bail!("no filezClients app data found"),
                     }
                 }
-                None => {
-                    // create app data
-                    bail!("No app data found");
-                }
+                None => bail!("No app data found"),
             }
         }
-        Err(e) => {
-            // could not get user info
-            bail!(e)
-        }
+        Err(e) => bail!(e),
     })
 }
 
@@ -589,18 +762,15 @@ pub fn dir_entry_to_intermediary_file(
     })
 }
 
-pub fn filez_file_to_intermediary_file(
-    f: &FilezFile,
-    client_name: &str,
-) -> anyhow::Result<IntermediaryFile> {
-    let clients_app_data = match &f.app_data {
-        Some(app_data) => match app_data.get("filezClients") {
+pub fn filez_file_to_intermediary_file(f: &FilezFile) -> anyhow::Result<IntermediaryFile> {
+    let client_app_data = match &f.app_data {
+        Some(app_data) => match app_data.get("filezClient") {
             Some(client_app_data_value) => {
-                match serde_json::from_value::<HashMap<String, FilezClientAppDataFile>>(
+                match serde_json::from_value::<FilezClientAppDataFile>(
                     client_app_data_value.clone(),
                 ) {
                     Ok(client_app_data) => client_app_data,
-                    Err(e) => bail!("Could not deserialize client app data: {}", e),
+                    Err(e) => bail!("Could not parse client app data: {}", e),
                 }
             }
             None => bail!("Could not find client app data"),
@@ -608,15 +778,10 @@ pub fn filez_file_to_intermediary_file(
         None => bail!("Could not find app data"),
     };
 
-    let client_app_data = match clients_app_data.get(client_name) {
-        Some(client_app_data) => client_app_data,
-        None => bail!("Could not find client app data for client {}", client_name),
-    };
-
     Ok(IntermediaryFile {
         name: f.name.clone(),
-        modified: client_app_data.modified,
-        created: client_app_data.created,
+        modified: f.modified,
+        created: f.created,
         size: f.size,
         mime_type: f.mime_type.clone(),
         path: client_app_data.path.clone(),

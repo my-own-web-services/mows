@@ -13,6 +13,6 @@ pub async fn get_file_infos_by_group_id(
         .await?;
 
     let file_infos: Vec<FilezFile> = serde_json::from_str(&res.text().await?)?;
-
+    dbg!(&file_infos);
     Ok(file_infos)
 }

@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::bail;
 use futures::StreamExt;
 use tokio::io::AsyncWriteExt;
@@ -7,7 +9,6 @@ pub async fn get_file(
     file_id: &str,
     maybe_file_path: Option<String>,
     local_folder: &str,
-    file_name: &str,
 ) -> anyhow::Result<()> {
     let res = reqwest::Client::new()
         .get(format!("{}/get_file/{}", address, file_id))
@@ -18,11 +19,8 @@ pub async fn get_file(
         bail!("Failed to get file")
     }
 
-    let path = format!(
-        "{}{}",
-        local_folder,
-        maybe_file_path.unwrap_or_else(|| file_name.to_string())
-    );
+    let path = Path::new(local_folder).join(maybe_file_path.unwrap_or_else(|| file_id.to_string()));
+
     // TODO save this first to another file and then rename it to the final name
     let mut file = tokio::fs::File::create(path).await?;
     // stream the body into the file

@@ -26,6 +26,8 @@ pub async fn create_file(
         mime_type: local_file.mime_type.clone(),
         storage_name: None,
         groups: Some(vec![group_id.to_string()]),
+        modified: local_file.modified,
+        created: Some(local_file.created),
     };
 
     let res = reqwest::Client::new()
@@ -43,22 +45,16 @@ pub async fn create_file(
 
     let cfr = serde_json::from_str::<CreateFileResponse>(&res_text)?;
 
-    let mut filez_client_app_data: HashMap<String, FilezClientAppDataFile> = HashMap::new();
-
     let app_data_file = FilezClientAppDataFile {
-        modified: local_file.modified,
-        created: local_file.created,
         path: local_file.path.clone(),
         id: local_file.client_id.clone(),
     };
 
-    filez_client_app_data.insert(client_name.to_string(), app_data_file);
-
     let app_data_req = SetAppDataRequest {
         app_data_type: AppDataType::File,
         id: cfr.id,
-        app_name: "filezClients".to_string(),
-        app_data: serde_json::to_value(filez_client_app_data)?,
+        app_name: "filezClient".to_string(),
+        app_data: serde_json::to_value(app_data_file)?,
     };
 
     set_app_data(address, &app_data_req).await?;
