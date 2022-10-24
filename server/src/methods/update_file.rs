@@ -41,7 +41,10 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     .await?;
 
     let user = db.get_user_by_id(user_id).await?;
-    let filez_file = db.get_file_by_id(&update_request.file_id).await?;
+    let filez_file = match db.get_file_by_id(&update_request.file_id).await {
+        Ok(file) => file,
+        Err(_) => bail!("File not found"),
+    };
 
     let storage_name = filez_file.storage_name.clone();
 
@@ -112,7 +115,7 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
 
     if cft.is_err() {
         fs::remove_file(&new_file_path)?;
-        bail!("Failed to create file in database");
+        bail!("Failed to create file in database: {}", cft.err().unwrap());
     } else {
         let (old_folder_path, old_file_name) =
             get_folder_and_file_path(&filez_file.id, &storage_path);

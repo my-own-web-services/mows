@@ -154,7 +154,7 @@ impl DB {
                 r#"
             LET updateFileRes=(
                 UPDATE @id WITH { 
-                    size: @size, 
+                    size: @newSize, 
                     modified: @modified, 
                     sha256: @sha256
                 } IN files
