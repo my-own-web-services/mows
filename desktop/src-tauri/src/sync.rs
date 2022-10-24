@@ -161,8 +161,8 @@ pub async fn exec_sync_operation(
 pub async fn run_merge(
     address: &str,
     sync_operation: SyncOperation,
-    local_files: Vec<IntermediaryFile>,
-    remote_files: Vec<IntermediaryFile>,
+    mut local_files: Vec<IntermediaryFile>,
+    mut remote_files: Vec<IntermediaryFile>,
     local_config_dir: &str,
     sync_id: &str,
 ) -> anyhow::Result<Vec<String>> {
@@ -190,30 +190,36 @@ pub async fn run_merge(
                     local_files_to_delete_remote.push(last_local_file_id.to_string());
                 }
             }
-            dbg!(&local_files_to_delete_remote);
 
             for file_id in local_files_to_delete_remote {
-                let remote_id = some_or_bail!(
-                    remote_files.iter().find(|f| f.client_id == file_id),
-                    "Could not find corresponding remote file to delete"
-                )
-                .existing_id
-                .clone();
-                dbg!(&remote_id);
+                let mut removed_index = None;
+                let mut remote_id = None;
 
-                match delete_file(
-                    address,
-                    some_or_bail!(
-                        &remote_id,
-                        "Local file has not existing id on server so it cannot be deleted"
-                    ),
-                )
-                .await
-                {
-                    Ok(_) => (),
+                for (i, remote_file) in remote_files.iter().enumerate() {
+                    if remote_file.client_id == file_id {
+                        removed_index = Some(i);
+                        remote_id = remote_file.existing_id.clone();
+                        break;
+                    }
+                }
+
+                let remote_id = some_or_bail!(
+                    remote_id,
+                    "Could not find corresponding remote file to delete"
+                );
+
+                let removed_index = some_or_bail!(
+                    removed_index,
+                    "Could not find corresponding remote file to delete"
+                );
+
+                match delete_file(address, &remote_id).await {
+                    Ok(_) => {
+                        remote_files.swap_remove(removed_index);
+                    }
                     Err(e) => {
                         dbg!(&e);
-                        delete_errors.push(e.to_string())
+                        delete_errors.push(e.to_string());
                     }
                 }
             }
@@ -235,9 +241,13 @@ pub async fn run_merge(
 
             for file_id in remote_files_to_delete_local {
                 let del_path = Path::new(&sync_operation.local_folder).join(file_id.clone());
-                dbg!(&del_path);
                 match tokio::fs::remove_file(del_path).await {
-                    Ok(_) => {}
+                    Ok(_) => {
+                        let remove_index = local_files.iter().position(|x| x.client_id == file_id);
+                        if let Some(remove_index) = remove_index {
+                            local_files.swap_remove(remove_index);
+                        }
+                    }
                     Err(e) => {
                         delete_errors.push(format!("Failed to delete file {}: {}", file_id, e));
                     }
@@ -245,86 +255,85 @@ pub async fn run_merge(
             }
         }
     }
+
     // save the file lists for the next sync
     save_current_sync_lists(local_config_dir, sync_id, &local_files, &remote_files).await?;
-    //dbg!(&local_files);
-    //dbg!(&remote_files);
-    /*
-        // UPDATE
-        // update changed files in one or the other direction based on their modified time
-        {
-            // run comparison of local and remote files
-            let mut comp_results: Vec<MergeCompareResult> = vec![];
-            for remote_file in &remote_files {
-                let mut comp_result = MergeCompareResult::DifferentId;
-                for local_file in &local_files {
-                    match compare_local_and_remote_files_merge(local_file, remote_file) {
-                        MergeCompareResult::EqualIdSameContent => {
-                            comp_result = MergeCompareResult::EqualIdSameContent;
-                            break;
-                        }
-                        MergeCompareResult::EqualIdUpdateLocal => {
-                            comp_result = MergeCompareResult::EqualIdUpdateLocal;
-                            break;
-                        }
-                        MergeCompareResult::EqualIdUpdateRemote => {
-                            comp_result = MergeCompareResult::EqualIdUpdateRemote;
-                            break;
-                        }
-                        MergeCompareResult::DifferentId => {}
+
+    // UPDATE
+    // update changed files in one or the other direction based on their modified time
+    {
+        // run comparison of local and remote files
+        let mut comp_results: Vec<MergeCompareResult> = vec![];
+        for remote_file in &remote_files {
+            let mut comp_result = MergeCompareResult::DifferentId;
+            for local_file in &local_files {
+                match compare_local_and_remote_files_merge(local_file, remote_file) {
+                    MergeCompareResult::EqualIdSameContent => {
+                        comp_result = MergeCompareResult::EqualIdSameContent;
+                        break;
                     }
-                }
-                comp_results.push(comp_result);
-            }
-            // update files
-            for (i, comp_result) in comp_results.iter().enumerate() {
-                match comp_result {
-                    MergeCompareResult::EqualIdSameContent => (),
                     MergeCompareResult::EqualIdUpdateLocal => {
-                        let remote_file = &remote_files[i];
-                        match get_file(
-                            address,
-                            some_or_bail!(&remote_file.existing_id, "Remote file has no existing id"),
-                            remote_file.path.clone(),
-                            &sync_operation.local_folder,
-                            remote_file,
-                        )
-                        .await
-                        {
-                            Ok(_) => (),
-                            Err(e) => {
-                                dbg!(e);
-                                //todo!();
-                            }
-                        }
+                        comp_result = MergeCompareResult::EqualIdUpdateLocal;
+                        break;
                     }
                     MergeCompareResult::EqualIdUpdateRemote => {
-                        let remote_file = &remote_files[i];
-                        let local_file = some_or_bail!(
-                            local_files
-                                .iter()
-                                .find(|f| f.client_id == remote_file.client_id),
-                            "This should not happen: local file not found"
-                        );
-                        match update_file(
-                            address,
-                            local_file,
-                            some_or_bail!(&remote_file.existing_id, "Remote file has no existing id"),
-                        )
-                        .await
-                        {
-                            Ok(_) => (),
-                            Err(e) => {
-                                dbg!(e);
-                                //todo!();
-                            }
-                        }
+                        comp_result = MergeCompareResult::EqualIdUpdateRemote;
+                        break;
                     }
-                    MergeCompareResult::DifferentId => (),
+                    MergeCompareResult::DifferentId => {}
                 }
             }
+            comp_results.push(comp_result);
         }
-    */
+        // update files
+        for (i, comp_result) in comp_results.iter().enumerate() {
+            match comp_result {
+                MergeCompareResult::EqualIdSameContent => (),
+                MergeCompareResult::EqualIdUpdateLocal => {
+                    let remote_file = &remote_files[i];
+                    match get_file(
+                        address,
+                        some_or_bail!(&remote_file.existing_id, "Remote file has no existing id"),
+                        remote_file.path.clone(),
+                        &sync_operation.local_folder,
+                        remote_file,
+                    )
+                    .await
+                    {
+                        Ok(_) => (),
+                        Err(e) => {
+                            dbg!(e);
+                            //todo!();
+                        }
+                    }
+                }
+                MergeCompareResult::EqualIdUpdateRemote => {
+                    let remote_file = &remote_files[i];
+                    let local_file = some_or_bail!(
+                        local_files
+                            .iter()
+                            .find(|f| f.client_id == remote_file.client_id),
+                        "This should not happen: local file not found"
+                    );
+                    match update_file(
+                        address,
+                        local_file,
+                        some_or_bail!(&remote_file.existing_id, "Remote file has no existing id"),
+                    )
+                    .await
+                    {
+                        Ok(_) => (),
+                        Err(e) => {
+                            dbg!(e);
+                            //todo!();
+                        }
+                    }
+                }
+                MergeCompareResult::DifferentId => (),
+            }
+        }
+    }
+
     // CREATE
     // download/upload new files
     {
@@ -341,8 +350,7 @@ pub async fn run_merge(
                 remote_files_to_download.push(remote_file.clone());
             }
         }
-        //dbg!(&remote_files);
-        //dbg!(&local_files);
+
         let mut local_files_to_upload: Vec<IntermediaryFile> = vec![];
         for local_file in &local_files {
             let mut found = false;
@@ -357,8 +365,6 @@ pub async fn run_merge(
             }
         }
 
-        //dbg!(&local_files_to_upload);
-        //dbg!(&remote_files_to_download);
         // upload new local files
         for local_file in local_files_to_upload {
             match create_file(address, &local_file, &sync_operation.group_id).await {

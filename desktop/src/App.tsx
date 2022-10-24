@@ -138,15 +138,19 @@ export default class App extends Component<AppProps, AppState> {
                     <button
                         onClick={async () => {
                             const configDir = await getConfigDir();
+                            let i = 0;
                             for (const cfg of this.state.syncConfig) {
-                                const res = await invoke("sync", {
-                                    serverUrl: cfg.serverUrl,
-                                    localFolder: cfg.localFolder,
-                                    remoteVolume: cfg.remoteVolume,
-                                    syncMethod: cfg.syncMethod,
-                                    localConfigDir: configDir
-                                });
-                                console.log(res);
+                                if (true) {
+                                    const res = await invoke("sync", {
+                                        serverUrl: cfg.serverUrl,
+                                        localFolder: cfg.localFolder,
+                                        remoteVolume: cfg.remoteVolume,
+                                        syncMethod: cfg.syncMethod,
+                                        localConfigDir: configDir
+                                    });
+                                    console.log(res);
+                                }
+                                i++;
                             }
                         }}
                     >
