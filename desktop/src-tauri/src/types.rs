@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 // this is appended to the files
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

@@ -1,6 +1,5 @@
-use std::fs::{DirEntry, Metadata};
-
 use crate::some_or_bail;
+use std::fs::{DirEntry, Metadata};
 
 pub fn generate_id() -> String {
     use rand::Rng;

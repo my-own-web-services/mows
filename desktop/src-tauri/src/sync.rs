@@ -1,5 +1,3 @@
-use std::{cmp::Ordering, collections::HashMap, fs::DirEntry, path::Path, vec};
-
 use crate::{
     api_types::FilezFile,
     methods::{
@@ -11,6 +9,7 @@ use crate::{
     utils::{get_created_time_secs, get_modified_time_secs, recursive_read_dir},
 };
 use anyhow::bail;
+use std::{cmp::Ordering, collections::HashMap, fs::DirEntry, path::Path, vec};
 
 pub async fn run_sync(
     server_url: &str,

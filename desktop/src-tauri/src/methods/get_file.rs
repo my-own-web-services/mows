@@ -1,11 +1,9 @@
-use std::path::Path;
-
+use crate::types::IntermediaryFile;
 use anyhow::bail;
 use filetime::{set_file_mtime, FileTime};
 use futures::StreamExt;
+use std::path::Path;
 use tokio::io::AsyncWriteExt;
-
-use crate::types::IntermediaryFile;
 
 pub async fn get_file(
     address: &str,
