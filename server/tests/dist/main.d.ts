@@ -2,7 +2,7 @@ export declare const testCreateFile: () => Promise<void>;
 export declare const deleteFile: (id: string) => Promise<boolean>;
 export declare const getFile: (id: string) => Promise<string>;
 export interface CreatedFileResponse {
-    id: string;
+    fileId: string;
     storageName: string;
     sha256: string;
 }

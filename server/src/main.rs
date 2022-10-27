@@ -1,7 +1,8 @@
-use anyhow::bail;
-
+use arangors::Connection;
 use filez::config::SERVER_CONFIG;
+use filez::db::DB;
 use filez::methods::create_file::create_file;
+use filez::methods::create_group::create_group;
 use filez::methods::delete_file::delete_file;
 use filez::methods::get_file::get_file;
 use filez::methods::get_file_info::get_file_info;
@@ -10,15 +11,16 @@ use filez::methods::get_user_info::get_user_info;
 use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_file::update_file;
 use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request, Response, Server};
+use hyper::{Body, Method, Request, Response, Server};
 use std::convert::Infallible;
+use std::net::SocketAddr;
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // reference variables declared with lazy_static because they are initialized on first access
     let _ = &SERVER_CONFIG.variable_prefix;
 
-    let addr = ([0, 0, 0, 0], 8080).into();
+    let addr: SocketAddr = "[::]:8080".parse().unwrap();
 
     let server = Server::bind(&addr).serve(make_service_fn(|_conn| async {
         Ok::<_, Infallible>(service_fn(handle_request))
@@ -50,23 +52,36 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
 }
 
 async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
-    if req.uri().path().starts_with("/get_file/") {
-        get_file(req).await
-    } else if req.uri().path().starts_with("/create_file/") {
-        create_file(req).await
-    } else if req.uri().path().starts_with("/delete_file/") {
-        delete_file(req).await
-    } else if req.uri().path().starts_with("/get_file_info/") {
-        get_file_info(req).await
-    } else if req.uri().path().starts_with("/get_file_infos_by_group_id/") {
-        get_file_infos_by_group_id(req).await
-    } else if req.uri().path().starts_with("/set_app_data/") {
-        set_app_data(req).await
-    } else if req.uri().path().starts_with("/get_user_info/") {
-        get_user_info(req).await
-    } else if req.uri().path().starts_with("/update_file/") {
-        update_file(req).await
+    let db = DB::new(
+        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
+    )
+    .await?;
+    let user_id = "test";
+
+    if req.uri().path().starts_with("/get_file/") && req.method() == Method::GET {
+        get_file(req, db, user_id).await
+    } else if req.uri().path() == "/create_file/" && req.method() == Method::POST {
+        create_file(req, db, user_id).await
+    } else if req.uri().path().starts_with("/delete_file/") && req.method() == Method::POST {
+        delete_file(req, db, user_id).await
+    } else if req.uri().path().starts_with("/get_file_info/") && req.method() == Method::GET {
+        get_file_info(req, db, user_id).await
+    } else if req.uri().path().starts_with("/get_file_infos_by_group_id/")
+        && req.method() == Method::GET
+    {
+        get_file_infos_by_group_id(req, db, user_id).await
+    } else if req.uri().path() == "/set_app_data/" && req.method() == Method::POST {
+        set_app_data(req, db, user_id).await
+    } else if req.uri().path().starts_with("/get_user_info/") && req.method() == Method::GET {
+        get_user_info(req, db, user_id).await
+    } else if req.uri().path() == "/update_file/" && req.method() == Method::POST {
+        update_file(req, db, user_id).await
+    } else if req.uri().path() == "/create_group/" && req.method() == Method::POST {
+        create_group(req, db, user_id).await
     } else {
-        bail!("Request has and invalid path");
+        Ok(Response::builder()
+            .status(404)
+            .body(Body::from("Not found"))
+            .unwrap())
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     some_or_bail,
-    types::{AppDataType, FilezFile, FilezUser, SetAppDataRequest},
+    types::{AppDataType, FilezFile, FilezGroups, FilezUser, SetAppDataRequest},
 };
 use arangors::{uclient::reqwest::ReqwestClient, AqlQuery, Connection, Database};
 use serde_json::Value;
@@ -15,6 +15,29 @@ impl DB {
     pub async fn new(con: Connection) -> anyhow::Result<Self> {
         let db = con.db("filez").await?;
         Ok(Self { con, db })
+    }
+
+    pub async fn create_group(&self, group: &FilezGroups) -> anyhow::Result<()> {
+        let mut vars = HashMap::new();
+        vars.insert("group", serde_json::value::to_value(&group).unwrap());
+        self.db
+            .aql_bind_vars::<Vec<Value>>(
+                &format!(
+                    r#"
+                LET insertRes = (
+                    INSERT @group IN {}
+                )
+
+                RETURN {{ insertRes }}"#,
+                    match group {
+                        FilezGroups::FilezUserGroup(_) => "userGroups",
+                        FilezGroups::FilezFileGroup(_) => "fileGroups",
+                    }
+                ),
+                vars,
+            )
+            .await?;
+        Ok(())
     }
 
     pub async fn set_app_data(&self, sadr: SetAppDataRequest) -> anyhow::Result<()> {
@@ -36,7 +59,7 @@ impl DB {
                     .bind_var("appData", sadr.app_data)
                     .bind_var("appName", sadr.app_name)
                     .build();
-                let _res: Vec<FilezFile> = self.db.aql_query(query).await?;
+                self.db.aql_query::<Vec<FilezFile>>(query).await?;
             }
             AppDataType::File => {
                 let query = AqlQuery::builder()
@@ -55,7 +78,7 @@ impl DB {
                     .bind_var("appData", sadr.app_data)
                     .bind_var("appName", sadr.app_name)
                     .build();
-                let _res: Vec<FilezFile> = self.db.aql_query(query).await?;
+                self.db.aql_query::<Vec<FilezFile>>(query).await?;
             }
         }
         Ok(())
@@ -76,10 +99,10 @@ impl DB {
         Ok(files)
     }
 
-    pub async fn get_user_by_id(&self, id: &str) -> anyhow::Result<FilezUser> {
+    pub async fn get_user_by_id(&self, user_id: &str) -> anyhow::Result<FilezUser> {
         let aql = AqlQuery::builder()
-            .query(r#"RETURN DOCUMENT(CONCAT("users/",@uid))"#)
-            .bind_var("uid", id)
+            .query(r#"RETURN DOCUMENT(CONCAT("users/",@user_id))"#)
+            .bind_var("user_id", user_id)
             .build();
 
         let res: Vec<Value> = self.db.aql_query(aql).await?;
@@ -89,10 +112,10 @@ impl DB {
         Ok(user)
     }
 
-    pub async fn get_file_by_id(&self, id: &str) -> anyhow::Result<FilezFile> {
+    pub async fn get_file_by_id(&self, file_id: &str) -> anyhow::Result<FilezFile> {
         let aql = AqlQuery::builder()
-            .query(r#"RETURN DOCUMENT(CONCAT("files/",@id))"#)
-            .bind_var("id", id)
+            .query(r#"RETURN DOCUMENT(CONCAT("files/",@file_id))"#)
+            .bind_var("file_id", file_id)
             .build();
 
         let res: Vec<Value> = self.db.aql_query(aql).await?;
@@ -131,13 +154,13 @@ impl DB {
             RETURN { removeFileRes, updateUserRes }
 
             "#)
-            .bind_var("id", file.id.clone())
+            .bind_var("id", file.file_id.clone())
             .bind_var("owner", file.owner.clone())
             .bind_var("storageName", file.storage_name.clone())
             .bind_var("size", file.size)
             .build();
 
-        let _res: Vec<Value> = self.db.aql_query(aql).await?;
+        self.db.aql_query::<Value>(aql).await?;
 
         Ok(())
     }
@@ -183,7 +206,7 @@ impl DB {
 
             "#,
             )
-            .bind_var("id", file.id.clone())
+            .bind_var("id", file.file_id.clone())
             .bind_var("sha256", sha256)
             .bind_var("newSize", size)
             .bind_var("oldSize", file.size)
@@ -192,7 +215,7 @@ impl DB {
             .bind_var("storageName", file.storage_name.clone())
             .build();
 
-        let _res: Vec<Value> = self.db.aql_query(aql).await?;
+        self.db.aql_query::<Vec<Value>>(aql).await?;
 
         Ok(())
     }

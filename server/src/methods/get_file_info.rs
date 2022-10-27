@@ -1,23 +1,13 @@
+use crate::db::DB;
 use anyhow::bail;
-use arangors::Connection;
 use hyper::{Body, Request, Response};
 
-use crate::db::DB;
-
-pub async fn get_file_info(req: Request<Body>) -> anyhow::Result<Response<Body>> {
-    let user_id = "test";
-    if req.method() != hyper::Method::GET {
-        return Ok(Response::builder()
-            .status(405)
-            .body(Body::from("Method Not Allowed"))
-            .unwrap());
-    }
+pub async fn get_file_info(
+    req: Request<Body>,
+    db: DB,
+    user_id: &str,
+) -> anyhow::Result<Response<Body>> {
     let file_id = req.uri().path().replacen("/get_file_info/", "", 1);
-
-    let db = DB::new(
-        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
-    )
-    .await?;
 
     let file = db.get_file_by_id(&file_id).await?;
 

@@ -1,27 +1,21 @@
+use crate::{config::SERVER_CONFIG, db::DB, utils::get_folder_and_file_path};
 use anyhow::bail;
-use arangors::Connection;
 use hyper::{Body, Request, Response};
 
-use crate::{config::SERVER_CONFIG, db::DB, utils::get_folder_and_file_path};
-
-pub async fn get_file(req: Request<Body>) -> anyhow::Result<Response<Body>> {
-    let user_id = "test";
+pub async fn get_file(req: Request<Body>, db: DB, user_id: &str) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
 
-    if req.method() != hyper::Method::GET {
-        return Ok(Response::builder()
-            .status(405)
-            .body(Body::from("Method Not Allowed"))
-            .unwrap());
-    }
     let file_id = req.uri().path().replacen("/get_file/", "", 1);
 
-    let db = DB::new(
-        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
-    )
-    .await?;
-
-    let file = db.get_file_by_id(&file_id).await?;
+    let file = match db.get_file_by_id(&file_id).await {
+        Ok(file) => file,
+        Err(_) => {
+            return Ok(Response::builder()
+                .status(404)
+                .body(Body::from("File not found"))
+                .unwrap());
+        }
+    };
 
     // check if user is allowed to access file
     if user_id != file.owner {
@@ -30,7 +24,7 @@ pub async fn get_file(req: Request<Body>) -> anyhow::Result<Response<Body>> {
     }
 
     let (folder_path, file_name) =
-        get_folder_and_file_path(&file.id, &config.storage[&file.storage_name].path);
+        get_folder_and_file_path(&file.file_id, &config.storage[&file.storage_name].path);
 
     let file_path = format!("{}/{}", folder_path, file_name);
 

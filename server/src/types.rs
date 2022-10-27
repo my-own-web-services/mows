@@ -4,6 +4,25 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct CreateGroupRequest {
+    pub name: String,
+    pub group_type: CreateGroupRequestGroupType,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum CreateGroupRequestGroupType {
+    User,
+    File,
+}
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateGroupResponse {
+    pub group_id: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateFileRequest {
     pub file_id: String,
     pub modified: Option<i64>,
@@ -29,16 +48,34 @@ pub struct CreateFileRequest {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateFileResponse {
-    pub id: String,
+    pub file_id: String,
     pub storage_name: String,
     pub sha256: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct SetAppDataRequest {
+    pub app_data_type: AppDataType,
+    pub id: String,
+    pub app_name: String,
+    pub app_data: Value,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum AppDataType {
+    File,
+    User,
+}
+
+// Database specifics
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct FilezFile {
     #[serde(rename = "_key")]
-    pub id: String,
+    pub file_id: String,
     pub mime_type: String,
     pub name: String,
     pub owner: String,
@@ -60,15 +97,18 @@ pub struct FilezFile {
      The String is the app name and the Value is its data
     */
     pub app_data: Option<HashMap<String, Value>>,
+    pub permissions: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezUser {
     #[serde(rename = "_key")]
-    pub id: String,
+    pub user_id: String,
     pub app_data: Option<HashMap<String, Value>>,
     pub limits: HashMap<String, UserLimits>,
+    /** List of group ids that the user is a member of */
+    pub group_ids: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -84,16 +124,91 @@ pub struct UserLimits {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct SetAppDataRequest {
-    pub app_data_type: AppDataType,
-    pub id: String,
-    pub app_name: String,
-    pub app_data: Value,
+#[serde(untagged)]
+pub enum FilezGroups {
+    FilezUserGroup(FilezUserGroup),
+    FilezFileGroup(FilezFileGroup),
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum AppDataType {
-    File,
-    User,
+pub struct FilezUserGroup {
+    #[serde(rename = "_key")]
+    pub user_group_id: String,
+    pub name: String,
+    /** Id of the User owning the user group*/
+    pub owner_id: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FilezFileGroup {
+    #[serde(rename = "_key")]
+    pub file_group_id: String,
+    pub name: String,
+    /** Id of the User owning the file group*/
+    pub owner_id: String,
+    /**
+     *  List of permission ids for this file group
+     *  The Permissions will be merged and then evaluated
+     */
+    pub permission_ids: Vec<String>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FilezPermission {
+    #[serde(rename = "_key")]
+    pub permission_id: String,
+    pub name: String,
+    /** Id of the User owning the permission */
+    pub owner_id: String,
+    pub acl: Option<FilezPermissionAcl>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FilezPermissionAcl {
+    pub everyone: Option<EveryoneAcl>,
+    pub passwords: Option<PasswordAcl>,
+    pub users: Option<UsersAcl>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EveryoneAcl {
+    pub read: Option<bool>,
+    pub update: Option<bool>,
+    pub delete: Option<bool>,
+    pub create: Option<bool>,
+    pub list: Option<bool>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PasswordAcl {
+    pub read: Option<Vec<String>>,
+    pub update: Option<Vec<String>>,
+    pub delete: Option<Vec<String>>,
+    pub create: Option<Vec<String>>,
+    pub list: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UsersAcl {
+    pub read: Option<UsersAclUsersAndUserGroups>,
+    pub update: Option<UsersAclUsersAndUserGroups>,
+    pub delete: Option<UsersAclUsersAndUserGroups>,
+    pub create: Option<UsersAclUsersAndUserGroups>,
+    pub list: Option<UsersAclUsersAndUserGroups>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UsersAclUsersAndUserGroups {
+    /** List of users that have access to the parent resource */
+    pub user_ids: Vec<String>,
+    /** List of user groups that have access to the parent resource */
+    pub user_group_ids: Vec<String>,
 }

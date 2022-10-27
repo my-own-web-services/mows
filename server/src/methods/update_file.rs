@@ -5,7 +5,6 @@ use std::{
 };
 
 use anyhow::bail;
-use arangors::Connection;
 use hyper::{body::HttpBody, Body, Request, Response};
 use sha2::{Digest, Sha256};
 
@@ -17,16 +16,13 @@ use crate::{
     utils::get_folder_and_file_path,
 };
 
-pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
-    let user_id = "test";
+pub async fn update_file(
+    mut req: Request<Body>,
+    db: DB,
+    user_id: &str,
+) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
 
-    if req.method() != hyper::Method::POST {
-        return Ok(Response::builder()
-            .status(405)
-            .body(Body::from("Method Not Allowed"))
-            .unwrap());
-    }
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
     if request_header.len() > 5000 {
@@ -34,11 +30,6 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     }
 
     let update_request: UpdateFileRequest = serde_json::from_str(request_header)?;
-
-    let db = DB::new(
-        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
-    )
-    .await?;
 
     let user = db.get_user_by_id(user_id).await?;
     let filez_file = match db.get_file_by_id(&update_request.file_id).await {
@@ -76,7 +67,7 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     .path
     .clone();
 
-    let id = format!("{}_update", filez_file.id);
+    let id = format!("{}_update", filez_file.file_id);
     let (folder_path, file_name) = get_folder_and_file_path(&id, &storage_path);
 
     dbg!(&folder_path);
@@ -118,7 +109,7 @@ pub async fn update_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
         bail!("Failed to create file in database: {}", cft.err().unwrap());
     } else {
         let (old_folder_path, old_file_name) =
-            get_folder_and_file_path(&filez_file.id, &storage_path);
+            get_folder_and_file_path(&filez_file.file_id, &storage_path);
         let old_file_path = Path::new(&old_folder_path).join(old_file_name);
 
         fs::rename(&new_file_path, &old_file_path)?;

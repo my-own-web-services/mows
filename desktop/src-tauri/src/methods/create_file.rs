@@ -49,7 +49,7 @@ pub async fn create_file(
 
     let app_data_req = SetAppDataRequest {
         app_data_type: AppDataType::File,
-        id: cfr.id,
+        id: cfr.file_id,
         app_name: "filezClient".to_string(),
         app_data: serde_json::to_value(app_data_file)?,
     };

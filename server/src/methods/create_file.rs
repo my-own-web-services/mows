@@ -1,13 +1,3 @@
-use std::{
-    fs::{self, File},
-    io::Write,
-};
-
-use anyhow::bail;
-use arangors::Connection;
-use hyper::{body::HttpBody, Body, Request, Response};
-use sha2::{Digest, Sha256};
-
 use crate::{
     config::SERVER_CONFIG,
     db::DB,
@@ -15,17 +5,22 @@ use crate::{
     types::{CreateFileRequest, CreateFileResponse, FilezFile},
     utils::{generate_id, get_folder_and_file_path},
 };
+use anyhow::bail;
+use hyper::{body::HttpBody, Body, Request, Response};
+use sha2::{Digest, Sha256};
+use std::{
+    fs::{self, File},
+    io::Write,
+    vec,
+};
 
-pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
-    let user_id = "test";
+pub async fn create_file(
+    mut req: Request<Body>,
+    db: DB,
+    user_id: &str,
+) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
 
-    if req.method() != hyper::Method::POST {
-        return Ok(Response::builder()
-            .status(405)
-            .body(Body::from("Method Not Allowed"))
-            .unwrap());
-    }
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
     if request_header.len() > 5000 {
@@ -33,11 +28,6 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     }
 
     let create_request: CreateFileRequest = serde_json::from_str(request_header)?;
-
-    let db = DB::new(
-        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
-    )
-    .await?;
 
     let user = db.get_user_by_id(user_id).await?;
 
@@ -100,10 +90,10 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
     // update db in this "create file transaction"
     let cft = db
         .create_file(FilezFile {
-            id: id.clone(),
+            file_id: id.clone(),
             mime_type: create_request.mime_type,
             name: create_request.name,
-            owner: user.id,
+            owner: user.user_id,
             sha256: hash.clone(),
             storage_name: storage_name.clone(),
             size: bytes_written,
@@ -115,18 +105,19 @@ pub async fn create_file(mut req: Request<Body>) -> anyhow::Result<Response<Body
             accessed_count: 0,
             time_of_death: None,
             created: create_request.created.unwrap_or(current_time),
+            permissions: vec![],
         })
         .await;
 
     match cft {
         Ok(_) => {
             let cfr = CreateFileResponse {
-                id,
+                file_id: id,
                 storage_name,
                 sha256: hash,
             };
             Ok(Response::builder()
-                .status(200)
+                .status(201)
                 .body(Body::from(serde_json::to_string(&cfr)?))?)
         }
         Err(e) => {

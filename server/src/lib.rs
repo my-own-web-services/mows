@@ -6,6 +6,7 @@ pub mod utils;
 
 pub mod methods {
     pub mod create_file;
+    pub mod create_group;
     pub mod delete_file;
     pub mod get_file;
     pub mod get_file_info;

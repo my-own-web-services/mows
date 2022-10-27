@@ -735,6 +735,6 @@ pub fn filez_file_to_intermediary_file(f: &FilezFile) -> anyhow::Result<Intermed
         path: client_app_data.path.clone(),
         client_id: some_or_bail!(client_app_data.path, "Could not get path to set as id"),
         real_path: None,
-        existing_id: Some(f.id.clone()),
+        existing_id: Some(f.file_id.clone()),
     })
 }

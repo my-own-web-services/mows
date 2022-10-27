@@ -29,7 +29,7 @@ pub struct CreateFileRequest {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateFileResponse {
-    pub id: String,
+    pub file_id: String,
     pub storage_name: String,
     pub sha256: String,
 }
@@ -38,7 +38,7 @@ pub struct CreateFileResponse {
 #[serde(rename_all = "camelCase")]
 pub struct FilezFile {
     #[serde(rename = "_key")]
-    pub id: String,
+    pub file_id: String,
     pub mime_type: String,
     pub name: String,
     pub owner: String,
@@ -60,13 +60,14 @@ pub struct FilezFile {
      The String is the app name and the Value is its data
     */
     pub app_data: Option<HashMap<String, Value>>,
+    pub permissions: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezUser {
     #[serde(rename = "_key")]
-    pub id: String,
+    pub user_id: String,
     pub app_data: Option<HashMap<String, Value>>,
     pub limits: HashMap<String, UserLimits>,
 }
@@ -96,4 +97,11 @@ pub struct SetAppDataRequest {
 pub enum AppDataType {
     File,
     User,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UserGroup {
+    #[serde(rename = "_key")]
+    user_group_id: String,
 }

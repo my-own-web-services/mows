@@ -15,10 +15,10 @@ export const testCreateFile = async () => {
     const createdFile = await createFile();
 
     // get file
-    await getFile(createdFile.id);
+    await getFile(createdFile.fileId);
 
     // delete file
-    await deleteFile(createdFile.id);
+    await deleteFile(createdFile.fileId);
 
     // stop database
 
@@ -26,7 +26,7 @@ export const testCreateFile = async () => {
 };
 
 export const deleteFile = async (id: string) => {
-    const res = await fetch(`http://0.0.0.0:8080/delete_file/${id}`, { method: "POST" });
+    const res = await fetch(`http://localhost:8080/delete_file/${id}`, { method: "POST" });
     if (res.status !== 200) {
         throw new Error("Could not delete file");
     }
@@ -34,11 +34,13 @@ export const deleteFile = async (id: string) => {
 };
 
 export const getFile = async (id: string) => {
-    const res = await fetch(`http://0.0.0.0:8080/get_file/${id}`);
-    if (res.headers.get("content-type") !== "text/plain") {
-        throw new Error("Wrong content type");
-    }
+    const res = await fetch(`http://localhost:8080/get_file/${id}`);
+    const ct = res.headers.get("content-type");
     const file = await res.text();
+    if (ct !== "text/plain") {
+        throw new Error(`Wrong content type: ${ct}; file content: ${file}`);
+    }
+
     if (file !== "abc") {
         throw new Error("Wrong content");
     }
@@ -46,22 +48,30 @@ export const getFile = async (id: string) => {
 };
 
 export interface CreatedFileResponse {
-    id: string;
+    fileId: string;
     storageName: string;
     sha256: string;
 }
 
 export const createFile = async (): Promise<CreatedFileResponse> => {
     const file = await fs.readFile("test-files/test.txt");
-    const res = await fetch("http://0.0.0.0:8080/create_file/", {
+
+    const request = JSON.stringify({ name: "test.txt", mimeType: "text/plain" });
+
+    const res = await fetch("http://localhost:8080/create_file/", {
         headers: {
-            request: JSON.stringify({ name: "test.txt", mimeType: "text/plain" })
+            request
         },
         method: "POST",
         body: file
     });
-    const json = await res.json();
-    return json as CreatedFileResponse;
+    let text = await res.text();
+    try {
+        let json = JSON.parse(text);
+        return json as CreatedFileResponse;
+    } catch (error) {
+        throw new Error(`Could not parse response: ${text}`);
+    }
 };
 
 export const setupDb = async () => {
@@ -86,6 +96,15 @@ export const setupDb = async () => {
         //console.error(e);
     });
     await db.createCollection("users").catch(e => {
+        //console.error(e);
+    });
+    await db.createCollection("permissions").catch(e => {
+        //console.error(e);
+    });
+    await db.createCollection("userGroups").catch(e => {
+        //console.error(e);
+    });
+    await db.createCollection("fileGroups").catch(e => {
         //console.error(e);
     });
 
