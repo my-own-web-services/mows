@@ -93,19 +93,19 @@ pub async fn create_file(
             file_id: id.clone(),
             mime_type: create_request.mime_type,
             name: create_request.name,
-            owner: user.user_id,
+            owner_id: user.user_id,
             sha256: hash.clone(),
             storage_name: storage_name.clone(),
             size: bytes_written,
             server_created: current_time,
             modified: create_request.modified,
-            groups: create_request.groups,
+            file_group_ids: create_request.groups,
             app_data: None,
             accessed: None,
             accessed_count: 0,
             time_of_death: None,
             created: create_request.created.unwrap_or(current_time),
-            permissions: vec![],
+            permission_ids: vec![],
         })
         .await;
 

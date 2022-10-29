@@ -96,7 +96,7 @@ pub async fn update_file(
 
     // update db
     let cft = db
-        .update_file(
+        .update_file_with_content_change(
             &filez_file,
             &hash,
             bytes_written,

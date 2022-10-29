@@ -18,7 +18,7 @@ pub async fn get_file(req: Request<Body>, db: DB, user_id: &str) -> anyhow::Resu
     };
 
     // check if user is allowed to access file
-    if user_id != file.owner {
+    if user_id != file.owner_id {
         // TODO user is not the owner so we need to check the permissions
         bail!("User is not allowed to access file");
     }

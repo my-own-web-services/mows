@@ -4,14 +4,56 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateGroupRequest {
-    pub name: String,
-    pub group_type: CreateGroupRequestGroupType,
+pub struct UpdatePermissionsRequest {
+    pub permission_ids: Vec<String>,
+    pub resource_id: String,
+    pub resource_type: FileResourceType,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum CreateGroupRequestGroupType {
+pub enum FileResourceType {
+    FileGroup,
+    File,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteGroupRequest {
+    pub group_id: String,
+    pub group_type: GroupType,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DeletePermissionRequest {
+    pub permission_id: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatePermissionRequest {
+    pub name: Option<String>,
+    pub acl: Option<FilezPermissionAcl>,
+    pub ribston: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatePermissionResponse {
+    pub permission_id: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateGroupRequest {
+    pub name: String,
+    pub group_type: GroupType,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum GroupType {
     User,
     File,
 }
@@ -78,7 +120,7 @@ pub struct FilezFile {
     pub file_id: String,
     pub mime_type: String,
     pub name: String,
-    pub owner: String,
+    pub owner_id: String,
     pub sha256: String,
     pub storage_name: String,
     pub size: u64,
@@ -87,7 +129,7 @@ pub struct FilezFile {
     pub modified: Option<i64>,
     pub accessed: Option<i64>,
     pub accessed_count: u64,
-    pub groups: Option<Vec<String>>,
+    pub file_group_ids: Option<Vec<String>>,
     /**
         UTC timecode after which the file should be deleted
     */
@@ -97,7 +139,7 @@ pub struct FilezFile {
      The String is the app name and the Value is its data
     */
     pub app_data: Option<HashMap<String, Value>>,
-    pub permissions: Vec<String>,
+    pub permission_ids: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -160,10 +202,11 @@ pub struct FilezFileGroup {
 pub struct FilezPermission {
     #[serde(rename = "_key")]
     pub permission_id: String,
-    pub name: String,
+    pub name: Option<String>,
     /** Id of the User owning the permission */
     pub owner_id: String,
     pub acl: Option<FilezPermissionAcl>,
+    pub ribston: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

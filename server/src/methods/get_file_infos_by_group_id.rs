@@ -15,7 +15,7 @@ pub async fn get_file_infos_by_group_id(
 
     let files = files
         .iter()
-        .filter(|f| f.owner == user_id)
+        .filter(|f| f.owner_id == user_id)
         .collect::<Vec<_>>();
 
     Ok(Response::builder()

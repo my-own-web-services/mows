@@ -5,6 +5,7 @@ use crate::{
 };
 use hyper::{Body, Request, Response};
 
+// creates a group for an authenticated user
 pub async fn create_group(
     req: Request<Body>,
     db: DB,
@@ -16,21 +17,17 @@ pub async fn create_group(
     let group_id = generate_id();
 
     let group = match cgr.group_type {
-        crate::types::CreateGroupRequestGroupType::User => {
-            FilezGroups::FilezUserGroup(FilezUserGroup {
-                owner_id: user_id.to_string(),
-                name: cgr.name,
-                user_group_id: group_id.clone(),
-            })
-        }
-        crate::types::CreateGroupRequestGroupType::File => {
-            FilezGroups::FilezFileGroup(FilezFileGroup {
-                owner_id: user_id.to_string(),
-                name: cgr.name,
-                file_group_id: group_id.clone(),
-                permission_ids: vec![],
-            })
-        }
+        crate::types::GroupType::User => FilezGroups::FilezUserGroup(FilezUserGroup {
+            owner_id: user_id.to_string(),
+            name: cgr.name,
+            user_group_id: group_id.clone(),
+        }),
+        crate::types::GroupType::File => FilezGroups::FilezFileGroup(FilezFileGroup {
+            owner_id: user_id.to_string(),
+            name: cgr.name,
+            file_group_id: group_id.clone(),
+            permission_ids: vec![],
+        }),
     };
 
     db.create_group(&group).await?;
