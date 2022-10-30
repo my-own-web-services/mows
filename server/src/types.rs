@@ -4,6 +4,12 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct CreateUploadSpaceRequest {
+    pub limits: HashMap<String, UsageLimits>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdatePermissionsRequest {
     pub permission_ids: Vec<String>,
     pub resource_id: String,
@@ -148,14 +154,14 @@ pub struct FilezUser {
     #[serde(rename = "_key")]
     pub user_id: String,
     pub app_data: Option<HashMap<String, Value>>,
-    pub limits: HashMap<String, UserLimits>,
+    pub limits: HashMap<String, UsageLimits>,
     /** List of group ids that the user is a member of */
     pub group_ids: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct UserLimits {
+pub struct UsageLimits {
     pub max_storage: u64,
     pub used_storage: u64,
     pub max_files: u64,
@@ -195,6 +201,15 @@ pub struct FilezFileGroup {
      *  The Permissions will be merged and then evaluated
      */
     pub permission_ids: Vec<String>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UploadSpace {
+    #[serde(rename = "_key")]
+    pub upload_space_id: String,
+    pub owner_id: String,
+    pub limits: HashMap<String, UsageLimits>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

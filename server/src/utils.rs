@@ -1,7 +1,6 @@
-use std::path::Path;
-
 use hyper::{Body, Request};
 use qstring::QString;
+use std::path::Path;
 
 pub fn generate_id() -> String {
     use rand::Rng;
@@ -33,9 +32,10 @@ pub fn get_folder_and_file_path(id: &str, storage_path: &str) -> (String, String
     )
 }
 
-pub fn get_password_from_query(req: &Request<Body>) -> Option<String> {
+#[allow(clippy::manual_map)]
+pub fn get_token_from_query(req: &Request<Body>) -> Option<String> {
     match req.uri().query() {
-        Some(q) => match QString::from(q).get("p") {
+        Some(q) => match QString::from(q).get("t") {
             Some(qp) => Some(qp.to_string()),
             None => None,
         },

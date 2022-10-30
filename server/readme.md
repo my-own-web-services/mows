@@ -2,6 +2,12 @@
 
 create file group
 
+# create some file share
+
+create permission
+create file group
+apply permission to file group
+
 # other
 
 webdav server

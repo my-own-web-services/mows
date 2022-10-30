@@ -15,6 +15,16 @@ use std::{
     vec,
 };
 
+/*
+The options for calling the create file function are:
+- Create a file as authenticated user
+- Create a file in an uploadSpace with a token
+
+the upload space has to be created by an authenticated user and access to it can be shared with a token
+files uploaded will be owned by the owner of the upload space and decrease their quota as normal
+
+*/
+
 pub async fn create_file(
     mut req: Request<Body>,
     db: DB,
@@ -71,8 +81,8 @@ pub async fn create_file(
     .path
     .clone();
 
-    let id = generate_id();
-    let (folder_path, file_name) = get_folder_and_file_path(&id, &storage_path);
+    let file_id = generate_id();
+    let (folder_path, file_name) = get_folder_and_file_path(&file_id, &storage_path);
 
     fs::create_dir_all(&folder_path)?;
     // write file to disk but abbort if limits where exceeded
@@ -98,7 +108,7 @@ pub async fn create_file(
     // update db in this "create file transaction"
     let cft = db
         .create_file(FilezFile {
-            file_id: id.clone(),
+            file_id: file_id.clone(),
             mime_type: create_request.mime_type,
             name: create_request.name,
             owner_id: user.user_id,
@@ -120,7 +130,7 @@ pub async fn create_file(
     match cft {
         Ok(_) => {
             let cfr = CreateFileResponse {
-                file_id: id,
+                file_id,
                 storage_name,
                 sha256: hash,
             };

@@ -3,7 +3,7 @@ use crate::{
     types::{
         AppDataType, DeleteGroupRequest, DeletePermissionRequest, FilezFile, FilezFileGroup,
         FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest,
-        UpdatePermissionsRequest,
+        UpdatePermissionsRequest, UploadSpace,
     },
 };
 use anyhow::bail;
@@ -22,7 +22,41 @@ impl DB {
         Ok(Self { con, db })
     }
 
-    //pub async fn delete_permission(&self)-> anyhow::Result<()>{}
+    pub async fn create_collections(&self) -> anyhow::Result<()> {
+        let collections = vec![
+            "users",
+            "files",
+            "permissions",
+            "userGroups",
+            "fileGroups",
+            "uploadSpaces",
+        ];
+
+        for collection in collections {
+            let _ = &self.db.create_collection(collection).await;
+        }
+
+        Ok(())
+    }
+
+    pub async fn create_upload_space(&self, upload_space: &UploadSpace) -> anyhow::Result<()> {
+        let mut vars = HashMap::new();
+        vars.insert(
+            "upload_space",
+            serde_json::value::to_value(upload_space).unwrap(),
+        );
+
+        self.db
+            .aql_bind_vars::<Vec<Value>>(
+                r#"
+                INSERT @upload_space INTO uploadSpaces
+                "#,
+                vars,
+            )
+            .await?;
+        Ok(())
+    }
+
     pub async fn update_permission_ids_on_resource(
         &self,
         upr: &UpdatePermissionsRequest,

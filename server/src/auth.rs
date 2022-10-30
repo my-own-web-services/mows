@@ -1,3 +1,3 @@
-pub async fn auth() -> anyhow::Result<()> {
+pub async fn check_auth() -> anyhow::Result<()> {
     Ok(())
 }

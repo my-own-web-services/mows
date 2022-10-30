@@ -16,7 +16,7 @@ use filez::methods::get_user_info::get_user_info;
 use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_file::update_file;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
-use filez::utils::get_password_from_query;
+use filez::utils::get_token_from_query;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server};
 use std::convert::Infallible;
@@ -28,6 +28,13 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _ = &SERVER_CONFIG.variable_prefix;
 
     let addr: SocketAddr = "[::]:8080".parse().unwrap();
+
+    let db = DB::new(
+        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
+    )
+    .await?;
+
+    db.create_collections().await?;
 
     let server = Server::bind(&addr).serve(make_service_fn(|_conn| async {
         Ok::<_, Infallible>(service_fn(handle_request))
@@ -66,7 +73,7 @@ async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
 
     let auth = Auth {
         authenticated_user: Some("test".to_string()),
-        password: get_password_from_query(&req),
+        token: get_token_from_query(&req),
     };
 
     let p = req.uri().path();
