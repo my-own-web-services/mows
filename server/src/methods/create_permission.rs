@@ -1,5 +1,6 @@
 use crate::{
     db::DB,
+    internal_types::Auth,
     types::{CreatePermissionRequest, CreatePermissionResponse, FilezPermission},
     utils::generate_id,
 };
@@ -9,8 +10,17 @@ use hyper::{Body, Request, Response};
 pub async fn create_permission(
     req: Request<Body>,
     db: DB,
-    user_id: &str,
+    auth: &Auth,
 ) -> anyhow::Result<Response<Body>> {
+    let user_id = match &auth.authenticated_user {
+        Some(user_id) => user_id,
+        None => {
+            return Ok(Response::builder()
+                .status(401)
+                .body(Body::from("Unauthorized"))?)
+        }
+    };
+
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let cpr: CreatePermissionRequest = serde_json::from_slice(&body)?;
 

@@ -1,9 +1,18 @@
-use crate::{config::SERVER_CONFIG, db::DB, utils::get_folder_and_file_path};
+use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth, utils::get_folder_and_file_path};
 use anyhow::bail;
 use hyper::{Body, Request, Response};
 
-pub async fn get_file(req: Request<Body>, db: DB, user_id: &str) -> anyhow::Result<Response<Body>> {
+pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
+
+    let user_id = match &auth.authenticated_user {
+        Some(user_id) => user_id.clone(),
+        None => {
+            return Ok(Response::builder()
+                .status(401)
+                .body(Body::from("Unauthorized"))?)
+        }
+    };
 
     let file_id = req.uri().path().replacen("/get_file/", "", 1);
 

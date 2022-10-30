@@ -24,6 +24,7 @@ hex = "0.4"
 chrono="0.4.22"
 rand="0.8.5"
 hyper-staticfile = "0.9.1"
+qstring="0.7.2"
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"

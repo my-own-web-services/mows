@@ -1,3 +1,9 @@
+# sync
+
+create file group
+
+# other
+
 webdav server
 
 torrent integration

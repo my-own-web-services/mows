@@ -1,5 +1,8 @@
 use std::path::Path;
 
+use hyper::{Body, Request};
+use qstring::QString;
+
 pub fn generate_id() -> String {
     use rand::Rng;
     const CHARSET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -28,4 +31,14 @@ pub fn get_folder_and_file_path(id: &str, storage_path: &str) -> (String, String
             .to_string(),
         file_name.to_string(),
     )
+}
+
+pub fn get_password_from_query(req: &Request<Body>) -> Option<String> {
+    match req.uri().query() {
+        Some(q) => match QString::from(q).get("p") {
+            Some(qp) => Some(qp.to_string()),
+            None => None,
+        },
+        None => None,
+    }
 }

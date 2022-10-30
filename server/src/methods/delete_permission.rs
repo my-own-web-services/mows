@@ -1,11 +1,20 @@
-use crate::{db::DB, types::DeletePermissionRequest};
+use crate::{db::DB, internal_types::Auth, types::DeletePermissionRequest};
 use hyper::{Body, Request, Response};
 
 pub async fn delete_permission(
     req: Request<Body>,
     db: DB,
-    user_id: &str,
+    auth: &Auth,
 ) -> anyhow::Result<Response<Body>> {
+    let user_id = match &auth.authenticated_user {
+        Some(user_id) => user_id,
+        None => {
+            return Ok(Response::builder()
+                .status(401)
+                .body(Body::from("Unauthorized"))?)
+        }
+    };
+
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let dgr: DeletePermissionRequest = serde_json::from_slice(&body)?;
 

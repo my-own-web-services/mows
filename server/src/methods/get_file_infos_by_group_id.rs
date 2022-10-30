@@ -1,11 +1,19 @@
-use crate::db::DB;
+use crate::{db::DB, internal_types::Auth};
 use hyper::{Body, Request, Response};
 
 pub async fn get_file_infos_by_group_id(
     req: Request<Body>,
     db: DB,
-    user_id: &str,
+    auth: &Auth,
 ) -> anyhow::Result<Response<Body>> {
+    let user_id = match &auth.authenticated_user {
+        Some(user_id) => user_id.clone(),
+        None => {
+            return Ok(Response::builder()
+                .status(401)
+                .body(Body::from("Unauthorized"))?)
+        }
+    };
     let group_id = req
         .uri()
         .path()

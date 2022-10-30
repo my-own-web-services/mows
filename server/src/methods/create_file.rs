@@ -1,6 +1,7 @@
 use crate::{
     config::SERVER_CONFIG,
     db::DB,
+    internal_types::Auth,
     some_or_bail,
     types::{CreateFileRequest, CreateFileResponse, FilezFile},
     utils::{generate_id, get_folder_and_file_path},
@@ -17,10 +18,17 @@ use std::{
 pub async fn create_file(
     mut req: Request<Body>,
     db: DB,
-    user_id: &str,
+    auth: &Auth,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
-
+    let user_id = match &auth.authenticated_user {
+        Some(user_id) => user_id,
+        None => {
+            return Ok(Response::builder()
+                .status(401)
+                .body(Body::from("Unauthorized"))?)
+        }
+    };
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
     if request_header.len() > 5000 {

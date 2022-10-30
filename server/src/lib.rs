@@ -1,5 +1,7 @@
+pub mod auth;
 pub mod config;
 pub mod db;
+pub mod internal_types;
 pub mod macros;
 pub mod types;
 pub mod utils;
