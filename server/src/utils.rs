@@ -1,6 +1,10 @@
+use anyhow::bail;
 use hyper::{Body, Request};
 use qstring::QString;
-use std::path::Path;
+use serde_json::Value;
+use std::{path::Path, vec};
+
+use crate::{internal_types::MergedFilezPermission, types::FilezPermission};
 
 pub fn generate_id() -> String {
     use rand::Rng;
@@ -14,6 +18,46 @@ pub fn generate_id() -> String {
             CHARSET[idx] as char
         })
         .collect()
+}
+
+fn merge_values(a: &mut Value, b: &Value) {
+    match (a, b) {
+        (&mut Value::Object(ref mut a), &Value::Object(ref b)) => {
+            for (k, v) in b {
+                merge_values(a.entry(k.clone()).or_insert(Value::Null), v);
+            }
+        }
+        (a, b) => {
+            *a = b.clone();
+        }
+    }
+}
+
+pub fn merge_permissions(
+    permissions: Vec<FilezPermission>,
+) -> anyhow::Result<MergedFilezPermission> {
+    if permissions.is_empty() {
+        bail!("No permissions found");
+    }
+    let mut merged_permission = MergedFilezPermission {
+        ribston: vec![],
+        acl: None,
+    };
+
+    let mut merged_acl = Value::Null;
+
+    for permission in permissions {
+        if let Some(ribston) = permission.ribston {
+            merged_permission.ribston.push(ribston);
+        }
+        if let Some(acl) = permission.acl {
+            merge_values(&mut merged_acl, &serde_json::to_value(&acl)?);
+        }
+    }
+
+    merged_permission.acl = serde_json::from_value(merged_acl)?;
+
+    Ok(merged_permission)
 }
 
 pub fn get_folder_and_file_path(id: &str, storage_path: &str) -> (String, String) {

@@ -5,7 +5,15 @@ use std::collections::HashMap;
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateUploadSpaceRequest {
-    pub limits: HashMap<String, UsageLimits>,
+    pub limits: HashMap<String, CusrLimits>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CusrLimits {
+    pub max_storage: u64,
+    pub max_files: u64,
+    pub max_bandwidth: u64,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -53,7 +61,7 @@ pub struct CreatePermissionResponse {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateGroupRequest {
-    pub name: String,
+    pub name: Option<String>,
     pub group_type: GroupType,
 }
 
@@ -183,7 +191,7 @@ pub enum FilezGroups {
 pub struct FilezUserGroup {
     #[serde(rename = "_key")]
     pub user_group_id: String,
-    pub name: String,
+    pub name: Option<String>,
     /** Id of the User owning the user group*/
     pub owner_id: String,
 }
@@ -193,7 +201,7 @@ pub struct FilezUserGroup {
 pub struct FilezFileGroup {
     #[serde(rename = "_key")]
     pub file_group_id: String,
-    pub name: String,
+    pub name: Option<String>,
     /** Id of the User owning the file group*/
     pub owner_id: String,
     /**
@@ -210,6 +218,7 @@ pub struct UploadSpace {
     pub upload_space_id: String,
     pub owner_id: String,
     pub limits: HashMap<String, UsageLimits>,
+    pub file_group_id: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -266,7 +275,7 @@ pub struct UsersAcl {
 #[serde(rename_all = "camelCase")]
 pub struct UsersAclUsersAndUserGroups {
     /** List of users that have access to the parent resource */
-    pub user_ids: Vec<String>,
+    pub user_ids: Option<Vec<String>>,
     /** List of user groups that have access to the parent resource */
-    pub user_group_ids: Vec<String>,
+    pub user_group_ids: Option<Vec<String>>,
 }

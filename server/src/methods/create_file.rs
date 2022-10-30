@@ -31,14 +31,21 @@ pub async fn create_file(
     auth: &Auth,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
-    let user_id = match &auth.authenticated_user {
-        Some(user_id) => user_id,
-        None => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))?)
-        }
+    let (user_id, upload_space) = match &auth.authenticated_user {
+        Some(user_id) => (user_id.clone(), None),
+        None => match &auth.token {
+            Some(token) => {
+                let upload_space = db.get_upload_space_by_token(token).await?;
+                (upload_space.owner_id.clone(), Some(upload_space))
+            }
+            None => {
+                return Ok(Response::builder()
+                    .status(401)
+                    .body(Body::from("Unauthorized"))?)
+            }
+        },
     };
+
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
     if request_header.len() > 5000 {
@@ -47,18 +54,20 @@ pub async fn create_file(
 
     let create_request: CreateFileRequest = serde_json::from_str(request_header)?;
 
-    let user = db.get_user_by_id(user_id).await?;
+    let user = db.get_user_by_id(&user_id).await?;
 
     let storage_name = create_request
         .storage_name
         .unwrap_or_else(|| config.default_storage.clone());
 
+    // check for user limits
     // first size check
     let size_hint = req.body().size_hint();
     let storage_limits = some_or_bail!(
         user.limits.get(&storage_name),
         format!("Invalid storage name: {}", storage_name)
     );
+
     let bytes_left = storage_limits.max_storage - storage_limits.used_storage;
     if size_hint.lower() > bytes_left
         || size_hint.upper().is_some() && size_hint.upper().unwrap() > bytes_left
@@ -69,6 +78,28 @@ pub async fn create_file(
     // file count check
     if storage_limits.used_files >= storage_limits.max_files {
         bail!("User file limit exceeded");
+    }
+
+    // check for upload space limits
+
+    if let Some(upload_space) = &upload_space {
+        let upload_space_limits = some_or_bail!(
+            upload_space.limits.get(&storage_name),
+            format!("Invalid storage name: {}", storage_name)
+        );
+        let bytes_left_upload_space =
+            upload_space_limits.max_storage - upload_space_limits.used_storage;
+
+        if size_hint.lower() > bytes_left_upload_space
+            || size_hint.upper().is_some() && size_hint.upper().unwrap() > bytes_left_upload_space
+        {
+            bail!("UploadSpace storage limit exceeded");
+        }
+
+        // file count check
+        if upload_space_limits.used_files >= upload_space_limits.max_files {
+            bail!("UploadSpace file limit exceeded");
+        }
     }
 
     let storage_path = some_or_bail!(
@@ -94,16 +125,42 @@ pub async fn create_file(
     while let Some(chunk) = req.body_mut().data().await {
         let chunk = chunk?;
         bytes_written += chunk.len() as u64;
+
+        // check if file size limit is exceeded for the user
         if bytes_written > bytes_left {
             fs::remove_file(&file_path)?;
             bail!("User storage limit exceeded");
         }
+        // check if file size limit is exceeded for the upload space if present
+        if let Some(upload_space) = &upload_space {
+            let upload_space_limits = some_or_bail!(
+                upload_space.limits.get(&storage_name),
+                format!("Invalid storage name: {}", storage_name)
+            );
+            let bytes_left_upload_space =
+                upload_space_limits.max_storage - upload_space_limits.used_storage;
+            if bytes_written > bytes_left_upload_space {
+                fs::remove_file(&file_path)?;
+                bail!("UploadSpace storage limit exceeded");
+            }
+        }
+
         hasher.write_all(&chunk)?;
         file.write_all(&chunk)?;
     }
 
     let hash = hex::encode(hasher.finalize());
     let current_time = chrono::offset::Utc::now().timestamp_millis();
+
+    let mut file_group_ids = vec![];
+
+    if let Some(mut crg) = create_request.groups {
+        file_group_ids.append(&mut crg);
+    }
+
+    if let Some(upload_space) = &upload_space {
+        file_group_ids.push(upload_space.file_group_id.clone());
+    }
 
     // update db in this "create file transaction"
     let cft = db
@@ -117,7 +174,7 @@ pub async fn create_file(
             size: bytes_written,
             server_created: current_time,
             modified: create_request.modified,
-            file_group_ids: create_request.groups,
+            file_group_ids: Some(file_group_ids),
             app_data: None,
             accessed: None,
             accessed_count: 0,

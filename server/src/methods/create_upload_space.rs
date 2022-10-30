@@ -1,11 +1,11 @@
-use hyper::{Body, Request, Response};
-
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{CreateUploadSpaceRequest, UploadSpace},
+    types::{CreateUploadSpaceRequest, FilezFileGroup, FilezGroups, UploadSpace, UsageLimits},
     utils::generate_id,
 };
+use hyper::{Body, Request, Response};
+use std::collections::HashMap;
 
 pub async fn create_upload_space(
     req: Request<Body>,
@@ -26,10 +26,40 @@ pub async fn create_upload_space(
 
     let upload_space_id = generate_id();
 
+    let mut limits = HashMap::new();
+
+    for (storage_name, l) in cusr.limits {
+        limits.insert(
+            storage_name,
+            UsageLimits {
+                max_storage: l.max_storage,
+                used_storage: 0,
+                max_files: l.max_files,
+                used_files: 0,
+                max_bandwidth: l.max_bandwidth,
+                used_bandwidth: 0,
+            },
+        );
+    }
+
+    let file_group_id = generate_id();
+
+    let group = FilezGroups::FilezFileGroup(FilezFileGroup {
+        owner_id: user_id.to_string(),
+        name: None,
+        file_group_id: file_group_id.clone(),
+        permission_ids: vec![],
+    });
+
+    db.create_group(&group).await?;
+
+    // yes the user can set arbitrary limits here that are higher than their own limits
+    // the check against their own limits and the uploadSpace limits will be performed on upload
     let upload_space = UploadSpace {
         upload_space_id,
         owner_id: user_id.clone(),
-        limits: cusr.limits,
+        limits,
+        file_group_id,
     };
 
     db.create_upload_space(&upload_space).await?;

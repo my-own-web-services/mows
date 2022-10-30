@@ -1,15 +1,17 @@
 use crate::{
+    internal_types::MergedFilezPermission,
     some_or_bail,
     types::{
         AppDataType, DeleteGroupRequest, DeletePermissionRequest, FilezFile, FilezFileGroup,
         FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest,
         UpdatePermissionsRequest, UploadSpace,
     },
+    utils::merge_permissions,
 };
 use anyhow::bail;
 use arangors::{uclient::reqwest::ReqwestClient, AqlQuery, Connection, Database};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::File, vec};
 
 pub struct DB {
     pub con: Connection,
@@ -37,6 +39,22 @@ impl DB {
         }
 
         Ok(())
+    }
+
+    pub async fn get_upload_space_by_token(
+        &self,
+        upload_space_id: &str,
+    ) -> anyhow::Result<UploadSpace> {
+        let aql = AqlQuery::builder()
+            .query(r#"RETURN DOCUMENT(CONCAT("uploadSpace/",@upload_space_id))"#)
+            .bind_var("upload_space_id", upload_space_id)
+            .build();
+
+        let res: Vec<Value> = self.db.aql_query(aql).await?;
+        let val = some_or_bail!(res.get(0), "UploadSpace not found");
+        let upload_space: UploadSpace = serde_json::from_value(val.clone())?;
+
+        Ok(upload_space)
     }
 
     pub async fn create_upload_space(&self, upload_space: &UploadSpace) -> anyhow::Result<()> {
@@ -370,6 +388,62 @@ impl DB {
         let file: FilezFile = serde_json::from_value(val.clone())?;
 
         Ok(file)
+    }
+
+    pub async fn get_merged_permissions_from_file(
+        &self,
+        file: &FilezFile,
+    ) -> anyhow::Result<MergedFilezPermission> {
+        let mut permissions = vec![];
+
+        // get the permissions from the permission ids of all groups of the file
+        if let Some(file_group_ids) = file.file_group_ids.clone() {
+            if !file_group_ids.is_empty() {
+                let aql = AqlQuery::builder()
+                    .query(
+                        r#"                
+                LET groupPermissions=(
+                    FOR fileGroup IN fileGroups
+                        FILTER fileGroup._key IN @file_group_ids
+                        FOR permissionId IN fileGroup.permissionIds
+                            RETURN DOCUMENT(CONCAT("permissions/",permissionId))
+                )
+
+                RETURN {groupPermissions}"#,
+                    )
+                    .bind_var("file_group_ids", file_group_ids)
+                    .build();
+                match self.db.aql_query::<FilezPermission>(aql).await {
+                    Ok(mut res) => permissions.append(&mut res),
+                    Err(_e) => {
+                        // TODO check the error type and only ignore the error if it is a not found error
+                    }
+                };
+            }
+        };
+        // get the permission from the permission ids of the file
+        if !file.permission_ids.is_empty() {
+            let aql = AqlQuery::builder()
+                .query(
+                    r#"
+                LET filePermissions=(
+                        FOR permissionId IN @file_permission_ids
+                            RETURN DOCUMENT(CONCAT("permissions/",permissionId))
+                )
+
+                RETURN {filePermissions}"#,
+                )
+                .bind_var("file_permission_ids", file.permission_ids.clone())
+                .build();
+            match self.db.aql_query::<FilezPermission>(aql).await {
+                Ok(mut res) => permissions.append(&mut res),
+                Err(_e) => {
+                    // TODO check the error type and only ignore the error if it is a not found error
+                }
+            };
+        }
+
+        Ok(merge_permissions(permissions)?)
     }
 
     pub async fn delete_file_by_id(&self, file: &FilezFile) -> anyhow::Result<()> {
