@@ -1,4 +1,4 @@
-use crate::{db::DB, internal_types::Auth};
+use crate::{db::DB, internal_types::Auth, utils::check_auth};
 use anyhow::bail;
 use hyper::{Body, Request, Response};
 
@@ -7,23 +7,19 @@ pub async fn get_file_info(
     db: DB,
     auth: &Auth,
 ) -> anyhow::Result<Response<Body>> {
-    let user_id = match &auth.authenticated_user {
-        Some(user_id) => user_id.clone(),
-        None => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))?)
-        }
-    };
-
     let file_id = req.uri().path().replacen("/get_file_info/", "", 1);
 
     let file = db.get_file_by_id(&file_id).await?;
 
-    // check if user is allowed to access file
-    if user_id != file.owner_id {
-        // TODO user is not the owner so we need to check the permissions
-        bail!("User is not allowed to access file");
+    match check_auth(auth, &file, &db, "get_file_info").await {
+        Ok(true) => {}
+        Ok(false) => {
+            return Ok(Response::builder()
+                .status(401)
+                .body(Body::from("Unauthorized"))
+                .unwrap());
+        }
+        Err(e) => bail!(e),
     }
 
     Ok(Response::builder()

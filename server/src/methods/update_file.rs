@@ -14,7 +14,7 @@ use crate::{
     internal_types::Auth,
     some_or_bail,
     types::{UpdateFileRequest, UpdateFileResponse},
-    utils::get_folder_and_file_path,
+    utils::{check_auth, get_folder_and_file_path},
 };
 
 pub async fn update_file(
@@ -24,15 +24,6 @@ pub async fn update_file(
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
 
-    let user_id = match &auth.authenticated_user {
-        Some(user_id) => user_id,
-        None => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))?)
-        }
-    };
-
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
     if request_header.len() > 5000 {
@@ -41,18 +32,33 @@ pub async fn update_file(
 
     let update_request: UpdateFileRequest = serde_json::from_str(request_header)?;
 
-    let user = db.get_user_by_id(user_id).await?;
     let filez_file = match db.get_file_by_id(&update_request.file_id).await {
         Ok(file) => file,
         Err(_) => bail!("File not found"),
     };
+
+    let file_owner = match db.get_user_by_id(&filez_file.owner_id).await {
+        Ok(user) => user,
+        Err(_) => bail!("User not found"),
+    };
+
+    match check_auth(auth, &filez_file, &db, "update_file").await {
+        Ok(true) => {}
+        Ok(false) => {
+            return Ok(Response::builder()
+                .status(401)
+                .body(Body::from("Unauthorized"))
+                .unwrap());
+        }
+        Err(e) => bail!(e),
+    }
 
     let storage_name = filez_file.storage_name.clone();
 
     // first size check
     let size_hint = req.body().size_hint();
     let storage_limits = some_or_bail!(
-        user.limits.get(&storage_name),
+        file_owner.limits.get(&storage_name),
         format!(
             "Storage name: '{}' is missing specifications on the user entry",
             storage_name
@@ -77,8 +83,8 @@ pub async fn update_file(
     .path
     .clone();
 
-    let id = format!("{}_update", filez_file.file_id);
-    let (folder_path, file_name) = get_folder_and_file_path(&id, &storage_path);
+    let file_id = format!("{}_update", filez_file.file_id);
+    let (folder_path, file_name) = get_folder_and_file_path(&file_id, &storage_path);
 
     dbg!(&folder_path);
 

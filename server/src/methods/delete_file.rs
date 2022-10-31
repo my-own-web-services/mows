@@ -3,7 +3,12 @@ use std::fs;
 use anyhow::bail;
 use hyper::{Body, Request, Response};
 
-use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth, utils::get_folder_and_file_path};
+use crate::{
+    config::SERVER_CONFIG,
+    db::DB,
+    internal_types::Auth,
+    utils::{check_auth, get_folder_and_file_path},
+};
 
 pub async fn delete_file(
     req: Request<Body>,
@@ -11,22 +16,20 @@ pub async fn delete_file(
     auth: &Auth,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
-    let user_id = match &auth.authenticated_user {
-        Some(user_id) => user_id.clone(),
-        None => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))?)
-        }
-    };
 
     let file_id = req.uri().path().replacen("/delete_file/", "", 1);
 
     let file = db.get_file_by_id(&file_id).await?;
 
-    if user_id != file.owner_id {
-        // TODO user is not the owner so we need to check the permissions
-        bail!("User is not allowed to access file");
+    match check_auth(auth, &file, &db, "delete_file").await {
+        Ok(true) => {}
+        Ok(false) => {
+            return Ok(Response::builder()
+                .status(401)
+                .body(Body::from("Unauthorized"))
+                .unwrap());
+        }
+        Err(e) => bail!(e),
     }
 
     let (folder_path, file_name) =

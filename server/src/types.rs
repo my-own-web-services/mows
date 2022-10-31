@@ -242,33 +242,27 @@ pub struct FilezPermissionAcl {
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct EveryoneAcl {
-    pub read: Option<bool>,
-    pub update: Option<bool>,
-    pub delete: Option<bool>,
-    pub create: Option<bool>,
-    pub list: Option<bool>,
+    pub get_file: Option<bool>,
+    pub update_file: Option<bool>,
+    pub delete_file: Option<bool>,
+    pub get_file_info: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct PasswordAcl {
-    pub read: Option<Vec<String>>,
-    pub update: Option<Vec<String>>,
-    pub delete: Option<Vec<String>>,
-    pub create: Option<Vec<String>>,
-    pub list: Option<Vec<String>>,
+    pub get_file: Option<Vec<String>>,
+    pub update_file: Option<Vec<String>>,
+    pub delete_file: Option<Vec<String>>,
+    pub get_file_info: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct UsersAcl {
-    pub read: Option<UsersAclUsersAndUserGroups>,
-    pub update: Option<UsersAclUsersAndUserGroups>,
-    pub delete: Option<UsersAclUsersAndUserGroups>,
-    pub create: Option<UsersAclUsersAndUserGroups>,
-    pub list: Option<UsersAclUsersAndUserGroups>,
+    pub get_file: Option<UsersAclUsersAndUserGroups>,
+    pub update_file: Option<UsersAclUsersAndUserGroups>,
+    pub delete_file: Option<UsersAclUsersAndUserGroups>,
+    pub get_file_info: Option<UsersAclUsersAndUserGroups>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
