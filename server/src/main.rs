@@ -22,15 +22,24 @@ use hyper::{Body, Method, Request, Response, Server};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // reference variables declared with lazy_static because they are initialized on first access
     let _ = &SERVER_CONFIG.variable_prefix;
+    let config = &SERVER_CONFIG;
 
     let addr: SocketAddr = "[::]:8080".parse().unwrap();
 
     let db = DB::new(
-        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
+        Connection::establish_basic_auth(&config.db.url, &config.db.username, &config.db.password)
+            .await?,
     )
     .await?;
 
@@ -66,8 +75,10 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
 }
 
 async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
+    let config = &SERVER_CONFIG;
     let db = DB::new(
-        Connection::establish_basic_auth("http://localhost:8529", "root", "password").await?,
+        Connection::establish_basic_auth(&config.db.url, &config.db.username, &config.db.password)
+            .await?,
     )
     .await?;
 
@@ -76,7 +87,15 @@ async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
         token: get_token_from_query(&req),
     };
 
-    let p = req.uri().path();
+    let mut p = req.uri().path();
+    if p.starts_with("/api") {
+        p = &p[4..];
+    } else {
+        return Ok(Response::builder()
+            .status(404)
+            .body(Body::from("Not found"))
+            .unwrap());
+    }
     let m = req.method();
 
     if p.starts_with("/get_file/") && m == Method::GET {

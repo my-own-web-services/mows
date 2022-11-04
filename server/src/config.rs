@@ -47,7 +47,17 @@ pub struct ServerConfig {
     #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
     pub storage: HashMap<String, StorageConfig>,
     pub default_storage: String,
+    pub db: DbConfig,
 }
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DbConfig {
+    pub url: String,
+    pub username: String,
+    pub password: String,
+}
+
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct StorageConfig {

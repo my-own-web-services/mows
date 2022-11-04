@@ -3,3 +3,7 @@ storage:
     ssd:
         path: ./storage/
 defaultStorage: ssd
+db:
+    url: http://localhost:8529
+    username: root
+    password: password

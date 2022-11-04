@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "preact": "^10.11.2",
+    "preact-router": "^4.1.0",
     "sass": "^1.55.0"
   },
   "devDependencies": {

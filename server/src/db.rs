@@ -11,7 +11,7 @@ use crate::{
 use anyhow::bail;
 use arangors::{uclient::reqwest::ReqwestClient, AqlQuery, Connection, Database};
 use serde_json::Value;
-use std::{collections::HashMap, fs::File, vec};
+use std::{collections::HashMap, vec};
 
 pub struct DB {
     pub con: Connection,
@@ -20,7 +20,10 @@ pub struct DB {
 
 impl DB {
     pub async fn new(con: Connection) -> anyhow::Result<Self> {
-        let db = con.db("filez").await?;
+        let db = match con.create_database("filez").await {
+            Ok(db) => db,
+            Err(_) => con.db("filez").await?,
+        };
         Ok(Self { con, db })
     }
 
@@ -49,12 +52,9 @@ impl DB {
             .query(r#"RETURN DOCUMENT(CONCAT("uploadSpace/",@upload_space_id))"#)
             .bind_var("upload_space_id", upload_space_id)
             .build();
-
         let res: Vec<Value> = self.db.aql_query(aql).await?;
         let val = some_or_bail!(res.get(0), "UploadSpace not found");
-        let upload_space: UploadSpace = serde_json::from_value(val.clone())?;
-
-        Ok(upload_space)
+        Ok(serde_json::from_value(val.clone())?)
     }
 
     pub async fn create_upload_space(&self, upload_space: &UploadSpace) -> anyhow::Result<()> {
@@ -207,9 +207,8 @@ impl DB {
 
         let res: Vec<Value> = self.db.aql_query(aql).await?;
         let val = some_or_bail!(res.get(0), "UserGroup not found");
-        let file: FilezUserGroup = serde_json::from_value(val.clone())?;
 
-        Ok(file)
+        Ok(serde_json::from_value(val.clone())?)
     }
 
     pub async fn delete_permission(
@@ -279,7 +278,7 @@ impl DB {
                 LET insertRes = (
                     INSERT @permission IN permissions
                 )
-                RETURN {{ insertRes }}"#,
+                RETURN { insertRes }"#,
                 vars,
             )
             .await?;
@@ -372,9 +371,8 @@ impl DB {
 
         let res: Vec<Value> = self.db.aql_query(aql).await?;
         let val = some_or_bail!(res.get(0), "User not found");
-        let user: FilezUser = serde_json::from_value(val.clone())?;
 
-        Ok(user)
+        Ok(serde_json::from_value(val.clone())?)
     }
 
     pub async fn get_file_by_id(&self, file_id: &str) -> anyhow::Result<FilezFile> {
@@ -443,7 +441,7 @@ impl DB {
             };
         }
 
-        Ok(merge_permissions(permissions)?)
+        merge_permissions(permissions)
     }
 
     pub async fn delete_file_by_id(&self, file: &FilezFile) -> anyhow::Result<()> {
