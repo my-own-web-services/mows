@@ -5,6 +5,6 @@ interface RightProps {}
 interface RightState {}
 export default class Right extends Component<RightProps, RightState> {
     render = () => {
-        return <div className="Right"></div>;
+        return <div id="main-panel-right" className="horizontal-panel panel"></div>;
     };
 }

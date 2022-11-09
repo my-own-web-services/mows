@@ -1,6 +1,10 @@
 import { Component } from "preact";
 import Panels from "./components/panels/Panels";
 import "@fontsource/inter";
+import Left from "./components/panels/left/Left";
+import Center from "./components/panels/center/Center";
+import Right from "./components/panels/right/Right";
+import Strip from "./components/panels/strip/Strip";
 
 interface AppProps {}
 interface AppState {}
@@ -9,22 +13,10 @@ export default class App extends Component<AppProps, AppState> {
         return (
             <div className="App">
                 <Panels
-                    left={
-                        <div id="main-panel-left" className="horizontal-panel panel">
-                            abc
-                        </div>
-                    }
-                    center={
-                        <div id="main-panel-center" className="horizontal-panel panel">
-                            abc
-                        </div>
-                    }
-                    right={
-                        <div id="main-panel-right" className="horizontal-panel panel">
-                            abc
-                        </div>
-                    }
-                    strip={<div id="file-strip-panel" className="vertical-panel panel"></div>}
+                    left={<Left></Left>}
+                    center={<Center></Center>}
+                    right={<Right></Right>}
+                    strip={<Strip></Strip>}
                 />
             </div>
         );
