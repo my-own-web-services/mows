@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import Panels from "./components/panels/Panels";
-import "@fontsource/inter";
+import "@fontsource/inter/500.css";
 import Left from "./components/panels/left/Left";
 import Center from "./components/panels/center/Center";
 import Right from "./components/panels/right/Right";

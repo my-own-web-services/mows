@@ -4,6 +4,6 @@ interface SheetsProps {}
 interface SheetsState {}
 export default class Sheets extends Component<SheetsProps, SheetsState> {
     render = () => {
-        return <div className="Sheets"></div>;
+        return <div className="Sheets">Sheets</div>;
     };
 }

@@ -27,7 +27,7 @@
     }
 
     .gutter {
-        --gutter-visual-size: 3px;
+        --gutter-visual-size: 2px;
         &::after {
             content: "";
             transition: 0s all;

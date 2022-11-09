@@ -1,45 +1,40 @@
 import { Component, JSX } from "preact";
 import { BsFillGrid1X2Fill, BsFillGridFill, BsFillSquareFill } from "react-icons/bs";
 import { FaThList } from "react-icons/fa";
+import Center, { View } from "../../Center";
 import "./SelectView.scss";
 
 export interface SelectViewOption {
-    name: string;
+    name: View;
     icon: JSX.Element;
 }
 
 const defaultSelectViewOptions: SelectViewOption[] = [
     {
-        name: "Sheets",
+        name: "Sheets" as View.Sheets,
         icon: <BsFillGrid1X2Fill />
     },
     {
-        name: "Grid",
+        name: "Grid" as View.Grid,
         icon: <BsFillGridFill size={16.5} />
     },
     {
-        name: "List",
+        name: "List" as View.List,
         icon: <FaThList size={16.5} />
     },
     {
-        name: "Single",
+        name: "Single" as View.Single,
         icon: <BsFillSquareFill />
     }
 ];
 
 interface SelectViewProps {
     options?: SelectViewOption[];
+    selectView: Center["selectView"];
+    selectedView: View;
 }
-interface SelectViewState {
-    selectedOption: number;
-}
+interface SelectViewState {}
 export default class SelectView extends Component<SelectViewProps, SelectViewState> {
-    constructor(props: SelectViewProps) {
-        super(props);
-        this.state = {
-            selectedOption: 0
-        };
-    }
     render = () => {
         const options = this.props.options
             ? defaultSelectViewOptions.concat(this.props.options)
@@ -50,11 +45,9 @@ export default class SelectView extends Component<SelectViewProps, SelectViewSta
                     return (
                         <button
                             className={`SelectViewOption${
-                                this.state.selectedOption === i ? " selected" : ""
+                                this.props.selectedView === option.name ? " selected" : ""
                             }${" " + option.name}`}
-                            onClick={() => {
-                                this.setState({ selectedOption: i });
-                            }}
+                            onClick={() => this.props.selectView(option.name)}
                             title={option.name}
                         >
                             {option.icon}

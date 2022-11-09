@@ -6,11 +6,11 @@
 
 :root {
     user-select: none;
-    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
     font-size: 14px;
     line-height: 20px;
+    font-family: Inter, sans-serif;
+    font-style: normal;
     font-weight: 500;
-
     color-scheme: light dark;
 
     font-synthesis: none;
@@ -29,6 +29,7 @@ body,
     margin: 0;
     padding: 0;
 }
+
 .App {
     background: var(--panel-background-color);
 }

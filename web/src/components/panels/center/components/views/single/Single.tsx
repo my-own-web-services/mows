@@ -5,6 +5,6 @@ interface SingleProps {}
 interface SingleState {}
 export default class Single extends Component<SingleProps, SingleState> {
     render = () => {
-        return <div className="Single"></div>;
+        return <div className="Single">Single</div>;
     };
 }
