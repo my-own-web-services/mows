@@ -48,6 +48,21 @@ pub struct ServerConfig {
     pub storage: HashMap<String, StorageConfig>,
     pub default_storage: String,
     pub db: DbConfig,
+    pub interossea: InterosseaConfig,
+    pub http: HttpConfig,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct InterosseaConfig {
+    pub url: String,
+    pub assertion_validity_seconds: u64,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct HttpConfig {
+    pub internal_address: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -63,7 +78,7 @@ pub struct DbConfig {
 pub struct StorageConfig {
     pub path: String,
     /**
-    A storage location: either to seperate files onto different drives because of speed or type
+    A storage location: either to seperate files onto different drives or because of speed or type
     */
     pub limit: Option<u64>,
 }

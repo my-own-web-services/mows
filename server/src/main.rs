@@ -2,6 +2,7 @@ use arangors::Connection;
 use filez::config::SERVER_CONFIG;
 use filez::db::DB;
 use filez::internal_types::Auth;
+use filez::interossea::{Interossea, INTEROSSEA};
 use filez::methods::create_file::create_file;
 use filez::methods::create_group::create_group;
 use filez::methods::create_permission::create_permission;
@@ -35,7 +36,14 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _ = &SERVER_CONFIG.variable_prefix;
     let config = &SERVER_CONFIG;
 
-    let addr: SocketAddr = "[::]:8080".parse().unwrap();
+    match INTEROSSEA.set(Interossea::new(&config.interossea).await?) {
+        Ok(_) => {}
+        Err(_) => {
+            panic!("Failed to initialize interossea");
+        }
+    };
+
+    let addr: SocketAddr = SERVER_CONFIG.http.internal_address.parse().unwrap();
 
     let db = DB::new(
         Connection::establish_basic_auth(&config.db.url, &config.db.username, &config.db.password)
@@ -82,8 +90,13 @@ async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
     )
     .await?;
 
+    let user_assertion = match INTEROSSEA.get().unwrap().check_user_assertion(&req).await {
+        Ok(ua) => Some(ua),
+        Err(_) => None,
+    };
+
     let auth = Auth {
-        authenticated_user: Some("test".to_string()),
+        authenticated_user: user_assertion.map(|ua| ua.user_id),
         token: get_token_from_query(&req),
     };
 
