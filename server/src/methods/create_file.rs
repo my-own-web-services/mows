@@ -154,12 +154,30 @@ pub async fn create_file(
     let hash = hex::encode(hasher.finalize());
     let current_time = chrono::offset::Utc::now().timestamp_millis();
 
-    let mut file_group_ids = vec![];
+    let mut file_manual_group_ids = vec![];
 
-    file_group_ids.append(&mut create_request.groups.clone());
+    file_manual_group_ids.append(&mut create_request.groups.clone());
 
     if let Some(upload_space) = &upload_space {
-        file_group_ids.push(upload_space.file_group_id.clone());
+        file_manual_group_ids.push(upload_space.file_group_id.clone());
+    }
+
+    //check if file group ids exist and if they are owned by the files owner
+    let user_owned_file_groups = db
+        .get_file_groups_by_owner_id(&user_id)
+        .await?
+        .iter()
+        .map(|g| g.file_group_id.clone())
+        .collect::<Vec<String>>();
+
+    let file_manual_group_ids_checked = file_manual_group_ids
+        .clone()
+        .into_iter()
+        .filter(|g| user_owned_file_groups.contains(g))
+        .count();
+
+    if file_manual_group_ids_checked != file_manual_group_ids.len() {
+        bail!("Invalid file group id");
     }
 
     let app_data: HashMap<String, Value> = HashMap::new();
@@ -176,7 +194,7 @@ pub async fn create_file(
             size: bytes_written,
             server_created: current_time,
             modified: create_request.modified,
-            file_group_ids,
+            file_manual_group_ids,
             app_data,
             accessed: None,
             accessed_count: 0,

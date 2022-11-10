@@ -1,3 +1,17 @@
+# file groups
+
+get files in group with groupid
+
+groupId: abc
+
+search for group with id abc
+
+get selector from group
+
+find files that match the selector
+
+get permission of
+
 # sync
 
 create file group

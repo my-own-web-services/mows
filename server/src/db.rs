@@ -196,6 +196,27 @@ impl DB {
         Ok(file)
     }
 
+    pub async fn get_file_groups_by_owner_id(
+        &self,
+        owner_id: &str,
+    ) -> anyhow::Result<Vec<FilezFileGroup>> {
+        let aql = AqlQuery::builder()
+            .query(
+                r#"
+            LET getRes=(
+                FOR fg IN fileGroups
+                FILTER fg.ownerId==@owner_id
+                RETURN fg
+            )           
+            RETURN { getRes }"#,
+            )
+            .bind_var("owner_id", owner_id)
+            .build();
+
+        let file_groups: Vec<FilezFileGroup> = self.db.aql_query(aql).await?;
+        Ok(file_groups)
+    }
+
     pub async fn get_user_group_by_id(
         &self,
         user_group_id: &str,
@@ -234,6 +255,7 @@ impl DB {
 
         Ok(())
     }
+
     pub async fn delete_group(
         &self,
         dgr: &DeleteGroupRequest,
@@ -394,30 +416,8 @@ impl DB {
     ) -> anyhow::Result<MergedFilezPermission> {
         let mut permissions = vec![];
 
-        // get the permissions from the permission ids of all groups of the file
-        let file_group_ids = file.file_group_ids.clone();
-        if !file_group_ids.is_empty() {
-            let aql = AqlQuery::builder()
-                .query(
-                    r#"                
-                LET groupPermissions=(
-                    FOR fileGroup IN fileGroups
-                        FILTER fileGroup._key IN @file_group_ids
-                        FOR permissionId IN fileGroup.permissionIds
-                            RETURN DOCUMENT(CONCAT("permissions/",permissionId))
-                )
+        // TODO check groups permissions
 
-                RETURN {groupPermissions}"#,
-                )
-                .bind_var("file_group_ids", file_group_ids)
-                .build();
-            match self.db.aql_query::<FilezPermission>(aql).await {
-                Ok(mut res) => permissions.append(&mut res),
-                Err(_e) => {
-                    // TODO check the error type and only ignore the error if it is a not found error
-                }
-            };
-        }
         // get the permission from the permission ids of the file
         if !file.permission_ids.is_empty() {
             let aql = AqlQuery::builder()

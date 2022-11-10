@@ -143,7 +143,7 @@ pub struct FilezFile {
     pub modified: Option<i64>,
     pub accessed: Option<i64>,
     pub accessed_count: u64,
-    pub file_group_ids: Vec<String>,
+    pub file_manual_group_ids: Vec<String>,
     /**
         UTC timecode after which the file should be deleted
     */
@@ -199,6 +199,7 @@ pub struct FilezUserGroup {
     pub owner_id: String,
 }
 
+// file groups are just selectors for files
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezFileGroup {
