@@ -1,25 +1,25 @@
 import { Component } from "preact";
 import Slider from "rsuite/Slider";
 import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeList as List } from "react-window";
+import { FixedSizeList } from "react-window";
 
-import "./Grid.scss";
+import "./GridView.scss";
 import "rsuite/Slider/styles/index.less";
 import "rsuite/Tooltip/styles/index.less";
 import { FilezFile } from "../../../../../../types";
 import { CSSProperties } from "preact/compat";
 import GridRow from "./GridRow";
 
-interface GridProps {
+interface GridViewProps {
     readonly files: FilezFile[];
 }
 
-interface GridState {
+interface GridViewState {
     readonly columns: number;
 }
 
-export default class Grid extends Component<GridProps, GridState> {
-    constructor(props: GridProps) {
+export default class GridView extends Component<GridViewProps, GridViewState> {
+    constructor(props: GridViewProps) {
         super(props);
         this.state = {
             columns: 10
@@ -47,7 +47,7 @@ export default class Grid extends Component<GridProps, GridState> {
                 <div className="Grid">
                     <AutoSizer>
                         {({ height, width }) => (
-                            <List
+                            <FixedSizeList
                                 itemSize={width / this.state.columns}
                                 height={height}
                                 itemCount={Math.ceil(this.props.files.length / this.state.columns)}
@@ -68,7 +68,7 @@ export default class Grid extends Component<GridProps, GridState> {
                                         />
                                     );
                                 }}
-                            </List>
+                            </FixedSizeList>
                         )}
                     </AutoSizer>
                 </div>

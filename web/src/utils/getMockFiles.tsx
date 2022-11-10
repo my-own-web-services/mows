@@ -3,7 +3,7 @@ export const getMockFiles = () => {
     for (let i = 0; i < 506; i++) {
         files.push({
             fileId: Math.random().toString(36).substring(7),
-            name: "test",
+            name: Math.random().toString(36).substring(7),
             mimeType: "application/pdf",
             ownerId: "1",
             sha256: "1",

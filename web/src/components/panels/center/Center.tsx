@@ -1,10 +1,9 @@
 import { Component } from "preact";
 import { FilezFile } from "../../../types";
-import { getMockFiles } from "../../../utils/getMockFiles";
 import "./Center.scss";
 import SelectView from "./components/selectView/SelectView";
-import Grid from "./components/views/grid/Grid";
-import List from "./components/views/list/List";
+import Grid from "./components/views/grid/GridView";
+import List from "./components/views/list/ListView";
 import Sheets from "./components/views/sheets/Sheets";
 import Single from "./components/views/single/Single";
 
@@ -46,7 +45,7 @@ export default class Center extends Component<CenterProps, CenterState> {
                         } else if (this.state.selectedView === View.Grid) {
                             return <Grid files={this.props.files} />;
                         } else if (this.state.selectedView === View.List) {
-                            return <List />;
+                            return <List files={this.props.files} />;
                         } else if (this.state.selectedView === View.Single) {
                             return <Single />;
                         } else {
