@@ -7,7 +7,7 @@ pub async fn get_file_info(
     db: DB,
     auth: &Auth,
 ) -> anyhow::Result<Response<Body>> {
-    let file_id = req.uri().path().replacen("/get_file_info/", "", 1);
+    let file_id = req.uri().path().replacen("/api/get_file_info/", "", 1);
 
     let file = db.get_file_by_id(&file_id).await?;
 

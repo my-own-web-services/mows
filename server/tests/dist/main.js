@@ -1,108 +1,55 @@
 import { exec as execOld } from "node:child_process";
-import { promises as fs } from "node:fs";
 import util from "node:util";
+import { testCreateFile } from "./tests/createFile.js";
+import { createFileAboveUserLimits } from "./tests/createFileAboveUserLimits.js";
+import { createFileWithFileGroupOwnedByUser } from "./tests/createFileWithFileGroupOwnedByUser.js";
+import { createFileWithNonExistingFileGroup } from "./tests/createFileWithNonExistingFileGroup.js";
+import { createFileWithNotUserOwnedFileGroup } from "./tests/createFileWithNotUserOwnedFileGroup.js";
 const exec = util.promisify(execOld);
-import { Database, aql } from "arangojs";
-export const testCreateFile = async () => {
-    // start database
-    const { stdout, stderr } = await exec("docker-compose -f ../dev/docker-compose.yml up -d --remove-orphans");
-    // prepare database
-    await setupDb();
-    // Create a new file
-    const createdFile = await createFile();
-    // get file
-    await getFile(createdFile.fileId);
-    // delete file
-    await deleteFile(createdFile.fileId);
-    // stop database
-    // stop server
-};
-export const deleteFile = async (id) => {
-    const res = await fetch(`http://localhost:8080/delete_file/${id}`, { method: "POST" });
-    if (res.status !== 200) {
-        throw new Error("Could not delete file");
-    }
-    return true;
-};
-export const getFile = async (id) => {
-    const res = await fetch(`http://localhost:8080/get_file/${id}`);
-    const ct = res.headers.get("content-type");
-    const file = await res.text();
-    if (ct !== "text/plain") {
-        throw new Error(`Wrong content type: ${ct}; file content: ${file}`);
-    }
-    if (file !== "abc") {
-        throw new Error("Wrong content");
-    }
-    return file;
-};
-export const createFile = async () => {
-    const file = await fs.readFile("test-files/test.txt");
-    const request = JSON.stringify({ name: "test.txt", mimeType: "text/plain" });
-    const res = await fetch("http://localhost:8080/create_file/", {
-        headers: {
-            request
-        },
-        method: "POST",
-        body: file
-    });
-    let text = await res.text();
-    try {
-        let json = JSON.parse(text);
-        return json;
-    }
-    catch (error) {
-        throw new Error(`Could not parse response: ${text}`);
-    }
-};
-export const setupDb = async () => {
-    // setup database
-    const db1 = new Database({
-        url: "http://localhost:8529",
-        auth: {
-            username: "root",
-            password: "password"
-        }
-    });
-    await db1.dropDatabase("filez").catch(e => { });
-    // create database
-    const db = await db1.createDatabase("filez").catch(e => {
-        return db1.database("filez");
-    });
-    // create collections
-    await db.createCollection("files").catch(e => {
-        //console.error(e);
-    });
-    await db.createCollection("users").catch(e => {
-        //console.error(e);
-    });
-    await db.createCollection("permissions").catch(e => {
-        //console.error(e);
-    });
-    await db.createCollection("userGroups").catch(e => {
-        //console.error(e);
-    });
-    await db.createCollection("fileGroups").catch(e => {
-        //console.error(e);
-    });
-    // create default user for tests
-    await db
-        .query(aql `
-        INSERT {
-            "_key": "test",
-            "limits": {
-                "ssd": {
-                    "maxStorage": 1000000,
-                    "usedStorage": 0,
-                    "maxFiles": 1000,
-                    "usedFiles": 0,
-                    "maxBandwidth": 0,
-                    "usedBandwidth": 0
-                }
-            }
-        } INTO users`)
-        .catch(e => {
-        console.error(e);
-    });
-};
-await testCreateFile();
+// start database
+const { stdout, stderr } = await exec("docker-compose -f ../dev/docker-compose.yml up -d --remove-orphans");
+try {
+    console.log("1. Creating, getting and deleting a file");
+    await testCreateFile();
+    console.log("✅");
+}
+catch (error) {
+    console.log("❌");
+    throw error;
+}
+try {
+    console.log("2. Fail to create a file that exceeds user limits");
+    await createFileAboveUserLimits();
+    console.log("✅");
+}
+catch (error) {
+    console.log("❌");
+    throw error;
+}
+try {
+    console.log("3. Fail to create a file because the file group does not exist");
+    await createFileWithNonExistingFileGroup();
+    console.log("✅");
+}
+catch (error) {
+    console.log("❌");
+    throw error;
+}
+try {
+    console.log("4. Fail to create a file because the file group is not owned by the user");
+    await createFileWithNotUserOwnedFileGroup();
+    console.log("✅");
+}
+catch (error) {
+    console.log("❌");
+    throw error;
+}
+try {
+    console.log("5. Succeed in creating a file with a file group owned by the user");
+    await createFileWithFileGroupOwnedByUser();
+    console.log("✅");
+}
+catch (error) {
+    console.log("❌");
+    throw error;
+}

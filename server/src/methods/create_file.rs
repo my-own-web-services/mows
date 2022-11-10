@@ -156,7 +156,9 @@ pub async fn create_file(
 
     let mut file_manual_group_ids = vec![];
 
-    file_manual_group_ids.append(&mut create_request.groups.clone());
+    if let Some(mut cr_groups) = create_request.groups.clone() {
+        file_manual_group_ids.append(&mut cr_groups);
+    }
 
     if let Some(upload_space) = &upload_space {
         file_manual_group_ids.push(upload_space.file_group_id.clone());

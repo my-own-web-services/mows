@@ -9,7 +9,7 @@
     },
     "scripts": {
         "dev": "tsc --watch",
-        "start": "tsc && node dist/main.js"
+        "start": "tsc && node --no-warnings dist/main.js"
     },
     "devDependencies": {
         "@types/node": "^18.8.5",

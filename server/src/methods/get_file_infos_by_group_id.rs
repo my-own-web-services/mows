@@ -17,7 +17,7 @@ pub async fn get_file_infos_by_group_id(
     let group_id = req
         .uri()
         .path()
-        .replacen("/get_file_infos_by_group_id/", "", 1);
+        .replacen("/api/get_file_infos_by_group_id/", "", 1);
 
     let files = db.get_files_by_group_id(&group_id).await?;
 

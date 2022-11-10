@@ -10,7 +10,8 @@ use hyper::{Body, Request, Response};
 pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
 
-    let file_id = req.uri().path().replacen("/get_file/", "", 1);
+    let file_id = req.uri().path().replacen("/api/get_file/", "", 1);
+    dbg!(&file_id);
 
     let file = match db.get_file_by_id(&file_id).await {
         Ok(f) => f,

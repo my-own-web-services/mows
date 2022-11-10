@@ -14,3 +14,5 @@ db:
 interossea:
     url: http://localhost:8081
     assertionValiditySeconds: 600
+dev:
+    insecureSkipInterossea: true

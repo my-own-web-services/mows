@@ -96,7 +96,7 @@ pub struct CreateFileRequest {
     pub name: String,
     pub mime_type: String,
     pub storage_name: Option<String>,
-    pub groups: Vec<String>,
+    pub groups: Option<Vec<String>>,
     pub created: Option<i64>,
     pub modified: Option<i64>,
 }

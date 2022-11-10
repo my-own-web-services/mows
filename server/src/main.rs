@@ -2,7 +2,7 @@ use arangors::Connection;
 use filez::config::SERVER_CONFIG;
 use filez::db::DB;
 use filez::internal_types::Auth;
-use filez::interossea::{Interossea, INTEROSSEA};
+use filez::interossea::{Interossea, UserAssertion, INTEROSSEA};
 use filez::methods::create_file::create_file;
 use filez::methods::create_group::create_group;
 use filez::methods::create_permission::create_permission;
@@ -36,12 +36,14 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _ = &SERVER_CONFIG.variable_prefix;
     let config = &SERVER_CONFIG;
 
-    match INTEROSSEA.set(Interossea::new(&config.interossea).await?) {
-        Ok(_) => {}
-        Err(_) => {
-            panic!("Failed to initialize interossea");
-        }
-    };
+    if !config.dev.insecure_skip_interossea {
+        match INTEROSSEA.set(Interossea::new(&config.interossea).await?) {
+            Ok(_) => {}
+            Err(_) => {
+                panic!("Failed to initialize interossea");
+            }
+        };
+    }
 
     let addr: SocketAddr = SERVER_CONFIG.http.internal_address.parse().unwrap();
 
@@ -76,7 +78,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
             println!("Internal Server Error: {}", e);
             Ok(Response::builder()
                 .status(500)
-                .body(Body::from("Internal Server Error"))
+                .body(Body::from(format!("Internal Server Error: {e}")))
                 .unwrap())
         }
     }
@@ -90,9 +92,15 @@ async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
     )
     .await?;
 
-    let user_assertion = match INTEROSSEA.get().unwrap().check_user_assertion(&req).await {
-        Ok(ua) => Some(ua),
-        Err(_) => None,
+    let user_assertion = match config.dev.insecure_skip_interossea {
+        true => Some(UserAssertion {
+            iat: 0,
+            user_id: "dev".to_string(),
+        }),
+        false => match INTEROSSEA.get().unwrap().check_user_assertion(&req).await {
+            Ok(ua) => Some(ua),
+            Err(_) => None,
+        },
     };
 
     let auth = Auth {

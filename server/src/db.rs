@@ -202,13 +202,9 @@ impl DB {
     ) -> anyhow::Result<Vec<FilezFileGroup>> {
         let aql = AqlQuery::builder()
             .query(
-                r#"
-            LET getRes=(
-                FOR fg IN fileGroups
+                r#"FOR fg IN fileGroups
                 FILTER fg.ownerId==@owner_id
-                RETURN fg
-            )           
-            RETURN { getRes }"#,
+                RETURN fg"#,
             )
             .bind_var("owner_id", owner_id)
             .build();
@@ -548,13 +544,13 @@ impl DB {
 
                 LET oldUser = (
                     FOR u IN users
-                    FILTER u._key == @file.owner
+                    FILTER u._key == @file.ownerId
                     LIMIT 1
                     RETURN u
                 )
 
                 LET updateUserRes = (
-                    UPDATE @file.owner WITH {
+                    UPDATE @file.ownerId WITH {
                         limits: {
                             [@file.storageName]: {
                                 usedStorage: VALUE(oldUser[0].limits,[@file.storageName]).usedStorage + @file.size,

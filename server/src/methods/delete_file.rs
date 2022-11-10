@@ -17,7 +17,7 @@ pub async fn delete_file(
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
 
-    let file_id = req.uri().path().replacen("/delete_file/", "", 1);
+    let file_id = req.uri().path().replacen("/api/delete_file/", "", 1);
 
     let file = db.get_file_by_id(&file_id).await?;
 

@@ -50,6 +50,13 @@ pub struct ServerConfig {
     pub db: DbConfig,
     pub interossea: InterosseaConfig,
     pub http: HttpConfig,
+    pub dev: DevConfig,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DevConfig {
+    pub insecure_skip_interossea: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
