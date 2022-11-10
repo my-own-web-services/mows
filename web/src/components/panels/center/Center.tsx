@@ -30,22 +30,48 @@ export default class Center extends Component<CenterProps, CenterState> {
     };
 
     render = () => {
+        const files = [];
+        for (let i = 0; i < 500; i++) {
+            files.push({
+                fileId: Math.random().toString(36).substring(7),
+                name: "test",
+                mimeType: "application/pdf",
+                ownerId: "1",
+                sha256: "1",
+                storageName: "1",
+                size: 1,
+                serverCreated: 1,
+                created: 1,
+                modified: 1,
+                accessed: 1,
+                accessedCount: 1,
+                fileManualGroupIds: ["1"],
+                timeOfDeath: 1,
+                appData: {
+                    "1": "1"
+                },
+                permissionIds: ["1"],
+                keywords: ["1"]
+            });
+        }
         return (
             <div id="main-panel-center" className="horizontal-panel panel">
                 <SelectView selectView={this.selectView} selectedView={this.state.selectedView} />
-                {(() => {
-                    if (this.state.selectedView === View.Sheets) {
-                        return <Sheets />;
-                    } else if (this.state.selectedView === View.Grid) {
-                        return <Grid />;
-                    } else if (this.state.selectedView === View.List) {
-                        return <List />;
-                    } else if (this.state.selectedView === View.Single) {
-                        return <Single />;
-                    } else {
-                        return <div>Unknown view</div>;
-                    }
-                })()}
+                <div className="view">
+                    {(() => {
+                        if (this.state.selectedView === View.Sheets) {
+                            return <Sheets />;
+                        } else if (this.state.selectedView === View.Grid) {
+                            return <Grid files={files} />;
+                        } else if (this.state.selectedView === View.List) {
+                            return <List />;
+                        } else if (this.state.selectedView === View.Single) {
+                            return <Single />;
+                        } else {
+                            return <div>Unknown view</div>;
+                        }
+                    })()}
+                </div>
             </div>
         );
     };

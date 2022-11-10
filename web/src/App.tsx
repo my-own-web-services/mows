@@ -5,20 +5,23 @@ import Left from "./components/panels/left/Left";
 import Center from "./components/panels/center/Center";
 import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
+import { CustomProvider } from "rsuite";
 
 interface AppProps {}
 interface AppState {}
 export default class App extends Component<AppProps, AppState> {
     render = () => {
         return (
-            <div className="App">
-                <Panels
-                    left={<Left></Left>}
-                    center={<Center></Center>}
-                    right={<Right></Right>}
-                    strip={<Strip></Strip>}
-                />
-            </div>
+            <CustomProvider theme="dark">
+                <div className="App">
+                    <Panels
+                        left={<Left></Left>}
+                        center={<Center></Center>}
+                        right={<Right></Right>}
+                        strip={<Strip></Strip>}
+                    />
+                </div>
+            </CustomProvider>
         );
     };
 }
