@@ -36,6 +36,9 @@ pub async fn create_group(
             name: cgr.name,
             file_group_id: group_id.clone(),
             permission_ids: vec![],
+            keywords: vec![],
+            group_hierarchy_paths: vec![],
+            mime_types: vec![],
         }),
     };
 

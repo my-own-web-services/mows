@@ -96,7 +96,7 @@ pub struct CreateFileRequest {
     pub name: String,
     pub mime_type: String,
     pub storage_name: Option<String>,
-    pub groups: Option<Vec<String>>,
+    pub groups: Vec<String>,
     pub created: Option<i64>,
     pub modified: Option<i64>,
 }
@@ -143,7 +143,7 @@ pub struct FilezFile {
     pub modified: Option<i64>,
     pub accessed: Option<i64>,
     pub accessed_count: u64,
-    pub file_group_ids: Option<Vec<String>>,
+    pub file_group_ids: Vec<String>,
     /**
         UTC timecode after which the file should be deleted
     */
@@ -152,8 +152,9 @@ pub struct FilezFile {
      A key value store for apps to store information
      The String is the app name and the Value is its data
     */
-    pub app_data: Option<HashMap<String, Value>>,
+    pub app_data: HashMap<String, Value>,
     pub permission_ids: Vec<String>,
+    pub keywords: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -161,10 +162,12 @@ pub struct FilezFile {
 pub struct FilezUser {
     #[serde(rename = "_key")]
     pub user_id: String,
-    pub app_data: Option<HashMap<String, Value>>,
+    pub app_data: HashMap<String, Value>,
     pub limits: HashMap<String, UsageLimits>,
-    /** List of group ids that the user is a member of */
-    pub group_ids: Option<Vec<String>>,
+    /**
+    List of group ids that the user is a member of
+    */
+    pub group_ids: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -209,6 +212,12 @@ pub struct FilezFileGroup {
      *  The Permissions will be merged and then evaluated
      */
     pub permission_ids: Vec<String>,
+    pub keywords: Vec<String>,
+    pub mime_types: Vec<String>,
+    /**
+     * Paths that allows the user to create a hierarchy of file groups
+     */
+    pub group_hierarchy_paths: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

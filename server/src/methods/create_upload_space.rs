@@ -49,6 +49,9 @@ pub async fn create_upload_space(
         name: None,
         file_group_id: file_group_id.clone(),
         permission_ids: vec![],
+        keywords: vec![],
+        group_hierarchy_paths: vec![],
+        mime_types: vec![],
     });
 
     db.create_group(&group).await?;

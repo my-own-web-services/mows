@@ -8,8 +8,10 @@ use crate::{
 };
 use anyhow::bail;
 use hyper::{body::HttpBody, Body, Request, Response};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
+    collections::HashMap,
     fs::{self, File},
     io::Write,
     vec,
@@ -154,13 +156,13 @@ pub async fn create_file(
 
     let mut file_group_ids = vec![];
 
-    if let Some(mut crg) = create_request.groups {
-        file_group_ids.append(&mut crg);
-    }
+    file_group_ids.append(&mut create_request.groups.clone());
 
     if let Some(upload_space) = &upload_space {
         file_group_ids.push(upload_space.file_group_id.clone());
     }
+
+    let app_data: HashMap<String, Value> = HashMap::new();
 
     // update db in this "create file transaction"
     let cft = db
@@ -174,13 +176,14 @@ pub async fn create_file(
             size: bytes_written,
             server_created: current_time,
             modified: create_request.modified,
-            file_group_ids: Some(file_group_ids),
-            app_data: None,
+            file_group_ids,
+            app_data,
             accessed: None,
             accessed_count: 0,
             time_of_death: None,
             created: create_request.created.unwrap_or(current_time),
             permission_ids: vec![],
+            keywords: vec![],
         })
         .await;
 

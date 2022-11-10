@@ -395,11 +395,11 @@ impl DB {
         let mut permissions = vec![];
 
         // get the permissions from the permission ids of all groups of the file
-        if let Some(file_group_ids) = file.file_group_ids.clone() {
-            if !file_group_ids.is_empty() {
-                let aql = AqlQuery::builder()
-                    .query(
-                        r#"                
+        let file_group_ids = file.file_group_ids.clone();
+        if !file_group_ids.is_empty() {
+            let aql = AqlQuery::builder()
+                .query(
+                    r#"                
                 LET groupPermissions=(
                     FOR fileGroup IN fileGroups
                         FILTER fileGroup._key IN @file_group_ids
@@ -408,17 +408,16 @@ impl DB {
                 )
 
                 RETURN {groupPermissions}"#,
-                    )
-                    .bind_var("file_group_ids", file_group_ids)
-                    .build();
-                match self.db.aql_query::<FilezPermission>(aql).await {
-                    Ok(mut res) => permissions.append(&mut res),
-                    Err(_e) => {
-                        // TODO check the error type and only ignore the error if it is a not found error
-                    }
-                };
-            }
-        };
+                )
+                .bind_var("file_group_ids", file_group_ids)
+                .build();
+            match self.db.aql_query::<FilezPermission>(aql).await {
+                Ok(mut res) => permissions.append(&mut res),
+                Err(_e) => {
+                    // TODO check the error type and only ignore the error if it is a not found error
+                }
+            };
+        }
         // get the permission from the permission ids of the file
         if !file.permission_ids.is_empty() {
             let aql = AqlQuery::builder()
