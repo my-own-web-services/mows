@@ -3,15 +3,15 @@ import Split from "react-split";
 import "./Panels.scss";
 
 interface PanelsProps {
-    left: JSX.Element;
-    center: JSX.Element;
-    right: JSX.Element;
-    strip: JSX.Element;
+    readonly left: JSX.Element;
+    readonly center: JSX.Element;
+    readonly right: JSX.Element;
+    readonly strip: JSX.Element;
 }
 interface PanelsState {
-    splitVerticalSize: number;
-    splitHorizontalLeftSize: number;
-    splitHorizontalRightSize: number;
+    readonly splitVerticalSize: number;
+    readonly splitHorizontalLeftSize: number;
+    readonly splitHorizontalRightSize: number;
 }
 export default class Panels extends Component<PanelsProps, PanelsState> {
     constructor(props: PanelsProps) {

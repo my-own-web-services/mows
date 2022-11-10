@@ -6,19 +6,30 @@ import Center from "./components/panels/center/Center";
 import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
 import { CustomProvider } from "rsuite";
+import { FilezFile } from "./types";
+import { getMockFiles } from "./utils/getMockFiles";
 
 interface AppProps {}
-interface AppState {}
+interface AppState {
+    readonly files: FilezFile[];
+}
 export default class App extends Component<AppProps, AppState> {
+    constructor(props: AppProps) {
+        super(props);
+        this.state = {
+            files: getMockFiles()
+        };
+    }
+
     render = () => {
         return (
             <CustomProvider theme="dark">
                 <div className="App">
                     <Panels
                         left={<Left></Left>}
-                        center={<Center></Center>}
+                        center={<Center files={this.state.files}></Center>}
                         right={<Right></Right>}
-                        strip={<Strip></Strip>}
+                        strip={<Strip files={this.state.files}></Strip>}
                     />
                 </div>
             </CustomProvider>

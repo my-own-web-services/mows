@@ -29,9 +29,9 @@ const defaultSelectViewOptions: SelectViewOption[] = [
 ];
 
 interface SelectViewProps {
-    options?: SelectViewOption[];
-    selectView: Center["selectView"];
-    selectedView: View;
+    readonly options?: SelectViewOption[];
+    readonly selectView: Center["selectView"];
+    readonly selectedView: View;
 }
 interface SelectViewState {}
 export default class SelectView extends Component<SelectViewProps, SelectViewState> {

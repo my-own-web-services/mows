@@ -9,12 +9,15 @@ import "rsuite/Tooltip/styles/index.less";
 import { FilezFile } from "../../../../../../types";
 import { CSSProperties } from "preact/compat";
 import GridRow from "./GridRow";
+
 interface GridProps {
-    files: FilezFile[];
+    readonly files: FilezFile[];
 }
+
 interface GridState {
-    columns: number;
+    readonly columns: number;
 }
+
 export default class Grid extends Component<GridProps, GridState> {
     constructor(props: GridProps) {
         super(props);
@@ -24,7 +27,7 @@ export default class Grid extends Component<GridProps, GridState> {
     }
     render = () => {
         return (
-            <div className="Grid">
+            <div className="GridView">
                 <div className="toolbar">
                     <span title="Columns" className="sizeSlider">
                         <div title="Columns">{this.state.columns}</div>
@@ -41,7 +44,7 @@ export default class Grid extends Component<GridProps, GridState> {
                         />
                     </span>
                 </div>
-                <div className="grid">
+                <div className="Grid">
                     <AutoSizer>
                         {({ height, width }) => (
                             <List
@@ -57,8 +60,9 @@ export default class Grid extends Component<GridProps, GridState> {
 
                                     return (
                                         <GridRow
+                                            rowIndex={index}
                                             style={style}
-                                            key={index} //TODO: fix this
+                                            key={"GridRow" + index} //TODO: fix this
                                             files={files}
                                             columns={this.state.columns}
                                         />

@@ -1,4 +1,4 @@
-.Grid {
+.GridView {
     height: 100%;
     width: 100%;
     .toolbar {
@@ -16,8 +16,10 @@
             float: right;
         }
     }
-    .grid {
+    .Grid {
         height: calc(100% - 30px);
         width: 100%;
+        overflow-x: hidden;
+        overflow-y: hidden;
     }
 }
