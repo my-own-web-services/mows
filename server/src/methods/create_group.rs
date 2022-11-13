@@ -1,7 +1,10 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{CreateGroupRequest, CreateGroupResponse, FilezFileGroup, FilezGroups, FilezUserGroup},
+    types::{
+        CreateGroupRequest, CreateGroupResponse, FileGroupType, FilezFileGroup, FilezGroups,
+        FilezUserGroup,
+    },
     utils::generate_id,
 };
 use hyper::{Body, Request, Response};
@@ -39,6 +42,7 @@ pub async fn create_group(
             keywords: vec![],
             group_hierarchy_paths: vec![],
             mime_types: vec![],
+            group_type: FileGroupType::Static,
         }),
     };
 

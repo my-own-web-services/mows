@@ -143,7 +143,8 @@ pub struct FilezFile {
     pub modified: Option<i64>,
     pub accessed: Option<i64>,
     pub accessed_count: u64,
-    pub file_manual_group_ids: Vec<String>,
+    pub static_file_group_ids: Vec<String>,
+    pub dynamic_file_group_ids: Vec<String>,
     /**
         UTC timecode after which the file should be deleted
     */
@@ -167,7 +168,7 @@ pub struct FilezUser {
     /**
     List of group ids that the user is a member of
     */
-    pub group_ids: Vec<String>,
+    pub user_group_ids: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -219,6 +220,13 @@ pub struct FilezFileGroup {
      * Paths that allows the user to create a hierarchy of file groups
      */
     pub group_hierarchy_paths: Vec<String>,
+    pub group_type: FileGroupType,
+}
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum FileGroupType {
+    Static,
+    Dynamic,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

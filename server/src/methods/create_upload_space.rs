@@ -1,7 +1,10 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{CreateUploadSpaceRequest, FilezFileGroup, FilezGroups, UploadSpace, UsageLimits},
+    types::{
+        CreateUploadSpaceRequest, FileGroupType, FilezFileGroup, FilezGroups, UploadSpace,
+        UsageLimits,
+    },
     utils::generate_id,
 };
 use hyper::{Body, Request, Response};
@@ -52,6 +55,7 @@ pub async fn create_upload_space(
         keywords: vec![],
         group_hierarchy_paths: vec![],
         mime_types: vec![],
+        group_type: FileGroupType::Static,
     });
 
     db.create_group(&group).await?;

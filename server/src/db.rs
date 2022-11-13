@@ -9,7 +9,11 @@ use crate::{
     utils::merge_permissions,
 };
 use anyhow::bail;
-use arangors::{uclient::reqwest::ReqwestClient, AqlQuery, Connection, Database};
+use arangors::{
+    index::{Index, IndexSettings},
+    uclient::reqwest::ReqwestClient,
+    AqlQuery, Connection, Database,
+};
 use serde_json::Value;
 use std::{collections::HashMap, vec};
 
@@ -40,6 +44,54 @@ impl DB {
         for collection in collections {
             let _ = &self.db.create_collection(collection).await;
         }
+
+        let _ = &self
+            .db
+            .create_index(
+                "files",
+                &Index::builder()
+                    .name("staticFileGroupIdsIndex")
+                    .fields(vec!["staticFileGroupIds[*]".to_string()])
+                    .settings(IndexSettings::Persistent {
+                        unique: true,
+                        sparse: false,
+                        deduplicate: true,
+                    })
+                    .build(),
+            )
+            .await;
+
+        let _ = &self
+            .db
+            .create_index(
+                "files",
+                &Index::builder()
+                    .name("keywordsIndex")
+                    .fields(vec!["keywords[*]".to_string()])
+                    .settings(IndexSettings::Persistent {
+                        unique: true,
+                        sparse: false,
+                        deduplicate: true,
+                    })
+                    .build(),
+            )
+            .await;
+
+        let _ = &self
+            .db
+            .create_index(
+                "files",
+                &Index::builder()
+                    .name("ownerIdIndex")
+                    .fields(vec!["ownerId".to_string()])
+                    .settings(IndexSettings::Persistent {
+                        unique: true,
+                        sparse: false,
+                        deduplicate: false,
+                    })
+                    .build(),
+            )
+            .await;
 
         Ok(())
     }

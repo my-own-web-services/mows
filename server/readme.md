@@ -1,3 +1,19 @@
+# dynamic file groups
+
+```yaml
+file1:
+    # when anything that can be selected by a selector changes we need to check all groups (of the same owner) if the file belongs in the group
+    keywords: tree
+    groups: [group1]
+file2:
+    keywords: bird
+    groups: []
+
+# when the selector changes we need to check all files (of the same owner) if their selector is up to date
+group1:
+    select: all files where one of keywords is tree
+```
+
 # file groups
 
 get files in group with groupid
