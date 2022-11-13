@@ -1,10 +1,12 @@
 import { Component } from "preact";
 import { G } from "../../App";
-import { FileGroup, FilezFile } from "../../types";
+import { FileGroup, FileView, FilezFile } from "../../types";
+import File from "../file/File";
 import "./GroupOrFileItem.scss";
 interface GroupOrFileItemProps {
     readonly group?: FileGroup;
     readonly file?: FilezFile;
+    readonly viewType: FileView;
     readonly g: G;
 }
 interface GroupOrFileItemState {}
@@ -41,13 +43,20 @@ export default class GroupOrFileItem extends Component<GroupOrFileItemProps, Gro
                         e
                     )
                 }
-                className={`GroupOrFileItem${isSelected ? " selected" : ""}`}
+                className={`GroupOrFileItem`}
             >
                 {(() => {
                     if (this.props.group) {
                         return this.props.group.groupId;
                     } else if (this.props.file) {
-                        return this.props.file.fileId;
+                        return (
+                            <File
+                                viewType={this.props.viewType}
+                                isSelected={isSelected}
+                                g={this.props.g}
+                                file={this.props.file}
+                            ></File>
+                        );
                     } else {
                         throw new Error(
                             "GroupOrFileItem: render: this.props.group and this.props.file are both undefined"

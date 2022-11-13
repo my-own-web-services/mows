@@ -21,3 +21,12 @@ export interface FilezFile {
 export interface FileGroup {
     groupId: string;
 }
+
+export enum FileView {
+    Strip = "Strip",
+    Grid = "Grid",
+    List = "List",
+    Group = "Group",
+    Single = "Single",
+    Sheets = "Sheets"
+}

@@ -49,6 +49,7 @@ export default class Center extends Component<CenterProps, CenterState> {
                         } else if (this.state.selectedView === View.List) {
                             return <List g={this.props.g} files={this.props.files} />;
                         } else if (this.state.selectedView === View.Single) {
+                            //TODO
                             return <Single g={this.props.g} />;
                         } else {
                             return <div>Unknown view</div>;

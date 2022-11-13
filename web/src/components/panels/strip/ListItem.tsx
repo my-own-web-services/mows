@@ -1,7 +1,7 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 import { G } from "../../../App";
-import { FilezFile } from "../../../types";
+import { FileView, FilezFile } from "../../../types";
 import GroupOrFileItem from "../../groupOrFile/GroupOrFileItem";
 
 interface ListItemProps {
@@ -14,7 +14,11 @@ export default class ListItem extends Component<ListItemProps, ListItemState> {
     render = () => {
         return (
             <div style={{ ...this.props.style }} className="ListItem">
-                <GroupOrFileItem file={this.props.file} g={this.props.g}></GroupOrFileItem>
+                <GroupOrFileItem
+                    viewType={FileView.Strip}
+                    file={this.props.file}
+                    g={this.props.g}
+                ></GroupOrFileItem>
             </div>
         );
     };
