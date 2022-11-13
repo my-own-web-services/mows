@@ -17,3 +17,7 @@ export interface FilezFile {
     permissionIds: string[];
     keywords: string[];
 }
+
+export interface FileGroup {
+    groupId: string;
+}

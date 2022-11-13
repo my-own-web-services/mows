@@ -1,4 +1,5 @@
 import { Component } from "preact";
+import { G } from "../../../App";
 import { FilezFile } from "../../../types";
 import "./Center.scss";
 import SelectView from "./components/selectView/SelectView";
@@ -15,6 +16,7 @@ export enum View {
 }
 
 interface CenterProps {
+    readonly g: G;
     readonly files: FilezFile[];
 }
 
@@ -41,13 +43,13 @@ export default class Center extends Component<CenterProps, CenterState> {
                 <div className="view">
                     {(() => {
                         if (this.state.selectedView === View.Sheets) {
-                            return <Sheets />;
+                            return <Sheets g={this.props.g} />;
                         } else if (this.state.selectedView === View.Grid) {
-                            return <Grid files={this.props.files} />;
+                            return <Grid g={this.props.g} files={this.props.files} />;
                         } else if (this.state.selectedView === View.List) {
-                            return <List files={this.props.files} />;
+                            return <List g={this.props.g} files={this.props.files} />;
                         } else if (this.state.selectedView === View.Single) {
-                            return <Single />;
+                            return <Single g={this.props.g} />;
                         } else {
                             return <div>Unknown view</div>;
                         }

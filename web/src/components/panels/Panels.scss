@@ -1,14 +1,7 @@
 #Panels {
     .panel {
         background: var(--panel-background-color);
-    }
-    .horizontal-panel {
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
-    .vertical-panel {
-        overflow-x: auto;
-        overflow-y: hidden;
+        overflow: hidden;
     }
 
     height: 100%;

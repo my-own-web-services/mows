@@ -1,6 +1,9 @@
 import { Component } from "preact";
+import { G } from "../../../../../../App";
 import "./Sheets.scss";
-interface SheetsProps {}
+interface SheetsProps {
+    readonly g: G;
+}
 interface SheetsState {}
 export default class Sheets extends Component<SheetsProps, SheetsState> {
     render = () => {

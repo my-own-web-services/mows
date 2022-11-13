@@ -9,9 +9,11 @@ import "rsuite/Tooltip/styles/index.less";
 import { FilezFile } from "../../../../../../types";
 import { CSSProperties } from "preact/compat";
 import GridRow from "./GridRow";
+import { G } from "../../../../../../App";
 
 interface GridViewProps {
     readonly files: FilezFile[];
+    readonly g: G;
 }
 
 interface GridViewState {
@@ -60,9 +62,10 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
 
                                     return (
                                         <GridRow
+                                            g={this.props.g}
                                             rowIndex={index}
                                             style={style}
-                                            key={"GridRow" + index} //TODO: fix this
+                                            key={"GridRow" + index}
                                             files={files}
                                             columns={this.state.columns}
                                         />

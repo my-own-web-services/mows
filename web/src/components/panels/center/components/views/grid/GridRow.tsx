@@ -1,6 +1,8 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
+import { G } from "../../../../../../App";
 import { FilezFile } from "../../../../../../types";
+import GroupOrFileItem from "../../../../../groupOrFile/GroupOrFileItem";
 import "./GridRow.scss";
 
 interface GridRowProps {
@@ -8,6 +10,7 @@ interface GridRowProps {
     readonly rowIndex: number;
     readonly files: FilezFile[];
     readonly columns: number;
+    readonly g: G;
 }
 interface GridRowState {}
 export default class GridRow extends Component<GridRowProps, GridRowState> {
@@ -19,8 +22,10 @@ export default class GridRow extends Component<GridRowProps, GridRowState> {
                         <div
                             className="GridRowItem"
                             style={{ width: `${100 / this.props.columns}%`, height: "100%" }}
-                            key={"GridRow" + this.props.rowIndex + index}
-                        ></div>
+                            key={file.fileId}
+                        >
+                            <GroupOrFileItem g={this.props.g} file={file}></GroupOrFileItem>
+                        </div>
                     );
                 })}
             </div>

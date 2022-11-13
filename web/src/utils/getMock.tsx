@@ -25,3 +25,13 @@ export const getMockFiles = () => {
     }
     return files;
 };
+
+export const getMockGroups = () => {
+    const groups = [];
+    for (let i = 0; i < 506; i++) {
+        groups.push({
+            groupId: Math.random().toString(36).substring(7)
+        });
+    }
+    return groups;
+};

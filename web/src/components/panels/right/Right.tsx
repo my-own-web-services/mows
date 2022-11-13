@@ -1,7 +1,10 @@
 import { Component } from "preact";
+import { G } from "../../../App";
 import "./Right.scss";
 
-interface RightProps {}
+interface RightProps {
+    readonly g: G;
+}
 interface RightState {}
 export default class Right extends Component<RightProps, RightState> {
     render = () => {

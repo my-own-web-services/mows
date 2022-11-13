@@ -4,10 +4,12 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 import { CSSProperties } from "preact/compat";
 import { FilezFile } from "../../../../../../types";
-import ListRow from "./ListRow";
+import ListViewRow from "./ListViewRow";
+import { G } from "../../../../../../App";
 
 interface ListProps {
     readonly files: FilezFile[];
+    readonly g: G;
 }
 interface ListState {}
 export default class List extends Component<ListProps, ListState> {
@@ -28,9 +30,10 @@ export default class List extends Component<ListProps, ListState> {
                                     const file = this.props.files[index];
 
                                     return (
-                                        <ListRow
+                                        <ListViewRow
+                                            g={this.props.g}
                                             style={style}
-                                            key={"ListRow" + index} //TODO: fix this
+                                            key={"ListViewRow" + index}
                                             file={file}
                                         />
                                     );
