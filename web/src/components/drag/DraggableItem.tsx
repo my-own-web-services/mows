@@ -1,7 +1,10 @@
 import { FC } from "preact/compat";
 import { useDrag } from "react-dnd";
 
-interface DraggableItemProps {}
+interface DraggableItemProps {
+    readonly type: string;
+    readonly id: string;
+}
 
 interface DropResult {
     readonly name: string;
@@ -9,12 +12,12 @@ interface DropResult {
 
 export const DraggableItem: FC<DraggableItemProps> = props => {
     const [{ isDragging }, drag] = useDrag(() => ({
-        type: "file",
-        item: { name: "123" },
+        type: props.type,
+        item: { id: props.id },
         end: (item, monitor) => {
             const dropResult = monitor.getDropResult<DropResult>();
             if (item && dropResult) {
-                alert(`You dropped ${item.name} into ${dropResult.name}!`);
+                console.log(`You dropped ${item.id} into ${dropResult.name}!`);
             }
         },
         collect: monitor => ({
@@ -23,7 +26,6 @@ export const DraggableItem: FC<DraggableItemProps> = props => {
         })
     }));
 
-    const opacity = isDragging ? 0.4 : 1;
     return (
         <div style={{ height: "100%" }} ref={drag}>
             {props.children}

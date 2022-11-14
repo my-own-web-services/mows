@@ -1,9 +1,14 @@
-import { FC } from "preact/compat";
+import { CSSProperties, FC } from "preact/compat";
 import { useDrop } from "react-dnd";
+import "./DraggableTarget.scss";
+interface DraggableTargetProps {
+    readonly acceptType: string;
+    readonly style?: CSSProperties;
+}
 
-export const DraggableTarget: FC = () => {
+export const DraggableTarget: FC<DraggableTargetProps> = props => {
     const [{ canDrop, isOver }, drop] = useDrop(() => ({
-        accept: "file",
+        accept: props.acceptType,
         drop: () => ({ name: "Dustbin" }),
         collect: monitor => ({
             isOver: monitor.isOver(),
@@ -12,16 +17,16 @@ export const DraggableTarget: FC = () => {
     }));
 
     const isActive = canDrop && isOver;
-    let backgroundColor = "#222";
-    if (isActive) {
-        backgroundColor = "darkgreen";
-    } else if (canDrop) {
-        backgroundColor = "darkkhaki";
-    }
 
     return (
-        <div ref={drop} style={{ backgroundColor }} data-testid="dustbin">
-            {isActive ? "Release to drop" : "Drag a box here"}
+        <div
+            style={{
+                ...props.style
+            }}
+            className={`DraggableTarget${isActive ? " dragOverActive" : ""}`}
+            ref={drop}
+        >
+            {props.children}
         </div>
     );
 };

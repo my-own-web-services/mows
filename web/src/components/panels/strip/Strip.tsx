@@ -1,6 +1,7 @@
 import { Component } from "preact";
 import { G } from "../../../App";
 import { FilezFile } from "../../../types";
+import { DraggableTarget } from "../../drag/DraggableTarget";
 import "./Strip.scss";
 import VerticalList from "./VerticalList";
 
@@ -15,7 +16,9 @@ export default class Strip extends Component<StripProps, StripState> {
     render = () => {
         return (
             <div id="file-strip-panel" className="vertical-panel panel">
-                <VerticalList g={this.props.g} files={this.props.files}></VerticalList>
+                <DraggableTarget acceptType="file">
+                    <VerticalList g={this.props.g} files={this.props.files}></VerticalList>
+                </DraggableTarget>
             </div>
         );
     };

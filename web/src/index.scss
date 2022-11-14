@@ -3,6 +3,20 @@
     --panel-background-color: #262626;
     --gutter-hover-color: #0c6eedb2;
     --gutter-color: #080e16;
+
+    &::-webkit-scrollbar-thumb {
+        background-color: #444;
+        border-radius: 20px;
+        &:hover {
+            background-color: #0c6eedb2;
+        }
+    }
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+    &::-webkit-scrollbar-track {
+        background: #333;
+    }
 }
 
 :root {
