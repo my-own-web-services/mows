@@ -1,20 +1,22 @@
 import { Component } from "preact";
 import { G } from "../../App";
 import { FileGroup, FileView, FilezFile } from "../../types";
+import { VisualFileGroup } from "../../utils/convertFileGroups";
 import File from "../file/File";
+import Group from "../group/Group";
 import "./GroupOrFileItem.scss";
 interface GroupOrFileItemProps {
-    readonly group?: FileGroup;
+    readonly fileGroup?: VisualFileGroup;
     readonly file?: FilezFile;
-    readonly viewType: FileView;
+    readonly viewType?: FileView;
     readonly g: G;
 }
 interface GroupOrFileItemState {}
 export default class GroupOrFileItem extends Component<GroupOrFileItemProps, GroupOrFileItemState> {
     render = () => {
         const isSelected = (() => {
-            if (this.props.group) {
-                return this.props.g.selectedGroups.includes(this.props.group);
+            if (this.props.fileGroup) {
+                return this.props.g.selectedGroups.includes(this.props.fileGroup);
             } else if (this.props.file) {
                 return this.props.g.selectedFiles.includes(this.props.file);
             } else {
@@ -29,8 +31,8 @@ export default class GroupOrFileItem extends Component<GroupOrFileItemProps, Gro
                 onClick={e =>
                     this.props.g.fn.itemClick(
                         (() => {
-                            if (this.props.group) {
-                                return this.props.group;
+                            if (this.props.fileGroup) {
+                                return this.props.fileGroup;
                             } else if (this.props.file) {
                                 return this.props.file;
                             } else {
@@ -46,9 +48,13 @@ export default class GroupOrFileItem extends Component<GroupOrFileItemProps, Gro
                 className={`GroupOrFileItem`}
             >
                 {(() => {
-                    if (this.props.group) {
-                        return this.props.group.groupId;
+                    if (this.props.fileGroup) {
+                        return <Group fileGroup={this.props.fileGroup}></Group>;
                     } else if (this.props.file) {
+                        if (!this.props.viewType)
+                            throw new Error(
+                                "GroupOrFileItem: render: this.props.viewType is undefined"
+                            );
                         return (
                             <File
                                 viewType={this.props.viewType}

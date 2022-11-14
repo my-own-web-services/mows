@@ -1,12 +1,12 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 import { G } from "../../../../App";
-import { FileGroup } from "../../../../types";
+import { VisualFileGroup } from "../../../../utils/convertFileGroups";
 import GroupOrFileItem from "../../../groupOrFile/GroupOrFileItem";
 
 interface GroupListRowProps {
     readonly style: CSSProperties;
-    readonly group: FileGroup;
+    readonly group: VisualFileGroup;
     readonly g: G;
 }
 
@@ -20,7 +20,7 @@ export default class GroupListRow extends Component<GroupListRowProps, GroupList
                 }}
                 className="GroupListRow"
             >
-                <GroupOrFileItem group={this.props.group} g={this.props.g}></GroupOrFileItem>
+                <GroupOrFileItem fileGroup={this.props.group} g={this.props.g}></GroupOrFileItem>
             </div>
         );
     };

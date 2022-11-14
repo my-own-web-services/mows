@@ -1,3 +1,5 @@
+import { FileGroup, FileGroupType } from "../types";
+
 export const getMockFiles = () => {
     const files = [];
     for (let i = 0; i < 506; i++) {
@@ -14,24 +16,69 @@ export const getMockFiles = () => {
             modified: 1,
             accessed: 1,
             accessedCount: 1,
-            fileManualGroupIds: ["1"],
+            fileManualGroupIds: [],
             timeOfDeath: 1,
             appData: {
                 "1": "1"
             },
-            permissionIds: ["1"],
-            keywords: ["1"]
+            permissionIds: [],
+            keywords: []
         });
     }
     return files;
 };
 
-export const getMockGroups = () => {
-    const groups = [];
-    for (let i = 0; i < 506; i++) {
-        groups.push({
-            groupId: Math.random().toString(36).substring(7)
-        });
-    }
-    return groups;
+export const getMockFileGroups = (): FileGroup[] => {
+    return [
+        {
+            fileGroupId: Math.random().toString(36).substring(7),
+            name: "Augsburg",
+            ownerId: "1",
+            permissionIds: [],
+            keywords: [],
+            mimeTypes: [],
+            groupHierarchyPaths: [["Fotos", "Städte"]],
+            groupType: FileGroupType.Static
+        },
+        {
+            fileGroupId: Math.random().toString(36).substring(7),
+            name: "Videos",
+            ownerId: "1",
+            permissionIds: [],
+            keywords: [],
+            mimeTypes: [],
+            groupHierarchyPaths: [],
+            groupType: FileGroupType.Static
+        },
+        {
+            fileGroupId: Math.random().toString(36).substring(7),
+            name: "Musik",
+            ownerId: "1",
+            permissionIds: [],
+            keywords: [],
+            mimeTypes: [],
+            groupHierarchyPaths: [],
+            groupType: FileGroupType.Static
+        },
+        {
+            fileGroupId: Math.random().toString(36).substring(7),
+            name: "Sterne",
+            ownerId: "1",
+            permissionIds: [],
+            keywords: [],
+            mimeTypes: [],
+            groupHierarchyPaths: [["Fotos"], ["Favoriten", "2022"]],
+            groupType: FileGroupType.Static
+        },
+        {
+            fileGroupId: Math.random().toString(36).substring(7),
+            name: "Vögel",
+            ownerId: "1",
+            permissionIds: [],
+            keywords: [],
+            mimeTypes: [],
+            groupHierarchyPaths: [["Fotos", "Tiere"]],
+            groupType: FileGroupType.Static
+        }
+    ];
 };

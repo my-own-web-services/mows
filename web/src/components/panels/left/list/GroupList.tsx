@@ -4,11 +4,11 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 import { CSSProperties } from "preact/compat";
 import GroupListRow from "./GroupListRow";
-import { FileGroup } from "../../../../types";
 import { G } from "../../../../App";
+import { VisualFileGroup } from "../../../../utils/convertFileGroups";
 
 interface GroupListProps {
-    readonly groups: FileGroup[];
+    readonly groups: VisualFileGroup[];
     readonly g: G;
 }
 interface GroupListState {}

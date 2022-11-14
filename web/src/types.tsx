@@ -19,7 +19,19 @@ export interface FilezFile {
 }
 
 export interface FileGroup {
-    groupId: string;
+    fileGroupId: string;
+    name?: string;
+    ownerId: string;
+    permissionIds: string[];
+    keywords: string[];
+    mimeTypes: string[];
+    groupHierarchyPaths: string[][];
+    groupType: FileGroupType;
+}
+
+export enum FileGroupType {
+    Static = "Static",
+    Dynamic = "Dynamic"
 }
 
 export enum FileView {

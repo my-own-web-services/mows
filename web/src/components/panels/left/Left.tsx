@@ -1,12 +1,13 @@
 import { Component } from "preact";
 import { G } from "../../../App";
 import { FileGroup } from "../../../types";
+import { VisualFileGroup } from "../../../utils/convertFileGroups";
 import "./Left.scss";
 import GroupList from "./list/GroupList";
 
 interface LeftProps {
     readonly g: G;
-    readonly groups: FileGroup[];
+    readonly groups: VisualFileGroup[];
 }
 interface LeftState {}
 export default class Left extends Component<LeftProps, LeftState> {

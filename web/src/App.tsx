@@ -7,22 +7,23 @@ import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
 import { CustomProvider } from "rsuite";
 import { FileGroup, FilezFile } from "./types";
-import { getMockFiles, getMockGroups } from "./utils/getMock";
+import { getMockFiles, getMockFileGroups } from "./utils/getMock";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { DndProvider } from "react-dnd";
 import update from "immutability-helper";
 import { JSXInternal } from "preact/src/jsx";
+import { convertFileGroups, VisualFileGroup } from "./utils/convertFileGroups";
 
 interface AppProps {}
 interface AppState {
     readonly files: FilezFile[];
-    readonly groups: FileGroup[];
+    readonly fileGroups: VisualFileGroup[];
     readonly g: G;
 }
 
 export interface G {
     readonly selectedFiles: FilezFile[];
-    readonly selectedGroups: FileGroup[];
+    readonly selectedGroups: VisualFileGroup[];
     readonly fn: Fn;
 }
 
@@ -40,7 +41,7 @@ export default class App extends Component<AppProps, AppState> {
         super(props);
         this.state = {
             files: getMockFiles(),
-            groups: getMockGroups(),
+            fileGroups: convertFileGroups(getMockFileGroups()),
             g: {
                 selectedFiles: [],
                 selectedGroups: [],
@@ -52,7 +53,7 @@ export default class App extends Component<AppProps, AppState> {
     }
 
     itemClick = (
-        item: FilezFile | FileGroup,
+        item: FilezFile | VisualFileGroup,
         isSelected: boolean,
         e: JSXInternal.TargetedMouseEvent<HTMLDivElement>
     ) => {
@@ -73,26 +74,28 @@ export default class App extends Component<AppProps, AppState> {
             } else if (item.hasOwnProperty("groupId")) {
                 this.setState(state => {
                     return update(state, {
-                        g: { selectedGroups: { $set: [item as FileGroup] } }
+                        g: { selectedGroups: { $set: [item as VisualFileGroup] } }
                     });
                 });
             }
         }
     };
 
-    selectItem = (item: FilezFile | FileGroup) => {
+    selectItem = (item: FilezFile | VisualFileGroup) => {
         if (item.hasOwnProperty("fileId")) {
             this.setState(state => {
                 return update(state, { g: { selectedFiles: { $push: [item as FilezFile] } } });
             });
         } else if (item.hasOwnProperty("groupId")) {
             this.setState(state => {
-                return update(state, { g: { selectedGroups: { $push: [item as FileGroup] } } });
+                return update(state, {
+                    g: { selectedGroups: { $push: [item as VisualFileGroup] } }
+                });
             });
         }
     };
 
-    deselectItem = (item: FilezFile | FileGroup) => {
+    deselectItem = (item: FilezFile | VisualFileGroup) => {
         if (item.hasOwnProperty("fileId")) {
             this.setState(state => {
                 return update(state, {
@@ -111,7 +114,7 @@ export default class App extends Component<AppProps, AppState> {
                     g: {
                         selectedGroups: {
                             $set: state.g.selectedGroups.filter(
-                                g => g.groupId !== (item as FileGroup).groupId
+                                g => g.name !== (item as VisualFileGroup).name
                             )
                         }
                     }
@@ -126,7 +129,7 @@ export default class App extends Component<AppProps, AppState> {
                 <DndProvider backend={HTML5Backend}>
                     <div className="App">
                         <Panels
-                            left={<Left g={this.state.g} groups={this.state.groups}></Left>}
+                            left={<Left g={this.state.g} groups={this.state.fileGroups}></Left>}
                             center={<Center g={this.state.g} files={this.state.files}></Center>}
                             right={<Right g={this.state.g}></Right>}
                             strip={<Strip g={this.state.g} files={this.state.files}></Strip>}
