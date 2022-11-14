@@ -51,7 +51,7 @@ pub struct ServerConfig {
     pub interossea: InterosseaConfig,
     pub http: HttpConfig,
     pub dev: DevConfig,
-    pub import: ImportConfig,
+    pub auto_import: ImportConfig,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
