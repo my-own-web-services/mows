@@ -1,4 +1,5 @@
 import { FileGroup } from "../types";
+import cloneDeep from "lodash/cloneDeep";
 
 export const convertFileGroups = (fileGroups: FileGroup[]): VisualFileGroup[] => {
     // convert the file groups to a list of file groups and file group folders
@@ -41,7 +42,8 @@ export const convertFileGroups = (fileGroups: FileGroup[]): VisualFileGroup[] =>
                     name: folder,
                     type: VisualFileGroupType.FileGroupFolder,
                     depth: i,
-                    isOpen: false
+                    isOpen: false,
+                    clientId: folder
                 });
             }
         }
@@ -50,7 +52,8 @@ export const convertFileGroups = (fileGroups: FileGroup[]): VisualFileGroup[] =>
             type: VisualFileGroupType.FileGroup,
             depth: folders?.length ?? 0,
             fileGroup,
-            isOpen: false
+            isOpen: false,
+            clientId: fileGroup.fileGroupId + (folders && folders.length ? folders.join() : "")
         });
     }
     return visualFileGroups;
@@ -60,6 +63,7 @@ export interface VisualFileGroup {
     type: VisualFileGroupType;
     depth: number;
     name: string;
+    clientId: string;
     fileGroup?: FileGroup;
     isOpen: boolean;
 }

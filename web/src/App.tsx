@@ -29,6 +29,7 @@ export interface G {
 
 export interface Fn {
     readonly itemClick: App["itemClick"];
+    readonly groupArrowClick: App["groupArrowClick"];
 }
 
 export enum SelectItem {
@@ -37,16 +38,19 @@ export enum SelectItem {
 }
 
 export default class App extends Component<AppProps, AppState> {
+    allGroups: VisualFileGroup[];
     constructor(props: AppProps) {
         super(props);
+        this.allGroups = convertFileGroups(getMockFileGroups());
         this.state = {
             files: getMockFiles(),
-            fileGroups: convertFileGroups(getMockFileGroups()),
+            fileGroups: this.filterFileGroups(),
             g: {
                 selectedFiles: [],
                 selectedGroups: [],
                 fn: {
-                    itemClick: this.itemClick
+                    itemClick: this.itemClick,
+                    groupArrowClick: this.groupArrowClick
                 }
             }
         };
@@ -93,6 +97,46 @@ export default class App extends Component<AppProps, AppState> {
                 });
             });
         }
+    };
+
+    groupArrowClick = (group: VisualFileGroup) => {
+        this.setState(state => {
+            return update(state, {
+                fileGroups: {
+                    $set: this.filterFileGroups(group)
+                }
+            });
+        });
+    };
+
+    filterFileGroups = (group?: VisualFileGroup) => {
+        const newFileGroups: VisualFileGroup[] = [];
+        let foundDepth = 0;
+        let hide = false;
+        // if hide is true we don't add the group to the newFileGroups array
+        // hide is reset if the depth of the group is less than the foundDepth
+        // foundDepth is set to the depth of the group if the
+        for (let i = 0; i < this.allGroups.length; i++) {
+            const fg = this.allGroups[i];
+
+            if (hide && fg.depth <= foundDepth) {
+                hide = false;
+            }
+
+            if (!hide) {
+                if (group && fg.clientId === group.clientId) {
+                    fg.isOpen = !fg.isOpen;
+                }
+
+                if (fg.isOpen === false) {
+                    hide = true;
+                    foundDepth = fg.depth;
+                }
+
+                newFileGroups.push(fg);
+            }
+        }
+        return newFileGroups;
     };
 
     deselectItem = (item: FilezFile | VisualFileGroup) => {

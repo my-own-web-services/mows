@@ -1,0 +1,9 @@
+.Group {
+    height: 100%;
+    &:hover {
+        background: #343434;
+    }
+    &.selected {
+        background: darkorange;
+    }
+}

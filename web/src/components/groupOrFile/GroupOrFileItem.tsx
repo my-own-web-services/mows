@@ -49,12 +49,19 @@ export default class GroupOrFileItem extends Component<GroupOrFileItemProps, Gro
             >
                 {(() => {
                     if (this.props.fileGroup) {
-                        return <Group fileGroup={this.props.fileGroup}></Group>;
+                        return (
+                            <Group
+                                g={this.props.g}
+                                isSelected={isSelected}
+                                fileGroup={this.props.fileGroup}
+                            ></Group>
+                        );
                     } else if (this.props.file) {
-                        if (!this.props.viewType)
+                        if (!this.props.viewType) {
                             throw new Error(
                                 "GroupOrFileItem: render: this.props.viewType is undefined"
                             );
+                        }
                         return (
                             <File
                                 viewType={this.props.viewType}
