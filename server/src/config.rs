@@ -51,22 +51,6 @@ pub struct ServerConfig {
     pub interossea: InterosseaConfig,
     pub http: HttpConfig,
     pub dev: DevConfig,
-    pub auto_import: ImportConfig,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct ImportConfig {
-    pub folders: Vec<ImportFolder>,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ImportFolder {
-    pub from_path: String,
-    pub storage_id: Option<String>,
-    pub user_id: String,
-    pub move_files: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
