@@ -6,8 +6,6 @@ pub mod macros;
 pub mod types;
 pub mod utils;
 
-pub mod import;
-
 pub mod methods {
     pub mod create_file;
     pub mod create_group;

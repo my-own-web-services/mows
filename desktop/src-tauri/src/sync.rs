@@ -711,19 +711,14 @@ pub fn dir_entry_to_intermediary_file(
 }
 
 pub fn filez_file_to_intermediary_file(f: &FilezFile) -> anyhow::Result<IntermediaryFile> {
-    let client_app_data = match &f.app_data {
-        Some(app_data) => match app_data.get("filezClient") {
-            Some(client_app_data_value) => {
-                match serde_json::from_value::<FilezClientAppDataFile>(
-                    client_app_data_value.clone(),
-                ) {
-                    Ok(client_app_data) => client_app_data,
-                    Err(e) => bail!("Could not parse client app data: {}", e),
-                }
+    let client_app_data = match f.app_data.get("filezClient") {
+        Some(client_app_data_value) => {
+            match serde_json::from_value::<FilezClientAppDataFile>(client_app_data_value.clone()) {
+                Ok(client_app_data) => client_app_data,
+                Err(e) => bail!("Could not parse client app data: {}", e),
             }
-            None => bail!("Could not find client app data"),
-        },
-        None => bail!("Could not find app data"),
+        }
+        None => bail!("Could not find client app data"),
     };
 
     Ok(IntermediaryFile {

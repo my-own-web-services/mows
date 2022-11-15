@@ -21,7 +21,7 @@ pub async fn create_file(
     let create_file_request = CreateFileRequest {
         name: local_file.name.clone(),
         mime_type: local_file.mime_type.clone(),
-        storage_name: None,
+        storage_id: None,
         groups: Some(vec![group_id.to_string()]),
         modified: local_file.modified,
         created: Some(local_file.created),
