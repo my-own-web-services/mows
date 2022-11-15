@@ -519,7 +519,7 @@ impl DB {
             RETURN { removeFileRes, updateUserRes }"#)
             .bind_var("id", file.file_id.clone())
             .bind_var("owner", file.owner_id.clone())
-            .bind_var("storageName", file.storage_name.clone())
+            .bind_var("storageName", file.storage_id.clone())
             .bind_var("size", file.size)
             .build();
 
@@ -573,7 +573,7 @@ impl DB {
             .bind_var("oldSize", file.size)
             .bind_var("modified", modified)
             .bind_var("owner", file.owner_id.clone())
-            .bind_var("storageName", file.storage_name.clone())
+            .bind_var("storageName", file.storage_id.clone())
             .build();
 
         self.db.aql_query::<Vec<Value>>(aql).await?;

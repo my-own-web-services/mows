@@ -18,7 +18,7 @@ dev:
     insecureSkipInterossea: true
 autoImport:
     folders:
-        - fromPath:
+        - fromPath: /home/paul/Downloads/_import-images/
           storageId: ssd
           userId: test
           moveFiles: false

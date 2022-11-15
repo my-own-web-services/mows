@@ -49,15 +49,15 @@ pub async fn update_file(
         Err(e) => bail!(e),
     }
 
-    let storage_name = filez_file.storage_name.clone();
+    let storage_id = some_or_bail!(filez_file.storage_id.clone(), "No storage id found");
 
     // first size check
     let size_hint = req.body().size_hint();
     let storage_limits = some_or_bail!(
-        file_owner.limits.get(&storage_name),
+        file_owner.limits.get(&storage_id),
         format!(
             "Storage name: '{}' is missing specifications on the user entry",
-            storage_name
+            storage_id
         )
     );
     let bytes_left = storage_limits.max_storage - storage_limits.used_storage;

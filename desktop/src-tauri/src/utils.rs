@@ -46,7 +46,7 @@ pub fn recursive_read_dir(path: &str) -> anyhow::Result<Vec<DirEntry>> {
         if path.is_dir() {
             entries.extend(recursive_read_dir(some_or_bail!(
                 path.to_str(),
-                "Could not convert path to sr"
+                "Could not convert path to str"
             ))?);
         } else {
             entries.push(entry);

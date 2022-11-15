@@ -95,7 +95,7 @@ pub struct UpdateFileResponse {
 pub struct CreateFileRequest {
     pub name: String,
     pub mime_type: String,
-    pub storage_name: Option<String>,
+    pub storage_id: Option<String>,
     pub groups: Option<Vec<String>>,
     pub created: Option<i64>,
     pub modified: Option<i64>,
@@ -136,7 +136,7 @@ pub struct FilezFile {
     pub name: String,
     pub owner_id: String,
     pub sha256: String,
-    pub storage_name: String,
+    pub storage_id: Option<String>,
     pub path: String,
     pub size: u64,
     pub server_created: i64,

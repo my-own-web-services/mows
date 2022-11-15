@@ -59,7 +59,7 @@ pub async fn create_file(
     let user = db.get_user_by_id(&user_id).await?;
 
     let storage_name = create_request
-        .storage_name
+        .storage_id
         .unwrap_or_else(|| config.default_storage.clone());
 
     // check for user limits
@@ -192,7 +192,7 @@ pub async fn create_file(
             name: create_request.name,
             owner_id: user.user_id,
             sha256: hash.clone(),
-            storage_name: storage_name.clone(),
+            storage_id: Some(storage_name.clone()),
             size: bytes_written,
             server_created: current_time,
             modified: create_request.modified,
