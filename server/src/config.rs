@@ -57,23 +57,16 @@ pub struct ServerConfig {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportConfig {
-    /**
-     * The folders files will be fully imported and moved into filez file structure and then deleted from the original folder
-     * Folders will be left behind
-     */
-    pub import_folders: Vec<ImportFolder>,
-    /**
-     * The files in the folder will only be imported/indexed into the database and WON'T be moved into filez file structure
-     */
-    pub index_folders: Vec<ImportFolder>,
+    pub folders: Vec<ImportFolder>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportFolder {
     pub from_path: String,
-    pub storage_id: String,
+    pub storage_id: Option<String>,
     pub user_id: String,
+    pub move_files: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

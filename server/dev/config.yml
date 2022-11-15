@@ -16,3 +16,9 @@ interossea:
     assertionValiditySeconds: 600
 dev:
     insecureSkipInterossea: true
+autoImport:
+    folders:
+        - fromPath:
+          storageId: ssd
+          userId: test
+          moveFiles: false

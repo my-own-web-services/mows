@@ -1,7 +1,6 @@
 use std::{
     fs::{self, File},
     io::Write,
-    path::Path,
 };
 
 use anyhow::bail;
@@ -9,12 +8,11 @@ use hyper::{body::HttpBody, Body, Request, Response};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
     some_or_bail,
     types::{UpdateFileRequest, UpdateFileResponse},
-    utils::{check_auth, get_folder_and_file_path},
+    utils::check_auth,
 };
 
 pub async fn update_file(
@@ -22,8 +20,6 @@ pub async fn update_file(
     db: DB,
     auth: &Auth,
 ) -> anyhow::Result<Response<Body>> {
-    let config = &SERVER_CONFIG;
-
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
     if request_header.len() > 5000 {
@@ -76,21 +72,8 @@ pub async fn update_file(
         bail!("User file limit exceeded");
     }
 
-    let storage_path = some_or_bail!(
-        config.storage.get(&storage_name),
-        format!("Invalid storage name: {}", storage_name)
-    )
-    .path
-    .clone();
-
-    let file_id = format!("{}_update", filez_file.file_id);
-    let (folder_path, file_name) = get_folder_and_file_path(&file_id, &storage_path);
-
-    dbg!(&folder_path);
-
-    fs::create_dir_all(&folder_path)?;
     // write file to disk but abbort if limits where exceeded
-    let new_file_path = Path::new(&folder_path).join(file_name);
+    let new_file_path = format!("{}_update", &filez_file.path);
     dbg!(&new_file_path);
     let mut file = File::create(&new_file_path)?;
     let mut hasher = Sha256::new();
@@ -124,11 +107,7 @@ pub async fn update_file(
         fs::remove_file(&new_file_path)?;
         bail!("Failed to create file in database: {}", cft.err().unwrap());
     } else {
-        let (old_folder_path, old_file_name) =
-            get_folder_and_file_path(&filez_file.file_id, &storage_path);
-        let old_file_path = Path::new(&old_folder_path).join(old_file_name);
-
-        fs::rename(&new_file_path, &old_file_path)?;
+        fs::rename(&new_file_path, &filez_file.path)?;
         let cfr = UpdateFileResponse { sha256: hash };
         Ok(Response::builder()
             .status(200)

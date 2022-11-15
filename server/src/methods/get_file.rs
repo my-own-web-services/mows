@@ -1,15 +1,8 @@
-use crate::{
-    config::SERVER_CONFIG,
-    db::DB,
-    internal_types::Auth,
-    utils::{check_auth, get_folder_and_file_path},
-};
+use crate::{db::DB, internal_types::Auth, utils::check_auth};
 use anyhow::bail;
 use hyper::{Body, Request, Response};
 
 pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result<Response<Body>> {
-    let config = &SERVER_CONFIG;
-
     let file_id = req.uri().path().replacen("/api/get_file/", "", 1);
     dbg!(&file_id);
 
@@ -34,13 +27,8 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
         Err(e) => bail!(e),
     }
 
-    let (folder_path, file_name) =
-        get_folder_and_file_path(&file.file_id, &config.storage[&file.storage_name].path);
-
-    let file_path = format!("{}/{}", folder_path, file_name);
-
     // stream the file from disk to the client
-    let file_handle = tokio::fs::File::open(file_path).await?;
+    let file_handle = tokio::fs::File::open(&file.path).await?;
 
     let body = Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle));
 

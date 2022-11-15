@@ -205,6 +205,7 @@ pub async fn create_file(
             created: create_request.created.unwrap_or(current_time),
             permission_ids: vec![],
             keywords: vec![],
+            path: file_path.clone(),
         })
         .await;
 
