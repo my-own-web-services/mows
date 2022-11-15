@@ -14,7 +14,7 @@ async fn sync(
     sync_method: &str,
     local_config_dir: &str,
 ) -> Result<(), String> {
-    let user_id = "test";
+    let user_id = "dev";
 
     match run_sync(
         server_url,
@@ -26,8 +26,14 @@ async fn sync(
     )
     .await
     {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.to_string()),
+        Ok(_) => {
+            println!("Sync finished with success");
+            Ok(())
+        }
+        Err(e) => {
+            dbg!(&e);
+            Err(e.to_string())
+        }
     }
 }
 

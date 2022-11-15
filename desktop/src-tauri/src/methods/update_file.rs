@@ -18,7 +18,7 @@ pub async fn update_file(
     };
 
     let res = reqwest::Client::new()
-        .post(format!("{}/update_file/", address))
+        .post(format!("{}/api/update_file/", address))
         .header("request", serde_json::to_string(&create_file_request)?)
         .body(Body::wrap_stream(stream))
         .send()

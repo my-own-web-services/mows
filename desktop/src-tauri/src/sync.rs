@@ -1,8 +1,12 @@
 use crate::{
     api_types::FilezFile,
     methods::{
-        create_file::create_file, delete_file::delete_file, get_file::get_file,
-        get_file_infos_by_group_id::get_file_infos_by_group_id, update_file::update_file,
+        create_file::create_file,
+        create_file_group::{self, create_file_group},
+        delete_file::delete_file,
+        get_file::get_file,
+        get_file_infos_by_group_id::get_file_infos_by_group_id,
+        update_file::update_file,
     },
     some_or_bail,
     types::{FilezClientAppDataFile, FilezClientConfig, IntermediaryFile, SyncOperation, SyncType},
@@ -45,7 +49,7 @@ pub async fn run_sync(
         Some(sync_operation) => sync_operation.clone(),
         None => {
             // create a new sync operation
-            let group_id = format!("{}-{}", user_id, remote_volume);
+            let group_id = create_file_group(server_url, remote_volume).await?;
             let sync_operation = SyncOperation {
                 local_folder: local_folder.to_string(),
                 remote_volume: remote_volume.to_string(),

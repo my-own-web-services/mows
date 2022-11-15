@@ -25,13 +25,13 @@ const defaultConfig: SyncConfig[] = [
         localFolder: "/home/paul/Downloads/filez_test/",
         remoteVolume: "filez-test",
         syncMethod: "merge"
-    },
+    } /*,
     {
         serverUrl: "http://localhost:8080",
         localFolder: "/home/paul/Downloads/filez_test_2/",
         remoteVolume: "filez-test",
         syncMethod: "merge"
-    }
+    }*/
 ];
 interface AppProps {}
 interface AppState {

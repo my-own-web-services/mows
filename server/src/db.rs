@@ -53,7 +53,7 @@ impl DB {
                     .name("staticFileGroupIdsIndex")
                     .fields(vec!["staticFileGroupIds[*]".to_string()])
                     .settings(IndexSettings::Persistent {
-                        unique: true,
+                        unique: false,
                         sparse: false,
                         deduplicate: true,
                     })
@@ -69,7 +69,7 @@ impl DB {
                     .name("keywordsIndex")
                     .fields(vec!["keywords[*]".to_string()])
                     .settings(IndexSettings::Persistent {
-                        unique: true,
+                        unique: false,
                         sparse: false,
                         deduplicate: true,
                     })
@@ -85,7 +85,7 @@ impl DB {
                     .name("ownerIdIndex")
                     .fields(vec!["ownerId".to_string()])
                     .settings(IndexSettings::Persistent {
-                        unique: true,
+                        unique: false,
                         sparse: false,
                         deduplicate: false,
                     })
@@ -359,7 +359,7 @@ impl DB {
         let mut vars = HashMap::new();
         vars.insert("group", serde_json::value::to_value(&group).unwrap());
         self.db
-            .aql_bind_vars::<Vec<Value>>(
+            .aql_bind_vars::<Value>(
                 &format!(
                     r#"
                 LET insertRes = (
@@ -493,7 +493,8 @@ impl DB {
 
     pub async fn delete_file_by_id(&self, file: &FilezFile) -> anyhow::Result<()> {
         let aql = AqlQuery::builder()
-            .query(r#"
+            .query(
+                r#"
             LET removeFileRes=(
                 REMOVE DOCUMENT(CONCAT("files/",@id)) IN files
             )
@@ -508,18 +509,19 @@ impl DB {
             LET updateUserRes = (
                 UPDATE @owner WITH {
                     limits: {
-                        [@storageName]: {
-                            usedStorage: VALUE(oldUser[0].limits,[@storageName]).usedStorage - @size,
-                            usedFiles: VALUE(oldUser[0].limits,[@storageName]).usedFiles - 1
+                        [@storageId]: {
+                            usedStorage: VALUE(oldUser[0].limits,[@storageId]).usedStorage - @size,
+                            usedFiles: VALUE(oldUser[0].limits,[@storageId]).usedFiles - 1
                         }
                     }
                 } IN users
                 RETURN true
             )
-            RETURN { removeFileRes, updateUserRes }"#)
+            RETURN { removeFileRes, updateUserRes }"#,
+            )
             .bind_var("id", file.file_id.clone())
             .bind_var("owner", file.owner_id.clone())
-            .bind_var("storageName", file.storage_id.clone())
+            .bind_var("storageId", file.storage_id.clone())
             .bind_var("size", file.size)
             .build();
 
@@ -557,8 +559,8 @@ impl DB {
             LET updateUserRes = (
                 UPDATE @owner WITH {
                     limits: {
-                        [@storageName]: {
-                            usedStorage: VALUE(oldUser[0].limits,[@storageName]).usedStorage + @newSize - @oldSize,
+                        [@storageId]: {
+                            usedStorage: VALUE(oldUser[0].limits,[@storageId]).usedStorage + @newSize - @oldSize,
                         }
                     }
                 } IN users
@@ -573,7 +575,7 @@ impl DB {
             .bind_var("oldSize", file.size)
             .bind_var("modified", modified)
             .bind_var("owner", file.owner_id.clone())
-            .bind_var("storageName", file.storage_id.clone())
+            .bind_var("storageId", file.storage_id.clone())
             .build();
 
         self.db.aql_query::<Vec<Value>>(aql).await?;
@@ -604,9 +606,9 @@ impl DB {
                 LET updateUserRes = (
                     UPDATE @file.ownerId WITH {
                         limits: {
-                            [@file.storageName]: {
-                                usedStorage: VALUE(oldUser[0].limits,[@file.storageName]).usedStorage + @file.size,
-                                usedFiles: VALUE(oldUser[0].limits,[@file.storageName]).usedFiles + 1
+                            [@file.storageId]: {
+                                usedStorage: VALUE(oldUser[0].limits,[@file.storageId]).usedStorage + @file.size,
+                                usedFiles: VALUE(oldUser[0].limits,[@file.storageId]).usedFiles + 1
                             }
                         }
                     } IN users

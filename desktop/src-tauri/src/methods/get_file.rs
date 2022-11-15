@@ -13,7 +13,7 @@ pub async fn get_file(
     i_file: &IntermediaryFile,
 ) -> anyhow::Result<()> {
     let res = reqwest::Client::new()
-        .get(format!("{}/get_file/{}", address, file_id))
+        .get(format!("{}/api/get_file/{}", address, file_id))
         .send()
         .await?;
 

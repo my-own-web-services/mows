@@ -28,7 +28,7 @@ pub async fn create_file(
     };
 
     let res = reqwest::Client::new()
-        .post(format!("{}/create_file/", address))
+        .post(format!("{}/api/create_file/", address))
         .header("request", serde_json::to_string(&create_file_request)?)
         .body(Body::wrap_stream(stream))
         .send()
@@ -40,7 +40,14 @@ pub async fn create_file(
 
     let res_text = res.text().await?;
 
-    let cfr = serde_json::from_str::<CreateFileResponse>(&res_text)?;
+    let cfr = match serde_json::from_str::<CreateFileResponse>(&res_text) {
+        Ok(v) => v,
+        Err(e) => bail!(
+            "Failed to parse response to CreateFileResponse: {} got text: {}",
+            e,
+            res_text
+        ),
+    };
 
     let app_data_file = FilezClientAppDataFile {
         path: local_file.path.clone(),
