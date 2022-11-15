@@ -318,7 +318,7 @@ impl DB {
             r#"
             LET removeRes=(
                 FOR g IN {}
-                FILTER g.groupId==@group_id && p.ownerId==@owner_id
+                FILTER g._key==@group_id && p.ownerId==@owner_id
                 REMOVE p IN {}
             )           
             RETURN {{ removeRes }}"#,
@@ -424,7 +424,7 @@ impl DB {
             .query(
                 r#"
                 FOR file IN files
-                FILTER file.groups[*] ANY == @group_id
+                FILTER file.staticFileGroupIds[*] ANY == @group_id
                 RETURN file"#,
             )
             .bind_var("group_id", group_id)

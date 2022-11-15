@@ -1,11 +1,8 @@
 use crate::{
     api_types::FilezFile,
     methods::{
-        create_file::create_file,
-        create_file_group::{self, create_file_group},
-        delete_file::delete_file,
-        get_file::get_file,
-        get_file_infos_by_group_id::get_file_infos_by_group_id,
+        create_file::create_file, create_file_group::create_file_group, delete_file::delete_file,
+        get_file::get_file, get_file_infos_by_group_id::get_file_infos_by_group_id,
         update_file::update_file,
     },
     some_or_bail,
