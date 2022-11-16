@@ -17,7 +17,12 @@ export default class Group extends Component<GroupProps, GroupState> {
         const g = this.props.fileGroup;
         const isOpen = g.isOpen;
         return (
-            <div className={`Group${this.props.isSelected ? " selected" : ""}`}>
+            <div
+                onDblClick={() => {
+                    this.props.g.fn.groupDoubleClick(g);
+                }}
+                className={`Group${this.props.isSelected ? " selected" : ""}`}
+            >
                 <div
                     style={{
                         marginLeft: g.depth * 20

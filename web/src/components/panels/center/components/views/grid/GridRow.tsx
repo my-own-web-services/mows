@@ -22,7 +22,7 @@ export default class GridRow extends Component<GridRowProps, GridRowState> {
                         <div
                             className="GridRowItem"
                             style={{ width: `${100 / this.props.columns}%`, height: "100%" }}
-                            key={file.fileId}
+                            key={file._key}
                         >
                             <GroupOrFileItem
                                 viewType={FileView.Grid}

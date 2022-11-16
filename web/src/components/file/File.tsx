@@ -15,22 +15,23 @@ export default class File extends Component<FileProps, FileState> {
     render = () => {
         const f = this.props.file;
         const vt = this.props.viewType;
+        const n = f.name.substring(0, 10);
         return (
             <div className={`File${this.props.isSelected ? " selected" : ""}`}>
-                <DraggableItem type="file" id={f.fileId}>
+                <DraggableItem type="file" id={f._key}>
                     {(() => {
                         if (vt === FileView.Strip) {
-                            return <div>{f.fileId}</div>;
+                            return <div>{n}</div>;
                         } else if (vt === FileView.Grid) {
-                            return <div>{f.fileId}</div>;
+                            return <div>{n}</div>;
                         } else if (vt === FileView.List) {
-                            return <div>{f.fileId}</div>;
+                            return <div>{n}</div>;
                         } else if (vt === FileView.Group) {
-                            return <div>{f.fileId}</div>;
+                            return <div>{n}</div>;
                         } else if (vt === FileView.Single) {
-                            return <div>{f.fileId}</div>;
+                            return <div>{n}</div>;
                         } else if (vt === FileView.Sheets) {
-                            return <div>{f.fileId}</div>;
+                            return <div>{n}</div>;
                         } else {
                             return <div>Unknown view</div>;
                         }

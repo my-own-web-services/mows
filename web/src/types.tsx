@@ -1,5 +1,5 @@
 export interface FilezFile {
-    fileId: string;
+    _key: string;
     mimeType: string;
     name: string;
     ownerId: string;
@@ -19,7 +19,7 @@ export interface FilezFile {
 }
 
 export interface FileGroup {
-    fileGroupId: string;
+    _key: string;
     name?: string;
     ownerId: string;
     permissionIds: string[];

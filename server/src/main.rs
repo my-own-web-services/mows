@@ -12,6 +12,7 @@ use filez::methods::delete_permission::delete_permission;
 use filez::methods::get_file::get_file;
 use filez::methods::get_file_info::get_file_info;
 use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
+use filez::methods::get_own_file_groups::get_own_file_groups;
 use filez::methods::get_permissions_for_current_user::get_permissions_for_current_user;
 use filez::methods::get_user_info::get_user_info;
 use filez::methods::set_app_data::set_app_data;
@@ -147,6 +148,8 @@ async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
         update_permission_ids_on_resource(req, db, &auth).await
     } else if p == "/get_permissions_for_current_user/" && m == Method::GET {
         get_permissions_for_current_user(req, db, &auth).await
+    } else if p == "/get_own_file_groups/" && m == Method::GET {
+        get_own_file_groups(req, db, &auth).await
     } else {
         Ok(Response::builder()
             .status(404)

@@ -7,17 +7,18 @@ import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
 import { CustomProvider } from "rsuite";
 import { FileGroup, FilezFile } from "./types";
-import { getMockFiles, getMockFileGroups } from "./utils/getMock";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { DndProvider } from "react-dnd";
 import update from "immutability-helper";
 import { JSXInternal } from "preact/src/jsx";
 import { convertFileGroups, VisualFileGroup } from "./utils/convertFileGroups";
+import { FilezClient } from "./utils/filezClient";
 
 interface AppProps {}
 interface AppState {
     readonly files: FilezFile[];
     readonly fileGroups: VisualFileGroup[];
+
     readonly g: G;
 }
 
@@ -30,6 +31,7 @@ export interface G {
 export interface Fn {
     readonly itemClick: App["itemClick"];
     readonly groupArrowClick: App["groupArrowClick"];
+    readonly groupDoubleClick: App["groupDoubleClick"];
 }
 
 export enum SelectItem {
@@ -38,28 +40,35 @@ export enum SelectItem {
 }
 
 export default class App extends Component<AppProps, AppState> {
-    allGroups: VisualFileGroup[];
+    allFileGroups: VisualFileGroup[];
+    filezClient = new FilezClient();
     constructor(props: AppProps) {
         super(props);
-        this.allGroups = convertFileGroups(getMockFileGroups());
+        this.allFileGroups = [];
         this.state = {
-            files: getMockFiles(),
-            fileGroups: this.filterFileGroups(),
+            files: [],
+            fileGroups: [],
             g: {
                 selectedFiles: [],
                 selectedGroups: [],
                 fn: {
                     itemClick: this.itemClick,
-                    groupArrowClick: this.groupArrowClick
+                    groupArrowClick: this.groupArrowClick,
+                    groupDoubleClick: this.groupDoubleClick
                 }
             }
         };
     }
 
+    componentDidMount = async () => {
+        this.allFileGroups = convertFileGroups(await this.filezClient.get_own_file_groups());
+        this.setState({ fileGroups: this.allFileGroups });
+    };
+
     itemClick = (
         item: FilezFile | VisualFileGroup,
         isSelected: boolean,
-        e: JSXInternal.TargetedMouseEvent<HTMLDivElement>
+        e: JSXInternal.TargetedMouseEvent<any>
     ) => {
         e.preventDefault();
         if (e.ctrlKey) {
@@ -69,16 +78,16 @@ export default class App extends Component<AppProps, AppState> {
                 this.selectItem(item);
             }
         } else {
-            if (item.hasOwnProperty("fileId")) {
-                this.setState(state => {
-                    return update(state, {
-                        g: { selectedFiles: { $set: [item as FilezFile] } }
-                    });
-                });
-            } else if (item.hasOwnProperty("groupId")) {
+            if (item.hasOwnProperty("clientId")) {
                 this.setState(state => {
                     return update(state, {
                         g: { selectedGroups: { $set: [item as VisualFileGroup] } }
+                    });
+                });
+            } else {
+                this.setState(state => {
+                    return update(state, {
+                        g: { selectedFiles: { $set: [item as FilezFile] } }
                     });
                 });
             }
@@ -86,14 +95,16 @@ export default class App extends Component<AppProps, AppState> {
     };
 
     selectItem = (item: FilezFile | VisualFileGroup) => {
-        if (item.hasOwnProperty("fileId")) {
-            this.setState(state => {
-                return update(state, { g: { selectedFiles: { $push: [item as FilezFile] } } });
-            });
-        } else if (item.hasOwnProperty("groupId")) {
+        if (item.hasOwnProperty("clientId")) {
             this.setState(state => {
                 return update(state, {
                     g: { selectedGroups: { $push: [item as VisualFileGroup] } }
+                });
+            });
+        } else {
+            this.setState(state => {
+                return update(state, {
+                    g: { selectedFiles: { $push: [item as FilezFile] } }
                 });
             });
         }
@@ -116,8 +127,8 @@ export default class App extends Component<AppProps, AppState> {
         // if hide is true we don't add the group to the newFileGroups array
         // hide is reset if the depth of the group is less than the foundDepth
         // foundDepth is set to the depth of the group if the
-        for (let i = 0; i < this.allGroups.length; i++) {
-            const fg = this.allGroups[i];
+        for (let i = 0; i < this.allFileGroups.length; i++) {
+            const fg = this.allFileGroups[i];
 
             if (hide && fg.depth <= foundDepth) {
                 hide = false;
@@ -140,30 +151,44 @@ export default class App extends Component<AppProps, AppState> {
     };
 
     deselectItem = (item: FilezFile | VisualFileGroup) => {
-        if (item.hasOwnProperty("fileId")) {
-            this.setState(state => {
-                return update(state, {
-                    g: {
-                        selectedFiles: {
-                            $set: state.g.selectedFiles.filter(
-                                f => f.fileId !== (item as FilezFile).fileId
-                            )
-                        }
-                    }
-                });
-            });
-        } else if (item.hasOwnProperty("groupId")) {
+        if (item.hasOwnProperty("clientId")) {
             this.setState(state => {
                 return update(state, {
                     g: {
                         selectedGroups: {
                             $set: state.g.selectedGroups.filter(
-                                g => g.name !== (item as VisualFileGroup).name
+                                g => g.clientId !== (item as VisualFileGroup).clientId
                             )
                         }
                     }
                 });
             });
+        } else {
+            this.setState(state => {
+                let updated = update(state, {
+                    g: {
+                        selectedFiles: {
+                            $set: state.g.selectedFiles.filter(
+                                f => f._key !== (item as FilezFile)._key
+                            )
+                        }
+                    }
+                });
+
+                return updated;
+            });
+        }
+    };
+
+    groupDoubleClick = (group: VisualFileGroup) => {
+        console.log("double click", group);
+
+        if (group?.fileGroup) {
+            this.filezClient.get_file_infos_by_group_id(group.fileGroup._key).then(files => {
+                this.setState({ files });
+            });
+        } else {
+            this.setState({ files: [] });
         }
     };
 
