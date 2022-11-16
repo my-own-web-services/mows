@@ -17,13 +17,25 @@ export default class File extends Component<FileProps, FileState> {
         const vt = this.props.viewType;
         const n = f.name.substring(0, 10);
         return (
-            <div className={`File${this.props.isSelected ? " selected" : ""}`}>
+            <div
+                onDblClick={() => {
+                    this.props.g.fn.fileDoubleClick(f);
+                }}
+                className={`File${this.props.isSelected ? " selected" : ""}`}
+            >
                 <DraggableItem type="file" id={f._key}>
                     {(() => {
-                        if (vt === FileView.Strip) {
-                            return <div>{n}</div>;
-                        } else if (vt === FileView.Grid) {
-                            return <div>{n}</div>;
+                        if (vt === FileView.Strip || vt === FileView.Grid) {
+                            return (
+                                <div style={{ height: "100%", width: "100%" }}>
+                                    <div style={{ height: "20px" }}>{n}</div>
+                                    <div style={{ height: "calc(100% - 20px)" }}>
+                                        {f.mimeType.startsWith("image/") ? (
+                                            <img loading={"lazy"} src={`/api/get_file/${f._key}`} />
+                                        ) : null}
+                                    </div>
+                                </div>
+                            );
                         } else if (vt === FileView.List) {
                             return <div>{n}</div>;
                         } else if (vt === FileView.Group) {

@@ -2,7 +2,7 @@ import { Component } from "preact";
 import Panels from "./components/panels/Panels";
 import "@fontsource/inter/500.css";
 import Left from "./components/panels/left/Left";
-import Center from "./components/panels/center/Center";
+import Center, { View } from "./components/panels/center/Center";
 import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
 import { CustomProvider } from "rsuite";
@@ -18,13 +18,14 @@ interface AppProps {}
 interface AppState {
     readonly files: FilezFile[];
     readonly fileGroups: VisualFileGroup[];
-
     readonly g: G;
+    readonly selectedCenterView: View;
 }
 
 export interface G {
     readonly selectedFiles: FilezFile[];
     readonly selectedGroups: VisualFileGroup[];
+    readonly selectedFile: FilezFile | null;
     readonly fn: Fn;
 }
 
@@ -32,6 +33,8 @@ export interface Fn {
     readonly itemClick: App["itemClick"];
     readonly groupArrowClick: App["groupArrowClick"];
     readonly groupDoubleClick: App["groupDoubleClick"];
+    readonly fileDoubleClick: App["fileDoubleClick"];
+    readonly selectCenterView: App["selectCenterView"];
 }
 
 export enum SelectItem {
@@ -48,13 +51,17 @@ export default class App extends Component<AppProps, AppState> {
         this.state = {
             files: [],
             fileGroups: [],
+            selectedCenterView: View.Grid,
             g: {
                 selectedFiles: [],
                 selectedGroups: [],
+                selectedFile: null,
                 fn: {
                     itemClick: this.itemClick,
                     groupArrowClick: this.groupArrowClick,
-                    groupDoubleClick: this.groupDoubleClick
+                    groupDoubleClick: this.groupDoubleClick,
+                    fileDoubleClick: this.fileDoubleClick,
+                    selectCenterView: this.selectCenterView
                 }
             }
         };
@@ -165,7 +172,7 @@ export default class App extends Component<AppProps, AppState> {
             });
         } else {
             this.setState(state => {
-                let updated = update(state, {
+                return update(state, {
                     g: {
                         selectedFiles: {
                             $set: state.g.selectedFiles.filter(
@@ -174,15 +181,11 @@ export default class App extends Component<AppProps, AppState> {
                         }
                     }
                 });
-
-                return updated;
             });
         }
     };
 
     groupDoubleClick = (group: VisualFileGroup) => {
-        console.log("double click", group);
-
         if (group?.fileGroup) {
             this.filezClient.get_file_infos_by_group_id(group.fileGroup._key).then(files => {
                 this.setState({ files });
@@ -192,6 +195,28 @@ export default class App extends Component<AppProps, AppState> {
         }
     };
 
+    fileDoubleClick = (file: FilezFile) => {
+        this.setState(state => {
+            state = update(state, {
+                g: {
+                    selectedFile: {
+                        $set: file
+                    }
+                }
+            });
+
+            return state;
+        });
+        this.setState({
+            selectedCenterView:
+                this.state.selectedCenterView === View.Single ? View.Grid : View.Single
+        });
+    };
+
+    selectCenterView = (selectedCenterView: View) => {
+        this.setState({ selectedCenterView });
+    };
+
     render = () => {
         return (
             <CustomProvider theme="dark">
@@ -199,8 +224,14 @@ export default class App extends Component<AppProps, AppState> {
                     <div className="App">
                         <Panels
                             left={<Left g={this.state.g} groups={this.state.fileGroups}></Left>}
-                            center={<Center g={this.state.g} files={this.state.files}></Center>}
-                            right={<Right g={this.state.g}></Right>}
+                            center={
+                                <Center
+                                    selectedView={this.state.selectedCenterView}
+                                    g={this.state.g}
+                                    files={this.state.files}
+                                ></Center>
+                            }
+                            right={<Right g={this.state.g} files={this.state.files}></Right>}
                             strip={<Strip g={this.state.g} files={this.state.files}></Strip>}
                         />
                     </div>

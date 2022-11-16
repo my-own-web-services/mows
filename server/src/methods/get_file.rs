@@ -4,7 +4,6 @@ use hyper::{Body, Request, Response};
 
 pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result<Response<Body>> {
     let file_id = req.uri().path().replacen("/api/get_file/", "", 1);
-    dbg!(&file_id);
 
     let file = match db.get_file_by_id(&file_id).await {
         Ok(f) => f,
@@ -35,6 +34,7 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
     Ok(Response::builder()
         .status(200)
         .header("Content-Type", file.mime_type)
+        .header("Cache-Control", "public, max-age=31536000")
         .body(body)
         .unwrap())
 }

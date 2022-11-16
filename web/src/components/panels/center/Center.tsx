@@ -9,47 +9,42 @@ import Sheets from "./components/views/sheets/Sheets";
 import Single from "./components/views/single/Single";
 
 export enum View {
-    Sheets = "Sheets",
     Grid = "Grid",
     List = "List",
-    Single = "Single"
+    Single = "Single",
+    Sheets = "Sheets"
 }
 
 interface CenterProps {
     readonly g: G;
     readonly files: FilezFile[];
-}
-
-interface CenterState {
     readonly selectedView: View;
 }
+
+interface CenterState {}
 
 export default class Center extends Component<CenterProps, CenterState> {
     constructor(props: CenterProps) {
         super(props);
-        this.state = {
-            selectedView: View.Sheets
-        };
+        this.state = {};
     }
-
-    selectView = (selectedView: View) => {
-        this.setState({ selectedView });
-    };
 
     render = () => {
         return (
             <div id="main-panel-center" className="horizontal-panel panel">
-                <SelectView selectView={this.selectView} selectedView={this.state.selectedView} />
+                <SelectView
+                    selectCenterView={this.props.g.fn.selectCenterView}
+                    selectedView={this.props.selectedView}
+                />
                 <div className="view">
                     {(() => {
-                        if (this.state.selectedView === View.Sheets) {
+                        if (this.props.selectedView === View.Sheets) {
                             return <Sheets g={this.props.g} />;
-                        } else if (this.state.selectedView === View.Grid) {
+                        } else if (this.props.selectedView === View.Grid) {
                             return <Grid g={this.props.g} files={this.props.files} />;
-                        } else if (this.state.selectedView === View.List) {
+                        } else if (this.props.selectedView === View.List) {
                             return <List g={this.props.g} files={this.props.files} />;
-                        } else if (this.state.selectedView === View.Single) {
-                            //TODO
+                        } else if (this.props.selectedView === View.Single) {
                             return <Single g={this.props.g} />;
                         } else {
                             return <div>Unknown view</div>;

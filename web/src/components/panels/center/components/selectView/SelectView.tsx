@@ -1,6 +1,7 @@
 import { Component, JSX } from "preact";
 import { BsFillGrid1X2Fill, BsFillGridFill, BsFillSquareFill } from "react-icons/bs";
 import { FaThList } from "react-icons/fa";
+import App from "../../../../../App";
 import Center, { View } from "../../Center";
 import "./SelectView.scss";
 
@@ -10,10 +11,6 @@ export interface SelectViewOption {
 }
 
 const defaultSelectViewOptions: SelectViewOption[] = [
-    {
-        name: "Sheets" as View.Sheets,
-        icon: <BsFillGrid1X2Fill />
-    },
     {
         name: "Grid" as View.Grid,
         icon: <BsFillGridFill size={16.5} />
@@ -25,12 +22,16 @@ const defaultSelectViewOptions: SelectViewOption[] = [
     {
         name: "Single" as View.Single,
         icon: <BsFillSquareFill />
+    },
+    {
+        name: "Sheets" as View.Sheets,
+        icon: <BsFillGrid1X2Fill />
     }
 ];
 
 interface SelectViewProps {
     readonly options?: SelectViewOption[];
-    readonly selectView: Center["selectView"];
+    readonly selectCenterView: App["selectCenterView"];
     readonly selectedView: View;
 }
 interface SelectViewState {}
@@ -47,7 +48,7 @@ export default class SelectView extends Component<SelectViewProps, SelectViewSta
                             className={`SelectViewOption${
                                 this.props.selectedView === option.name ? " selected" : ""
                             }${" " + option.name}`}
-                            onClick={() => this.props.selectView(option.name)}
+                            onClick={() => this.props.selectCenterView(option.name)}
                             title={option.name}
                         >
                             {option.icon}
