@@ -20,6 +20,7 @@ interface AppState {
     readonly fileGroups: VisualFileGroup[];
     readonly g: G;
     readonly selectedCenterView: View;
+    readonly lastSelectedCenterView: View;
 }
 
 export interface G {
@@ -52,6 +53,7 @@ export default class App extends Component<AppProps, AppState> {
             files: [],
             fileGroups: [],
             selectedCenterView: View.Grid,
+            lastSelectedCenterView: View.Grid,
             g: {
                 selectedFiles: [],
                 selectedGroups: [],
@@ -205,16 +207,26 @@ export default class App extends Component<AppProps, AppState> {
                 }
             });
 
-            return state;
-        });
-        this.setState({
-            selectedCenterView:
-                this.state.selectedCenterView === View.Single ? View.Grid : View.Single
+            return {
+                ...state,
+                selectedCenterView:
+                    this.state.selectedCenterView === View.Single
+                        ? state.lastSelectedCenterView
+                        : View.Single,
+                ...(state.selectedCenterView !== View.Single && {
+                    lastSelectedCenterView: state.selectedCenterView
+                })
+            };
         });
     };
 
     selectCenterView = (selectedCenterView: View) => {
-        this.setState({ selectedCenterView });
+        this.setState(state => ({
+            selectedCenterView,
+            ...(state.selectedCenterView !== View.Single && {
+                lastSelectedCenterView: state.selectedCenterView
+            })
+        }));
     };
 
     render = () => {
