@@ -6,13 +6,15 @@ import Center, { View } from "./components/panels/center/Center";
 import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
 import { CustomProvider } from "rsuite";
-import { FileGroup, FilezFile } from "./types";
+import { FileView, FilezFile } from "./types";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { DndProvider } from "react-dnd";
 import update from "immutability-helper";
 import { JSXInternal } from "preact/src/jsx";
 import { convertFileGroups, VisualFileGroup } from "./utils/convertFileGroups";
 import { FilezClient } from "./utils/filezClient";
+import "rsuite/styles/index.less";
+import "preact/debug";
 
 interface AppProps {}
 interface AppState {
@@ -21,6 +23,7 @@ interface AppState {
     readonly g: G;
     readonly selectedCenterView: View;
     readonly lastSelectedCenterView: View;
+    readonly gridColumns: number;
 }
 
 export interface G {
@@ -36,6 +39,7 @@ export interface Fn {
     readonly groupDoubleClick: App["groupDoubleClick"];
     readonly fileDoubleClick: App["fileDoubleClick"];
     readonly selectCenterView: App["selectCenterView"];
+    readonly setGridViewColumns: App["setGridViewColumns"];
 }
 
 export enum SelectItem {
@@ -54,6 +58,7 @@ export default class App extends Component<AppProps, AppState> {
             fileGroups: [],
             selectedCenterView: View.Grid,
             lastSelectedCenterView: View.Grid,
+            gridColumns: 10,
             g: {
                 selectedFiles: [],
                 selectedGroups: [],
@@ -63,7 +68,8 @@ export default class App extends Component<AppProps, AppState> {
                     groupArrowClick: this.groupArrowClick,
                     groupDoubleClick: this.groupDoubleClick,
                     fileDoubleClick: this.fileDoubleClick,
-                    selectCenterView: this.selectCenterView
+                    selectCenterView: this.selectCenterView,
+                    setGridViewColumns: this.setGridViewColumns
                 }
             }
         };
@@ -159,6 +165,10 @@ export default class App extends Component<AppProps, AppState> {
         return newFileGroups;
     };
 
+    setGridViewColumns = (columns: number) => {
+        this.setState({ gridColumns: columns });
+    };
+
     deselectItem = (item: FilezFile | VisualFileGroup) => {
         if (item.hasOwnProperty("clientId")) {
             this.setState(state => {
@@ -197,7 +207,7 @@ export default class App extends Component<AppProps, AppState> {
         }
     };
 
-    fileDoubleClick = (file: FilezFile) => {
+    fileDoubleClick = (file: FilezFile, clickOrigin: FileView) => {
         this.setState(state => {
             state = update(state, {
                 g: {
@@ -207,8 +217,11 @@ export default class App extends Component<AppProps, AppState> {
                 }
             });
 
-            return {
-                ...state,
+            return state;
+        });
+
+        if (clickOrigin !== FileView.Strip) {
+            this.setState(state => ({
                 selectedCenterView:
                     this.state.selectedCenterView === View.Single
                         ? state.lastSelectedCenterView
@@ -216,8 +229,8 @@ export default class App extends Component<AppProps, AppState> {
                 ...(state.selectedCenterView !== View.Single && {
                     lastSelectedCenterView: state.selectedCenterView
                 })
-            };
-        });
+            }));
+        }
     };
 
     selectCenterView = (selectedCenterView: View) => {
@@ -238,6 +251,7 @@ export default class App extends Component<AppProps, AppState> {
                             left={<Left g={this.state.g} groups={this.state.fileGroups}></Left>}
                             center={
                                 <Center
+                                    columns={this.state.gridColumns}
                                     selectedView={this.state.selectedCenterView}
                                     g={this.state.g}
                                     files={this.state.files}

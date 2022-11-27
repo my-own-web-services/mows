@@ -20,7 +20,7 @@
         "react-split": "^2.0.14",
         "react-virtualized-auto-sizer": "^1.0.7",
         "react-window": "^1.8.8",
-        "rsuite": "^5.22.0",
+        "rsuite": "^5.23.0",
         "sass": "^1.55.0"
     },
     "devDependencies": {

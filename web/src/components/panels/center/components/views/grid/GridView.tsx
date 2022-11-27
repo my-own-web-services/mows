@@ -4,8 +4,6 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 
 import "./GridView.scss";
-import "rsuite/Slider/styles/index.less";
-import "rsuite/Tooltip/styles/index.less";
 import { FilezFile } from "../../../../../../types";
 import { CSSProperties } from "preact/compat";
 import GridRow from "./GridRow";
@@ -15,11 +13,10 @@ import { DraggableTarget } from "../../../../../drag/DraggableTarget";
 interface GridViewProps {
     readonly files: FilezFile[];
     readonly g: G;
-}
-
-interface GridViewState {
     readonly columns: number;
 }
+
+interface GridViewState {}
 
 export default class GridView extends Component<GridViewProps, GridViewState> {
     constructor(props: GridViewProps) {
@@ -33,16 +30,16 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
             <div className="GridView">
                 <div className="toolbar">
                     <span title="Columns" className="sizeSlider">
-                        <div title="Columns">{this.state.columns}</div>
+                        <div title="Columns">{this.props.columns}</div>
                         <Slider
                             title="Columns"
                             tooltip={false}
                             style={{ width: 100, margin: 12 }}
-                            value={this.state.columns}
+                            value={this.props.columns}
                             min={1}
                             max={20}
                             onChange={(value: number) => {
-                                this.setState({ columns: value });
+                                this.props.g.fn.setGridViewColumns(value);
                             }}
                         />
                     </span>
@@ -52,10 +49,10 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                         <AutoSizer>
                             {({ height, width }) => (
                                 <FixedSizeList
-                                    itemSize={width / this.state.columns}
+                                    itemSize={width / this.props.columns}
                                     height={height}
                                     itemCount={Math.ceil(
-                                        this.props.files.length / this.state.columns
+                                        this.props.files.length / this.props.columns
                                     )}
                                     width={width}
                                 >
@@ -66,8 +63,8 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                                         index: number;
                                         style: CSSProperties;
                                     }) => {
-                                        const startIndex = index * this.state.columns;
-                                        const endIndex = startIndex + this.state.columns;
+                                        const startIndex = index * this.props.columns;
+                                        const endIndex = startIndex + this.props.columns;
                                         const files = this.props.files.slice(startIndex, endIndex);
 
                                         return (
@@ -77,7 +74,7 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                                                 style={style}
                                                 key={"GridRow" + index}
                                                 files={files}
-                                                columns={this.state.columns}
+                                                columns={this.props.columns}
                                             />
                                         );
                                     }}

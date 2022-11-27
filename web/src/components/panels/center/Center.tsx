@@ -19,6 +19,7 @@ interface CenterProps {
     readonly g: G;
     readonly files: FilezFile[];
     readonly selectedView: View;
+    readonly columns: number;
 }
 
 interface CenterState {}
@@ -41,7 +42,13 @@ export default class Center extends Component<CenterProps, CenterState> {
                         if (this.props.selectedView === View.Sheets) {
                             return <Sheets g={this.props.g} />;
                         } else if (this.props.selectedView === View.Grid) {
-                            return <Grid g={this.props.g} files={this.props.files} />;
+                            return (
+                                <Grid
+                                    g={this.props.g}
+                                    files={this.props.files}
+                                    columns={this.props.columns}
+                                />
+                            );
                         } else if (this.props.selectedView === View.List) {
                             return <List g={this.props.g} files={this.props.files} />;
                         } else if (this.props.selectedView === View.Single) {
