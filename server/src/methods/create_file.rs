@@ -191,7 +191,7 @@ pub async fn create_file(
             mime_type: create_request.mime_type,
             name: create_request.name,
             owner_id: user.user_id,
-            sha256: hash.clone(),
+            sha256: Some(hash.clone()),
             storage_id: Some(storage_name.clone()),
             size: bytes_written,
             server_created: current_time,

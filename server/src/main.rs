@@ -57,7 +57,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     db.create_collections().await?;
 
+    println!("Scanning readonly mounts...");
     scan_readonly_mounts(&db).await?;
+    println!("Done scanning readonly mounts");
 
     let server = Server::bind(&addr).serve(make_service_fn(|_conn| async {
         Ok::<_, Infallible>(service_fn(handle_request))

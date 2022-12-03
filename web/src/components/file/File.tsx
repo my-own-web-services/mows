@@ -3,6 +3,7 @@ import { G } from "../../App";
 import { FileView, FilezFile } from "../../types";
 import { displayBytes } from "../../utils/bytes";
 import { DraggableItem } from "../drag/DraggableItem";
+import Audio from "./Audio";
 import "./File.scss";
 import Image from "./Image";
 
@@ -17,7 +18,6 @@ export default class File extends Component<FileProps, FileState> {
     render = () => {
         const f = this.props.file;
         const vt = this.props.viewType;
-        const n = f.name.substring(0, 10);
         return (
             <div
                 onDblClick={() => {
@@ -32,9 +32,11 @@ export default class File extends Component<FileProps, FileState> {
                                 <div
                                     className={`hover ${this.props.isSelected ? " selected" : ""}`}
                                 >
-                                    <div style={{ height: "20px" }}>{n}</div>
+                                    <div style={{ height: "20px" }}>{f.name.substring(0, 10)}</div>
                                     <div style={{ height: "calc(100% - 20px)" }}>
-                                        <Image file={this.props.file}></Image>
+                                        {f.mimeType.startsWith("image/") ? (
+                                            <Image file={this.props.file}></Image>
+                                        ) : null}
                                     </div>
                                 </div>
                             );
@@ -43,7 +45,9 @@ export default class File extends Component<FileProps, FileState> {
                                 <div
                                     className={`hover ${this.props.isSelected ? " selected" : ""}`}
                                 >
-                                    <div style={{ width: "150px", float: "left" }}>{n}</div>
+                                    <div style={{ width: "350px", float: "left" }}>
+                                        {f.name.substring(0, 40)}
+                                    </div>
                                     <div style={{ width: "200px", float: "left" }}>
                                         {f.mimeType}
                                     </div>
@@ -53,11 +57,21 @@ export default class File extends Component<FileProps, FileState> {
                                 </div>
                             );
                         } else if (vt === FileView.Group) {
-                            return <div>{n}</div>;
+                            return <div>{f.name.substring(0, 10)}</div>;
                         } else if (vt === FileView.Single) {
-                            return <Image file={this.props.file}></Image>;
+                            return (
+                                <div>
+                                    {(() => {
+                                        if (f.mimeType.startsWith("image/")) {
+                                            return <Image file={f}></Image>;
+                                        } else if (f.mimeType.startsWith("audio/")) {
+                                            return <Audio file={f}></Audio>;
+                                        }
+                                    })()}
+                                </div>
+                            );
                         } else if (vt === FileView.Sheets) {
-                            return <div>{n}</div>;
+                            return <div>{f.name.substring(0, 10)}</div>;
                         } else {
                             return <div>Unknown view</div>;
                         }

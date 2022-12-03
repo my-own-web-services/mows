@@ -135,7 +135,7 @@ pub struct FilezFile {
     pub mime_type: String,
     pub name: String,
     pub owner_id: String,
-    pub sha256: String,
+    pub sha256: Option<String>,
     pub storage_id: Option<String>,
     pub path: String,
     pub size: u64,

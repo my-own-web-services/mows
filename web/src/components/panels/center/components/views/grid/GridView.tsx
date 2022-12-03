@@ -37,7 +37,7 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                             style={{ width: 100, margin: 12 }}
                             value={this.props.columns}
                             min={1}
-                            max={20}
+                            max={10}
                             onChange={(value: number) => {
                                 this.props.g.fn.setGridViewColumns(value);
                             }}

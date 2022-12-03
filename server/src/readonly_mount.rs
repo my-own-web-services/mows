@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::{DirEntry, File, Metadata},
-    io::{BufReader, Read},
+    io::{self, BufReader, Read},
     path::Path,
 };
 
@@ -28,8 +28,33 @@ pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
             path.to_str(),
             "Could not convert path to str"
         ))?;
+        // check if the user exists
+        db.get_user_by_id(&mount.owner_id).await?;
+
+        let group_id = match db
+            .get_file_group_by_name(mount_name, &mount.owner_id)
+            .await?
+        {
+            Some(g) => g.file_group_id,
+            None => {
+                // create group
+                let group_id = generate_id();
+                db.create_group(&FilezGroups::FilezFileGroup(FilezFileGroup {
+                    owner_id: mount.owner_id.to_string(),
+                    name: Some(mount_name.to_string()),
+                    file_group_id: group_id.clone(),
+                    permission_ids: vec![],
+                    keywords: vec![],
+                    group_hierarchy_paths: vec![],
+                    mime_types: vec![],
+                    group_type: FileGroupType::Static,
+                }))
+                .await?;
+                group_id
+            }
+        };
         for file in file_list {
-            import_readonly_file(db, mount_name, &file, &mount.owner_id).await?;
+            import_readonly_file(db, &file, &mount.owner_id, &group_id).await?;
         }
     }
     Ok(())
@@ -37,13 +62,10 @@ pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
 
 pub async fn import_readonly_file(
     db: &DB,
-    mount_name: &str,
     file: &DirEntry,
     owner_id: &str,
+    group_id: &str,
 ) -> anyhow::Result<()> {
-    // check if the user exists
-    db.get_user_by_id(owner_id).await?;
-
     let path = &file.path();
     let path_str = some_or_bail!(path.to_str(), "Could not convert path to str");
 
@@ -54,25 +76,6 @@ pub async fn import_readonly_file(
 
     // TODO check if file has been updated since last import
 
-    match db.get_file_group_by_name(mount_name, owner_id).await? {
-        Some(_) => {}
-        None => {
-            // create group
-            let group_id = generate_id();
-            db.create_group(&FilezGroups::FilezFileGroup(FilezFileGroup {
-                owner_id: owner_id.to_string(),
-                name: Some(mount_name.to_string()),
-                file_group_id: group_id,
-                permission_ids: vec![],
-                keywords: vec![],
-                group_hierarchy_paths: vec![],
-                mime_types: vec![],
-                group_type: FileGroupType::Static,
-            }))
-            .await?;
-        }
-    }
-
     let file_name = some_or_bail!(
         some_or_bail!(path.file_name(), "Could not get file name").to_str(),
         "Could not convert file name to str"
@@ -80,7 +83,8 @@ pub async fn import_readonly_file(
 
     let file_id = generate_id();
 
-    let file_hash = get_file_hash(path)?;
+    // TODO enable it optional
+    //let file_hash = get_file_hash(path)?;
 
     let mime_type = mime_guess::from_path(path)
         .first_or_octet_stream()
@@ -95,12 +99,12 @@ pub async fn import_readonly_file(
         mime_type,
         name: file_name.to_string(),
         owner_id: owner_id.to_string(),
-        sha256: file_hash,
+        sha256: None,
         storage_id: None,
         size: file_size,
         server_created: current_time,
         modified: get_modified_time_secs(&metadata),
-        static_file_group_ids: vec![mount_name.to_string()],
+        static_file_group_ids: vec![group_id.to_string()],
         dynamic_file_group_ids: vec![],
         app_data,
         accessed: None,
@@ -141,17 +145,9 @@ pub fn get_created_time_secs(metadata: &Metadata) -> Option<i64> {
 }
 
 pub fn get_file_hash(path: &Path) -> anyhow::Result<String> {
-    let input = File::open(path)?;
-    let mut reader = BufReader::new(input);
+    let mut file = File::open(path)?;
     let mut hasher = Sha256::new();
-    let mut buffer = [0; 1024];
-    loop {
-        let count = reader.read(&mut buffer)?;
-        if count == 0 {
-            break;
-        }
-        hasher.update(&buffer[..count]);
-    }
+    io::copy(&mut file, &mut hasher)?;
 
     Ok(hex::encode(hasher.finalize()))
 }

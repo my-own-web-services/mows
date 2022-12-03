@@ -21,3 +21,7 @@ readonlyMount:
         path: /home/paul/Downloads/_import-images/
         rescanSeconds: 120
         ownerId: dev
+    music:
+        path: /mnt/archive/Music/
+        rescanSeconds: 120
+        ownerId: dev
