@@ -16,9 +16,8 @@ interossea:
     assertionValiditySeconds: 600
 dev:
     insecureSkipInterossea: true
-autoImport:
-    folders:
-        - fromPath: /home/paul/Downloads/_import-images/
-          storageId: ssd
-          userId: test
-          moveFiles: false
+readonlyMount:
+    importImages:
+        path: /home/paul/Downloads/_import-images/
+        rescanSeconds: 120
+        ownerId: dev

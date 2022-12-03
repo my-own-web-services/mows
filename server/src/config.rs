@@ -51,6 +51,16 @@ pub struct ServerConfig {
     pub interossea: InterosseaConfig,
     pub http: HttpConfig,
     pub dev: DevConfig,
+    #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    pub readonly_mount: HashMap<String, ReadonlyMountConfig>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadonlyMountConfig {
+    pub path: String,
+    pub rescan_seconds: u64,
+    pub owner_id: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

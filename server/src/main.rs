@@ -18,6 +18,7 @@ use filez::methods::get_user_info::get_user_info;
 use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_file::update_file;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
+use filez::readonly_mount::scan_readonly_mounts;
 use filez::utils::get_token_from_query;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server};
@@ -55,6 +56,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     .await?;
 
     db.create_collections().await?;
+
+    scan_readonly_mounts(&db).await?;
 
     let server = Server::bind(&addr).serve(make_service_fn(|_conn| async {
         Ok::<_, Infallible>(service_fn(handle_request))

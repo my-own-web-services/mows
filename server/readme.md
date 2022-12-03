@@ -192,6 +192,8 @@ claim:
             "maxBandwidth": 0,
             "usedBandwidth": 0
         }
-    }
+    },
+    "appData": {},
+    "userGroupIds": []
 }
 ```

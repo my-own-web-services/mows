@@ -33,6 +33,10 @@ pub async fn update_file(
         Err(_) => bail!("File not found"),
     };
 
+    if filez_file.readonly {
+        bail!("File is readonly");
+    }
+
     let file_owner = match db.get_user_by_id(&filez_file.owner_id).await {
         Ok(user) => user,
         Err(_) => bail!("User not found"),

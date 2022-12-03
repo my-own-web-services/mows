@@ -206,6 +206,7 @@ pub async fn create_file(
             permission_ids: vec![],
             keywords: vec![],
             path: file_path.clone(),
+            readonly: false,
         })
         .await;
 

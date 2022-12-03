@@ -157,6 +157,7 @@ pub struct FilezFile {
     pub app_data: HashMap<String, Value>,
     pub permission_ids: Vec<String>,
     pub keywords: Vec<String>,
+    pub readonly: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

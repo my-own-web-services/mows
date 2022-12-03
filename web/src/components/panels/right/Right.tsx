@@ -46,7 +46,8 @@ export default class Right extends Component<RightProps, RightState> {
 
     render = () => {
         const s = this.state;
-
+        // TODO display the tag picker with a text and tag version that can be toggled
+        // TODO fix the tag picker by maybe switching to react
         return (
             <div id="main-panel-right" className="Right horizontal-panel panel">
                 {s.name === undefined ? null : (

@@ -355,6 +355,33 @@ impl DB {
         Ok(())
     }
 
+    pub async fn get_file_group_by_name(
+        &self,
+        group_name: &str,
+        owner_id: &str,
+    ) -> anyhow::Result<Option<FilezFileGroup>> {
+        let aql = AqlQuery::builder()
+            .query(
+                r#"
+            FOR fileGroup IN fileGroups
+                FILTER fileGroup.name == @group_name && fileGroup.ownerId == @owner_id
+                RETURN fileGroup
+        "#,
+            )
+            .bind_var("group_name", group_name)
+            .bind_var("owner_id", owner_id)
+            .build();
+
+        let res: Vec<Value> = self.db.aql_query(aql).await?;
+        match res.get(0) {
+            Some(val) => {
+                let group: FilezFileGroup = serde_json::from_value(val.clone())?;
+                Ok(Some(group))
+            }
+            None => Ok(None),
+        }
+    }
+
     pub async fn create_group(&self, group: &FilezGroups) -> anyhow::Result<()> {
         let mut vars = HashMap::new();
         vars.insert("group", serde_json::value::to_value(&group).unwrap());
@@ -449,6 +476,25 @@ impl DB {
         let aql = AqlQuery::builder()
             .query(r#"RETURN DOCUMENT(CONCAT("files/",@file_id))"#)
             .bind_var("file_id", file_id)
+            .build();
+
+        let res: Vec<Value> = self.db.aql_query(aql).await?;
+        let val = some_or_bail!(res.get(0), "File not found");
+        let file: FilezFile = serde_json::from_value(val.clone())?;
+
+        Ok(file)
+    }
+
+    pub async fn get_file_by_path(&self, file_path: &str) -> anyhow::Result<FilezFile> {
+        let aql = AqlQuery::builder()
+            .query(
+                r#"
+                FOR file IN files
+                    FILTER file.path == @file_path
+                    RETURN file
+            "#,
+            )
+            .bind_var("file_path", file_path)
             .build();
 
         let res: Vec<Value> = self.db.aql_query(aql).await?;
@@ -580,6 +626,26 @@ impl DB {
 
         self.db.aql_query::<Vec<Value>>(aql).await?;
 
+        Ok(())
+    }
+
+    pub async fn create_file_without_user_limits(&self, file: FilezFile) -> anyhow::Result<()> {
+        let mut vars = HashMap::new();
+        vars.insert("file", serde_json::value::to_value(&file).unwrap());
+
+        let _res: Vec<Value> = self
+            .db
+            .aql_bind_vars(
+                r#"
+                LET insertRes = (
+                    INSERT @file INTO files 
+                    RETURN true
+                )
+
+                RETURN { insertRes }"#,
+                vars,
+            )
+            .await?;
         Ok(())
     }
 

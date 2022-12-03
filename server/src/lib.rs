@@ -3,6 +3,7 @@ pub mod db;
 pub mod internal_types;
 pub mod interossea;
 pub mod macros;
+pub mod readonly_mount;
 pub mod types;
 pub mod utils;
 
