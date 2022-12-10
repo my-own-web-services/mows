@@ -1,12 +1,12 @@
 import { Component } from "preact";
 import { G } from "../../../App";
-import { FilezFile } from "../../../types";
+import { ReducedFilezFile } from "../../../types";
 import { DraggableTarget } from "../../drag/DraggableTarget";
 import "./Strip.scss";
 import VerticalList from "./VerticalList";
 
 interface StripProps {
-    readonly files: FilezFile[];
+    readonly files: ReducedFilezFile[];
     readonly g: G;
 }
 

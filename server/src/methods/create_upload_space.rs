@@ -56,6 +56,7 @@ pub async fn create_upload_space(
         group_hierarchy_paths: vec![],
         mime_types: vec![],
         group_type: FileGroupType::Static,
+        item_count: 0,
     });
 
     db.create_group(&group).await?;

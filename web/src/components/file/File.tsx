@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import { G } from "../../App";
-import { FileView, FilezFile } from "../../types";
+import { FileView, ReducedFilezFile } from "../../types";
 import { displayBytes } from "../../utils/bytes";
 import { DraggableItem } from "../drag/DraggableItem";
 import Audio from "./Audio";
@@ -8,7 +8,7 @@ import "./File.scss";
 import Image from "./Image";
 
 interface FileProps {
-    readonly file: FilezFile;
+    readonly file: ReducedFilezFile;
     readonly g: G;
     readonly isSelected?: boolean;
     readonly viewType: FileView;
@@ -59,17 +59,13 @@ export default class File extends Component<FileProps, FileState> {
                         } else if (vt === FileView.Group) {
                             return <div>{f.name.substring(0, 10)}</div>;
                         } else if (vt === FileView.Single) {
-                            return (
-                                <div>
-                                    {(() => {
-                                        if (f.mimeType.startsWith("image/")) {
-                                            return <Image file={f}></Image>;
-                                        } else if (f.mimeType.startsWith("audio/")) {
-                                            return <Audio file={f}></Audio>;
-                                        }
-                                    })()}
-                                </div>
-                            );
+                            return (() => {
+                                if (f.mimeType.startsWith("image/")) {
+                                    return <Image file={f}></Image>;
+                                } else if (f.mimeType.startsWith("audio/")) {
+                                    return <Audio file={f}></Audio>;
+                                }
+                            })();
                         } else if (vt === FileView.Sheets) {
                             return <div>{f.name.substring(0, 10)}</div>;
                         } else {

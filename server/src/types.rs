@@ -162,6 +162,17 @@ pub struct FilezFile {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct ReducedFilezFile {
+    #[serde(rename = "_key")]
+    pub file_id: String,
+    pub mime_type: String,
+    pub name: String,
+    pub size: u64,
+    pub owner_id: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct FilezUser {
     #[serde(rename = "_key")]
     pub user_id: String,
@@ -223,6 +234,7 @@ pub struct FilezFileGroup {
      */
     pub group_hierarchy_paths: Vec<String>,
     pub group_type: FileGroupType,
+    pub item_count: u64,
 }
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]

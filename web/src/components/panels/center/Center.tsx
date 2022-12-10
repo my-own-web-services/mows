@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import { G } from "../../../App";
-import { FilezFile } from "../../../types";
+import { ReducedFilezFile } from "../../../types";
 import "./Center.scss";
 import SelectView from "./components/selectView/SelectView";
 import Grid from "./components/views/grid/GridView";
@@ -17,18 +17,32 @@ export enum View {
 
 interface CenterProps {
     readonly g: G;
-    readonly files: FilezFile[];
+    readonly files: ReducedFilezFile[];
     readonly selectedView: View;
     readonly columns: number;
 }
 
-interface CenterState {}
+interface CenterState {
+    readonly scrollPosGrid: number;
+    readonly scrollPosList: number;
+}
 
 export default class Center extends Component<CenterProps, CenterState> {
     constructor(props: CenterProps) {
         super(props);
-        this.state = {};
+        this.state = {
+            scrollPosGrid: 0,
+            scrollPosList: 0
+        };
     }
+
+    updateScrollPos = (scrollPos: number, viewType: View) => {
+        if (viewType === View.Grid) {
+            this.setState({ scrollPosGrid: scrollPos });
+        } else if (viewType === View.List) {
+            this.setState({ scrollPosList: scrollPos });
+        }
+    };
 
     render = () => {
         return (
@@ -44,13 +58,22 @@ export default class Center extends Component<CenterProps, CenterState> {
                         } else if (this.props.selectedView === View.Grid) {
                             return (
                                 <Grid
+                                    updateScrollPos={this.updateScrollPos}
+                                    scrollPos={this.state.scrollPosGrid}
                                     g={this.props.g}
                                     files={this.props.files}
                                     columns={this.props.columns}
                                 />
                             );
                         } else if (this.props.selectedView === View.List) {
-                            return <List g={this.props.g} files={this.props.files} />;
+                            return (
+                                <List
+                                    g={this.props.g}
+                                    files={this.props.files}
+                                    scrollPos={this.state.scrollPosList}
+                                    updateScrollPos={this.updateScrollPos}
+                                />
+                            );
                         } else if (this.props.selectedView === View.Single) {
                             return <Single g={this.props.g} />;
                         } else {

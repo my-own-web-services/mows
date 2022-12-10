@@ -80,12 +80,26 @@ pub fn get_folder_and_file_path(id: &str, storage_path: &str) -> (String, String
     )
 }
 
-#[allow(clippy::manual_map)]
 pub fn get_token_from_query(req: &Request<Body>) -> Option<String> {
+    get_query_item(req, "t")
+}
+
+#[allow(clippy::manual_map)]
+pub fn get_query_item(req: &Request<Body>, item: &str) -> Option<String> {
     match req.uri().query() {
-        Some(q) => match QString::from(q).get("t") {
+        Some(q) => match QString::from(q).get(item) {
             Some(qp) => Some(qp.to_string()),
             None => None,
+        },
+        None => None,
+    }
+}
+
+pub fn get_query_item_number(req: &Request<Body>, item: &str) -> Option<i64> {
+    match get_query_item(req, item) {
+        Some(l) => match l.parse::<i64>() {
+            Ok(l) => Some(l),
+            Err(_) => None,
         },
         None => None,
     }

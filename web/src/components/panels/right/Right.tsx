@@ -1,13 +1,13 @@
 import { Component } from "preact";
 import { G } from "../../../App";
-import { FilezFile } from "../../../types";
+import { ReducedFilezFile } from "../../../types";
 import "./Right.scss";
 import { Input } from "rsuite";
 import { TagPicker } from "rsuite";
 
 interface RightProps {
     readonly g: G;
-    readonly files: FilezFile[];
+    readonly files: ReducedFilezFile[];
 }
 
 interface RightState {
@@ -35,7 +35,7 @@ export default class Right extends Component<RightProps, RightState> {
             this.setF(file);
         }
     };
-    setF = (f?: FilezFile) => {
+    setF = (f?: ReducedFilezFile) => {
         if (f !== undefined) {
             this.setState({
                 name: f.name,

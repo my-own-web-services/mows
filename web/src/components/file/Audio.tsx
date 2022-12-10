@@ -1,8 +1,8 @@
 import { Component } from "preact";
-import { FilezFile } from "../../types";
+import { ReducedFilezFile } from "../../types";
 
 interface AudioProps {
-    readonly file: FilezFile;
+    readonly file: ReducedFilezFile;
 }
 interface AudioState {}
 export default class Audio extends Component<AudioProps, AudioState> {

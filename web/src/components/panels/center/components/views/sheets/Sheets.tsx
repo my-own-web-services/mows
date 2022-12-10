@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import { G } from "../../../../../../App";
-import { FilezFile } from "../../../../../../types";
+import { ReducedFilezFile } from "../../../../../../types";
 import "./Sheets.scss";
 interface SheetsProps {
     readonly g: G;

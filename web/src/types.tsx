@@ -18,6 +18,13 @@ export interface FilezFile {
     keywords: string[];
 }
 
+export interface ReducedFilezFile {
+    _key: string;
+    mimeType: string;
+    name: string;
+    size: number;
+}
+
 export interface FileGroup {
     _key: string;
     name?: string;

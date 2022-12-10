@@ -43,6 +43,7 @@ pub async fn create_group(
             group_hierarchy_paths: vec![],
             mime_types: vec![],
             group_type: FileGroupType::Static,
+            item_count: 0,
         }),
     };
 

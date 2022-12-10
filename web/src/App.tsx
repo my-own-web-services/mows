@@ -6,7 +6,7 @@ import Center, { View } from "./components/panels/center/Center";
 import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
 import { CustomProvider } from "rsuite";
-import { FileView, FilezFile } from "./types";
+import { FileView, ReducedFilezFile } from "./types";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { DndProvider } from "react-dnd";
 import update from "immutability-helper";
@@ -18,7 +18,7 @@ import "preact/debug";
 
 interface AppProps {}
 interface AppState {
-    readonly files: FilezFile[];
+    readonly files: ReducedFilezFile[];
     readonly fileGroups: VisualFileGroup[];
     readonly g: G;
     readonly selectedCenterView: View;
@@ -27,9 +27,9 @@ interface AppState {
 }
 
 export interface G {
-    readonly selectedFiles: FilezFile[];
+    readonly selectedFiles: ReducedFilezFile[];
     readonly selectedGroups: VisualFileGroup[];
-    readonly selectedFile: FilezFile | null;
+    readonly selectedFile: ReducedFilezFile | null;
     readonly fn: Fn;
 }
 
@@ -81,7 +81,7 @@ export default class App extends Component<AppProps, AppState> {
     };
 
     itemClick = (
-        item: FilezFile | VisualFileGroup,
+        item: ReducedFilezFile | VisualFileGroup,
         isSelected: boolean,
         e: JSXInternal.TargetedMouseEvent<any>
     ) => {
@@ -102,14 +102,14 @@ export default class App extends Component<AppProps, AppState> {
             } else {
                 this.setState(state => {
                     return update(state, {
-                        g: { selectedFiles: { $set: [item as FilezFile] } }
+                        g: { selectedFiles: { $set: [item as ReducedFilezFile] } }
                     });
                 });
             }
         }
     };
 
-    selectItem = (item: FilezFile | VisualFileGroup) => {
+    selectItem = (item: ReducedFilezFile | VisualFileGroup) => {
         if (item.hasOwnProperty("clientId")) {
             this.setState(state => {
                 return update(state, {
@@ -119,7 +119,7 @@ export default class App extends Component<AppProps, AppState> {
         } else {
             this.setState(state => {
                 return update(state, {
-                    g: { selectedFiles: { $push: [item as FilezFile] } }
+                    g: { selectedFiles: { $push: [item as ReducedFilezFile] } }
                 });
             });
         }
@@ -169,7 +169,7 @@ export default class App extends Component<AppProps, AppState> {
         this.setState({ gridColumns: columns });
     };
 
-    deselectItem = (item: FilezFile | VisualFileGroup) => {
+    deselectItem = (item: ReducedFilezFile | VisualFileGroup) => {
         if (item.hasOwnProperty("clientId")) {
             this.setState(state => {
                 return update(state, {
@@ -188,7 +188,7 @@ export default class App extends Component<AppProps, AppState> {
                     g: {
                         selectedFiles: {
                             $set: state.g.selectedFiles.filter(
-                                f => f._key !== (item as FilezFile)._key
+                                f => f._key !== (item as ReducedFilezFile)._key
                             )
                         }
                     }
@@ -199,15 +199,20 @@ export default class App extends Component<AppProps, AppState> {
 
     groupDoubleClick = (group: VisualFileGroup) => {
         if (group?.fileGroup) {
-            this.filezClient.get_file_infos_by_group_id(group.fileGroup._key).then(files => {
-                this.setState({ files });
+            this.filezClient.get_group_size_by_id(group.fileGroup._key).then(size => {
+                console.log(size);
             });
+            this.filezClient
+                .get_file_infos_by_group_id(group.fileGroup._key, 0, 100)
+                .then(files => {
+                    this.setState({ files });
+                });
         } else {
             this.setState({ files: [] });
         }
     };
 
-    fileDoubleClick = (file: FilezFile, clickOrigin: FileView) => {
+    fileDoubleClick = (file: ReducedFilezFile, clickOrigin: FileView) => {
         this.setState(state => {
             state = update(state, {
                 g: {
@@ -220,7 +225,15 @@ export default class App extends Component<AppProps, AppState> {
             return state;
         });
 
-        if (clickOrigin !== FileView.Strip) {
+        if (clickOrigin === FileView.Strip) {
+            this.setState(state => ({
+                selectedCenterView: View.Single,
+
+                ...(state.selectedCenterView !== View.Single && {
+                    lastSelectedCenterView: state.selectedCenterView
+                })
+            }));
+        } else {
             this.setState(state => ({
                 selectedCenterView:
                     this.state.selectedCenterView === View.Single

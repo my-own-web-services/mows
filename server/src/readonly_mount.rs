@@ -1,14 +1,3 @@
-use std::{
-    collections::HashMap,
-    fs::{DirEntry, File, Metadata},
-    io::{self, BufReader, Read},
-    path::Path,
-};
-
-use anyhow::bail;
-use serde_json::Value;
-use sha2::{Digest, Sha256};
-
 use crate::{
     config::SERVER_CONFIG,
     db::DB,
@@ -16,10 +5,23 @@ use crate::{
     types::{FileGroupType, FilezFile, FilezFileGroup, FilezGroups},
     utils::generate_id,
 };
+use anyhow::bail;
+use indicatif::ProgressBar;
+use serde_json::Value;
+use sha2::{Digest, Sha256};
+use std::{
+    collections::HashMap,
+    fs::{DirEntry, File, Metadata},
+    io::{self},
+    path::Path,
+};
 
 pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
+    //let bars = MultiProgress::new();
+
     for (mount_name, mount) in &config.readonly_mount {
+        println!("Scanning {}", mount_name);
         let path = Path::new(&mount.path);
         if !path.exists() {
             bail!("Readonly mount path does not exist: {}", mount.path);
@@ -28,6 +30,7 @@ pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
             path.to_str(),
             "Could not convert path to str"
         ))?;
+
         // check if the user exists
         db.get_user_by_id(&mount.owner_id).await?;
 
@@ -48,14 +51,20 @@ pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
                     group_hierarchy_paths: vec![],
                     mime_types: vec![],
                     group_type: FileGroupType::Static,
+                    item_count: 0,
                 }))
                 .await?;
                 group_id
             }
         };
+        let file_bar = ProgressBar::new(file_list.len() as u64);
+        //bars.add(file_bar);
+        file_bar.inc(1);
         for file in file_list {
+            file_bar.inc(1);
             import_readonly_file(db, &file, &mount.owner_id, &group_id).await?;
         }
+        // checkmark emoji
     }
     Ok(())
 }

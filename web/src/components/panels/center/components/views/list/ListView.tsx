@@ -3,14 +3,17 @@ import "./ListView.scss";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 import { CSSProperties } from "preact/compat";
-import { FilezFile } from "../../../../../../types";
+import { ReducedFilezFile } from "../../../../../../types";
 import ListViewRow from "./ListViewRow";
 import { G } from "../../../../../../App";
 import { DraggableTarget } from "../../../../../drag/DraggableTarget";
+import Center, { View } from "../../../Center";
 
 interface ListProps {
-    readonly files: FilezFile[];
+    readonly files: ReducedFilezFile[];
     readonly g: G;
+    readonly scrollPos: number;
+    readonly updateScrollPos: Center["updateScrollPos"];
 }
 interface ListState {}
 export default class List extends Component<ListProps, ListState> {
@@ -27,6 +30,9 @@ export default class List extends Component<ListProps, ListState> {
                                     height={height}
                                     itemCount={this.props.files.length}
                                     width={width}
+                                    onScroll={({ scrollOffset }) => {
+                                        this.props.updateScrollPos(scrollOffset, View.List);
+                                    }}
                                 >
                                     {({
                                         index,

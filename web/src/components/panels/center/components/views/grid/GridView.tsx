@@ -4,16 +4,19 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 
 import "./GridView.scss";
-import { FilezFile } from "../../../../../../types";
+import { ReducedFilezFile } from "../../../../../../types";
 import { CSSProperties } from "preact/compat";
 import GridRow from "./GridRow";
 import { G } from "../../../../../../App";
 import { DraggableTarget } from "../../../../../drag/DraggableTarget";
+import Center, { View } from "../../../Center";
 
 interface GridViewProps {
-    readonly files: FilezFile[];
+    readonly files: ReducedFilezFile[];
     readonly g: G;
     readonly columns: number;
+    readonly scrollPos: number;
+    readonly updateScrollPos: Center["updateScrollPos"];
 }
 
 interface GridViewState {}
@@ -55,6 +58,10 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                                         this.props.files.length / this.props.columns
                                     )}
                                     width={width}
+                                    initialScrollOffset={this.props.scrollPos}
+                                    onScroll={({ scrollOffset }) => {
+                                        this.props.updateScrollPos(scrollOffset, View.Grid);
+                                    }}
                                 >
                                     {({
                                         index,

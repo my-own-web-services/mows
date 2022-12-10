@@ -1,8 +1,8 @@
 import { Component } from "preact";
-import { FilezFile } from "../../types";
+import { ReducedFilezFile } from "../../types";
 import "./Image.scss";
 interface ImageProps {
-    readonly file: FilezFile;
+    readonly file: ReducedFilezFile;
 }
 interface ImageState {}
 export default class Image extends Component<ImageProps, ImageState> {

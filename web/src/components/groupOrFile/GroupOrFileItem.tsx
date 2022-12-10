@@ -1,13 +1,13 @@
 import { Component } from "preact";
 import { G } from "../../App";
-import { FileGroup, FileView, FilezFile } from "../../types";
+import { FileGroup, FileView, ReducedFilezFile } from "../../types";
 import { VisualFileGroup } from "../../utils/convertFileGroups";
 import File from "../file/File";
 import Group from "../group/Group";
 import "./GroupOrFileItem.scss";
 interface GroupOrFileItemProps {
     readonly fileGroup?: VisualFileGroup;
-    readonly file?: FilezFile;
+    readonly file?: ReducedFilezFile;
     readonly viewType?: FileView;
     readonly g: G;
 }

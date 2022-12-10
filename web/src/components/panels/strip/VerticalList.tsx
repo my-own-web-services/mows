@@ -3,11 +3,11 @@ import { CSSProperties, forwardRef } from "preact/compat";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
 import { G } from "../../../App";
-import { FilezFile } from "../../../types";
+import { ReducedFilezFile } from "../../../types";
 import ListItem from "./ListItem";
 
 interface VerticalListProps {
-    readonly files: FilezFile[];
+    readonly files: ReducedFilezFile[];
     readonly g: G;
 }
 

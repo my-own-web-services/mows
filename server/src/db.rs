@@ -3,8 +3,8 @@ use crate::{
     some_or_bail,
     types::{
         AppDataType, DeleteGroupRequest, DeletePermissionRequest, FilezFile, FilezFileGroup,
-        FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest,
-        UpdatePermissionsRequest, UploadSpace,
+        FilezGroups, FilezPermission, FilezUser, FilezUserGroup, ReducedFilezFile,
+        SetAppDataRequest, UpdatePermissionsRequest, UploadSpace,
     },
     utils::merge_permissions,
 };
@@ -446,17 +446,32 @@ impl DB {
         Ok(())
     }
 
-    pub async fn get_files_by_group_id(&self, group_id: &str) -> anyhow::Result<Vec<FilezFile>> {
+    pub async fn get_files_by_group_id(
+        &self,
+        group_id: &str,
+        limit: Option<i64>,
+        from_index: i64,
+    ) -> anyhow::Result<Vec<ReducedFilezFile>> {
         let query = AqlQuery::builder()
             .query(
                 r#"
                 FOR file IN files
-                FILTER file.staticFileGroupIds[*] ANY == @group_id
-                RETURN file"#,
+                    FILTER 
+                        file.staticFileGroupIds[*] ANY == @group_id
+                LIMIT @from_index, @limit
+                RETURN { 
+                    mimeType: file.mimeType, 
+                    _key: file._key, 
+                    name: file.name, 
+                    size: file.size,
+                    ownerId: file.ownerId,
+                }"#,
             )
             .bind_var("group_id", group_id)
+            .bind_var("limit", limit)
+            .bind_var("from_index", from_index)
             .build();
-        let files: Vec<FilezFile> = self.db.aql_query(query).await?;
+        let files: Vec<ReducedFilezFile> = self.db.aql_query(query).await?;
         Ok(files)
     }
 

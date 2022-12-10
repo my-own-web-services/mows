@@ -1,4 +1,4 @@
-use crate::{db::DB, internal_types::Auth};
+use crate::{db::DB, internal_types::Auth, utils::get_query_item_number};
 use hyper::{Body, Request, Response};
 
 pub async fn get_file_infos_by_group_id(
@@ -19,7 +19,12 @@ pub async fn get_file_infos_by_group_id(
         .path()
         .replacen("/api/get_file_infos_by_group_id/", "", 1);
 
-    let files = db.get_files_by_group_id(&group_id).await?;
+    let limit = get_query_item_number(&req, "l");
+    let from_index = get_query_item_number(&req, "i").unwrap_or(0);
+
+    let files = db
+        .get_files_by_group_id(&group_id, limit, from_index)
+        .await?;
 
     let files = files
         .iter()
