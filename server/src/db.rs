@@ -553,9 +553,24 @@ impl DB {
     }
 
     pub async fn delete_file_by_id(&self, file: &FilezFile) -> anyhow::Result<()> {
+        // decrease item count for all groups that are assigned to the file
+        // TODO test this
         let aql = AqlQuery::builder()
             .query(
                 r#"
+            LET file=DOCUMENT(CONCAT("files/",@id))
+
+            LET fileGroupItemCountRes=(
+                FOR groupId IN FLATTEN([file.staticFileGroupIds,file.dynamicFileGroupIds])
+                    LET group=(
+                        DOCUMENT(CONCAT("fileGroups/",groupId))
+                    )
+                    UPDATE group WITH {
+                        itemCount: group.itemCount + 1
+                    } IN fileGroups
+                RETURN true
+            )
+
             LET removeFileRes=(
                 REMOVE DOCUMENT(CONCAT("files/",@id)) IN files
             )
@@ -566,6 +581,8 @@ impl DB {
                 LIMIT 1
                 RETURN u
             )
+
+            
             
             LET updateUserRes = (
                 UPDATE @owner WITH {
@@ -578,7 +595,7 @@ impl DB {
                 } IN users
                 RETURN true
             )
-            RETURN { removeFileRes, updateUserRes }"#,
+            RETURN { removeFileRes, updateUserRes,fileGroupItemCountRes }"#,
             )
             .bind_var("id", file.file_id.clone())
             .bind_var("owner", file.owner_id.clone())
@@ -652,12 +669,24 @@ impl DB {
             .db
             .aql_bind_vars(
                 r#"
+
+                LET fileGroupItemCountRes=(
+                    FOR groupId IN FLATTEN([@file.staticFileGroupIds,@file.dynamicFileGroupIds])
+                        LET group=(
+                            DOCUMENT(CONCAT("fileGroups/",groupId))
+                        )
+                        UPDATE group WITH {
+                            itemCount: group.itemCount + 1
+                        } IN fileGroups
+                    RETURN true
+                )
+
                 LET insertRes = (
                     INSERT @file INTO files 
                     RETURN true
                 )
 
-                RETURN { insertRes }"#,
+                RETURN { insertRes, fileGroupItemCountRes }"#,
                 vars,
             )
             .await?;
@@ -672,6 +701,18 @@ impl DB {
             .db
             .aql_bind_vars(
                 r#"
+
+                LET fileGroupItemCountRes=(
+                    FOR groupId IN FLATTEN([@file.staticFileGroupIds,@file.dynamicFileGroupIds])
+                        LET group=(
+                            DOCUMENT(CONCAT("fileGroups/",groupId))
+                        )
+                        UPDATE group WITH {
+                            itemCount: group.itemCount + 1
+                        } IN fileGroups
+                    RETURN true
+                )
+
                 LET insertRes = (
                     INSERT @file INTO files 
                     RETURN true

@@ -60,7 +60,7 @@ export const setupDb = async () => {
                 }
             },
             "appData":{},
-            "groupIds":[]
+            "userGroupIds":[]
         } INTO users`
         )
         .catch(e => {

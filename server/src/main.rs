@@ -57,7 +57,6 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     db.create_collections().await?;
 
-    /*
     tokio::spawn(async move {
         println!("Scanning readonly mounts...");
         match scan_readonly_mounts(&db).await {
@@ -68,7 +67,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 println!("Failed to scan readonly mounts: {}", e);
             }
         };
-    });*/
+    });
 
     let server = Server::bind(&addr).serve(make_service_fn(|_conn| async {
         Ok::<_, Infallible>(service_fn(handle_request))
