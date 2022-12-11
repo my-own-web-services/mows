@@ -545,11 +545,12 @@ impl DB {
         session.start_transaction(None).await?;
 
         let files_groups_collection = self.db.collection::<FilezFileGroup>("filesGroups");
+        let files_collection = self.db.collection::<FilezFile>("files");
         let users_collection = self.db.collection::<FilezUser>("users");
 
         // update user
         let fsid = some_or_bail!(
-            file.storage_id,
+            file.storage_id.clone(),
             "The to be deleted file has no associated storage id"
         );
         let user_key_used_storage = format!("limits.{}.usedStorage", fsid);
@@ -559,7 +560,7 @@ impl DB {
             users_collection
                 .update_one_with_session(
                     doc! {
-                        "_id": file.owner_id
+                        "_id": &file.owner_id
                     },
                     doc! {
                         "$inc": {
@@ -572,7 +573,7 @@ impl DB {
                 )
                 .await?;
         }
-        for group in file.static_file_group_ids {
+        for group in &file.static_file_group_ids {
             files_groups_collection
                 .update_one_with_session(
                     doc! {
@@ -589,7 +590,7 @@ impl DB {
                 .await?;
         }
 
-        for group in file.dynamic_file_group_ids {
+        for group in &file.dynamic_file_group_ids {
             files_groups_collection
                 .update_one_with_session(
                     doc! {
@@ -605,6 +606,11 @@ impl DB {
                 )
                 .await?;
         }
+
+        // create file
+        files_collection
+            .insert_one_with_session(file, None, &mut session)
+            .await?;
 
         Ok(session.commit_transaction().await?)
     }
