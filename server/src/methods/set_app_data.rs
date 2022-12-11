@@ -1,6 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
+    some_or_bail,
     types::{AppDataType, SetAppDataRequest},
 };
 use anyhow::bail;
@@ -25,7 +26,9 @@ pub async fn set_app_data(
 
     let entity_id = match sadr.app_data_type {
         AppDataType::User => sadr.id.clone(),
-        AppDataType::File => db.get_file_by_id(&sadr.id).await?.owner_id,
+        AppDataType::File => {
+            some_or_bail!(db.get_file_by_id(&sadr.id).await?, "File not found").owner_id
+        }
     };
 
     if user_id != entity_id {

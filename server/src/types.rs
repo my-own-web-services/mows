@@ -130,7 +130,7 @@ pub enum AppDataType {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezFile {
-    #[serde(rename = "_key")]
+    #[serde(rename = "_id")]
     pub file_id: String,
     pub mime_type: String,
     pub name: String,
@@ -162,19 +162,8 @@ pub struct FilezFile {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct ReducedFilezFile {
-    #[serde(rename = "_key")]
-    pub file_id: String,
-    pub mime_type: String,
-    pub name: String,
-    pub size: u64,
-    pub owner_id: String,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct FilezUser {
-    #[serde(rename = "_key")]
+    #[serde(rename = "_id")]
     pub user_id: String,
     pub app_data: HashMap<String, Value>,
     pub limits: HashMap<String, UsageLimits>,
@@ -206,7 +195,7 @@ pub enum FilezGroups {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezUserGroup {
-    #[serde(rename = "_key")]
+    #[serde(rename = "_id")]
     pub user_group_id: String,
     pub name: Option<String>,
     /** Id of the User owning the user group*/
@@ -217,7 +206,7 @@ pub struct FilezUserGroup {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezFileGroup {
-    #[serde(rename = "_key")]
+    #[serde(rename = "_id")]
     pub file_group_id: String,
     pub name: Option<String>,
     /** Id of the User owning the file group*/
@@ -246,7 +235,7 @@ pub enum FileGroupType {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadSpace {
-    #[serde(rename = "_key")]
+    #[serde(rename = "_id")]
     pub upload_space_id: String,
     pub owner_id: String,
     pub limits: HashMap<String, UsageLimits>,
@@ -256,7 +245,7 @@ pub struct UploadSpace {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezPermission {
-    #[serde(rename = "_key")]
+    #[serde(rename = "_id")]
     pub permission_id: String,
     pub name: Option<String>,
     /** Id of the User owning the permission */

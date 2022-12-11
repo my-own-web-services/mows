@@ -29,7 +29,7 @@ pub async fn update_file(
     let update_request: UpdateFileRequest = serde_json::from_str(request_header)?;
 
     let filez_file = match db.get_file_by_id(&update_request.file_id).await {
-        Ok(file) => file,
+        Ok(file) => some_or_bail!(file, "File not found"),
         Err(_) => bail!("File not found"),
     };
 
@@ -38,7 +38,7 @@ pub async fn update_file(
     }
 
     let file_owner = match db.get_user_by_id(&filez_file.owner_id).await {
-        Ok(user) => user,
+        Ok(user) => some_or_bail!(user, "User/Owner not found"),
         Err(_) => bail!("User not found"),
     };
 

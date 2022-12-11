@@ -182,7 +182,7 @@ claim:
 
 ```json
 {
-    "_key": "paul",
+    "_id": "dev",
     "limits": {
         "ssd": {
             "maxStorage": 1000,

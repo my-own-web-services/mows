@@ -86,8 +86,6 @@ pub struct HttpConfig {
 #[serde(rename_all = "camelCase")]
 pub struct DbConfig {
     pub url: String,
-    pub username: String,
-    pub password: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]

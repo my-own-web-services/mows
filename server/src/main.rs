@@ -1,4 +1,3 @@
-use arangors::Connection;
 use filez::config::SERVER_CONFIG;
 use filez::db::DB;
 use filez::internal_types::Auth;
@@ -22,6 +21,7 @@ use filez::readonly_mount::scan_readonly_mounts;
 use filez::utils::get_token_from_query;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server};
+use mongodb::options::ClientOptions;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
@@ -49,11 +49,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let addr: SocketAddr = SERVER_CONFIG.http.internal_address.parse().unwrap();
 
-    let db = DB::new(
-        Connection::establish_basic_auth(&config.db.url, &config.db.username, &config.db.password)
-            .await?,
-    )
-    .await?;
+    let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
 
     db.create_collections().await?;
 
@@ -100,11 +96,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
 
 async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
-    let db = DB::new(
-        Connection::establish_basic_auth(&config.db.url, &config.db.username, &config.db.password)
-            .await?,
-    )
-    .await?;
+    let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
 
     let user_assertion = match config.dev.insecure_skip_interossea {
         true => Some(UserAssertion {

@@ -168,12 +168,13 @@ pub async fn check_auth(
                             if let Some(users_acl_perm_user_group_ids) =
                                 users_acl_perm.user_group_ids
                             {
-                                let user = db.get_user_by_id(user_id).await?;
-                                for user_group in user.user_group_ids {
-                                    if users_acl_perm_user_group_ids.contains(&user_group) {
-                                        // user is in a user group that has access to the resource
-                                        auth_ok = true;
-                                        break;
+                                if let Some(user) = db.get_user_by_id(user_id).await? {
+                                    for user_group in user.user_group_ids {
+                                        if users_acl_perm_user_group_ids.contains(&user_group) {
+                                            // user is in a user group that has access to the resource
+                                            auth_ok = true;
+                                            break;
+                                        }
                                     }
                                 }
                             }

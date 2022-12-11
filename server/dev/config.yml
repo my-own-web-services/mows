@@ -8,14 +8,13 @@ http:
     internalAddress: "[::]:8080"
 
 db:
-    url: http://localhost:8529
-    username: root
-    password: password
+    url: mongodb://root:password@localhost:27017
 interossea:
     url: http://localhost:8081
     assertionValiditySeconds: 600
 dev:
     insecureSkipInterossea: true
+
 readonlyMount:
     importImages:
         path: /home/paul/Downloads/_import-images/

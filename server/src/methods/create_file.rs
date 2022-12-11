@@ -37,7 +37,10 @@ pub async fn create_file(
         Some(user_id) => (user_id.clone(), None),
         None => match &auth.token {
             Some(token) => {
-                let upload_space = db.get_upload_space_by_token(token).await?;
+                let upload_space = some_or_bail!(
+                    db.get_upload_space_by_token(token).await?,
+                    "No upload space with this token found"
+                );
                 (upload_space.owner_id.clone(), Some(upload_space))
             }
             None => {
@@ -56,7 +59,7 @@ pub async fn create_file(
 
     let create_request: CreateFileRequest = serde_json::from_str(request_header)?;
 
-    let user = db.get_user_by_id(&user_id).await?;
+    let user = some_or_bail!(db.get_user_by_id(&user_id).await?, "User not found");
 
     let storage_name = create_request
         .storage_id
@@ -186,28 +189,31 @@ pub async fn create_file(
 
     // update db in this "create file transaction"
     let cft = db
-        .create_file(FilezFile {
-            file_id: file_id.clone(),
-            mime_type: create_request.mime_type,
-            name: create_request.name,
-            owner_id: user.user_id,
-            sha256: Some(hash.clone()),
-            storage_id: Some(storage_name.clone()),
-            size: bytes_written,
-            server_created: current_time,
-            modified: create_request.modified,
-            static_file_group_ids: file_manual_group_ids,
-            dynamic_file_group_ids: vec![],
-            app_data,
-            accessed: None,
-            accessed_count: 0,
-            time_of_death: None,
-            created: create_request.created.unwrap_or(current_time),
-            permission_ids: vec![],
-            keywords: vec![],
-            path: file_path.clone(),
-            readonly: false,
-        })
+        .create_file(
+            FilezFile {
+                file_id: file_id.clone(),
+                mime_type: create_request.mime_type,
+                name: create_request.name,
+                owner_id: user.user_id,
+                sha256: Some(hash.clone()),
+                storage_id: Some(storage_name.clone()),
+                size: bytes_written,
+                server_created: current_time,
+                modified: create_request.modified,
+                static_file_group_ids: file_manual_group_ids,
+                dynamic_file_group_ids: vec![],
+                app_data,
+                accessed: None,
+                accessed_count: 0,
+                time_of_death: None,
+                created: create_request.created.unwrap_or(current_time),
+                permission_ids: vec![],
+                keywords: vec![],
+                path: file_path.clone(),
+                readonly: false,
+            },
+            false,
+        )
         .await;
 
     match cft {

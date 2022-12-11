@@ -34,29 +34,33 @@ pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
         // check if the user exists
         db.get_user_by_id(&mount.owner_id).await?;
 
-        let group_id = match db
-            .get_file_group_by_name(mount_name, &mount.owner_id)
-            .await?
-        {
-            Some(g) => g.file_group_id,
-            None => {
-                // create group
-                let group_id = generate_id();
-                db.create_group(&FilezGroups::FilezFileGroup(FilezFileGroup {
-                    owner_id: mount.owner_id.to_string(),
-                    name: Some(mount_name.to_string()),
-                    file_group_id: group_id.clone(),
-                    permission_ids: vec![],
-                    keywords: vec![],
-                    group_hierarchy_paths: vec![],
-                    mime_types: vec![],
-                    group_type: FileGroupType::Static,
-                    item_count: 0,
-                }))
-                .await?;
-                group_id
-            }
+        let file_groups = db
+            .get_file_groups_by_name(mount_name, &mount.owner_id)
+            .await?;
+
+        #[allow(clippy::comparison_chain)]
+        let group_id = if file_groups.len() > 1 {
+            bail!("More than one file group with the same name exists");
+        } else if file_groups.len() == 1 {
+            file_groups[0].file_group_id.clone()
+        } else {
+            // create group
+            let group_id = generate_id();
+            db.create_group(&FilezGroups::FilezFileGroup(FilezFileGroup {
+                owner_id: mount.owner_id.to_string(),
+                name: Some(mount_name.to_string()),
+                file_group_id: group_id.clone(),
+                permission_ids: vec![],
+                keywords: vec![],
+                group_hierarchy_paths: vec![],
+                mime_types: vec![],
+                group_type: FileGroupType::Static,
+                item_count: 0,
+            }))
+            .await?;
+            group_id
         };
+
         let file_bar = ProgressBar::new(file_list.len() as u64);
         //bars.add(file_bar);
         file_bar.inc(1);
@@ -103,28 +107,31 @@ pub async fn import_readonly_file(
     let app_data: HashMap<String, Value> = HashMap::new();
     let current_time = chrono::offset::Utc::now().timestamp_millis();
 
-    db.create_file_without_user_limits(FilezFile {
-        file_id: file_id.clone(),
-        mime_type,
-        name: file_name.to_string(),
-        owner_id: owner_id.to_string(),
-        sha256: None,
-        storage_id: None,
-        size: file_size,
-        server_created: current_time,
-        modified: get_modified_time_secs(&metadata),
-        static_file_group_ids: vec![group_id.to_string()],
-        dynamic_file_group_ids: vec![],
-        app_data,
-        accessed: None,
-        accessed_count: 0,
-        time_of_death: None,
-        created: some_or_bail!(get_created_time_secs(&metadata), "File has no created time"),
-        permission_ids: vec![],
-        keywords: vec![],
-        path: path_str.to_string(),
-        readonly: true,
-    })
+    db.create_file(
+        FilezFile {
+            file_id: file_id.clone(),
+            mime_type,
+            name: file_name.to_string(),
+            owner_id: owner_id.to_string(),
+            sha256: None,
+            storage_id: None,
+            size: file_size,
+            server_created: current_time,
+            modified: get_modified_time_secs(&metadata),
+            static_file_group_ids: vec![group_id.to_string()],
+            dynamic_file_group_ids: vec![],
+            app_data,
+            accessed: None,
+            accessed_count: 0,
+            time_of_death: None,
+            created: some_or_bail!(get_created_time_secs(&metadata), "File has no created time"),
+            permission_ids: vec![],
+            keywords: vec![],
+            path: path_str.to_string(),
+            readonly: true,
+        },
+        true,
+    )
     .await?;
 
     Ok(())

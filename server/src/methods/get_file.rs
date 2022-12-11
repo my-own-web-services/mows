@@ -1,4 +1,4 @@
-use crate::{db::DB, internal_types::Auth, utils::check_auth};
+use crate::{db::DB, internal_types::Auth, some_or_bail, utils::check_auth};
 use anyhow::bail;
 use hyper::{Body, Request, Response};
 
@@ -6,7 +6,7 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
     let file_id = req.uri().path().replacen("/api/get_file/", "", 1);
 
     let file = match db.get_file_by_id(&file_id).await {
-        Ok(f) => f,
+        Ok(f) => some_or_bail!(f, "File not found"),
         Err(_) => {
             return Ok(Response::builder()
                 .status(404)
