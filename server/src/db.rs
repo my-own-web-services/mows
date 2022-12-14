@@ -4,7 +4,7 @@ use crate::{
     types::{
         AppDataType, DeleteGroupRequest, DeletePermissionRequest, FilezFile, FilezFileGroup,
         FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest,
-        UpdatePermissionsRequest, UploadSpace,
+        UpdatePermissionsRequest, UploadSpace, UsageLimits,
     },
     utils::merge_permissions,
 };
@@ -15,7 +15,7 @@ use mongodb::{
     results::{DeleteResult, InsertOneResult, UpdateResult},
 };
 use mongodb::{options::ClientOptions, Client, Database, IndexModel};
-use std::vec;
+use std::{collections::HashMap, vec};
 
 pub struct DB {
     pub client: Client,
@@ -58,6 +58,37 @@ impl DB {
             let index = IndexModel::builder().keys(doc! {"ownerId": 1}).build();
             files_collection.create_index(index, None).await?;
         }
+
+        Ok(())
+    }
+
+    pub async fn create_dev_user(&self) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezUser>("users");
+
+        let user = collection.find_one(doc! {"_id": "dev"}, None).await?;
+        if user.is_some() {
+            return Ok(());
+        }
+
+        let app_data = HashMap::new();
+        let mut limits: HashMap<String, UsageLimits> = HashMap::new();
+        let ssd_usage_limits = UsageLimits {
+            max_storage: 1000000,
+            used_storage: 0,
+            max_files: 0,
+            used_files: 1000,
+            max_bandwidth: 0,
+            used_bandwidth: 0,
+        };
+        limits.insert("ssd".to_string(), ssd_usage_limits);
+
+        let user = FilezUser {
+            user_id: "dev".to_string(),
+            app_data,
+            limits,
+            user_group_ids: vec![],
+        };
+        collection.insert_one(&user, None).await?;
 
         Ok(())
     }
@@ -549,14 +580,14 @@ impl DB {
         let users_collection = self.db.collection::<FilezUser>("users");
 
         // update user
-        let fsid = some_or_bail!(
-            file.storage_id.clone(),
-            "The to be deleted file has no associated storage id"
-        );
-        let user_key_used_storage = format!("limits.{}.usedStorage", fsid);
-        let user_key_used_files = format!("limits.{}.usedFiles", fsid);
 
         if !ignore_user_limit {
+            let fsid = some_or_bail!(
+                file.storage_id.clone(),
+                "The to be created file has no associated storage id"
+            );
+            let user_key_used_storage = format!("limits.{}.usedStorage", fsid);
+            let user_key_used_files = format!("limits.{}.usedFiles", fsid);
             users_collection
                 .update_one_with_session(
                     doc! {

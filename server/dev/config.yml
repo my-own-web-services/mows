@@ -14,6 +14,7 @@ interossea:
     assertionValiditySeconds: 600
 dev:
     insecureSkipInterossea: true
+    createDevUser: true
 
 readonlyMount:
     importImages:

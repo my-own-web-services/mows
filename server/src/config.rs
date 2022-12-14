@@ -67,6 +67,7 @@ pub struct ReadonlyMountConfig {
 #[serde(rename_all = "camelCase")]
 pub struct DevConfig {
     pub insecure_skip_interossea: bool,
+    pub create_dev_user: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

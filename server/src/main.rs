@@ -53,6 +53,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     db.create_collections().await?;
 
+    if config.dev.create_dev_user {
+        db.create_dev_user().await?;
+    }
+
     tokio::spawn(async move {
         println!("Scanning readonly mounts...");
         match scan_readonly_mounts(&db).await {

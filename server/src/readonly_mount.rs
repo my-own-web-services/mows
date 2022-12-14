@@ -32,7 +32,10 @@ pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
         ))?;
 
         // check if the user exists
-        db.get_user_by_id(&mount.owner_id).await?;
+        let user = db.get_user_by_id(&mount.owner_id).await?;
+        if user.is_none() {
+            bail!("User does not exist: {}", mount.owner_id);
+        }
 
         let file_groups = db
             .get_file_groups_by_name(mount_name, &mount.owner_id)
@@ -82,7 +85,7 @@ pub async fn import_readonly_file(
     let path = &file.path();
     let path_str = some_or_bail!(path.to_str(), "Could not convert path to str");
 
-    if (db.get_file_by_path(path_str).await).is_ok() {
+    if (db.get_file_by_path(path_str).await?).is_some() {
         // file already exists
         return Ok(());
     }
