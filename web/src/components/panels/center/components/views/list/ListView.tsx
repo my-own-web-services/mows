@@ -26,10 +26,12 @@ export default class List extends Component<ListProps, ListState> {
                         <AutoSizer>
                             {({ height, width }) => (
                                 <FixedSizeList
+                                    overscanCount={20}
                                     itemSize={20}
                                     height={height}
                                     itemCount={this.props.files.length}
                                     width={width}
+                                    initialScrollOffset={this.props.scrollPos}
                                     onScroll={({ scrollOffset }) => {
                                         this.props.updateScrollPos(scrollOffset, View.List);
                                     }}

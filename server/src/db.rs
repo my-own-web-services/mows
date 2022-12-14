@@ -12,6 +12,7 @@ use anyhow::bail;
 use futures::stream::TryStreamExt;
 use mongodb::{
     bson::doc,
+    options::FindOptions,
     results::{DeleteResult, InsertOneResult, UpdateResult},
 };
 use mongodb::{options::ClientOptions, Client, Database, IndexModel};
@@ -365,12 +366,13 @@ impl DB {
         &self,
         group_id: &str,
         limit: Option<i64>,
-        from_index: i64,
+        from_index: u64,
     ) -> anyhow::Result<Vec<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
         //TODO
+        let find_options = FindOptions::builder().limit(limit).skip(from_index).build();
         let mut cursor = collection
-            .find(doc! {"staticFileGroupIds": group_id}, None)
+            .find(doc! {"staticFileGroupIds": group_id}, find_options)
             .await?;
 
         let mut files = vec![];
@@ -432,7 +434,7 @@ impl DB {
         session.start_transaction(None).await?;
 
         let files_collection = self.db.collection::<FilezFile>("files");
-        let files_groups_collection = self.db.collection::<FilezFileGroup>("filesGroups");
+        let files_groups_collection = self.db.collection::<FilezFileGroup>("fileGroups");
         let users_collection = self.db.collection::<FilezUser>("users");
 
         let file = some_or_bail!(
@@ -578,7 +580,7 @@ impl DB {
 
         session.start_transaction(None).await?;
 
-        let files_groups_collection = self.db.collection::<FilezFileGroup>("filesGroups");
+        let files_groups_collection = self.db.collection::<FilezFileGroup>("fileGroups");
         let files_collection = self.db.collection::<FilezFile>("files");
         let users_collection = self.db.collection::<FilezUser>("users");
 
@@ -598,7 +600,7 @@ impl DB {
                     },
                     doc! {
                         "$inc": {
-                            user_key_used_storage: file.size as i64  ,
+                            user_key_used_storage: file.size as i64,
                             user_key_used_files: 1
                         }
                     },
@@ -607,11 +609,11 @@ impl DB {
                 )
                 .await?;
         }
-        for group in &file.static_file_group_ids {
+        for group_id in &file.static_file_group_ids {
             files_groups_collection
                 .update_one_with_session(
                     doc! {
-                        "_id": group
+                        "_id": group_id
                     },
                     doc! {
                         "$inc": {
@@ -623,24 +625,24 @@ impl DB {
                 )
                 .await?;
         }
-
-        for group in &file.dynamic_file_group_ids {
-            files_groups_collection
-                .update_one_with_session(
-                    doc! {
-                        "_id": group
-                    },
-                    doc! {
-                        "$inc": {
-                            "itemCount": 1
-                        }
-                    },
-                    None,
-                    &mut session,
-                )
-                .await?;
-        }
-
+        /*
+                for group_id in &file.dynamic_file_group_ids {
+                    files_groups_collection
+                        .update_one_with_session(
+                            doc! {
+                                "_id": group_id
+                            },
+                            doc! {
+                                "$inc": {
+                                    "itemCount": 1
+                                }
+                            },
+                            None,
+                            &mut session,
+                        )
+                        .await?;
+                }
+        */
         // create file
         files_collection
             .insert_one_with_session(file, None, &mut session)

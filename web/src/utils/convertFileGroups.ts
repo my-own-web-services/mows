@@ -42,7 +42,8 @@ export const convertFileGroups = (fileGroups: FileGroup[]): VisualFileGroup[] =>
                     type: VisualFileGroupType.FileGroupFolder,
                     depth: i,
                     isOpen: false,
-                    clientId: folder
+                    clientId: folder,
+                    itemCount: fileGroup.itemCount
                 });
             }
         }
@@ -52,7 +53,8 @@ export const convertFileGroups = (fileGroups: FileGroup[]): VisualFileGroup[] =>
             depth: folders?.length ?? 0,
             fileGroup,
             isOpen: false,
-            clientId: fileGroup._id + (folders && folders.length ? folders.join() : "")
+            clientId: fileGroup._id + (folders && folders.length ? folders.join() : ""),
+            itemCount: fileGroup.itemCount
         });
     }
     return visualFileGroups;
@@ -65,6 +67,7 @@ export interface VisualFileGroup {
     clientId: string;
     fileGroup?: FileGroup;
     isOpen: boolean;
+    itemCount: number;
 }
 
 export enum VisualFileGroupType {

@@ -23,7 +23,7 @@ pub async fn get_file_infos_by_group_id(
     let from_index = get_query_item_number(&req, "i").unwrap_or(0);
 
     let files = db
-        .get_files_by_group_id(&group_id, limit, from_index)
+        .get_files_by_group_id(&group_id, limit, from_index as u64)
         .await?;
 
     let files = files

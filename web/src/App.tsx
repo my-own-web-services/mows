@@ -199,7 +199,7 @@ export default class App extends Component<AppProps, AppState> {
 
     groupDoubleClick = (group: VisualFileGroup) => {
         if (group?.fileGroup) {
-            this.filezClient.get_file_infos_by_group_id(group.fileGroup._id, 0, 100).then(files => {
+            this.filezClient.get_file_infos_by_group_id(group.fileGroup._id, 0).then(files => {
                 this.setState({ files });
             });
         } else {

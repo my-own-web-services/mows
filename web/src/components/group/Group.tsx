@@ -52,6 +52,7 @@ export default class Group extends Component<GroupProps, GroupState> {
                         })()}
                     </span>
                     <span style={{ marginLeft: "5px", verticalAlign: "1px" }}>{g.name}</span>
+                    <span style={{ marginLeft: "5px", opacity: "0.5" }}>{g.itemCount}</span>
                 </div>
             </div>
         );

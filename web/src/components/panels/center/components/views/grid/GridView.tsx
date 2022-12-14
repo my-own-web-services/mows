@@ -52,6 +52,7 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                         <AutoSizer>
                             {({ height, width }) => (
                                 <FixedSizeList
+                                    overscanCount={5}
                                     itemSize={width / this.props.columns}
                                     height={height}
                                     itemCount={Math.ceil(

@@ -16,6 +16,7 @@ export interface FilezFile {
     appData: { [key: string]: string };
     permissionIds: string[];
     keywords: string[];
+    readonly: boolean;
 }
 
 export interface ReducedFilezFile {
