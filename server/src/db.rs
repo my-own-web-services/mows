@@ -425,6 +425,9 @@ impl DB {
     }
 
     pub async fn delete_file_by_id(&self, file: &FilezFile) -> anyhow::Result<()> {
+        if file.readonly {
+            bail!("file is readonly");
+        }
         let mut session = self.client.start_session(None).await?;
         session.start_transaction(None).await?;
 

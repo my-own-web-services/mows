@@ -45,7 +45,7 @@ export default class VerticalList extends Component<VerticalListProps, VerticalL
                                     <ListItem
                                         g={this.props.g}
                                         style={style}
-                                        key={file._key}
+                                        key={file._id}
                                         file={file}
                                     />
                                 );

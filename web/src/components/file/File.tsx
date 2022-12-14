@@ -25,7 +25,7 @@ export default class File extends Component<FileProps, FileState> {
                 }}
                 className={`File${this.props.isSelected ? " selected" : ""}`}
             >
-                <DraggableItem type="file" id={f._key}>
+                <DraggableItem type="file" id={f._id}>
                     {(() => {
                         if (vt === FileView.Strip || vt === FileView.Grid) {
                             return (

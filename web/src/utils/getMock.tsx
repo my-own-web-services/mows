@@ -31,7 +31,7 @@ export const getMockFiles = () => {
 export const getMockFileGroups = (): FileGroup[] => {
     return [
         {
-            _key: Math.random().toString(36).substring(7),
+            _id: Math.random().toString(36).substring(7),
             name: "Augsburg",
             ownerId: "1",
             permissionIds: [],
@@ -41,7 +41,7 @@ export const getMockFileGroups = (): FileGroup[] => {
             groupType: FileGroupType.Static
         },
         {
-            _key: Math.random().toString(36).substring(7),
+            _id: Math.random().toString(36).substring(7),
             name: "Videos",
             ownerId: "1",
             permissionIds: [],
@@ -51,7 +51,7 @@ export const getMockFileGroups = (): FileGroup[] => {
             groupType: FileGroupType.Static
         },
         {
-            _key: Math.random().toString(36).substring(7),
+            _id: Math.random().toString(36).substring(7),
             name: "Musik",
             ownerId: "1",
             permissionIds: [],
@@ -61,7 +61,7 @@ export const getMockFileGroups = (): FileGroup[] => {
             groupType: FileGroupType.Static
         },
         {
-            _key: Math.random().toString(36).substring(7),
+            _id: Math.random().toString(36).substring(7),
             name: "Sterne",
             ownerId: "1",
             permissionIds: [],
@@ -71,7 +71,7 @@ export const getMockFileGroups = (): FileGroup[] => {
             groupType: FileGroupType.Static
         },
         {
-            _key: Math.random().toString(36).substring(7),
+            _id: Math.random().toString(36).substring(7),
             name: "Vögel",
             ownerId: "1",
             permissionIds: [],

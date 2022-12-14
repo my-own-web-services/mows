@@ -1,5 +1,5 @@
 export interface FilezFile {
-    _key: string;
+    _id: string;
     mimeType: string;
     name: string;
     ownerId: string;
@@ -19,14 +19,14 @@ export interface FilezFile {
 }
 
 export interface ReducedFilezFile {
-    _key: string;
+    _id: string;
     mimeType: string;
     name: string;
     size: number;
 }
 
 export interface FileGroup {
-    _key: string;
+    _id: string;
     name?: string;
     ownerId: string;
     permissionIds: string[];
@@ -34,6 +34,7 @@ export interface FileGroup {
     mimeTypes: string[];
     groupHierarchyPaths: string[][];
     groupType: FileGroupType;
+    itemCount: number;
 }
 
 export enum FileGroupType {

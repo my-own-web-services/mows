@@ -11,7 +11,7 @@ export default class Audio extends Component<AudioProps, AudioState> {
             <div className="Audio">
                 <audio controls>
                     <source
-                        src={`/api/get_file/${this.props.file._key}`}
+                        src={`/api/get_file/${this.props.file._id}`}
                         type={this.props.file.mimeType}
                     />
                 </audio>

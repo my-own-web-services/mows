@@ -19,12 +19,6 @@ export class FilezClient {
         return fileGroups;
     };
 
-    get_group_size_by_id = async (groupId: string) => {
-        const res = await fetch(`/api/get_group_size_by_id/${groupId}`);
-        const fileGroups = await res.text();
-        return fileGroups;
-    };
-
     get_file = async () => {
         const res = await fetch("/api/get_file/");
         const fileGroups = await res.text();

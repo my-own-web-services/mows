@@ -28,7 +28,7 @@ export default class Right extends Component<RightProps, RightState> {
 
         if (prevProps !== undefined) {
             const prevFile = prevProps.g.selectedFiles[0];
-            if (prevFile?._key !== file?._key) {
+            if (prevFile?._id !== file?._id) {
                 this.setF(file);
             }
         } else {

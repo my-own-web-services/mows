@@ -188,7 +188,7 @@ export default class App extends Component<AppProps, AppState> {
                     g: {
                         selectedFiles: {
                             $set: state.g.selectedFiles.filter(
-                                f => f._key !== (item as ReducedFilezFile)._key
+                                f => f._id !== (item as ReducedFilezFile)._id
                             )
                         }
                     }
@@ -199,14 +199,9 @@ export default class App extends Component<AppProps, AppState> {
 
     groupDoubleClick = (group: VisualFileGroup) => {
         if (group?.fileGroup) {
-            this.filezClient.get_group_size_by_id(group.fileGroup._key).then(size => {
-                console.log(size);
+            this.filezClient.get_file_infos_by_group_id(group.fileGroup._id, 0, 100).then(files => {
+                this.setState({ files });
             });
-            this.filezClient
-                .get_file_infos_by_group_id(group.fileGroup._key, 0, 100)
-                .then(files => {
-                    this.setState({ files });
-                });
         } else {
             this.setState({ files: [] });
         }

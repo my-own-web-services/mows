@@ -47,12 +47,12 @@ export const convertFileGroups = (fileGroups: FileGroup[]): VisualFileGroup[] =>
             }
         }
         visualFileGroups.push({
-            name: fileGroup.name ?? fileGroup._key,
+            name: fileGroup.name ?? fileGroup._id,
             type: VisualFileGroupType.FileGroup,
             depth: folders?.length ?? 0,
             fileGroup,
             isOpen: false,
-            clientId: fileGroup._key + (folders && folders.length ? folders.join() : "")
+            clientId: fileGroup._id + (folders && folders.length ? folders.join() : "")
         });
     }
     return visualFileGroups;

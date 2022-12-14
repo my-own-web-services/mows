@@ -10,7 +10,7 @@ export default class Image extends Component<ImageProps, ImageState> {
         const f = this.props.file;
         return (
             <div className="Image">
-                <img loading={"lazy"} src={`/api/get_file/${f._key}`} />
+                <img loading={"lazy"} src={`/api/get_file/${f._id}`} />
             </div>
         );
     };
