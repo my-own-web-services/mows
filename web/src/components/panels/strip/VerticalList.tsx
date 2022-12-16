@@ -2,6 +2,7 @@ import { Component } from "preact";
 import { CSSProperties, forwardRef } from "preact/compat";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
+import InfiniteLoader from "react-window-infinite-loader";
 import { G } from "../../../App";
 import { ReducedFilezFile } from "../../../types";
 import ListItem from "./ListItem";
@@ -27,30 +28,55 @@ const outerElementType = forwardRef<HTMLDivElement, any>((props, ref) => {
 
 export default class VerticalList extends Component<VerticalListProps, VerticalListState> {
     render = () => {
+        const itemCount = this.props.g.selectedGroup?.itemCount;
+        if (itemCount === undefined) {
+            return <div className="ListView"></div>;
+        }
         return (
             <div className="VerticalList">
                 <AutoSizer>
                     {({ height, width }) => (
-                        <List
-                            outerElementType={outerElementType}
-                            itemSize={height}
-                            layout="horizontal"
-                            height={height}
-                            itemCount={this.props.files.length}
-                            width={width}
+                        <InfiniteLoader
+                            isItemLoaded={index => this.props.files[index] !== undefined}
+                            itemCount={itemCount}
+                            loadMoreItems={this.props.g.fn.loadMoreFiles}
+                            threshold={20}
+                            minimumBatchSize={40}
                         >
-                            {({ index, style }: { index: number; style: CSSProperties }) => {
-                                const file = this.props.files[index];
-                                return (
-                                    <ListItem
-                                        g={this.props.g}
-                                        style={style}
-                                        key={file._id}
-                                        file={file}
-                                    />
-                                );
-                            }}
-                        </List>
+                            {({ onItemsRendered, ref }) => (
+                                <List
+                                    outerElementType={outerElementType}
+                                    itemSize={height}
+                                    layout="horizontal"
+                                    height={height}
+                                    itemCount={itemCount}
+                                    width={width}
+                                    ref={ref}
+                                    onItemsRendered={onItemsRendered}
+                                >
+                                    {({
+                                        index,
+                                        style
+                                    }: {
+                                        index: number;
+                                        style: CSSProperties;
+                                    }) => {
+                                        const file = this.props.files[index];
+                                        if (file === undefined) {
+                                            return null;
+                                        }
+                                        return (
+                                            <ListItem
+                                                g={this.props.g}
+                                                style={style}
+                                                key={file._id}
+                                                file={file}
+                                            />
+                                        );
+                                    }}
+                                </List>
+                            )}
+                        </InfiniteLoader>
                     )}
                 </AutoSizer>
             </div>
