@@ -3,11 +3,9 @@ import { FileGroup, ReducedFilezFile } from "../types";
 export class FilezClient {
     constructor() {}
 
-    get_file_infos_by_group_id = async (groupId: string, from_index = 0, limit?: number) => {
+    get_file_infos_by_group_id = async (groupId: string, from_index = 0, limit = 100) => {
         const res = await fetch(
-            `/api/get_file_infos_by_group_id/${groupId}?i=${from_index}${
-                limit ? `&l=${limit}` : ""
-            }`
+            `/api/get_file_infos_by_group_id/${groupId}?i=${from_index}&l=${limit}`
         );
         const files: ReducedFilezFile[] = await res.json();
         return files;

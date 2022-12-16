@@ -18,6 +18,9 @@ export default class GridRow extends Component<GridRowProps, GridRowState> {
         return (
             <div className="GridRow" style={{ ...this.props.style }}>
                 {this.props.files.map((file, index) => {
+                    if (!file) {
+                        return null;
+                    }
                     return (
                         <div
                             className="GridRowItem"

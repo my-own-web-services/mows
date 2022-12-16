@@ -10,6 +10,7 @@ import GridRow from "./GridRow";
 import { G } from "../../../../../../App";
 import { DraggableTarget } from "../../../../../drag/DraggableTarget";
 import Center, { View } from "../../../Center";
+import InfiniteLoader from "react-window-infinite-loader";
 
 interface GridViewProps {
     readonly files: ReducedFilezFile[];
@@ -29,6 +30,12 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
         };
     }
     render = () => {
+        const c = this.props.g.selectedGroup?.itemCount;
+        if (c === undefined) {
+            return <div className="GridView"></div>;
+        }
+        const rowCount = Math.ceil(c / this.props.columns);
+
         return (
             <div className="GridView">
                 <div className="toolbar">
@@ -51,42 +58,62 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                     <DraggableTarget acceptType="file">
                         <AutoSizer>
                             {({ height, width }) => (
-                                <FixedSizeList
-                                    overscanCount={5}
-                                    itemSize={width / this.props.columns}
-                                    height={height}
-                                    itemCount={Math.ceil(
-                                        this.props.files.length / this.props.columns
-                                    )}
-                                    width={width}
-                                    initialScrollOffset={this.props.scrollPos}
-                                    onScroll={({ scrollOffset }) => {
-                                        this.props.updateScrollPos(scrollOffset, View.Grid);
-                                    }}
-                                >
-                                    {({
-                                        index,
-                                        style
-                                    }: {
-                                        index: number;
-                                        style: CSSProperties;
-                                    }) => {
-                                        const startIndex = index * this.props.columns;
-                                        const endIndex = startIndex + this.props.columns;
-                                        const files = this.props.files.slice(startIndex, endIndex);
-
-                                        return (
-                                            <GridRow
-                                                g={this.props.g}
-                                                rowIndex={index}
-                                                style={style}
-                                                key={"GridRow" + index}
-                                                files={files}
-                                                columns={this.props.columns}
-                                            />
+                                <InfiniteLoader
+                                    isItemLoaded={index =>
+                                        this.props.files[index * this.props.columns] !== undefined
+                                    }
+                                    itemCount={rowCount}
+                                    loadMoreItems={(startIndex, stopIndex) => {
+                                        return this.props.g.fn.loadMoreFiles(
+                                            startIndex * this.props.columns,
+                                            stopIndex * this.props.columns
                                         );
                                     }}
-                                </FixedSizeList>
+                                    threshold={10}
+                                    minimumBatchSize={10}
+                                >
+                                    {({ onItemsRendered, ref }) => (
+                                        <FixedSizeList
+                                            overscanCount={5}
+                                            itemSize={width / this.props.columns}
+                                            height={height}
+                                            itemCount={rowCount}
+                                            ref={ref}
+                                            onItemsRendered={onItemsRendered}
+                                            width={width}
+                                            initialScrollOffset={this.props.scrollPos}
+                                            onScroll={({ scrollOffset }) => {
+                                                this.props.updateScrollPos(scrollOffset, View.Grid);
+                                            }}
+                                        >
+                                            {({
+                                                index,
+                                                style
+                                            }: {
+                                                index: number;
+                                                style: CSSProperties;
+                                            }) => {
+                                                const startIndex = index * this.props.columns;
+                                                const endIndex = startIndex + this.props.columns;
+                                                const files = this.props.files.slice(
+                                                    startIndex,
+                                                    endIndex
+                                                );
+
+                                                return (
+                                                    <GridRow
+                                                        g={this.props.g}
+                                                        rowIndex={index}
+                                                        style={style}
+                                                        key={"GridRow" + index}
+                                                        files={files}
+                                                        columns={this.props.columns}
+                                                    />
+                                                );
+                                            }}
+                                        </FixedSizeList>
+                                    )}
+                                </InfiniteLoader>
                             )}
                         </AutoSizer>
                     </DraggableTarget>

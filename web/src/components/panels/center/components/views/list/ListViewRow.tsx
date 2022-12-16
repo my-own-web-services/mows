@@ -13,6 +13,9 @@ interface ListViewRowProps {
 interface ListViewRowState {}
 export default class ListViewRow extends Component<ListViewRowProps, ListViewRowState> {
     render = () => {
+        if (!this.props.file) {
+            return <div>Loading...</div>;
+        }
         return (
             <div style={{ ...this.props.style }} className="ListViewRow">
                 <GroupOrFileItem
