@@ -1,4 +1,9 @@
-use crate::{config::InterosseaConfig, some_or_bail};
+use std::net::SocketAddr;
+
+use crate::{
+    config::{InterosseaConfig, SERVER_CONFIG},
+    some_or_bail,
+};
 use anyhow::bail;
 use hyper::{Body, Request};
 use jsonwebtoken::{decode, DecodingKey, Validation};
@@ -12,6 +17,9 @@ pub static INTEROSSEA: OnceCell<Interossea> = OnceCell::new();
 pub struct UserAssertion {
     pub iat: i64,
     pub user_id: String,
+    pub service_id: String,
+    pub client_ip: String,
+    pub origin: String,
 }
 
 #[derive(Clone)]
@@ -30,10 +38,15 @@ impl Interossea {
         })
     }
 
-    pub async fn check_user_assertion(&self, req: &Request<Body>) -> anyhow::Result<UserAssertion> {
+    pub async fn check_user_assertion(
+        &self,
+        req: &Request<Body>,
+        addr: SocketAddr,
+    ) -> anyhow::Result<UserAssertion> {
+        let config = &SERVER_CONFIG;
         let authorization_header = some_or_bail!(
             req.headers().get("UserAssertion"),
-            "No Authorization header"
+            "No UserAssertion header"
         )
         .to_str()?;
 
@@ -45,9 +58,24 @@ impl Interossea {
 
         let current_time = chrono::offset::Utc::now().timestamp_millis();
         let token_created_time = validated_token.claims.iat;
+        let ip = addr.ip().to_string();
+        let origin =
+            some_or_bail!(req.headers().get("origin"), "No origin header found").to_str()?;
 
         if &self.assertion_validity_seconds * 1000 + token_created_time < current_time {
             bail!("Assertion expired");
+        }
+
+        if validated_token.claims.client_ip != ip {
+            bail!("Assertion IP mismatch");
+        }
+
+        if validated_token.claims.origin != origin {
+            bail!("Assertion origin mismatch");
+        }
+
+        if validated_token.claims.service_id != config.service_id {
+            bail!("Assertion service ID mismatch");
         }
 
         Ok(validated_token.claims)

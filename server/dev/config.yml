@@ -1,4 +1,5 @@
 variablePrefix: "$"
+serviceId: filez
 storage:
     ssd:
         path: ./storage/

@@ -53,6 +53,7 @@ pub struct ServerConfig {
     pub dev: DevConfig,
     #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
     pub readonly_mount: HashMap<String, ReadonlyMountConfig>,
+    pub service_id: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

@@ -19,6 +19,7 @@ use filez::methods::update_file::update_file;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::readonly_mount::scan_readonly_mounts;
 use filez::utils::get_token_from_query;
+use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server};
 use mongodb::options::ClientOptions;
@@ -69,8 +70,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         };
     });
 
-    let server = Server::bind(&addr).serve(make_service_fn(|_conn| async {
-        Ok::<_, Infallible>(service_fn(handle_request))
+    let server = Server::bind(&addr).serve(make_service_fn(move |conn: &AddrStream| {
+        let addr = conn.remote_addr();
+        async move { Ok::<_, Infallible>(service_fn(move |req| handle_request(req, addr))) }
     }));
 
     println!("Listening on http://{}", addr);
@@ -85,8 +87,11 @@ async fn shutdown_signal() {
         .expect("failed to install CTRL+C signal handler");
 }
 
-async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    match handle_inner(req).await {
+async fn handle_request(
+    req: Request<Body>,
+    addr: SocketAddr,
+) -> Result<Response<Body>, Infallible> {
+    match handle_inner(req, addr).await {
         Ok(res) => Ok(res),
         Err(e) => {
             println!("Internal Server Error: {}", e);
@@ -98,7 +103,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
     }
 }
 
-async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
+async fn handle_inner(req: Request<Body>, addr: SocketAddr) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
 
@@ -106,8 +111,16 @@ async fn handle_inner(req: Request<Body>) -> anyhow::Result<Response<Body>> {
         true => Some(UserAssertion {
             iat: 0,
             user_id: "dev".to_string(),
+            service_id: "filez".to_string(),
+            client_ip: "127.0.0.1".to_string(),
+            origin: "localhost".to_string(),
         }),
-        false => match INTEROSSEA.get().unwrap().check_user_assertion(&req).await {
+        false => match INTEROSSEA
+            .get()
+            .unwrap()
+            .check_user_assertion(&req, addr)
+            .await
+        {
             Ok(ua) => Some(ua),
             Err(_) => None,
         },
