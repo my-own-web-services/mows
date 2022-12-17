@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use crate::{
     config::{InterosseaConfig, SERVER_CONFIG},
     some_or_bail,
@@ -9,6 +7,7 @@ use hyper::{Body, Request};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
 
 pub static INTEROSSEA: OnceCell<Interossea> = OnceCell::new();
 
@@ -19,7 +18,7 @@ pub struct UserAssertion {
     pub user_id: String,
     pub service_id: String,
     pub client_ip: String,
-    pub origin: String,
+    pub service_origin: String,
 }
 
 #[derive(Clone)]
@@ -70,7 +69,7 @@ impl Interossea {
             bail!("Assertion IP mismatch");
         }
 
-        if validated_token.claims.origin != origin {
+        if validated_token.claims.service_origin != origin {
             bail!("Assertion origin mismatch");
         }
 

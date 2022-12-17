@@ -23,3 +23,10 @@ export class FilezClient {
         return fileGroups;
     };
 }
+
+/*
+
+let res=await fetch(`http://localhost:8081/api/get_user_assertion/?s=filez`,{method:"POST",credentials:"include"});
+let token=await res.text();
+
+*/

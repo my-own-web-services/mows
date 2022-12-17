@@ -1,8 +1,11 @@
 variablePrefix: "$"
+
 serviceId: filez
+
 storage:
     ssd:
         path: ./storage/
+
 defaultStorage: ssd
 
 http:
@@ -10,9 +13,11 @@ http:
 
 db:
     url: mongodb://root:root@localhost:27017
+
 interossea:
     url: http://localhost:8081
     assertionValiditySeconds: 600
+
 dev:
     insecureSkipInterossea: true
     createDevUser: true
