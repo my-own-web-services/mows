@@ -1,18 +1,16 @@
-use std::{
-    fs::{self, File},
-    io::Write,
-};
-
-use anyhow::bail;
-use hyper::{body::HttpBody, Body, Request, Response};
-use sha2::{Digest, Sha256};
-
 use crate::{
     db::DB,
     internal_types::Auth,
     some_or_bail,
     types::{UpdateFileRequest, UpdateFileResponse},
     utils::check_auth,
+};
+use anyhow::bail;
+use hyper::{body::HttpBody, Body, Request, Response};
+use sha2::{Digest, Sha256};
+use std::{
+    fs::{self, File},
+    io::Write,
 };
 
 pub async fn update_file(

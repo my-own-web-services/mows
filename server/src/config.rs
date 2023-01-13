@@ -1,8 +1,7 @@
-use std::{collections::HashMap, fs::read_to_string};
-
 use anyhow::bail;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs::read_to_string};
 
 const CONFIG_PATH: &str = "/config.yml";
 const DEV_CONFIG_PATH: &str = "dev/config.yml";

@@ -6,6 +6,8 @@ import { DraggableItem } from "../drag/DraggableItem";
 import Audio from "./Audio";
 import "./File.scss";
 import Image from "./Image";
+import Text from "./Text";
+import Video from "./Video";
 
 interface FileProps {
     readonly file: ReducedFilezFile;
@@ -20,15 +22,18 @@ export default class File extends Component<FileProps, FileState> {
         const vt = this.props.viewType;
         return (
             <div
-                onDblClick={() => {
+                onDblClick={e => {
+                    //@ts-ignore
+                    if (e?.target?.nodeName === "VIDEO") return;
+
                     this.props.g.fn.fileDoubleClick(f, vt);
                 }}
                 className={`File${this.props.isSelected ? " selected" : ""}`}
             >
-                <DraggableItem type="file" id={f._id}>
-                    {(() => {
-                        if (vt === FileView.Strip || vt === FileView.Grid) {
-                            return (
+                {(() => {
+                    if (vt === FileView.Strip || vt === FileView.Grid) {
+                        return (
+                            <DraggableItem type="file" id={f._id}>
                                 <div
                                     className={`hover ${this.props.isSelected ? " selected" : ""}`}
                                 >
@@ -39,9 +44,11 @@ export default class File extends Component<FileProps, FileState> {
                                         ) : null}
                                     </div>
                                 </div>
-                            );
-                        } else if (vt === FileView.List) {
-                            return (
+                            </DraggableItem>
+                        );
+                    } else if (vt === FileView.List) {
+                        return (
+                            <DraggableItem type="file" id={f._id}>
                                 <div
                                     className={`hover ${this.props.isSelected ? " selected" : ""}`}
                                 >
@@ -55,24 +62,28 @@ export default class File extends Component<FileProps, FileState> {
                                         {displayBytes(f.size)}
                                     </div>
                                 </div>
-                            );
-                        } else if (vt === FileView.Group) {
-                            return <div>{f.name.substring(0, 10)}</div>;
-                        } else if (vt === FileView.Single) {
-                            return (() => {
-                                if (f.mimeType.startsWith("image/")) {
-                                    return <Image file={f}></Image>;
-                                } else if (f.mimeType.startsWith("audio/")) {
-                                    return <Audio file={f}></Audio>;
-                                }
-                            })();
-                        } else if (vt === FileView.Sheets) {
-                            return <div>{f.name.substring(0, 10)}</div>;
-                        } else {
-                            return <div>Unknown view</div>;
-                        }
-                    })()}
-                </DraggableItem>
+                            </DraggableItem>
+                        );
+                    } else if (vt === FileView.Group) {
+                        return <div>{f.name.substring(0, 10)}</div>;
+                    } else if (vt === FileView.Single) {
+                        return (() => {
+                            if (f.mimeType.startsWith("image/")) {
+                                return <Image file={f}></Image>;
+                            } else if (f.mimeType.startsWith("audio/")) {
+                                return <Audio file={f}></Audio>;
+                            } else if (f.mimeType.startsWith("video/")) {
+                                return <Video file={f}></Video>;
+                            } else if (f.mimeType.startsWith("text/")) {
+                                return <Text file={f}></Text>;
+                            }
+                        })();
+                    } else if (vt === FileView.Sheets) {
+                        return <div>{f.name.substring(0, 10)}</div>;
+                    } else {
+                        return <div>Unknown view</div>;
+                    }
+                })()}
             </div>
         );
     };

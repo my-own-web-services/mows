@@ -15,6 +15,7 @@ pub static INTEROSSEA: OnceCell<Interossea> = OnceCell::new();
 #[serde(rename_all = "camelCase")]
 pub struct UserAssertion {
     pub iat: i64,
+    pub exp: i64,
     pub user_id: String,
     pub service_id: String,
     pub client_ip: String,
@@ -44,7 +45,7 @@ impl Interossea {
     ) -> anyhow::Result<UserAssertion> {
         let config = &SERVER_CONFIG;
         let authorization_header = some_or_bail!(
-            req.headers().get("UserAssertion"),
+            req.headers().get("InterosseaUserAssertion"),
             "No UserAssertion header"
         )
         .to_str()?;
@@ -52,14 +53,13 @@ impl Interossea {
         let validated_token = decode::<UserAssertion>(
             authorization_header,
             &self.decoding_key,
-            &Validation::default(),
+            &Validation::new(jsonwebtoken::Algorithm::RS256),
         )?;
 
         let current_time = chrono::offset::Utc::now().timestamp_millis();
         let token_created_time = validated_token.claims.iat;
         let ip = addr.ip().to_string();
-        let origin =
-            some_or_bail!(req.headers().get("origin"), "No origin header found").to_str()?;
+        let host = some_or_bail!(req.headers().get("host"), "No host header found").to_str()?;
 
         if &self.assertion_validity_seconds * 1000 + token_created_time < current_time {
             bail!("Assertion expired");
@@ -69,8 +69,18 @@ impl Interossea {
             bail!("Assertion IP mismatch");
         }
 
-        if validated_token.claims.service_origin != origin {
-            bail!("Assertion origin mismatch");
+        if validated_token
+            .claims
+            .service_origin
+            .replacen("http://", "", 1)
+            .replacen("https://", "", 1)
+            != host
+        {
+            bail!(
+                "Assertion host mismatch: {} != {}",
+                validated_token.claims.service_origin,
+                host
+            );
         }
 
         if validated_token.claims.service_id != config.service_id {

@@ -1,10 +1,18 @@
 import { FileGroup, ReducedFilezFile } from "../types";
+import { InterosseaClient } from "./interosseaClient";
 
 export class FilezClient {
-    constructor() {}
+    interosseaClient: InterosseaClient;
+    constructor(interosseaEndpoint: string) {
+        this.interosseaClient = new InterosseaClient(interosseaEndpoint);
+    }
+
+    init = async () => {
+        await this.interosseaClient.init();
+    };
 
     get_file_infos_by_group_id = async (groupId: string, from_index = 0, limit = 100) => {
-        const res = await fetch(
+        const res = await this.interosseaClient.f(
             `/api/get_file_infos_by_group_id/${groupId}?i=${from_index}&l=${limit}`
         );
         const files: ReducedFilezFile[] = await res.json();
@@ -12,21 +20,14 @@ export class FilezClient {
     };
 
     get_own_file_groups = async () => {
-        const res = await fetch("/api/get_own_file_groups/");
+        const res = await this.interosseaClient.f("/api/get_own_file_groups/");
         const fileGroups: FileGroup[] = await res.json();
         return fileGroups;
     };
 
     get_file = async () => {
-        const res = await fetch("/api/get_file/");
+        const res = await this.interosseaClient.f("/api/get_file/");
         const fileGroups = await res.text();
         return fileGroups;
     };
 }
-
-/*
-
-let res=await fetch(`http://localhost:8081/api/get_user_assertion/?s=filez`,{method:"POST",credentials:"include"});
-let token=await res.text();
-
-*/

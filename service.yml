@@ -1,0 +1,16 @@
+version: "1"
+id: firstdorsal-filez
+suggestedName: filez
+composeFile: ./docker-compose.yml
+containers:
+    filez-ui:
+        suggestedName: ui
+    filez-api:
+        suggestedName: api
+        requires:
+            - id: firstdorsal-interossea
+        config:
+            - id: firstdorsal-interossea
+              name: public-key
+            - id: zertificat
+              name:

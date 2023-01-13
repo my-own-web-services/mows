@@ -31,9 +31,18 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
 
     let body = Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle));
 
+    let illegal_types = vec!["text/html", "application/javascript", "text/css"];
+
     Ok(Response::builder()
         .status(200)
-        .header("Content-Type", file.mime_type)
+        .header(
+            "Content-Type",
+            if illegal_types.contains(&file.mime_type.as_str()) {
+                "text/plain".to_string()
+            } else {
+                file.mime_type
+            },
+        )
         .header("Cache-Control", "public, max-age=31536000")
         .body(body)
         .unwrap())

@@ -1,3 +1,19 @@
+# addons
+
+-   video
+    -   create thumbnails
+    -   create videos that can be skipped through
+    -   create adaptive quality video
+    -   read metadata
+-   audio
+    -   create album art
+    -   read metadata
+
+TODO never return mime types for files that have text/html or others that may create document context
+add security headers (CSP) to api to mitigate issues like that even further
+
+config grows and grows so we may need to create a config/secret service or use vault
+
 # dynamic file groups
 
 ```yaml

@@ -25,6 +25,7 @@ use hyper::{Body, Method, Request, Response, Server};
 use mongodb::options::ClientOptions;
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use tokio::signal;
 
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
@@ -75,8 +76,17 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         async move { Ok::<_, Infallible>(service_fn(move |req| handle_request(req, addr))) }
     }));
 
-    println!("Listening on http://{}", addr);
     server.with_graceful_shutdown(shutdown_signal()).await?;
+
+    println!("Listening on http://{}", addr);
+
+    match signal::ctrl_c().await {
+        Ok(()) => {}
+        Err(err) => {
+            eprintln!("Unable to listen for shutdown signal: {}", err);
+            // we also shut down in case of error
+        }
+    }
 
     Ok(())
 }
@@ -110,6 +120,7 @@ async fn handle_inner(req: Request<Body>, addr: SocketAddr) -> anyhow::Result<Re
     let user_assertion = match config.dev.insecure_skip_interossea {
         true => Some(UserAssertion {
             iat: 0,
+            exp: 0,
             user_id: "dev".to_string(),
             service_id: "filez".to_string(),
             client_ip: "127.0.0.1".to_string(),
@@ -122,7 +133,10 @@ async fn handle_inner(req: Request<Body>, addr: SocketAddr) -> anyhow::Result<Re
             .await
         {
             Ok(ua) => Some(ua),
-            Err(_) => None,
+            Err(e) => {
+                dbg!(&e);
+                None
+            }
         },
     };
 
@@ -172,6 +186,13 @@ async fn handle_inner(req: Request<Body>, addr: SocketAddr) -> anyhow::Result<Re
         get_permissions_for_current_user(req, db, &auth).await
     } else if p == "/get_own_file_groups/" && m == Method::GET {
         get_own_file_groups(req, db, &auth).await
+    } else if p == "/get_assertion_validity_seconds/" && m == Method::GET {
+        Ok(Response::builder()
+            .status(200)
+            .body(Body::from(
+                config.interossea.assertion_validity_seconds.to_string(),
+            ))
+            .unwrap())
     } else {
         Ok(Response::builder()
             .status(404)

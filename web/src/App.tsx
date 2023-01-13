@@ -52,7 +52,7 @@ export enum SelectItem {
 export default class App extends Component<AppProps, AppState> {
     allFileGroups: VisualFileGroup[];
     moreFilesLoading = false;
-    filezClient = new FilezClient();
+    filezClient = new FilezClient("http://localhost:8081");
     constructor(props: AppProps) {
         super(props);
         this.allFileGroups = [];
