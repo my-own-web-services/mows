@@ -23,5 +23,6 @@ pub mod methods {
     pub mod get_user_info;
     pub mod set_app_data;
     pub mod update_file;
+    pub mod update_file_infos;
     pub mod update_permission_ids_on_resource;
 }

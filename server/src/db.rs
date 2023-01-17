@@ -9,7 +9,7 @@ use crate::{
     utils::merge_permissions,
 };
 use anyhow::bail;
-use futures::stream::TryStreamExt;
+use futures::{stream::TryStreamExt, StreamExt};
 use mongodb::{
     bson::doc,
     options::FindOptions,
@@ -362,6 +362,131 @@ impl DB {
         })
     }
 
+    pub async fn update_file_name(
+        &self,
+        file_id: &str,
+        new_name: &str,
+    ) -> anyhow::Result<UpdateResult> {
+        let collection = self.db.collection::<FilezFile>("files");
+        Ok(collection
+            .update_one(
+                doc! {"_id":file_id},
+                doc! {"$set":{ "name": new_name }},
+                None,
+            )
+            .await?)
+    }
+
+    pub async fn update_mime_type(
+        &self,
+        file_id: &str,
+        new_mime_type: &str,
+    ) -> anyhow::Result<UpdateResult> {
+        let collection = self.db.collection::<FilezFile>("files");
+        Ok(collection
+            .update_one(
+                doc! {"_id":file_id},
+                doc! {"$set":{ "mimeType": new_mime_type }},
+                None,
+            )
+            .await?)
+    }
+
+    pub async fn update_static_file_group_ids(
+        &self,
+        file_id: &str,
+        new_static_file_group_ids: &Vec<String>,
+    ) -> anyhow::Result<UpdateResult> {
+        let collection = self.db.collection::<FilezFile>("files");
+        Ok(collection
+            .update_one(
+                doc! {"_id":file_id},
+                doc! {"$set":{ "staticFileGroupIds": new_static_file_group_ids }},
+                None,
+            )
+            .await?)
+    }
+
+    pub async fn update_keywords(
+        &self,
+        file_id: &str,
+        new_keywords: &Vec<String>,
+    ) -> anyhow::Result<UpdateResult> {
+        let collection = self.db.collection::<FilezFile>("files");
+        Ok(collection
+            .update_one(
+                doc! {"_id":file_id},
+                doc! {"$set":{ "keywords": new_keywords }},
+                None,
+            )
+            .await?)
+    }
+
+    pub async fn update_storage_id(
+        &self,
+        file: &FilezFile,
+        new_storage_id: &str,
+        new_path: &str,
+        user: &FilezUser,
+    ) -> anyhow::Result<()> {
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
+
+        let files_collection = self.db.collection::<FilezFile>("files");
+        let users_collection = self.db.collection::<FilezUser>("users");
+
+        // set new storage path and id
+        files_collection
+            .update_one_with_session(
+                doc! { "_id": &file.file_id },
+                doc! { "$set":{ "storageId": new_storage_id, "path": new_path }},
+                None,
+                &mut session,
+            )
+            .await?;
+
+        // update storage usage
+        let old_storage_id = some_or_bail!(&file.storage_id, "old storage id is none");
+        let old_used_storage_key = format!("limits.{}.usedStorage", old_storage_id);
+        let old_file_count_key = format!("limits.{}.fileCount", old_storage_id);
+
+        let new_used_storage_key = format!("limits.{}.usedStorage", new_storage_id);
+        let new_file_count_key = format!("limits.{}.fileCount", new_storage_id);
+
+        users_collection
+            .update_one_with_session(
+                doc! {"_id": &user.user_id },
+                doc! {
+                    "$inc":{
+                        old_used_storage_key: -(file.size as i64),
+                        new_used_storage_key: file.size as i64,
+                        old_file_count_key: -1,
+                        new_file_count_key: 1,
+                    }
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        Ok(session.commit_transaction().await?)
+    }
+
+    pub async fn update_pending_new_owner_id(
+        &self,
+        file_id: &str,
+        new_owner_id: &str,
+    ) -> anyhow::Result<UpdateResult> {
+        let collection = self.db.collection::<FilezFile>("files");
+        Ok(collection
+            .update_one(
+                doc! {"_id":file_id},
+                doc! {"$set":{ "pendingNewOwnerId": new_owner_id }},
+                None,
+            )
+            .await?)
+    }
+
     pub async fn get_files_by_group_id(
         &self,
         group_id: &str,
@@ -400,6 +525,28 @@ impl DB {
         let collection = self.db.collection::<FilezFile>("files");
         let file = collection.find_one(doc! {"path": file_path}, None).await?;
         Ok(file)
+    }
+
+    pub async fn check_file_group_existence(
+        &self,
+        static_file_group_ids: &Vec<String>,
+    ) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+
+        let cursor = collection
+            .find(
+                doc! {
+                    "_id": {"$in": static_file_group_ids.clone()}
+                },
+                None,
+            )
+            .await?;
+
+        if cursor.count().await != static_file_group_ids.len() {
+            bail!("Some file groups do not exist");
+        }
+
+        Ok(())
     }
 
     pub async fn get_merged_permissions_from_file(

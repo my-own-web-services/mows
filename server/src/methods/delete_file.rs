@@ -1,7 +1,7 @@
 use crate::{db::DB, internal_types::Auth, some_or_bail, utils::check_auth};
 use anyhow::bail;
 use hyper::{Body, Request, Response};
-use std::fs;
+use tokio::fs;
 
 pub async fn delete_file(
     req: Request<Body>,
@@ -24,7 +24,7 @@ pub async fn delete_file(
     }
 
     db.delete_file_by_id(&file).await?;
-    fs::remove_file(&file.path)?;
+    fs::remove_file(&file.path).await?;
 
     Ok(Response::builder().status(200).body(Body::from("OK"))?)
 }

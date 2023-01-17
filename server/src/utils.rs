@@ -1,6 +1,6 @@
 use crate::{
     db::DB,
-    get_acl,
+    get_acl, get_acl_users,
     internal_types::{Auth, MergedFilezPermission},
     types::{FilezFile, FilezPermission},
 };
@@ -156,7 +156,7 @@ pub async fn check_auth(
                 if let Some(user_id) = &auth.authenticated_user {
                     if let Some(users_acl_perm) = permissions_acl
                         .users
-                        .and_then(|users| get_acl!(users, acl_type))
+                        .and_then(|users| get_acl_users!(users, acl_type))
                     {
                         if let Some(users_acl_perm_user_ids) = users_acl_perm.user_ids {
                             if users_acl_perm_user_ids.contains(user_id) {
@@ -193,4 +193,72 @@ pub async fn check_auth(
     }
 
     Ok(auth_ok)
+}
+
+pub fn check_file_name(file_name: &str) -> anyhow::Result<()> {
+    let max_length = 100;
+    let name_len = file_name.len();
+    if name_len > 500 {
+        bail!("File name too long: {name_len}/{max_length}");
+    }
+    Ok(())
+}
+
+pub fn check_mime_type(mime_type: &str) -> anyhow::Result<()> {
+    let max_length = 100;
+    let mime_type_len = mime_type.len();
+    if mime_type_len > max_length {
+        bail!("Mime type too long: {mime_type_len}/{max_length}");
+    }
+    if !mime_type.contains("/") {
+        bail!("Mime type is missing '/' ");
+    }
+
+    Ok(())
+}
+
+pub fn check_keywords(keywords: &Vec<String>) -> anyhow::Result<()> {
+    if keywords.len() > 100 {
+        bail!("Too many keywords");
+    }
+    let max_length = 100;
+    for keyword in keywords {
+        let keyword_len = keyword.len();
+        if keyword_len > max_length {
+            bail!("Keyword too long: {keyword_len}/{max_length}");
+        }
+    }
+    Ok(())
+}
+
+pub fn check_storage_id(storage_id: &str) -> anyhow::Result<()> {
+    let max_length = 100;
+    let storage_id_len = storage_id.len();
+    if storage_id_len > max_length {
+        bail!("Storage id too long: {storage_id_len}/{max_length}");
+    }
+    Ok(())
+}
+
+pub fn check_static_file_groups(static_file_groups: &Vec<String>) -> anyhow::Result<()> {
+    if static_file_groups.len() > 100 {
+        bail!("Too many static file groups");
+    }
+    let max_length = 100;
+    for static_file_group in static_file_groups {
+        let static_file_group_len = static_file_group.len();
+        if static_file_group_len > max_length {
+            bail!("Static file group too long: {static_file_group_len}/{max_length}");
+        }
+    }
+    Ok(())
+}
+
+pub fn check_owner_id(owner_id: &str) -> anyhow::Result<()> {
+    let max_length = 20;
+    let owner_id_len = owner_id.len();
+    if owner_id_len > max_length {
+        bail!("Owner id too long: {owner_id_len}/{max_length}");
+    }
+    Ok(())
 }

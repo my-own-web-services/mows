@@ -1,0 +1,19 @@
+version: "1"
+id: firstdorsal/filez
+suggestedName: filez
+composeFile: ./docker-compose.yml
+services:
+    filez-db:
+    filez-ui:
+        expose:
+            suggestedName: ui
+            ipv6DirectCapable: true # whether to configure direct exposure for ipv6; requires that the container is capable of terminating tls itself; if set to true ui.filez.example.com will be configured to have and AAAA record pointing to the containers own ipv6 address instead of the one of the reverse proxy; if set to false the reverse proxy ipv6 address will be used and the reverse proxy will terminate tls
+    filez-api:
+        suggestedName: api
+        requiredExternalApps:
+            - id: firstdorsal/interossea
+        config:
+            - id: firstdorsal/interossea
+              name: public-key
+            - id: zertificat
+              name:

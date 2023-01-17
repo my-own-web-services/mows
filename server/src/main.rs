@@ -16,6 +16,7 @@ use filez::methods::get_permissions_for_current_user::get_permissions_for_curren
 use filez::methods::get_user_info::get_user_info;
 use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_file::update_file;
+use filez::methods::update_file_infos::update_file_infos;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::readonly_mount::scan_readonly_mounts;
 use filez::utils::get_token_from_query;
@@ -25,7 +26,6 @@ use hyper::{Body, Method, Request, Response, Server};
 use mongodb::options::ClientOptions;
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use tokio::signal;
 
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
@@ -76,17 +76,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         async move { Ok::<_, Infallible>(service_fn(move |req| handle_request(req, addr))) }
     }));
 
-    server.with_graceful_shutdown(shutdown_signal()).await?;
-
     println!("Listening on http://{}", addr);
 
-    match signal::ctrl_c().await {
-        Ok(()) => {}
-        Err(err) => {
-            eprintln!("Unable to listen for shutdown signal: {}", err);
-            // we also shut down in case of error
-        }
-    }
+    server.with_graceful_shutdown(shutdown_signal()).await?;
 
     Ok(())
 }
@@ -160,6 +152,10 @@ async fn handle_inner(req: Request<Body>, addr: SocketAddr) -> anyhow::Result<Re
         get_file(req, db, &auth).await
     } else if p == "/create_file/" && m == Method::POST {
         create_file(req, db, &auth).await
+    } else if p == "/create_group/" && m == Method::POST {
+        create_group(req, db, &auth).await
+    } else if p == "/create_permission/" && m == Method::POST {
+        create_permission(req, db, &auth).await
     } else if p.starts_with("/delete_file/") && m == Method::POST {
         delete_file(req, db, &auth).await
     } else if p.starts_with("/get_file_info/") && m == Method::GET {
@@ -170,16 +166,14 @@ async fn handle_inner(req: Request<Body>, addr: SocketAddr) -> anyhow::Result<Re
         set_app_data(req, db, &auth).await
     } else if p.starts_with("/get_user_info/") && m == Method::GET {
         get_user_info(req, db, &auth).await
-    } else if p == "/update_file/" && m == Method::POST {
-        update_file(req, db, &auth).await
-    } else if p == "/create_group/" && m == Method::POST {
-        create_group(req, db, &auth).await
-    } else if p == "/create_permission/" && m == Method::POST {
-        create_permission(req, db, &auth).await
     } else if p == "/delete_group/" && m == Method::POST {
         delete_group(req, db, &auth).await
     } else if p == "/delete_permission/" && m == Method::POST {
         delete_permission(req, db, &auth).await
+    } else if p == "/update_file/" && m == Method::POST {
+        update_file(req, db, &auth).await
+    } else if p == "/update_file_infos/" && m == Method::POST {
+        update_file_infos(req, db, &auth).await
     } else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
         update_permission_ids_on_resource(req, db, &auth).await
     } else if p == "/get_permissions_for_current_user/" && m == Method::GET {

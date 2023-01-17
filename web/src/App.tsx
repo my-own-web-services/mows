@@ -31,6 +31,7 @@ export interface G {
     readonly selectedGroups: VisualFileGroup[];
     readonly selectedFile: ReducedFilezFile | null;
     readonly selectedGroup: VisualFileGroup | null;
+    readonly filezClient: FilezClient;
     readonly fn: Fn;
 }
 
@@ -52,7 +53,6 @@ export enum SelectItem {
 export default class App extends Component<AppProps, AppState> {
     allFileGroups: VisualFileGroup[];
     moreFilesLoading = false;
-    filezClient = new FilezClient("http://localhost:8081");
     constructor(props: AppProps) {
         super(props);
         this.allFileGroups = [];
@@ -67,6 +67,7 @@ export default class App extends Component<AppProps, AppState> {
                 selectedGroups: [],
                 selectedFile: null,
                 selectedGroup: null,
+                filezClient: new FilezClient("http://localhost:8081"),
                 fn: {
                     itemClick: this.itemClick,
                     groupArrowClick: this.groupArrowClick,
@@ -81,7 +82,9 @@ export default class App extends Component<AppProps, AppState> {
     }
 
     componentDidMount = async () => {
-        this.allFileGroups = convertFileGroups(await this.filezClient.get_own_file_groups());
+        this.allFileGroups = convertFileGroups(
+            await this.state.g.filezClient.get_own_file_groups()
+        );
         this.setState({ fileGroups: this.allFileGroups });
     };
 
@@ -204,16 +207,18 @@ export default class App extends Component<AppProps, AppState> {
 
     groupDoubleClick = (group: VisualFileGroup) => {
         if (group?.fileGroup) {
-            this.filezClient.get_file_infos_by_group_id(group.fileGroup._id, 0, 100).then(files => {
-                this.setState({ files });
-                this.setState(state => {
-                    return update(state, {
-                        g: {
-                            selectedGroup: { $set: group }
-                        }
+            this.state.g.filezClient
+                .get_file_infos_by_group_id(group.fileGroup._id, 0, 100)
+                .then(files => {
+                    this.setState({ files });
+                    this.setState(state => {
+                        return update(state, {
+                            g: {
+                                selectedGroup: { $set: group }
+                            }
+                        });
                     });
                 });
-            });
         } else {
             this.setState({ files: [] });
             this.setState(state => {
@@ -233,7 +238,7 @@ export default class App extends Component<AppProps, AppState> {
 
         if (groupIndex && this.moreFilesLoading === false) {
             this.moreFilesLoading = true;
-            const newFiles = await this.filezClient.get_file_infos_by_group_id(
+            const newFiles = await this.state.g.filezClient.get_file_infos_by_group_id(
                 groupIndex,
                 startIndex,
                 stopIndex - startIndex

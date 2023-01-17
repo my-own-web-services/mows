@@ -79,6 +79,22 @@ pub struct CreateGroupResponse {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateFileInfosRequest {
+    pub file_id: String,
+    pub field: UpdateFileInfosRequestField,
+}
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub enum UpdateFileInfosRequestField {
+    MimeType(String),
+    Name(String),
+    OwnerId(String),
+    StorageId(String),
+    StaticFileGroupIds(Vec<String>),
+    Keywords(Vec<String>),
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateFileRequest {
     pub file_id: String,
     pub modified: Option<i64>,
@@ -130,21 +146,61 @@ pub enum AppDataType {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezFile {
+    /**
+      cannot be updated
+    */
     #[serde(rename = "_id")]
     pub file_id: String,
+    /**
+      can be updated with update_file_infos
+    */
     pub mime_type: String,
+    /**
+      can be updated with update_file_infos
+    */
     pub name: String,
+    /**
+      can be updated with update_file_infos by the current owner
+    */
     pub owner_id: String,
+    /**
+      can be updated with update_file_infos by the current owner
+    */
+    pub pending_new_owner_id: Option<String>,
+    /**
+     can be updated by updating the files content with update_file
+    */
     pub sha256: Option<String>,
+    /**
+      can be updated with update_file_infos
+    */
     pub storage_id: Option<String>,
     pub path: String,
+    /**
+      can be updated by updating the files content with update_file
+    */
     pub size: u64,
+    /**
+      can't be updated
+    */
     pub server_created: i64,
     pub created: i64,
     pub modified: Option<i64>,
+    /**
+      the last time the file was accessed
+    */
     pub accessed: Option<i64>,
+    /**
+      how many times the file was accessed
+    */
     pub accessed_count: u64,
+    /**
+      can be updated with update_file_infos
+    */
     pub static_file_group_ids: Vec<String>,
+    /**
+    can't be updated manually but will update on file or group changes
+    */
     pub dynamic_file_group_ids: Vec<String>,
     /**
         UTC timecode after which the file should be deleted
@@ -153,10 +209,20 @@ pub struct FilezFile {
     /**
      A key value store for apps to store information
      The String is the app name and the Value is its data
+     can be updated by set_app_data
     */
     pub app_data: HashMap<String, Value>,
+    /**
+      can be updated by update_permission_ids_on_resource
+    */
     pub permission_ids: Vec<String>,
+    /**
+      can be updated with update_file_infos
+    */
     pub keywords: Vec<String>,
+    /**
+      can't be updated
+    */
     pub readonly: bool,
 }
 
@@ -284,6 +350,10 @@ pub struct UsersAcl {
     pub update_file: Option<UsersAclUsersAndUserGroups>,
     pub delete_file: Option<UsersAclUsersAndUserGroups>,
     pub get_file_info: Option<UsersAclUsersAndUserGroups>,
+    pub update_file_infos_name: Option<UsersAclUsersAndUserGroups>,
+    pub update_file_infos_mime_type: Option<UsersAclUsersAndUserGroups>,
+    pub update_file_infos_keywords: Option<UsersAclUsersAndUserGroups>,
+    pub update_file_infos_static_file_groups: Option<UsersAclUsersAndUserGroups>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

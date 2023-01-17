@@ -4,7 +4,7 @@ use crate::{
     internal_types::Auth,
     some_or_bail,
     types::{CreateFileRequest, CreateFileResponse, FilezFile},
-    utils::{generate_id, get_folder_and_file_path},
+    utils::{check_file_name, check_mime_type, generate_id, get_folder_and_file_path},
 };
 use anyhow::bail;
 use hyper::{body::HttpBody, Body, Request, Response};
@@ -59,6 +59,9 @@ pub async fn create_file(
 
     let create_request: CreateFileRequest = serde_json::from_str(request_header)?;
 
+    check_file_name(&create_request.name)?;
+    check_mime_type(&create_request.mime_type)?;
+
     let user = some_or_bail!(db.get_user_by_id(&user_id).await?, "User not found");
 
     let storage_name = create_request
@@ -110,7 +113,7 @@ pub async fn create_file(
     let storage_path = some_or_bail!(
         config.storage.get(&storage_name),
         format!(
-            "Storage name: '{}' is missing specifications on the user entry",
+            "Storage name: '{}' is missing in the config file",
             storage_name
         )
     )
@@ -195,6 +198,7 @@ pub async fn create_file(
                 mime_type: create_request.mime_type,
                 name: create_request.name,
                 owner_id: user.user_id,
+                pending_new_owner_id: None,
                 sha256: Some(hash.clone()),
                 storage_id: Some(storage_name.clone()),
                 size: bytes_written,

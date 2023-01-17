@@ -116,6 +116,7 @@ pub async fn import_readonly_file(
             mime_type,
             name: file_name.to_string(),
             owner_id: owner_id.to_string(),
+            pending_new_owner_id: None,
             sha256: None,
             storage_id: None,
             size: file_size,

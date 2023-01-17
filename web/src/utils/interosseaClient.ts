@@ -2,9 +2,11 @@ export class InterosseaClient {
     endpoint: string;
     token!: InterosseaToken;
     assertion_validity_seconds!: number;
+    skip?: boolean;
 
-    constructor(endpoint: string) {
+    constructor(endpoint: string,skip?:boolean) {
         this.endpoint = endpoint;
+        this.skip = skip;
     }
 
     init = async () => {
@@ -28,6 +30,7 @@ export class InterosseaClient {
     };
 
     get_token = async () => {
+        if(this.skip) return "";
         const currentTimeSecs = Date.now() / 1000;
         if (
             !this.token ||
@@ -43,8 +46,7 @@ export class InterosseaClient {
             ...fetchParameters,
             headers: {
                 InterosseaUserAssertion: await this.get_token()
-            },
-            mode: "cors"
+            }
         });
     };
 }

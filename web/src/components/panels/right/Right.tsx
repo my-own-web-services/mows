@@ -54,7 +54,14 @@ export default class Right extends Component<RightProps, RightState> {
                     <div>
                         <div style={{ marginBottom: "20px" }}>
                             <div>Name</div>
-                            <Input placeholder="Name" value={s.name} style={{ width: "100%" }} />
+                            <Input
+                                onChange={(value: string) => {
+                                    this.setState({ name: value });
+                                }}
+                                placeholder="Name"
+                                value={s.name}
+                                style={{ width: "100%" }}
+                            />
                         </div>
                         <div style={{ marginBottom: "20px" }}>
                             <div>Keywords</div>
