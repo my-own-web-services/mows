@@ -1,9 +1,9 @@
 import { Component, createRef } from "preact";
-import { ReducedFilezFile } from "../../types";
+import { FilezFile } from "../../types";
 import "./Audio.scss";
 
 interface AudioProps {
-    readonly file: ReducedFilezFile;
+    readonly file: FilezFile;
 }
 interface AudioState {}
 export default class Audio extends Component<AudioProps, AudioState> {

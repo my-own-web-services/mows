@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import { G } from "../../../App";
-import { ReducedFilezFile } from "../../../types";
+import { FilezFile } from "../../../types";
 import "./Center.scss";
 import SelectView from "./components/selectView/SelectView";
 import Grid from "./components/views/grid/GridView";
@@ -17,7 +17,7 @@ export enum View {
 
 interface CenterProps {
     readonly g: G;
-    readonly files: ReducedFilezFile[];
+    readonly files: FilezFile[];
     readonly selectedView: View;
     readonly columns: number;
 }

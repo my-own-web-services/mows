@@ -4,7 +4,7 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 
 import "./GridView.scss";
-import { ReducedFilezFile } from "../../../../../../types";
+import { FilezFile } from "../../../../../../types";
 import { CSSProperties } from "preact/compat";
 import GridRow from "./GridRow";
 import { G } from "../../../../../../App";
@@ -13,7 +13,7 @@ import Center, { View } from "../../../Center";
 import InfiniteLoader from "react-window-infinite-loader";
 
 interface GridViewProps {
-    readonly files: ReducedFilezFile[];
+    readonly files: FilezFile[];
     readonly g: G;
     readonly columns: number;
     readonly scrollPos: number;

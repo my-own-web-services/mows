@@ -3,27 +3,23 @@ export interface FilezFile {
     mimeType: string;
     name: string;
     ownerId: string;
+    pendingNewOwnerId: string | null;
     sha256: string;
-    storageName: string;
+    storageId: string | null;
+    path: string | null;
     size: number;
     serverCreated: number;
     created: number;
-    modified?: number;
-    accessed?: number;
+    modified: number | null;
+    accessed: number | null;
     accessedCount: number;
-    fileManualGroupIds: string[];
-    timeOfDeath?: number;
+    staticFileGroupIds: string[];
+    dynamicFileGroupIds: string[];
+    timeOfDeath: number | null;
     appData: { [key: string]: string };
     permissionIds: string[];
     keywords: string[];
     readonly: boolean;
-}
-
-export interface ReducedFilezFile {
-    _id: string;
-    mimeType: string;
-    name: string;
-    size: number;
 }
 
 export interface FileGroup {
@@ -50,4 +46,20 @@ export enum FileView {
     Group = "Group",
     Single = "Single",
     Sheets = "Sheets"
+}
+
+export interface FilezUser {
+    _id: string;
+    appData: { [key: string]: any };
+    limits: { [key: string]: UsageLimits };
+    userGroupIds: string[];
+}
+
+export interface UsageLimits {
+    maxStorage: number;
+    usedStorage: number;
+    maxFiles: number;
+    usedFiles: number;
+    maxBandwidth: number;
+    usedBandwidth: number;
 }

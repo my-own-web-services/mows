@@ -1,14 +1,14 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 import { G } from "../../../../../../App";
-import { FileView, ReducedFilezFile } from "../../../../../../types";
+import { FileView, FilezFile } from "../../../../../../types";
 import GroupOrFileItem from "../../../../../groupOrFile/GroupOrFileItem";
 import "./GridRow.scss";
 
 interface GridRowProps {
     readonly style: CSSProperties;
     readonly rowIndex: number;
-    readonly files: ReducedFilezFile[];
+    readonly files: FilezFile[];
     readonly columns: number;
     readonly g: G;
 }

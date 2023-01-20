@@ -1,9 +1,9 @@
 import { Component } from "preact";
-import { ReducedFilezFile } from "../../types";
+import { FilezFile } from "../../types";
 import "./Text.scss";
 
 interface TextProps {
-    readonly file: ReducedFilezFile;
+    readonly file: FilezFile;
 }
 interface TextState {
     readonly textContent: string;

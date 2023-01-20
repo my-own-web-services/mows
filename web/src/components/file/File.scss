@@ -2,6 +2,16 @@
     overflow: hidden;
     height: 100%;
     width: 100%;
+    &.FileGrid,
+    &.FileStrip {
+        border: 1px solid #343434;
+        border-top: 0px;
+        border-left: 0px;
+    }
+    .fileName {
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
 
     div.hover {
         height: 100%;

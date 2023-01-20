@@ -1,13 +1,13 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 import { G } from "../../../../../../App";
-import { FileView, ReducedFilezFile } from "../../../../../../types";
+import { FileView, FilezFile } from "../../../../../../types";
 import GroupOrFileItem from "../../../../../groupOrFile/GroupOrFileItem";
 import "./ListViewRow.scss";
 
 interface ListViewRowProps {
     readonly style: CSSProperties;
-    readonly file: ReducedFilezFile;
+    readonly file: FilezFile;
     readonly g: G;
 }
 interface ListViewRowState {}

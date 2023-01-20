@@ -4,11 +4,11 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
 import InfiniteLoader from "react-window-infinite-loader";
 import { G } from "../../../App";
-import { ReducedFilezFile } from "../../../types";
+import { FilezFile } from "../../../types";
 import ListItem from "./ListItem";
 
 interface VerticalListProps {
-    readonly files: ReducedFilezFile[];
+    readonly files: FilezFile[];
     readonly g: G;
 }
 

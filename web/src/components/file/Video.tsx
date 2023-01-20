@@ -1,9 +1,9 @@
 import { Component, createRef } from "preact";
-import { ReducedFilezFile } from "../../types";
+import { FilezFile } from "../../types";
 import "./Video.scss";
 
 interface VideoProps {
-    readonly file: ReducedFilezFile;
+    readonly file: FilezFile;
 }
 interface VideoState {}
 export default class Video extends Component<VideoProps, VideoState> {

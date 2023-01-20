@@ -1,3 +1,4 @@
+import "rsuite/styles/index.less";
 import { Component } from "preact";
 import Panels from "./components/panels/Panels";
 import "@fontsource/inter/500.css";
@@ -6,19 +7,19 @@ import Center, { View } from "./components/panels/center/Center";
 import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
 import { CustomProvider } from "rsuite";
-import { FileView, ReducedFilezFile } from "./types";
+import { FileView, FilezFile } from "./types";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { DndProvider } from "react-dnd";
 import update from "immutability-helper";
 import { JSXInternal } from "preact/src/jsx";
 import { convertFileGroups, VisualFileGroup } from "./utils/convertFileGroups";
 import { FilezClient } from "./utils/filezClient";
-import "rsuite/styles/index.less";
+
 import "preact/debug";
 
 interface AppProps {}
 interface AppState {
-    readonly files: ReducedFilezFile[];
+    readonly files: FilezFile[];
     readonly fileGroups: VisualFileGroup[];
     readonly g: G;
     readonly selectedCenterView: View;
@@ -27,9 +28,9 @@ interface AppState {
 }
 
 export interface G {
-    readonly selectedFiles: ReducedFilezFile[];
+    readonly selectedFiles: FilezFile[];
     readonly selectedGroups: VisualFileGroup[];
-    readonly selectedFile: ReducedFilezFile | null;
+    readonly selectedFile: FilezFile | null;
     readonly selectedGroup: VisualFileGroup | null;
     readonly filezClient: FilezClient;
     readonly fn: Fn;
@@ -89,7 +90,7 @@ export default class App extends Component<AppProps, AppState> {
     };
 
     itemClick = (
-        item: ReducedFilezFile | VisualFileGroup,
+        item: FilezFile | VisualFileGroup,
         isSelected: boolean,
         e: JSXInternal.TargetedMouseEvent<any>
     ) => {
@@ -110,14 +111,14 @@ export default class App extends Component<AppProps, AppState> {
             } else {
                 this.setState(state => {
                     return update(state, {
-                        g: { selectedFiles: { $set: [item as ReducedFilezFile] } }
+                        g: { selectedFiles: { $set: [item as FilezFile] } }
                     });
                 });
             }
         }
     };
 
-    selectItem = (item: ReducedFilezFile | VisualFileGroup) => {
+    selectItem = (item: FilezFile | VisualFileGroup) => {
         if (item.hasOwnProperty("clientId")) {
             this.setState(state => {
                 return update(state, {
@@ -127,7 +128,7 @@ export default class App extends Component<AppProps, AppState> {
         } else {
             this.setState(state => {
                 return update(state, {
-                    g: { selectedFiles: { $push: [item as ReducedFilezFile] } }
+                    g: { selectedFiles: { $push: [item as FilezFile] } }
                 });
             });
         }
@@ -177,7 +178,7 @@ export default class App extends Component<AppProps, AppState> {
         this.setState({ gridColumns: columns });
     };
 
-    deselectItem = (item: ReducedFilezFile | VisualFileGroup) => {
+    deselectItem = (item: FilezFile | VisualFileGroup) => {
         if (item.hasOwnProperty("clientId")) {
             this.setState(state => {
                 return update(state, {
@@ -196,7 +197,7 @@ export default class App extends Component<AppProps, AppState> {
                     g: {
                         selectedFiles: {
                             $set: state.g.selectedFiles.filter(
-                                f => f._id !== (item as ReducedFilezFile)._id
+                                f => f._id !== (item as FilezFile)._id
                             )
                         }
                     }
@@ -254,7 +255,7 @@ export default class App extends Component<AppProps, AppState> {
         }
     };
 
-    fileDoubleClick = (file: ReducedFilezFile, clickOrigin: FileView) => {
+    fileDoubleClick = (file: FilezFile, clickOrigin: FileView) => {
         this.setState(state => {
             state = update(state, {
                 g: {

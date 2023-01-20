@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import { G } from "../../App";
-import { FileView, ReducedFilezFile } from "../../types";
+import { FileView, FilezFile } from "../../types";
 import { displayBytes } from "../../utils/bytes";
 import { DraggableItem } from "../drag/DraggableItem";
 import Audio from "./Audio";
@@ -10,7 +10,7 @@ import Text from "./Text";
 import Video from "./Video";
 
 interface FileProps {
-    readonly file: ReducedFilezFile;
+    readonly file: FilezFile;
     readonly g: G;
     readonly isSelected?: boolean;
     readonly viewType: FileView;
@@ -28,7 +28,7 @@ export default class File extends Component<FileProps, FileState> {
 
                     this.props.g.fn.fileDoubleClick(f, vt);
                 }}
-                className={`File${this.props.isSelected ? " selected" : ""}`}
+                className={`File${this.props.isSelected ? " selected" : ""} File${vt}`}
             >
                 {(() => {
                     if (vt === FileView.Strip || vt === FileView.Grid) {
@@ -37,7 +37,9 @@ export default class File extends Component<FileProps, FileState> {
                                 <div
                                     className={`hover ${this.props.isSelected ? " selected" : ""}`}
                                 >
-                                    <div style={{ height: "20px" }}>{f.name.substring(0, 10)}</div>
+                                    <div className="fileName" style={{ height: "20px" }}>
+                                        {f.name}
+                                    </div>
                                     <div style={{ height: "calc(100% - 20px)" }}>
                                         {f.mimeType.startsWith("image/") ? (
                                             <Image file={this.props.file}></Image>
@@ -52,8 +54,11 @@ export default class File extends Component<FileProps, FileState> {
                                 <div
                                     className={`hover ${this.props.isSelected ? " selected" : ""}`}
                                 >
-                                    <div style={{ width: "350px", float: "left" }}>
-                                        {f.name.substring(0, 40)}
+                                    <div
+                                        className="fileName"
+                                        style={{ width: "350px", float: "left" }}
+                                    >
+                                        {f.name}
                                     </div>
                                     <div style={{ width: "200px", float: "left" }}>
                                         {f.mimeType}
@@ -65,7 +70,7 @@ export default class File extends Component<FileProps, FileState> {
                             </DraggableItem>
                         );
                     } else if (vt === FileView.Group) {
-                        return <div>{f.name.substring(0, 10)}</div>;
+                        return <div className="fileName">{f.name}</div>;
                     } else if (vt === FileView.Single) {
                         return (() => {
                             if (f.mimeType.startsWith("image/")) {
@@ -79,7 +84,7 @@ export default class File extends Component<FileProps, FileState> {
                             }
                         })();
                     } else if (vt === FileView.Sheets) {
-                        return <div>{f.name.substring(0, 10)}</div>;
+                        return <div className="fileName">{f.name}</div>;
                     } else {
                         return <div>Unknown view</div>;
                     }

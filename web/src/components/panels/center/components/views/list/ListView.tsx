@@ -3,7 +3,7 @@ import "./ListView.scss";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 import { CSSProperties } from "preact/compat";
-import { ReducedFilezFile } from "../../../../../../types";
+import { FilezFile } from "../../../../../../types";
 import ListViewRow from "./ListViewRow";
 import { G } from "../../../../../../App";
 import { DraggableTarget } from "../../../../../drag/DraggableTarget";
@@ -11,7 +11,7 @@ import Center, { View } from "../../../Center";
 import InfiniteLoader from "react-window-infinite-loader";
 
 interface ListProps {
-    readonly files: ReducedFilezFile[];
+    readonly files: FilezFile[];
     readonly g: G;
     readonly scrollPos: number;
     readonly updateScrollPos: Center["updateScrollPos"];
