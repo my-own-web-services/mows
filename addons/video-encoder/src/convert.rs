@@ -1,34 +1,44 @@
 use std::process::Command;
 
-pub async fn convert(source_path: &str, target_folder: &str, file_id: &str) -> anyhow::Result<()> {
-    let video_quality = 30;
-    let video_targets = vec![360];
-    let threads = 4;
+use crate::{config::CONFIG, utils::get_folder_and_file_path};
 
-    let target_folder = if target_folder.ends_with("/") {
-        format!("{target_folder}{file_id}/",)
-    } else {
-        format!("{target_folder}/{file_id}/")
-    };
+pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> anyhow::Result<()> {
+    let config = &CONFIG;
+    let video_quality = config.video.quality;
+    let mut video_targets = config.video.target_resolutions.clone();
+    video_targets.sort();
+    let cores = 5;
 
-    std::fs::create_dir_all(format!("{target_folder}t"))?;
+    let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
 
-    let mut frames_command = Command::new("ffprobe");
-    frames_command
-        .arg("-v")
-        .arg("error")
-        .arg("-select_streams")
-        .arg("v:0")
-        .arg("-count_packets")
-        .arg("-show_entries")
-        .arg("stream=nb_read_packets")
-        .arg("-of")
-        .arg("csv=p=0")
-        .arg(source_path);
+    let path = format!("{folder_path}/{file_name}/");
 
-    let output = frames_command.output()?.stdout;
-    let frame_count_str = std::str::from_utf8(&output)?.trim();
-    let frame_count: f64 = frame_count_str.parse()?;
+    std::fs::create_dir_all(format!("{path}t"))?;
+
+    let mut resolution_command = Command::new("ffprobe");
+
+    resolution_command.args(&[
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height",
+        "-of",
+        "csv=s=x:p=0",
+        source_path,
+    ]);
+
+    let output = resolution_command.output()?.stdout;
+    let resolution_str = std::str::from_utf8(&output)?.trim();
+    let resolution: Vec<&str> = resolution_str.split("x").collect();
+    let height: u16 = resolution[1].parse()?;
+
+    // dont create videos that are larger than the source
+    let video_targets = video_targets
+        .iter()
+        .filter(|&&target| target <= height)
+        .collect::<Vec<_>>();
 
     let mut video_length_command = Command::new("ffprobe");
 
@@ -52,40 +62,28 @@ pub async fn convert(source_path: &str, target_folder: &str, file_id: &str) -> a
         .arg("-y")
         .arg("-i")
         .arg(source_path)
-        .arg("-c:v")
-        .arg("libsvtav1")
-        .arg("-row-mt")
-        .arg("1")
-        .arg("-keyint_min")
-        .arg("150")
-        .arg("-g")
-        .arg("150")
-        .arg("-tile-columns")
-        .arg("4")
-        .arg("-frame-parallel")
-        .arg("1")
         .arg("-dash")
         .arg("1")
         .arg("-f")
-        .arg("webm")
-        .arg("-threads")
-        .arg(threads.to_string());
+        .arg("webm");
 
     for video_target in &video_targets {
         video_command
             .arg("-an")
             .arg("-vf")
             .arg(format!("scale=-1:{video_target}"))
+            .arg("-c:v")
+            .arg("libsvtav1")
             .arg("-b:v")
             .arg("0")
             .arg("-crf")
             .arg(video_quality.to_string())
             .arg("-dash")
             .arg("1")
-            .arg(format!("{target_folder}{video_target}.webm"));
+            .arg(format!("{path}{video_target}.webm"));
     }
 
-    //video_command.spawn()?.wait()?;
+    video_command.spawn()?.wait()?;
 
     let mut audio_command = Command::new("ffmpeg");
 
@@ -103,7 +101,7 @@ pub async fn convert(source_path: &str, target_folder: &str, file_id: &str) -> a
         .arg("webm")
         .arg("-dash")
         .arg("1")
-        .arg(format!("{target_folder}audio.webm"));
+        .arg(format!("{path}audio.webm"));
 
     let audio_result = audio_command.spawn()?.wait();
 
@@ -120,7 +118,7 @@ pub async fn convert(source_path: &str, target_folder: &str, file_id: &str) -> a
             .arg("-f")
             .arg("webm_dash_manifest")
             .arg("-i")
-            .arg(format!("{target_folder}{video_target}.webm"));
+            .arg(format!("{path}{video_target}.webm"));
         video_adaption_sets += format!("{},", i).as_str();
         all_targets += 1;
     }
@@ -131,7 +129,7 @@ pub async fn convert(source_path: &str, target_folder: &str, file_id: &str) -> a
                 .arg("-f")
                 .arg("webm_dash_manifest")
                 .arg("-i")
-                .arg(format!("{target_folder}audio.webm"));
+                .arg(format!("{path}audio.webm"));
             audio_adaption_sets += format!("{},", video_targets.len()).as_str();
 
             all_targets += 1;
@@ -158,7 +156,7 @@ pub async fn convert(source_path: &str, target_folder: &str, file_id: &str) -> a
         .arg("webm_dash_manifest")
         .arg("-adaptation_sets")
         .arg(adaption_sets)
-        .arg(format!("{target_folder}manifest.mpd"));
+        .arg(format!("{path}manifest.mpd"));
 
     manifest_command.spawn()?.wait()?;
 
@@ -177,7 +175,7 @@ pub async fn convert(source_path: &str, target_folder: &str, file_id: &str) -> a
         .arg("libwebp")
         .arg("-vf")
         .arg(format!("scale=-1:480,fps=1/{a}"))
-        .arg(format!("{target_folder}t/%d.webp"));
+        .arg(format!("{path}t/%d.webp"));
 
     thumbnail_command.spawn()?.wait()?;
 

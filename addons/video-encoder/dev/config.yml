@@ -1,0 +1,19 @@
+variablePrefix: "$"
+
+# time between database request for new videos to convert if the last request did not return a file
+timeoutSeconds: 5
+
+storagePath: ./tests/storage/
+
+db:
+    url: mongodb://root:root@localhost:27017
+
+video:
+    # 0 is uncompressed 63 is worst
+    quality: 40
+    # target video heights
+    targetResolutions:
+        - 360
+        - 720
+        - 1080
+        - 2160
