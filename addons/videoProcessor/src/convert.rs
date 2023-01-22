@@ -7,7 +7,6 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     let video_quality = config.video.quality;
     let mut video_targets = config.video.target_resolutions.clone();
     video_targets.sort();
-    let cores = 5;
 
     let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
 
@@ -55,9 +54,12 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     let video_length_str = std::str::from_utf8(&output)?.trim();
     let video_length: f64 = video_length_str.parse()?;
 
-    let mut video_command = Command::new("ffmpeg");
+    let mut video_command = Command::new("nice");
 
     video_command
+        .arg("-n")
+        .arg("19")
+        .arg("./ffmpeg")
         .arg("-hide_banner")
         .arg("-y")
         .arg("-i")
@@ -73,10 +75,10 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
             .arg("-vf")
             .arg(format!("scale=-1:{video_target}"))
             .arg("-c:v")
-            .arg("libsvtav1")
-            .arg("-b:v")
+            .arg("libsvt_vp9")
+            .arg("-rc")
             .arg("0")
-            .arg("-crf")
+            .arg("-qp")
             .arg(video_quality.to_string())
             .arg("-dash")
             .arg("1")
@@ -181,6 +183,8 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
 
     Ok(())
 }
+
+// switch back to using av1 as soon as it works with dash
 
 /*
   // pack all files into an archive

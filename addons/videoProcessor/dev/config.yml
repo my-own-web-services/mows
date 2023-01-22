@@ -10,10 +10,11 @@ db:
 
 video:
     # 0 is uncompressed 63 is worst
-    quality: 40
+    quality: 35
     # target video heights
     targetResolutions:
         - 360
+        - 480
         - 720
         - 1080
         - 2160

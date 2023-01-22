@@ -5,7 +5,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     some_or_bail,
-    utils::{check_auth, get_folder_and_file_path, get_query_item},
+    utils::{check_auth, get_folder_and_file_path},
 };
 use anyhow::bail;
 use hyper::{Body, Request, Response};

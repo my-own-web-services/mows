@@ -21,6 +21,7 @@ interface RightState {
     readonly availableStorage: string[] | null;
     readonly mimeType: string;
     readonly readonly: boolean;
+    readonly id: string;
 }
 export default class Right extends Component<RightProps, RightState> {
     componentDidMount = () => {
@@ -52,7 +53,8 @@ export default class Right extends Component<RightProps, RightState> {
                 ownerId: f.ownerId,
                 storageId: f.storageId,
                 mimeType: f.mimeType,
-                readonly: f.readonly
+                readonly: f.readonly,
+                id: f._id
             });
         }
     };
@@ -176,6 +178,10 @@ export default class Right extends Component<RightProps, RightState> {
                         </div>
                         <div>
                             <div>Owner</div>
+                        </div>
+                        <div>
+                            <div>ID</div>
+                            <div>{this.state.id}</div>
                         </div>
                     </>
                 )}
