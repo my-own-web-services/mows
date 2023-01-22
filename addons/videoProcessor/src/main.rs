@@ -1,7 +1,7 @@
 use mongodb::options::ClientOptions;
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
-use video_encoder::{config::CONFIG, convert::convert, db::DB};
+use video_processor::{config::CONFIG, convert::convert, db::DB};
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]

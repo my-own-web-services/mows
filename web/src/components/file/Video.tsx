@@ -15,15 +15,31 @@ export default class Video extends Component<VideoProps, VideoState> {
         }
     };
 
+    componentDidMount = async () => {
+        // @ts-ignore
+        await import("/node_modules/dashjs/dist/dash.all.debug.js");
+
+        if (this.videoRef.current) {
+            // @ts-ignore
+            const player = dashjs.MediaPlayer().create();
+            player.updateSettings({
+                debug: {
+                    logLevel: dashjs.Debug.LOG_LEVEL_DEBUG // turns off console logging
+                }
+            });
+            player.initialize(
+                this.videoRef.current,
+                `/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`,
+
+                true
+            );
+        }
+    };
+
     render = () => {
         return (
             <div className="Video">
-                <video ref={this.videoRef} controls>
-                    <source
-                        src={`/api/get_file/${this.props.file._id}`}
-                        type={this.props.file.mimeType}
-                    />
-                </video>
+                <video data-dashjs-player ref={this.videoRef} controls></video>
             </div>
         );
     };

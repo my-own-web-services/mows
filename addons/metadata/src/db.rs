@@ -16,6 +16,26 @@ impl DB {
         Ok(Self { client, db })
     }
 
+    pub async fn dev_clear_metadata_app_data(&self) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezFile>("files");
+        collection
+            .update_many(
+                doc! {
+                    "appData.metadata": {
+                        "$exists": true
+                    }
+                },
+                doc! {
+                    "$unset": {
+                        "appData.metadata": ""
+                    }
+                },
+                None,
+            )
+            .await?;
+        Ok(())
+    }
+
     pub async fn get_unscanned(&self) -> anyhow::Result<Vec<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
         let mut cursor = collection

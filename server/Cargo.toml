@@ -27,7 +27,8 @@ sha2 = {version="0.10.6"}
 hex = "0.4"
 chrono="0.4.22"
 rand="0.8.5"
-hyper-staticfile = "0.9.1"
+hyper-staticfile = { path="/home/paul/Documents/hyper-staticfile"}
+http-range="0.1.5"
 qstring="0.7.2"
 
 jsonwebtoken = "8"

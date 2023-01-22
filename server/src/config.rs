@@ -53,6 +53,13 @@ pub struct ServerConfig {
     #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
     pub readonly_mount: HashMap<String, ReadonlyMountConfig>,
     pub service_id: String,
+    pub app_storage: AppStorage,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AppStorage {
+    pub path: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -89,12 +96,13 @@ pub struct DbConfig {
     pub url: String,
 }
 
+/**
+A storage location: either to seperate files onto different drives or because of speed or type
+*/
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct StorageConfig {
     pub path: String,
-    /**
-    A storage location: either to seperate files onto different drives or because of speed or type
-    */
+
     pub limit: Option<u64>,
 }

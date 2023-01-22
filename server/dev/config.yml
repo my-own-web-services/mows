@@ -8,6 +8,9 @@ storage:
 
 defaultStorage: ssd
 
+appStorage:
+    path: /home/paul/Documents/filez/addons/videoProcessor/tests/appStorage
+
 http:
     internalAddress: "[::]:8080"
 

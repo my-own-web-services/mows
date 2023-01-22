@@ -8,6 +8,7 @@ import "./File.scss";
 import Image from "./Image";
 import Text from "./Text";
 import Video from "./Video";
+import VideoPreview from "./VideoPreview";
 
 interface FileProps {
     readonly file: FilezFile;
@@ -43,6 +44,9 @@ export default class File extends Component<FileProps, FileState> {
                                     <div style={{ height: "calc(100% - 20px)" }}>
                                         {f.mimeType.startsWith("image/") ? (
                                             <Image file={this.props.file}></Image>
+                                        ) : null}
+                                        {f.mimeType.startsWith("video/") ? (
+                                            <VideoPreview file={this.props.file}></VideoPreview>
                                         ) : null}
                                     </div>
                                 </div>

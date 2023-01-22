@@ -45,8 +45,6 @@ export default class Right extends Component<RightProps, RightState> {
     };
     setF = (f?: FilezFile) => {
         if (f !== undefined) {
-            console.log("setF", f);
-
             this.setState({
                 name: f.name,
                 keywords: f.keywords,
