@@ -1,7 +1,6 @@
-use std::{collections::HashMap, process::Command};
-
 use anyhow::{bail, Ok};
 use serde_json::Value;
+use std::{collections::HashMap, process::Command};
 
 pub async fn get_metadata_exiftool(path: &str) -> anyhow::Result<HashMap<String, Value>> {
     let output = Command::new("./Image-ExifTool-12.55/exiftool")
@@ -18,17 +17,7 @@ pub async fn get_metadata_exiftool(path: &str) -> anyhow::Result<HashMap<String,
     match map.get("Error") {
         Some(e) => bail!("{}", e),
         None => {
-            let rm = vec![
-                "FilePermissions",
-                "Directory",
-                "SourceFile",
-                "FileName",
-                "RedTRC",
-                "GreenTRC",
-                "BlueTRC",
-                "PhotoshopThumbnail",
-                "ThumbnailImage",
-            ];
+            let rm = vec!["FilePermissions", "Directory", "SourceFile", "FileName"];
             for k in rm {
                 map.remove(k);
             }

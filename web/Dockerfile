@@ -8,5 +8,6 @@ RUN yarn build
 
 # 1. execution stage
 FROM pektin/feoco
-COPY --from=build-stage /app/build/ /public/
+COPY --from=build-stage /app/dist/ /public/
 COPY server/config.yml /
+EXPOSE 80

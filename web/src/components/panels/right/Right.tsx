@@ -182,6 +182,13 @@ export default class Right extends Component<RightProps, RightState> {
                         <div>
                             <div>ID</div>
                             <div>{this.state.id}</div>
+                            <button
+                                onClick={() => {
+                                    console.log(this.props.g.selectedFiles[0]);
+                                }}
+                            >
+                                Log file
+                            </button>
                         </div>
                     </>
                 )}

@@ -8,6 +8,7 @@ interface ImageState {}
 export default class Image extends Component<ImageProps, ImageState> {
     render = () => {
         const f = this.props.file;
+        return;
         return (
             <div className="Image">
                 <img loading={"lazy"} src={`/api/get_file/${f._id}`} />

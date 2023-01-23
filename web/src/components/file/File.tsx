@@ -4,6 +4,7 @@ import { FileView, FilezFile } from "../../types";
 import { displayBytes } from "../../utils/bytes";
 import { DraggableItem } from "../drag/DraggableItem";
 import Audio from "./Audio";
+import AudioPreview from "./AudioPreview";
 import "./File.scss";
 import Image from "./Image";
 import Text from "./Text";
@@ -47,6 +48,9 @@ export default class File extends Component<FileProps, FileState> {
                                         ) : null}
                                         {f.mimeType.startsWith("video/") ? (
                                             <VideoPreview file={this.props.file}></VideoPreview>
+                                        ) : null}
+                                        {f.mimeType.startsWith("audio/") ? (
+                                            <AudioPreview file={this.props.file}></AudioPreview>
                                         ) : null}
                                     </div>
                                 </div>

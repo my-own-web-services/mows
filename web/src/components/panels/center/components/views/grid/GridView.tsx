@@ -66,7 +66,9 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                                     loadMoreItems={(startIndex, stopIndex) => {
                                         return this.props.g.fn.loadMoreFiles(
                                             startIndex * this.props.columns,
-                                            stopIndex * this.props.columns
+                                            stopIndex * this.props.columns -
+                                                startIndex * this.props.columns +
+                                                this.props.columns
                                         );
                                     }}
                                     threshold={10}

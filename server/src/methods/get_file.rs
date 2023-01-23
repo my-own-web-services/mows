@@ -5,7 +5,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     some_or_bail,
-    utils::{check_auth, get_folder_and_file_path},
+    utils::{check_auth, get_folder_and_file_path, get_range},
 };
 use anyhow::bail;
 use hyper::{Body, Request, Response};
@@ -61,39 +61,6 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
         Err(e) => bail!(e),
     }
 
-    let range = req
-        .headers()
-        .get("Range")
-        .map(|h| h.to_str().unwrap_or("").to_string());
-
-    let range = match range {
-        Some(r) => {
-            let parts = r.split("=").collect::<Vec<_>>();
-            if parts.len() != 2 {
-                bail!("Invalid range");
-            }
-            let range_type = parts[0];
-            let range = parts[1];
-            if range_type != "bytes" {
-                bail!("Invalid range type");
-            }
-            let range_parts = range.split("-").collect::<Vec<_>>();
-            if range_parts.len() != 2 {
-                bail!("Invalid range");
-            }
-            let start = range_parts[0].parse::<u64>()?;
-            let end = range_parts[1].parse::<u64>()?;
-            HttpRange {
-                start,
-                length: end - start + 1,
-            }
-        }
-        None => HttpRange {
-            start: 0,
-            length: 100000000000,
-        },
-    };
-
     match app_file {
         Some(af) => {
             let (folder_path, file_name) = get_folder_and_file_path(&file_id, &af.0);
@@ -102,12 +69,14 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
                 .join(folder_path)
                 .join(&file_name)
                 .join(&af.1);
-
-            //dbg!(&p);
-
             let file_handle = tokio::fs::File::open(&p).await?;
-            let b = hyper_staticfile::FileBytesStreamRange::new(file_handle, range);
-            let body = Body::wrap_stream(b);
+
+            let body = match get_range(&req) {
+                Ok(r) => {
+                    Body::wrap_stream(hyper_staticfile::FileBytesStreamRange::new(file_handle, r))
+                }
+                Err(_) => Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle)),
+            };
 
             let mime_type = mime_guess::from_path(&af.1)
                 .first_or_octet_stream()
@@ -115,7 +84,7 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
             Ok(Response::builder()
                 .status(200)
                 .header("Content-Type", mime_type)
-                //.header("Cache-Control", "public, max-age=31536000")
+                .header("Cache-Control", "public, max-age=31536000")
                 .body(body)
                 .unwrap())
         }

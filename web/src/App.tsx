@@ -232,17 +232,18 @@ export default class App extends Component<AppProps, AppState> {
         }
     };
 
-    loadMoreFiles = async (startIndex: number, stopIndex: number) => {
+    loadMoreFiles = async (startIndex: number, limit: number) => {
         const group = this.state.g.selectedGroup;
         const groupIndex = group?.fileGroup?._id;
         //        console.log("loadMoreFiles", startIndex, stopIndex, groupIndex);
 
         if (groupIndex && this.moreFilesLoading === false) {
             this.moreFilesLoading = true;
+
             const newFiles = await this.state.g.filezClient.get_file_infos_by_group_id(
                 groupIndex,
                 startIndex,
-                stopIndex - startIndex
+                limit
             );
             this.moreFilesLoading = false;
 

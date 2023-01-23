@@ -1,4 +1,4 @@
-use crate::types::FilezFile;
+use crate::{image_processor_types::ProcessedImage, types::FilezFile};
 use mongodb::{bson::doc, options::ClientOptions, Client, Database};
 
 pub struct DB {
@@ -13,18 +13,18 @@ impl DB {
         Ok(Self { client, db })
     }
 
-    pub async fn dev_clear_video_processor_app_data(&self) -> anyhow::Result<()> {
+    pub async fn dev_clear_image_processor_app_data(&self) -> anyhow::Result<()> {
         let collection = self.db.collection::<FilezFile>("files");
         collection
             .update_many(
                 doc! {
-                    "appData.videoProcessor": {
+                    "appData.imageProcessor": {
                         "$exists": true
                     }
                 },
                 doc! {
                     "$unset": {
-                        "appData.videoProcessor": ""
+                        "appData.imageProcessor": ""
                     }
                 },
                 None,
@@ -33,7 +33,7 @@ impl DB {
         Ok(())
     }
 
-    pub async fn get_video_for_processing(&self) -> anyhow::Result<Option<FilezFile>> {
+    pub async fn get_file_for_processing(&self) -> anyhow::Result<Option<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
 
         let current_time = chrono::offset::Utc::now().timestamp_millis();
@@ -44,11 +44,11 @@ impl DB {
                     "$and":[
                         {
                             "mimeType":{
-                                "$regex": "^video/"
+                                "$regex": "^(image|audio)/"
                             }
                         },
                         {
-                            "appData.videoProcessor.status": {
+                            "appData.imageProcessor.status": {
                                 "$exists": false
                             }
                         }
@@ -56,8 +56,8 @@ impl DB {
                 },
                 doc! {
                     "$set": {
-                        "appData.videoProcessor.status": "processing",
-                        "appData.videoProcessor.startedAt": current_time
+                        "appData.imageProcessor.status": "processing",
+                        "appData.imageProcessor.startedAt": current_time
                     }
                 },
                 None,
@@ -67,10 +67,11 @@ impl DB {
         Ok(file)
     }
 
-    pub async fn update_video_processing_status(
+    pub async fn update_image_processing_status(
         &self,
         file_id: &str,
-        error: Option<String>,
+        error: &Option<String>,
+        result: &Option<ProcessedImage>,
     ) -> anyhow::Result<()> {
         let collection = self.db.collection::<FilezFile>("files");
 
@@ -81,9 +82,10 @@ impl DB {
                 doc! { "_id": file_id },
                 doc! {
                     "$set": {
-                        "appData.videoProcessor.status": "finished",
-                        "appData.videoProcessor.finishedAt": current_time,
-                        "appData.videoProcessor.error": error
+                        "appData.imageProcessor.status": "finished",
+                        "appData.imageProcessor.finishedAt": current_time,
+                        "appData.imageProcessor.error": error,
+                        "appData.imageProcessor.result": bson::to_bson(&result)?,
                     }
                 },
                 None,

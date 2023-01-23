@@ -16,7 +16,7 @@ export interface FilezFile {
     staticFileGroupIds: string[];
     dynamicFileGroupIds: string[];
     timeOfDeath: number | null;
-    appData: { [key: string]: string };
+    appData: { [key: string]: any };
     permissionIds: string[];
     keywords: string[];
     readonly: boolean;
@@ -62,4 +62,11 @@ export interface UsageLimits {
     usedFiles: number;
     maxBandwidth: number;
     usedBandwidth: number;
+}
+
+export interface ProcessedImage {
+    mimeType: string;
+    width: number;
+    height: number;
+    resolutions: number[];
 }

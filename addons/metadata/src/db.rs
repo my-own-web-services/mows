@@ -1,4 +1,4 @@
-use crate::types::FilezFile;
+use crate::{metadata_types::Metadata, types::FilezFile};
 use futures::TryStreamExt;
 use mongodb::{bson::doc, options::ClientOptions, results::UpdateResult, Client, Database};
 use serde_json::Value;
@@ -39,7 +39,7 @@ impl DB {
     pub async fn get_unscanned(&self) -> anyhow::Result<Vec<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
         let mut cursor = collection
-            .find(doc! {"appData.metadata.data":{"$exists":false}}, None)
+            .find(doc! {"appData.metadata":{"$exists":false}}, None)
             .await?;
 
         let mut files = Vec::new();
@@ -50,16 +50,12 @@ impl DB {
         Ok(files)
     }
 
-    pub async fn update_file(
-        &self,
-        file_id: &str,
-        data: HashMap<String, Value>,
-    ) -> anyhow::Result<UpdateResult> {
+    pub async fn update_file(&self, file_id: &str, data: Metadata) -> anyhow::Result<UpdateResult> {
         let collection = self.db.collection::<FilezFile>("files");
         Ok(collection
             .update_one(
                 doc! {"_id":file_id},
-                doc! {"$set":{"appData.metadata.data":bson::to_bson(&data)?}},
+                doc! {"$set":{"appData.metadata":bson::to_bson(&data)?}},
                 None,
             )
             .await?)

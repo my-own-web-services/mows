@@ -33,13 +33,18 @@ export default class List extends Component<ListProps, ListState> {
                                 <InfiniteLoader
                                     isItemLoaded={index => this.props.files[index] !== undefined}
                                     itemCount={itemCount}
-                                    loadMoreItems={this.props.g.fn.loadMoreFiles}
-                                    threshold={20}
+                                    loadMoreItems={(startIndex, endIndex) =>
+                                        this.props.g.fn.loadMoreFiles(
+                                            startIndex,
+                                            endIndex - startIndex + 1
+                                        )
+                                    }
+                                    threshold={100}
                                     minimumBatchSize={40}
                                 >
                                     {({ onItemsRendered, ref }) => (
                                         <FixedSizeList
-                                            overscanCount={20}
+                                            overscanCount={100}
                                             itemSize={20}
                                             height={height}
                                             itemCount={itemCount}

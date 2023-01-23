@@ -1,6 +1,5 @@
-use std::process::Command;
-
 use crate::{config::CONFIG, utils::get_folder_and_file_path};
+use std::process::Command;
 
 pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> anyhow::Result<()> {
     let config = &CONFIG;
@@ -30,7 +29,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
 
     let output = resolution_command.output()?.stdout;
     let resolution_str = std::str::from_utf8(&output)?.trim();
-    let resolution: Vec<&str> = resolution_str.split("x").collect();
+    let resolution: Vec<&str> = resolution_str.split('x').collect();
     let height: u16 = resolution[1].parse()?;
 
     // dont create videos that are larger than the source
@@ -125,19 +124,16 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         all_targets += 1;
     }
 
-    match audio_result {
-        Ok(_) => {
-            manifest_command
-                .arg("-f")
-                .arg("webm_dash_manifest")
-                .arg("-i")
-                .arg(format!("{path}audio.webm"));
-            audio_adaption_sets += format!("{},", video_targets.len()).as_str();
+    if audio_result.is_ok() {
+        manifest_command
+            .arg("-f")
+            .arg("webm_dash_manifest")
+            .arg("-i")
+            .arg(format!("{path}audio.webm"));
+        audio_adaption_sets += format!("{},", video_targets.len()).as_str();
 
-            all_targets += 1;
-        }
-        Err(_) => {}
-    };
+        all_targets += 1;
+    }
 
     manifest_command.arg("-c").arg("copy");
 

@@ -5,6 +5,7 @@ use crate::{
     types::{FilezFile, FilezPermission},
 };
 use anyhow::bail;
+use http_range::HttpRange;
 use hyper::{Body, Request};
 use qstring::QString;
 use serde_json::Value;
@@ -62,6 +63,40 @@ pub fn merge_permissions(
     merged_permission.acl = serde_json::from_value(merged_acl)?;
 
     Ok(merged_permission)
+}
+
+pub fn get_range(req: &Request<Body>) -> anyhow::Result<HttpRange> {
+    let range = req
+        .headers()
+        .get("Range")
+        .map(|h| h.to_str().unwrap_or("").to_string());
+
+    let range = match range {
+        Some(r) => {
+            let parts = r.split("=").collect::<Vec<_>>();
+            if parts.len() != 2 {
+                bail!("Invalid range");
+            }
+            let range_type = parts[0];
+            let range = parts[1];
+            if range_type != "bytes" {
+                bail!("Invalid range type");
+            }
+            let range_parts = range.split("-").collect::<Vec<_>>();
+            if range_parts.len() != 2 {
+                bail!("Invalid range");
+            }
+            let start = range_parts[0].parse::<u64>()?;
+            let end = range_parts[1].parse::<u64>()?;
+            HttpRange {
+                start,
+                length: end - start + 1,
+            }
+        }
+        None => bail!("No range"),
+    };
+
+    Ok(range)
 }
 
 pub fn get_folder_and_file_path(id: &str, storage_path: &str) -> (String, String) {

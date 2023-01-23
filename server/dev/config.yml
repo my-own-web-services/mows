@@ -34,7 +34,7 @@ readonlyMount:
         path: "/mnt/archive/Video/RawDLYT/classic/"
         rescanSeconds: 120
         ownerId: dev
-    #music:
-    #    path: /mnt/archive/Music/
-    #    rescanSeconds: 120
-    #    ownerId: dev
+    music:
+        path: /mnt/archive/Music/
+        rescanSeconds: 120
+        ownerId: dev
