@@ -39,12 +39,12 @@ export default class List extends Component<ListProps, ListState> {
                                             endIndex - startIndex + 1
                                         )
                                     }
-                                    threshold={100}
+                                    threshold={20}
                                     minimumBatchSize={40}
                                 >
                                     {({ onItemsRendered, ref }) => (
                                         <FixedSizeList
-                                            overscanCount={100}
+                                            overscanCount={20}
                                             itemSize={20}
                                             height={height}
                                             itemCount={itemCount}

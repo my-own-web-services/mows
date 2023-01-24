@@ -43,9 +43,13 @@ impl DB {
                 doc! {
                     "$and":[
                         {
-                            "mimeType":{
-                                "$regex": "^(image|audio)/"
+                           "$or":[
+                            {
+                                "mimeType":{
+                                    "$regex": "^(image|audio)/"
+                                }
                             }
+                           ]
                         },
                         {
                             "appData.imageProcessor.status": {

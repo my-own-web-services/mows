@@ -11,6 +11,7 @@ use anyhow::bail;
 use hyper::{Body, Request, Response};
 
 use http_range::HttpRange;
+use hyper_staticfile::util::FileBytesStreamRange;
 
 pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
@@ -72,9 +73,7 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
             let file_handle = tokio::fs::File::open(&p).await?;
 
             let body = match get_range(&req) {
-                Ok(r) => {
-                    Body::wrap_stream(hyper_staticfile::FileBytesStreamRange::new(file_handle, r))
-                }
+                Ok(r) => Body::wrap_stream(FileBytesStreamRange::new(file_handle, r)),
                 Err(_) => Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle)),
             };
 

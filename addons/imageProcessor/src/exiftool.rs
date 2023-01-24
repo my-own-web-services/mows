@@ -1,5 +1,6 @@
 use crate::convert::convert;
 use crate::image_processor_types::ProcessedImage;
+use crate::utils::get_resolutions;
 use crate::{config::CONFIG, some_or_bail, utils::get_folder_and_file_path};
 use anyhow::bail;
 use anyhow::Ok;
@@ -84,21 +85,12 @@ pub async fn extract_album_art(file_path: &str, file_id: &str) -> anyhow::Result
     .parse::<u32>()?;
 
     // dont create images that are larger than the source
-    let resolutions = {
-        let mut resolutions = vec![];
-        for resolution in config.image.target_resolutions.iter() {
-            if resolution < &width && resolution < &height {
-                resolutions.push(*resolution);
-            }
-        }
-        resolutions.push(if height > width { height } else { width });
-        resolutions
-    };
+    let resolutions = get_resolutions(width, height);
 
     convert(&output_path, &config.storage_path, file_id, &resolutions).await?;
+    tokio::fs::remove_file(&output_path).await?;
 
     Ok(ProcessedImage {
-        mime_type: mime_type.to_string(),
         width,
         height,
         resolutions,

@@ -1,6 +1,13 @@
+use std::path::Path;
+
 use image_processor::{
-    config::CONFIG, db::DB, exiftool::extract_album_art, image_processor_types::ProcessedImage,
+    config::CONFIG,
+    convert::{convert, convert_raw},
+    db::DB,
+    exiftool::extract_album_art,
+    image_processor_types::ProcessedImage,
     types::FilezFile,
+    utils::get_resolutions,
 };
 use mongodb::options::ClientOptions;
 #[cfg(not(target_env = "msvc"))]
@@ -17,7 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let config = &CONFIG;
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
 
-    //db.dev_clear_image_processor_app_data().await?;
+    db.dev_clear_image_processor_app_data().await?;
 
     loop {
         let file = match db.get_file_for_processing().await {
@@ -75,7 +82,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 pub async fn handle_image(file: &FilezFile) -> Option<ProcessedImage> {
-    None
+    let raw_formats = vec![
+        "cr2", "crw", "nef", "orf", "raf", "rw2", "arw", "dng", "erf", "mrw",
+    ];
+
+    let ending = Path::new(&file.path).extension()?.to_str()?.to_lowercase();
+
+    let mut path = file.path.clone();
+    if raw_formats.contains(&ending.as_str()) {
+        match convert_raw(&path, &CONFIG.storage_path, &file.file_id).await {
+            Ok(target_path) => {
+                path = target_path;
+            }
+            Err(e) => {
+                println!("Error converting raw image: {}", e);
+                return None;
+            }
+        }
+    }
+
+    let image = match image::open(&path) {
+        Ok(image) => image,
+        Err(e) => {
+            println!("Error opening image: {}", e);
+            return None;
+        }
+    };
+
+    let width = image.width();
+    let height = image.height();
+
+    let resolutions = get_resolutions(width, height);
+
+    match convert(&path, &CONFIG.storage_path, &file.file_id, &resolutions).await {
+        Ok(_) => Some(ProcessedImage {
+            width,
+            height,
+            resolutions,
+        }),
+        Err(e) => {
+            println!("Error extracting thumbnail: {}", e);
+            None
+        }
+    }
 }
 
 pub async fn handle_audio(file: &FilezFile) -> Option<ProcessedImage> {

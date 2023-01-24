@@ -355,7 +355,7 @@ dependencies = [
  "indicatif",
  "jsonwebtoken",
  "lazy_static",
- "mime_guess",
+ "mime_guess 2.0.4 (git+https://github.com/hfiguiere/mime_guess?branch=dcraw-types)",
  "mongodb",
  "once_cell",
  "qstring",
@@ -647,14 +647,16 @@ dependencies = [
 
 [[package]]
 name = "hyper-staticfile"
-version = "0.9.4"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "318ca89e4827e7fe4ddd2824f52337239796ae8ecc761a663324407dc3d8d7e7"
 dependencies = [
  "futures-util",
  "http",
  "http-range",
  "httpdate",
  "hyper",
- "mime_guess",
+ "mime_guess 2.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "percent-encoding",
  "rand",
  "tokio",
@@ -897,6 +899,15 @@ name = "mime_guess"
 version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4192263c238a5f0d0c6bfd21f336a313a4ce1c450542449ca191bb657b4642ef"
+dependencies = [
+ "mime",
+ "unicase",
+]
+
+[[package]]
+name = "mime_guess"
+version = "2.0.4"
+source = "git+https://github.com/hfiguiere/mime_guess?branch=dcraw-types#0580161bb56ed3c806eceab24c27a03c614d6bb9"
 dependencies = [
  "mime",
  "unicase",

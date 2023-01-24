@@ -1,5 +1,5 @@
 import { Component } from "preact";
-import { FilezFile } from "../../types";
+import { FilezFile, ProcessedImage } from "../../types";
 import "./Image.scss";
 interface ImageProps {
     readonly file: FilezFile;
@@ -8,10 +8,16 @@ interface ImageState {}
 export default class Image extends Component<ImageProps, ImageState> {
     render = () => {
         const f = this.props.file;
-        return;
+        const processedImage = f.appData?.imageProcessor?.result as ProcessedImage;
+        if (!processedImage) return;
         return (
             <div className="Image">
-                <img loading={"lazy"} src={`/api/get_file/${f._id}`} />
+                <img
+                    src={`/api/get_file/${f._id}/imageProcessor/500.avif`}
+                    loading="lazy"
+                    width={processedImage.width}
+                    height={processedImage.height}
+                />
             </div>
         );
     };

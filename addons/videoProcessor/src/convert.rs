@@ -1,19 +1,24 @@
 use crate::{config::CONFIG, utils::get_folder_and_file_path};
+use anyhow::bail;
 use std::process::Command;
 
 pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> anyhow::Result<()> {
     let config = &CONFIG;
     let video_quality = config.video.quality;
     let mut video_targets = config.video.target_resolutions.clone();
+    let ffmpeg_path = "./ffmpeg";
+    let ffprobe_path = "./ffprobe";
     video_targets.sort();
+
+    dbg!(&source_path);
 
     let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
 
-    let path = format!("{folder_path}/{file_name}/");
+    let target_path = format!("{folder_path}/{file_name}/");
 
-    std::fs::create_dir_all(format!("{path}t"))?;
+    std::fs::create_dir_all(format!("{target_path}t"))?;
 
-    let mut resolution_command = Command::new("ffprobe");
+    let mut resolution_command = Command::new(ffprobe_path);
 
     resolution_command.args(&[
         "-v",
@@ -30,6 +35,9 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     let output = resolution_command.output()?.stdout;
     let resolution_str = std::str::from_utf8(&output)?.trim();
     let resolution: Vec<&str> = resolution_str.split('x').collect();
+    if resolution.len() != 2 {
+        bail!("Invalid resolution")
+    }
     let height: u16 = resolution[1].parse()?;
 
     // dont create videos that are larger than the source
@@ -38,7 +46,9 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .filter(|&&target| target <= height)
         .collect::<Vec<_>>();
 
-    let mut video_length_command = Command::new("ffprobe");
+    dbg!(&video_targets);
+
+    let mut video_length_command = Command::new(ffprobe_path);
 
     video_length_command
         .arg("-v")
@@ -55,10 +65,14 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
 
     let mut video_command = Command::new("nice");
 
+    // TODO this will not work with videos that are not 16:9 because svt_vp9 requires the width to be a multiple of 8
+    // this wont even work for 16:9 480p as its height is ≈ 853.3
+    // the av1 encoder did not havwe this problem but it is not usable for webm :(
+
     video_command
         .arg("-n")
         .arg("19")
-        .arg("./ffmpeg")
+        .arg(ffmpeg_path)
         .arg("-hide_banner")
         .arg("-y")
         .arg("-i")
@@ -81,14 +95,21 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
             .arg(video_quality.to_string())
             .arg("-dash")
             .arg("1")
-            .arg(format!("{path}{video_target}.webm"));
+            .arg(format!("{target_path}{video_target}.webm"));
     }
 
-    video_command.spawn()?.wait()?;
+    let video_command_exit_code = video_command.spawn()?.wait()?;
 
-    let mut audio_command = Command::new("ffmpeg");
+    if !video_command_exit_code.success() {
+        bail!("Video command failed")
+    }
+
+    let mut audio_command = Command::new("nice");
 
     audio_command
+        .arg("-n")
+        .arg("19")
+        .arg(ffmpeg_path)
         .arg("-hide_banner")
         .arg("-y")
         .arg("-i")
@@ -102,7 +123,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .arg("webm")
         .arg("-dash")
         .arg("1")
-        .arg(format!("{path}audio.webm"));
+        .arg(format!("{target_path}audio.webm"));
 
     let audio_result = audio_command.spawn()?.wait();
 
@@ -119,7 +140,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
             .arg("-f")
             .arg("webm_dash_manifest")
             .arg("-i")
-            .arg(format!("{path}{video_target}.webm"));
+            .arg(format!("{target_path}{video_target}.webm"));
         video_adaption_sets += format!("{},", i).as_str();
         all_targets += 1;
     }
@@ -129,7 +150,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
             .arg("-f")
             .arg("webm_dash_manifest")
             .arg("-i")
-            .arg(format!("{path}audio.webm"));
+            .arg(format!("{target_path}audio.webm"));
         audio_adaption_sets += format!("{},", video_targets.len()).as_str();
 
         all_targets += 1;
@@ -154,17 +175,24 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .arg("webm_dash_manifest")
         .arg("-adaptation_sets")
         .arg(adaption_sets)
-        .arg(format!("{path}manifest.mpd"));
+        .arg(format!("{target_path}manifest.mpd"));
 
-    manifest_command.spawn()?.wait()?;
+    let manifest_command_exit_code = manifest_command.spawn()?.wait()?;
 
-    let mut thumbnail_command = Command::new("ffmpeg");
+    if !manifest_command_exit_code.success() {
+        bail!("Manifest command failed")
+    }
+
+    let mut thumbnail_command = Command::new("nice");
 
     let thumbnail_count = 10.0;
 
     let a = video_length / thumbnail_count;
 
     thumbnail_command
+        .arg("-n")
+        .arg("19")
+        .arg(ffmpeg_path)
         .arg("-hide_banner")
         .arg("-y")
         .arg("-i")
@@ -173,7 +201,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .arg("libwebp")
         .arg("-vf")
         .arg(format!("scale=-1:480,fps=1/{a}"))
-        .arg(format!("{path}t/%d.webp"));
+        .arg(format!("{target_path}t/%d.webp"));
 
     thumbnail_command.spawn()?.wait()?;
 
