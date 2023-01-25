@@ -20,7 +20,6 @@ FROM scratch
 WORKDIR /app
 COPY --from=build /home/rust/src/target/x86_64-unknown-linux-musl/release/main ./filez-server
 COPY --from=build /etc/passwd /etc/passwd
-COPY config.yml /config.yml
 USER filez-server
 STOPSIGNAL SIGKILL
 # run it 

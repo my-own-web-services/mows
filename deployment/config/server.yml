@@ -1,0 +1,26 @@
+variablePrefix: "$"
+
+serviceId: filez
+
+storage:
+    ssd:
+        path: ./storage/
+
+defaultStorage: ssd
+
+appStorage:
+    path: /home/paul/Documents/filez/addons/videoProcessor/tests/appStorage
+
+http:
+    internalAddress: "[::]:80"
+
+db:
+    url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filez-db:27017
+
+interossea:
+    url: http://localhost:8081
+    assertionValiditySeconds: 600
+
+dev:
+    insecureSkipInterossea: false
+    createDevUser: false

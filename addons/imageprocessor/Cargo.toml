@@ -1,5 +1,5 @@
 [package]
-name = "video-processor"
+name = "imageprocessor"
 version = "0.1.0"
 edition = "2021"
 
@@ -18,17 +18,21 @@ serde = {version="1.0",features = ["derive","std"], default-features = false}
 serde_json={version="1"}
 serde_yaml = {version="0.9.13"}
 
-chrono="0.4.23"
-
 anyhow="1"
 
 lazy_static="1.3.0"
 
+chrono="0.4.23"
+image = { version="0.24.5",features=["avif"]}
+# avif performance is better since a recent patch
+#image = { git = "https://github.com/image-rs/image", branch = "master", features=["avif"]}
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"
 
-[profile.release]
+
+[profile.release-small]
+inherits="release"
 codegen-units = 1
 debug = false
 debug-assertions = false

@@ -1,0 +1,25 @@
+dev:
+    build: true
+
+reverseProxyNetwork: rp
+hostname: filez.y.gy
+tls: true
+entrypoint: websecure
+
+appStorage: /home/paul/Documents/filez/server/appStorage/
+
+interosseaServer:
+    create: true
+    internalHostname: interossea-server
+    publicHostname: accounts.y.gy
+    tls: true
+    build:
+        enabled: true
+        path: /home/paul/Documents/interossea/server/
+    mail:
+        username: no-reply@y.gy
+        smtpServer: mx.y.gy
+        fromName: Interossea Login
+        fromAddress: no-reply@y.gy
+        userAgent: Sugar-Free-Mail-2022
+        replyTo: mail@y.gy

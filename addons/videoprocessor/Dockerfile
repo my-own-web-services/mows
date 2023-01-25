@@ -41,13 +41,13 @@ RUN cargo install cargo-build-deps
 
 COPY Cargo.toml Cargo.lock ./
 RUN cargo build-deps --release
-RUN rm -f target/x86_64-unknown-linux-musl/release/deps/filez-addon-video-encoder*
+RUN rm -f target/x86_64-unknown-linux-musl/release/deps/filez-addon-videoprocessor*
 # build
 COPY --chown=root:root src src
 RUN cargo build --release --bin main
 RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
-RUN useradd -u 50001 -N filez-addon-video-encoder
+RUN useradd -u 50001 -N filez-addon-videoprocessor
 
 
 # 1. APP STAGE
@@ -55,12 +55,12 @@ FROM alpine
 
 WORKDIR /app
 
-COPY --from=build /home/rust/src/target/x86_64-unknown-linux-musl/release/main ./filez-addon-video-encoder
+COPY --from=build /home/rust/src/target/x86_64-unknown-linux-musl/release/main ./filez-addon-videoprocessor
 COPY --from=build /etc/passwd /etc/passwd
-RUN --from=ffmpeg-builder /app/ffmpeg/ffmpeg ./ffmpeg
+COPY --from=ffmpeg-builder /app/ffmpeg/ffmpeg ./ffmpeg
 
 
-USER filez-addon-video-encoder
+USER filez-addon-videoprocessor
 STOPSIGNAL SIGKILL
 # run it 
-ENTRYPOINT ["./filez-addon-video-encoder"]
+ENTRYPOINT ["./filez-addon-videoprocessor"]

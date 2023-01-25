@@ -1,0 +1,9 @@
+variablePrefix: "$"
+
+# time between database request for new files to get the metadata of if the last request did not return a file
+timeoutSeconds: 5
+
+storagePath: /home/paul/Documents/filez/addons/videoProcessor/tests/appStorage/metadata/
+
+db:
+    url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filez-db:27017

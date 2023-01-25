@@ -1,6 +1,5 @@
 use std::path::Path;
-
-use image_processor::{
+use imageprocessor::{
     config::CONFIG,
     convert::{convert, convert_raw},
     db::DB,
