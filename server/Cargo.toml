@@ -40,6 +40,9 @@ filetime = "0.2"
 
 indicatif = "0.17.2"
 
+cookie = "0.17.0"
+
+
 # TODO go back to using the original mime_guess as dcraw types get merged
 [patch.crates-io]
 mime_guess = {git="https://github.com/hfiguiere/mime_guess", branch="dcraw-types" }

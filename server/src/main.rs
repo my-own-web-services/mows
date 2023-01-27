@@ -1,7 +1,7 @@
 use filez::config::SERVER_CONFIG;
 use filez::db::DB;
 use filez::internal_types::Auth;
-use filez::interossea::{Interossea, UserAssertion, INTEROSSEA};
+use filez::interossea::{get_session_cookie, Interossea, UserAssertion, INTEROSSEA};
 use filez::methods::create_file::create_file;
 use filez::methods::create_group::create_group;
 use filez::methods::create_permission::create_permission;
@@ -19,13 +19,17 @@ use filez::methods::update_file::update_file;
 use filez::methods::update_file_infos::update_file_infos;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::readonly_mount::scan_readonly_mounts;
-use filez::utils::get_token_from_query;
+use filez::some_or_bail;
+use filez::utils::{get_cookies, get_token_from_query};
 use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server};
 use mongodb::options::ClientOptions;
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
@@ -39,6 +43,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // reference variables declared with lazy_static because they are initialized on first access
     let _ = &SERVER_CONFIG.variable_prefix;
     let config = &SERVER_CONFIG;
+    let session_map = Arc::new(RwLock::new(HashMap::<String, UserAssertion>::new()));
 
     if !config.dev.insecure_skip_interossea {
         match INTEROSSEA.set(Interossea::new(&config.interossea).await?) {
@@ -73,7 +78,12 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let server = Server::bind(&addr).serve(make_service_fn(move |conn: &AddrStream| {
         let addr = conn.remote_addr();
-        async move { Ok::<_, Infallible>(service_fn(move |req| handle_request(req, addr))) }
+        let session_map = Arc::clone(&session_map);
+        async move {
+            Ok::<_, Infallible>(service_fn(move |req| {
+                handle_request(req, addr, Arc::clone(&session_map))
+            }))
+        }
     }));
 
     println!("Listening on http://{}", addr);
@@ -92,8 +102,9 @@ async fn shutdown_signal() {
 async fn handle_request(
     req: Request<Body>,
     addr: SocketAddr,
+    session_map: Arc<RwLock<HashMap<String, UserAssertion>>>,
 ) -> Result<Response<Body>, Infallible> {
-    match handle_inner(req, addr).await {
+    match handle_inner(req, addr, session_map).await {
         Ok(res) => Ok(res),
         Err(e) => {
             println!("Internal Server Error: {}", e);
@@ -105,37 +116,13 @@ async fn handle_request(
     }
 }
 
-async fn handle_inner(req: Request<Body>, addr: SocketAddr) -> anyhow::Result<Response<Body>> {
+async fn handle_inner(
+    req: Request<Body>,
+    addr: SocketAddr,
+    session_map: Arc<RwLock<HashMap<String, UserAssertion>>>,
+) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
-
-    let user_assertion = match config.dev.insecure_skip_interossea {
-        true => Some(UserAssertion {
-            iat: 0,
-            exp: 0,
-            user_id: "dev".to_string(),
-            service_id: "filez".to_string(),
-            client_ip: "127.0.0.1".to_string(),
-            service_origin: "localhost".to_string(),
-        }),
-        false => match INTEROSSEA
-            .get()
-            .unwrap()
-            .check_user_assertion(&req, addr)
-            .await
-        {
-            Ok(ua) => Some(ua),
-            Err(e) => {
-                dbg!(&e);
-                None
-            }
-        },
-    };
-
-    let auth = Auth {
-        authenticated_user: user_assertion.map(|ua| ua.user_id),
-        token: get_token_from_query(&req),
-    };
 
     let mut p = req.uri().path();
     if p.starts_with("/api") {
@@ -147,6 +134,37 @@ async fn handle_inner(req: Request<Body>, addr: SocketAddr) -> anyhow::Result<Re
             .unwrap());
     }
     let m = req.method();
+
+    if p.starts_with("/get_session_cookie/") && m == Method::POST {
+        return get_session_cookie(&req, session_map, addr).await;
+    }
+
+    let user_assertion = match config.dev.insecure_skip_interossea {
+        true => Some(UserAssertion {
+            iat: 0,
+            exp: 0,
+            user_id: "dev".to_string(),
+            service_id: "filez".to_string(),
+            client_ip: "127.0.0.1".to_string(),
+            service_origin: "localhost".to_string(),
+        }),
+        false => {
+            match INTEROSSEA
+                .get()
+                .unwrap()
+                .get_user_assertion_from_session(&req, addr, session_map)
+                .await
+            {
+                Ok(v) => Some(v),
+                Err(_) => None,
+            }
+        }
+    };
+
+    let auth = Auth {
+        authenticated_user: user_assertion.map(|ua| ua.user_id),
+        token: get_token_from_query(&req),
+    };
 
     if p.starts_with("/get_file/") && m == Method::GET {
         get_file(req, db, &auth).await

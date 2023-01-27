@@ -1,13 +1,15 @@
 use crate::{
     config::{InterosseaConfig, SERVER_CONFIG},
     some_or_bail,
+    utils::{generate_id, get_cookies},
 };
 use anyhow::bail;
-use hyper::{Body, Request};
+use hyper::{Body, Request, Response};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use tokio::sync::RwLock;
 
 pub static INTEROSSEA: OnceCell<Interossea> = OnceCell::new();
 
@@ -38,7 +40,7 @@ impl Interossea {
         })
     }
 
-    pub async fn check_user_assertion(
+    pub async fn get_user_assertion_from_header(
         &self,
         req: &Request<Body>,
         addr: SocketAddr,
@@ -90,6 +92,48 @@ impl Interossea {
         Ok(validated_token.claims)
     }
 
+    pub async fn get_user_assertion_from_session(
+        &self,
+        req: &Request<Body>,
+        addr: SocketAddr,
+        session_map: Arc<RwLock<HashMap<String, UserAssertion>>>,
+    ) -> anyhow::Result<UserAssertion> {
+        let cookies = get_cookies(req)?;
+        let session = some_or_bail!(cookies.get("session"), "No session cookie found");
+
+        let validated_assertion_claims = some_or_bail!(
+            session_map.read().await.get(session).cloned(),
+            "Session not found in map"
+        );
+
+        let current_time = chrono::offset::Utc::now().timestamp_millis();
+        let token_created_time = validated_assertion_claims.iat;
+        let ip = addr.ip().to_string();
+        let host = some_or_bail!(req.headers().get("host"), "No host header found").to_str()?;
+
+        if &self.assertion_validity_seconds * 1000 + token_created_time < current_time {
+            bail!("Assertion expired");
+        }
+
+        if validated_assertion_claims.client_ip != ip {
+            bail!("Assertion IP mismatch");
+        }
+
+        if validated_assertion_claims
+            .service_origin
+            .replacen("http://", "", 1)
+            .replacen("https://", "", 1)
+            != host
+        {
+            bail!(
+                "Assertion host mismatch: {} != {}",
+                validated_assertion_claims.service_origin,
+                host
+            );
+        }
+        Ok(validated_assertion_claims)
+    }
+
     pub async fn get_decoding_key(&self) -> anyhow::Result<DecodingKey> {
         get_decoding_key(&self.interossea_addr).await
     }
@@ -99,4 +143,36 @@ pub async fn get_decoding_key(interossea_addr: &str) -> anyhow::Result<DecodingK
     let res = reqwest::get(format!("{}/api/get_public_key/", interossea_addr)).await?;
     let text = res.text().await?;
     Ok(DecodingKey::from_rsa_pem(text.as_bytes())?)
+}
+
+pub async fn get_session_cookie(
+    req: &Request<Body>,
+    session_map: Arc<RwLock<HashMap<String, UserAssertion>>>,
+    addr: SocketAddr,
+) -> anyhow::Result<Response<Body>> {
+    let new_session_id = generate_id();
+
+    let ua = INTEROSSEA
+        .get()
+        .unwrap()
+        .get_user_assertion_from_header(req, addr)
+        .await?;
+
+    session_map.write().await.insert(new_session_id.clone(), ua);
+
+    let session_cookie = cookie::Cookie::build("session", &new_session_id)
+        .path("/")
+        .secure(true)
+        .max_age(cookie::time::Duration::seconds(
+            SERVER_CONFIG.interossea.assertion_validity_seconds as i64,
+        ))
+        .http_only(true)
+        .same_site(cookie::SameSite::Strict)
+        .finish();
+
+    Ok(Response::builder()
+        .status(200)
+        .header("Set-Cookie", session_cookie.to_string())
+        .body(Body::from("OK"))
+        .unwrap())
 }

@@ -4,13 +4,14 @@ export class InterosseaClient {
     assertion_validity_seconds!: number;
     skip?: boolean;
 
-    constructor(endpoint: string,skip?:boolean) {
+    constructor(endpoint: string, skip?: boolean) {
         this.endpoint = endpoint;
         this.skip = skip;
     }
 
     init = async () => {
         this.assertion_validity_seconds = await this.get_assertion_validity_seconds();
+        await this.renew();
     };
 
     get_assertion_validity_seconds = async () => {
@@ -18,34 +19,27 @@ export class InterosseaClient {
         return parseInt(await res.text());
     };
 
-    get_user_assertion = async (service: string): Promise<InterosseaToken> => {
+    renew = async () => {
+        await this.get_session_cookie();
+        setTimeout(
+            this.renew,
+            (this.assertion_validity_seconds - this.assertion_validity_seconds / 10) * 1000
+        );
+    };
+
+    get_user_assertion = async (service: string) => {
         const res = await fetch(`${this.endpoint}/api/get_user_assertion/?s=${service}`, {
             method: "POST",
             credentials: "include"
         });
-        return {
-            token: await res.text(),
-            createdSecs: Date.now() / 1000
-        };
+        return await res.text();
     };
 
-    get_token = async () => {
-        if(this.skip) return "";
-        const currentTimeSecs = Date.now() / 1000;
-        if (
-            !this.token ||
-            this.token.createdSecs + this.assertion_validity_seconds > currentTimeSecs - 10
-        ) {
-            this.token = await this.get_user_assertion("filez");
-        }
-        return this.token.token;
-    };
-
-    f = async (url: string, fetchParameters?: RequestInit) => {
-        return fetch(url, {
-            ...fetchParameters,
+    get_session_cookie = async () => {
+        await fetch(`/api/get_session_cookie/`, {
+            method: "POST",
             headers: {
-                InterosseaUserAssertion: await this.get_token()
+                InterosseaUserAssertion: await this.get_user_assertion("filez")
             }
         });
     };

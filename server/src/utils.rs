@@ -2,6 +2,7 @@ use crate::{
     db::DB,
     get_acl, get_acl_users,
     internal_types::{Auth, MergedFilezPermission},
+    some_or_bail,
     types::{FilezFile, FilezPermission},
 };
 use anyhow::bail;
@@ -9,7 +10,23 @@ use http_range::HttpRange;
 use hyper::{Body, Request};
 use qstring::QString;
 use serde_json::Value;
-use std::{path::Path, vec};
+use std::{collections::HashMap, path::Path, vec};
+
+pub fn get_cookies(req: &Request<Body>) -> anyhow::Result<HashMap<String, String>> {
+    let cookie_str = some_or_bail!(req.headers().get("cookie"), "No cookies found").to_str()?;
+    let split = cookie_str.split(';');
+
+    let mut cookies = HashMap::new();
+
+    for s in split {
+        let parsed_cookie = cookie::Cookie::parse(s);
+        if let Ok(p) = parsed_cookie {
+            cookies.insert(p.name().to_string(), p.value().to_string());
+        }
+    }
+
+    Ok(cookies)
+}
 
 pub fn generate_id() -> String {
     use rand::Rng;

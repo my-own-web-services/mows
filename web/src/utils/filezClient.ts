@@ -12,59 +12,59 @@ export class FilezClient {
     };
 
     create_file = async () => {
-        const res = await this.interosseaClient.f(`/api/create_file/`, { method: "POST" });
+        const res = await fetch(`/api/create_file/`, { method: "POST" });
     };
     create_group = async () => {
-        const res = await this.interosseaClient.f(`/api/create_group/`, { method: "POST" });
+        const res = await fetch(`/api/create_group/`, { method: "POST" });
     };
     create_upload_space = async () => {
-        const res = await this.interosseaClient.f(`/api/create_upload_space/`, { method: "POST" });
+        const res = await fetch(`/api/create_upload_space/`, { method: "POST" });
     };
     delete_file = async () => {
-        const res = await this.interosseaClient.f(`/api/delete_file/`, { method: "POST" });
+        const res = await fetch(`/api/delete_file/`, { method: "POST" });
     };
     delete_group = async () => {
-        const res = await this.interosseaClient.f(`/api/delete_group/`, { method: "POST" });
+        const res = await fetch(`/api/delete_group/`, { method: "POST" });
     };
     delete_permission = async () => {
-        const res = await this.interosseaClient.f(`/api/delete_permission/`, { method: "POST" });
+        const res = await fetch(`/api/delete_permission/`, { method: "POST" });
     };
     delete_upload_space = async () => {
-        const res = await this.interosseaClient.f(`/api/delete_upload_space/`, { method: "POST" });
+        const res = await fetch(`/api/delete_upload_space/`, { method: "POST" });
     };
 
     get_file_info = async () => {
-        const res = await this.interosseaClient.f(`/api/get_file_info/`);
+        const res = await fetch(`/api/get_file_info/`);
     };
 
     get_file_infos_by_group_id = async (groupId: string, from_index = 0, limit = 100) => {
-        const res = await this.interosseaClient.f(
+        const res = await fetch(
             `/api/get_file_infos_by_group_id/${groupId}?i=${from_index}&l=${limit}`
         );
         const files: FilezFile[] = await res.json();
         return files;
     };
     get_file = async () => {
-        const res = await this.interosseaClient.f("/api/get_file/");
+        const res = await fetch("/api/get_file/");
         const content = await res.text();
         return content;
     };
 
     get_own_file_groups = async () => {
-        const res = await this.interosseaClient.f("/api/get_own_file_groups/");
+        const res = await fetch("/api/get_own_file_groups/");
         const fileGroups: FileGroup[] = await res.json();
         return fileGroups;
     };
 
     get_permissions_for_current_user = async () => {
-        const res = await this.interosseaClient.f(`/api/get_permissions_for_current_user/`);
+        const res = await fetch(`/api/get_permissions_for_current_user/`);
     };
     get_user_info = async () => {
-        const res = await this.interosseaClient.f(`/api/get_user_info/`);
+        const res = await fetch(`/api/get_user_info/`);
         return (await res.json()) as FilezUser;
     };
     update_file_infos = async (fileId: string, field: UpdateFileInfosRequestField) => {
-        const res = await this.interosseaClient.f(`/api/update_file_infos/`, {
+        const res = await fetch(`/api/update_file_infos/`, {
             method: "POST",
             body: JSON.stringify({ fileId, field })
         });
@@ -73,10 +73,10 @@ export class FilezClient {
         }
     };
     update_file = async () => {
-        const res = await this.interosseaClient.f(`/api/update_file/`, { method: "POST" });
+        const res = await fetch(`/api/update_file/`, { method: "POST" });
     };
     update_permission_ids_on_resource = async () => {
-        const res = await this.interosseaClient.f(`/api/update_permission_ids_on_resource/`, {
+        const res = await fetch(`/api/update_permission_ids_on_resource/`, {
             method: "POST"
         });
     };

@@ -83,6 +83,8 @@ export default class App extends Component<AppProps, AppState> {
     }
 
     componentDidMount = async () => {
+        await this.state.g.filezClient.init();
+
         this.allFileGroups = convertFileGroups(
             await this.state.g.filezClient.get_own_file_groups()
         );
