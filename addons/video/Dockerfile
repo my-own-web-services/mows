@@ -54,6 +54,9 @@ RUN useradd -u 50001 -N filez-addons-video
 FROM alpine
 
 WORKDIR /app
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
+
+RUN apk add --no-cache svt-vp9 darktable
 
 COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-addons-video
 COPY --from=build /etc/passwd /etc/passwd

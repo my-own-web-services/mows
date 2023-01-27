@@ -1,5 +1,5 @@
 use crate::{
-    config::SERVER_CONFIG,
+    config::{ReadonlyMountConfig, SERVER_CONFIG},
     db::DB,
     some_or_bail,
     types::{FileGroupType, FilezFile, FilezFileGroup, FilezGroups},
@@ -18,60 +18,74 @@ use std::{
 
 pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
-    //let bars = MultiProgress::new();
 
     for (mount_name, mount) in &config.readonly_mount {
-        println!("Scanning {}", mount_name);
-        let path = Path::new(&mount.path);
-        if !path.exists() {
-            bail!("Readonly mount path does not exist: {}", mount.path);
+        match scan_readonly_mount(db, mount_name, mount).await {
+            Ok(_) => {
+                println!("Success")
+            }
+            Err(e) => {
+                println!("Failed: {e}")
+            }
         }
-        let file_list = recursive_read_dir(some_or_bail!(
-            path.to_str(),
-            "Could not convert path to str"
-        ))?;
+    }
+    Ok(())
+}
 
-        // check if the user exists
-        let user = db.get_user_by_id(&mount.owner_id).await?;
-        if user.is_none() {
-            bail!("User does not exist: {}", mount.owner_id);
-        }
+pub async fn scan_readonly_mount(
+    db: &DB,
+    mount_name: &str,
+    mount: &ReadonlyMountConfig,
+) -> anyhow::Result<()> {
+    print!("Scanning {}: ", mount_name);
+    let path = Path::new(&mount.path);
+    if !path.exists() {
+        bail!("Readonly mount path does not exist: {}", mount.path);
+    }
+    let file_list = recursive_read_dir(some_or_bail!(
+        path.to_str(),
+        "Could not convert path to str"
+    ))?;
 
-        let file_groups = db
-            .get_file_groups_by_name(mount_name, &mount.owner_id)
-            .await?;
+    // check if the user exists
+    let user = db.get_user_by_id(&mount.owner_id).await?;
+    if user.is_none() {
+        bail!("User does not exist: {}", mount.owner_id);
+    }
 
-        #[allow(clippy::comparison_chain)]
-        let group_id = if file_groups.len() > 1 {
-            bail!("More than one file group with the same name exists");
-        } else if file_groups.len() == 1 {
-            file_groups[0].file_group_id.clone()
-        } else {
-            // create group
-            let group_id = generate_id();
-            db.create_group(&FilezGroups::FilezFileGroup(FilezFileGroup {
-                owner_id: mount.owner_id.to_string(),
-                name: Some(mount_name.to_string()),
-                file_group_id: group_id.clone(),
-                permission_ids: vec![],
-                keywords: vec![],
-                group_hierarchy_paths: vec![],
-                mime_types: vec![],
-                group_type: FileGroupType::Static,
-                item_count: 0,
-            }))
-            .await?;
-            group_id
-        };
+    let file_groups = db
+        .get_file_groups_by_name(mount_name, &mount.owner_id)
+        .await?;
 
-        let file_bar = ProgressBar::new(file_list.len() as u64);
-        //bars.add(file_bar);
+    #[allow(clippy::comparison_chain)]
+    let group_id = if file_groups.len() > 1 {
+        bail!("More than one file group with the same name exists");
+    } else if file_groups.len() == 1 {
+        file_groups[0].file_group_id.clone()
+    } else {
+        // create group
+        let group_id = generate_id();
+        db.create_group(&FilezGroups::FilezFileGroup(FilezFileGroup {
+            owner_id: mount.owner_id.to_string(),
+            name: Some(mount_name.to_string()),
+            file_group_id: group_id.clone(),
+            permission_ids: vec![],
+            keywords: vec![],
+            group_hierarchy_paths: vec![],
+            mime_types: vec![],
+            group_type: FileGroupType::Static,
+            item_count: 0,
+        }))
+        .await?;
+        group_id
+    };
+
+    let file_bar = ProgressBar::new(file_list.len() as u64);
+    //bars.add(file_bar);
+    file_bar.inc(1);
+    for file in file_list {
         file_bar.inc(1);
-        for file in file_list {
-            file_bar.inc(1);
-            import_readonly_file(db, &file, &mount.owner_id, &group_id).await?;
-        }
-        // checkmark emoji
+        import_readonly_file(db, &file, &mount.owner_id, &group_id).await?;
     }
     Ok(())
 }

@@ -44,9 +44,15 @@ pub fn replace_variables(mut config_file: String) -> anyhow::Result<String> {
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub variable_prefix: String,
-    pub storage_path: String,
     pub timeout_seconds: u64,
     pub db: DbConfig,
+    pub dev: DevConfig,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DevConfig {
+    pub clear_own_app_data_on_start: bool,
 }
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]

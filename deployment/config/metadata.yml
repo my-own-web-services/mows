@@ -7,3 +7,5 @@ storagePath: /storage/
 
 db:
     url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filezdb:27017
+dev:
+    clearOwnAppDataOnStart: false

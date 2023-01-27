@@ -3,7 +3,7 @@ variablePrefix: "$"
 # time between database request for new files to get the metadata of if the last request did not return a file
 timeoutSeconds: 5
 
-storagePath: /home/paul/Documents/filez/addons/videoProcessor/tests/appStorage/imageProcessor/
+storagePath: /home/paul/Documents/filez/server/appdata/image/
 
 db:
     url: mongodb://root:root@localhost:27017
@@ -17,3 +17,6 @@ image:
         - 250
         - 500
         - 1000
+
+dev:
+    clearOwnAppDataOnStart: true

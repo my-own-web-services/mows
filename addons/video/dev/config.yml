@@ -3,7 +3,7 @@ variablePrefix: "$"
 # time between database request for new videos to convert if the last request did not return a file
 timeoutSeconds: 5
 
-storagePath: ./tests/appStorage/video/
+storagePath: /home/paul/Documents/filez/server/appdata/video/
 
 db:
     url: mongodb://root:root@localhost:27017
@@ -18,3 +18,5 @@ video:
         - 720
         - 1080
         - 2160
+dev:
+    clearOwnAppDataOnStart: true

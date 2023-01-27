@@ -48,6 +48,13 @@ pub struct Config {
     pub timeout_seconds: u64,
     pub video: VideoConfig,
     pub db: DbConfig,
+    pub dev: DevConfig,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DevConfig {
+    pub clear_own_app_data_on_start: bool,
 }
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]

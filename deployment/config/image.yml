@@ -17,3 +17,5 @@ image:
         - 250
         - 500
         - 1000
+dev:
+    clearOwnAppDataOnStart: false

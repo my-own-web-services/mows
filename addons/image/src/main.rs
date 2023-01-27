@@ -1,4 +1,3 @@
-use std::path::Path;
 use imageprocessing::{
     config::CONFIG,
     convert::{convert, convert_raw},
@@ -9,6 +8,7 @@ use imageprocessing::{
     utils::get_resolutions,
 };
 use mongodb::options::ClientOptions;
+use std::path::Path;
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
 
@@ -22,9 +22,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _ = &CONFIG.variable_prefix;
     let config = &CONFIG;
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
-
-    //db.dev_clear_image_processor_app_data().await?;
-
+    if config.dev.clear_own_app_data_on_start {
+        println!("Cleared app data");
+        db.dev_clear_image_processor_app_data().await?;
+    }
     loop {
         let file = match db.get_file_for_processing().await {
             Ok(file) => file,

@@ -9,7 +9,7 @@ storage:
 defaultStorage: ssd
 
 appStorage:
-    path: /home/paul/Documents/filez/addons/videoProcessor/tests/appStorage
+    path: /home/paul/Documents/filez/server/appdata/
 
 http:
     internalAddress: "[::]:8080"
@@ -22,7 +22,7 @@ interossea:
     assertionValiditySeconds: 600
 
 dev:
-    insecureSkipInterossea: false
+    insecureSkipInterossea: true
     createDevUser: true
 
 readonlyMount:
@@ -30,20 +30,19 @@ readonlyMount:
         path: /home/paul/Downloads/test_video/
         rescanSeconds: 120
         ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
-    #importImages:
-    #    path: /home/paul/Downloads/_import-images/
-    #    rescanSeconds: 120
-    #    ownerId: dev
-    #
-    #someVideos:
-    #    path: "/mnt/archive/Video/RawDLYT/classic/"
-    #    rescanSeconds: 120
-    #    ownerId: dev
-    #music:
-    #    path: /mnt/archive/Music/JACKBOYS - JACKBOYS/
-    #    rescanSeconds: 120
-    #    ownerId: dev
-    #someImages:
-    #    path: /mnt/archive/Bilder/Photos/2018/2018-12-03/
-    #    rescanSeconds: 120
-    #    ownerId: dev
+    importImages:
+        path: /home/paul/Downloads/_import-images/
+        rescanSeconds: 120
+        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
+    someVideos:
+        path: "/mnt/archive/Video/RawDLYT/classic/"
+        rescanSeconds: 120
+        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
+    music:
+        path: /mnt/archive/Music/JACKBOYS - JACKBOYS/
+        rescanSeconds: 120
+        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
+    someImages:
+        path: /mnt/archive/Bilder/Photos/2018/2018-12-03/
+        rescanSeconds: 120
+        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t

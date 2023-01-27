@@ -23,9 +23,9 @@ anyhow="1"
 lazy_static="1.3.0"
 
 chrono="0.4.23"
-image = { version="0.24.5",features=["avif"]}
+#image = { version="0.24.5",features=["avif"]}
 # avif performance is better since a recent patch
-#image = { git = "https://github.com/image-rs/image", branch = "master", features=["avif"]}
+image = { git = "https://github.com/image-rs/image", branch = "master", features=["avif"]}
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"

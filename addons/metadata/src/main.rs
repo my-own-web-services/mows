@@ -16,9 +16,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _ = &CONFIG.variable_prefix;
     let config = &CONFIG;
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
-
-    //db.dev_clear_metadata_app_data().await?;
-
+    if config.dev.clear_own_app_data_on_start {
+        println!("Cleared app data");
+        db.dev_clear_metadata_app_data().await?;
+    }
     loop {
         let unscanned_files = match db.get_unscanned().await {
             Ok(files) => Some(files),

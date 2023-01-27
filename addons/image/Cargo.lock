@@ -908,7 +908,7 @@ dependencies = [
 [[package]]
 name = "image"
 version = "0.24.5"
-source = "git+https://github.com/image-rs/image?branch=master#33a166e432d44c8d891349932d9e571f51550359"
+source = "git+https://github.com/image-rs/image?branch=master#099a4fe08d77f3fe526e0dfae616dcb80911f332"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -927,7 +927,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "image_processor"
+name = "imageprocessing"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1666,9 +1666,9 @@ dependencies = [
 
 [[package]]
 name = "ravif"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37378f367a1464cf2162627681902c1bbdc0ce1a6603e7f28be716c6ba31836e"
+checksum = "26cda034bd7ec1f4e799b207ef0444dd28b2fb310877378a5bb5b8b6ef6c4158"
 dependencies = [
  "avif-serialize",
  "imgref",

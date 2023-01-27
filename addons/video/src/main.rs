@@ -15,8 +15,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
 
-    //db.dev_clear_video_processor_app_data().await?;
-
+    if config.dev.clear_own_app_data_on_start {
+        println!("Cleared app data");
+        db.dev_clear_video_processor_app_data().await?;
+    }
     loop {
         let file = match db.get_video_for_processing().await {
             Ok(file) => file,
