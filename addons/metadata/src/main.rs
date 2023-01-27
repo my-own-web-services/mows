@@ -17,27 +17,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let config = &CONFIG;
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
 
-    db.dev_clear_metadata_app_data().await?;
+    //db.dev_clear_metadata_app_data().await?;
 
-    let files = db.get_unscanned().await?;
-
-    for file in files {
-        println!("Scanning {}", file.path);
-        let exifdata = match get_metadata_exiftool(&file.path).await {
-            Ok(ed) => Some(ed),
+    loop {
+        let unscanned_files = match db.get_unscanned().await {
+            Ok(files) => Some(files),
             Err(e) => {
-                println!("Error: {}", e);
+                println!("Error getting files for processing from db: {:?}", e);
                 None
             }
         };
+        match unscanned_files {
+            Some(files) => {
+                for file in files {
+                    println!("Scanning {}", file.path);
+                    let exifdata = match get_metadata_exiftool(&file.path).await {
+                        Ok(ed) => Some(ed),
+                        Err(e) => {
+                            println!("Error: {}", e);
+                            None
+                        }
+                    };
 
-        let clues = get_clues(&file, &exifdata).await?;
-        let metadata = Metadata { exifdata, clues };
+                    let clues = get_clues(&file, &exifdata).await?;
+                    let metadata = Metadata { exifdata, clues };
 
-        //dbg!(&metadata);
+                    //dbg!(&metadata);
 
-        db.update_file(&file.file_id, metadata).await?;
+                    db.update_file(&file.file_id, metadata).await?;
+                }
+            }
+            None => {
+                println!("No files to process");
+                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            }
+        }
     }
-
-    Ok(())
 }

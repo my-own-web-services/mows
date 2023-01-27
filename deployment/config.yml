@@ -1,25 +1,71 @@
-dev:
-    build: true
+server:
+    build:
+        enabled: true
+        path: ../../server/
+        dockerfile: Dockerfile
+
+web:
+    build:
+        enabled: true
+        path: ../../web/
+        dockerfile: Dockerfile
 
 reverseProxyNetwork: rp
 hostname: filez.y.gy
 tls: true
 entrypoint: websecure
 
-appStorage: /home/paul/Documents/filez/server/appStorage/
+addons:
+    - name: video
+      db: true
+      storage: true
+      filezAccess: true
+      image: firstdorsal/filez-addons-video
+      build:
+          enabled: true
+          path: ../../addons/video/
+          dockerfile: Dockerfile
+    - name: image
+      db: true
+      storage: true
+      filezAccess: true
+      image: firstdorsal/filez-addons-image
+      build:
+          enabled: true
+          path: ../../addons/image/
+          dockerfile: Dockerfile
+    - name: metadata
+      db: true
+      storage: false
+      filezAccess: true
+      image: firstdorsal/filez-addons-metadata
+      build:
+          enabled: true
+          path: ../../addons/metadata/
+          dockerfile: Dockerfile
 
-interosseaServer:
-    create: true
-    internalHostname: interossea-server
-    publicHostname: accounts.y.gy
-    tls: true
-    build:
-        enabled: true
-        path: /home/paul/Documents/interossea/server/
-    mail:
-        username: no-reply@y.gy
-        smtpServer: mx.y.gy
-        fromName: Interossea Login
-        fromAddress: no-reply@y.gy
-        userAgent: Sugar-Free-Mail-2022
-        replyTo: mail@y.gy
+interossea:
+    server:
+        create: true
+        internalHostname: interossea-server
+        publicHostname: accounts.y.gy
+        tls: true
+        build:
+            enabled: true
+            path: /home/paul/Documents/interossea/server/
+            dockerfile: Dockerfile
+        mail:
+            username: no-reply@y.gy
+            smtpServer: mx.y.gy
+            fromName: Interossea Login
+            fromAddress: no-reply@y.gy
+            userAgent: Sugar-Free-Mail-2022
+            replyTo: mail@y.gy
+    web:
+        create: true
+        publicHostname: accounts.y.gy
+        tls: true
+        build:
+            enabled: true
+            path: /home/paul/Documents/interossea/web/
+            dockerfile: Dockerfile

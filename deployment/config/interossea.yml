@@ -26,4 +26,4 @@ http:
     protocol: $INTEROSSEA_WEB_PROTOCOL
 
 db:
-    url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@interossea-db:27017
+    url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@interosseadb:27017

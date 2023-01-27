@@ -3,22 +3,22 @@ variablePrefix: "$"
 serviceId: filez
 
 storage:
-    ssd:
-        path: ./storage/
+    default:
+        path: /storage/
 
-defaultStorage: ssd
+defaultStorage: default
 
 appStorage:
-    path: /home/paul/Documents/filez/addons/videoProcessor/tests/appStorage
+    path: /appdata/
 
 http:
     internalAddress: "[::]:80"
 
 db:
-    url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filez-db:27017
+    url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filezdb:27017
 
 interossea:
-    url: http://localhost:8081
+    url: http://$INTEROSSEA_INTERNAL_URL
     assertionValiditySeconds: 600
 
 dev:

@@ -3,22 +3,32 @@
 version: "3.9"
 services:
     filez-server:
-        {{- if eq $config.dev.build true }}
+        {{- if eq $config.server.build.enabled true }}
         build:
-            context: ../../server/
-            dockerfile: Dockerfile
+            context: {{ $config.server.build.path }}
+            dockerfile: {{ $config.server.build.dockerfile }}
         {{- else }}
         image: firstdorsal/filez-server
         {{- end }}
         container_name: filez-server
         volumes:
-            - ../config/server.yml:/config.yml
+            - ../config/server.yml:/config.yml:ro
+            - filez-storage:/storage:rw
+            {{- range $config.addons }}
+            {{- if eq .storage true }}
+            - filez-addons-{{.name}}:/appdata/{{.name}}:ro
+            {{- end }}
+            {{- end }}
         restart: always
         networks:
-            - filez-server
+            - filez-server-db
             - {{ $config.reverseProxyNetwork }}
+            {{- if eq $config.interossea.server.create true }}
+            - interossea-server
+            {{- end }}
         environment:
             MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
+            INTEROSSEA_INTERNAL_URL: {{ $config.interossea.server.internalHostname }}
         labels:
             traefik:
                 enabled: true
@@ -34,19 +44,20 @@ services:
                             loadBalancer:
                                 servers:
                                     - url: "http://filez-server:80"
-
     filez-web:
-        {{- if eq $config.dev.build true }}
+        {{- if eq $config.web.build.enabled true }}
         build:
-            context: ../../web/
-            dockerfile: Dockerfile
+            context: {{ $config.web.build.path }}
+            dockerfile: {{ $config.web.build.dockerfile }}
         {{- else }}
         image: firstdorsal/filez-web
         {{- end }}
         container_name: filez-web
+        volumes:
+            - ../config/filez-web.yml:/config.yml:ro
         restart: always
         environment:
-            CSP_CONNECT_SRC: {{ ternary "https://" "http://" $config.interosseaServer.tls true }}{{ $config.interosseaServer.publicHostname}}
+            CSP_CONNECT_SRC: {{ ternary "https://" "http://" $config.interossea.server.tls true }}{{ $config.interossea.server.publicHostname}}
         networks:
             - {{ $config.reverseProxyNetwork }}
         labels:
@@ -64,96 +75,111 @@ services:
                             loadBalancer:
                                 servers:
                                     - url: "http://filez-web:80"
-    filez-addons-metadata:
-        {{- if eq $config.dev.build true }}
+    {{- range $config.addons }}
+    filez-addons-{{.name}}:
+        {{- if eq .build.enabled true }}
         build:
-            context: ../../addons/metadata/
-            dockerfile: Dockerfile
+            context: {{.build.path}}
+            dockerfile: {{.build.dockerfile}}
         {{- else }}
-        image: firstdorsal/filez-addons-metadata
+        image: {{.image}}
         {{- end }}
-        container_name: filez-addons-metadata
+        container_name: filez-addons-{{.name}}
         volumes:
-            - ../config/metadata.yml:/config.yml
+            - ../config/{{.name}}.yml:/config.yml:ro
+            {{- if eq .filezAccess true }}
+            - filez-storage:/storage:ro
+            {{- end }}
+            {{- if eq .storage true }}
+            - filez-addons-{{.name}}:/storage:rw
+            {{- end }}
         restart: always
+        {{- if eq .db true }}
         environment:
             MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
         networks:
-            - filez-addons-metadata
-    filez-addons-videoprocessor:
-        {{- if eq $config.dev.build true }}
-        build:
-            context: ../../addons/videoprocessor/
-            dockerfile: Dockerfile
-        {{- else }}
-        image: firstdorsal/filez-addons-videoprocessor
+            - filez-addons-{{.name}}-db
         {{- end }}
-        container_name: filez-addons-videoprocessor
-        volumes:
-            - ../config/videoprocessor.yml:/config.yml
-        restart: always
-        environment:
-            MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
-        networks:
-            - filez-addons-videoprocessor
-    filez-addons-imageprocessor:
-        {{- if eq $config.dev.build true }}
-        build:
-            context: ../../addons/imageprocessor/
-            dockerfile: Dockerfile
-        {{- else }}
-        image: firstdorsal/filez-addons-imageprocessor
-        {{- end }}
-        container_name: filez-addons-imageprocessor
-        volumes:
-            - ../config/imageprocessor.yml:/config.yml
-        restart: always
-        environment:
-            MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
-        networks:
-            - filez-addons-imageprocessor
-    filez-db:
+    {{- end }}
+    filezdb:
         build:
             context: ../../db/
             dockerfile: Dockerfile
         restart: always
-        container_name: filez-db        
+        container_name: filezdb
+        volumes:
+            - filez-db:/data/:rw
         environment:
             MONGO_INITDB_ROOT_USERNAME: root
             MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
         healthcheck:
             test: |
-                test $$(mongosh --quiet -u root -p root --eval "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'filez-db' }] }).ok } catch (_) { rs.status().ok }") -eq 1
+                test $$(mongosh --quiet -u root -p $MONGO_INITDB_ROOT_PASSWORD_FILEZ --eval "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'filezdb' }] }).ok } catch (_) { rs.status().ok }") -eq 1
             interval: 10s
             start_period: 10s
         networks:
-            - filez-server
-            - filez-addons-metadata
-            - filez-addons-videoprocessor
-            - filez-addons-imageprocessor
+            - filez-server-db
+            {{- range $config.addons }}
+            {{- if eq .db true }}
+            - filez-addons-{{ .name }}-db
+            {{- end }}
+            {{- end }}
 
-    {{- if eq $config.interosseaServer.create true }}
-    interossea-db:
+    {{- if eq $config.interossea.web.create true }}
+    interossea-web:
+        {{- if eq $config.interossea.web.build.enabled true }}
+        build:
+            context: {{ $config.interossea.web.build.path }}
+            dockerfile: {{ $config.interossea.web.build.dockerfile }}
+        {{- else }}
+        image: firstdorsal/interossea-web
+        {{- end }}
+        container_name: interossea-web
+        volumes:
+            - ../config/interossea-web.yml:/config.yml:ro
+        restart: always
+        networks:
+            - {{ $config.reverseProxyNetwork }}
+        labels:
+            traefik:
+                enabled: true
+                http:
+                    routers:
+                        interossea-web:
+                            rule: "Host(`{{ $config.interossea.web.publicHostname }}`) && PathPrefix(`/`)"
+                            entrypoints: {{ $config.entrypoint }}
+                            service: interossea-web
+                            tls: {{ $config.interossea.web.tls }}
+                    services:
+                        interossea-web:
+                            loadBalancer:
+                                servers:
+                                    - url: "http://interossea-web:80"
+    {{- end }}
+    {{- if eq $config.interossea.server.create true }}
+    interosseadb:
         build:
             context: ../../db/
             dockerfile: Dockerfile
         restart: always
-        container_name: interossea-db
+        container_name: interosseadb
+        volumes:
+            - interossea-db:/data/:rw
         environment:
             MONGO_INITDB_ROOT_USERNAME: root
             MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_INTEROSSEA
         healthcheck:
             test: |
-                test $$(mongosh --quiet -u root -p root --eval "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'interossea-db' }] }).ok } catch (_) { rs.status().ok }") -eq 1
+                test $$(mongosh --quiet -u root -p $MONGO_INITDB_ROOT_PASSWORD_INTEROSSEA --eval "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'interosseadb' }] }).ok } catch (_) { rs.status().ok }") -eq 1
             interval: 10s
             start_period: 10s
         networks:
-            - interossea-server
+            - interossea-db
     interossea-server:
-        {{- if eq $config.interosseaServer.build.enabled true }}
+        {{- if eq $config.interossea.server.build.enabled true }}
         build:
-            context: {{ $config.interosseaServer.build.path }}
-            dockerfile: Dockerfile
+            context: {{ $config.interossea.server.build.path }}
+            dockerfile: {{ $config.interossea.server.build.dockerfile }}
         {{- else }}
         image: firstdorsal/interossea
         {{- end }}
@@ -161,21 +187,22 @@ services:
         restart: always
         networks:
             - {{ $config.reverseProxyNetwork }}
+            - interossea-db
             - interossea-server
         volumes:
-            - ../config/interossea.yml:/config.yml
-            - interossea-keys:/keys/
+            - ../config/interossea.yml:/config.yml:ro
+            - interossea-keys:/keys/:rw
         environment:
             MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_INTEROSSEA
-            INTEROSSEA_MAIL_USERNAME: {{ $config.interosseaServer.mail.username}}
+            INTEROSSEA_MAIL_USERNAME: {{ $config.interossea.server.mail.username}}
             INTEROSSEA_MAIL_PASSWORD: $INTEROSSEA_MAIL_PASSWORD
-            INTEROSSEA_MAIL_SMTP_SERVER: {{ $config.interosseaServer.mail.smtpServer}}
-            INTEROSSEA_MAIL_FROM_NAME: {{ $config.interosseaServer.mail.fromName}}
-            INTEROSSEA_MAIL_FROM_ADDRESS: {{ $config.interosseaServer.mail.fromAddress}}
-            INTEROSSEA_MAIL_USER_AGENT: {{ $config.interosseaServer.mail.userAgent}}
-            INTEROSSEA_MAIL_REPLY_TO: {{ $config.interosseaServer.mail.replyTo}}
-            INTEROSSEA_WEB_HOSTNAME: {{ $config.interosseaServer.publicHostname}}
-            INTEROSSEA_WEB_PROTOCOL: {{ ternary "https" "http" $config.interosseaServer.tls }}
+            INTEROSSEA_MAIL_SMTP_SERVER: {{ $config.interossea.server.mail.smtpServer}}
+            INTEROSSEA_MAIL_FROM_NAME: {{ $config.interossea.server.mail.fromName}}
+            INTEROSSEA_MAIL_FROM_ADDRESS: {{ $config.interossea.server.mail.fromAddress}}
+            INTEROSSEA_MAIL_USER_AGENT: {{ $config.interossea.server.mail.userAgent}}
+            INTEROSSEA_MAIL_REPLY_TO: {{ $config.interossea.server.mail.replyTo}}
+            INTEROSSEA_WEB_HOSTNAME: {{ $config.interossea.server.publicHostname}}
+            INTEROSSEA_WEB_PROTOCOL: {{ ternary "https" "http" $config.interossea.server.tls }}
             INTEROSSEA_FILEZ_ALLOWED_ORIGINS: {{ ternary "https://" "http://" $config.tls true }}{{ $config.hostname}}
         labels:
             traefik:
@@ -183,7 +210,7 @@ services:
                 http:
                     routers:
                         interossea-server:
-                            rule: "Host(`{{ $config.interosseaServer.publicHostname }}`) && PathPrefix(`/`)"
+                            rule: "Host(`{{ $config.interossea.server.publicHostname }}`) && PathPrefix(`/api`)"
                             entrypoints: {{ $config.entrypoint }}
                             service: interossea-server
                             tls: {{ $config.tls }}
@@ -196,23 +223,35 @@ services:
 volumes:
     filez-storage:
         name: filez-storage
-    {{- if eq $config.interosseaServer.create true }}
+    filez-db:
+        name: filez-db
+    interossea-db:
+        name: interossea-db
+    {{- range $config.addons }}
+    {{- if eq .storage true }}
+    filez-addons-{{ .name }}:
+        name: filez-addons-{{ .name }}
+    {{- end }}
+    {{- end }}
+    {{- if eq $config.interossea.server.create true }}
     interossea-keys:
         name: interossea-keys
     {{- end }}
     
 networks:
-    filez-server:
-        name: filez-server
-    filez-addons-metadata:
-        name: filez-addons-metadata
-    filez-addons-videoprocessor:
-        name: filez-addons-videoprocessor
-    filez-addons-imageprocessor:
-        name: filez-addons-imageprocessor
+    filez-server-db:
+        name: filez-server-db
+    {{- range $config.addons }}
+    {{- if eq .db true }}
+    filez-addons-{{ .name }}-db:
+        name: filez-addons-{{ .name }}-db
+    {{- end }}
+    {{- end }}
     {{ $config.reverseProxyNetwork }}:
         name: {{ $config.reverseProxyNetwork }}
-    {{- if eq $config.interosseaServer.create true }}
+    {{- if eq $config.interossea.server.create true }}
     interossea-server:
         name: interossea-server
+    interossea-db:
+        name: interossea-db
     {{- end }}

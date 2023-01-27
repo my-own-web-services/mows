@@ -1,4 +1,5 @@
 import { Component } from "preact";
+import { G } from "../../App";
 import { FilezFile, ProcessedImage } from "../../types";
 import "./Image.scss";
 interface ImageProps {
@@ -8,12 +9,12 @@ interface ImageState {}
 export default class Image extends Component<ImageProps, ImageState> {
     render = () => {
         const f = this.props.file;
-        const processedImage = f.appData?.imageProcessor?.result as ProcessedImage;
+        const processedImage = f.appData?.image?.result as ProcessedImage;
         if (!processedImage) return;
         return (
             <div className="Image">
                 <img
-                    src={`/api/get_file/${f._id}/imageProcessor/500.avif`}
+                    src={`/api/get_file/${f._id}/image/500.avif`}
                     loading="lazy"
                     width={processedImage.width}
                     height={processedImage.height}

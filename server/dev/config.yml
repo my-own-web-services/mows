@@ -22,23 +22,28 @@ interossea:
     assertionValiditySeconds: 600
 
 dev:
-    insecureSkipInterossea: true
+    insecureSkipInterossea: false
     createDevUser: true
 
 readonlyMount:
-    importImages:
-        path: /home/paul/Downloads/_import-images/
+    testVideo:
+        path: /home/paul/Downloads/test_video/
         rescanSeconds: 120
-        ownerId: dev
-    someVideos:
-        path: "/mnt/archive/Video/RawDLYT/classic/"
-        rescanSeconds: 120
-        ownerId: dev
-    music:
-        path: /mnt/archive/Music/JACKBOYS - JACKBOYS/
-        rescanSeconds: 120
-        ownerId: dev
-    someImages:
-        path: /mnt/archive/Bilder/Photos/2018/2018-12-03/
-        rescanSeconds: 120
-        ownerId: dev
+        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
+    #importImages:
+    #    path: /home/paul/Downloads/_import-images/
+    #    rescanSeconds: 120
+    #    ownerId: dev
+    #
+    #someVideos:
+    #    path: "/mnt/archive/Video/RawDLYT/classic/"
+    #    rescanSeconds: 120
+    #    ownerId: dev
+    #music:
+    #    path: /mnt/archive/Music/JACKBOYS - JACKBOYS/
+    #    rescanSeconds: 120
+    #    ownerId: dev
+    #someImages:
+    #    path: /mnt/archive/Bilder/Photos/2018/2018-12-03/
+    #    rescanSeconds: 120
+    #    ownerId: dev

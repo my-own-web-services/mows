@@ -4,7 +4,7 @@ import { InterosseaClient } from "./interosseaClient";
 export class FilezClient {
     interosseaClient: InterosseaClient;
     constructor(interosseaEndpoint: string) {
-        this.interosseaClient = new InterosseaClient(interosseaEndpoint, true);
+        this.interosseaClient = new InterosseaClient(interosseaEndpoint, false);
     }
 
     init = async () => {

@@ -22,5 +22,6 @@ COPY --from=build /home/rust/src/target/x86_64-unknown-linux-musl/release/main .
 COPY --from=build /etc/passwd /etc/passwd
 USER filez-server
 STOPSIGNAL SIGKILL
+EXPOSE 80
 # run it 
 ENTRYPOINT ["./filez-server"]

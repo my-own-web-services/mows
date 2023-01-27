@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use crate::{
     config::SERVER_CONFIG,
     db::DB,
@@ -9,16 +7,15 @@ use crate::{
 };
 use anyhow::bail;
 use hyper::{Body, Request, Response};
-
-use http_range::HttpRange;
 use hyper_staticfile::util::FileBytesStreamRange;
+use std::path::Path;
 
 pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
     let path = req.uri().path().replacen("/api/get_file/", "", 1);
 
-    let parts = path.split("/").collect::<Vec<_>>();
-    let file_id = if parts.len() > 0 {
+    let parts = path.split('/').collect::<Vec<_>>();
+    let file_id = if !parts.is_empty() {
         parts[0].to_string()
     } else {
         bail!("No file id")
@@ -28,9 +25,9 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
             None
         } else {
             let maybe_app = parts[1].to_string();
-            let maybe_app_file = parts[2..].join("/").to_string();
+            let maybe_app_file = parts[2..].join("/");
 
-            if maybe_app.len() > 0 && maybe_app_file.len() > 0 {
+            if !maybe_app.is_empty() && !maybe_app_file.is_empty() {
                 Some((maybe_app, maybe_app_file))
             } else {
                 None
