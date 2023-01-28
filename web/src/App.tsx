@@ -34,6 +34,7 @@ export interface G {
     readonly selectedGroup: VisualFileGroup | null;
     readonly filezClient: FilezClient;
     readonly fn: Fn;
+    readonly uiConfig: UiConfig;
 }
 
 export interface Fn {
@@ -70,6 +71,7 @@ export default class App extends Component<AppProps, AppState> {
                 selectedFile: null,
                 selectedGroup: null,
                 filezClient: null as unknown as FilezClient,
+                uiConfig: null as unknown as UiConfig,
                 fn: {
                     itemClick: this.itemClick,
                     groupArrowClick: this.groupArrowClick,
@@ -84,14 +86,21 @@ export default class App extends Component<AppProps, AppState> {
     }
 
     componentDidMount = async () => {
-        const config: UiConfig = await fetch("/config.json").then(res => res.json());
-        //@ts-ignore
-        this.state.g.filezClient = new FilezClient(
-            config.interosseaServerAddress,
-            config.skipInterossea
-        );
+        const uiConfig: UiConfig = await fetch("/config.json").then(res => res.json());
 
-        await this.state.g.filezClient.init();
+        const client = new FilezClient(uiConfig.interosseaServerAddress, uiConfig.skipInterossea);
+        await client.init();
+
+        this.setState(state => {
+            return update(state, {
+                g: {
+                    uiConfig: { $set: uiConfig },
+                    filezClient: {
+                        $set: client
+                    }
+                }
+            });
+        });
 
         this.allFileGroups = convertFileGroups(
             await this.state.g.filezClient.get_own_file_groups()
