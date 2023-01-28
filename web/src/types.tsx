@@ -70,3 +70,8 @@ export interface ProcessedImage {
     height: number;
     resolutions: number[];
 }
+
+export interface UiConfig {
+    interosseaServerAddress: string;
+    skipInterossea: boolean;
+}

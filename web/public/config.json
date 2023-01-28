@@ -1,0 +1,4 @@
+{
+    "interosseaServerAddress": "http://localhost:8081",
+    "skipInterossea": false
+}

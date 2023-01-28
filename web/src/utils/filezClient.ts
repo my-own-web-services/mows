@@ -3,8 +3,8 @@ import { InterosseaClient } from "./interosseaClient";
 
 export class FilezClient {
     interosseaClient: InterosseaClient;
-    constructor(interosseaEndpoint: string) {
-        this.interosseaClient = new InterosseaClient(interosseaEndpoint, false);
+    constructor(interosseaEndpoint: string, skipInterossea: boolean = false) {
+        this.interosseaClient = new InterosseaClient(interosseaEndpoint, skipInterossea);
     }
 
     init = async () => {

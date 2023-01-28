@@ -1,0 +1,10 @@
+providers:
+    docker:
+        enabled: true
+
+log:
+    level: 0
+api:
+    enabled: false
+    dashboard: false
+    readonly: false

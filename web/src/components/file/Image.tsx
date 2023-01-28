@@ -1,5 +1,4 @@
 import { Component } from "preact";
-import { G } from "../../App";
 import { FilezFile, ProcessedImage } from "../../types";
 import "./Image.scss";
 interface ImageProps {

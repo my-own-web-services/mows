@@ -3,17 +3,25 @@ server:
         enabled: true
         path: ../../server/
         dockerfile: Dockerfile
+    publicHostname:
+        domain: y.gy
+        subdomain: filez
 
 web:
     build:
         enabled: true
         path: ../../web/
         dockerfile: Dockerfile
+    publicHostname:
+        domain: y.gy
+        subdomain: filez
 
-reverseProxyNetwork: rp
-hostname: filez.y.gy
-tls: true
-entrypoint: websecure
+reverseProxy:
+    create: true
+    network: rp
+
+tls: false
+routing: local
 
 addons:
     - name: video
@@ -48,8 +56,10 @@ interossea:
     server:
         create: true
         internalHostname: interossea-server
-        publicHostname: accounts.y.gy
-        tls: true
+        publicHostname:
+            domain: y.gy
+            subdomain: accounts
+        tls: false
         build:
             enabled: true
             path: /home/paul/Documents/interossea/server/
@@ -63,8 +73,10 @@ interossea:
             replyTo: mail@y.gy
     web:
         create: true
-        publicHostname: accounts.y.gy
-        tls: true
+        publicHostname:
+            domain: y.gy
+            subdomain: accounts
+        tls: false
         build:
             enabled: true
             path: /home/paul/Documents/interossea/web/

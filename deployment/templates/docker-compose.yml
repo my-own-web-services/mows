@@ -1,5 +1,13 @@
 {{- $config :=  yamlFile "../config.yml" -}}
 
+{{- $interosseaServerHostname := joindomain $config.interossea.server.publicHostname.subdomain (ternary "localhost" $config.interossea.server.publicHostname.domain (eq $config.routing "local")) -}}
+
+{{- $interosseaWebHostname := joindomain $config.interossea.web.publicHostname.subdomain (ternary "localhost" $config.interossea.web.publicHostname.domain (eq $config.routing "local")) -}}
+
+{{- $filezServerHostname := joindomain $config.server.publicHostname.subdomain (ternary "localhost" $config.server.publicHostname.domain (eq $config.routing "local")) -}}
+
+{{- $filezWebHostname := joindomain $config.web.publicHostname.subdomain (ternary "localhost" $config.web.publicHostname.domain (eq $config.routing "local")) -}}
+
 version: "3.9"
 services:
     filez-server:
@@ -22,7 +30,7 @@ services:
         restart: always
         networks:
             - filez-server-db
-            - {{ $config.reverseProxyNetwork }}
+            - {{ $config.reverseProxy.network }}
             {{- if eq $config.interossea.server.create true }}
             - interossea-server
             {{- end }}
@@ -35,13 +43,14 @@ services:
                 http:
                     routers:
                         filez-server:
-                            rule: "Host(`{{ $config.hostname }}`) && PathPrefix(`/api`)"
-                            entrypoints: {{ $config.entrypoint }}
+                            rule: "Host(`{{ $filezServerHostname }}`) && PathPrefix(`/api`)"
+                            entrypoints: 
+                                - {{ ternary "webesecure" "web" $config.tls }}
                             service: filez-server
                             tls: {{ $config.tls }}
                     services:
                         filez-server:
-                            loadBalancer:
+                            loadbalancer:
                                 servers:
                                     - url: "http://filez-server:80"
     filez-web:
@@ -55,24 +64,26 @@ services:
         container_name: filez-web
         volumes:
             - ../config/filez-web.yml:/config.yml:ro
+            - ./filez-web-ui-config.json:/public/config.json:ro
         restart: always
         environment:
-            CSP_CONNECT_SRC: {{ ternary "https://" "http://" $config.interossea.server.tls true }}{{ $config.interossea.server.publicHostname}}
+            CSP_CONNECT_SRC: {{ ternary "https://" "http://" $config.interossea.server.tls true }}{{ $interosseaServerHostname}}
         networks:
-            - {{ $config.reverseProxyNetwork }}
+            - {{ $config.reverseProxy.network }}
         labels:
             traefik:
                 enabled: true
                 http:
                     routers:
                         filez-web:
-                            rule: "Host(`{{ $config.hostname }}`) && PathPrefix(`/`)"
-                            entrypoints: {{ $config.entrypoint }}
+                            rule: "Host(`{{ $filezWebHostname }}`) && PathPrefix(`/`)"
+                            entrypoints: 
+                                - {{ ternary "webesecure" "web" $config.tls }}
                             service: filez-web
                             tls: {{ $config.tls }}
                     services:
                         filez-web:
-                            loadBalancer:
+                            loadbalancer:
                                 servers:
                                     - url: "http://filez-web:80"
     {{- range $config.addons }}
@@ -139,20 +150,21 @@ services:
             - ../config/interossea-web.yml:/config.yml:ro
         restart: always
         networks:
-            - {{ $config.reverseProxyNetwork }}
+            - {{ $config.reverseProxy.network }}
         labels:
             traefik:
                 enabled: true
                 http:
                     routers:
                         interossea-web:
-                            rule: "Host(`{{ $config.interossea.web.publicHostname }}`) && PathPrefix(`/`)"
-                            entrypoints: {{ $config.entrypoint }}
+                            rule: "Host(`{{ $interosseaWebHostname }}`) && PathPrefix(`/`)"
+                            entrypoints: 
+                                - {{ ternary "webesecure" "web" $config.tls }}
                             service: interossea-web
                             tls: {{ $config.interossea.web.tls }}
                     services:
                         interossea-web:
-                            loadBalancer:
+                            loadbalancer:
                                 servers:
                                     - url: "http://interossea-web:80"
     {{- end }}
@@ -186,7 +198,7 @@ services:
         container_name: interossea-server
         restart: always
         networks:
-            - {{ $config.reverseProxyNetwork }}
+            - {{ $config.reverseProxy.network }}
             - interossea-db
             - interossea-server
         volumes:
@@ -201,24 +213,52 @@ services:
             INTEROSSEA_MAIL_FROM_ADDRESS: {{ $config.interossea.server.mail.fromAddress}}
             INTEROSSEA_MAIL_USER_AGENT: {{ $config.interossea.server.mail.userAgent}}
             INTEROSSEA_MAIL_REPLY_TO: {{ $config.interossea.server.mail.replyTo}}
-            INTEROSSEA_WEB_HOSTNAME: {{ $config.interossea.server.publicHostname}}
+            INTEROSSEA_WEB_HOSTNAME: {{ $interosseaServerHostname }}
             INTEROSSEA_WEB_PROTOCOL: {{ ternary "https" "http" $config.interossea.server.tls }}
-            INTEROSSEA_FILEZ_ALLOWED_ORIGINS: {{ ternary "https://" "http://" $config.tls true }}{{ $config.hostname}}
+            INTEROSSEA_FILEZ_ALLOWED_ORIGINS: {{ ternary "https://" "http://" $config.tls true }}{{ $filezServerHostname}}
         labels:
             traefik:
                 enabled: true
                 http:
                     routers:
                         interossea-server:
-                            rule: "Host(`{{ $config.interossea.server.publicHostname }}`) && PathPrefix(`/api`)"
-                            entrypoints: {{ $config.entrypoint }}
+                            rule: "Host(`{{ $interosseaServerHostname }}`) && PathPrefix(`/api`)"
+                            entrypoints: 
+                                - {{ ternary "webesecure" "web" $config.tls }}
                             service: interossea-server
                             tls: {{ $config.tls }}
                     services:
                         interossea-server:
-                            loadBalancer:
+                            loadbalancer:
                                 servers:
                                     - url: "http://interossea-server:80"
+    {{- end }}
+    {{- if eq $config.reverseProxy.create true }}
+    rp:
+        container_name: rp
+        image: pektin/verkehr
+        restart: always
+        networks:
+            - {{ $config.reverseProxy.network }}
+        volumes:
+            - ../config/verkehr.yml:/config.yml:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        ports:
+            - "80:80"
+            {{- if eq $config.tls true }}
+            - "443:443"
+            {{- end }}
+        labels:
+            traefik:
+                http:
+                    entrypoints:
+                        web:
+                            address: ":80"
+                        {{- if eq $config.tls true }}
+                        webesecure:
+                            address: ":443"
+                        {{- end }}
+        
     {{- end }}
 volumes:
     filez-storage:
@@ -247,8 +287,8 @@ networks:
         name: filez-addons-{{ .name }}-db
     {{- end }}
     {{- end }}
-    {{ $config.reverseProxyNetwork }}:
-        name: {{ $config.reverseProxyNetwork }}
+    {{ $config.reverseProxy.network }}:
+        name: {{ $config.reverseProxy.network }}
     {{- if eq $config.interossea.server.create true }}
     interossea-server:
         name: interossea-server

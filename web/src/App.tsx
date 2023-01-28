@@ -7,7 +7,7 @@ import Center, { View } from "./components/panels/center/Center";
 import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
 import { CustomProvider } from "rsuite";
-import { FileView, FilezFile } from "./types";
+import { FileView, FilezFile, UiConfig } from "./types";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { DndProvider } from "react-dnd";
 import update from "immutability-helper";
@@ -57,6 +57,7 @@ export default class App extends Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.allFileGroups = [];
+
         this.state = {
             files: [],
             fileGroups: [],
@@ -68,7 +69,7 @@ export default class App extends Component<AppProps, AppState> {
                 selectedGroups: [],
                 selectedFile: null,
                 selectedGroup: null,
-                filezClient: new FilezClient("http://localhost:8081"),
+                filezClient: null as unknown as FilezClient,
                 fn: {
                     itemClick: this.itemClick,
                     groupArrowClick: this.groupArrowClick,
@@ -83,6 +84,13 @@ export default class App extends Component<AppProps, AppState> {
     }
 
     componentDidMount = async () => {
+        const config: UiConfig = await fetch("/config.json").then(res => res.json());
+        //@ts-ignore
+        this.state.g.filezClient = new FilezClient(
+            config.interosseaServerAddress,
+            config.skipInterossea
+        );
+
         await this.state.g.filezClient.init();
 
         this.allFileGroups = convertFileGroups(
