@@ -27,7 +27,7 @@ dev:
 
 uiOrigin: http://localhost:5173
 
-readonlyMount:
+readonlyMounts:
     testVideo:
         path: /home/paul/Downloads/test_video/
         rescanSeconds: 120

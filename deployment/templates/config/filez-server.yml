@@ -1,0 +1,38 @@
+{{- $config :=  yamlFile "../../config.yml" -}}
+{{- $filezWebHostname := joindomain $config.filez.web.publicHostname.subdomain (ternary "localhost" $config.filez.web.publicHostname.domain (eq $config.routing "local")) -}}
+variablePrefix: "$"
+
+serviceId: filez
+
+storage:
+    default:
+        path: /storage/
+
+defaultStorage: default
+
+appStorage:
+    path: /appdata/
+
+http:
+    internalAddress: "[::]:80"
+
+db:
+    url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filezdb.localhost:{{ $config.filez.server.db.port }}
+
+interossea:
+    url: http://$INTEROSSEA_INTERNAL_URL
+    assertionValiditySeconds: 600
+
+dev:
+    insecureSkipInterossea: false
+    createDevUser: false
+
+uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostname}}
+
+readonlyMounts:
+    {{- range $config.filez.readonlyMounts }}
+    {{ .name }}:
+        path: /{{ .name }}/
+        rescanSeconds: 120
+        ownerId: {{ .ownerId }}
+    {{- end }}

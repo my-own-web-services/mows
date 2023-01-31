@@ -1,56 +1,61 @@
-server:
-    build:
-        enabled: true
-        path: ../../server/
-        dockerfile: Dockerfile
-    publicHostname:
-        domain: y.gy
-        subdomain: filez-server
-
-web:
-    build:
-        enabled: true
-        path: ../../web/
-        dockerfile: Dockerfile
-    publicHostname:
-        domain: y.gy
-        subdomain: filez
-
 reverseProxy:
     create: true
     network: rp
 
 tls: false
 routing: local
-
-addons:
-    - name: video
-      db: true
-      storage: true
-      filezAccess: true
-      image: firstdorsal/filez-addons-video
-      build:
-          enabled: true
-          path: ../../addons/video/
-          dockerfile: Dockerfile
-    - name: image
-      db: true
-      storage: true
-      filezAccess: true
-      image: firstdorsal/filez-addons-image
-      build:
-          enabled: true
-          path: ../../addons/image/
-          dockerfile: Dockerfile
-    - name: metadata
-      db: true
-      storage: false
-      filezAccess: true
-      image: firstdorsal/filez-addons-metadata
-      build:
-          enabled: true
-          path: ../../addons/metadata/
-          dockerfile: Dockerfile
+filez:
+    server:
+        build:
+            enabled: true
+            path: ../../server/
+            dockerfile: Dockerfile
+        publicHostname:
+            domain: y.gy
+            subdomain: filez-server
+        db:
+            exposeToLocalhost: true
+            port: 27018
+    web:
+        build:
+            enabled: true
+            path: ../../web/
+            dockerfile: Dockerfile
+        publicHostname:
+            domain: y.gy
+            subdomain: filez
+    readonlyMounts:
+        - name: testVideo
+          path: /home/paul/Downloads/test_video/
+          ownerId: m1QTbRbPUiVVs1TjH0HMSyBc-0KOnoSK
+    addons:
+        - name: video
+          db: true
+          storage: true
+          filezAccess: true
+          image: firstdorsal/filez-addons-video
+          build:
+              enabled: true
+              path: ../../addons/video/
+              dockerfile: Dockerfile
+        - name: image
+          db: true
+          storage: true
+          filezAccess: true
+          image: firstdorsal/filez-addons-image
+          build:
+              enabled: true
+              path: ../../addons/image/
+              dockerfile: Dockerfile
+        - name: metadata
+          db: true
+          storage: false
+          filezAccess: true
+          image: firstdorsal/filez-addons-metadata
+          build:
+              enabled: true
+              path: ../../addons/metadata/
+              dockerfile: Dockerfile
 
 interossea:
     server:
@@ -70,6 +75,10 @@ interossea:
             fromAddress: no-reply@y.gy
             userAgent: Sugar-Free-Mail-2022
             replyTo: mail@y.gy
+        db:
+            exposeToLocalhost: true
+            port: 27019
+
     web:
         create: true
         publicHostname:

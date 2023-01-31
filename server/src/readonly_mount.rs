@@ -19,7 +19,7 @@ use std::{
 pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
 
-    for (mount_name, mount) in &config.readonly_mount {
+    for (mount_name, mount) in &config.readonly_mounts {
         match scan_readonly_mount(db, mount_name, mount).await {
             Ok(_) => {
                 println!("Success")

@@ -51,7 +51,7 @@ pub struct ServerConfig {
     pub http: HttpConfig,
     pub dev: DevConfig,
     #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
-    pub readonly_mount: HashMap<String, ReadonlyMountConfig>,
+    pub readonly_mounts: HashMap<String, ReadonlyMountConfig>,
     pub service_id: String,
     pub app_storage: AppStorage,
     pub ui_origin: String,

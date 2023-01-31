@@ -87,7 +87,9 @@ export class FilezClient {
     };
 
     get_own_file_groups = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_own_file_groups/`);
+        const res = await fetch(`${this.filezEndpoint}/api/get_own_file_groups/`, {
+            credentials: "include"
+        });
         const fileGroups: FileGroup[] = await res.json();
         return fileGroups;
     };
