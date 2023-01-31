@@ -11,14 +11,11 @@ pub async fn set_app_data(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
+    res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let user_id = match &auth.authenticated_user {
         Some(user_id) => user_id.clone(),
-        None => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))?)
-        }
+        None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
     };
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
@@ -38,8 +35,5 @@ pub async fn set_app_data(
 
     db.set_app_data(sadr).await?;
 
-    Ok(Response::builder()
-        .status(200)
-        .body(Body::from("OK"))
-        .unwrap())
+    Ok(res.status(200).body(Body::from("OK")).unwrap())
 }

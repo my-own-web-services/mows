@@ -31,6 +31,7 @@ pub async fn create_file(
     mut req: Request<Body>,
     db: DB,
     auth: &Auth,
+    res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
     let (user_id, upload_space) = match &auth.authenticated_user {
@@ -43,11 +44,7 @@ pub async fn create_file(
                 );
                 (upload_space.owner_id.clone(), Some(upload_space))
             }
-            None => {
-                return Ok(Response::builder()
-                    .status(401)
-                    .body(Body::from("Unauthorized"))?)
-            }
+            None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
         },
     };
 
@@ -227,7 +224,7 @@ pub async fn create_file(
                 storage_name,
                 sha256: hash,
             };
-            Ok(Response::builder()
+            Ok(res
                 .status(201)
                 .body(Body::from(serde_json::to_string(&cfr)?))?)
         }

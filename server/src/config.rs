@@ -54,6 +54,7 @@ pub struct ServerConfig {
     pub readonly_mount: HashMap<String, ReadonlyMountConfig>,
     pub service_id: String,
     pub app_storage: AppStorage,
+    pub ui_origin: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

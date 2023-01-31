@@ -88,7 +88,11 @@ export default class App extends Component<AppProps, AppState> {
     componentDidMount = async () => {
         const uiConfig: UiConfig = await fetch("/config.json").then(res => res.json());
 
-        const client = new FilezClient(uiConfig.interosseaServerAddress, uiConfig.skipInterossea);
+        const client = new FilezClient(
+            uiConfig.filezServerAddress,
+            uiConfig.interosseaServerAddress,
+            uiConfig.skipInterossea
+        );
         await client.init();
 
         this.setState(state => {
@@ -102,9 +106,7 @@ export default class App extends Component<AppProps, AppState> {
             });
         });
 
-        this.allFileGroups = convertFileGroups(
-            await this.state.g.filezClient.get_own_file_groups()
-        );
+        this.allFileGroups = convertFileGroups(await client.get_own_file_groups());
         this.setState({ fileGroups: this.allFileGroups });
     };
 

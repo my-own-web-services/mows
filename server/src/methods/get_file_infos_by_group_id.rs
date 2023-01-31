@@ -5,14 +5,11 @@ pub async fn get_file_infos_by_group_id(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
+    res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let user_id = match &auth.authenticated_user {
         Some(user_id) => user_id.clone(),
-        None => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))?)
-        }
+        None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
     };
     let group_id = req
         .uri()
@@ -31,7 +28,7 @@ pub async fn get_file_infos_by_group_id(
         .filter(|f| f.owner_id == user_id)
         .collect::<Vec<_>>();
 
-    Ok(Response::builder()
+    Ok(res
         .status(200)
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&files)?.into())

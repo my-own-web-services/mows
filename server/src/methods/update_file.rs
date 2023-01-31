@@ -17,6 +17,7 @@ pub async fn update_file(
     mut req: Request<Body>,
     db: DB,
     auth: &Auth,
+    res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
@@ -43,10 +44,7 @@ pub async fn update_file(
     match check_auth(auth, &filez_file, &db, "update_file").await {
         Ok(true) => {}
         Ok(false) => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))
-                .unwrap());
+            return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
         }
         Err(e) => bail!(e),
     }
@@ -111,7 +109,7 @@ pub async fn update_file(
     } else {
         fs::rename(&new_file_path, &filez_file.path)?;
         let cfr = UpdateFileResponse { sha256: hash };
-        Ok(Response::builder()
+        Ok(res
             .status(200)
             .body(Body::from(serde_json::to_string(&cfr)?))?)
     }

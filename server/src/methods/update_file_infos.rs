@@ -17,6 +17,7 @@ pub async fn update_file_infos(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
+    res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
     let body = hyper::body::to_bytes(req.into_body()).await?;
@@ -34,20 +35,14 @@ pub async fn update_file_infos(
             match check_auth(auth, &filez_file, &db, "update_file_infos_mime_type").await {
                 Ok(true) => {}
                 Ok(false) => {
-                    return Ok(Response::builder()
-                        .status(401)
-                        .body(Body::from("Unauthorized"))
-                        .unwrap());
+                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
                 }
                 Err(e) => bail!(e),
             }
             db.update_mime_type(&filez_file.file_id, &new_mime_type)
                 .await?;
 
-            Ok(Response::builder()
-                .status(200)
-                .body(Body::from("Updated"))
-                .unwrap())
+            Ok(res.status(200).body(Body::from("Updated")).unwrap())
         }
         UpdateFileInfosRequestField::Name(new_name) => {
             check_file_name(&new_name)?;
@@ -55,19 +50,13 @@ pub async fn update_file_infos(
             match check_auth(auth, &filez_file, &db, "update_file_infos_name").await {
                 Ok(true) => {}
                 Ok(false) => {
-                    return Ok(Response::builder()
-                        .status(401)
-                        .body(Body::from("Unauthorized"))
-                        .unwrap());
+                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
                 }
                 Err(e) => bail!(e),
             }
             db.update_file_name(&filez_file.file_id, &new_name).await?;
 
-            Ok(Response::builder()
-                .status(200)
-                .body(Body::from("Updated"))
-                .unwrap())
+            Ok(res.status(200).body(Body::from("Updated")).unwrap())
         }
 
         UpdateFileInfosRequestField::StaticFileGroupIds(new_static_file_group_ids) => {
@@ -82,10 +71,7 @@ pub async fn update_file_infos(
             {
                 Ok(true) => {}
                 Ok(false) => {
-                    return Ok(Response::builder()
-                        .status(401)
-                        .body(Body::from("Unauthorized"))
-                        .unwrap());
+                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
                 }
                 Err(e) => bail!(e),
             }
@@ -95,30 +81,21 @@ pub async fn update_file_infos(
             db.update_static_file_group_ids(&filez_file.file_id, &new_static_file_group_ids)
                 .await?;
 
-            Ok(Response::builder()
-                .status(200)
-                .body(Body::from("Updated"))
-                .unwrap())
+            Ok(res.status(200).body(Body::from("Updated")).unwrap())
         }
         UpdateFileInfosRequestField::Keywords(new_keywords) => {
             check_keywords(&new_keywords)?;
             match check_auth(auth, &filez_file, &db, "update_file_infos_keywords").await {
                 Ok(true) => {}
                 Ok(false) => {
-                    return Ok(Response::builder()
-                        .status(401)
-                        .body(Body::from("Unauthorized"))
-                        .unwrap());
+                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
                 }
                 Err(e) => bail!(e),
             }
             db.update_keywords(&filez_file.file_id, &new_keywords)
                 .await?;
 
-            Ok(Response::builder()
-                .status(200)
-                .body(Body::from("Updated"))
-                .unwrap())
+            Ok(res.status(200).body(Body::from("Updated")).unwrap())
         }
         UpdateFileInfosRequestField::OwnerId(new_owner_id) => {
             // check if the file is owned by the user
@@ -134,17 +111,11 @@ pub async fn update_file_infos(
 
                     db.update_pending_new_owner_id(&filez_file.file_id, &new_owner_id)
                         .await?;
-                    return Ok(Response::builder()
-                        .status(200)
-                        .body(Body::from("Updated"))
-                        .unwrap());
+                    return Ok(res.status(200).body(Body::from("Updated")).unwrap());
                 }
             }
 
-            Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))
-                .unwrap())
+            Ok(res.status(401).body(Body::from("Unauthorized")).unwrap())
         }
         UpdateFileInfosRequestField::StorageId(new_storage_id) => {
             // check if user is the owner
@@ -209,10 +180,7 @@ pub async fn update_file_infos(
                     {
                         Ok(_) => {
                             fs::remove_file(&filez_file.path).await?;
-                            return Ok(Response::builder()
-                                .status(200)
-                                .body(Body::from("Updated"))
-                                .unwrap());
+                            return Ok(res.status(200).body(Body::from("Updated")).unwrap());
                         }
                         Err(e) => {
                             fs::remove_file(&new_file_path).await?;
@@ -221,10 +189,7 @@ pub async fn update_file_infos(
                     };
                 }
             }
-            Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))
-                .unwrap())
+            Ok(res.status(401).body(Body::from("Unauthorized")).unwrap())
         }
     }
 }

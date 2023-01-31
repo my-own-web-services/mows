@@ -16,7 +16,7 @@ headers:
 
             manifest-src 'self';
 
-            connect-src 'self'; 
+            connect-src 'self' $CSP_CONNECT_SRC; 
 
             img-src 'self'; 
 

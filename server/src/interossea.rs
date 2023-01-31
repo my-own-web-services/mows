@@ -61,7 +61,6 @@ impl Interossea {
         let current_time = chrono::offset::Utc::now().timestamp_millis();
         let token_created_time = validated_token.claims.iat;
         let ip = addr.ip().to_string();
-        let host = some_or_bail!(req.headers().get("host"), "No host header found").to_str()?;
 
         if &self.assertion_validity_seconds * 1000 + token_created_time < current_time {
             bail!("Assertion expired");
@@ -71,17 +70,11 @@ impl Interossea {
             bail!("Assertion IP mismatch");
         }
 
-        if validated_token
-            .claims
-            .service_origin
-            .replacen("http://", "", 1)
-            .replacen("https://", "", 1)
-            != host
-        {
+        if validated_token.claims.service_origin != config.ui_origin {
             bail!(
                 "Assertion host mismatch: {} != {}",
                 validated_token.claims.service_origin,
-                host
+                config.ui_origin
             );
         }
 
@@ -98,6 +91,7 @@ impl Interossea {
         addr: SocketAddr,
         session_map: Arc<RwLock<HashMap<String, UserAssertion>>>,
     ) -> anyhow::Result<UserAssertion> {
+        let config = &SERVER_CONFIG;
         let cookies = get_cookies(req)?;
         let session = some_or_bail!(cookies.get("session"), "No session cookie found");
 
@@ -109,7 +103,6 @@ impl Interossea {
         let current_time = chrono::offset::Utc::now().timestamp_millis();
         let token_created_time = validated_assertion_claims.iat;
         let ip = addr.ip().to_string();
-        let host = some_or_bail!(req.headers().get("host"), "No host header found").to_str()?;
 
         if &self.assertion_validity_seconds * 1000 + token_created_time < current_time {
             bail!("Assertion expired");
@@ -119,16 +112,11 @@ impl Interossea {
             bail!("Assertion IP mismatch");
         }
 
-        if validated_assertion_claims
-            .service_origin
-            .replacen("http://", "", 1)
-            .replacen("https://", "", 1)
-            != host
-        {
+        if validated_assertion_claims.service_origin != config.ui_origin {
             bail!(
                 "Assertion host mismatch: {} != {}",
                 validated_assertion_claims.service_origin,
-                host
+                config.ui_origin
             );
         }
         Ok(validated_assertion_claims)
@@ -140,7 +128,11 @@ impl Interossea {
 }
 
 pub async fn get_decoding_key(interossea_addr: &str) -> anyhow::Result<DecodingKey> {
-    let res = reqwest::get(format!("{}/api/get_public_key/", interossea_addr)).await?;
+    let client = reqwest::Client::new();
+    let res = client
+        .post(format!("{}/api/get_public_key/", interossea_addr))
+        .send()
+        .await?;
     let text = res.text().await?;
     Ok(DecodingKey::from_rsa_pem(text.as_bytes())?)
 }
@@ -149,6 +141,7 @@ pub async fn get_session_cookie(
     req: &Request<Body>,
     session_map: Arc<RwLock<HashMap<String, UserAssertion>>>,
     addr: SocketAddr,
+    res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let new_session_id = generate_id();
 
@@ -167,10 +160,10 @@ pub async fn get_session_cookie(
             SERVER_CONFIG.interossea.assertion_validity_seconds as i64,
         ))
         .http_only(true)
-        .same_site(cookie::SameSite::Strict)
+        .same_site(cookie::SameSite::None)
         .finish();
 
-    Ok(Response::builder()
+    Ok(res
         .status(200)
         .header("Set-Cookie", session_cookie.to_string())
         .body(Body::from("OK"))

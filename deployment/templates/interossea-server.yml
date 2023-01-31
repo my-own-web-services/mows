@@ -1,3 +1,5 @@
+{{- $config :=  yamlFile "../config.yml" -}}
+{{- $interosseaWebHostname := joindomain $config.interossea.web.publicHostname.subdomain (ternary "localhost" $config.interossea.web.publicHostname.domain (eq $config.routing "local")) -}}
 variablePrefix: "$"
 
 magicLink:
@@ -27,3 +29,5 @@ http:
 
 db:
     url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@interosseadb:27017
+
+uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $interosseaWebHostname}}

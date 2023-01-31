@@ -25,6 +25,8 @@ dev:
     insecureSkipInterossea: true
     createDevUser: true
 
+uiOrigin: http://localhost:5173
+
 readonlyMount:
     testVideo:
         path: /home/paul/Downloads/test_video/

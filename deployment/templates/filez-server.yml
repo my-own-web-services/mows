@@ -1,3 +1,5 @@
+{{- $config :=  yamlFile "../config.yml" -}}
+{{- $filezWebHostname := joindomain $config.web.publicHostname.subdomain (ternary "localhost" $config.web.publicHostname.domain (eq $config.routing "local")) -}}
 variablePrefix: "$"
 
 serviceId: filez
@@ -24,3 +26,5 @@ interossea:
 dev:
     insecureSkipInterossea: false
     createDevUser: false
+
+uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostname}}

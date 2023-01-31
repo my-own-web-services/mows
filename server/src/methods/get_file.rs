@@ -10,7 +10,12 @@ use hyper::{Body, Request, Response};
 use hyper_staticfile::util::FileBytesStreamRange;
 use std::path::Path;
 
-pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result<Response<Body>> {
+pub async fn get_file(
+    req: Request<Body>,
+    db: DB,
+    auth: &Auth,
+    res: hyper::http::response::Builder,
+) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
     let path = req.uri().path().replacen("/api/get_file/", "", 1);
 
@@ -41,20 +46,14 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
     let file = match db.get_file_by_id(&file_id).await {
         Ok(f) => some_or_bail!(f, "File not found"),
         Err(_) => {
-            return Ok(Response::builder()
-                .status(404)
-                .body(Body::from("File not found"))
-                .unwrap());
+            return Ok(res.status(404).body(Body::from("File not found")).unwrap());
         }
     };
 
     match check_auth(auth, &file, &db, "get_file").await {
         Ok(true) => {}
         Ok(false) => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))
-                .unwrap());
+            return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
         }
         Err(e) => bail!(e),
     }
@@ -77,7 +76,7 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
             let mime_type = mime_guess::from_path(&af.1)
                 .first_or_octet_stream()
                 .to_string();
-            Ok(Response::builder()
+            Ok(res
                 .status(200)
                 .header("Content-Type", mime_type)
                 .header("Cache-Control", "public, max-age=31536000")
@@ -92,7 +91,7 @@ pub async fn get_file(req: Request<Body>, db: DB, auth: &Auth) -> anyhow::Result
 
             let illegal_types = vec!["text/html", "application/javascript", "text/css"];
 
-            Ok(Response::builder()
+            Ok(res
                 .status(200)
                 .header(
                     "Content-Type",

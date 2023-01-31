@@ -6,6 +6,7 @@ pub async fn get_file_info(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
+    res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let file_id = req.uri().path().replacen("/api/get_file_info/", "", 1);
 
@@ -14,15 +15,12 @@ pub async fn get_file_info(
     match check_auth(auth, &file, &db, "get_file_info").await {
         Ok(true) => {}
         Ok(false) => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))
-                .unwrap());
+            return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
         }
         Err(e) => bail!(e),
     }
 
-    Ok(Response::builder()
+    Ok(res
         .status(200)
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&file)?.into())

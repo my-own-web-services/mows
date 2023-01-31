@@ -73,5 +73,6 @@ export interface ProcessedImage {
 
 export interface UiConfig {
     interosseaServerAddress: string;
+    filezServerAddress: string;
     skipInterossea: boolean;
 }

@@ -20,7 +20,7 @@ services:
         {{- end }}
         container_name: filez-server
         volumes:
-            - ../config/server.yml:/config.yml:ro
+            - ./filez-server.yml:/config.yml:ro
             - filez-storage:/storage:rw
             {{- range $config.addons }}
             {{- if eq .storage true }}
@@ -43,7 +43,7 @@ services:
                 http:
                     routers:
                         filez-server:
-                            rule: "Host(`{{ $filezServerHostname }}`) && PathPrefix(`/api`)"
+                            rule: "Host(`{{ $filezServerHostname }}`)"
                             entrypoints: 
                                 - {{ ternary "webesecure" "web" $config.tls }}
                             service: filez-server
@@ -67,7 +67,7 @@ services:
             - ./filez-web-ui-config.json:/public/config.json:ro
         restart: always
         environment:
-            CSP_CONNECT_SRC: {{ ternary "https://" "http://" $config.interossea.server.tls true }}{{ $interosseaServerHostname}}
+            CSP_CONNECT_SRC: {{ ternary "https://" "http://" $config.tls true }}{{ $interosseaServerHostname}} {{ ternary "https://" "http://" $config.tls true }}{{ $filezServerHostname}}
         networks:
             - {{ $config.reverseProxy.network }}
         labels:
@@ -76,7 +76,7 @@ services:
                 http:
                     routers:
                         filez-web:
-                            rule: "Host(`{{ $filezWebHostname }}`) && PathPrefix(`/`)"
+                            rule: "Host(`{{ $filezWebHostname }}`)"
                             entrypoints: 
                                 - {{ ternary "webesecure" "web" $config.tls }}
                             service: filez-web
@@ -148,7 +148,10 @@ services:
         container_name: interossea-web
         volumes:
             - ../config/interossea-web.yml:/config.yml:ro
+            - ./interossea-web-ui-config.json:/public/config.json:ro
         restart: always
+        environment:
+            CSP_CONNECT_SRC: {{ ternary "https://" "http://" $config.tls true }}{{ $interosseaServerHostname}} 
         networks:
             - {{ $config.reverseProxy.network }}
         labels:
@@ -157,11 +160,11 @@ services:
                 http:
                     routers:
                         interossea-web:
-                            rule: "Host(`{{ $interosseaWebHostname }}`) && PathPrefix(`/`)"
+                            rule: "Host(`{{ $interosseaWebHostname }}`)"
                             entrypoints: 
                                 - {{ ternary "webesecure" "web" $config.tls }}
                             service: interossea-web
-                            tls: {{ $config.interossea.web.tls }}
+                            tls: {{ $config.tls }}
                     services:
                         interossea-web:
                             loadbalancer:
@@ -202,7 +205,7 @@ services:
             - interossea-db
             - interossea-server
         volumes:
-            - ../config/interossea.yml:/config.yml:ro
+            - ./interossea-server.yml:/config.yml:ro
             - interossea-keys:/keys/:rw
         environment:
             MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_INTEROSSEA
@@ -214,15 +217,15 @@ services:
             INTEROSSEA_MAIL_USER_AGENT: {{ $config.interossea.server.mail.userAgent}}
             INTEROSSEA_MAIL_REPLY_TO: {{ $config.interossea.server.mail.replyTo}}
             INTEROSSEA_WEB_HOSTNAME: {{ $interosseaServerHostname }}
-            INTEROSSEA_WEB_PROTOCOL: {{ ternary "https" "http" $config.interossea.server.tls }}
-            INTEROSSEA_FILEZ_ALLOWED_ORIGINS: {{ ternary "https://" "http://" $config.tls true }}{{ $filezServerHostname}}
+            INTEROSSEA_WEB_PROTOCOL: {{ ternary "https" "http" $config.tls }}
+            INTEROSSEA_FILEZ_ALLOWED_ORIGINS: {{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostname}}
         labels:
             traefik:
                 enabled: true
                 http:
                     routers:
                         interossea-server:
-                            rule: "Host(`{{ $interosseaServerHostname }}`) && PathPrefix(`/api`)"
+                            rule: "Host(`{{ $interosseaServerHostname }}`)"
                             entrypoints: 
                                 - {{ ternary "webesecure" "web" $config.tls }}
                             service: interossea-server
