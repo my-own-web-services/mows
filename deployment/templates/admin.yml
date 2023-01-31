@@ -1,6 +1,6 @@
 {{- $config :=  yamlFile "../config.yml" -}}
 {{- $env := envFile "../results/.env" -}}
-
+# TREAT THESE LIKE PASSWORDS AS THEY CONTAIN THEM
 {{- if eq $config.filez.server.db.exposeToLocalhost true}}
 filez-db-uri: mongodb://root:{{ $env.MONGO_INITDB_ROOT_PASSWORD_FILEZ }}@filezdb.localhost:{{ $config.filez.server.db.port }}/?replicaSet=rs0
 {{- end }}
