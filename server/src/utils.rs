@@ -58,9 +58,6 @@ fn merge_values(a: &mut Value, b: &Value) {
 pub fn merge_permissions(
     permissions: Vec<FilezPermission>,
 ) -> anyhow::Result<MergedFilezPermission> {
-    if permissions.is_empty() {
-        bail!("No permissions found");
-    }
     let mut merged_permission = MergedFilezPermission {
         ribston: vec![],
         acl: None,

@@ -8,6 +8,7 @@ storage:
     default:
         path: /storage/
 
+
 defaultStorage: default
 
 appStorage:
@@ -32,7 +33,7 @@ uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostnam
 readonlyMounts:
     {{- range $config.filez.readonlyMounts }}
     {{ .name }}:
-        path: /{{ .name }}/
+        path: /readonly/{{ .name }}/
         rescanSeconds: 120
         ownerId: {{ .ownerId }}
     {{- end }}

@@ -24,8 +24,12 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install 
 WORKDIR /app/
 RUN git clone https://github.com/OpenVisualCloud/SVT-VP9.git --depth 1
 
-RUN cd SVT-VP9/Build && cmake .. -DCMAKE_BUILD_TYPE=Release &&make -j $(nproc) && make install
+ARG LD_LIBRARY_PATH=/usr/local/lib
+
+RUN cd SVT-VP9/Build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j $(nproc) && make install
 
 RUN git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg --depth 1
 
 RUN cd ffmpeg && git apply ../SVT-VP9/ffmpeg_plugin/master-0001-Add-ability-for-ffmpeg-to-run-svt-vp9.patch && ./configure --enable-libsvtvp9 && make -j $(nproc)
+
+RUN ./ffmpeg/ffmpeg -f lavfi -i testsrc=duration=1:size=1280x720:rate=30 -c:v libsvt_vp9 -rc 1 -b:v 10M -preset 1 -y test.ivf

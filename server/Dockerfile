@@ -14,12 +14,16 @@ RUN cargo build --release --bin main
 RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 RUN useradd -u 50001 -N filez-server
+RUN groupadd -g 50001 filez-server
+RUN mkdir /readonly
 
 # 1. APP STAGE
 FROM scratch
 WORKDIR /app
 COPY --from=build /home/rust/src/target/x86_64-unknown-linux-musl/release/main ./filez-server
 COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
+COPY --from=build --chown=filez-server:filez-server /readonly /readonly
 USER filez-server
 STOPSIGNAL SIGKILL
 EXPOSE 80

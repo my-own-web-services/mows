@@ -16,6 +16,8 @@ headers:
 
             manifest-src 'self';
 
+            media-src 'self' blob:;
+
             connect-src 'self' $CSP_CONNECT_SRC; 
 
             img-src 'self' $CSP_IMG_SRC; 

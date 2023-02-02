@@ -1,62 +1,70 @@
 import { Component, createRef } from "preact";
 import { G } from "../../App";
 import { FilezFile } from "../../types";
+import type dashjs from "dashjs";
+import type { MediaPlayerClass } from "dashjs";
 import "./Video.scss";
 interface VideoProps {
     readonly g: G;
     readonly file: FilezFile;
 }
 interface VideoState {}
+
 export default class Video extends Component<VideoProps, VideoState> {
     private videoRef = createRef<HTMLVideoElement>();
-    private player: any;
+    private player!: MediaPlayerClass;
 
     componentDidUpdate = async (newProps: VideoProps) => {
         if (this.videoRef.current && this.props.file._id !== newProps.file._id) {
+            await this.importDash();
+
             this.videoRef.current.load();
-            // @ts-ignore
-            if (!dashjs) {
-                // @ts-ignore
-                await import("/node_modules/dashjs/dist/dash.all.min.js");
 
-                await import("/node_modules/dashjs/contrib/akamai/controlbar/controlbar.css");
-            }
-
-            if (!this.player) {
-                // @ts-ignore
-                this.player = dashjs.MediaPlayer().create();
-                this.player.initialize(
-                    this.videoRef.current,
-                    `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`,
-                    true
-                );
-            }
             this.player.attachSource(
-                `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`
+                `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/video/manifest.mpd`
             );
         }
     };
 
-    componentDidMount = async () => {
+    importDash = async () => {
         // @ts-ignore
-        await import("/node_modules/dashjs/dist/dash.all.min.js");
+        if (!window.dashjs) {
+            // @ts-ignore
+            await import("/node_modules/dashjs/dist/dash.mediaplayer.debug.js");
 
-        await import("/node_modules/dashjs/contrib/akamai/controlbar/controlbar.css");
+            await import("/node_modules/dashjs/contrib/akamai/controlbar/controlbar.css");
+        }
+    };
 
-        if (this.videoRef.current) {
+    initPlayer = async () => {
+        await this.importDash();
+        if (!this.player && this.videoRef.current) {
             // @ts-ignore
             this.player = dashjs.MediaPlayer().create();
+            this.player.setXHRWithCredentialsForType("GET", true);
+            this.player.setXHRWithCredentialsForType("MPD", true);
+            this.player.setXHRWithCredentialsForType("MediaSegment", true);
+            this.player.setXHRWithCredentialsForType("InitializationSegment", true);
+            this.player.setXHRWithCredentialsForType("IndexSegment", true);
+            this.player.setXHRWithCredentialsForType("other", true);
 
             this.player.initialize(
                 this.videoRef.current,
-                `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`,
-
+                `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/video/manifest.mpd`,
                 true
             );
 
             // @ts-ignore
             const controlbar = ControlBar(this.player);
             controlbar.initialize();
+        }
+    };
+
+    componentDidMount = async () => {
+        this.importDash();
+
+        if (this.videoRef.current) {
+            this.initPlayer();
         }
     };
 

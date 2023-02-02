@@ -28,7 +28,7 @@ services:
             {{- end }}
             {{- end }}
             {{- range $config.filez.readonlyMounts }}
-            - {{ .path }}:/{{ .name }}/:ro
+            - {{ .path }}:/readonly/{{ .name }}/:ro
             {{- end }}
         restart: always
         networks:
@@ -109,7 +109,7 @@ services:
             - filez-addons-{{.name}}:/output:rw
             {{- end }}
             {{- range $config.filez.readonlyMounts }}
-            - {{ .path }}:/{{ .name }}/:ro
+            - {{ .path }}:/readonly/{{ .name }}/:ro
             {{- end }}
         restart: always
         {{- if eq .db true }}

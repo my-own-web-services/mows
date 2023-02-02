@@ -11,11 +11,13 @@ export default class VideoPreview extends Component<VideoPreviewProps, VideoPrev
     render = () => {
         const f = this.props.file;
 
-        if (f.appData.video === undefined) return;
+        if (f.appData.video?.status !== "finished" || typeof f.appData.video?.error === "string") {
+            return;
+        }
         return (
             <div className="VideoPreview">
                 <img
-                    src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/videoProcessor/t/1.webp`}
+                    src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/video/t/1.webp`}
                 />
             </div>
         );

@@ -20,4 +20,4 @@ video:
         - 1080
         - 2160
 dev:
-    clearOwnAppDataOnStart: false
+    clearOwnAppDataOnStart: true

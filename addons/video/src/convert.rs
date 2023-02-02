@@ -36,7 +36,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     let resolution_str = std::str::from_utf8(&output)?.trim();
     let resolution: Vec<&str> = resolution_str.split('x').collect();
     if resolution.len() != 2 {
-        bail!("Invalid resolution")
+        bail!("Invalid resolution:{:?}", resolution)
     }
     let height: u16 = resolution[1].parse()?;
 
@@ -63,11 +63,33 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     let video_length_str = std::str::from_utf8(&output)?.trim();
     let video_length: f64 = video_length_str.parse()?;
 
+    let mut thumbnail_command = Command::new("nice");
+
+    let thumbnail_count = 10.0;
+
+    let a = video_length / thumbnail_count;
+
+    thumbnail_command
+        .arg("-n")
+        .arg("19")
+        .arg(ffmpeg_path)
+        .arg("-hide_banner")
+        .arg("-y")
+        .arg("-i")
+        .arg(source_path)
+        .arg("-c:v")
+        .arg("libwebp")
+        .arg("-vf")
+        .arg(format!("scale=-1:480,fps=1/{a}"))
+        .arg(format!("{target_path}t/%d.webp"));
+
+    thumbnail_command.spawn()?.wait()?;
+
     let mut video_command = Command::new("nice");
 
     // TODO this will not work with videos that are not 16:9 because svt_vp9 requires the width to be a multiple of 8
     // this wont even work for 16:9 480p as its height is ≈ 853.3
-    // the av1 encoder did not havwe this problem but it is not usable for webm :(
+    // the av1 encoder did not hawe this problem but it is not usable for webm :(
 
     video_command
         .arg("-n")
@@ -101,7 +123,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     let video_command_exit_code = video_command.spawn()?.wait()?;
 
     if !video_command_exit_code.success() {
-        bail!("Video command failed")
+        bail!("Video command failed: {}", video_command_exit_code)
     }
 
     let mut audio_command = Command::new("nice");
@@ -182,28 +204,6 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     if !manifest_command_exit_code.success() {
         bail!("Manifest command failed")
     }
-
-    let mut thumbnail_command = Command::new("nice");
-
-    let thumbnail_count = 10.0;
-
-    let a = video_length / thumbnail_count;
-
-    thumbnail_command
-        .arg("-n")
-        .arg("19")
-        .arg(ffmpeg_path)
-        .arg("-hide_banner")
-        .arg("-y")
-        .arg("-i")
-        .arg(source_path)
-        .arg("-c:v")
-        .arg("libwebp")
-        .arg("-vf")
-        .arg(format!("scale=-1:480,fps=1/{a}"))
-        .arg(format!("{target_path}t/%d.webp"));
-
-    thumbnail_command.spawn()?.wait()?;
 
     Ok(())
 }
