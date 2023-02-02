@@ -43,13 +43,16 @@ export default class File extends Component<FileProps, FileState> {
                                     </div>
                                     <div style={{ height: "calc(100% - 20px)" }}>
                                         {f.mimeType.startsWith("image/") ? (
-                                            <Image file={this.props.file}></Image>
+                                            <Image g={this.props.g} file={this.props.file}></Image>
                                         ) : null}
                                         {f.mimeType.startsWith("video/") ? (
-                                            <VideoPreview file={this.props.file}></VideoPreview>
+                                            <VideoPreview
+                                                g={this.props.g}
+                                                file={this.props.file}
+                                            ></VideoPreview>
                                         ) : null}
                                         {f.mimeType.startsWith("audio/") ? (
-                                            <Image file={this.props.file}></Image>
+                                            <Image g={this.props.g} file={this.props.file}></Image>
                                         ) : null}
                                     </div>
                                 </div>
@@ -81,13 +84,13 @@ export default class File extends Component<FileProps, FileState> {
                     } else if (vt === FileView.Single) {
                         return (() => {
                             if (f.mimeType.startsWith("image/")) {
-                                return <Image file={f}></Image>;
+                                return <Image g={this.props.g} file={f}></Image>;
                             } else if (f.mimeType.startsWith("audio/")) {
-                                return <Audio file={f}></Audio>;
+                                return <Audio g={this.props.g} file={f}></Audio>;
                             } else if (f.mimeType.startsWith("video/")) {
-                                return <Video file={f}></Video>;
+                                return <Video g={this.props.g} file={f}></Video>;
                             } else if (f.mimeType.startsWith("text/")) {
-                                return <Text file={f}></Text>;
+                                return <Text g={this.props.g} file={f}></Text>;
                             }
                         })();
                     } else if (vt === FileView.Sheets) {

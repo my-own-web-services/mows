@@ -27,7 +27,7 @@ filez:
     readonlyMounts:
         - name: testVideo
           path: /home/paul/Downloads/test_video/
-          ownerId: m1QTbRbPUiVVs1TjH0HMSyBc-0KOnoSK
+          ownerId: U63uvh_kt4J8jjLlV3vG8Q7Hdm1T25Ay
     addons:
         - name: video
           db: true

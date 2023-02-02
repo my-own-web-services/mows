@@ -1,20 +1,20 @@
 import { Component } from "preact";
+import { G } from "../../App";
 import { FilezFile } from "../../types";
 import "./Text.scss";
 
 interface TextProps {
+    readonly g: G;
     readonly file: FilezFile;
 }
 interface TextState {
     readonly textContent: string;
 }
 export default class Text extends Component<TextProps, TextState> {
-    componentDidMount = () => {
-        fetch(`/api/get_file/${this.props.file._id}`)
-            .then(response => response.text())
-            .then(text => {
-                this.setState({ textContent: text });
-            });
+    componentDidMount = async () => {
+        const text = await this.props.g.filezClient.get_file(this.props.file._id);
+
+        this.setState({ textContent: text });
     };
 
     render = () => {

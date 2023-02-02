@@ -25,7 +25,7 @@ interossea:
 
 dev:
     insecureSkipInterossea: false
-    createDevUser: false
+    createDevUser: true
 
 uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostname}}
 

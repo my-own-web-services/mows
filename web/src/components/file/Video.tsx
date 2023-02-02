@@ -1,7 +1,9 @@
 import { Component, createRef } from "preact";
+import { G } from "../../App";
 import { FilezFile } from "../../types";
 import "./Video.scss";
 interface VideoProps {
+    readonly g: G;
     readonly file: FilezFile;
 }
 interface VideoState {}
@@ -25,12 +27,12 @@ export default class Video extends Component<VideoProps, VideoState> {
                 this.player = dashjs.MediaPlayer().create();
                 this.player.initialize(
                     this.videoRef.current,
-                    `/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`,
+                    `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`,
                     true
                 );
             }
             this.player.attachSource(
-                `/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`
+                `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`
             );
         }
     };
@@ -47,7 +49,7 @@ export default class Video extends Component<VideoProps, VideoState> {
 
             this.player.initialize(
                 this.videoRef.current,
-                `/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`,
+                `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/videoProcessor/manifest.mpd`,
 
                 true
             );

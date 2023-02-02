@@ -29,11 +29,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         };
         match file {
             Some(file) => {
-                println!("Processing file: {:?}", file);
+                println!("Processing file: {:?}", &file.file_id);
                 let res = match convert(&file.path, &config.storage_path, &file.file_id).await {
                     Ok(_) => None,
                     Err(e) => Some(e.to_string()),
                 };
+                println!("File processed: {:?}", &res);
 
                 match db.update_video_processing_status(&file.file_id, res).await {
                     Ok(_) => println!("Updated file status in db"),

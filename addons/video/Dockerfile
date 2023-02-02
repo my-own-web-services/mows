@@ -48,7 +48,8 @@ RUN cargo build --release --bin main
 RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 RUN useradd -u 50001 -N filez-addons-video
-
+RUN groupadd -g 50001 filez-addons-video
+RUN mkdir /output/
 
 # 1. APP STAGE
 FROM alpine
@@ -56,11 +57,13 @@ FROM alpine
 WORKDIR /app
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 
-RUN apk add --no-cache svt-vp9 darktable
+RUN apk add --no-cache svt-vp9 darktable 
 
 COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-addons-video
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=ffmpeg-builder /app/ffmpeg/ffmpeg ./ffmpeg
+COPY --from=ffmpeg-builder /app/ffmpeg/ffprobe ./ffprobe
+COPY --from=build --chown=filez-addons-video:filez-addons-video /output /output
 
 
 USER filez-addons-video

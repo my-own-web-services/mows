@@ -18,7 +18,7 @@ headers:
 
             connect-src 'self' $CSP_CONNECT_SRC; 
 
-            img-src 'self'; 
+            img-src 'self' $CSP_IMG_SRC; 
 
             font-src 'self'; 
 

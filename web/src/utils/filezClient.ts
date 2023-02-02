@@ -75,13 +75,18 @@ export class FilezClient {
 
     get_file_infos_by_group_id = async (groupId: string, from_index = 0, limit = 100) => {
         const res = await fetch(
-            `${this.filezEndpoint}/api/get_file_infos_by_group_id/${groupId}?i=${from_index}&l=${limit}`
+            `${this.filezEndpoint}/api/get_file_infos_by_group_id/${groupId}?i=${from_index}&l=${limit}`,
+            {
+                credentials: "include"
+            }
         );
         const files: FilezFile[] = await res.json();
         return files;
     };
-    get_file = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_file/`);
+    get_file = async (fileId: string) => {
+        const res = await fetch(`${this.filezEndpoint}/api/get_file/${fileId}`, {
+            credentials: "include"
+        });
         const content = await res.text();
         return content;
     };
@@ -95,10 +100,14 @@ export class FilezClient {
     };
 
     get_permissions_for_current_user = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_permissions_for_current_user/`);
+        const res = await fetch(`${this.filezEndpoint}/api/get_permissions_for_current_user/`, {
+            credentials: "include"
+        });
     };
     get_user_info = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_user_info/`);
+        const res = await fetch(`${this.filezEndpoint}/api/get_user_info/`, {
+            credentials: "include"
+        });
         return (await res.json()) as FilezUser;
     };
     update_file_infos = async (fileId: string, field: UpdateFileInfosRequestField) => {

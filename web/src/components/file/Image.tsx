@@ -1,7 +1,9 @@
 import { Component } from "preact";
+import { G } from "../../App";
 import { FilezFile, ProcessedImage } from "../../types";
 import "./Image.scss";
 interface ImageProps {
+    readonly g: G;
     readonly file: FilezFile;
 }
 interface ImageState {}
@@ -13,7 +15,7 @@ export default class Image extends Component<ImageProps, ImageState> {
         return (
             <div className="Image">
                 <img
-                    src={`/api/get_file/${f._id}/image/500.avif`}
+                    src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/image/500.avif`}
                     loading="lazy"
                     width={processedImage.width}
                     height={processedImage.height}

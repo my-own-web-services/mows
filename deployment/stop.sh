@@ -1,0 +1,1 @@
+docker compose -p filez --project-directory results/ down

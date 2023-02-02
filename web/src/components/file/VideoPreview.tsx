@@ -1,7 +1,9 @@
 import { Component } from "preact";
+import { G } from "../../App";
 import { FilezFile } from "../../types";
 import "./VideoPreview.scss";
 interface VideoPreviewProps {
+    readonly g: G;
     readonly file: FilezFile;
 }
 interface VideoPreviewState {}
@@ -12,7 +14,9 @@ export default class VideoPreview extends Component<VideoPreviewProps, VideoPrev
         if (f.appData.video === undefined) return;
         return (
             <div className="VideoPreview">
-                <img src={`/api/get_file/${f._id}/videoProcessor/t/1.webp`} />
+                <img
+                    src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/videoProcessor/t/1.webp`}
+                />
             </div>
         );
     };

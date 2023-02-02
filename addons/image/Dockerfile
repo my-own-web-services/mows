@@ -14,6 +14,8 @@ RUN cargo build --release --bin main
 RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 RUN useradd -u 50001 -N filez-addons-image
+RUN groupadd -g 50001 filez-addons-image
+RUN mkdir /output/
 
 # 1. APP STAGE
 FROM alpine
@@ -24,6 +26,7 @@ RUN tar -xvf Image-ExifTool-12.55.tar.gz
 RUN rm Image-ExifTool-12.55.tar.gz
 COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-addons-image
 COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build --chown=filez-addons-image:filez-addons-image /output /output
 
 USER filez-addons-image
 STOPSIGNAL SIGKILL

@@ -71,6 +71,7 @@ services:
         restart: always
         environment:
             CSP_CONNECT_SRC: {{ ternary "https://" "http://" $config.tls true }}{{ $interosseaServerHostname}} {{ ternary "https://" "http://" $config.tls true }}{{ $filezServerHostname}}
+            CSP_IMG_SRC: {{ ternary "https://" "http://" $config.tls true }}{{ $filezServerHostname}}
         networks:
             - {{ $config.reverseProxy.network }}
         labels:
@@ -105,7 +106,7 @@ services:
             - filez-storage:/storage:ro
             {{- end }}
             {{- if eq .storage true }}
-            - filez-addons-{{.name}}:/storage:rw
+            - filez-addons-{{.name}}:/output:rw
             {{- end }}
             {{- range $config.filez.readonlyMounts }}
             - {{ .path }}:/{{ .name }}/:ro
@@ -127,7 +128,8 @@ services:
         container_name: filezdb
         hostname: filezdb.localhost
         volumes:
-            - filez-db:/data/:rw
+            - filez-db:/data/db/:rw
+            - ./filezdb-configdb/:/data/configdb:rw
         {{- if eq $config.filez.server.db.exposeToLocalhost true}}
         ports:
             - 127.0.0.1:{{ $config.filez.server.db.port }}:{{ $config.filez.server.db.port }}
@@ -193,7 +195,8 @@ services:
         container_name: interosseadb
         hostname: interosseadb.localhost
         volumes:
-            - interossea-db:/data/:rw
+            - interossea-db:/data/db/:rw
+            - ./interosseadb-configdb/:/data/configdb:rw
         {{- if eq $config.interossea.server.db.exposeToLocalhost true}}
         ports:
             - 127.0.0.1:{{ $config.interossea.server.db.port }}:{{ $config.interossea.server.db.port }}

@@ -12,7 +12,6 @@ rm -rf results/config/filez-web-ui-config.yml
 mozart yaml-to-json results/config/interossea-web-ui-config.yml -o results/config/interossea-web-ui-config.json
 rm -rf results/config/interossea-web-ui-config.yml
 
-mozart render templates/secrets.env -o results/.env
 
 mozart render templates/admin.yml -o results/admin.yml
 
