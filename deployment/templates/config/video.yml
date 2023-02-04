@@ -20,4 +20,4 @@ video:
         - 1080
         - 2160
 dev:
-    clearOwnAppDataOnStart: true
+    clearOwnAppDataOnStart: $CLEAR_OWN_APP_DATA_ON_START

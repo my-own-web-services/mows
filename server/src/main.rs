@@ -40,7 +40,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // reference variables declared with lazy_static because they are initialized on first access
-    let _ = &SERVER_CONFIG.variable_prefix;
+    let _ = &SERVER_CONFIG.db;
     let config = &SERVER_CONFIG;
     let session_map = Arc::new(RwLock::new(HashMap::<String, UserAssertion>::new()));
 

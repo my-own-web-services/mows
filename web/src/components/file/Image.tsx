@@ -15,7 +15,7 @@ export default class Image extends Component<ImageProps, ImageState> {
         return (
             <div className="Image">
                 <img
-                    src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/image/500.avif`}
+                    src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/image/500.avif?c`}
                     loading="lazy"
                     width={processedImage.width}
                     height={processedImage.height}

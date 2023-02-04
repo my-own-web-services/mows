@@ -29,7 +29,7 @@ pub fn read_config() -> anyhow::Result<Config> {
 }
 
 pub fn replace_variables(mut config_file: String) -> anyhow::Result<String> {
-    let first_config: Config = serde_yaml::from_str(&config_file)?;
+    let first_config: ConfigVariablePrefix = serde_yaml::from_str(&config_file)?;
     for (key, value) in std::env::vars() {
         config_file = config_file.replace(
             format!("{}{}", first_config.variable_prefix, key).as_str(),
@@ -39,11 +39,15 @@ pub fn replace_variables(mut config_file: String) -> anyhow::Result<String> {
 
     Ok(config_file)
 }
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ConfigVariablePrefix {
+    pub variable_prefix: String,
+}
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
-    pub variable_prefix: String,
     pub timeout_seconds: u64,
     pub db: DbConfig,
     pub dev: DevConfig,

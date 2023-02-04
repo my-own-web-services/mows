@@ -19,4 +19,4 @@ image:
         - 500
         - 1000
 dev:
-    clearOwnAppDataOnStart: false
+    clearOwnAppDataOnStart: $CLEAR_OWN_APP_DATA_ON_START

@@ -289,8 +289,25 @@ pub struct FilezFileGroup {
      */
     pub group_hierarchy_paths: Vec<String>,
     pub group_type: FileGroupType,
+    pub dynamic_group_rules: Option<DynamicGroupRule>,
     pub item_count: u64,
 }
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DynamicGroupRule {
+    pub field: String,
+    pub rule_type: DynamicGroupRuleType,
+    pub value: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum DynamicGroupRuleType {
+    MatchRegex,
+    NotMatchRegex,
+}
+
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum FileGroupType {

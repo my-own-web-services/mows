@@ -8,4 +8,4 @@ timeoutSeconds: 5
 db:
     url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filezdb.localhost:{{ $config.filez.server.db.port }}
 dev:
-    clearOwnAppDataOnStart: false
+    clearOwnAppDataOnStart: $CLEAR_OWN_APP_DATA_ON_START

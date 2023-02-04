@@ -41,6 +41,7 @@ pub async fn create_group(
             mime_types: vec![],
             group_type: FileGroupType::Static,
             item_count: 0,
+            dynamic_group_rules: None,
         }),
     };
 

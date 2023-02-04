@@ -19,7 +19,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // reference variables declared with lazy_static because they are initialized on first access
-    let _ = &CONFIG.variable_prefix;
+    let _ = &CONFIG.db;
     let config = &CONFIG;
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
     if config.dev.clear_own_app_data_on_start {
@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                             image_processing_result = Some(image);
                         }
                         None => {
-                            error = Some("No thumbnail found for image file".to_string());
+                            error = Some("Could not create image".to_string());
                         }
                     };
                 } else {

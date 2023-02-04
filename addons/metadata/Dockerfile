@@ -25,7 +25,8 @@ RUN rm Image-ExifTool-12.55.tar.gz
 COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-addons-metadata
 COPY --from=build /etc/passwd /etc/passwd
 
-USER filez-addons-metadata
+# todo - use a non-root user
+USER root
 STOPSIGNAL SIGKILL
 # run it 
 ENTRYPOINT ["./filez-addons-metadata"]

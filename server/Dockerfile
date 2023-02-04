@@ -1,5 +1,5 @@
 # 0. BUILD STAGE
-FROM ekidd/rust-musl-builder AS build
+FROM clux/muslrust:stable AS build
 # build deps
 USER root
 RUN apt-get update && apt-get install upx -y
@@ -20,7 +20,7 @@ RUN mkdir /readonly
 # 1. APP STAGE
 FROM scratch
 WORKDIR /app
-COPY --from=build /home/rust/src/target/x86_64-unknown-linux-musl/release/main ./filez-server
+COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-server
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 COPY --from=build --chown=filez-server:filez-server /readonly /readonly

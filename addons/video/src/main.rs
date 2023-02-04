@@ -10,7 +10,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // reference variables declared with lazy_static because they are initialized on first access
-    let _ = &CONFIG.variable_prefix;
+    let _ = &CONFIG.db;
     let config = &CONFIG;
 
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;

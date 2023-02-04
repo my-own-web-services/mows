@@ -28,12 +28,16 @@ filez:
         - name: testVideo
           path: /home/paul/Downloads/test_video/
           ownerId: U63uvh_kt4J8jjLlV3vG8Q7Hdm1T25Ay
+        - name: testImages
+          path: /home/paul/Downloads/test_images/
+          ownerId: U63uvh_kt4J8jjLlV3vG8Q7Hdm1T25Ay
     addons:
         - name: video
           db: true
           storage: true
           filezAccess: true
           image: firstdorsal/filez-addons-video
+          resetOnRestart: true
           build:
               enabled: true
               path: ../../addons/video/
@@ -43,6 +47,7 @@ filez:
           storage: true
           filezAccess: true
           image: firstdorsal/filez-addons-image
+          resetOnRestart: true
           build:
               enabled: true
               path: ../../addons/image/
@@ -52,6 +57,7 @@ filez:
           storage: false
           filezAccess: true
           image: firstdorsal/filez-addons-metadata
+          resetOnRestart: true
           build:
               enabled: true
               path: ../../addons/metadata/

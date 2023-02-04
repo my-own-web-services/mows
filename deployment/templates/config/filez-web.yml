@@ -12,7 +12,7 @@ headers:
 
             script-src 'self';
                         
-            style-src 'self' 'sha256-deDIoPlRijnpfbTDYsK+8JmDfUBmpwpnb0L/SUV8NeU='; 
+            style-src 'self' 'sha256-deDIoPlRijnpfbTDYsK+8JmDfUBmpwpnb0L/SUV8NeU=' 'sha256-QnvCAmBY3ldhdp6rzCi2d6BJhvg2e38kadJs1c8q6cc=' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='; 
 
             manifest-src 'self';
 

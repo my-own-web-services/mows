@@ -28,7 +28,7 @@ pub fn read_config() -> anyhow::Result<ServerConfig> {
 }
 
 pub fn replace_variables(mut config_file: String) -> anyhow::Result<String> {
-    let first_config: ServerConfig = serde_yaml::from_str(&config_file)?;
+    let first_config: ConfigVariablePrefix = serde_yaml::from_str(&config_file)?;
     for (key, value) in std::env::vars() {
         config_file = config_file.replace(
             format!("{}{}", first_config.variable_prefix, key).as_str(),
@@ -41,8 +41,13 @@ pub fn replace_variables(mut config_file: String) -> anyhow::Result<String> {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct ServerConfig {
+pub struct ConfigVariablePrefix {
     pub variable_prefix: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerConfig {
     #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
     pub storage: HashMap<String, StorageConfig>,
     pub default_storage: String,

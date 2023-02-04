@@ -42,6 +42,7 @@ indicatif = "0.17.2"
 
 cookie = "0.17.0"
 
+regex="1.7.1"
 
 # TODO go back to using the original mime_guess as dcraw types get merged
 [patch.crates-io]

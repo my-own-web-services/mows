@@ -14,10 +14,9 @@ services:
         {{- if eq $config.filez.server.build.enabled true }}
         build:
             context: {{ $config.filez.server.build.path }}
-            dockerfile: {{ $config.filez.server.build.dockerfile }}
-        {{- else }}
-        image: firstdorsal/filez-server
+            dockerfile: {{ $config.filez.server.build.dockerfile }}        
         {{- end }}
+        image: firstdorsal/filez-server
         container_name: filez-server
         volumes:
             - ./config/filez-server.yml:/config.yml:ro
@@ -61,9 +60,8 @@ services:
         build:
             context: {{ $config.filez.web.build.path }}
             dockerfile: {{ $config.filez.web.build.dockerfile }}
-        {{- else }}
-        image: firstdorsal/filez-web
         {{- end }}
+        image: firstdorsal/filez-web
         container_name: filez-web
         volumes:
             - ./config/filez-web.yml:/config.yml:ro
@@ -96,9 +94,8 @@ services:
         build:
             context: {{.build.path}}
             dockerfile: {{.build.dockerfile}}
-        {{- else }}
-        image: {{.image}}
         {{- end }}
+        image: {{.image}}
         container_name: filez-addons-{{.name}}
         volumes:
             - ./config/{{.name}}.yml:/config.yml:ro
@@ -115,6 +112,7 @@ services:
         {{- if eq .db true }}
         environment:
             MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
+            CLEAR_OWN_APP_DATA_ON_START: {{ .resetOnRestart }}
         networks:
             - filez-addons-{{.name}}-db
         {{- end }}
@@ -157,9 +155,8 @@ services:
         build:
             context: {{ $config.interossea.web.build.path }}
             dockerfile: {{ $config.interossea.web.build.dockerfile }}
-        {{- else }}
-        image: firstdorsal/interossea-web
         {{- end }}
+        image: firstdorsal/interossea-web
         container_name: interossea-web
         volumes:
             - ./config/interossea-web.yml:/config.yml:ro
@@ -218,9 +215,8 @@ services:
         build:
             context: {{ $config.interossea.server.build.path }}
             dockerfile: {{ $config.interossea.server.build.dockerfile }}
-        {{- else }}
-        image: firstdorsal/interossea
         {{- end }}
+        image: firstdorsal/interossea
         container_name: interossea-server
         restart: always
         networks:

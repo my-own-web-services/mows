@@ -3,7 +3,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     some_or_bail,
-    utils::{check_auth, get_folder_and_file_path, get_range},
+    utils::{check_auth, get_folder_and_file_path, get_query_item, get_range},
 };
 use anyhow::bail;
 use hyper::{Body, Request, Response};
@@ -14,7 +14,7 @@ pub async fn get_file(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
-    res: hyper::http::response::Builder,
+    mut res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
     let path = req.uri().path().replacen("/api/get_file/", "", 1);
@@ -58,6 +58,10 @@ pub async fn get_file(
         Err(e) => bail!(e),
     }
 
+    if get_query_item(&req, "c").is_some() {
+        res = res.header("Cache-Control", "public, max-age=31536000");
+    };
+
     match app_file {
         Some(af) => {
             let (folder_path, file_name) = get_folder_and_file_path(&file_id, &af.0);
@@ -76,10 +80,10 @@ pub async fn get_file(
             let mime_type = mime_guess::from_path(&af.1)
                 .first_or_octet_stream()
                 .to_string();
+
             Ok(res
                 .status(200)
                 .header("Content-Type", mime_type)
-                .header("Cache-Control", "public, max-age=31536000")
                 .body(body)
                 .unwrap())
         }
@@ -87,7 +91,10 @@ pub async fn get_file(
             // stream the file from disk to the client
             let file_handle = tokio::fs::File::open(&file.path).await?;
 
-            let body = Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle));
+            let body = match get_range(&req) {
+                Ok(r) => Body::wrap_stream(FileBytesStreamRange::new(file_handle, r)),
+                Err(_) => Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle)),
+            };
 
             let illegal_types = vec!["text/html", "application/javascript", "text/css"];
 
@@ -101,7 +108,6 @@ pub async fn get_file(
                         file.mime_type
                     },
                 )
-                .header("Cache-Control", "public, max-age=31536000")
                 .body(body)
                 .unwrap())
         }
