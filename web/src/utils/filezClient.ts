@@ -7,13 +7,15 @@ export class FilezClient {
 
     constructor(
         filezEndpoint: string,
-        interosseaEndpoint: string,
+        interosseaServerEndpoint: string,
+        interosseaWebEndpoint: string,
         skipInterossea: boolean = false
     ) {
         this.filezEndpoint = filezEndpoint;
 
         this.interosseaClient = new InterosseaClient(
-            interosseaEndpoint,
+            interosseaServerEndpoint,
+            interosseaWebEndpoint,
             this.filezEndpoint,
             "filez",
             skipInterossea

@@ -1,18 +1,20 @@
 export class InterosseaClient {
-    endpoint: string;
-    token!: InterosseaToken;
+    interosseaServerEndpoint: string;
+    interosseaWebEndpoint: string;
     assertionValiditySeconds!: number;
     skip?: boolean;
     applicationEndpoint: string;
     serviceName: string;
 
     constructor(
-        endpoint: string,
+        interosseaServerEndpoint: string,
+        interosseaWebEndpoint: string,
         applicationEndpoint: string,
         serviceName: string,
         skip?: boolean
     ) {
-        this.endpoint = endpoint;
+        this.interosseaServerEndpoint = interosseaServerEndpoint;
+        this.interosseaWebEndpoint = interosseaWebEndpoint;
         this.skip = skip;
         this.applicationEndpoint = applicationEndpoint;
         this.serviceName = serviceName;
@@ -39,9 +41,15 @@ export class InterosseaClient {
     };
 
     get_user_assertion = async () => {
-        const res = await fetch(`${this.endpoint}/api/get_user_assertion/?s=${this.serviceName}`, {
-            method: "POST",
-            credentials: "include"
+        const res = await fetch(
+            `${this.interosseaServerEndpoint}/api/get_user_assertion/?s=${this.serviceName}`,
+            {
+                method: "POST",
+                credentials: "include"
+            }
+        ).catch(e => {
+            document.location.href = `${this.interosseaWebEndpoint}/login?rid=${this.serviceName}`;
+            throw Error("Interossea login required");
         });
         return await res.text();
     };

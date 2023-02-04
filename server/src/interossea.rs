@@ -40,6 +40,7 @@ impl Interossea {
         })
     }
 
+    // using sessions instead of sending the JWT every time saves bandwidth time and processing resources
     pub async fn get_user_assertion_from_header(
         &self,
         req: &Request<Body>,

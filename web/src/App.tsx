@@ -91,6 +91,7 @@ export default class App extends Component<AppProps, AppState> {
         const client = new FilezClient(
             uiConfig.filezServerAddress,
             uiConfig.interosseaServerAddress,
+            uiConfig.interosseaWebAddress,
             uiConfig.skipInterossea
         );
         await client.init();
