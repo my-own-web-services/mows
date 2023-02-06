@@ -3,6 +3,9 @@ image: docker:latest
 stages:
     - docker-build-server
     - docker-build-web
+    - docker-build-addons-video
+    - docker-build-addons-image
+    - docker-build-addons-metadata
 
 docker-build-server:
     stage: docker-build-server
@@ -33,3 +36,48 @@ docker-build-web:
             --context "${CI_PROJECT_DIR}/web/"
             --dockerfile "${CI_PROJECT_DIR}/web/Dockerfile"
             --destination "firstdorsal/filez-web"
+
+docker-build-addons-video:
+    stage: docker-build-addons-video
+    image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+    script:
+        - export CI_REGISTRY=index.docker.io/v1/
+        - mkdir -p /kaniko/.docker
+        - echo "{\"auths\":{\"https://$CI_REGISTRY\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+        - >-
+            /kaniko/executor
+            --context "${CI_PROJECT_DIR}/addons/video/"
+            --dockerfile "${CI_PROJECT_DIR}/addons/video/Dockerfile"
+            --destination "firstdorsal/filez-addons-video"
+
+docker-build-addons-image:
+    stage: docker-build-addons-image
+    image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+    script:
+        - export CI_REGISTRY=index.docker.io/v1/
+        - mkdir -p /kaniko/.docker
+        - echo "{\"auths\":{\"https://$CI_REGISTRY\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+        - >-
+            /kaniko/executor
+            --context "${CI_PROJECT_DIR}/addons/image/"
+            --dockerfile "${CI_PROJECT_DIR}/addons/image/Dockerfile"
+            --destination "firstdorsal/filez-addons-image"
+
+docker-build-addons-metadata:
+    stage: docker-build-addons-metadata
+    image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+    script:
+        - export CI_REGISTRY=index.docker.io/v1/
+        - mkdir -p /kaniko/.docker
+        - echo "{\"auths\":{\"https://$CI_REGISTRY\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+        - >-
+            /kaniko/executor
+            --context "${CI_PROJECT_DIR}/addons/metadata/"
+            --dockerfile "${CI_PROJECT_DIR}/addons/metadata/Dockerfile"
+            --destination "firstdorsal/filez-addons-metadata"
