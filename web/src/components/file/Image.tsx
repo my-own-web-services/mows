@@ -19,6 +19,7 @@ export default class Image extends Component<ImageProps, ImageState> {
                     loading="lazy"
                     width={processedImage.width}
                     height={processedImage.height}
+                    draggable={false}
                 />
             </div>
         );

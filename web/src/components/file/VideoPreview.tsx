@@ -17,6 +17,7 @@ export default class VideoPreview extends Component<VideoPreviewProps, VideoPrev
         return (
             <div className="VideoPreview">
                 <img
+                    draggable={false}
                     src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/video/t/1.webp?c`}
                 />
             </div>
