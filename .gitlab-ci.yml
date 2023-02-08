@@ -1,14 +1,10 @@
 image: docker:latest
 
 stages:
-    - docker-build-server
-    - docker-build-web
-    - docker-build-addons-video
-    - docker-build-addons-image
-    - docker-build-addons-metadata
+    - docker-build
 
 docker-build-server:
-    stage: docker-build-server
+    stage: docker-build
     image:
         name: gcr.io/kaniko-project/executor:debug
         entrypoint: [""]
@@ -28,7 +24,7 @@ docker-build-server:
             --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
 
 docker-build-web:
-    stage: docker-build-web
+    stage: docker-build
     image:
         name: gcr.io/kaniko-project/executor:debug
         entrypoint: [""]
@@ -48,7 +44,7 @@ docker-build-web:
             --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
 
 docker-build-addons-video:
-    stage: docker-build-addons-video
+    stage: docker-build
     image:
         name: gcr.io/kaniko-project/executor:debug
         entrypoint: [""]
@@ -68,7 +64,7 @@ docker-build-addons-video:
             --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
 
 docker-build-addons-image:
-    stage: docker-build-addons-image
+    stage: docker-build
     image:
         name: gcr.io/kaniko-project/executor:debug
         entrypoint: [""]
@@ -88,7 +84,7 @@ docker-build-addons-image:
             --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
 
 docker-build-addons-metadata:
-    stage: docker-build-addons-metadata
+    stage: docker-build
     image:
         name: gcr.io/kaniko-project/executor:debug
         entrypoint: [""]
