@@ -216,7 +216,7 @@ services:
             context: {{ $config.interossea.server.build.path }}
             dockerfile: {{ $config.interossea.server.build.dockerfile }}
         {{- end }}
-        image: firstdorsal/interossea
+        image: firstdorsal/interossea-server
         container_name: interossea-server
         restart: always
         networks:
@@ -292,19 +292,56 @@ volumes:
     {{- end }}
     
 networks:
-    filez-server-db:
-        name: filez-server-db
-    {{- range $config.filez.addons }}
-    {{- if eq .db true }}
-    filez-addons-{{ .name }}-db:
-        name: filez-addons-{{ .name }}-db
-    {{- end }}
-    {{- end }}
     {{ $config.reverseProxy.network }}:
         name: {{ $config.reverseProxy.network }}
+        {{- if eq $config.reverseProxy.create true }}
+        driver: bridge
+        enable_ipv6: true
+        ipam:
+            driver: default
+            config:
+                - subnet: {{ $config.networks.subnet.legacy }}.240/28
+                - subnet: {{ $config.networks.subnet.v6 }}f0/124
+        {{- end }}
+    filez-server-db:
+        name: filez-server-db
+        driver: bridge
+        enable_ipv6: true
+        ipam:
+            driver: default
+            config:
+                - subnet: {{ $config.networks.subnet.legacy }}.224/28
+                - subnet: {{ $config.networks.subnet.v6 }}e0/124
     {{- if eq $config.interossea.server.create true }}
     interossea-server:
         name: interossea-server
+        driver: bridge
+        enable_ipv6: true
+        ipam:
+            driver: default
+            config:
+                - subnet: {{ $config.networks.subnet.legacy }}.208/28
+                - subnet: {{ $config.networks.subnet.v6 }}d0/124
     interossea-db:
         name: interossea-db
+        driver: bridge
+        enable_ipv6: true
+        ipam:
+            driver: default
+            config:
+                - subnet: {{ $config.networks.subnet.legacy }}.192/28
+                - subnet: {{ $config.networks.subnet.v6 }}c0/124
+    {{- end }}
+    {{- range $index, $addon := $config.filez.addons }}
+    {{- if eq .db true }}
+    filez-addons-{{ .name }}-db:
+        name: filez-addons-{{ .name }}-db
+        driver: bridge
+        enable_ipv6: true
+        ipam:
+            driver: default
+            config:
+                - subnet: {{ $config.networks.subnet.legacy }}.{{ mul $index 16}}/24
+                - subnet: {{ $config.networks.subnet.v6 }}{{ $index }}0/124
+    {{- end }}
     {{- end }}

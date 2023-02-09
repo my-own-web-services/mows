@@ -4,6 +4,14 @@ reverseProxy:
 
 tls: false
 routing: local
+
+networks:
+    subnet:
+        # /120 prefix
+        v6: "fd4d:6169:6c63:6f77:aaaa:aaaa:aaaa:aa"
+        # /24 prefix
+        legacy: "172.72.1"
+
 filez:
     server:
         build:
@@ -31,6 +39,7 @@ filez:
         - name: testImages
           path: /home/paul/Downloads/test_images/
           ownerId: U63uvh_kt4J8jjLlV3vG8Q7Hdm1T25Ay
+    # TODO if the number of addons is greater than 10 the network asignment will fail
     addons:
         - name: video
           db: true
