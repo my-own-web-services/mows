@@ -149,7 +149,7 @@ pub async fn update_file_infos(
 
                     // check if the user has access to the storage and their limits wouldn't be exceeded if the file was moved
                     let user = some_or_bail!(
-                        db.get_user_by_id(&requesting_user_id).await?,
+                        db.get_user_by_id(requesting_user_id).await?,
                         "User not found"
                     );
                     let user_storage_limits = some_or_bail!(

@@ -1,6 +1,7 @@
 import { Component } from "preact";
 import { G } from "../../../App";
 import { FilezFile } from "../../../types";
+import Filter from "../../filter/Filter";
 import "./Center.scss";
 import SelectView from "./components/selectView/SelectView";
 import Grid from "./components/views/grid/GridView";
@@ -47,10 +48,13 @@ export default class Center extends Component<CenterProps, CenterState> {
     render = () => {
         return (
             <div id="main-panel-center" className="horizontal-panel panel">
-                <SelectView
-                    selectCenterView={this.props.g.fn.selectCenterView}
-                    selectedView={this.props.selectedView}
-                />
+                <div className="CenterBar">
+                    <SelectView
+                        selectCenterView={this.props.g.fn.selectCenterView}
+                        selectedView={this.props.selectedView}
+                    />
+                    <Filter g={this.props.g}></Filter>
+                </div>
                 <div className="view">
                     {(() => {
                         if (this.props.selectedView === View.Sheets) {

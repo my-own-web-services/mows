@@ -25,6 +25,7 @@ COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 COPY --from=build --chown=filez-server:filez-server /readonly /readonly
 USER filez-server
+USER root
 STOPSIGNAL SIGKILL
 EXPOSE 80
 # run it 

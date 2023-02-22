@@ -22,8 +22,10 @@ pub mod methods {
     pub mod get_own_file_groups;
     pub mod get_permissions_for_current_user;
     pub mod get_user_info;
+    pub mod search;
     pub mod set_app_data;
     pub mod update_file;
+    pub mod update_file_group;
     pub mod update_file_infos;
     pub mod update_permission_ids_on_resource;
 }

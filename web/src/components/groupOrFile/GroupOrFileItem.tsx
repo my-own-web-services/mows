@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import { G } from "../../App";
-import { FileGroup, FileView, FilezFile } from "../../types";
+import { FileView, FilezFile } from "../../types";
 import { VisualFileGroup } from "../../utils/convertFileGroups";
 import File from "../file/File";
 import Group from "../group/Group";

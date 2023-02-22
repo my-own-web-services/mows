@@ -137,7 +137,7 @@ pub async fn import_readonly_file(
             size: file_size,
             server_created: current_time,
             modified: get_modified_time_secs(&metadata),
-            static_file_group_ids: vec![group_id.to_string()],
+            static_file_group_ids: vec![group_id.to_string(), format!("{}_all", owner_id)],
             dynamic_file_group_ids: vec![],
             app_data,
             accessed: None,

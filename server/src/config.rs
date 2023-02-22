@@ -70,6 +70,14 @@ pub struct AppStorage {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct DefaultUserLimits {
+    pub max_storage: u64,
+    pub max_files: u64,
+    pub max_bandwidth: u64,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ReadonlyMountConfig {
     pub path: String,
     pub rescan_seconds: u64,
@@ -109,6 +117,6 @@ A storage location: either to seperate files onto different drives or because of
 #[serde(rename_all = "camelCase")]
 pub struct StorageConfig {
     pub path: String,
-
     pub limit: Option<u64>,
+    pub default_user_limits: DefaultUserLimits,
 }

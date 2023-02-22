@@ -14,7 +14,7 @@ services:
         {{- if eq $config.filez.server.build.enabled true }}
         build:
             context: {{ $config.filez.server.build.path }}
-            dockerfile: {{ $config.filez.server.build.dockerfile }}        
+            dockerfile: {{ $config.filez.server.build.dockerfile }}
         {{- end }}
         image: firstdorsal/filez-server
         container_name: filez-server
@@ -41,20 +41,21 @@ services:
             INTEROSSEA_INTERNAL_URL: {{ $config.interossea.server.internalHostname }}
         labels:
             traefik:
-                enabled: true
+                docker:
+                    network: {{ $config.reverseProxy.network }}
+                enable: true
                 http:
                     routers:
                         filez-server:
                             rule: "Host(`{{ $filezServerHostname }}`)"
-                            entrypoints: 
-                                - {{ ternary "webesecure" "web" $config.tls }}
+                            entrypoints: {{ ternary "websecure" "web" $config.tls }}
                             service: filez-server
                             tls: {{ $config.tls }}
                     services:
                         filez-server:
                             loadbalancer:
-                                servers:
-                                    - url: "http://filez-server:80"
+                                server:
+                                    port: 80
     filez-web:
         {{- if eq $config.filez.web.build.enabled true }}
         build:
@@ -70,24 +71,26 @@ services:
         environment:
             CSP_CONNECT_SRC: {{ ternary "https://" "http://" $config.tls true }}{{ $interosseaServerHostname}} {{ ternary "https://" "http://" $config.tls true }}{{ $filezServerHostname}}
             CSP_IMG_SRC: {{ ternary "https://" "http://" $config.tls true }}{{ $filezServerHostname}}
+            CSP_MEDIA_SRC: {{ ternary "https://" "http://" $config.tls true }}{{ $filezServerHostname}}
         networks:
             - {{ $config.reverseProxy.network }}
         labels:
             traefik:
-                enabled: true
+                docker:
+                    network: {{ $config.reverseProxy.network }}
+                enable: true
                 http:
                     routers:
                         filez-web:
                             rule: "Host(`{{ $filezWebHostname }}`)"
-                            entrypoints: 
-                                - {{ ternary "webesecure" "web" $config.tls }}
+                            entrypoints: {{ ternary "websecure" "web" $config.tls }}
                             service: filez-web
                             tls: {{ $config.tls }}
                     services:
                         filez-web:
                             loadbalancer:
-                                servers:
-                                    - url: "http://filez-web:80"
+                                server:
+                                    port: 80
     {{- range $config.filez.addons }}
     filez-addons-{{.name}}:
         {{- if eq .build.enabled true }}
@@ -168,20 +171,21 @@ services:
             - {{ $config.reverseProxy.network }}
         labels:
             traefik:
-                enabled: true
+                docker:
+                    network: {{ $config.reverseProxy.network }}
+                enable: true
                 http:
                     routers:
                         interossea-web:
                             rule: "Host(`{{ $interosseaWebHostname }}`)"
-                            entrypoints: 
-                                - {{ ternary "webesecure" "web" $config.tls }}
+                            entrypoints: {{ ternary "websecure" "web" $config.tls }}
                             service: interossea-web
                             tls: {{ $config.tls }}
                     services:
                         interossea-web:
                             loadbalancer:
-                                servers:
-                                    - url: "http://interossea-web:80"
+                                server:
+                                    port: 80
     {{- end }}
     {{- if eq $config.interossea.server.create true }}
     interosseadb:
@@ -231,20 +235,21 @@ services:
             INTEROSSEA_MAIL_PASSWORD: $INTEROSSEA_MAIL_PASSWORD
         labels:
             traefik:
-                enabled: true
+                docker:
+                    network: {{ $config.reverseProxy.network }}
+                enable: true
                 http:
                     routers:
                         interossea-server:
                             rule: "Host(`{{ $interosseaServerHostname }}`)"
-                            entrypoints: 
-                                - {{ ternary "webesecure" "web" $config.tls }}
+                            entrypoints: {{ ternary "websecure" "web" $config.tls }}
                             service: interossea-server
                             tls: {{ $config.tls }}
                     services:
                         interossea-server:
                             loadbalancer:
-                                servers:
-                                    - url: "http://interossea-server:80"
+                                server:
+                                    port: 80
     {{- end }}
     {{- if eq $config.reverseProxy.create true }}
     rp:
@@ -268,7 +273,7 @@ services:
                         web:
                             address: ":80"
                         {{- if eq $config.tls true }}
-                        webesecure:
+                        websecure:
                             address: ":443"
                         {{- end }}
         
@@ -341,7 +346,7 @@ networks:
         ipam:
             driver: default
             config:
-                - subnet: {{ $config.networks.subnet.legacy }}.{{ mul $index 16}}/24
+                - subnet: {{ $config.networks.subnet.legacy }}.{{ mul $index 16}}/28
                 - subnet: {{ $config.networks.subnet.v6 }}{{ $index }}0/124
     {{- end }}
     {{- end }}

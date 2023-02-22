@@ -87,7 +87,7 @@ pub fn get_range(req: &Request<Body>) -> anyhow::Result<HttpRange> {
 
     let range = match range {
         Some(r) => {
-            let parts = r.split("=").collect::<Vec<_>>();
+            let parts = r.split('=').collect::<Vec<_>>();
             if parts.len() != 2 {
                 bail!("Invalid range");
             }
@@ -96,7 +96,7 @@ pub fn get_range(req: &Request<Body>) -> anyhow::Result<HttpRange> {
             if range_type != "bytes" {
                 bail!("Invalid range type");
             }
-            let range_parts = range.split("-").collect::<Vec<_>>();
+            let range_parts = range.split('-').collect::<Vec<_>>();
             if range_parts.len() != 2 {
                 bail!("Invalid range");
             }

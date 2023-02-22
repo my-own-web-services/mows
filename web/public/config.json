@@ -1,5 +1,6 @@
 {
     "interosseaServerAddress": "http://localhost:8081",
     "interosseaWebAddress": "http://localhost:5173",
-    "skipInterossea": false
+    "filezServerAddress": "http://localhost:8080",
+    "skipInterossea": true
 }

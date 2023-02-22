@@ -1,6 +1,44 @@
-use crate::types::{DynamicGroupRuleType, FilezFile, FilezFileGroup};
+use crate::{
+    db::DB,
+    types::{DynamicGroupRuleType, FilezFile, FilezFileGroup},
+};
 use regex::Regex;
 use serde_json::Value;
+
+pub enum UpdateType {
+    Group(FilezFileGroup),
+    File(FilezFile),
+}
+
+pub async fn handle_dynamic_group_update(db: &DB, update_type: &UpdateType) -> anyhow::Result<()> {
+    match update_type {
+        UpdateType::Group(group) => {
+            let all_files_group_id = format!("{}_all", &group.owner_id);
+            let current_files = db
+                .get_files_by_group_id(&all_files_group_id, None, 0)
+                .await?;
+
+            let files_to_be_updated = handle_group_change(group, &current_files);
+
+            db.update_file_groups_on_many_files(&files_to_be_updated)
+                .await?;
+
+            //TODO update the groups file count
+        }
+        UpdateType::File(file) => {
+            let groups = db.get_dynamic_groups_by_owner_id(&file.owner_id).await?;
+
+            let new_groups = handle_file_change(file, &groups.iter().collect());
+
+            let files_to_be_updated = vec![(file.file_id.clone(), new_groups)];
+
+            db.update_file_groups_on_many_files(&files_to_be_updated)
+                .await?;
+            //TODO update the groups file count
+        }
+    }
+    Ok(())
+}
 
 /*
 a dynamic groups filter was changed: this might affect any file by the same owner
@@ -71,7 +109,7 @@ pub fn check_match(changed_file: &FilezFile, possible_group: &FilezFileGroup) ->
 
 pub fn check_rule_match_regex(changed_file: &FilezFile, field: &str, regex: &str) -> bool {
     let field_value =
-        match get_field_value_by_path(&serde_json::to_value(changed_file).unwrap(), field) {
+        match get_field_value_by_object_path(&serde_json::to_value(changed_file).unwrap(), field) {
             Some(v) => v,
             None => return false,
         };
@@ -91,7 +129,7 @@ pub fn check_rule_match_regex(changed_file: &FilezFile, field: &str, regex: &str
     }
 }
 
-pub fn get_field_value_by_path(object: &Value, path: &str) -> Option<Value> {
+pub fn get_field_value_by_object_path(object: &Value, path: &str) -> Option<Value> {
     let mut current_object = object;
     for part in path.split('.') {
         current_object = match current_object.get(part) {
@@ -102,3 +140,11 @@ pub fn get_field_value_by_path(object: &Value, path: &str) -> Option<Value> {
 
     Some(current_object.clone())
 }
+/*
+MatchRegex: string, bool, number
+NotMatchRegex: string, bool, number
+Contains: string, array
+NotContains: string, array
+Equals: string, bool, number
+NotEquals: string, bool, number
+*/

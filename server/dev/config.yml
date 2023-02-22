@@ -5,6 +5,10 @@ serviceId: filez
 storage:
     ssd:
         path: ./storage/
+        defaultUserLimits:
+            maxStorage: 1000000000
+            maxFiles: 1000
+            maxBandwidth: 0
 
 defaultStorage: ssd
 
@@ -31,20 +35,20 @@ readonlyMounts:
     testVideo:
         path: /home/paul/Downloads/test_video/
         rescanSeconds: 120
-        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
+        ownerId: dev
     importImages:
         path: /home/paul/Downloads/_import-images/
         rescanSeconds: 120
-        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
+        ownerId: dev
     someVideos:
         path: "/mnt/archive/Video/RawDLYT/classic/"
         rescanSeconds: 120
-        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
+        ownerId: dev
     music:
         path: /mnt/archive/Music/JACKBOYS - JACKBOYS/
         rescanSeconds: 120
-        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
+        ownerId: dev
     someImages:
         path: /mnt/archive/Bilder/Photos/2018/2018-12-03/
         rescanSeconds: 120
-        ownerId: J7GNT9ueLV8BRcXIDjUZTuHVa9PODO-t
+        ownerId: dev

@@ -10,19 +10,23 @@ interface VideoProps {
 }
 interface VideoState {}
 
+const useDash = true;
+
 export default class Video extends Component<VideoProps, VideoState> {
     private videoRef = createRef<HTMLVideoElement>();
     private player!: MediaPlayerClass;
 
     componentDidUpdate = async (newProps: VideoProps) => {
         if (this.videoRef.current && this.props.file._id !== newProps.file._id) {
-            await this.importDash();
+            if (useDash) {
+                await this.importDash();
 
-            this.videoRef.current.load();
+                this.videoRef.current.load();
 
-            this.player.attachSource(
-                `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/video/manifest.mpd?c`
-            );
+                this.player.attachSource(
+                    `${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/video/manifest.mpd?c`
+                );
+            }
         }
     };
 
@@ -34,7 +38,7 @@ export default class Video extends Component<VideoProps, VideoState> {
         }
     };
 
-    initPlayer = async () => {
+    initDashPlayer = async () => {
         await this.importDash();
         if (!this.player && this.videoRef.current) {
             // @ts-ignore
@@ -55,19 +59,26 @@ export default class Video extends Component<VideoProps, VideoState> {
     };
 
     componentDidMount = async () => {
-        this.importDash();
-
-        if (this.videoRef.current) {
-            this.initPlayer();
+        if (useDash) {
+            this.importDash();
+            if (this.videoRef.current) {
+                this.initDashPlayer();
+            }
         }
     };
 
     render = () => {
+        const f = this.props.file;
         return (
             <div className="Video">
                 <div class="dash-video-player ">
                     <div class="videoContainer" id="videoContainer">
-                        <video data-dashjs-player ref={this.videoRef} controls></video>
+                        <video data-dashjs-player ref={this.videoRef} controls>
+                            <source
+                                src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}`}
+                                type={f.mimeType}
+                            />
+                        </video>
                     </div>
                 </div>
             </div>

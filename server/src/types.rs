@@ -60,6 +60,17 @@ pub struct CreatePermissionResponse {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateFileGroupRequestBody {
+    pub file_group_id: String,
+    pub new_name: Option<String>,
+    pub new_dynamic_group_rules: Option<DynamicGroupRule>,
+    pub new_group_type: Option<FileGroupType>,
+    pub new_keywords: Option<Vec<String>>,
+    pub new_mime_types: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateGroupRequest {
     pub name: Option<String>,
     pub group_type: GroupType,

@@ -77,3 +77,14 @@ export interface UiConfig {
     filezServerAddress: string;
     skipInterossea: boolean;
 }
+
+export interface DynamicGroupRule {
+    field: string;
+    ruleType: DynamicGroupRuleType;
+    value: string;
+}
+
+export enum DynamicGroupRuleType {
+    MatchRegex = "matchRegex",
+    NotMatchRegex = "notMatchRegex"
+}

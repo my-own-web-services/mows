@@ -1,4 +1,4 @@
-import { FileGroup, FilezFile, FilezUser } from "../types";
+import { DynamicGroupRuleType, DynamicGroupRule, FileGroup, FilezFile, FilezUser } from "../types";
 import { InterosseaClient } from "./interosseaClient";
 
 export class FilezClient {
@@ -32,36 +32,44 @@ export class FilezClient {
             credentials: "include"
         });
     };
-    create_group = async () => {
+
+    create_group = async (group: CreateGroupRequest) => {
         const res = await fetch(`${this.filezEndpoint}/api/create_group/`, {
             method: "POST",
-            credentials: "include"
+            credentials: "include",
+            body: JSON.stringify(group)
         });
+        return (await res.json()) as CreateGroupResponse;
     };
+
     create_upload_space = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/create_upload_space/`, {
             method: "POST",
             credentials: "include"
         });
     };
+
     delete_file = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/delete_file/`, {
             method: "POST",
             credentials: "include"
         });
     };
+
     delete_group = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/delete_group/`, {
             method: "POST",
             credentials: "include"
         });
     };
+
     delete_permission = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/delete_permission/`, {
             method: "POST",
             credentials: "include"
         });
     };
+
     delete_upload_space = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/delete_upload_space/`, {
             method: "POST",
@@ -85,6 +93,7 @@ export class FilezClient {
         const files: FilezFile[] = await res.json();
         return files;
     };
+
     get_file = async (fileId: string) => {
         const res = await fetch(`${this.filezEndpoint}/api/get_file/${fileId}`, {
             credentials: "include"
@@ -106,12 +115,14 @@ export class FilezClient {
             credentials: "include"
         });
     };
+
     get_user_info = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/get_user_info/`, {
             credentials: "include"
         });
         return (await res.json()) as FilezUser;
     };
+
     update_file_infos = async (fileId: string, field: UpdateFileInfosRequestField) => {
         const res = await fetch(`${this.filezEndpoint}/api/update_file_infos/`, {
             method: "POST",
@@ -122,12 +133,22 @@ export class FilezClient {
             throw new Error("Error updating file infos: " + res.statusText);
         }
     };
+
     update_file = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/update_file/`, {
             method: "POST",
             credentials: "include"
         });
     };
+
+    update_file_group = async (req: UpdateFileGroupRequestBody) => {
+        const res = await fetch(`${this.filezEndpoint}/api/update_file_group/`, {
+            method: "POST",
+            credentials: "include",
+            body: JSON.stringify(req)
+        });
+    };
+
     update_permission_ids_on_resource = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/update_permission_ids_on_resource/`, {
             method: "POST",
@@ -161,4 +182,32 @@ export interface UFIRStaticFileGroupIds {
 }
 export interface UFIRKeywords {
     Keywords: string[];
+}
+
+export interface CreateGroupRequest {
+    name: string;
+    groupType: CreateGroupRequestGroupType;
+}
+
+export enum CreateGroupRequestGroupType {
+    User = "user",
+    File = "file"
+}
+
+export interface CreateGroupResponse {
+    groupId: string;
+}
+
+export interface UpdateFileGroupRequestBody {
+    fileGroupId: string;
+    newName?: string;
+    newDynamicGroupRules?: DynamicGroupRule;
+    newGroupType?: FileGroupType;
+    newKeywords?: string[];
+    newMimeTypes?: string[];
+}
+
+export enum FileGroupType {
+    Static = "static",
+    Dynamic = "dynamic"
 }

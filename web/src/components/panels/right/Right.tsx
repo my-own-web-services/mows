@@ -178,6 +178,7 @@ export default class Right extends Component<RightProps, RightState> {
                         </div>
                         <div>
                             <div>Owner</div>
+                            <div>{s.ownerId}</div>
                         </div>
                         <div>
                             <div>ID</div>

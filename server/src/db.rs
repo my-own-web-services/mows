@@ -1,4 +1,5 @@
 use crate::{
+    config::SERVER_CONFIG,
     internal_types::MergedFilezPermission,
     some_or_bail,
     types::{
@@ -64,34 +65,13 @@ impl DB {
     }
 
     pub async fn create_dev_user(&self) -> anyhow::Result<()> {
-        let collection = self.db.collection::<FilezUser>("users");
-
-        let user = collection.find_one(doc! {"_id": "dev"}, None).await?;
-        if user.is_some() {
-            return Ok(());
+        match self.create_user("dev").await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                println!("Error creating dev user: {}", e);
+                Ok(())
+            }
         }
-
-        let app_data = HashMap::new();
-        let mut limits: HashMap<String, UsageLimits> = HashMap::new();
-        let ssd_usage_limits = UsageLimits {
-            max_storage: 1000000,
-            used_storage: 0,
-            max_files: 0,
-            used_files: 1000,
-            max_bandwidth: 0,
-            used_bandwidth: 0,
-        };
-        limits.insert("ssd".to_string(), ssd_usage_limits);
-
-        let user = FilezUser {
-            user_id: "dev".to_string(),
-            app_data,
-            limits,
-            user_group_ids: vec![],
-        };
-        collection.insert_one(&user, None).await?;
-
-        Ok(())
     }
 
     pub async fn get_upload_space_by_token(
@@ -109,6 +89,70 @@ impl DB {
     pub async fn create_upload_space(&self, upload_space: &UploadSpace) -> anyhow::Result<()> {
         let collection = self.db.collection::<UploadSpace>("uploadSpaces");
         collection.insert_one(upload_space, None).await?;
+
+        Ok(())
+    }
+
+    pub async fn update_file_group(&self, file_group: &FilezFileGroup) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        collection
+            .update_one(
+                doc! {"_id": file_group.file_group_id.clone()},
+                doc! {"$set": bson::to_bson(file_group)?},
+                None,
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_dynamic_groups_by_owner_id(
+        &self,
+        owner_id: &str,
+    ) -> anyhow::Result<Vec<FilezFileGroup>> {
+        let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let res = collection
+            .find(
+                doc! {
+                "$and":[
+                    {
+                        "ownerId": {
+                            "$eq":owner_id
+                        }
+                    },
+                    {
+                        "groupType": {
+                            "$eq": "dynamic"
+                        }
+                    }
+                    ]
+                },
+                FindOptions::builder().build(),
+            )
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        Ok(res)
+    }
+
+    pub async fn update_file_groups_on_many_files(
+        &self,
+        to_be_updated: &Vec<(String, Vec<String>)>,
+    ) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezFile>("files");
+
+        let mut futures = vec![];
+
+        for (file_id, dynamic_file_group_ids) in to_be_updated {
+            futures.push(collection.update_one(
+                doc! {"_id": file_id},
+                doc! {"$set": {"dynamicFileGroupIds": dynamic_file_group_ids}},
+                None,
+            ));
+        }
+
+        futures::future::join_all(futures).await;
 
         Ok(())
     }
@@ -212,6 +256,72 @@ impl DB {
             .await?;
 
         Ok(res)
+    }
+
+    pub async fn create_user(&self, user_id: &str) -> anyhow::Result<()> {
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
+
+        let users_collection = self.db.collection::<FilezUser>("users");
+        let config = &SERVER_CONFIG;
+
+        let user = users_collection
+            .find_one(doc! {"_id": user_id}, None)
+            .await?;
+        if user.is_some() {
+            bail!("User already exists")
+        }
+
+        let mut limits: HashMap<String, UsageLimits> = HashMap::new();
+
+        for (storage_name, storage_config) in &config.storage {
+            let dul = &storage_config.default_user_limits;
+            limits.insert(
+                storage_name.to_string(),
+                UsageLimits {
+                    max_storage: dul.max_storage,
+                    used_storage: 0,
+                    max_files: dul.max_files,
+                    used_files: 0,
+                    max_bandwidth: dul.max_bandwidth,
+                    used_bandwidth: 0,
+                },
+            );
+        }
+
+        let user = FilezUser {
+            user_id: user_id.to_string(),
+            app_data: HashMap::new(),
+            limits,
+            user_group_ids: vec![],
+        };
+
+        users_collection
+            .insert_one_with_session(&user, None, &mut session)
+            .await?;
+
+        let file_groups_collection = self.db.collection::<FilezFileGroup>("fileGroups");
+
+        file_groups_collection
+            .insert_one_with_session(
+                &FilezFileGroup {
+                    file_group_id: format!("{}_all", user_id),
+                    owner_id: user_id.to_string(),
+                    name: Some("All".to_string()),
+                    permission_ids: vec![],
+                    keywords: vec![],
+                    mime_types: vec![],
+                    group_hierarchy_paths: vec![],
+                    group_type: crate::types::FileGroupType::Static,
+                    dynamic_group_rules: None,
+                    item_count: 0,
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        Ok(session.commit_transaction().await?)
     }
 
     pub async fn get_file_groups_by_owner_id(

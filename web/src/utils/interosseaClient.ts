@@ -21,8 +21,10 @@ export class InterosseaClient {
     }
 
     init = async () => {
-        this.assertionValiditySeconds = await this.get_assertion_validity_seconds();
-        await this.renew();
+        if (!this.skip) {
+            this.assertionValiditySeconds = await this.get_assertion_validity_seconds();
+            await this.renew();
+        }
     };
 
     get_assertion_validity_seconds = async () => {

@@ -16,6 +16,7 @@ use filez::methods::get_permissions_for_current_user::get_permissions_for_curren
 use filez::methods::get_user_info::get_user_info;
 use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_file::update_file;
+use filez::methods::update_file_group::update_file_group;
 use filez::methods::update_file_infos::update_file_infos;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::readonly_mount::scan_readonly_mounts;
@@ -204,6 +205,8 @@ async fn handle_inner(
         update_file(req, db, &auth, res).await
     } else if p == "/update_file_infos/" && m == Method::POST {
         update_file_infos(req, db, &auth, res).await
+    } else if p == "/update_file_group/" && m == Method::POST {
+        update_file_group(req, db, &auth, res).await
     } else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
         update_permission_ids_on_resource(req, db, &auth, res).await
     } else if p == "/get_permissions_for_current_user/" && m == Method::GET {
