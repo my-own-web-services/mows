@@ -6,11 +6,10 @@ use crate::{
     types::{FilezFile, FilezPermission},
 };
 use anyhow::bail;
-use http_range::HttpRange;
 use hyper::{Body, Request};
 use qstring::QString;
 use serde_json::Value;
-use std::{collections::HashMap, path::Path, vec};
+use std::{collections::HashMap, num::ParseIntError, path::Path, vec};
 
 pub fn get_cookies(req: &Request<Body>) -> anyhow::Result<HashMap<String, String>> {
     let cookie_str = some_or_bail!(req.headers().get("cookie"), "No cookies found").to_str()?;
@@ -79,13 +78,13 @@ pub fn merge_permissions(
     Ok(merged_permission)
 }
 
-pub fn get_range(req: &Request<Body>) -> anyhow::Result<HttpRange> {
+pub fn get_range(req: &Request<Body>) -> anyhow::Result<(u64, Result<u64, ParseIntError>)> {
     let range = req
         .headers()
         .get("Range")
         .map(|h| h.to_str().unwrap_or("").to_string());
 
-    let range = match range {
+    match range {
         Some(r) => {
             let parts = r.split('=').collect::<Vec<_>>();
             if parts.len() != 2 {
@@ -97,20 +96,16 @@ pub fn get_range(req: &Request<Body>) -> anyhow::Result<HttpRange> {
                 bail!("Invalid range type");
             }
             let range_parts = range.split('-').collect::<Vec<_>>();
+
             if range_parts.len() != 2 {
                 bail!("Invalid range");
             }
             let start = range_parts[0].parse::<u64>()?;
-            let end = range_parts[1].parse::<u64>()?;
-            HttpRange {
-                start,
-                length: end - start + 1,
-            }
+            let end = range_parts[1].parse::<u64>();
+            Ok((start, end))
         }
         None => bail!("No range"),
-    };
-
-    Ok(range)
+    }
 }
 
 pub fn get_folder_and_file_path(id: &str, storage_path: &str) -> (String, String) {

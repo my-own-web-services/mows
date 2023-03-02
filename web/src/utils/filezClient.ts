@@ -26,10 +26,14 @@ export class FilezClient {
         await this.interosseaClient.init();
     };
 
-    create_file = async () => {
+    create_file = async (body: any, metadata: CreateFileRequest) => {
         const res = await fetch(`${this.filezEndpoint}/api/create_file/`, {
             method: "POST",
-            credentials: "include"
+            credentials: "include",
+            body,
+            headers: {
+                request: JSON.stringify(metadata)
+            }
         });
     };
 
@@ -210,4 +214,13 @@ export interface UpdateFileGroupRequestBody {
 export enum FileGroupType {
     Static = "static",
     Dynamic = "dynamic"
+}
+
+export interface CreateFileRequest {
+    name: string;
+    mimeType: string;
+    staticFileGroupIds?: string[];
+    storageId?: string;
+    created?: number;
+    modified?: number;
 }

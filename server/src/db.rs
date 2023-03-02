@@ -140,21 +140,62 @@ impl DB {
         &self,
         to_be_updated: &Vec<(String, Vec<String>)>,
     ) -> anyhow::Result<()> {
-        let collection = self.db.collection::<FilezFile>("files");
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
 
-        let mut futures = vec![];
+        let files_collection = self.db.collection::<FilezFile>("files");
+        let file_groups_collection = self.db.collection::<FilezFileGroup>("fileGroups");
+
+        // TODO make this faster by using bulk operations
+
+        let mut file_count_map: HashMap<String, u64> = HashMap::new();
 
         for (file_id, dynamic_file_group_ids) in to_be_updated {
-            futures.push(collection.update_one(
-                doc! {"_id": file_id},
-                doc! {"$set": {"dynamicFileGroupIds": dynamic_file_group_ids}},
-                None,
-            ));
+            for file_group_id in dynamic_file_group_ids {
+                if file_count_map.contains_key(file_group_id) {
+                    let count = file_count_map.get(file_group_id).unwrap();
+                    file_count_map.insert(file_group_id.clone(), count + 1);
+                } else {
+                    file_count_map.insert(file_group_id.clone(), 1);
+                }
+            }
+
+            if !dynamic_file_group_ids.is_empty() {
+                files_collection
+                    .update_one_with_session(
+                        doc! {"_id": file_id},
+                        doc! {"$push": {"dynamicFileGroupIds": &dynamic_file_group_ids[0]}},
+                        None,
+                        &mut session,
+                    )
+                    .await?;
+            }
         }
 
-        futures::future::join_all(futures).await;
+        //set the new file count on the groups
+        for (file_group_id, file_count) in file_count_map {
+            file_groups_collection
+                .update_one_with_session(
+                    doc! {"_id": file_group_id},
+                    doc! {"$set": {"itemCount": bson::to_bson(&file_count)?}},
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
 
-        Ok(())
+        Ok(session.commit_transaction().await?)
+    }
+
+    pub async fn get_files_by_owner_id(&self, owner_id: &str) -> anyhow::Result<Vec<FilezFile>> {
+        let collection = self.db.collection::<FilezFile>("files");
+        let res = collection
+            .find(doc! {"ownerId": owner_id}, FindOptions::builder().build())
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        Ok(res)
     }
 
     pub async fn update_permission_ids_on_resource(
@@ -607,7 +648,10 @@ impl DB {
         //TODO
         let find_options = FindOptions::builder().limit(limit).skip(from_index).build();
         let mut cursor = collection
-            .find(doc! {"staticFileGroupIds": group_id}, find_options)
+            .find(
+                doc! {"$or":[{"staticFileGroupIds": group_id},{"dynamicFileGroupIds": group_id}]},
+                find_options,
+            )
             .await?;
 
         let mut files = vec![];

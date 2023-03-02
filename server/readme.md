@@ -1,3 +1,5 @@
+mongodb://root:root@localhost:27017
+
 # addons
 
 -   video

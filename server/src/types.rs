@@ -123,7 +123,7 @@ pub struct CreateFileRequest {
     pub name: String,
     pub mime_type: String,
     pub storage_id: Option<String>,
-    pub groups: Option<Vec<String>>,
+    pub static_file_group_ids: Option<Vec<String>>,
     pub created: Option<i64>,
     pub modified: Option<i64>,
 }

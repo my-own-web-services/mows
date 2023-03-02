@@ -27,13 +27,13 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install 
     libwebp-dev
 
 WORKDIR /app/
-RUN git clone https://github.com/OpenVisualCloud/SVT-VP9.git --depth 1
+RUN git clone https://github.com/OpenVisualCloud/SVT-VP9.git
 
 ARG LD_LIBRARY_PATH=/usr/local/lib
 
 RUN cd SVT-VP9/Build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j $(nproc) && make install
 
-RUN git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg --depth 1
+RUN git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
 
 RUN cd ffmpeg && git apply ../SVT-VP9/ffmpeg_plugin/master-0001-Add-ability-for-ffmpeg-to-run-svt-vp9.patch && ./configure \
     --enable-libsvtvp9 \

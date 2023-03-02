@@ -14,7 +14,7 @@ video:
     # target video heights
     targetResolutions:
         - 360
-        #- 480
+        - 480
         - 720
         - 1080
         - 2160

@@ -16,6 +16,7 @@ import { convertFileGroups, VisualFileGroup } from "./utils/convertFileGroups";
 import { FilezClient } from "./utils/filezClient";
 
 import "preact/debug";
+import Top from "./components/panels/top/Top";
 
 interface AppProps {}
 interface AppState {
@@ -326,6 +327,7 @@ export default class App extends Component<AppProps, AppState> {
             <CustomProvider theme="dark">
                 <DndProvider backend={HTML5Backend}>
                     <div className="App">
+                        <Top g={this.state.g}></Top>
                         <Panels
                             left={<Left g={this.state.g} groups={this.state.fileGroups}></Left>}
                             center={

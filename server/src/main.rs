@@ -224,7 +224,10 @@ async fn handle_inner(
         Ok(Response::builder()
             .header("Access-Control-Allow-Origin", &config.ui_origin.clone())
             .header("Access-Control-Allow-Credentials", "true")
-            .header("Access-Control-Allow-Headers", "interosseauserassertion")
+            .header(
+                "Access-Control-Allow-Headers",
+                "interosseauserassertion, request",
+            )
             .status(200)
             .body(Body::from("OK"))
             .unwrap())

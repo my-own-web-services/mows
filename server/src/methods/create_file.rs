@@ -159,7 +159,7 @@ pub async fn create_file(
 
     let mut file_manual_group_ids = vec![];
 
-    if let Some(mut cr_groups) = create_request.groups.clone() {
+    if let Some(mut cr_groups) = create_request.static_file_group_ids.clone() {
         file_manual_group_ids.append(&mut cr_groups);
     }
 

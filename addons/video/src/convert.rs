@@ -88,7 +88,6 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     let mut video_command = Command::new("nice");
 
     // TODO this will not work with videos that are not 16:9 because svt_vp9 requires the width to be a multiple of 8
-    // this wont even work for 16:9 480p as its height is ≈ 853.3
     // the av1 encoder did not have this problem but it is not usable for webm :(
 
     video_command

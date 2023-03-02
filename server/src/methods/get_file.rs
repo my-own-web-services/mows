@@ -6,6 +6,7 @@ use crate::{
     utils::{check_auth, get_folder_and_file_path, get_query_item, get_range},
 };
 use anyhow::bail;
+use http_range::HttpRange;
 use hyper::{Body, Request, Response};
 use hyper_staticfile::util::FileBytesStreamRange;
 use std::path::Path;
@@ -62,54 +63,85 @@ pub async fn get_file(
         res = res.header("Cache-Control", "public, max-age=31536000");
     };
 
-    match app_file {
+    let full_file_path = match &app_file {
         Some(af) => {
             let (folder_path, file_name) = get_folder_and_file_path(&file_id, &af.0);
 
-            let p = Path::new(&config.app_storage.path)
+            Path::new(&config.app_storage.path)
                 .join(folder_path)
                 .join(&file_name)
-                .join(&af.1);
-            let file_handle = tokio::fs::File::open(&p).await?;
-
-            let body = match get_range(&req) {
-                Ok(r) => Body::wrap_stream(FileBytesStreamRange::new(file_handle, r)),
-                Err(_) => Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle)),
-            };
-
-            let mime_type = mime_guess::from_path(&af.1)
-                .first_or_octet_stream()
-                .to_string();
-
-            Ok(res
-                .status(200)
-                .header("Content-Type", mime_type)
-                .body(body)
-                .unwrap())
+                .join(&af.1)
         }
-        None => {
-            // stream the file from disk to the client
-            let file_handle = tokio::fs::File::open(&file.path).await?;
+        None => Path::new(&file.path).to_path_buf(),
+    };
 
-            let body = match get_range(&req) {
-                Ok(r) => Body::wrap_stream(FileBytesStreamRange::new(file_handle, r)),
-                Err(_) => Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle)),
-            };
+    let file_handle = tokio::fs::File::open(&full_file_path).await?;
+    let file_size = file_handle.metadata().await?.len();
 
-            let illegal_types = vec!["text/html", "application/javascript", "text/css"];
+    let body = match get_range(&req) {
+        Ok(r) => {
+            res = res.header("Connection", "Keep-Alive");
+            res = res.header("Keep-Alive", "timeout=5, max=100");
+            res = res.status(206);
+            res = res.header("Accept-Ranges", "bytes");
 
-            Ok(res
-                .status(200)
-                .header(
-                    "Content-Type",
-                    if illegal_types.contains(&file.mime_type.as_str()) {
-                        "text/plain".to_string()
-                    } else {
-                        file.mime_type
-                    },
-                )
-                .body(body)
-                .unwrap())
+            match r.1 {
+                Ok(end) => {
+                    res = res.header(
+                        "Content-Range",
+                        format!("bytes {}-{}/{}", r.0, file_size - 1, file_size),
+                    );
+                    res = res.header("Content-Length", end - r.0);
+
+                    Body::wrap_stream(FileBytesStreamRange::new(
+                        file_handle,
+                        HttpRange {
+                            start: r.0,
+                            length: end - r.0,
+                        },
+                    ))
+                }
+                Err(_) => {
+                    // no end requested so we just return the rest of the file
+                    res = res.header(
+                        "Content-Range",
+                        format!("bytes {}-{}/{}", r.0, file_size - 1, file_size),
+                    );
+                    res = res.header("Content-Length", file_size - r.0);
+
+                    Body::wrap_stream(FileBytesStreamRange::new(
+                        file_handle,
+                        HttpRange {
+                            start: r.0,
+                            length: file_size - r.0,
+                        },
+                    ))
+                }
+            }
         }
-    }
+        Err(_) => {
+            res = res.header("Content-Length", file_size);
+            Body::wrap_stream(hyper_staticfile::FileBytesStream::new(file_handle))
+        }
+    };
+
+    let mime_type = match &app_file {
+        Some(af) => mime_guess::from_path(&af.1)
+            .first_or_octet_stream()
+            .to_string(),
+        None => file.mime_type,
+    };
+
+    let illegal_types = vec!["text/html", "application/javascript", "text/css"];
+
+    let res = res.header(
+        "Content-Type",
+        if illegal_types.contains(&mime_type.as_str()) {
+            "text/plain".to_string()
+        } else {
+            mime_type
+        },
+    );
+
+    Ok(res.body(body).unwrap())
 }

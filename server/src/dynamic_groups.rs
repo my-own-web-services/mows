@@ -13,17 +13,16 @@ pub enum UpdateType {
 pub async fn handle_dynamic_group_update(db: &DB, update_type: &UpdateType) -> anyhow::Result<()> {
     match update_type {
         UpdateType::Group(group) => {
-            let all_files_group_id = format!("{}_all", &group.owner_id);
-            let current_files = db
-                .get_files_by_group_id(&all_files_group_id, None, 0)
-                .await?;
+            let current_files = db.get_files_by_owner_id(&group.owner_id).await?;
+
+            dbg!(current_files.len());
 
             let files_to_be_updated = handle_group_change(group, &current_files);
 
+            dbg!(&files_to_be_updated);
+
             db.update_file_groups_on_many_files(&files_to_be_updated)
                 .await?;
-
-            //TODO update the groups file count
         }
         UpdateType::File(file) => {
             let groups = db.get_dynamic_groups_by_owner_id(&file.owner_id).await?;
@@ -32,9 +31,7 @@ pub async fn handle_dynamic_group_update(db: &DB, update_type: &UpdateType) -> a
 
             let files_to_be_updated = vec![(file.file_id.clone(), new_groups)];
 
-            db.update_file_groups_on_many_files(&files_to_be_updated)
-                .await?;
-            //TODO update the groups file count
+            // TODO update stuff
         }
     }
     Ok(())
@@ -113,6 +110,7 @@ pub fn check_rule_match_regex(changed_file: &FilezFile, field: &str, regex: &str
             Some(v) => v,
             None => return false,
         };
+    dbg!(&field_value);
     let parsed_regex = match Regex::new(regex) {
         Ok(v) => v,
         Err(e) => {
