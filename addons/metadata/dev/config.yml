@@ -7,3 +7,8 @@ db:
     url: mongodb://root:root@localhost:27017
 dev:
     clearOwnAppDataOnStart: true
+
+external:
+    omdb:
+        enabled: false
+        apiKey: abc

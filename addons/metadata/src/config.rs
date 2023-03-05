@@ -1,8 +1,7 @@
-use std::fs::read_to_string;
-
 use anyhow::bail;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use std::fs::read_to_string;
 
 const CONFIG_PATH: &str = "/config.yml";
 const DEV_CONFIG_PATH: &str = "dev/config.yml";
@@ -51,6 +50,20 @@ pub struct Config {
     pub timeout_seconds: u64,
     pub db: DbConfig,
     pub dev: DevConfig,
+    pub external: ExternalConfig,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ExternalConfig {
+    pub omdb: omdbConfig,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct omdbConfig {
+    pub enabled: bool,
+    pub api_key: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

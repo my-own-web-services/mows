@@ -1,6 +1,6 @@
 use metadata::{
     clues::get_clues, config::CONFIG, db::DB, exiftool::get_metadata_exiftool,
-    metadata_types::Metadata,
+    external::lookup::external_lookup, metadata_types::Metadata,
 };
 use mongodb::options::ClientOptions;
 #[cfg(not(target_env = "msvc"))]
@@ -41,7 +41,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     };
 
                     let clues = get_clues(&file, &exifdata).await?;
-                    let metadata = Metadata { exifdata, clues };
+                    let mut metadata = Metadata {
+                        exifdata,
+                        clues,
+                        external: None,
+                    };
+
+                    metadata.external = Some(external_lookup(&metadata).await?);
 
                     //dbg!(&metadata);
 

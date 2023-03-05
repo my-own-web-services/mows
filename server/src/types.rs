@@ -4,6 +4,28 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub enum SearchRequest {
+    SimpleSearch(SimpleSearchRequest),
+    AdvancedSearch(AdvancedSearchRequest),
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SimpleSearchRequest {
+    pub query: String,
+    pub group_id: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancedSearchRequest {
+    pub query: String,
+    pub group_id: String,
+    pub filters: Vec<FilterRule>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateUploadSpaceRequest {
     pub limits: HashMap<String, CusrLimits>,
 }
@@ -63,7 +85,7 @@ pub struct CreatePermissionResponse {
 pub struct UpdateFileGroupRequestBody {
     pub file_group_id: String,
     pub new_name: Option<String>,
-    pub new_dynamic_group_rules: Option<DynamicGroupRule>,
+    pub new_dynamic_group_rules: Option<FilterRule>,
     pub new_group_type: Option<FileGroupType>,
     pub new_keywords: Option<Vec<String>>,
     pub new_mime_types: Option<Vec<String>>,
@@ -300,21 +322,21 @@ pub struct FilezFileGroup {
      */
     pub group_hierarchy_paths: Vec<String>,
     pub group_type: FileGroupType,
-    pub dynamic_group_rules: Option<DynamicGroupRule>,
+    pub dynamic_group_rules: Option<FilterRule>,
     pub item_count: u64,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct DynamicGroupRule {
+pub struct FilterRule {
     pub field: String,
-    pub rule_type: DynamicGroupRuleType,
+    pub rule_type: FilterRuleType,
     pub value: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum DynamicGroupRuleType {
+pub enum FilterRuleType {
     MatchRegex,
     NotMatchRegex,
 }

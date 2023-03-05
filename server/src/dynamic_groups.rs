@@ -1,6 +1,6 @@
 use crate::{
     db::DB,
-    types::{DynamicGroupRuleType, FilezFile, FilezFileGroup},
+    types::{FilezFile, FilezFileGroup, FilterRuleType},
 };
 use regex::Regex;
 use serde_json::Value;
@@ -95,10 +95,10 @@ pub fn check_match(changed_file: &FilezFile, possible_group: &FilezFileGroup) ->
     };
 
     match rule.rule_type {
-        DynamicGroupRuleType::MatchRegex => {
+        FilterRuleType::MatchRegex => {
             check_rule_match_regex(changed_file, &rule.field, &rule.value)
         }
-        DynamicGroupRuleType::NotMatchRegex => {
+        FilterRuleType::NotMatchRegex => {
             !check_rule_match_regex(changed_file, &rule.field, &rule.value)
         }
     }
