@@ -12,9 +12,21 @@ pub struct Metadata {
     pub external: Option<External>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Clues {
     Video(VideoClues),
+    Music(MusicClues),
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MusicClues {
+    // https://de.wikipedia.org/wiki/International_Standard_Recording_Code
+    pub isrc: Option<String>,
+    // https://de.wikipedia.org/wiki/Universal_Product_Code
+    pub upc: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoClues {
