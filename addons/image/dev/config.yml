@@ -18,5 +18,10 @@ image:
         - 500
         - 1000
 
+external:
+    # posters in omdb are amazon urls
+    # images will be downloaded from there
+    omdbAmazonPosters: true
+
 dev:
     clearOwnAppDataOnStart: true

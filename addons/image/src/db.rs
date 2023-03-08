@@ -46,7 +46,7 @@ impl DB {
                            "$or":[
                             {
                                 "mimeType":{
-                                    "$regex": "^(image|audio)/"
+                                    "$regex": "^(image|audio|video)/"
                                 }
                             }
                            ]

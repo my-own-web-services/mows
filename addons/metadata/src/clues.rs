@@ -5,7 +5,6 @@ use regex::Regex;
 use serde_json::Value;
 
 use crate::{
-    db,
     metadata_types::{self, Clues},
     some_or_bail,
     types::FilezFile,

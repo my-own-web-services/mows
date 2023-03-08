@@ -11,15 +11,31 @@ export default class VideoPreview extends Component<VideoPreviewProps, VideoPrev
     render = () => {
         const f = this.props.file;
 
-        if (f.appData.video?.status !== "finished" || typeof f.appData.video?.error === "string") {
-            return;
-        }
         return (
             <div className="VideoPreview">
-                <img
-                    draggable={false}
-                    src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/video/t/1.webp?c`}
-                />
+                {(() => {
+                    if (
+                        f.appData.video?.status === "finished" &&
+                        typeof f.appData.video?.error !== "string"
+                    ) {
+                        return (
+                            <img
+                                draggable={false}
+                                src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/video/t/1.webp?c`}
+                            />
+                        );
+                    } else if (
+                        f.appData.image?.status === "finished" &&
+                        typeof f.appData.image?.error !== "string"
+                    ) {
+                        return (
+                            <img
+                                draggable={false}
+                                src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${f._id}/image/500.avif?c`}
+                            />
+                        );
+                    }
+                })()}
             </div>
         );
     };

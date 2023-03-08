@@ -22,10 +22,6 @@ const defaultSelectViewOptions: SelectViewOption[] = [
     {
         name: "Single" as View.Single,
         icon: <BsFillSquareFill />
-    },
-    {
-        name: "Sheets" as View.Sheets,
-        icon: <BsFillGrid1X2Fill />
     }
 ];
 

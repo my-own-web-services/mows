@@ -53,6 +53,13 @@ pub struct Config {
     pub db: DbConfig,
     pub image: ImageConfig,
     pub dev: DevConfig,
+    pub external: ExternalConfig,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ExternalConfig {
+    pub omdb_amazon_posters: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

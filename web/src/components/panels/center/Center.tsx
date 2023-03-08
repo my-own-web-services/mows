@@ -6,7 +6,6 @@ import "./Center.scss";
 import SelectView from "./components/selectView/SelectView";
 import Grid from "./components/views/grid/GridView";
 import List from "./components/views/list/ListView";
-import Sheets from "./components/views/sheets/Sheets";
 import Single from "./components/views/single/Single";
 
 export enum View {
@@ -57,9 +56,7 @@ export default class Center extends Component<CenterProps, CenterState> {
                 </div>
                 <div className="view">
                     {(() => {
-                        if (this.props.selectedView === View.Sheets) {
-                            return <Sheets g={this.props.g} />;
-                        } else if (this.props.selectedView === View.Grid) {
+                        if (this.props.selectedView === View.Grid) {
                             return (
                                 <Grid
                                     updateScrollPos={this.updateScrollPos}
