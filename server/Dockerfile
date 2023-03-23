@@ -15,7 +15,11 @@ RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 RUN useradd -u 50001 -N filez-server
 RUN groupadd -g 50001 filez-server
+
+# create readonly dirs
 RUN mkdir /readonly
+RUN chown filez-server:filez-server /readonly
+
 
 # 1. APP STAGE
 FROM scratch
@@ -24,8 +28,9 @@ COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 COPY --from=build --chown=filez-server:filez-server /readonly /readonly
+
+
 USER filez-server
-USER root
 STOPSIGNAL SIGKILL
 EXPOSE 80
 # run it 

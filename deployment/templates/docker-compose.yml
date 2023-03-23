@@ -116,6 +116,9 @@ services:
         environment:
             MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
             CLEAR_OWN_APP_DATA_ON_START: {{ .resetOnRestart }}
+            {{- if eq .name "metadata" }}
+            OMDB_API_KEY: $OMDB_API_KEY
+            {{- end }}
         networks:
             - filez-addons-{{.name}}-db
         {{- end }}

@@ -20,3 +20,9 @@ image:
         - 1000
 dev:
     clearOwnAppDataOnStart: $CLEAR_OWN_APP_DATA_ON_START
+
+
+external:
+    # posters in omdb are amazon urls
+    # images will be downloaded from there
+    omdbAmazonPosters: {{ $config.external.omdb.downloadPostersAmazon }}

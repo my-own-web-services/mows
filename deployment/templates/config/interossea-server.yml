@@ -33,3 +33,6 @@ db:
     url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@interosseadb.localhost:{{ $config.interossea.server.db.port }}
 
 uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $interosseaWebHostname}}
+
+
+dev:

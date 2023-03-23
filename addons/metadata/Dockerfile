@@ -14,6 +14,7 @@ RUN cargo build --release --bin main
 RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 RUN useradd -u 50001 -N filez-addons-metadata
+RUN groupadd -g 50001 filez-addons-metadata
 
 # 1. APP STAGE
 FROM alpine
@@ -22,11 +23,21 @@ WORKDIR /app
 RUN wget https://exiftool.org/Image-ExifTool-12.55.tar.gz
 RUN tar -xvf Image-ExifTool-12.55.tar.gz
 RUN rm Image-ExifTool-12.55.tar.gz
-COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-addons-metadata
-COPY --from=build /etc/passwd /etc/passwd
 
-# todo - use a non-root user
-USER root
+# copy bin
+COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-addons-metadata
+
+# copy users and groups
+COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
+
+# create readonly dirs
+RUN mkdir /readonly
+
+
+RUN chown filez-addons-metadata:filez-addons-metadata /readonly
+
+USER filez-addons-metadata
 STOPSIGNAL SIGKILL
 # run it 
 ENTRYPOINT ["./filez-addons-metadata"]

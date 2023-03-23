@@ -7,5 +7,11 @@ timeoutSeconds: 5
 
 db:
     url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filezdb.localhost:{{ $config.filez.server.db.port }}
+
 dev:
     clearOwnAppDataOnStart: $CLEAR_OWN_APP_DATA_ON_START
+
+external:
+    omdb:
+        enabled: {{ $config.external.omdb.enabled }}
+        apiKey: $OMDB_API_KEY
