@@ -15,6 +15,10 @@ rm -rf results/config/interossea-web-ui-config.yml
 
 mozart render templates/admin.yml -o results/admin.yml
 
+mozart render templates/chmodReadonlyMounts.sh -o results/chmodReadonlyMounts.sh
+
+bash results/chmodReadonlyMounts.sh
+
 
 mozart render templates/docker-compose.yml -o results/docker-compose.yml
 mozart labels-to-compose results/docker-compose.yml -o results/docker-compose.yml

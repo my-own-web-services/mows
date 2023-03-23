@@ -16,6 +16,9 @@ services:
             context: {{ $config.filez.server.build.path }}
             dockerfile: {{ $config.filez.server.build.dockerfile }}
         {{- end }}
+        {{- if eq $config.filez.runAsRoot true }}
+        user: root
+        {{- end }}
         image: firstdorsal/filez-server
         container_name: filez-server
         volumes:
@@ -99,6 +102,9 @@ services:
             dockerfile: {{.build.dockerfile}}
         {{- end }}
         image: {{.image}}
+        {{- if eq $config.filez.runAsRoot true }}
+        user: root
+        {{- end }}
         container_name: filez-addons-{{.name}}
         volumes:
             - ./config/{{.name}}.yml:/config.yml:ro

@@ -18,6 +18,7 @@ networks:
         legacy: "172.72.11"
 
 filez:
+    runAsRoot: true
     server:
         build:
             enabled: true
@@ -37,14 +38,15 @@ filez:
         publicHostname:
             domain: y.gy
             subdomain: filez
-    # this will chmod +r all files in the path
+    # this will chmod all files and folders and give any user read access to them on each path
+    # this isn't optimal because it does something outside the container space but is required when running the containers as non root users
     readonlyMounts:
         - name: testVideo
           path: /home/paul/Downloads/test_video/
-          ownerId: pM6DsTWMTm2i-9XYWhxqxG6Oe0T5cizI
+          ownerId: 3kzDsTX-jCVI-xs0Odxgs2WnULpnpbfB
         - name: testImages
           path: /home/paul/Downloads/test_images/
-          ownerId: pM6DsTWMTm2i-9XYWhxqxG6Oe0T5cizI
+          ownerId: 3kzDsTX-jCVI-xs0Odxgs2WnULpnpbfB
     # TODO if the number of addons is greater than 10 the network asignment will fail
     addons:
         - name: video
