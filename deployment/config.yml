@@ -1,3 +1,8 @@
+external:
+    omdb:
+        enabled: true
+        downloadPostersAmazon: true
+
 reverseProxy:
     create: true
     network: rp
@@ -32,13 +37,14 @@ filez:
         publicHostname:
             domain: y.gy
             subdomain: filez
+    # this will chmod +r all files in the path
     readonlyMounts:
         - name: testVideo
           path: /home/paul/Downloads/test_video/
-          ownerId: U63uvh_kt4J8jjLlV3vG8Q7Hdm1T25Ay
+          ownerId: pM6DsTWMTm2i-9XYWhxqxG6Oe0T5cizI
         - name: testImages
           path: /home/paul/Downloads/test_images/
-          ownerId: U63uvh_kt4J8jjLlV3vG8Q7Hdm1T25Ay
+          ownerId: pM6DsTWMTm2i-9XYWhxqxG6Oe0T5cizI
     # TODO if the number of addons is greater than 10 the network asignment will fail
     addons:
         - name: video
