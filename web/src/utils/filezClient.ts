@@ -26,6 +26,13 @@ export class FilezClient {
         await this.interosseaClient.init();
     };
 
+    create_user = async () => {
+        const res = await fetch(`${this.filezEndpoint}/api/create_user/`, {
+            method: "POST",
+            credentials: "include"
+        });
+    };
+
     create_file = async (body: any, metadata: CreateFileRequest) => {
         const res = await fetch(`${this.filezEndpoint}/api/create_file/`, {
             method: "POST",

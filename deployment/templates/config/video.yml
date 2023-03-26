@@ -10,12 +10,14 @@ db:
     url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filezdb.localhost:{{ $config.filez.server.db.port }}
 
 video:
+    # vp9 or av1
+    codec: av1
     # 0 is uncompressed 63 is worst
     quality: 35
     # target video heights
     targetResolutions:
         - 360
-        - 480
+        #- 480
         - 720
         - 1080
         - 2160

@@ -5,15 +5,18 @@ variablePrefix: "$"
 serviceId: filez
 
 storage:
-    default:
-        path: /storage/
+    {{- range $key, $value := $config.filez.storage }}
+    {{ $key }}:
+        path: /storage/{{ $key }}/
         defaultUserLimits:
-            maxStorage: 10000000000 # 10GB
-            maxFiles: 100000
-            maxBandwidth: 0
+            maxStorage: {{ $value.defaultUserLimits.maxStorage }}
+            maxFiles: {{ $value.defaultUserLimits.maxFiles }}
+            maxBandwidth: {{ $value.defaultUserLimits.maxBandwidth }}
+    {{- end }}
 
 
-defaultStorage: default
+
+defaultStorage: {{ $config.filez.defaultStorage }}
 
 appStorage:
     path: /appdata/

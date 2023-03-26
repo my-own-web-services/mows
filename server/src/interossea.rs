@@ -13,7 +13,7 @@ use tokio::sync::RwLock;
 
 pub static INTEROSSEA: OnceCell<Interossea> = OnceCell::new();
 
-#[derive(Deserialize, Debug, Serialize, Clone)]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UserAssertion {
     pub iat: i64,
@@ -22,6 +22,7 @@ pub struct UserAssertion {
     pub service_id: String,
     pub client_ip: String,
     pub service_origin: String,
+    pub ir_admin: bool,
 }
 
 #[derive(Clone)]
@@ -68,7 +69,11 @@ impl Interossea {
         }
 
         if validated_token.claims.client_ip != ip {
-            bail!("Assertion IP mismatch");
+            bail!(
+                "Assertion IP mismatch: {} != {}",
+                validated_token.claims.client_ip,
+                ip
+            );
         }
 
         if validated_token.claims.service_origin != config.ui_origin {

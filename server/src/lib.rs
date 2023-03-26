@@ -13,6 +13,7 @@ pub mod methods {
     pub mod create_group;
     pub mod create_permission;
     pub mod create_upload_space;
+    pub mod create_user;
     pub mod delete_file;
     pub mod delete_group;
     pub mod delete_permission;

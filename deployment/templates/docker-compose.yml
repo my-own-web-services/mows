@@ -23,7 +23,14 @@ services:
         container_name: filez-server
         volumes:
             - ./config/filez-server.yml:/config.yml:ro
-            - filez-storage:/storage:rw
+            {{- range $key, $value := $config.filez.storage }}
+            {{- if eq $value.type "volume" }}
+            - filez-storage-{{ $key }}:/storage/{{ $key }}/:rw
+            {{- end }}
+            {{- if eq $value.type "bind" }}
+            - {{ $value.path }}:/storage/{{ $key }}/:rw
+            {{- end }}
+            {{- end }}
             {{- range $config.filez.addons }}
             {{- if eq .storage true }}
             - filez-addons-{{.name}}:/appdata/{{.name}}:ro
@@ -109,14 +116,25 @@ services:
         volumes:
             - ./config/{{.name}}.yml:/config.yml:ro
             {{- if eq .filezAccess true }}
-            - filez-storage:/storage:ro
+            
+            {{- range $key, $value := $config.filez.storage }}
+            {{- if eq $value.type "volume" }}
+            - filez-storage-{{ $key }}:/storage/{{ $key }}/:rw
+            {{- end }}
+            {{- if eq $value.type "bind" }}
+            - {{ $value.path }}:/storage/{{ $key }}/:rw
+            {{- end }}
+            {{- end }}
+
+            {{- range $config.filez.readonlyMounts }}
+            - {{ .path }}:/readonly/{{ .name }}/:ro
+            {{- end }}
+
             {{- end }}
             {{- if eq .storage true }}
             - filez-addons-{{.name}}:/output:rw
             {{- end }}
-            {{- range $config.filez.readonlyMounts }}
-            - {{ .path }}:/readonly/{{ .name }}/:ro
-            {{- end }}
+            
         restart: always
         {{- if eq .db true }}
         environment:
@@ -288,6 +306,12 @@ services:
         
     {{- end }}
 volumes:
+    {{- range $key, $value := $config.filez.storage }}
+    {{- if eq $value.type "volume" }}
+    filez-storage-{{ $key }}:
+        name: filez-storage-{{ $key }}
+    {{- end }}
+    {{- end }}
     filez-storage:
         name: filez-storage
     filez-db:

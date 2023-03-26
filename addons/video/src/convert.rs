@@ -1,4 +1,7 @@
-use crate::{config::CONFIG, utils::get_folder_and_file_path};
+use crate::{
+    config::{VideoConfigCodec, CONFIG},
+    utils::get_folder_and_file_path,
+};
 use anyhow::bail;
 use std::process::Command;
 
@@ -63,6 +66,8 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     let video_length_str = std::str::from_utf8(&output)?.trim();
     let video_length: f64 = video_length_str.parse()?;
 
+    dbg!(&video_length);
+
     let mut thumbnail_command = Command::new("nice");
 
     let thumbnail_count = 10.0;
@@ -87,9 +92,6 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
 
     let mut video_command = Command::new("nice");
 
-    // TODO this will not work with videos that are not 16:9 because svt_vp9 requires the width to be a multiple of 8
-    // the av1 encoder did not have this problem but it is not usable for webm :(
-
     video_command
         .arg("-n")
         .arg("19")
@@ -104,19 +106,38 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .arg("webm");
 
     for video_target in &video_targets {
-        video_command
-            .arg("-an")
-            .arg("-vf")
-            .arg(format!("scale=-1:{video_target}"))
-            .arg("-c:v")
-            .arg("libsvt_vp9")
-            .arg("-rc")
-            .arg("0")
-            .arg("-qp")
-            .arg(video_quality.to_string())
-            .arg("-dash")
-            .arg("1")
-            .arg(format!("{target_path}{video_target}.webm"));
+        match config.video.codec {
+            VideoConfigCodec::Vp9 => {
+                video_command
+                    .arg("-an")
+                    .arg("-vf")
+                    .arg(format!("scale=-1:{video_target}"))
+                    .arg("-c:v")
+                    .arg("libsvt_vp9")
+                    .arg("-rc")
+                    .arg("0")
+                    .arg("-qp")
+                    .arg(video_quality.to_string())
+                    .arg("-dash")
+                    .arg("1")
+                    .arg(format!("{target_path}{video_target}.webm"));
+            }
+            VideoConfigCodec::Av1 => {
+                video_command
+                    .arg("-an")
+                    .arg("-vf")
+                    .arg(format!("scale=-1:{video_target}"))
+                    .arg("-c:v")
+                    .arg("libsvtav1")
+                    .arg("-b:v")
+                    .arg("0")
+                    .arg("-crf")
+                    .arg(video_quality.to_string())
+                    .arg("-dash")
+                    .arg("1")
+                    .arg(format!("{target_path}{video_target}.webm"));
+            }
+        }
     }
 
     let video_command_exit_code = video_command.spawn()?.wait()?;
@@ -148,9 +169,14 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
 
     let audio_result = audio_command.spawn()?.wait();
 
-    let mut manifest_command = Command::new("ffmpeg");
+    let mut manifest_command = Command::new("nice");
 
-    manifest_command.arg("-hide_banner").arg("-y");
+    manifest_command
+        .arg("-n")
+        .arg("19")
+        .arg(ffmpeg_path)
+        .arg("-hide_banner")
+        .arg("-y");
 
     let mut all_targets = 0;
     let mut video_adaption_sets = "".to_string();
@@ -203,6 +229,13 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     if !manifest_command_exit_code.success() {
         bail!("Manifest command failed")
     }
+
+    // fix manifest
+    if config.video.codec == VideoConfigCodec::Av1 {
+        let manifest = tokio::fs::read_to_string(format!("{target_path}manifest.mpd")).await?;
+        let manifest = manifest.replace(r#"codecs="av1""#, r#"codecs="av01.0.00M.08""#);
+        tokio::fs::write(format!("{target_path}manifest.mpd"), manifest).await?;
+    };
 
     Ok(())
 }

@@ -24,9 +24,6 @@ export default class File extends Component<FileProps, FileState> {
         return (
             <div
                 onDblClick={e => {
-                    //@ts-ignore
-                    if (e?.target?.nodeName === "VIDEO") return;
-
                     this.props.g.fn.fileDoubleClick(f, vt);
                 }}
                 className={`File${this.props.isSelected ? " selected" : ""} File${vt}`}

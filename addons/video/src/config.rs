@@ -70,6 +70,14 @@ pub struct DbConfig {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoConfig {
+    pub codec: VideoConfigCodec,
     pub quality: u8,
     pub target_resolutions: Vec<u16>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum VideoConfigCodec {
+    Vp9,
+    Av1,
 }

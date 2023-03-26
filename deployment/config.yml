@@ -19,6 +19,16 @@ networks:
 
 filez:
     runAsRoot: true
+    storage:
+        default:
+            # volume or bind mount
+            type: volume
+            path: ""
+            defaultUserLimits:
+                maxStorage: 10000000000 # 10GB
+                maxFiles: 100000
+                maxBandwidth: 0
+    defaultStorage: default
     server:
         build:
             enabled: true
@@ -43,10 +53,10 @@ filez:
     readonlyMounts:
         - name: testVideo
           path: /home/paul/Downloads/test_video/
-          ownerId: 3kzDsTX-jCVI-xs0Odxgs2WnULpnpbfB
+          ownerId: JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ
         - name: testImages
           path: /home/paul/Downloads/test_images/
-          ownerId: 3kzDsTX-jCVI-xs0Odxgs2WnULpnpbfB
+          ownerId: JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ
     # TODO if the number of addons is greater than 10 the network asignment will fail
     addons:
         - name: video
@@ -82,6 +92,9 @@ filez:
 
 interossea:
     server:
+        allowNewUsers: false
+        createUsers: [test@y.gy, peter@y.gy]
+        makeUsersAdmin: [test@y.gy]
         create: true
         internalHostname: interossea-server
         publicHostname:

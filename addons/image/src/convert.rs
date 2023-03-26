@@ -38,6 +38,10 @@ pub async fn convert_raw(
     let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
 
     let target_path = format!("{folder_path}/{file_name}/i.jpg");
+
+    // ensure image does not exist
+    std::fs::remove_file(&target_path).ok();
+
     let mut convert_command = Command::new("nice");
     let quality = 90;
 

@@ -33,7 +33,7 @@ RUN mkdir /readonly
 
 
 # 1. APP STAGE
-FROM scratch 
+FROM alpine 
 WORKDIR /app
 
 COPY --from=build /ffprobe .

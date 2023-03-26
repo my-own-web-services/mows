@@ -4,6 +4,13 @@
 {{- $filezWebHostname := joindomain $config.filez.web.publicHostname.subdomain (ternary "localhost" $config.filez.web.publicHostname.domain (eq $config.routing "local")) -}}
 variablePrefix: "$"
 
+allowNewUsers: {{ $config.interossea.server.allowNewUsers}}
+
+createUsers: 
+    {{- range $config.interossea.server.createUsers }}
+    - {{ . }}
+    {{- end }}
+
 magicLink:
     cooldownMinutes: 1
     expirationMinutes: 10
@@ -36,3 +43,7 @@ uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $interosseaWebHo
 
 
 dev:
+    makeEmailsAdmin:
+        {{- range $config.interossea.server.createUsers }}
+        - {{ . }}
+        {{- end }}

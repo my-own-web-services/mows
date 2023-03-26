@@ -96,6 +96,7 @@ export default class App extends Component<AppProps, AppState> {
             uiConfig.skipInterossea
         );
         await client.init();
+        await client.create_user();
 
         this.setState(state => {
             return update(state, {

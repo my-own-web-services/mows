@@ -9,6 +9,7 @@ db:
     url: mongodb://root:root@localhost:27017
 
 video:
+    codec: av1
     # 0 is uncompressed 63 is worst
     quality: 35
     # target video heights

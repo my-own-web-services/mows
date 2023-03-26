@@ -5,6 +5,7 @@ use filez::interossea::{get_session_cookie, Interossea, UserAssertion, INTEROSSE
 use filez::methods::create_file::create_file;
 use filez::methods::create_group::create_group;
 use filez::methods::create_permission::create_permission;
+use filez::methods::create_user::create_user;
 use filez::methods::delete_file::delete_file;
 use filez::methods::delete_group::delete_group;
 use filez::methods::delete_permission::delete_permission;
@@ -160,6 +161,7 @@ async fn handle_inner(
             service_id: "filez".to_string(),
             client_ip: "127.0.0.1".to_string(),
             service_origin: "localhost".to_string(),
+            ir_admin: true,
         }),
         false => {
             match INTEROSSEA
@@ -175,8 +177,9 @@ async fn handle_inner(
     };
 
     let auth = Auth {
-        authenticated_user: user_assertion.map(|ua| ua.user_id),
+        authenticated_user: user_assertion.as_ref().map(|ua| ua.user_id.clone()),
         token: get_token_from_query(&req),
+        user_assertion,
     };
 
     if p.starts_with("/get_file/") && m == Method::GET {
@@ -213,6 +216,8 @@ async fn handle_inner(
         get_permissions_for_current_user(req, db, &auth, res).await
     } else if p == "/get_own_file_groups/" && m == Method::GET {
         get_own_file_groups(req, db, &auth, res).await
+    } else if p == "/create_user/" && m == Method::POST {
+        create_user(req, db, &auth, res).await
     } else if p == "/get_assertion_validity_seconds/" && m == Method::GET {
         Ok(res
             .status(200)

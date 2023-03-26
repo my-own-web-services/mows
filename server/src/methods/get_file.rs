@@ -79,25 +79,29 @@ pub async fn get_file(
     let file_size = file_handle.metadata().await?.len();
 
     let body = match get_range(&req) {
-        Ok(r) => {
+        Ok((start_byte, maybe_end_byte)) => {
             res = res.header("Connection", "Keep-Alive");
             res = res.header("Keep-Alive", "timeout=5, max=100");
             res = res.status(206);
             res = res.header("Accept-Ranges", "bytes");
 
-            match r.1 {
-                Ok(end) => {
+            match maybe_end_byte {
+                Ok(end_byte) => {
+                    // end requested
+
+                    let length = end_byte - start_byte + 1;
+
                     res = res.header(
                         "Content-Range",
-                        format!("bytes {}-{}/{}", r.0, file_size - 1, file_size),
+                        format!("bytes {}-{}/{}", start_byte, end_byte, file_size),
                     );
-                    res = res.header("Content-Length", end - r.0);
+                    res = res.header("Content-Length", length);
 
                     Body::wrap_stream(FileBytesStreamRange::new(
                         file_handle,
                         HttpRange {
-                            start: r.0,
-                            length: end - r.0,
+                            start: start_byte,
+                            length,
                         },
                     ))
                 }
@@ -105,15 +109,18 @@ pub async fn get_file(
                     // no end requested so we just return the rest of the file
                     res = res.header(
                         "Content-Range",
-                        format!("bytes {}-{}/{}", r.0, file_size - 1, file_size),
+                        format!("bytes {}-{}/{}", start_byte, file_size - 1, file_size),
                     );
-                    res = res.header("Content-Length", file_size - r.0);
+
+                    // TODO is this off by one?
+
+                    res = res.header("Content-Length", file_size - start_byte);
 
                     Body::wrap_stream(FileBytesStreamRange::new(
                         file_handle,
                         HttpRange {
-                            start: r.0,
-                            length: file_size - r.0,
+                            start: start_byte,
+                            length: file_size - start_byte,
                         },
                     ))
                 }
