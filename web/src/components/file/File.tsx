@@ -3,6 +3,7 @@ import { G } from "../../App";
 import { FileView, FilezFile } from "../../types";
 import { displayBytes } from "../../utils/bytes";
 import { DraggableItem } from "../drag/DraggableItem";
+import FileIcon from "../small/FileIcon";
 import Audio from "./Audio";
 import "./File.scss";
 import Image from "./Image";
@@ -15,6 +16,7 @@ interface FileProps {
     readonly g: G;
     readonly isSelected?: boolean;
     readonly viewType: FileView;
+    readonly itemWidth?: number;
 }
 interface FileState {}
 export default class File extends Component<FileProps, FileState> {
@@ -40,16 +42,21 @@ export default class File extends Component<FileProps, FileState> {
                                     </div>
                                     <div style={{ height: "calc(100% - 20px)" }}>
                                         {f.mimeType.startsWith("image/") ? (
-                                            <Image g={this.props.g} file={this.props.file}></Image>
-                                        ) : null}
-                                        {f.mimeType.startsWith("video/") ? (
-                                            <VideoPreview
+                                            <Image
+                                                itemWidth={this.props.itemWidth}
                                                 g={this.props.g}
                                                 file={this.props.file}
-                                            ></VideoPreview>
+                                            />
+                                        ) : null}
+                                        {f.mimeType.startsWith("video/") ? (
+                                            <VideoPreview g={this.props.g} file={this.props.file} />
                                         ) : null}
                                         {f.mimeType.startsWith("audio/") ? (
-                                            <Image g={this.props.g} file={this.props.file}></Image>
+                                            <Image
+                                                itemWidth={this.props.itemWidth}
+                                                g={this.props.g}
+                                                file={this.props.file}
+                                            />
                                         ) : null}
                                     </div>
                                 </div>
@@ -61,6 +68,9 @@ export default class File extends Component<FileProps, FileState> {
                                 <div
                                     className={`hover ${this.props.isSelected ? " selected" : ""}`}
                                 >
+                                    <div style={{ float: "left", width: "25px" }}>
+                                        <FileIcon file={this.props.file} />
+                                    </div>
                                     <div
                                         className="fileName"
                                         style={{ width: "350px", float: "left" }}
@@ -81,13 +91,19 @@ export default class File extends Component<FileProps, FileState> {
                     } else if (vt === FileView.Single) {
                         return (() => {
                             if (f.mimeType.startsWith("image/")) {
-                                return <Image g={this.props.g} file={f}></Image>;
+                                return (
+                                    <Image
+                                        itemWidth={this.props.itemWidth}
+                                        g={this.props.g}
+                                        file={f}
+                                    />
+                                );
                             } else if (f.mimeType.startsWith("audio/")) {
-                                return <Audio g={this.props.g} file={f}></Audio>;
+                                return <Audio g={this.props.g} file={f} />;
                             } else if (f.mimeType.startsWith("video/")) {
-                                return <Video g={this.props.g} file={f}></Video>;
+                                return <Video g={this.props.g} file={f} />;
                             } else if (f.mimeType.startsWith("text/")) {
-                                return <Text g={this.props.g} file={f}></Text>;
+                                return <Text g={this.props.g} file={f} />;
                             }
                         })();
                     } else if (vt === FileView.Sheets) {

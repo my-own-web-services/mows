@@ -105,6 +105,7 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                                                 return (
                                                     <GridRow
                                                         g={this.props.g}
+                                                        itemWidth={width / this.props.columns}
                                                         rowIndex={index}
                                                         style={style}
                                                         key={"GridRow" + index}

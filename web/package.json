@@ -10,6 +10,8 @@
     },
     "dependencies": {
         "@fontsource/inter": "^4.5.14",
+        "@mdi/js": "^7.2.96",
+        "@mdi/react": "^1.6.1",
         "@types/react-virtualized-auto-sizer": "^1.0.1",
         "dashjs": "^4.5.2",
         "immutability-helper": "^3.1.1",

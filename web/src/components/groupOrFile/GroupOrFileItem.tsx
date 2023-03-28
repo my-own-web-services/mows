@@ -10,6 +10,7 @@ interface GroupOrFileItemProps {
     readonly file?: FilezFile;
     readonly viewType?: FileView;
     readonly g: G;
+    readonly itemWidth?: number;
 }
 interface GroupOrFileItemState {}
 export default class GroupOrFileItem extends Component<GroupOrFileItemProps, GroupOrFileItemState> {
@@ -64,6 +65,7 @@ export default class GroupOrFileItem extends Component<GroupOrFileItemProps, Gro
                         }
                         return (
                             <File
+                                itemWidth={this.props.itemWidth}
                                 viewType={this.props.viewType}
                                 isSelected={isSelected}
                                 g={this.props.g}

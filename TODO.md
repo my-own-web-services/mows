@@ -7,6 +7,7 @@
 
 -   check every server function for unallowed access or similar problems +++++
 -   think about dos protection
+-   fix hyper body to bytes reading arbitrary body lengths into memory
 
 # Features
 
@@ -24,6 +25,11 @@
 -   search ++++
 -   dynamic groups +++
 -   access control +++++
+-   traffic limits
+-   upload spaces
+-   calculate checksum of file readonly files and different checksums than the default sha256
+-   encrypted files first party e2e encryption with browser access and decryption
+-   only return required fields when requesting a file list
 
 ## Soft (Ease of use and looks)
 
@@ -32,17 +38,19 @@
 -   keyboard control
 -   proper use of icons
 -   drag and drop to add to groups
--   tag editing
+-   better tag editing
 -   icons for files in list
 -   video preview thumbnail switching
 -   display movie posters instead of thumbnails
--   image resolution switching based on inner window width
+-   image preview resolution switching based on inner window width ✅
 -   zoomable images like in old imagein with high resolution splitting
 -   expandable groups
 -   group icons
--   display group properties right
+-   always display mime types even if they are not known
+-   right panel: display group properties
 -   save video progress
--   download files
+-   download files ✅
+-   right panel display multiple files
 -   export files
 -   access control editor +++
 -   search
@@ -58,6 +66,8 @@
 -   delete group
 -   text file viewer
 -   face area highlighting display and create
+-   display moving video previews instead of thumbnails like on some adult sites
+-   preload things where possible if on unthrottled connection
 
 # Deployment
 

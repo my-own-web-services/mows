@@ -294,6 +294,18 @@
   resolved "https://registry.yarnpkg.com/@juggle/resize-observer/-/resize-observer-3.4.0.tgz#08d6c5e20cf7e4cc02fd181c4b0c225cd31dbb60"
   integrity sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==
 
+"@mdi/js@^7.2.96":
+  version "7.2.96"
+  resolved "https://registry.yarnpkg.com/@mdi/js/-/js-7.2.96.tgz#a2a20be740a75e65c8b8b9e12a2b699c06a9208f"
+  integrity sha512-paR9M9ZT7rKbh2boksNUynuSZMHhqRYnEZOm/KrZTjQ4/FzyhjLHuvw/8XYzP+E7fS4+/Ms/82EN1pl/OFsiIA==
+
+"@mdi/react@^1.6.1":
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/@mdi/react/-/react-1.6.1.tgz#624313593ae8065d2a09878ca81beb3e4b676b03"
+  integrity sha512-4qZeDcluDFGFTWkHs86VOlHkm6gnKaMql13/gpIcUQ8kzxHgpj31NuCkD8abECVfbULJ3shc7Yt4HJ6Wu6SN4w==
+  dependencies:
+    prop-types "^15.7.2"
+
 "@preact/preset-vite@^2.4.0":
   version "2.5.0"
   resolved "https://registry.yarnpkg.com/@preact/preset-vite/-/preset-vite-2.5.0.tgz#6ff815558c16062a36e2d5da4b1225d7b216478d"
@@ -1097,7 +1109,7 @@ preact@^10.11.2:
   resolved "https://registry.yarnpkg.com/preact/-/preact-10.11.3.tgz#8a7e4ba19d3992c488b0785afcc0f8aa13c78d19"
   integrity sha512-eY93IVpod/zG3uMF22Unl8h9KkrcKIRs2EGar8hwLZZDU1lkjph303V9HZBwufh2s736U6VXuhD109LYqPoffg==
 
-prop-types@^15.5.7, prop-types@^15.8.1:
+prop-types@^15.5.7, prop-types@^15.7.2, prop-types@^15.8.1:
   version "15.8.1"
   resolved "https://registry.yarnpkg.com/prop-types/-/prop-types-15.8.1.tgz#67d87bf1a694f48435cf332c24af10214a3140b5"
   integrity sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==

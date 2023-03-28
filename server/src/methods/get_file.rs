@@ -26,6 +26,7 @@ pub async fn get_file(
     } else {
         bail!("No file id")
     };
+
     let app_file = {
         if parts.len() < 2 {
             None
@@ -40,6 +41,7 @@ pub async fn get_file(
             }
         }
     };
+
     if app_file.is_none() && parts.len() > 1 {
         bail!("Invalid path");
     }
@@ -62,6 +64,13 @@ pub async fn get_file(
     if get_query_item(&req, "c").is_some() {
         res = res.header("Cache-Control", "public, max-age=31536000");
     };
+
+    if get_query_item(&req, "d").is_some() {
+        res = res.header(
+            "Content-Disposition",
+            format!("attachment; filename=\"{}\"", file.name),
+        );
+    }
 
     let full_file_path = match &app_file {
         Some(af) => {

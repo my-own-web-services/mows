@@ -38,6 +38,11 @@ pub async fn create_file(
         Some(user_id) => (user_id.clone(), None),
         None => match &auth.token {
             Some(token) => {
+                if config.dev.disable_complex_access_control {
+                    return Ok(res
+                        .status(401)
+                        .body(Body::from("Complex access control has been disabled"))?);
+                }
                 let upload_space = some_or_bail!(
                     db.get_upload_space_by_token(token).await?,
                     "No upload space with this token found"
@@ -131,11 +136,17 @@ pub async fn create_file(
         let chunk = chunk?;
         bytes_written += chunk.len() as u64;
 
+        if bytes_written > config.constraints.max_file_size {
+            fs::remove_file(&file_path)?;
+            bail!("Server Config file size limit exceeded");
+        };
+
         // check if file size limit is exceeded for the user
         if bytes_written > bytes_left {
             fs::remove_file(&file_path)?;
             bail!("User storage limit exceeded");
         }
+
         // check if file size limit is exceeded for the upload space if present
         if let Some(upload_space) = &upload_space {
             let upload_space_limits = some_or_bail!(

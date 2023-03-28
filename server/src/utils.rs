@@ -1,4 +1,5 @@
 use crate::{
+    config::{ServerConfig, SERVER_CONFIG},
     db::DB,
     get_acl, get_acl_users,
     internal_types::{Auth, MergedFilezPermission},
@@ -6,7 +7,7 @@ use crate::{
     types::{FilezFile, FilezPermission},
 };
 use anyhow::bail;
-use hyper::{Body, Request};
+use hyper::{body::Bytes, Body, Request};
 use qstring::QString;
 use serde_json::Value;
 use std::{collections::HashMap, num::ParseIntError, path::Path, vec};
@@ -155,6 +156,7 @@ pub async fn check_auth(
     db: &DB,
     acl_type: &str,
 ) -> anyhow::Result<bool> {
+    let config = &SERVER_CONFIG;
     let mut auth_ok = false;
 
     if let Some(user_id) = &auth.authenticated_user {
@@ -166,6 +168,10 @@ pub async fn check_auth(
     }
 
     if !auth_ok {
+        if config.dev.disable_complex_access_control {
+            bail!("Complex access control has been disabled");
+        };
+
         // user is not the owner
         // check if file is public
         let permissions = db.get_merged_permissions_from_file(file).await?;
@@ -242,7 +248,7 @@ pub async fn check_auth(
 pub fn check_file_name(file_name: &str) -> anyhow::Result<()> {
     let max_length = 100;
     let name_len = file_name.len();
-    if name_len > 500 {
+    if name_len > max_length {
         bail!("File name too long: {name_len}/{max_length}");
     }
     Ok(())
@@ -254,7 +260,7 @@ pub fn check_mime_type(mime_type: &str) -> anyhow::Result<()> {
     if mime_type_len > max_length {
         bail!("Mime type too long: {mime_type_len}/{max_length}");
     }
-    if !mime_type.contains("/") {
+    if !mime_type.contains('/') {
         bail!("Mime type is missing '/' ");
     }
 
@@ -299,7 +305,7 @@ pub fn check_static_file_groups(static_file_groups: &Vec<String>) -> anyhow::Res
 }
 
 pub fn check_owner_id(owner_id: &str) -> anyhow::Result<()> {
-    let max_length = 20;
+    let max_length = 32;
     let owner_id_len = owner_id.len();
     if owner_id_len > max_length {
         bail!("Owner id too long: {owner_id_len}/{max_length}");

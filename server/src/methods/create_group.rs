@@ -7,7 +7,7 @@ use crate::{
     },
     utils::generate_id,
 };
-use hyper::{Body, Request, Response};
+use hyper::{body::Body, Request, Response};
 
 // creates a group for an authenticated user
 pub async fn create_group(
@@ -20,7 +20,9 @@ pub async fn create_group(
         Some(user_id) => user_id,
         None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
     };
+
     let body = hyper::body::to_bytes(req.into_body()).await?;
+
     let cgr: CreateGroupRequest = serde_json::from_slice(&body)?;
 
     let group_id = generate_id();

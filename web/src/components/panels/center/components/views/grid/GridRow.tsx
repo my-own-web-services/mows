@@ -11,6 +11,7 @@ interface GridRowProps {
     readonly files: FilezFile[];
     readonly columns: number;
     readonly g: G;
+    readonly itemWidth: number;
 }
 interface GridRowState {}
 export default class GridRow extends Component<GridRowProps, GridRowState> {
@@ -28,6 +29,7 @@ export default class GridRow extends Component<GridRowProps, GridRowState> {
                             key={file._id}
                         >
                             <GroupOrFileItem
+                                itemWidth={this.props.itemWidth}
                                 viewType={FileView.Grid}
                                 g={this.props.g}
                                 file={file}

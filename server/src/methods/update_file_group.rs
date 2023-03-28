@@ -66,6 +66,6 @@ pub async fn update_file_group(
     Ok(res
         .status(200)
         .header("Content-Type", "application/json")
-        .body(Body::from(""))
+        .body(Body::from("OK"))
         .unwrap())
 }

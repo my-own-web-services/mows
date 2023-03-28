@@ -6,6 +6,7 @@ import { Input } from "rsuite";
 import { TagPicker } from "rsuite";
 import { InputPicker } from "rsuite";
 import { SelectPicker } from "rsuite";
+import { IoMdDownload } from "react-icons/io";
 
 interface RightProps {
     readonly g: G;
@@ -69,6 +70,14 @@ export default class Right extends Component<RightProps, RightState> {
         const s = this.state;
         // TODO display the tag picker with a text and tag version that can be toggled
         // TODO fix the tag picker by maybe switching to react
+
+        const mimeTypes = [
+            this.state.mimeType,
+            "application/json",
+            "text/html",
+            "image/png",
+            "image/jpeg"
+        ];
         return (
             <div id="main-panel-right" className="Right horizontal-panel panel">
                 {s.name === undefined ? null : (
@@ -129,12 +138,7 @@ export default class Right extends Component<RightProps, RightState> {
                             <div>Mime Type</div>
                             <InputPicker
                                 creatable
-                                data={[
-                                    "application/json",
-                                    "text/html",
-                                    "image/png",
-                                    "image/jpeg"
-                                ].map(item => ({
+                                data={mimeTypes.map(item => ({
                                     label: item,
                                     value: item
                                 }))}
@@ -183,6 +187,8 @@ export default class Right extends Component<RightProps, RightState> {
                         <div>
                             <div>ID</div>
                             <div>{this.state.id}</div>
+                        </div>
+                        <div>
                             <button
                                 onClick={() => {
                                     console.log(this.props.g.selectedFiles[0]);
@@ -190,6 +196,15 @@ export default class Right extends Component<RightProps, RightState> {
                             >
                                 Log file
                             </button>
+                        </div>
+                        <div>
+                            <a
+                                href={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.g.selectedFiles[0]._id}?d`}
+                                download={this.props.g.selectedFiles[0].name}
+                            >
+                                <IoMdDownload></IoMdDownload>
+                                Download File
+                            </a>
                         </div>
                     </>
                 )}

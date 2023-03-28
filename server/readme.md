@@ -1,3 +1,6 @@
+-   file/group permissions
+-   upload spaces
+
 mongodb://root:root@localhost:27017
 
 # addons

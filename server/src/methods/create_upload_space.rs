@@ -10,6 +10,7 @@ use crate::{
 use hyper::{Body, Request, Response};
 use std::collections::HashMap;
 
+// creates an upload space for an authenticated user tied to them
 pub async fn create_upload_space(
     req: Request<Body>,
     db: DB,

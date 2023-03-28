@@ -28,6 +28,11 @@ interossea:
 dev:
     insecureSkipInterossea: true
     createDevUser: true
+    disableComplexAccessControl: true
+
+constraints:
+    maxFileSize: 10000000000 # 10 GB
+    otherMaxBodySize: 1000000 # 1 MB TODO need to be implemented with hyper body to bytes with limit
 
 uiOrigin: http://localhost:5173
 

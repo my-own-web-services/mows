@@ -60,6 +60,14 @@ pub struct ServerConfig {
     pub service_id: String,
     pub app_storage: AppStorage,
     pub ui_origin: String,
+    pub constraints: Constraints,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Constraints {
+    pub max_file_size: u64,
+    pub other_max_body_size: u64,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -89,6 +97,7 @@ pub struct ReadonlyMountConfig {
 pub struct DevConfig {
     pub insecure_skip_interossea: bool,
     pub create_dev_user: bool,
+    pub disable_complex_access_control: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

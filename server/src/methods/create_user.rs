@@ -1,6 +1,7 @@
 use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth};
 use hyper::{Body, Request, Response};
 
+// create self user for an IR user assertion with default limits
 pub async fn create_user(
     mut req: Request<Body>,
     db: DB,
