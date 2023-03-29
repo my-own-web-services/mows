@@ -312,3 +312,30 @@ pub fn check_owner_id(owner_id: &str) -> anyhow::Result<()> {
     }
     Ok(())
 }
+
+pub fn check_search_limit(limit: u32) -> anyhow::Result<()> {
+    let max_limit = 10000;
+    if limit > max_limit {
+        bail!("Limit too high: {limit}/{max_limit}");
+    }
+    Ok(())
+}
+
+pub fn check_search_query(query: &str) -> anyhow::Result<()> {
+    let max_length = 100;
+    let query_len = query.len();
+    if query_len > max_length {
+        bail!("Query too long: {query_len}/{max_length}");
+    }
+    Ok(())
+}
+
+pub fn filter_files_by_owner_id(files: &Vec<FilezFile>, owner_id: &str) -> Vec<FilezFile> {
+    let mut filtered_files = Vec::new();
+    for file in files {
+        if file.owner_id == owner_id {
+            filtered_files.push(file.clone());
+        }
+    }
+    filtered_files
+}

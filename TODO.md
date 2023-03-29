@@ -19,18 +19,22 @@
 -   tracks/map display
 -   share image slides
 -   offline player for music/video/images
+-   seed files via torrent
+-   open zip folders
 
 ## Hard (Theoretical possible because server supports it)
 
 -   search ++++
+-   add search effort option to search request
+-   caching of requests/searches
 -   dynamic groups +++
 -   access control +++++
 -   traffic limits
 -   upload spaces
--   calculate checksum of file readonly files and different checksums than the default sha256
+-   calculate checksum of file readonly files and different checksums than the default sha256 on request
 -   encrypted files first party e2e encryption with browser access and decryption
 -   only return required fields when requesting a file list
--   addons data should affect users storage limits
+-   addons data maybe should affect users storage limits
 
 ## Soft (Ease of use and looks)
 
@@ -68,6 +72,7 @@
 -   face area highlighting display and create for images
 -   video preview thumbnail switching or display moving video previews instead of thumbnails like on some adult sites
 -   preload things where possible if on unthrottled connection
+-   fix re render on every click in grid
 
 # Deployment
 

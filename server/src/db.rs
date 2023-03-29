@@ -86,18 +86,27 @@ impl DB {
     ) -> anyhow::Result<Vec<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
 
-        let options = FindOptions::builder()
+        // get maximum size for group
+        let file_group = if let Some(fg) = self.get_file_group_by_id(file_group_id).await? {
+            fg
+        } else {
+            bail!("File group not found");
+        };
+
+        let max_size = file_group.item_count;
+
+        let options1 = FindOptions::builder()
             .limit(limit as i64)
             .sort(doc! { "score": { "$meta": "textScore" } })
             .build();
 
-        // the text search is very strange and incosistent
+        // the mongodb text search is very strange and incosistent
         // if the limit is not reached AND there are still files left in the collection/group
         // we search the most relevant fields for substring matches
         // if this still is not enough, we search for a substring match in all fields
         // .find({$where:"JSON.stringify(this).indexOf('aa')!=-1"})
 
-        let res = collection
+        let files1 = collection
             .find(
                 doc! {
                     "$and": [
@@ -109,13 +118,109 @@ impl DB {
                         { "$text": { "$search": query } }
                     ]
                 },
-                options,
+                options1,
             )
             .await?
             .try_collect::<Vec<_>>()
             .await?;
 
-        Ok(res)
+        // if we matched all files we can return
+        if files1.len() >= max_size as usize || files1.len() >= limit as usize {
+            Ok(files1)
+        } else {
+            let options2 = FindOptions::builder().limit(limit as i64).build();
+            let files2 = collection
+                .find(
+                    doc! {
+                        "$and": [
+                            {
+                                "$or": [
+                                    {"staticFileGroupIds": file_group_id},
+                                    {"dynamicFileGroupIds": file_group_id}
+                                ]
+                            },
+                            {
+                                "$or": [
+                                    {
+                                        "name": {
+                                            "$regex": query
+                                        }
+                                    },
+                                    {
+                                        "_id": query
+                                    },
+                                    {
+                                        "ownerId": query
+                                    },
+                                    {
+                                        "keywords": {
+                                            "$regex": query
+                                        }
+                                    }
+                                ]
+                            },
+                        ]
+                    },
+                    options2,
+                )
+                .await?
+                .try_collect::<Vec<_>>()
+                .await?;
+
+            if files2.len() >= max_size as usize || files2.len() >= limit as usize {
+                // combine files1 and files2 and sort out duplicates differentiated by _id
+
+                let mut new_files: Vec<FilezFile> = vec![];
+
+                let mut file_map: HashMap<String, FilezFile> = HashMap::new();
+
+                for file in files1 {
+                    file_map.insert(file.file_id.clone(), file);
+                }
+
+                for file in files2 {
+                    file_map.insert(file.file_id.clone(), file);
+                }
+
+                for (_, file) in file_map {
+                    new_files.push(file);
+                }
+
+                Ok(new_files)
+            } else {
+                let options3 = FindOptions::builder().limit(limit as i64).build();
+                let files3 = collection
+                    .find(
+                        doc! {"$where":format!("JSON.stringify(this).indexOf('{}')!=-1",query)},
+                        options3,
+                    )
+                    .await?
+                    .try_collect::<Vec<_>>()
+                    .await?;
+
+                let mut new_files: Vec<FilezFile> = vec![];
+
+                let mut file_map: HashMap<String, FilezFile> = HashMap::new();
+
+                for file in files1 {
+                    file_map.insert(file.file_id.clone(), file);
+                }
+
+                for file in files2 {
+                    file_map.insert(file.file_id.clone(), file);
+                }
+
+                for file in files3 {
+                    file_map.insert(file.file_id.clone(), file);
+                }
+
+                for (_, file) in file_map {
+                    new_files.push(file);
+                }
+
+                Ok(new_files)
+            }
+        }
     }
 
     pub async fn create_dev_user(&self) -> anyhow::Result<()> {

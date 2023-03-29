@@ -1,6 +1,6 @@
 import { FilezFile } from "../types";
 
-export const imageGetPreviewWidth = (filezFile: FilezFile, viewportItemWidth: number) => {
+export const getImagePreviewWidth = (filezFile: FilezFile, viewportItemWidth: number) => {
     viewportItemWidth = viewportItemWidth * window.devicePixelRatio;
 
     const maybeImageAddon = filezFile.appData.image;
@@ -21,11 +21,11 @@ export const imageGetPreviewWidth = (filezFile: FilezFile, viewportItemWidth: nu
             res = resolutions[resolutions.length - 1];
         }
 
-        const shouldUseOriginal = res * 2 < imageAddon.result.width;
+        const shouldUseOriginal = res < viewportItemWidth;
 
         return [res, shouldUseOriginal];
     } else {
-        throw new Error("File was not processed by image addon");
+        return [0, true];
     }
 };
 
