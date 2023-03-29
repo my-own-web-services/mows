@@ -26,6 +26,16 @@ export class FilezClient {
         await this.interosseaClient.init();
     };
 
+    search = async (searchRequest: SearchRequest) => {
+        const res = await fetch(`${this.filezEndpoint}/api/search/`, {
+            credentials: "include",
+            method: "POST",
+            body: JSON.stringify(searchRequest)
+        });
+        const files: FilezFile[] = await res.json();
+        return files;
+    };
+
     create_user = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/create_user/`, {
             method: "POST",
@@ -230,4 +240,36 @@ export interface CreateFileRequest {
     storageId?: string;
     created?: number;
     modified?: number;
+}
+
+export interface SearchRequest {
+    searchType: SearchRequestType;
+    limit: number;
+}
+
+export interface SearchRequestType {
+    simpleSearch?: SimpleSearch;
+    advancedSearch?: AdvancedSearch;
+}
+
+export interface SimpleSearch {
+    query: string;
+    groupId: string;
+}
+
+export interface AdvancedSearch {
+    query: string;
+    groupId: string;
+    filters: FilterRule[];
+}
+
+export interface FilterRule {
+    field: string;
+    ruleType: FilterRuleType;
+    value: string;
+}
+
+export enum FilterRuleType {
+    MatchRegex = "matchRegex",
+    NotMatchRegex = "notMatchRegex"
 }

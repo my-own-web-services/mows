@@ -3,14 +3,35 @@ import { Input, InputGroup } from "rsuite";
 import { IoSearchSharp } from "react-icons/io5";
 import "./SearchBox.scss";
 import { G } from "../../App";
+import { SearchRequest } from "../../utils/filezClient";
 interface SearchBoxProps {
     readonly g: G;
 }
 interface SearchBoxState {
-    readonly search: string;
+    readonly searchString: string;
 }
 export default class SearchBox extends Component<SearchBoxProps, SearchBoxState> {
-    runSearch = () => {};
+    constructor(props: SearchBoxProps) {
+        super(props);
+        this.state = {
+            searchString: ""
+        };
+    }
+
+    runSearch = async () => {
+        const search: SearchRequest = {
+            limit: 100,
+            searchType: {
+                simpleSearch: {
+                    groupId: this.props.g.selectedGroup?.fileGroup?._id ?? "",
+                    query: this.state.searchString
+                }
+            }
+        };
+
+        const res = await this.props.g.filezClient.search(search);
+        console.log(res);
+    };
 
     render = () => {
         return (
@@ -20,9 +41,9 @@ export default class SearchBox extends Component<SearchBoxProps, SearchBoxState>
                         placeholder="Search"
                         style={{ width: "100px" }}
                         onChange={value => {
-                            this.setState({ search: value });
+                            this.setState({ searchString: value });
                         }}
-                        value={this.state.search}
+                        value={this.state.searchString}
                         onPressEnter={this.runSearch}
                     />
                     <InputGroup.Button onClick={this.runSearch}>

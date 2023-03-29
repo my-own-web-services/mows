@@ -30,6 +30,7 @@
 -   calculate checksum of file readonly files and different checksums than the default sha256
 -   encrypted files first party e2e encryption with browser access and decryption
 -   only return required fields when requesting a file list
+-   addons data should affect users storage limits
 
 ## Soft (Ease of use and looks)
 
@@ -40,15 +41,14 @@
 -   drag and drop to add to groups
 -   better tag editing
 -   icons for files in list
--   video preview thumbnail switching
 -   display movie posters instead of thumbnails
 -   image preview resolution switching based on inner window width ✅
--   zoomable images like in old imagein with high resolution splitting
+-   zoomable images like in old imagein with high resolution splitting https://sharp.pixelplumbing.com/api-output#tile
 -   expandable groups
 -   group icons
--   always display mime types even if they are not known
+-   always display mime types even if they are not known ✅
 -   right panel: display group properties
--   save video progress
+-   save video wathc progress
 -   download files ✅
 -   right panel display multiple files
 -   export files
@@ -58,15 +58,15 @@
 -   transfer file ownership
 -   switch between original and transcoded video
 -   proper video controls resolution selection etc.
--   sorting of files in list and grid
+-   sorting of files in list and grid with sorting on any chosen property
 -   create components for easy use with other filez uis
 -   display more metadata from files directly in the properties panel
 -   multiple file select
 -   delete file
 -   delete group
--   text file viewer
--   face area highlighting display and create
--   display moving video previews instead of thumbnails like on some adult sites
+-   proper text file viewer
+-   face area highlighting display and create for images
+-   video preview thumbnail switching or display moving video previews instead of thumbnails like on some adult sites
 -   preload things where possible if on unthrottled connection
 
 # Deployment

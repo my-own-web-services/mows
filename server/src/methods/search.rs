@@ -1,4 +1,9 @@
-use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth, types::SearchRequest};
+use crate::{
+    config::SERVER_CONFIG,
+    db::DB,
+    internal_types::Auth,
+    types::{SearchRequest, SearchRequestType},
+};
 use hyper::{Body, Request, Response};
 
 pub async fn search(
@@ -19,16 +24,25 @@ pub async fn search(
 
     let sr: SearchRequest = serde_json::from_slice(&body)?;
 
-    match sr {
-        SearchRequest::SimpleSearch(ss) => {
+    match sr.search_type {
+        SearchRequestType::SimpleSearch(ss) => {
             // a simple search will search through all fields
-        }
-        SearchRequest::AdvancedSearch(ads) => todo!(),
-    }
+            // first searching through the indexed fields and
+            // then the non-indexed fields if the limit was not reached
+            // if the limit is 0 all results will be returned
 
-    Ok(res
-        .status(200)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&"search")?.into())
-        .unwrap())
+            // TODO check query and limit
+
+            let files = db.search(&ss.query, &ss.group_id, sr.limit).await?;
+
+            //TODO filter files by owner
+
+            Ok(res
+                .status(200)
+                .header("Content-Type", "application/json")
+                .body(serde_json::to_string(&files)?.into())
+                .unwrap())
+        }
+        SearchRequestType::AdvancedSearch(ads) => todo!(),
+    }
 }

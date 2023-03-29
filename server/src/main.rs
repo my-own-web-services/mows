@@ -15,6 +15,7 @@ use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
 use filez::methods::get_own_file_groups::get_own_file_groups;
 use filez::methods::get_permissions_for_current_user::get_permissions_for_current_user;
 use filez::methods::get_user_info::get_user_info;
+use filez::methods::search::search;
 use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_file::update_file;
 use filez::methods::update_file_group::update_file_group;
@@ -216,6 +217,8 @@ async fn handle_inner(
         get_permissions_for_current_user(req, db, &auth, res).await
     } else if p == "/get_own_file_groups/" && m == Method::GET {
         get_own_file_groups(req, db, &auth, res).await
+    } else if p == "/search/" && m == Method::POST {
+        search(req, db, &auth, res).await
     } else if p == "/create_user/" && m == Method::POST {
         create_user(req, db, &auth, res).await
     } else if p == "/get_assertion_validity_seconds/" && m == Method::GET {

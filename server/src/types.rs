@@ -4,7 +4,14 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum SearchRequest {
+pub struct SearchRequest {
+    pub search_type: SearchRequestType,
+    pub limit: u32,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum SearchRequestType {
     SimpleSearch(SimpleSearchRequest),
     AdvancedSearch(AdvancedSearchRequest),
 }

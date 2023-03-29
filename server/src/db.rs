@@ -46,9 +46,18 @@ impl DB {
         }
 
         let files_collection = self.db.collection::<FilezFile>("files");
+
+        files_collection.drop_indexes(None).await?;
+
         {
             let index = IndexModel::builder()
                 .keys(doc! {"staticFileGroupIds": 1})
+                .build();
+            files_collection.create_index(index, None).await?;
+        }
+        {
+            let index = IndexModel::builder()
+                .keys(doc! {"dynamicFileGroupIds": 1})
                 .build();
             files_collection.create_index(index, None).await?;
         }
@@ -61,7 +70,52 @@ impl DB {
             files_collection.create_index(index, None).await?;
         }
 
+        {
+            let index = IndexModel::builder().keys(doc! {"$**": "text"}).build();
+            files_collection.create_index(index, None).await?;
+        }
+
         Ok(())
+    }
+
+    pub async fn search(
+        &self,
+        query: &str,
+        file_group_id: &str,
+        limit: u32,
+    ) -> anyhow::Result<Vec<FilezFile>> {
+        let collection = self.db.collection::<FilezFile>("files");
+
+        let options = FindOptions::builder()
+            .limit(limit as i64)
+            .sort(doc! { "score": { "$meta": "textScore" } })
+            .build();
+
+        // the text search is very strange and incosistent
+        // if the limit is not reached AND there are still files left in the collection/group
+        // we search the most relevant fields for substring matches
+        // if this still is not enough, we search for a substring match in all fields
+        // .find({$where:"JSON.stringify(this).indexOf('aa')!=-1"})
+
+        let res = collection
+            .find(
+                doc! {
+                    "$and": [
+                        { "$or": [
+                                {"staticFileGroupIds": file_group_id},
+                                {"dynamicFileGroupIds": file_group_id}
+                            ]
+                        },
+                        { "$text": { "$search": query } }
+                    ]
+                },
+                options,
+            )
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        Ok(res)
     }
 
     pub async fn create_dev_user(&self) -> anyhow::Result<()> {
@@ -275,14 +329,11 @@ impl DB {
         owner_id: &str,
     ) -> anyhow::Result<Vec<FilezPermission>> {
         let collection = self.db.collection::<FilezPermission>("permissions");
-        let mut cursor = collection.find(doc! {"ownerId": owner_id}, None).await?;
-
-        let mut permissions = vec![];
-
-        while let Some(perm) = cursor.try_next().await? {
-            permissions.push(perm);
-        }
-
+        let permissions = collection
+            .find(doc! {"ownerId": owner_id}, None)
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
         Ok(permissions)
     }
 
@@ -371,13 +422,11 @@ impl DB {
     ) -> anyhow::Result<Vec<FilezFileGroup>> {
         let collection = self.db.collection::<FilezFileGroup>("fileGroups");
 
-        let mut cursor = collection.find(doc! {"ownerId": owner_id}, None).await?;
-
-        let mut file_groups = vec![];
-
-        while let Some(file_group) = cursor.try_next().await? {
-            file_groups.push(file_group);
-        }
+        let file_groups = collection
+            .find(doc! {"ownerId": owner_id}, None)
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
 
         Ok(file_groups)
     }
@@ -458,15 +507,11 @@ impl DB {
     ) -> anyhow::Result<Vec<FilezFileGroup>> {
         let collection = self.db.collection::<FilezFileGroup>("fileGroups");
 
-        let mut cursor = collection
+        let file_groups = collection
             .find(doc! {"ownerId": owner_id,"name":group_name}, None)
+            .await?
+            .try_collect::<Vec<_>>()
             .await?;
-
-        let mut file_groups = vec![];
-
-        while let Some(file_group) = cursor.try_next().await? {
-            file_groups.push(file_group);
-        }
 
         Ok(file_groups)
     }
@@ -647,18 +692,14 @@ impl DB {
         let collection = self.db.collection::<FilezFile>("files");
         //TODO
         let find_options = FindOptions::builder().limit(limit).skip(from_index).build();
-        let mut cursor = collection
+        let files = collection
             .find(
                 doc! {"$or":[{"staticFileGroupIds": group_id},{"dynamicFileGroupIds": group_id}]},
                 find_options,
             )
+            .await?
+            .try_collect::<Vec<_>>()
             .await?;
-
-        let mut files = vec![];
-
-        while let Some(file) = cursor.try_next().await? {
-            files.push(file);
-        }
 
         Ok(files)
     }
