@@ -46,6 +46,7 @@ export interface Fn {
     readonly selectCenterView: App["selectCenterView"];
     readonly setGridViewColumns: App["setGridViewColumns"];
     readonly loadMoreFiles: App["loadMoreFiles"];
+    readonly displaySearchResults: App["displaySearchResults"];
 }
 
 export enum SelectItem {
@@ -80,7 +81,8 @@ export default class App extends Component<AppProps, AppState> {
                     fileDoubleClick: this.fileDoubleClick,
                     selectCenterView: this.selectCenterView,
                     setGridViewColumns: this.setGridViewColumns,
-                    loadMoreFiles: this.loadMoreFiles
+                    loadMoreFiles: this.loadMoreFiles,
+                    displaySearchResults: this.displaySearchResults
                 }
             }
         };
@@ -228,6 +230,10 @@ export default class App extends Component<AppProps, AppState> {
                 });
             });
         }
+    };
+
+    displaySearchResults = (results: FilezFile[]) => {
+        this.setState({ files: results });
     };
 
     groupDoubleClick = (group: VisualFileGroup) => {

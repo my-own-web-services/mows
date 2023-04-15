@@ -196,6 +196,8 @@ pub async fn create_file(
         bail!("Invalid file group id");
     }
 
+    file_manual_group_ids.push(format!("{}_all", user_id));
+
     let app_data: HashMap<String, Value> = HashMap::new();
 
     // update db in this "create file transaction"

@@ -43,7 +43,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut error: Option<String> = None;
         match file {
             Some(file) => {
-                if file.mime_type.starts_with("audio/") {
+                println!("Processing file: {:?}", file.path);
+                /*if file.mime_type.starts_with("audio/") {
                     match handle_audio(&file).await {
                         Some(album_art) => {
                             image_processing_result = Some(album_art);
@@ -61,7 +62,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                             error = Some("Could not create image".to_string());
                         }
                     };
-                } else if file.mime_type.starts_with("video/") {
+                } else */
+                if file.mime_type.starts_with("video/") {
                     match handle_video(&file).await {
                         Some(image) => {
                             image_processing_result = Some(image);

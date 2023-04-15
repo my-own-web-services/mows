@@ -1,4 +1,4 @@
-FROM ffmpeg-static as ffmpeg-static
+FROM mwader/static-ffmpeg:6.0 as ffmpeg-static
 
 # 0. BUILD STAGE
 FROM clux/muslrust:stable AS build
@@ -6,6 +6,7 @@ FROM clux/muslrust:stable AS build
 USER root
 RUN apt-get update && apt-get install upx -y
 
+# compress ffmpeg
 COPY --from=ffmpeg-static /ffmpeg /ffmpeg
 RUN upx --best --lzma /ffmpeg
 COPY --from=ffmpeg-static /ffprobe /ffprobe

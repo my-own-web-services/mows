@@ -8,6 +8,7 @@
 -   check every server function for unallowed access or similar problems +++++
 -   think about dos protection
 -   fix hyper body to bytes reading arbitrary body lengths into memory
+-   switch to hyper 1.0
 
 # Features
 
@@ -21,10 +22,17 @@
 -   offline player for music/video/images
 -   seed files via torrent
 -   open zip folders
+-   automatic virtual subgroups/filters to have more easy fine grained sorting
+-   better face recognition by only differentiating between people that were present at an event (told by the user)
+-   extract stills from video
+-   listening parties and synchronized listening and movie watching
+-   control media playback on tv or similar from smartphone
 
 ## Hard (Theoretical possible because server supports it)
 
--   search ++++
+-   user friendship and profile
+-   server controlled websocket sessions for live data exchange between clients to facilitate features like synchronized playback or remote controled playback of media on tv
+-   search ++++ ✅
 -   add search effort option to search request
 -   caching of requests/searches
 -   dynamic groups +++
@@ -45,7 +53,7 @@
 -   drag and drop to add to groups
 -   better tag editing
 -   icons for files in list
--   display movie posters instead of thumbnails
+-   display movie posters instead of thumbnails ✅
 -   image preview resolution switching based on inner window width ✅
 -   zoomable images like in old imagein with high resolution splitting https://sharp.pixelplumbing.com/api-output#tile
 -   expandable groups

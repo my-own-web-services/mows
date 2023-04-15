@@ -30,7 +30,7 @@ export default class SearchBox extends Component<SearchBoxProps, SearchBoxState>
         };
 
         const res = await this.props.g.filezClient.search(search);
-        console.log(res);
+        this.props.g.fn.displaySearchResults(res);
     };
 
     render = () => {

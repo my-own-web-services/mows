@@ -6,27 +6,28 @@ export const getImagePreviewWidth = (filezFile: FilezFile, viewportItemWidth: nu
     const maybeImageAddon = filezFile.appData.image;
     if (maybeImageAddon) {
         const imageAddon: ImageAddon = maybeImageAddon;
-        const resolutions = imageAddon.result.resolutions;
-        resolutions.sort((a, b) => a - b);
-        let res = 0;
+        if (imageAddon.result) {
+            const resolutions = imageAddon.result.resolutions;
+            resolutions.sort((a, b) => a - b);
+            let res = 0;
 
-        for (let i = 0; i < resolutions.length; i++) {
-            if (resolutions[i] >= viewportItemWidth) {
-                res = resolutions[i];
-                break;
+            for (let i = 0; i < resolutions.length; i++) {
+                if (resolutions[i] >= viewportItemWidth) {
+                    res = resolutions[i];
+                    break;
+                }
             }
+
+            if (res === 0) {
+                res = resolutions[resolutions.length - 1];
+            }
+
+            const shouldUseOriginal = res < viewportItemWidth;
+
+            return [res, shouldUseOriginal];
         }
-
-        if (res === 0) {
-            res = resolutions[resolutions.length - 1];
-        }
-
-        const shouldUseOriginal = res < viewportItemWidth;
-
-        return [res, shouldUseOriginal];
-    } else {
-        return [0, true];
     }
+    return [0, true];
 };
 
 interface ImageAddon {
@@ -38,5 +39,5 @@ interface ImageAddon {
         width: number;
         height: number;
         resolutions: number[];
-    };
+    } | null;
 }

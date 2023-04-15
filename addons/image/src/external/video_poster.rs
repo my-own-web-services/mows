@@ -1,8 +1,6 @@
-use std::{fs, io::Write};
-
-use anyhow::bail;
-
 use crate::utils::get_folder_and_file_path;
+use anyhow::bail;
+use std::{fs, io::Write};
 
 pub async fn get_video_poster_amazon(
     url: &str,
@@ -11,11 +9,9 @@ pub async fn get_video_poster_amazon(
 ) -> anyhow::Result<String> {
     let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
 
-    fs::create_dir_all(&format!("{folder_path}/{file_name}"))?;
+    fs::create_dir_all(format!("{folder_path}/{file_name}"))?;
 
     let target_path = format!("{folder_path}/{file_name}/video_poster.jpg");
-
-    dbg!("test");
 
     let try_full_res_response = reqwest::get(url.replace("SX300", "SX1000")).await?;
 

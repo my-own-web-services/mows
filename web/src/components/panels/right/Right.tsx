@@ -45,6 +45,7 @@ export default class Right extends Component<RightProps, RightState> {
             this.setF(file);
         }
     };
+
     setF = (f?: FilezFile) => {
         if (f !== undefined) {
             this.setState({
@@ -71,13 +72,7 @@ export default class Right extends Component<RightProps, RightState> {
         // TODO display the tag picker with a text and tag version that can be toggled
         // TODO fix the tag picker by maybe switching to react
 
-        const mimeTypes = [
-            this.state.mimeType,
-            "application/json",
-            "text/html",
-            "image/png",
-            "image/jpeg"
-        ];
+        const mimeTypes = [this.state.mimeType];
         return (
             <div id="main-panel-right" className="Right horizontal-panel panel">
                 {s.name === undefined ? null : (
