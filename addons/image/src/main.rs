@@ -106,18 +106,24 @@ pub async fn try_video_poster(file: &FilezFile) -> anyhow::Result<String> {
         if let Ok(metadata) = serde_json::from_value::<Metadata>(m.clone()) {
             if let Some(external) = metadata.external {
                 if let Some(omdb) = external.omdb {
-                    match get_video_poster_amazon(&omdb.poster, &CONFIG.storage_path, &file.file_id)
+                    if let Some(poster_path) = omdb.poster {
+                        match get_video_poster_amazon(
+                            &poster_path,
+                            &CONFIG.storage_path,
+                            &file.file_id,
+                        )
                         .await
-                    {
-                        Ok(file_path) => return Ok(file_path),
-                        Err(e) => bail!("Could not get video poster: {}", e),
+                        {
+                            Ok(file_path) => return Ok(file_path),
+                            Err(e) => bail!("Could not get video poster: {}", e),
+                        }
                     }
                 }
             }
         }
     };
 
-    bail!("Could not get video poster")
+    bail!("No video poster url found")
 }
 
 pub async fn handle_video(file: &FilezFile) -> Option<ProcessedImage> {

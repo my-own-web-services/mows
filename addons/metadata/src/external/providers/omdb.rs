@@ -7,7 +7,7 @@ use crate::{config::CONFIG, metadata_types::OmdbMetadata};
 pub async fn request(tt_id: &str) -> anyhow::Result<OmdbMetadata> {
     let config = &CONFIG;
     let api_key = &config.external.omdb.api_key;
-    check_api_key(&api_key)?;
+    check_api_key(api_key)?;
     let url = format!(
         "https://www.omdbapi.com/?i=tt{}&apikey={}",
         tt_id, config.external.omdb.api_key
@@ -28,5 +28,11 @@ pub fn check_api_key(api_key: &str) -> anyhow::Result<()> {
         bail!("OMDB API keys are 8 characters long. Please check your config file.");
     }
 
+    // check if the api key is hexadecimal
+    for c in api_key.chars() {
+        if !c.is_ascii_hexdigit() {
+            bail!("OMDB API keys are hexadecimal. Please check your config file.");
+        }
+    }
     Ok(())
 }

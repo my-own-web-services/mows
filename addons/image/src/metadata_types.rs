@@ -43,41 +43,41 @@ pub struct External {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct OmdbMetadata {
-    pub actors: String,
-    pub awards: String,
-    pub box_office: String,
-    pub country: String,
+    pub actors: Option<String>,
+    pub awards: Option<String>,
+    pub box_office: Option<String>,
+    pub country: Option<String>,
     #[serde(rename = "DVD")]
-    pub dvd: String,
-    pub director: String,
-    pub genre: String,
-    pub language: String,
-    pub metascore: String,
-    pub plot: String,
-    pub poster: String,
-    pub production: String,
-    pub rated: String,
-    pub ratings: Vec<Rating>,
-    pub released: String,
-    pub response: String,
-    pub runtime: String,
-    pub title: String,
+    pub dvd: Option<String>,
+    pub director: Option<String>,
+    pub genre: Option<String>,
+    pub language: Option<String>,
+    pub metascore: Option<String>,
+    pub plot: Option<String>,
+    pub poster: Option<String>,
+    pub production: Option<String>,
+    pub rated: Option<String>,
+    pub ratings: Option<Vec<Rating>>,
+    pub released: Option<String>,
+    pub response: Option<String>,
+    pub runtime: Option<String>,
+    pub title: Option<String>,
     #[serde(rename = "Type")]
-    pub type_: String,
-    pub website: String,
-    pub writer: String,
-    pub year: String,
+    pub type_: Option<String>,
+    pub website: Option<String>,
+    pub writer: Option<String>,
+    pub year: Option<String>,
     #[serde(rename = "imdbID")]
-    pub imdb_id: String,
+    pub imdb_id: Option<String>,
     #[serde(rename = "imdbRating")]
-    pub imdb_rating: String,
+    pub imdb_rating: Option<String>,
     #[serde(rename = "imdbVotes")]
-    pub imdb_votes: String,
+    pub imdb_votes: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Rating {
-    pub source: String,
-    pub value: String,
+    pub source: Option<String>,
+    pub value: Option<String>,
 }
