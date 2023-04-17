@@ -15,18 +15,21 @@
 ## Other
 
 -   webdav caldav etc.
--   desktop/smartphone sync
--   password manager
+-   desktop/smartphone sync +++++
+-   password manager +++++
 -   tracks/map display
 -   share image slides
 -   offline player for music/video/images
 -   seed files via torrent
 -   open zip folders
+-   display folder structures
 -   automatic virtual subgroups/filters to have more easy fine grained sorting
 -   better face recognition by only differentiating between people that were present at an event (told by the user)
 -   extract stills from video
 -   listening parties and synchronized listening and movie watching
 -   control media playback on tv or similar from smartphone
+-   automatic tagging with face recognition object detection category detection etc
+-   alias tags like "night" with searching for the time and similar
 
 ## Hard (Theoretical possible because server supports it)
 

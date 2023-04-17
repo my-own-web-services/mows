@@ -15,7 +15,13 @@ pub async fn external_lookup(metadata: &Metadata) -> anyhow::Result<External> {
                 dbg!(&video_clues);
                 if let Some(tt_id) = &video_clues.tt_id {
                     if config.external.omdb.enabled {
-                        external.omdb = Some(omdb::request(tt_id).await?);
+                        external.omdb = match omdb::request(tt_id).await {
+                            Ok(v) => Some(v),
+                            Err(e) => {
+                                println!("Error: {}", e);
+                                None
+                            }
+                        };
                     }
                 }
             }
