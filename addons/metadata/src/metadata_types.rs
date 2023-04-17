@@ -45,7 +45,7 @@ pub struct External {
 pub struct OmdbMetadata {
     pub actors: String,
     pub awards: String,
-    pub box_office: String,
+    pub box_office: Option<String>,
     pub country: String,
     #[serde(rename = "DVD")]
     pub dvd: String,
