@@ -87,7 +87,14 @@ export default class Video extends Component<VideoProps, VideoState> {
             <div className="Video">
                 <div class="dash-video-player ">
                     <div class="videoContainer" id="videoContainer">
-                        <video data-dashjs-player ref={this.videoRef} controls>
+                        <video
+                            data-dashjs-player
+                            ref={this.videoRef}
+                            controls
+                            onDblClick={e => {
+                                e.stopPropagation();
+                            }}
+                        >
                             {!hasConvertedVersion && (
                                 <source
                                     src={`${this.props.g.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}`}

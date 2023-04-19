@@ -2,6 +2,9 @@
 
 -   streamline process ✅
 -   fix unfinished UI ❌
+-   make redirects work
+-   check for security problems with remote login
+-   maybe use something else than POST request; something that cant be triggered by a rogue form
 
 # Security
 
@@ -14,6 +17,7 @@
 
 ## Other
 
+-   addon workers need to rescan files and look for work; retry failed attempts etc.
 -   webdav caldav etc.
 -   desktop/smartphone sync +++++
 -   password manager +++++

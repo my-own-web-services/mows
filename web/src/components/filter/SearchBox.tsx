@@ -1,37 +1,18 @@
 import { Component } from "preact";
 import { Input, InputGroup } from "rsuite";
-import { IoSearchSharp } from "react-icons/io5";
+import { IoClose, IoSearchSharp } from "react-icons/io5";
 import "./SearchBox.scss";
 import { G } from "../../App";
 import { SearchRequest } from "../../utils/filezClient";
 interface SearchBoxProps {
     readonly g: G;
+    readonly search: string;
 }
-interface SearchBoxState {
-    readonly searchString: string;
-}
+interface SearchBoxState {}
 export default class SearchBox extends Component<SearchBoxProps, SearchBoxState> {
     constructor(props: SearchBoxProps) {
         super(props);
-        this.state = {
-            searchString: ""
-        };
     }
-
-    runSearch = async () => {
-        const search: SearchRequest = {
-            limit: 100,
-            searchType: {
-                simpleSearch: {
-                    groupId: this.props.g.selectedGroup?.fileGroup?._id ?? "",
-                    query: this.state.searchString
-                }
-            }
-        };
-
-        const res = await this.props.g.filezClient.search(search);
-        this.props.g.fn.displaySearchResults(res);
-    };
 
     render = () => {
         return (
@@ -41,12 +22,15 @@ export default class SearchBox extends Component<SearchBoxProps, SearchBoxState>
                         placeholder="Search"
                         style={{ width: "100px" }}
                         onChange={value => {
-                            this.setState({ searchString: value });
+                            this.props.g.fn.setSearch(value);
                         }}
-                        value={this.state.searchString}
-                        onPressEnter={this.runSearch}
+                        value={this.props.search}
+                        onPressEnter={this.props.g.fn.commitSearch}
                     />
-                    <InputGroup.Button onClick={this.runSearch}>
+                    <InputGroup.Button onClick={() => this.props.g.fn.setSearch("")}>
+                        <IoClose></IoClose>
+                    </InputGroup.Button>
+                    <InputGroup.Button onClick={this.props.g.fn.commitSearch}>
                         <IoSearchSharp></IoSearchSharp>
                     </InputGroup.Button>
                 </InputGroup>

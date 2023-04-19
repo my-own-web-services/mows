@@ -13,7 +13,7 @@ import { DndProvider } from "react-dnd";
 import update from "immutability-helper";
 import { JSXInternal } from "preact/src/jsx";
 import { convertFileGroups, VisualFileGroup } from "./utils/convertFileGroups";
-import { FilezClient } from "./utils/filezClient";
+import { FilezClient, SearchRequest } from "./utils/filezClient";
 
 import "preact/debug";
 import Top from "./components/panels/top/Top";
@@ -26,6 +26,7 @@ interface AppState {
     readonly selectedCenterView: View;
     readonly lastSelectedCenterView: View;
     readonly gridColumns: number;
+    readonly search: string;
 }
 
 export interface G {
@@ -46,7 +47,8 @@ export interface Fn {
     readonly selectCenterView: App["selectCenterView"];
     readonly setGridViewColumns: App["setGridViewColumns"];
     readonly loadMoreFiles: App["loadMoreFiles"];
-    readonly displaySearchResults: App["displaySearchResults"];
+    readonly setSearch: App["setSearch"];
+    readonly commitSearch: App["commitSearch"];
 }
 
 export enum SelectItem {
@@ -67,6 +69,7 @@ export default class App extends Component<AppProps, AppState> {
             selectedCenterView: View.Grid,
             lastSelectedCenterView: View.Grid,
             gridColumns: 10,
+            search: "",
             g: {
                 selectedFiles: [],
                 selectedGroups: [],
@@ -82,7 +85,8 @@ export default class App extends Component<AppProps, AppState> {
                     selectCenterView: this.selectCenterView,
                     setGridViewColumns: this.setGridViewColumns,
                     loadMoreFiles: this.loadMoreFiles,
-                    displaySearchResults: this.displaySearchResults
+                    setSearch: this.setSearch,
+                    commitSearch: this.commitSearch
                 }
             }
         };
@@ -232,8 +236,27 @@ export default class App extends Component<AppProps, AppState> {
         }
     };
 
-    displaySearchResults = (results: FilezFile[]) => {
-        this.setState({ files: results });
+    setSearch = (search: string) => {
+        this.setState({ search });
+    };
+
+    commitSearch = async () => {
+        const groupId = this.state.g.selectedGroup?.fileGroup?._id ?? "";
+        console.log("groupId", groupId);
+
+        const search: SearchRequest = {
+            limit: 100,
+            searchType: {
+                simpleSearch: {
+                    groupId,
+                    query: this.state.search
+                }
+            }
+        };
+
+        const res = await this.state.g.filezClient.search(search);
+
+        this.setState({ files: res });
     };
 
     groupDoubleClick = (group: VisualFileGroup) => {
@@ -263,9 +286,10 @@ export default class App extends Component<AppProps, AppState> {
     };
 
     loadMoreFiles = async (startIndex: number, limit: number) => {
+        if (this.state.search.length) return;
         const group = this.state.g.selectedGroup;
         const groupIndex = group?.fileGroup?._id;
-        //        console.log("loadMoreFiles", startIndex, stopIndex, groupIndex);
+        //console.log("loadMoreFiles", startIndex, stopIndex, groupIndex);
 
         if (groupIndex && this.moreFilesLoading === false) {
             this.moreFilesLoading = true;
@@ -339,6 +363,7 @@ export default class App extends Component<AppProps, AppState> {
                             left={<Left g={this.state.g} groups={this.state.fileGroups}></Left>}
                             center={
                                 <Center
+                                    search={this.state.search}
                                     columns={this.state.gridColumns}
                                     selectedView={this.state.selectedCenterView}
                                     g={this.state.g}

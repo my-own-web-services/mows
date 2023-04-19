@@ -20,6 +20,7 @@ interface CenterProps {
     readonly files: FilezFile[];
     readonly selectedView: View;
     readonly columns: number;
+    readonly search: string;
 }
 
 interface CenterState {
@@ -52,7 +53,7 @@ export default class Center extends Component<CenterProps, CenterState> {
                         selectCenterView={this.props.g.fn.selectCenterView}
                         selectedView={this.props.selectedView}
                     />
-                    <Filter g={this.props.g}></Filter>
+                    <Filter search={this.props.search} g={this.props.g}></Filter>
                 </div>
                 <div className="view">
                     {(() => {

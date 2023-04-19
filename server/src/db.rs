@@ -191,7 +191,19 @@ impl DB {
                 let options3 = FindOptions::builder().limit(limit as i64).build();
                 let files3 = collection
                     .find(
-                        doc! {"$where":format!("JSON.stringify(this).indexOf('{}')!=-1",query)},
+                        doc! {
+                            "$and": [
+                                {
+                                    "$or": [
+                                        {"staticFileGroupIds": file_group_id},
+                                        {"dynamicFileGroupIds": file_group_id}
+                                    ]
+                                },
+                                {
+                                    "$where":format!("JSON.stringify(this).indexOf('{}')!=-1",query)
+                                },
+                            ]
+                        },
                         options3,
                     )
                     .await?
