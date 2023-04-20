@@ -1,8 +1,6 @@
-use crate::{metadata_types::Metadata, types::FilezFile};
+use crate::{metadata_types::Metadata, types::FilezFile, utils::has_poster};
 use futures::TryStreamExt;
 use mongodb::{bson::doc, options::ClientOptions, results::UpdateResult, Client, Database};
-use serde_json::Value;
-use std::collections::HashMap;
 
 pub struct DB {
     pub client: Client,
@@ -39,7 +37,24 @@ impl DB {
     pub async fn get_unscanned(&self) -> anyhow::Result<Vec<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
         let mut cursor = collection
-            .find(doc! {"appData.metadata":{"$exists":false}}, None)
+            .find(
+                doc! {
+                    "$or":[
+                    {
+                        "appData.metadata.status": {
+                            "$exists": false
+                        }
+                    },
+                    {
+                        "appData.metadata.rescan": {
+                            "$eq": true
+                        }
+                    }
+                   ]
+
+                },
+                None,
+            )
             .await?;
 
         let mut files = Vec::new();
@@ -54,8 +69,13 @@ impl DB {
         let collection = self.db.collection::<FilezFile>("files");
         Ok(collection
             .update_one(
-                doc! {"_id":file_id},
-                doc! {"$set":{"appData.metadata":bson::to_bson(&data)?}},
+                doc! { "_id": file_id },
+                doc! {
+                    "$set": {
+                        "appData.metadata": bson::to_bson(&data)?,
+                        "appData.image.rescan": has_poster(&data)
+                    }
+                },
                 None,
             )
             .await?)

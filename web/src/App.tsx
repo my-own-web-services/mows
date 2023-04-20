@@ -237,12 +237,14 @@ export default class App extends Component<AppProps, AppState> {
     };
 
     setSearch = (search: string) => {
+        if (search.length === 0 && this.state.g.selectedGroup !== null) {
+            this.groupDoubleClick(this.state.g.selectedGroup);
+        }
         this.setState({ search });
     };
 
     commitSearch = async () => {
         const groupId = this.state.g.selectedGroup?.fileGroup?._id ?? "";
-        console.log("groupId", groupId);
 
         const search: SearchRequest = {
             limit: 100,

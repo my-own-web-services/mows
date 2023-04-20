@@ -41,16 +41,25 @@ impl DB {
         let file = collection
             .find_one_and_update(
                 doc! {
-                    "$and":[
+                    "$and": [
                         {
-                            "mimeType":{
+                            "mimeType": {
                                 "$regex": "^video/"
                             }
                         },
                         {
-                            "appData.video.status": {
-                                "$exists": false
+                            "$or": [
+                            {
+                                "appData.video.status": {
+                                    "$exists": false
+                                }
+                            },
+                            {
+                                "appData.video.rescan": {
+                                    "$eq": true
+                                }
                             }
+                           ]
                         }
                     ]
                 },
