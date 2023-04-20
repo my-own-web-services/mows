@@ -6,6 +6,8 @@ variablePrefix: "$"
 
 allowNewUsers: {{ $config.interossea.server.allowNewUsers}}
 
+redirectsDir: /redirects/
+
 createUsers: 
     {{- range $config.interossea.server.createUsers }}
     - {{ . }}

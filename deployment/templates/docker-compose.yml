@@ -257,6 +257,7 @@ services:
         volumes:
             - ./config/interossea-server.yml:/config.yml:ro
             - interossea-keys:/keys/:rw
+            - ./config/interossea-redirects.env:/redirects/filez.env:ro
         environment:
             MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_INTEROSSEA
             INTEROSSEA_MAIL_PASSWORD: $INTEROSSEA_MAIL_PASSWORD

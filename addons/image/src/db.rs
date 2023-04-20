@@ -43,23 +43,23 @@ impl DB {
                 doc! {
                     "$and":[
                         {
-                            "mimeType":{
+                            "mimeType": {
                                 "$regex": "^(image|audio|video)/"
                             }
                         },
                         {
-                            "$or":[
-                            {
-                                "appData.image.status": {
-                                    "$exists": false
+                            "$or": [
+                                {
+                                    "appData.image.status": {
+                                        "$exists": false
+                                    }
+                                },
+                                {
+                                    "appData.image.rescan": {
+                                        "$eq": true
+                                    }
                                 }
-                            },
-                            {
-                                "appData.image.rescan": {
-                                    "$eq": true
-                                }
-                            }
-                           ]
+                            ]
 
                         }
                     ]

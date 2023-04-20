@@ -40,17 +40,17 @@ impl DB {
             .find(
                 doc! {
                     "$or":[
-                    {
-                        "appData.metadata.status": {
-                            "$exists": false
+                        {
+                            "appData.metadata.status": {
+                                "$exists": false
+                            }
+                        },
+                        {
+                            "appData.metadata.rescan": {
+                                "$eq": true
+                            }
                         }
-                    },
-                    {
-                        "appData.metadata.rescan": {
-                            "$eq": true
-                        }
-                    }
-                   ]
+                    ]
 
                 },
                 None,
