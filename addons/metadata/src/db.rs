@@ -1,5 +1,4 @@
-use crate::{metadata_types::Metadata, types::FilezFile, utils::has_poster};
-use futures::TryStreamExt;
+use crate::{metadata_types::MetadataResult, types::FilezFile, utils::has_poster};
 use mongodb::{bson::doc, options::ClientOptions, results::UpdateResult, Client, Database};
 
 pub struct DB {
@@ -34,10 +33,12 @@ impl DB {
         Ok(())
     }
 
-    pub async fn get_unscanned(&self) -> anyhow::Result<Vec<FilezFile>> {
+    pub async fn get_file_for_processing(&self) -> anyhow::Result<Option<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
-        let mut cursor = collection
-            .find(
+        let current_time = chrono::offset::Utc::now().timestamp_millis();
+
+        Ok(collection
+            .find_one_and_update(
                 doc! {
                     "$or":[
                         {
@@ -53,27 +54,34 @@ impl DB {
                     ]
 
                 },
+                doc! {
+                    "$set": {
+                        "appData.metadata.status": "processing",
+                        "appData.metadata.startedAt": current_time
+                    }
+                },
                 None,
             )
-            .await?;
-
-        let mut files = Vec::new();
-        while let Some(file) = cursor.try_next().await? {
-            files.push(file);
-        }
-
-        Ok(files)
+            .await?)
     }
 
-    pub async fn update_file(&self, file_id: &str, data: Metadata) -> anyhow::Result<UpdateResult> {
+    pub async fn update_file(
+        &self,
+        file_id: &str,
+        metadata_result: MetadataResult,
+    ) -> anyhow::Result<UpdateResult> {
         let collection = self.db.collection::<FilezFile>("files");
+        let current_time = chrono::offset::Utc::now().timestamp_millis();
+
         Ok(collection
             .update_one(
                 doc! { "_id": file_id },
                 doc! {
                     "$set": {
-                        "appData.metadata": bson::to_bson(&data)?,
-                        "appData.image.rescan": has_poster(&data)
+                        "appData.metadata.result": bson::to_bson(&metadata_result)?,
+                        "appData.metadata.status": "finished",
+                        "appData.metadata.finishedAt": current_time,
+                        "appData.image.rescan": has_poster(&metadata_result)
                     }
                 },
                 None,

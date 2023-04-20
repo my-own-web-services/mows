@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         match file {
             Some(file) => {
                 println!("Processing file: {:?}", file.path);
-                /*if file.mime_type.starts_with("audio/") {
+                if file.mime_type.starts_with("audio/") {
                     match handle_audio(&file).await {
                         Some(album_art) => {
                             image_processing_result = Some(album_art);
@@ -62,8 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                             error = Some("Could not create image".to_string());
                         }
                     };
-                } else */
-                if file.mime_type.starts_with("video/") {
+                } else if file.mime_type.starts_with("video/") {
                     match handle_video(&file).await {
                         Some(image) => {
                             image_processing_result = Some(image);
@@ -104,18 +103,20 @@ pub async fn try_video_poster(file: &FilezFile) -> anyhow::Result<String> {
 
     if let Some(m) = file.app_data.get("metadata") {
         if let Ok(metadata) = serde_json::from_value::<Metadata>(m.clone()) {
-            if let Some(external) = metadata.external {
-                if let Some(omdb) = external.omdb {
-                    if let Some(poster_path) = omdb.poster {
-                        match get_video_poster_amazon(
-                            &poster_path,
-                            &CONFIG.storage_path,
-                            &file.file_id,
-                        )
-                        .await
-                        {
-                            Ok(file_path) => return Ok(file_path),
-                            Err(e) => bail!("Could not get video poster: {}", e),
+            if let Some(metadata_result) = metadata.result {
+                if let Some(external) = metadata_result.external {
+                    if let Some(omdb) = external.omdb {
+                        if let Some(poster_path) = omdb.poster {
+                            match get_video_poster_amazon(
+                                &poster_path,
+                                &CONFIG.storage_path,
+                                &file.file_id,
+                            )
+                            .await
+                            {
+                                Ok(file_path) => return Ok(file_path),
+                                Err(e) => bail!("Could not get video poster: {}", e),
+                            }
                         }
                     }
                 }

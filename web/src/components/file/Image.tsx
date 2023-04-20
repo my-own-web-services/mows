@@ -4,6 +4,7 @@ import { FilezFile, ProcessedImage } from "../../types";
 import { getImagePreviewWidth } from "../../utils/getImagePreviewWidth";
 import { isImageDisplayable } from "../../utils/isImageDisplayable";
 import "./Image.scss";
+
 interface ImageProps {
     readonly g: G;
     readonly file: FilezFile;

@@ -28,6 +28,9 @@ reqwest="0.11.14"
 
 regex="1.7.1"
 
+chrono="0.4.23"
+
+
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"
 

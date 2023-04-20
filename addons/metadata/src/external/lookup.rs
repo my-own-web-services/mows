@@ -1,15 +1,15 @@
 use crate::{
     config::CONFIG,
-    metadata_types::{External, Metadata},
+    metadata_types::{External, MetadataResult},
 };
 
 use super::providers::omdb;
 
-pub async fn external_lookup(metadata: &Metadata) -> anyhow::Result<External> {
+pub async fn external_lookup(metadata_result: &MetadataResult) -> anyhow::Result<External> {
     let config = &CONFIG;
     let mut external = External { omdb: None };
 
-    if let Some(clues) = &metadata.clues {
+    if let Some(clues) = &metadata_result.clues {
         match clues {
             crate::metadata_types::Clues::Video(video_clues) => {
                 dbg!(&video_clues);

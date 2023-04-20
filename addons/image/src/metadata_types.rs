@@ -5,10 +5,21 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Metadata {
+    pub result: Option<MetadataResult>,
+    pub started_at: Option<i64>,
+    pub finished_at: Option<i64>,
+    pub error: Option<String>,
+    pub rescan: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetadataResult {
     pub exifdata: Option<HashMap<String, Value>>,
     pub clues: Option<Clues>,
     pub external: Option<External>,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Clues {

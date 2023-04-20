@@ -65,7 +65,6 @@ export interface UsageLimits {
 }
 
 export interface ProcessedImage {
-    mimeType: string;
     width: number;
     height: number;
     resolutions: number[];
