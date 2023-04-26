@@ -1,4 +1,4 @@
-import { DynamicGroupRuleType, DynamicGroupRule, FileGroup, FilezFile, FilezUser } from "../types";
+import { DynamicGroupRule, FileGroup, FilezFile, FilezUser } from "../types";
 import { InterosseaClient } from "./interosseaClient";
 
 export class FilezClient {

@@ -65,6 +65,9 @@ filez:
           filezAccess: true
           image: firstdorsal/filez-addons-video
           resetOnRestart: true
+          storageOptions:
+              type: bind
+              path: ./videoBind
           build:
               enabled: true
               path: ../../addons/video/
@@ -75,6 +78,9 @@ filez:
           filezAccess: true
           image: firstdorsal/filez-addons-image
           resetOnRestart: true
+          storageOptions:
+              type: volume
+              path:
           build:
               enabled: true
               path: ../../addons/image/
@@ -85,6 +91,9 @@ filez:
           filezAccess: true
           image: firstdorsal/filez-addons-metadata
           resetOnRestart: true
+          storageOptions:
+              type: volume
+              path:
           build:
               enabled: true
               path: ../../addons/metadata/

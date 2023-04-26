@@ -23,6 +23,7 @@ services:
         container_name: filez-server
         volumes:
             - ./config/filez-server.yml:/config.yml:ro
+
             {{- range $key, $value := $config.filez.storage }}
             {{- if eq $value.type "volume" }}
             - filez-storage-{{ $key }}:/storage/{{ $key }}/:rw
@@ -31,11 +32,18 @@ services:
             - {{ $value.path }}:/storage/{{ $key }}/:rw
             {{- end }}
             {{- end }}
+
             {{- range $config.filez.addons }}
             {{- if eq .storage true }}
+            {{- if eq .storageOptions.type "volume" }}
             - filez-addons-{{.name}}:/appdata/{{.name}}:ro
             {{- end }}
+            {{- if eq .storageOptions.type "bind" }}
+            - {{.storageOptions.path}}:/appdata/{{.name}}:ro
+            {{- end }}            
             {{- end }}
+            {{- end }}
+
             {{- range $config.filez.readonlyMounts }}
             - {{ .path }}:/readonly/{{ .name }}/:ro
             {{- end }}
@@ -131,8 +139,14 @@ services:
             {{- end }}
 
             {{- end }}
+
             {{- if eq .storage true }}
+            {{- if eq .storageOptions.type "volume" }}
             - filez-addons-{{.name}}:/output:rw
+            {{- end }}
+            {{- if eq .storageOptions.type "bind" }}
+            - {{.storageOptions.path}}:/output:rw
+            {{- end }}
             {{- end }}
             
         restart: always
