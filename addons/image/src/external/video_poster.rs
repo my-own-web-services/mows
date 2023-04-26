@@ -13,6 +13,8 @@ pub async fn get_video_poster_amazon(
 
     let target_path = format!("{folder_path}/{file_name}/video_poster.jpg");
 
+    println!("getting video poster: target_path: {}", target_path);
+
     let try_full_res_response = reqwest::get(url.replace("SX300", "SX1000")).await?;
 
     let response = if try_full_res_response.status().is_success() {

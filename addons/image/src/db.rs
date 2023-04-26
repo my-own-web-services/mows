@@ -67,7 +67,8 @@ impl DB {
                 doc! {
                     "$set": {
                         "appData.image.status": "processing",
-                        "appData.image.startedAt": current_time
+                        "appData.image.startedAt": current_time,
+                        "appData.image.rescan": false
                     }
                 },
                 None,
@@ -77,7 +78,7 @@ impl DB {
         Ok(file)
     }
 
-    pub async fn update_image_processing_status(
+    pub async fn update_image_processing_status_finished(
         &self,
         file_id: &str,
         error: &Option<String>,
@@ -95,7 +96,7 @@ impl DB {
                         "appData.image.status": "finished",
                         "appData.image.finishedAt": current_time,
                         "appData.image.error": error,
-                        "appData.image.result": bson::to_bson(&result)?,
+                        "appData.image.result": bson::to_bson(&result)?
                     }
                 },
                 None,

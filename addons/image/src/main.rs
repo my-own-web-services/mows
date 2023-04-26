@@ -77,7 +77,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
                 dbg!(&file.path);
                 match db
-                    .update_image_processing_status(&file.file_id, &error, &image_processing_result)
+                    .update_image_processing_status_finished(
+                        &file.file_id,
+                        &error,
+                        &image_processing_result,
+                    )
                     .await
                 {
                     Ok(_) => {

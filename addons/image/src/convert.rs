@@ -12,6 +12,7 @@ pub async fn convert(
     let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
 
     let target_path = format!("{folder_path}/{file_name}/");
+    println!("converting to avif: target_path: {}", target_path);
 
     std::fs::create_dir_all(&target_path)?;
 
@@ -37,7 +38,9 @@ pub async fn convert_raw(
 ) -> anyhow::Result<String> {
     let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
 
-    let target_path = format!("{folder_path}/{file_name}/i.jpg");
+    let target_path = format!("{folder_path}/{file_name}/raw.jpg");
+
+    println!("converting raw: target_path: {}", target_path);
 
     // ensure image does not exist
     std::fs::remove_file(&target_path).ok();
