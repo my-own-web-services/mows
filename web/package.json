@@ -9,6 +9,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@firstdorsal/filez-frontend": "^1.0.0",
         "@fontsource/inter": "^4.5.14",
         "@mdi/js": "^7.2.96",
         "@mdi/react": "^1.6.1",

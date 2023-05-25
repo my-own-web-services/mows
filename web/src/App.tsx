@@ -13,7 +13,6 @@ import { DndProvider } from "react-dnd";
 import update from "immutability-helper";
 import { JSXInternal } from "preact/src/jsx";
 import { convertFileGroups, VisualFileGroup } from "./utils/convertFileGroups";
-import { FilezClient, SearchRequest } from "./utils/filezClient";
 
 import "preact/debug";
 import Top from "./components/panels/top/Top";
