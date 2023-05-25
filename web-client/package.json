@@ -1,5 +1,5 @@
 {
-    "name": "filez-frontend",
+    "name": "@firstdorsal/filez-frontend",
     "version": "1.0.0",
     "main": "dist/js/index.js",
     "module": "dist/js/index.js",
