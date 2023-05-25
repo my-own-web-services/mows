@@ -12,7 +12,7 @@ publish-ts-client:
         - yarn
         - yarn before-publish
         - echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'>.npmrc
-        - npm publish --verbose --access public
+        - npm publish --verbose --access public || true
 
 docker-build-server:
     stage: docker-build
