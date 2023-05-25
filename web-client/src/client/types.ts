@@ -39,15 +39,6 @@ export enum FileGroupType {
     Dynamic = "dynamic"
 }
 
-export enum FileView {
-    Strip = "Strip",
-    Grid = "Grid",
-    List = "List",
-    Group = "Group",
-    Single = "Single",
-    Sheets = "Sheets"
-}
-
 export interface FilezUser {
     _id: string;
     appData: { [key: string]: any };

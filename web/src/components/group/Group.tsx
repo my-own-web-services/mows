@@ -3,8 +3,8 @@ import { VisualFileGroup, VisualFileGroupType } from "../../utils/convertFileGro
 import "./Group.scss";
 import { IoMdArrowDropdown, IoMdArrowDropright } from "react-icons/io";
 import { VscFolderLibrary, VscFolder, VscRootFolder } from "react-icons/vsc";
-import { FileGroupType } from "../../types";
 import { G } from "../../App";
+import { FileGroupType } from "@firstdorsal/filez-frontend";
 
 interface GroupProps {
     readonly fileGroup: VisualFileGroup;

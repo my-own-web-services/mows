@@ -1,12 +1,12 @@
 import { Component } from "preact";
 import { G } from "../../../App";
-import { FilezFile } from "../../../types";
 import "./Right.scss";
 import { Input } from "rsuite";
 import { TagPicker } from "rsuite";
 import { InputPicker } from "rsuite";
 import { SelectPicker } from "rsuite";
 import { IoMdDownload } from "react-icons/io";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 interface RightProps {
     readonly g: G;

@@ -1,9 +1,9 @@
 import { Component, createRef } from "preact";
 import { G } from "../../App";
-import { FilezFile } from "../../types";
 import type dashjs from "dashjs";
 import type { MediaPlayerClass } from "dashjs";
 import "./Video.scss";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 interface VideoProps {
     readonly g: G;
     readonly file: FilezFile;

@@ -1,7 +1,7 @@
 import { Component, createRef } from "preact";
 import { G } from "../../App";
-import { FilezFile } from "../../types";
 import "./Audio.scss";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 interface AudioProps {
     readonly g: G;

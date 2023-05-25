@@ -2,7 +2,7 @@ import { Component, createRef } from "preact";
 import "./Upload.scss";
 import { Modal, Button, Uploader, Checkbox, Input } from "rsuite";
 import { G } from "../../App";
-import { CreateGroupRequestGroupType } from "../../utils/filezClient";
+import { CreateGroupRequestGroupType } from "@firstdorsal/filez-frontend";
 
 interface UploadProps {
     readonly g: G;

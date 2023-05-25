@@ -1,12 +1,12 @@
 import { Component } from "preact";
 import { G } from "../../../App";
-import { FilezFile } from "../../../types";
 import Filter from "../../filter/Filter";
 import "./Center.scss";
 import SelectView from "./components/selectView/SelectView";
 import Grid from "./components/views/grid/GridView";
 import List from "./components/views/list/ListView";
 import Single from "./components/views/single/Single";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 export enum View {
     Grid = "Grid",

@@ -1,8 +1,8 @@
 import { Component, JSX } from "preact";
-import { BsFillGrid1X2Fill, BsFillGridFill, BsFillSquareFill } from "react-icons/bs";
+import { BsFillGridFill, BsFillSquareFill } from "react-icons/bs";
 import { FaThList } from "react-icons/fa";
 import App from "../../../../../App";
-import Center, { View } from "../../Center";
+import { View } from "../../Center";
 import "./SelectView.scss";
 
 export interface SelectViewOption {

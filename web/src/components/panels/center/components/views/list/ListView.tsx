@@ -3,12 +3,12 @@ import "./ListView.scss";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 import { CSSProperties } from "preact/compat";
-import { FilezFile } from "../../../../../../types";
 import ListViewRow from "./ListViewRow";
 import { G } from "../../../../../../App";
 import { DraggableTarget } from "../../../../../drag/DraggableTarget";
 import Center, { View } from "../../../Center";
 import InfiniteLoader from "react-window-infinite-loader";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 interface ListProps {
     readonly files: FilezFile[];
@@ -46,8 +46,10 @@ export default class List extends Component<ListProps, ListState> {
                                         <FixedSizeList
                                             overscanCount={20}
                                             itemSize={20}
+                                            /* @ts-ignore */
                                             height={height}
                                             itemCount={itemCount}
+                                            /* @ts-ignore */
                                             width={width}
                                             ref={ref}
                                             onItemsRendered={onItemsRendered}

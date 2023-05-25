@@ -1,8 +1,8 @@
 import { Component } from "preact";
-import { FilezFile } from "../../types";
 import { mdiFileImage, mdiFileVideo } from "@mdi/js";
 import Icon from "@mdi/react";
 import { JSXInternal } from "preact/src/jsx";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 interface FileIconProps {
     readonly file: FilezFile;

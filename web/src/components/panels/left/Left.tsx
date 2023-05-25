@@ -1,6 +1,5 @@
 import { Component } from "preact";
 import { G } from "../../../App";
-import { FileGroup } from "../../../types";
 import { VisualFileGroup } from "../../../utils/convertFileGroups";
 import CreateGroupModal from "../../group/CreateGroupModal";
 import "./Left.scss";

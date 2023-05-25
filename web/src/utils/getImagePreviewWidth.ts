@@ -1,4 +1,4 @@
-import { FilezFile } from "../types";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 export const getImagePreviewWidth = (filezFile: FilezFile, viewportItemWidth: number) => {
     viewportItemWidth = viewportItemWidth * window.devicePixelRatio;

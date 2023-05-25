@@ -1,9 +1,13 @@
 import { Component } from "preact";
 import { G } from "../../App";
 import { Modal, Button, Toggle, Input, SelectPicker } from "rsuite";
-import { DynamicGroupRule, DynamicGroupRuleType } from "../../types";
-import { CreateGroupRequestGroupType, FileGroupType } from "../../utils/filezClient";
 import update from "immutability-helper";
+import {
+    CreateGroupRequestGroupType,
+    DynamicGroupRule,
+    DynamicGroupRuleType,
+    FileGroupType
+} from "@firstdorsal/filez-frontend";
 interface CreateGroupModalProps {
     readonly g: G;
     readonly isOpen: boolean;

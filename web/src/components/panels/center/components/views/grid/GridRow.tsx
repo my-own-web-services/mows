@@ -1,9 +1,10 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 import { G } from "../../../../../../App";
-import { FileView, FilezFile } from "../../../../../../types";
+import { FileView } from "../../../../../../types";
 import GroupOrFileItem from "../../../../../groupOrFile/GroupOrFileItem";
 import "./GridRow.scss";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 interface GridRowProps {
     readonly style: CSSProperties;

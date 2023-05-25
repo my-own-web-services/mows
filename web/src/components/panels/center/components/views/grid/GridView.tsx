@@ -4,13 +4,13 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 
 import "./GridView.scss";
-import { FilezFile } from "../../../../../../types";
 import { CSSProperties } from "preact/compat";
 import GridRow from "./GridRow";
 import { G } from "../../../../../../App";
 import { DraggableTarget } from "../../../../../drag/DraggableTarget";
 import Center, { View } from "../../../Center";
 import InfiniteLoader from "react-window-infinite-loader";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 interface GridViewProps {
     readonly files: FilezFile[];
@@ -42,6 +42,7 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                     <span title="Columns" className="sizeSlider">
                         <div title="Columns">{this.props.columns}</div>
                         <Slider
+                            /* @ts-ignore */
                             title="Columns"
                             tooltip={false}
                             style={{ width: 100, margin: 12 }}
@@ -77,11 +78,14 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                                     {({ onItemsRendered, ref }) => (
                                         <FixedSizeList
                                             overscanCount={5}
+                                            /* @ts-ignore */
                                             itemSize={width / this.props.columns}
+                                            /* @ts-ignore */
                                             height={height}
                                             itemCount={rowCount}
                                             ref={ref}
                                             onItemsRendered={onItemsRendered}
+                                            /* @ts-ignore */
                                             width={width}
                                             initialScrollOffset={this.props.scrollPos}
                                             onScroll={({ scrollOffset }) => {
@@ -105,6 +109,7 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                                                 return (
                                                     <GridRow
                                                         g={this.props.g}
+                                                        /* @ts-ignore */
                                                         itemWidth={width / this.props.columns}
                                                         rowIndex={index}
                                                         style={style}

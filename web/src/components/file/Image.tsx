@@ -1,9 +1,9 @@
 import { Component } from "preact";
 import { G } from "../../App";
-import { FilezFile, ProcessedImage } from "../../types";
 import { getImagePreviewWidth } from "../../utils/getImagePreviewWidth";
 import { isImageDisplayable } from "../../utils/isImageDisplayable";
 import "./Image.scss";
+import { FilezFile, ProcessedImage } from "@firstdorsal/filez-frontend";
 
 interface ImageProps {
     readonly g: G;

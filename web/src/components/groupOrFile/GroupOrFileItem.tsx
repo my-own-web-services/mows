@@ -1,10 +1,11 @@
 import { Component } from "preact";
 import { G } from "../../App";
-import { FileView, FilezFile } from "../../types";
+import { FileView } from "../../types";
 import { VisualFileGroup } from "../../utils/convertFileGroups";
 import File from "../file/File";
 import Group from "../group/Group";
 import "./GroupOrFileItem.scss";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 interface GroupOrFileItemProps {
     readonly fileGroup?: VisualFileGroup;
     readonly file?: FilezFile;

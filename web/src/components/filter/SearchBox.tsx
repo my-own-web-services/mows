@@ -3,7 +3,6 @@ import { Input, InputGroup } from "rsuite";
 import { IoClose, IoSearchSharp } from "react-icons/io5";
 import "./SearchBox.scss";
 import { G } from "../../App";
-import { SearchRequest } from "../../utils/filezClient";
 interface SearchBoxProps {
     readonly g: G;
     readonly search: string;

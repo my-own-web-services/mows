@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import { G } from "../../App";
-import { FileView, FilezFile } from "../../types";
+import { FileView } from "../../types";
 import { displayBytes } from "../../utils/bytes";
 import { DraggableItem } from "../drag/DraggableItem";
 import FileIcon from "../small/FileIcon";
@@ -10,6 +10,7 @@ import Image from "./Image";
 import Text from "./Text";
 import Video from "./Video";
 import VideoPreview from "./VideoPreview";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 interface FileProps {
     readonly file: FilezFile;

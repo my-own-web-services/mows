@@ -4,8 +4,8 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
 import InfiniteLoader from "react-window-infinite-loader";
 import { G } from "../../../App";
-import { FilezFile } from "../../../types";
 import ListItem from "./ListItem";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 
 interface VerticalListProps {
     readonly files: FilezFile[];
@@ -46,10 +46,13 @@ export default class VerticalList extends Component<VerticalListProps, VerticalL
                             {({ onItemsRendered, ref }) => (
                                 <List
                                     outerElementType={outerElementType}
+                                    /* @ts-ignore */
                                     itemSize={height}
                                     layout="horizontal"
+                                    /* @ts-ignore */
                                     height={height}
                                     itemCount={itemCount}
+                                    /* @ts-ignore */
                                     width={width}
                                     ref={ref}
                                     onItemsRendered={onItemsRendered}

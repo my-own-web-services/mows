@@ -7,7 +7,7 @@ import Center, { View } from "./components/panels/center/Center";
 import Right from "./components/panels/right/Right";
 import Strip from "./components/panels/strip/Strip";
 import { CustomProvider } from "rsuite";
-import { FileView, FilezFile, UiConfig } from "./types";
+import { FileView, UiConfig } from "./types";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { DndProvider } from "react-dnd";
 import update from "immutability-helper";
@@ -16,6 +16,7 @@ import { convertFileGroups, VisualFileGroup } from "./utils/convertFileGroups";
 
 import "preact/debug";
 import Top from "./components/panels/top/Top";
+import { FilezClient, FilezFile, SearchRequest } from "@firstdorsal/filez-frontend";
 
 interface AppProps {}
 interface AppState {
@@ -98,6 +99,7 @@ export default class App extends Component<AppProps, AppState> {
             uiConfig.filezServerAddress,
             uiConfig.interosseaServerAddress,
             uiConfig.interosseaWebAddress,
+            "filez",
             uiConfig.skipInterossea
         );
         await client.init();

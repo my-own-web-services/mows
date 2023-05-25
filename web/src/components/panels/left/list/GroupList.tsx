@@ -21,8 +21,10 @@ export default class GroupList extends Component<GroupListProps, GroupListState>
                     {({ height, width }) => (
                         <FixedSizeList
                             itemSize={20}
+                            /* @ts-ignore */
                             height={height}
                             itemCount={this.props.groups.length}
+                            /* @ts-ignore */
                             width={width}
                         >
                             {({ index, style }: { index: number; style: CSSProperties }) => {

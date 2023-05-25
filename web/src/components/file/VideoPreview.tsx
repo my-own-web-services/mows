@@ -1,7 +1,7 @@
 import { Component } from "preact";
 import { G } from "../../App";
-import { FilezFile } from "../../types";
 import "./VideoPreview.scss";
+import { FilezFile } from "@firstdorsal/filez-frontend";
 interface VideoPreviewProps {
     readonly g: G;
     readonly file: FilezFile;

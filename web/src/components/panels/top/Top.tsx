@@ -1,4 +1,4 @@
-import { Component, createRef } from "preact";
+import { Component } from "preact";
 import { G } from "../../../App";
 import Upload from "../../upload/Upload";
 import "./Top.scss";
