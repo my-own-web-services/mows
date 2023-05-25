@@ -1,6 +1,6 @@
 {
     "name": "@firstdorsal/filez-frontend",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "main": "dist/js/main.js",
     "module": "dist/js/main.js",
     "types": "dist/js/main.d.ts",
