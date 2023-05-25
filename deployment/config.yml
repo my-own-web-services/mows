@@ -123,7 +123,6 @@ interossea:
         db:
             exposeToLocalhost: true
             port: 27019
-
     web:
         create: true
         publicHostname:

@@ -1,7 +1,18 @@
 image: docker:latest
 
 stages:
+    - publish-ts-client
     - docker-build
+
+publish-ts-client:
+    stage: publish-ts-client
+    image: pektin/deno-nodejs-alpine
+    script:
+        - cd web-client
+        - yarn
+        - yarn before-publish
+        - echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'>.npmrc
+        - npm publish --verbose --access public
 
 docker-build-server:
     stage: docker-build

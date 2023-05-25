@@ -664,35 +664,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyper"
-version = "1.0.0-rc.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b75264b2003a3913f118d35c586e535293b3e22e41f074930762929d071e092"
-dependencies = [
- "bytes",
- "futures-channel",
- "futures-core",
- "futures-util",
- "h2",
- "http",
- "http-body 1.0.0-rc.2",
- "httparse",
- "httpdate",
- "itoa",
- "pin-project-lite",
- "tokio",
- "tracing",
- "want",
-]
-
-[[package]]
 name = "hyper-tls"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
 dependencies = [
  "bytes",
- "hyper 0.14.26",
+ "hyper",
  "native-tls",
  "tokio",
  "tokio-native-tls",
@@ -973,9 +951,10 @@ dependencies = [
  "bson",
  "futures",
  "http-body-util",
- "hyper 1.0.0-rc.3",
+ "hyper",
  "lazy_static",
  "mongodb",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",
@@ -1235,7 +1214,7 @@ dependencies = [
  "h2",
  "http",
  "http-body 0.4.5",
- "hyper 0.14.26",
+ "hyper",
  "hyper-tls",
  "ipnet",
  "js-sys",
@@ -1748,7 +1727,6 @@ dependencies = [
  "libc",
  "mio",
  "num_cpus",
- "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",

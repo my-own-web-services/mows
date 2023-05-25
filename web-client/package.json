@@ -1,0 +1,20 @@
+{
+    "name": "filez-frontend",
+    "version": "1.0.0",
+    "main": "dist/js/index.js",
+    "module": "dist/js/index.js",
+    "types": "dist/js/index.d.ts",
+    "type": "module",
+    "license": "MIT",
+    "devDependencies": {
+        "typescript": "^5.0.4"
+    },
+    "dependencies": {
+        "@firstdorsal/interossea-client": "^1.0.0"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc -w",
+        "before-publish": "yarn build"
+    }
+}

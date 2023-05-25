@@ -45,5 +45,7 @@
 -   keepass
 -   calendar
 -   contacts
+-   notes
+-   mood tracker
 
 ## easy website deployment for static web apps on seperate subdomain for simple blogs etc
