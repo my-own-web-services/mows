@@ -4,6 +4,7 @@ pub mod db;
 pub mod exiftool;
 pub mod macros;
 pub mod metadata_types;
+pub mod ocr;
 pub mod types;
 pub mod utils;
 pub mod external {

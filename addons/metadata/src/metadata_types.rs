@@ -2,6 +2,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OcrResult {
+    pub boxes: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Metadata {
@@ -16,6 +22,7 @@ pub struct Metadata {
 #[serde(rename_all = "camelCase")]
 pub struct MetadataResult {
     pub exifdata: Option<HashMap<String, Value>>,
+    pub ocr: Option<OcrResult>,
     pub clues: Option<Clues>,
     pub external: Option<External>,
 }

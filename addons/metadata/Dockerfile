@@ -18,7 +18,11 @@ RUN groupadd -g 50001 filez-addons-metadata
 
 # 1. APP STAGE
 FROM alpine
-RUN apk update && apk add --no-cache perl
+
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories 
+
+RUN apk update && apk add --no-cache perl tesseract-ocr tesseract-ocr-data-eng tesseract-ocr-data-deu
 WORKDIR /app
 RUN wget https://exiftool.org/Image-ExifTool-12.55.tar.gz
 RUN tar -xvf Image-ExifTool-12.55.tar.gz

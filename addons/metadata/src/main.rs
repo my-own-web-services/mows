@@ -1,6 +1,6 @@
 use metadata::{
     clues::get_clues, config::CONFIG, db::DB, exiftool::get_metadata_exiftool,
-    external::lookup::external_lookup, metadata_types::MetadataResult,
+    external::lookup::external_lookup, metadata_types::MetadataResult, ocr::get_ocr,
 };
 use mongodb::options::ClientOptions;
 #[cfg(not(target_env = "msvc"))]
@@ -39,10 +39,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     }
                 };
 
+                let ocr = get_ocr(&file).await;
+
                 let clues = get_clues(&file, &exifdata).await?;
                 let mut metadata_result = MetadataResult {
                     exifdata,
                     clues,
+                    ocr,
                     external: None,
                 };
 
