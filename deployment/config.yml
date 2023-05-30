@@ -1,6 +1,8 @@
 external:
     omdb:
+        # will contact omdb
         enabled: true
+        # will contact amazon
         downloadPostersAmazon: true
 
 reverseProxy:
@@ -57,7 +59,7 @@ filez:
         - name: testImages
           path: /home/paul/Downloads/test_images/
           ownerId: JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ
-    # TODO if the number of addons is greater than 10 the network asignment will fail
+    # TODO if the number of addons is greater than 10 the network assignment will fail
     addons:
         - name: video
           db: true
