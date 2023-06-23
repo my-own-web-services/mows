@@ -11,6 +11,8 @@ import {
     UpdateFileInfosRequestField
 } from "./types.js";
 
+export * from "./types.js";
+
 export class FilezClient {
     interosseaClient: InterosseaClient;
     filezEndpoint: string;

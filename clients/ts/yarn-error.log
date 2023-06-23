@@ -14,36 +14,27 @@ Platform:
   linux x64
 
 Trace: 
-  Error: https://registry.yarnpkg.com/@firstdorsal%2finterossea-client: Not found
-      at params.callback [as _callback] (/usr/lib/node_modules/yarn/lib/cli.js:66145:18)
-      at self.callback (/usr/lib/node_modules/yarn/lib/cli.js:140890:22)
-      at Request.emit (node:events:513:28)
-      at Request.<anonymous> (/usr/lib/node_modules/yarn/lib/cli.js:141862:10)
-      at Request.emit (node:events:513:28)
-      at IncomingMessage.<anonymous> (/usr/lib/node_modules/yarn/lib/cli.js:141784:12)
-      at Object.onceWrapper (node:events:627:28)
-      at IncomingMessage.emit (node:events:525:35)
-      at endReadableNT (node:internal/streams/readable:1359:12)
-      at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+  Error: ENOENT: no such file or directory, stat '/home/paul/Documents/filez/clients/ts/node_modules/@firstdorsal/interossea-client'
 
 npm manifest: 
   {
-      "name": "filez-frontend",
-      "version": "1.0.0",
-      "main": "dist/js/index.js",
-      "module": "dist/js/index.js",
-      "types": "dist/js/index.d.ts",
+      "name": "@firstdorsal/filez-client",
+      "version": "1.0.2",
+      "main": "dist/js/main.js",
+      "module": "dist/js/main.js",
+      "types": "dist/js/main.d.ts",
       "type": "module",
       "license": "MIT",
       "devDependencies": {
           "typescript": "^5.0.4"
       },
       "dependencies": {
-          "@firstdorsal/interossea-client": "link:/home/paul/Documents/interossea/client/ts/dist/js/main.js"
+          "@firstdorsal/interossea-client": "^1.0.0"
       },
       "scripts": {
           "build": "tsc",
-          "dev": "tsc -w"
+          "dev": "tsc -w",
+          "before-publish": "yarn build"
       }
   }
 
@@ -55,9 +46,10 @@ Lockfile:
   # yarn lockfile v1
   
   
-  "@firstdorsal/interossea-client@link:../../interossea/client/ts/dist/js/main.js":
-    version "0.0.0"
-    uid ""
+  "@firstdorsal/interossea-client@^1.0.0":
+    version "1.0.0"
+    resolved "https://registry.yarnpkg.com/@firstdorsal/interossea-client/-/interossea-client-1.0.0.tgz#37e31536d90ad7980efd973938be17044c176f6f"
+    integrity sha512-UDBoXfVTjinQqkGqvgL0PaRaSP1Rvm2e8KaEvfajRkzrC5WKAhE9rV5IXxA/CfTp4ePaIOGjyouLKW7EKH+ToQ==
   
   typescript@^5.0.4:
     version "5.0.4"

@@ -1,0 +1,46 @@
+fileList:
+    - virtual scrolling loading new items
+    - takes event handler functions:
+          - onClick(id)
+          - onOpen(id)
+    - method to reload the list from the server/update it
+    - different list styles
+    - custom line render component
+
+fileGroupList:
+    - virtual scrolling loading all items
+
+fileView:
+    - Mostly for the complex to view things like videos, (rich) text, 3d models etc.
+
+infoPanel:
+
+uploadPanel:
+
+decryptPanel:
+
+peoplePanel:
+
+permissionsPanel:
+
+groupPanel:
+    - new group
+    - edit group
+
+---
+Notes App:
+    - File Picker (To open text files as notes)
+
+Mood App:
+    - File Picker (To open mood files)
+
+Music App:
+    - File List (filtered)
+    - group list (filtered)
+
+Password Manager:
+    - File Picker (with Search)
+
+Main Ui:
+    - File List (with search)
+    - FileGroup List

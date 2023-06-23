@@ -5,6 +5,7 @@
 -   make redirects work ✅
 -   check for security problems with remote login
 -   maybe use something else than POST request; something that cant be triggered by a rogue form
+-   list logged in sessions and option to log them out
 
 # Security
 
@@ -17,6 +18,7 @@
 
 ## Other
 
+-   ui library to facilitate the building of apps +++++
 -   dummy files for missing tracks in playlist or similar
 -   music player with queue etc.
 -   addon workers need to rescan files and look for work; retry failed attempts etc. ✅
