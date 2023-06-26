@@ -42,7 +42,7 @@ readonlyMounts:
         rescanSeconds: 120
         ownerId: dev
     importImages:
-        path: /home/paul/Downloads/_import-images/
+        path: /home/paul/Downloads/filez_test/
         rescanSeconds: 120
         ownerId: dev
     someVideos:

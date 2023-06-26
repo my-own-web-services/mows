@@ -1,30 +1,27 @@
 import { FileGroup, FilezClient, FilezFile } from "@firstdorsal/filez-client";
-import { createContext } from "react";
-import { PureComponent } from "react";
+import { createContext, PureComponent } from "react";
 import update from "immutability-helper";
 
 export interface FilezContext {
-    groupList: FileGroup[] | null;
-    fileList: FilezFile[] | null;
     filezClient: FilezClient;
-    updateFileList: () => void;
+    uiConfig: UiConfig;
 }
 
 export const FilezContext = createContext<FilezContext | null>(null);
 
-interface FilezProps {
+interface FilezProviderProps {
     readonly children?: React.ReactNode;
 }
 
-interface FilezState {
+interface FilezProviderState {
     readonly fileList: FilezFile[];
     readonly groupList: FileGroup[];
     readonly filezClient: FilezClient;
     readonly uiConfig: UiConfig;
 }
 
-export default class Filez extends PureComponent<FilezProps, FilezState> {
-    constructor(props: FilezProps) {
+export default class FilezProvider extends PureComponent<FilezProviderProps, FilezProviderState> {
+    constructor(props: FilezProviderProps) {
         super(props);
         this.state = {
             fileList: [],
@@ -55,9 +52,6 @@ export default class Filez extends PureComponent<FilezProps, FilezState> {
         });
     };
 
-    updateFileList = async () => {};
-    loadMoreFiles = async () => {};
-
     render = () => {
         if (this.state.filezClient === undefined) {
             return null;
@@ -65,10 +59,8 @@ export default class Filez extends PureComponent<FilezProps, FilezState> {
         return (
             <FilezContext.Provider
                 value={{
-                    fileList: this.state.fileList,
-                    groupList: this.state.groupList,
                     filezClient: this.state.filezClient,
-                    updateFileList: this.updateFileList
+                    uiConfig: this.state.uiConfig
                 }}
             >
                 {this.props.children}

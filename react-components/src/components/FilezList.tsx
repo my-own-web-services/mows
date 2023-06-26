@@ -2,13 +2,14 @@ import { FileGroup, FilezFile } from "@firstdorsal/filez-client";
 import { CSSProperties, PureComponent } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
-import { FilezContext } from "./Filez";
+import { FilezContext } from "../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
 
 interface FilezListProps {
     readonly type: "groups" | "files";
     readonly id?: string;
     readonly style?: CSSProperties;
+    readonly rowRenderer?: (item: FilezFile | FileGroup, style: CSSProperties) => JSX.Element;
 }
 
 interface FilezListState {
@@ -22,6 +23,7 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     moreFilesLoading = false;
+
     constructor(props: FilezListProps) {
         super(props);
         this.state = {
@@ -36,16 +38,16 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
         await this.loadData();
     };
 
-    componentDidUpdate(
+    componentDidUpdate = (
         prevProps: Readonly<FilezListProps>,
-        prevState: Readonly<FilezListState>,
-        snapshot?: any
-    ): void {
+        prevState: Readonly<FilezListState>
+    ) => {
         const filezClient = this?.context?.filezClient;
+        // TODO handle updates when (group)id changes
         if (prevState.initialLoad === false && filezClient !== null) {
             this.loadData();
         }
-    }
+    };
 
     loadData = async () => {
         if (this.context === null) {
@@ -88,8 +90,6 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
     };
 
     loadMoreFiles = async (startIndex: number, limit: number) => {
-        console.log("loadMoreFiles", startIndex, limit);
-
         if (this.context === null) {
             throw new Error("FilezList must be used inside Filez to provide the FilezContext");
         } else {
@@ -157,6 +157,9 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
                                         const currentItem = currentListContent[index];
                                         if (!currentItem) {
                                             return <div style={style}>Loading...</div>;
+                                        }
+                                        if (this.props.rowRenderer) {
+                                            return this.props.rowRenderer(currentItem, style);
                                         }
                                         return <div style={style}>{currentItem.name}</div>;
                                     }}

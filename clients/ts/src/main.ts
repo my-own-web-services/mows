@@ -111,10 +111,12 @@ export class FilezClient {
         });
     };
 
-    get_file_info = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_file_info/`, {
+    get_file_info = async (fileId: string) => {
+        const res = await fetch(`${this.filezEndpoint}/api/get_file_info/${fileId}`, {
             credentials: "include"
         });
+        const file: FilezFile = await res.json();
+        return file;
     };
 
     get_file_infos_by_group_id = async (groupId: string, from_index = 0, limit = 100) => {
