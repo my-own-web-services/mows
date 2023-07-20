@@ -6,7 +6,7 @@ import { TagPicker } from "rsuite";
 import { InputPicker } from "rsuite";
 import { SelectPicker } from "rsuite";
 import { IoMdDownload } from "react-icons/io";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 interface RightProps {
     readonly g: G;

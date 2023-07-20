@@ -44,7 +44,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                     <FilezList
                         rowRenderer={this.renderListItem}
                         type="files"
-                        id="dev_all"
+                        id="JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ_all"
                         style={{ width: "500px", float: "left", height: 500 }}
                     ></FilezList>
                     <FilezFileViewer file={this.state.selectedFile}></FilezFileViewer>

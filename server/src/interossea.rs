@@ -1,7 +1,7 @@
 use crate::{
     config::{InterosseaConfig, SERVER_CONFIG},
     some_or_bail,
-    utils::{generate_id, get_cookies},
+    utils::{generate_id, get_cookies, is_allowed_origin, is_allowed_service_id},
 };
 use anyhow::bail;
 use hyper::{Body, Request, Response};
@@ -76,17 +76,9 @@ impl Interossea {
             );
         }
 
-        if validated_token.claims.service_origin != config.ui_origin {
-            bail!(
-                "Assertion host mismatch: {} != {}",
-                validated_token.claims.service_origin,
-                config.ui_origin
-            );
-        }
+        is_allowed_origin(&validated_token.claims.service_origin)?;
 
-        if validated_token.claims.service_id != config.service_id {
-            bail!("Assertion service ID mismatch");
-        }
+        is_allowed_service_id(&validated_token.claims.service_id)?;
 
         Ok(validated_token.claims)
     }
@@ -118,13 +110,8 @@ impl Interossea {
             bail!("Assertion IP mismatch");
         }
 
-        if validated_assertion_claims.service_origin != config.ui_origin {
-            bail!(
-                "Assertion host mismatch: {} != {}",
-                validated_assertion_claims.service_origin,
-                config.ui_origin
-            );
-        }
+        is_allowed_origin(&validated_assertion_claims.service_origin)?;
+
         Ok(validated_assertion_claims)
     }
 

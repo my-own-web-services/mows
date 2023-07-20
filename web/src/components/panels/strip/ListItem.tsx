@@ -3,7 +3,7 @@ import { CSSProperties } from "preact/compat";
 import { G } from "../../../App";
 import { FileView } from "../../../types";
 import GroupOrFileItem from "../../groupOrFile/GroupOrFileItem";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 interface ListItemProps {
     readonly style: CSSProperties;

@@ -4,7 +4,7 @@ import { G } from "../../../../../../App";
 import { FileView } from "../../../../../../types";
 import GroupOrFileItem from "../../../../../groupOrFile/GroupOrFileItem";
 import "./GridRow.scss";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 interface GridRowProps {
     readonly style: CSSProperties;

@@ -1,4 +1,4 @@
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 export const isImageDisplayable = (filezFile: FilezFile) => {
     const diplayableMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];

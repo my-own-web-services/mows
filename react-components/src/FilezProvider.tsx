@@ -38,9 +38,12 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
             uiConfig.filezServerAddress,
             uiConfig.interosseaServerAddress,
             uiConfig.interosseaWebAddress,
-            "filez",
+            uiConfig.applicationId,
             uiConfig.skipInterossea
         );
+
+        await client.init();
+        console.log(uiConfig);
 
         this.setState(state => {
             return update(state, {
@@ -74,4 +77,5 @@ export interface UiConfig {
     interosseaWebAddress: string;
     filezServerAddress: string;
     skipInterossea: boolean;
+    applicationId: string;
 }

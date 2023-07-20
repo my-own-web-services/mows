@@ -40,7 +40,18 @@ constraints:
     maxFileSize: 10000000000 # 10 GB
     otherMaxBodySize: 1000000 # 1 MB TODO need to be implemented with hyper body to bytes with limit
 
-uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostname}}
+services:
+    - id: filez
+      allowedOrigins: [{{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostname}}]
+    {{- range $config.additionalAllowedApps }}
+    - id: {{ .id }}
+      allowedOrigins:
+        {{- range .allowedOrigins }}
+        - {{ . }}
+        {{- end }}
+    {{- end }}
+    
+
 
 readonlyMounts:
     {{- range $config.filez.readonlyMounts }}

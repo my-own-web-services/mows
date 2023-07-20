@@ -6,7 +6,7 @@ import SelectView from "./components/selectView/SelectView";
 import Grid from "./components/views/grid/GridView";
 import List from "./components/views/list/ListView";
 import Single from "./components/views/single/Single";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 export enum View {
     Grid = "Grid",

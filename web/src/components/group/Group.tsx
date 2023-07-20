@@ -4,7 +4,7 @@ import "./Group.scss";
 import { IoMdArrowDropdown, IoMdArrowDropright } from "react-icons/io";
 import { VscFolderLibrary, VscFolder, VscRootFolder } from "react-icons/vsc";
 import { G } from "../../App";
-import { FileGroupType } from "@firstdorsal/filez-frontend";
+import { FileGroupType } from "@firstdorsal/filez-client";
 
 interface GroupProps {
     readonly fileGroup: VisualFileGroup;

@@ -5,7 +5,7 @@ import { FixedSizeList as List } from "react-window";
 import InfiniteLoader from "react-window-infinite-loader";
 import { G } from "../../../App";
 import ListItem from "./ListItem";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 interface VerticalListProps {
     readonly files: FilezFile[];
@@ -35,7 +35,7 @@ export default class VerticalList extends Component<VerticalListProps, VerticalL
         return (
             <div className="VerticalList">
                 <AutoSizer>
-                    {({ height, width }) => (
+                    {({ height, width }: { height: number; width: number }) => (
                         <InfiniteLoader
                             isItemLoaded={index => this.props.files[index] !== undefined}
                             itemCount={itemCount}

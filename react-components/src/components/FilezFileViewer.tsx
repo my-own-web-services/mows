@@ -2,6 +2,8 @@ import { CSSProperties, PureComponent } from "react";
 import { FilezContext } from "../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client";
 import Image from "./viewer/Image";
+import Audio from "./viewer/Audio";
+import Video from "./viewer/Video";
 
 interface FilezFileViewerProps {
     readonly file?: FilezFile;
@@ -69,19 +71,27 @@ export default class FilezFileViewer extends PureComponent<
             return <div></div>;
         }
 
-        const fileType = this.state.file.mimeType;
-        if (fileType.startsWith("image/")) {
-            return (
-                <div className="FilezFileViewer" style={this.props.style}>
-                    <Image file={this.state.file} uiConfig={this.context.uiConfig}></Image>
-                </div>
-            );
-        } else {
-            return (
-                <div className="FilezFileViewer" style={this.props.style}>
-                    Can't display this kind of file: {fileType}
-                </div>
-            );
-        }
+        return (
+            <div className="FilezFileViewer" style={this.props.style}>
+                {(() => {
+                    const fileType = this.state.file.mimeType;
+                    if (fileType.startsWith("image/")) {
+                        return (
+                            <Image file={this.state.file} uiConfig={this.context.uiConfig}></Image>
+                        );
+                    } else if (fileType.startsWith("audio/")) {
+                        return (
+                            <Audio file={this.state.file} uiConfig={this.context.uiConfig}></Audio>
+                        );
+                    } else if (fileType.startsWith("video/")) {
+                        return (
+                            <Video file={this.state.file} uiConfig={this.context.uiConfig}></Video>
+                        );
+                    } else {
+                        return <div>Can't display this type of file: {fileType}</div>;
+                    }
+                })()}
+            </div>
+        );
     };
 }

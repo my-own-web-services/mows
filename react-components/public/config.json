@@ -1,6 +1,7 @@
 {
-    "interosseaServerAddress": "http://localhost:8081",
-    "interosseaWebAddress": "http://localhost:5173",
-    "filezServerAddress": "http://localhost:8080",
-    "skipInterossea": true
+    "interosseaServerAddress": "http://accounts-server.localhost",
+    "interosseaWebAddress": "http://accounts.localhost",
+    "filezServerAddress": "http://filez-server.localhost",
+    "skipInterossea": false,
+    "applicationId": "filez-react-components"
 }

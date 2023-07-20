@@ -5,7 +5,7 @@ import { VisualFileGroup } from "../../utils/convertFileGroups";
 import File from "../file/File";
 import Group from "../group/Group";
 import "./GroupOrFileItem.scss";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 interface GroupOrFileItemProps {
     readonly fileGroup?: VisualFileGroup;
     readonly file?: FilezFile;

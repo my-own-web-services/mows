@@ -1,7 +1,7 @@
 import { Component } from "preact";
 import { G } from "../../App";
 import "./Text.scss";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 interface TextProps {
     readonly g: G;

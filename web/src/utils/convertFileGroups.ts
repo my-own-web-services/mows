@@ -1,4 +1,4 @@
-import { FileGroup } from "@firstdorsal/filez-frontend";
+import { FileGroup } from "@firstdorsal/filez-client";
 
 export const convertFileGroups = (fileGroups: FileGroup[]): VisualFileGroup[] => {
     // convert the file groups to a list of file groups and file group folders

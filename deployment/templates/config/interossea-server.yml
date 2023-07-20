@@ -23,6 +23,13 @@ keyFolder: /keys/
 services:
     - id: filez
       allowedOrigins: [{{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostname}}]
+    {{- range $config.additionalAllowedApps }}
+    - id: {{ .id }}
+      allowedOrigins:
+        {{- range .allowedOrigins }}
+        - {{ . }}
+        {{- end }}
+    {{- end }}
 
 mail:
     username: {{ $config.interossea.server.mail.username}}

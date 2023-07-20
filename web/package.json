@@ -22,7 +22,7 @@
         "react-dnd-html5-backend": "^16.0.1",
         "react-icons": "^4.7.1",
         "react-split": "^2.0.14",
-        "react-virtualized-auto-sizer": "^1.0.7",
+        "react-virtualized-auto-sizer": "^1.0.20",
         "react-window": "^1.8.8",
         "react-window-infinite-loader": "^1.0.8",
         "rsuite": "^5.23.0",

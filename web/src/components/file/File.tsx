@@ -10,7 +10,7 @@ import Image from "./Image";
 import Text from "./Text";
 import Video from "./Video";
 import VideoPreview from "./VideoPreview";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 interface FileProps {
     readonly file: FilezFile;

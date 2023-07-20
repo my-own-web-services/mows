@@ -19,6 +19,11 @@ networks:
         # /24 prefix
         legacy: "172.72.11"
 
+additionalAllowedApps:
+    - id: filez-react-components
+      allowedOrigins: [http://localhost:5173]
+      primaryOrigin: http://localhost:5173
+
 filez:
     runAsRoot: true
     storage:
@@ -37,7 +42,7 @@ filez:
             path: ../../server/
             dockerfile: Dockerfile
         publicHostname:
-            domain: y.gy
+            domain: vindelicum.eu
             subdomain: filez-server
         db:
             exposeToLocalhost: true
@@ -48,7 +53,7 @@ filez:
             path: ../../web/
             dockerfile: Dockerfile
         publicHostname:
-            domain: y.gy
+            domain: vindelicum.eu
             subdomain: filez
     # this will chmod all files and folders and give any user read access to them on each path
     # this isn't optimal because it does something outside the container space but is required when running the containers as non root users
@@ -104,31 +109,31 @@ filez:
 interossea:
     server:
         allowNewUsers: false
-        createUsers: [test@y.gy, peter@y.gy]
-        makeUsersAdmin: [test@y.gy]
+        createUsers: [test@vindelicum.eu, peter@vindelicum.eu]
+        makeUsersAdmin: [test@vindelicum.eu]
         create: true
         internalHostname: interossea-server
         publicHostname:
-            domain: y.gy
+            domain: vindelicum.eu
             subdomain: accounts-server
         build:
             enabled: true
             path: /home/paul/Documents/interossea/server/
             dockerfile: Dockerfile
         mail:
-            username: no-reply@y.gy
-            smtpServer: mx.y.gy
+            username: no-reply@vindelicum.eu
+            smtpServer: mx.vindelicum.eu
             fromName: Interossea Login
-            fromAddress: no-reply@y.gy
-            userAgent: Sugar-Free-Mail-2022
-            replyTo: mail@y.gy
+            fromAddress: no-reply@vindelicum.eu
+            userAgent: Sugar-Free-Mail-2023
+            replyTo: mail@vindelicum.eu
         db:
             exposeToLocalhost: true
             port: 27019
     web:
         create: true
         publicHostname:
-            domain: y.gy
+            domain: vindelicum.eu
             subdomain: accounts
         build:
             enabled: true

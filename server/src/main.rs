@@ -22,7 +22,7 @@ use filez::methods::update_file_group::update_file_group;
 use filez::methods::update_file_infos::update_file_infos;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::readonly_mount::scan_readonly_mounts;
-use filez::utils::get_token_from_query;
+use filez::utils::{get_token_from_query, is_allowed_origin};
 use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server};
@@ -139,10 +139,15 @@ async fn handle_inner(
 
     let res = match req.headers().get("origin") {
         Some(origin) => {
-            if origin.to_str()? == config.ui_origin {
+            let origin_str = origin.to_str()?;
+            if is_allowed_origin(origin_str).is_ok() {
                 Response::builder()
-                    .header("Access-Control-Allow-Origin", &config.ui_origin.clone())
+                    .header("Access-Control-Allow-Origin", origin_str)
                     .header("Access-Control-Allow-Credentials", "true")
+                    .header(
+                        "Access-Control-Allow-Headers",
+                        "interosseauserassertion, request",
+                    )
             } else {
                 Response::builder()
             }
@@ -229,20 +234,8 @@ async fn handle_inner(
             ))
             .unwrap())
     } else if m == Method::OPTIONS {
-        Ok(Response::builder()
-            .header("Access-Control-Allow-Origin", &config.ui_origin.clone())
-            .header("Access-Control-Allow-Credentials", "true")
-            .header(
-                "Access-Control-Allow-Headers",
-                "interosseauserassertion, request",
-            )
-            .status(200)
-            .body(Body::from("OK"))
-            .unwrap())
+        Ok(res.status(200).body(Body::from("OK")).unwrap())
     } else {
-        Ok(Response::builder()
-            .status(404)
-            .body(Body::from("Not found"))
-            .unwrap())
+        Ok(res.status(404).body(Body::from("Not found")).unwrap())
     }
 }

@@ -18,7 +18,7 @@ export default class GroupList extends Component<GroupListProps, GroupListState>
         return (
             <div className="GroupList">
                 <AutoSizer>
-                    {({ height, width }) => (
+                    {({ height, width }: { height: number; width: number }) => (
                         <FixedSizeList
                             itemSize={20}
                             /* @ts-ignore */

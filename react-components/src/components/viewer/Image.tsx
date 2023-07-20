@@ -29,9 +29,10 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
         if (!isDisplayable && !processedImage) return;
 
         return (
-            <div className="Image">
+            <div className="Image" style={{ width: "100%" }}>
                 {processedImage && !shouldUseOriginal ? (
                     <img
+                        style={{ width: "100%", height: "auto" }}
                         src={`${this.props.uiConfig.filezServerAddress}/api/get_file/${f._id}/image/${previewWidth}.avif?c`}
                         loading="lazy"
                         width={processedImage.width}
@@ -40,6 +41,7 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
                     />
                 ) : (
                     <img
+                        style={{ width: "100%", height: "auto" }}
                         src={`${this.props.uiConfig.filezServerAddress}/api/get_file/${f._id}?c`}
                         loading="lazy"
                         draggable={false}

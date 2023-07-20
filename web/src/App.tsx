@@ -16,7 +16,7 @@ import { convertFileGroups, VisualFileGroup } from "./utils/convertFileGroups";
 
 import "preact/debug";
 import Top from "./components/panels/top/Top";
-import { FilezClient, FilezFile, SearchRequest } from "@firstdorsal/filez-frontend";
+import { FilezClient, FilezFile, SearchRequest } from "@firstdorsal/filez-client";
 
 interface AppProps {}
 interface AppState {

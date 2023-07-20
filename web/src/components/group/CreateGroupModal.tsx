@@ -7,7 +7,7 @@ import {
     DynamicGroupRule,
     DynamicGroupRuleType,
     FileGroupType
-} from "@firstdorsal/filez-frontend";
+} from "@firstdorsal/filez-client";
 interface CreateGroupModalProps {
     readonly g: G;
     readonly isOpen: boolean;

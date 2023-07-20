@@ -3,7 +3,7 @@ import { G } from "../../App";
 import { getImagePreviewWidth } from "../../utils/getImagePreviewWidth";
 import { isImageDisplayable } from "../../utils/isImageDisplayable";
 import "./Image.scss";
-import { FilezFile, ProcessedImage } from "@firstdorsal/filez-frontend";
+import { FilezFile, ProcessedImage } from "@firstdorsal/filez-client";
 
 interface ImageProps {
     readonly g: G;

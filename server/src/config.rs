@@ -59,8 +59,15 @@ pub struct ServerConfig {
     pub readonly_mounts: HashMap<String, ReadonlyMountConfig>,
     pub service_id: String,
     pub app_storage: AppStorage,
-    pub ui_origin: String,
+    pub services: Vec<Service>,
     pub constraints: Constraints,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Service {
+    pub id: String,
+    pub allowed_origins: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

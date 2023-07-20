@@ -10,7 +10,7 @@ import { G } from "../../../../../../App";
 import { DraggableTarget } from "../../../../../drag/DraggableTarget";
 import Center, { View } from "../../../Center";
 import InfiniteLoader from "react-window-infinite-loader";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 interface GridViewProps {
     readonly files: FilezFile[];
@@ -58,7 +58,7 @@ export default class GridView extends Component<GridViewProps, GridViewState> {
                 <div className="Grid">
                     <DraggableTarget acceptType="file">
                         <AutoSizer>
-                            {({ height, width }) => (
+                            {({ height, width }: { height: number; width: number }) => (
                                 <InfiniteLoader
                                     isItemLoaded={index =>
                                         this.props.files[index * this.props.columns] !== undefined

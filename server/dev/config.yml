@@ -26,7 +26,7 @@ interossea:
     assertionValiditySeconds: 600
 
 dev:
-    insecureSkipInterossea: true
+    insecureSkipInterossea: false
     createDevUser: true
     disableComplexAccessControl: true
 

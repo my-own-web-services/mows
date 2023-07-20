@@ -7,10 +7,36 @@ use crate::{
     types::{FilezFile, FilezPermission},
 };
 use anyhow::bail;
-use hyper::{body::Bytes, Body, Request};
+use hyper::{Body, Request};
 use qstring::QString;
 use serde_json::Value;
 use std::{collections::HashMap, num::ParseIntError, path::Path, vec};
+
+pub fn is_allowed_origin(origin_to_test: &str) -> anyhow::Result<()> {
+    let config = &SERVER_CONFIG;
+    if !config
+        .services
+        .iter()
+        .any(|s| s.allowed_origins.iter().any(|ss| ss == origin_to_test))
+    {
+        bail!(
+            "Assertion host mismatch: {} is not in list of allowed origins ",
+            origin_to_test
+        );
+    }
+    Ok(())
+}
+
+pub fn is_allowed_service_id(service_id_to_test: &str) -> anyhow::Result<()> {
+    let config = &SERVER_CONFIG;
+    if !config.services.iter().any(|s| s.id == service_id_to_test) {
+        bail!(
+            "Assertion service ID mismatch: {} is not in list of allowed service ids",
+            service_id_to_test
+        );
+    }
+    Ok(())
+}
 
 pub fn get_cookies(req: &Request<Body>) -> anyhow::Result<HashMap<String, String>> {
     let cookie_str = some_or_bail!(req.headers().get("cookie"), "No cookies found").to_str()?;

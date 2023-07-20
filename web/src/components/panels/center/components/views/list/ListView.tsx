@@ -8,7 +8,7 @@ import { G } from "../../../../../../App";
 import { DraggableTarget } from "../../../../../drag/DraggableTarget";
 import Center, { View } from "../../../Center";
 import InfiniteLoader from "react-window-infinite-loader";
-import { FilezFile } from "@firstdorsal/filez-frontend";
+import { FilezFile } from "@firstdorsal/filez-client";
 
 interface ListProps {
     readonly files: FilezFile[];
@@ -29,7 +29,7 @@ export default class List extends Component<ListProps, ListState> {
                 <div className="List">
                     <DraggableTarget acceptType="file">
                         <AutoSizer>
-                            {({ height, width }) => (
+                            {({ height, width }: { height: number; width: number }) => (
                                 <InfiniteLoader
                                     isItemLoaded={index => this.props.files[index] !== undefined}
                                     itemCount={itemCount}
