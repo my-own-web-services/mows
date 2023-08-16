@@ -2,14 +2,23 @@ import { FileGroup, FilezFile } from "@firstdorsal/filez-client";
 import { CSSProperties, PureComponent } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
-import { FilezContext } from "../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
+import TopBar from "./TopBar";
+
+const defaultStyle: CSSProperties = {
+    width: "100%",
+    height: "100%",
+    background: "#111",
+    color: "#fff"
+};
 
 interface FilezListProps {
     readonly type: "groups" | "files";
     readonly id?: string;
     readonly style?: CSSProperties;
     readonly rowRenderer?: (item: FilezFile | FileGroup, style: CSSProperties) => JSX.Element;
+    readonly displayTopBar?: boolean;
 }
 
 interface FilezListState {
@@ -134,40 +143,48 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
             this.props.type === "groups" ? this.state.groupList : this.state.fileList;
 
         return (
-            <div className="FilezList" style={this.props.style}>
-                <AutoSizer>
-                    {({ height, width }) => (
-                        <InfiniteLoader
-                            isItemLoaded={index => currentListContent[index] !== undefined}
-                            itemCount={fullListLength}
-                            loadMoreItems={this.loadMoreFiles}
-                            threshold={20}
-                            minimumBatchSize={10}
-                        >
-                            {({ onItemsRendered, ref }) => (
-                                <FixedSizeList
-                                    itemSize={20}
-                                    height={height}
-                                    itemCount={fullListLength}
-                                    width={width}
-                                    onItemsRendered={onItemsRendered}
-                                    ref={ref}
-                                >
-                                    {({ index, style }) => {
-                                        const currentItem = currentListContent[index];
-                                        if (!currentItem) {
-                                            return <div style={style}>Loading...</div>;
-                                        }
-                                        if (this.props.rowRenderer) {
-                                            return this.props.rowRenderer(currentItem, style);
-                                        }
-                                        return <div style={style}>{currentItem.name}</div>;
-                                    }}
-                                </FixedSizeList>
-                            )}
-                        </InfiniteLoader>
-                    )}
-                </AutoSizer>
+            <div className="FilezList" style={{ ...defaultStyle, ...this.props.style }}>
+                {this.props.displayTopBar && <TopBar></TopBar>}
+                <div
+                    style={{
+                        width: "100%",
+                        height: this.props.displayTopBar ? "calc(100% - 40px)" : "100%"
+                    }}
+                >
+                    <AutoSizer>
+                        {({ height, width }) => (
+                            <InfiniteLoader
+                                isItemLoaded={index => currentListContent[index] !== undefined}
+                                itemCount={fullListLength}
+                                loadMoreItems={this.loadMoreFiles}
+                                threshold={20}
+                                minimumBatchSize={10}
+                            >
+                                {({ onItemsRendered, ref }) => (
+                                    <FixedSizeList
+                                        itemSize={20}
+                                        height={height}
+                                        itemCount={fullListLength}
+                                        width={width}
+                                        onItemsRendered={onItemsRendered}
+                                        ref={ref}
+                                    >
+                                        {({ index, style }) => {
+                                            const currentItem = currentListContent[index];
+                                            if (!currentItem) {
+                                                return <div style={style}>Loading...</div>;
+                                            }
+                                            if (this.props.rowRenderer) {
+                                                return this.props.rowRenderer(currentItem, style);
+                                            }
+                                            return <div style={style}>{currentItem.name}</div>;
+                                        }}
+                                    </FixedSizeList>
+                                )}
+                            </InfiniteLoader>
+                        )}
+                    </AutoSizer>
+                </div>
             </div>
         );
     };

@@ -1,3 +1,40 @@
+# Nächste Schritte
+
+## 1. Aktuell
+
+-   Schnellere Suche
+-   React Components
+    -   Group List
+    -   New Group
+    -   File List
+        -   Sorting
+        -   Selecting
+        -   Drag and Drop
+        -   Different Views
+        -   Searching
+    -   File Viewer
+    -   Metadaten Bearbeitung
+    -   Access Control / Sharing
+    -   Upload
+-   Dateien teilen
+    -   An Nutzer
+    -   Mit Passwort/Link
+        -   Zunächst readonly get
+
+## 2.
+
+-   Dateien teilen mit verschiedenen permissions read/write/update etc.
+
+## 3.
+
+# Concerns
+
+-   Scalability
+    -   Slow speed when dealing with larger ammounts of files
+        -> creating large ammounts of fake files to test this
+        -   Search
+        -   Dynamic Groups
+
 # interossea
 
 -   streamline process ✅
@@ -18,6 +55,7 @@
 
 ## Other
 
+-   files should be able to appear multiple times in manual groups (for example for playlists)
 -   wer hat wann zeit app
 -   ui library to facilitate the building of apps +++++
 -   dummy files for missing tracks in playlist or similar

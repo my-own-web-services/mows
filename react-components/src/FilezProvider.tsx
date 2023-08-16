@@ -43,7 +43,7 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
         );
 
         await client.init();
-        console.log(uiConfig);
+        //console.log(uiConfig);
 
         this.setState(state => {
             return update(state, {

@@ -1,6 +1,6 @@
 import { CSSProperties, PureComponent } from "react";
 import FilezProvider from "./FilezProvider";
-import FilezList from "./components/FilezList";
+import FilezList from "./components/list/FilezList";
 import { FileGroup, FilezFile } from "@firstdorsal/filez-client";
 import FilezFileViewer from "./components/FilezFileViewer";
 import { isFile } from "./utils";
@@ -24,8 +24,6 @@ export default class App extends PureComponent<AppProps, AppState> {
             <div
                 onClick={() => {
                     if (isFile(item)) {
-                        console.log("selected file", item);
-
                         this.setState({ selectedFile: item });
                     }
                 }}
@@ -46,6 +44,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                         type="files"
                         id="JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ_all"
                         style={{ width: "500px", float: "left", height: 500 }}
+                        displayTopBar={true}
                     ></FilezList>
                     <FilezFileViewer file={this.state.selectedFile}></FilezFileViewer>
                 </FilezProvider>
