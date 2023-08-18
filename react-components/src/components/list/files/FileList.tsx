@@ -2,7 +2,7 @@ import { FileGroup, FilezFile } from "@firstdorsal/filez-client";
 import { CSSProperties, PureComponent } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
-import { FilezContext } from "../../FilezProvider";
+import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
 import TopBar from "./TopBar";
 
@@ -13,31 +13,28 @@ const defaultStyle: CSSProperties = {
     color: "#fff"
 };
 
-interface FilezListProps {
-    readonly type: "groups" | "files";
+interface FileListProps {
     readonly id?: string;
     readonly style?: CSSProperties;
-    readonly rowRenderer?: (item: FilezFile | FileGroup, style: CSSProperties) => JSX.Element;
+    readonly rowRenderer?: (item: FilezFile, style: CSSProperties) => JSX.Element;
     readonly displayTopBar?: boolean;
 }
 
-interface FilezListState {
+interface FileListState {
     readonly fileList: FilezFile[];
-    readonly groupList: FileGroup[];
     readonly listLength: number;
     readonly initialLoad: boolean;
 }
 
-export default class FilezList extends PureComponent<FilezListProps, FilezListState> {
+export default class FileList extends PureComponent<FileListProps, FileListState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     moreFilesLoading = false;
 
-    constructor(props: FilezListProps) {
+    constructor(props: FileListProps) {
         super(props);
         this.state = {
             fileList: [],
-            groupList: [],
             initialLoad: false,
             listLength: 0
         };
@@ -48,8 +45,8 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
     };
 
     componentDidUpdate = (
-        prevProps: Readonly<FilezListProps>,
-        prevState: Readonly<FilezListState>
+        prevProps: Readonly<FileListProps>,
+        prevState: Readonly<FileListState>
     ) => {
         const filezClient = this?.context?.filezClient;
         // TODO handle updates when (group)id changes
@@ -60,7 +57,7 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
 
     loadData = async () => {
         if (this.context === null) {
-            throw new Error("FilezList must be used inside Filez to provide the FilezContext");
+            throw new Error("FileList must be used inside Filez to provide the FilezContext");
         } else {
             const filezClient = this?.context?.filezClient;
 
@@ -68,39 +65,28 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
                 return;
             }
 
-            if (this.props.type === "groups") {
-                const fileGroups = await filezClient.get_own_file_groups();
-                this.setState({
-                    groupList: fileGroups,
-                    initialLoad: true,
-                    listLength: fileGroups.length
-                });
-            } else if (this.props.type === "files") {
-                if (this.props.id === undefined) {
-                    throw new Error("FilezList type prop must be groups or files");
-                }
-                const [groups, files] = await Promise.all([
-                    filezClient.get_own_file_groups(),
-                    filezClient.get_file_infos_by_group_id(this.props.id, 0, 20)
-                ]);
-                const currentGroup = groups.find(group => group._id === this.props.id);
-                if (currentGroup === undefined) {
-                    throw new Error("Current group does not exist");
-                }
-                this.setState({
-                    fileList: files,
-                    initialLoad: true,
-                    listLength: currentGroup.itemCount
-                });
-            } else {
-                throw new Error("FilezList type prop must be groups or files");
+            if (this.props.id === undefined) {
+                throw new Error("File list has no id");
             }
+            const [groups, files] = await Promise.all([
+                filezClient.get_own_file_groups(),
+                filezClient.get_file_infos_by_group_id(this.props.id, 0, 20)
+            ]);
+            const currentGroup = groups.find(group => group._id === this.props.id);
+            if (currentGroup === undefined) {
+                throw new Error("Current group does not exist");
+            }
+            this.setState({
+                fileList: files,
+                initialLoad: true,
+                listLength: currentGroup.itemCount
+            });
         }
     };
 
     loadMoreFiles = async (startIndex: number, limit: number) => {
         if (this.context === null) {
-            throw new Error("FilezList must be used inside Filez to provide the FilezContext");
+            throw new Error("FileList must be used inside Filez to provide the FilezContext");
         } else {
             const filezClient = this?.context?.filezClient;
 
@@ -108,42 +94,34 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
                 return;
             }
 
-            if (this.props.type === "groups") {
-                return;
-            } else if (this.props.type === "files") {
-                if (this.props.id === undefined) {
-                    throw new Error("FilezList type prop must be groups or files");
-                }
-                if (this.moreFilesLoading === false) {
-                    this.moreFilesLoading = true;
+            if (this.props.id === undefined) {
+                throw new Error("File list has no id");
+            }
+            if (this.moreFilesLoading === false) {
+                this.moreFilesLoading = true;
 
-                    const newFiles = await filezClient.get_file_infos_by_group_id(
-                        this.props.id,
-                        startIndex,
-                        limit
-                    );
-                    this.moreFilesLoading = false;
+                const newFiles = await filezClient.get_file_infos_by_group_id(
+                    this.props.id,
+                    startIndex,
+                    limit
+                );
+                this.moreFilesLoading = false;
 
-                    this.setState(({ fileList }) => {
-                        for (let i = 0; i < newFiles.length; i++) {
-                            fileList[startIndex + i] = newFiles[i];
-                        }
-                        return { fileList };
-                    });
-                }
-            } else {
-                throw new Error("FilezList type prop must be groups or files");
+                this.setState(({ fileList }) => {
+                    for (let i = 0; i < newFiles.length; i++) {
+                        fileList[startIndex + i] = newFiles[i];
+                    }
+                    return { fileList };
+                });
             }
         }
     };
 
     render = () => {
         const fullListLength = this.state.listLength;
-        const currentListContent =
-            this.props.type === "groups" ? this.state.groupList : this.state.fileList;
 
         return (
-            <div className="FilezList" style={{ ...defaultStyle, ...this.props.style }}>
+            <div className="FileList" style={{ ...defaultStyle, ...this.props.style }}>
                 {this.props.displayTopBar && <TopBar></TopBar>}
                 <div
                     style={{
@@ -154,7 +132,7 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
                     <AutoSizer>
                         {({ height, width }) => (
                             <InfiniteLoader
-                                isItemLoaded={index => currentListContent[index] !== undefined}
+                                isItemLoaded={index => this.state.fileList[index] !== undefined}
                                 itemCount={fullListLength}
                                 loadMoreItems={this.loadMoreFiles}
                                 threshold={20}
@@ -170,7 +148,7 @@ export default class FilezList extends PureComponent<FilezListProps, FilezListSt
                                         ref={ref}
                                     >
                                         {({ index, style }) => {
-                                            const currentItem = currentListContent[index];
+                                            const currentItem = this.state.fileList[index];
                                             if (!currentItem) {
                                                 return <div style={style}>Loading...</div>;
                                             }

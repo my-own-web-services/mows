@@ -1,9 +1,10 @@
 import { CSSProperties, PureComponent } from "react";
 import FilezProvider from "./FilezProvider";
-import FilezList from "./components/list/FilezList";
 import { FileGroup, FilezFile } from "@firstdorsal/filez-client";
 import FilezFileViewer from "./components/FilezFileViewer";
 import { isFile } from "./utils";
+import FileList from "./components/list/files/FileList";
+import GroupList from "./components/list/groups/GroupList";
 
 interface AppProps {}
 
@@ -38,15 +39,14 @@ export default class App extends PureComponent<AppProps, AppState> {
         return (
             <div className="App">
                 <FilezProvider>
-                    <FilezList type="groups" style={{ width: "500px", float: "left" }}></FilezList>
-                    <FilezList
+                    <GroupList style={{ width: "500px", float: "left" }} />
+                    <FileList
                         rowRenderer={this.renderListItem}
-                        type="files"
                         id="JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ_all"
                         style={{ width: "500px", float: "left", height: 500 }}
                         displayTopBar={true}
-                    ></FilezList>
-                    <FilezFileViewer file={this.state.selectedFile}></FilezFileViewer>
+                    />
+                    <FilezFileViewer file={this.state.selectedFile} />
                 </FilezProvider>
             </div>
         );
