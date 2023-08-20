@@ -213,14 +213,17 @@ pub async fn create_file(
                 storage_id: Some(storage_name.clone()),
                 size: bytes_written,
                 server_created: current_time,
-                modified: create_request.modified,
+                modified: create_request.modified.map(|o| o * 1000),
                 static_file_group_ids: file_manual_group_ids,
                 dynamic_file_group_ids: vec![],
                 app_data,
                 accessed: None,
                 accessed_count: 0,
                 time_of_death: None,
-                created: create_request.created.unwrap_or(current_time),
+                created: create_request
+                    .created
+                    .map(|o| o * 1000)
+                    .unwrap_or(current_time),
                 permission_ids: vec![],
                 keywords: vec![],
                 path: file_path.clone(),

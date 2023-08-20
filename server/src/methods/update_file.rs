@@ -100,7 +100,10 @@ pub async fn update_file(
             &filez_file,
             &hash,
             bytes_written,
-            update_request.modified.unwrap_or(current_time),
+            update_request
+                .modified
+                .map(|o| o * 1000)
+                .unwrap_or(current_time),
         )
         .await;
 

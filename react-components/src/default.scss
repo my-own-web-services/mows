@@ -11,6 +11,10 @@ button.Filez {
     cursor: pointer;
 }
 
+.selectable {
+    user-select: text;
+}
+
 .Filez {
     background: var(--bg);
     color: var(--fg);
@@ -114,5 +118,31 @@ button.Filez {
     }
 
     &.FileMetaEditor {
+        overflow-y: scroll;
+        .panel {
+            .header {
+                svg {
+                    margin-right: 10px;
+                    transform: translate(0px, 3px);
+                }
+                h5 {
+                    display: inline;
+                }
+            }
+        }
+        .basicsBox {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .created,
+        .modified,
+        .size {
+            display: inline-block;
+            margin-right: 30px;
+            margin-top: 5px;
+        }
     }
 }

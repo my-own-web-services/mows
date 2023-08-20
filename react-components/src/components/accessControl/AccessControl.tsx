@@ -13,6 +13,10 @@ export default class AccessControl extends PureComponent<AccessControlProps, Acc
     }
 
     render = () => {
-        return <div className="AccessControl"></div>;
+        return (
+            <div className="AccessControl">
+                <h5>Access Control</h5>
+            </div>
+        );
     };
 }
