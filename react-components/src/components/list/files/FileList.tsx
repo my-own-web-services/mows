@@ -1,22 +1,20 @@
-import { FileGroup, FilezFile } from "@firstdorsal/filez-client";
+import { FilezFile } from "@firstdorsal/filez-client";
 import { CSSProperties, PureComponent } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
-import TopBar from "./TopBar";
-
-const defaultStyle: CSSProperties = {
-    width: "100%",
-    height: "100%",
-    background: "#111",
-    color: "#fff"
-};
+import FileListTopBar from "./FileListTopBar";
+import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
 
 interface FileListProps {
     readonly id?: string;
     readonly style?: CSSProperties;
     readonly rowRenderer?: (item: FilezFile, style: CSSProperties) => JSX.Element;
+    /**
+     * Default Row Renderer onClick handler
+     */
+    readonly drrOnClick?: (item: FilezFile) => void;
     readonly displayTopBar?: boolean;
 }
 
@@ -117,12 +115,41 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         }
     };
 
+    defaultRowRenderer = (item: FilezFile, style: CSSProperties) => {
+        return (
+            <div
+                className="DefaultRowRenderer"
+                onClick={() => this.props.drrOnClick && this.props.drrOnClick(item)}
+            >
+                {/*@ts-ignore*/}
+                <ContextMenuTrigger disableIfShiftIsPressed={true} id={item._id}>
+                    <div className="clickable" style={style}>
+                        {item.name}
+                    </div>
+                </ContextMenuTrigger>
+                {/*@ts-ignore*/}
+                <ContextMenu id={item._id}>
+                    {/*@ts-ignore*/}
+                    <MenuItem
+                        className="clickable"
+                        data={{ _id: item._id }}
+                        onClick={() => {
+                            console.log(item);
+                        }}
+                    >
+                        <span>Log File</span>
+                    </MenuItem>
+                </ContextMenu>
+            </div>
+        );
+    };
+
     render = () => {
         const fullListLength = this.state.listLength;
 
         return (
-            <div className="FileList" style={{ ...defaultStyle, ...this.props.style }}>
-                {this.props.displayTopBar && <TopBar></TopBar>}
+            <div className="Filez FileList" style={{ ...this.props.style }}>
+                {this.props.displayTopBar && <FileListTopBar />}
                 <div
                     style={{
                         width: "100%",
@@ -146,6 +173,9 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                                         width={width}
                                         onItemsRendered={onItemsRendered}
                                         ref={ref}
+                                        // without this the context menu cannot be positioned fixed
+                                        // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
+                                        style={{ willChange: "none" }}
                                     >
                                         {({ index, style }) => {
                                             const currentItem = this.state.fileList[index];
@@ -155,7 +185,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                                             if (this.props.rowRenderer) {
                                                 return this.props.rowRenderer(currentItem, style);
                                             }
-                                            return <div style={style}>{currentItem.name}</div>;
+                                            return this.defaultRowRenderer(currentItem, style);
                                         }}
                                     </FixedSizeList>
                                 )}

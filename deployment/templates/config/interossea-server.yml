@@ -53,6 +53,6 @@ uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $interosseaWebHo
 
 dev:
     makeEmailsAdmin:
-        {{- range $config.interossea.server.createUsers }}
+        {{- range $config.interossea.server.makeUsersAdmin }}
         - {{ . }}
         {{- end }}

@@ -1,6 +1,9 @@
 import { FileGroup, FilezClient, FilezFile } from "@firstdorsal/filez-client";
 import { createContext, PureComponent } from "react";
 import update from "immutability-helper";
+import "rsuite/styles/index.less";
+import "./default.scss";
+import { CustomProvider } from "rsuite";
 
 export interface FilezContext {
     filezClient: FilezClient;
@@ -66,7 +69,7 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
                     uiConfig: this.state.uiConfig
                 }}
             >
-                {this.props.children}
+                <CustomProvider theme="dark">{this.props.children}</CustomProvider>
             </FilezContext.Provider>
         );
     };

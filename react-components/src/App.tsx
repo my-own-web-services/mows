@@ -1,10 +1,10 @@
 import { CSSProperties, PureComponent } from "react";
 import FilezProvider from "./FilezProvider";
-import { FileGroup, FilezFile } from "@firstdorsal/filez-client";
-import FilezFileViewer from "./components/FilezFileViewer";
-import { isFile } from "./utils";
+import { FilezFile } from "@firstdorsal/filez-client";
+import FileViewer from "./components/viewer/FileViewer";
 import FileList from "./components/list/files/FileList";
 import GroupList from "./components/list/groups/GroupList";
+import FileMetaEditor from "./components/metaEditor/FileMetaEditor";
 
 interface AppProps {}
 
@@ -20,15 +20,14 @@ export default class App extends PureComponent<AppProps, AppState> {
         };
     }
 
-    renderListItem = (item: FilezFile | FileGroup, style: CSSProperties) => {
+    renderListItem = (item: FilezFile, style: CSSProperties) => {
         return (
             <div
+                className="Filez clickable"
                 onClick={() => {
-                    if (isFile(item)) {
-                        this.setState({ selectedFile: item });
-                    }
+                    this.setState({ selectedFile: item });
                 }}
-                style={style}
+                style={{ ...style }}
             >
                 <div>{item.name}</div>
             </div>
@@ -39,14 +38,26 @@ export default class App extends PureComponent<AppProps, AppState> {
         return (
             <div className="App">
                 <FilezProvider>
-                    <GroupList style={{ width: "500px", float: "left" }} />
-                    <FileList
-                        rowRenderer={this.renderListItem}
-                        id="JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ_all"
-                        style={{ width: "500px", float: "left", height: 500 }}
+                    <GroupList
                         displayTopBar={true}
+                        style={{ width: "300px", float: "left", height: "500px" }}
                     />
-                    <FilezFileViewer file={this.state.selectedFile} />
+                    <FileList
+                        id="JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ_all"
+                        style={{ width: "500px", float: "left", height: "500px" }}
+                        displayTopBar={true}
+                        drrOnClick={item => {
+                            this.setState({ selectedFile: item });
+                        }}
+                    />
+                    <FileViewer
+                        style={{ width: "500px", float: "left", height: "500px" }}
+                        file={this.state.selectedFile}
+                    />
+                    <FileMetaEditor
+                        style={{ width: "500px", float: "left", height: "500px" }}
+                        file={this.state.selectedFile}
+                    />
                 </FilezProvider>
             </div>
         );

@@ -13,12 +13,6 @@ enum ColumnDirection {
     ASCENDING = 2
 }
 
-interface TopBarProps {}
-
-interface TopBarState {
-    readonly columns: Column[];
-}
-
 const defaultColumns: Column[] = [
     {
         field: "name",
@@ -30,8 +24,14 @@ const defaultColumns: Column[] = [
     }
 ];
 
-export default class TopBar extends PureComponent<TopBarProps, TopBarState> {
-    constructor(props: TopBarProps) {
+interface ListBarProps {}
+
+interface ListBarState {
+    readonly columns: Column[];
+}
+
+export default class ListBar extends PureComponent<ListBarProps, ListBarState> {
+    constructor(props: ListBarProps) {
         super(props);
         this.state = {
             columns: [...defaultColumns]
@@ -40,7 +40,7 @@ export default class TopBar extends PureComponent<TopBarProps, TopBarState> {
 
     render = () => {
         return (
-            <div style={{ width: "100%", height: "40px" }} className="TopBar">
+            <div className="ListBar">
                 <span
                     className="Columns"
                     style={{
@@ -62,12 +62,11 @@ export default class TopBar extends PureComponent<TopBarProps, TopBarState> {
                                 }}
                             >
                                 <button
+                                    className="Filez"
                                     style={{
                                         top: "10px",
                                         position: "absolute",
                                         textTransform: "capitalize",
-                                        userSelect: "none",
-                                        cursor: "pointer",
                                         background: "none",
                                         border: "none",
                                         fontSize: "100%",
@@ -88,17 +87,14 @@ export default class TopBar extends PureComponent<TopBarProps, TopBarState> {
                 </span>
                 <button
                     style={{
-                        background: "none",
-                        border: "none",
                         height: "100%",
-                        cursor: "pointer",
                         width: "45px",
                         display: "inline-block"
                     }}
-                    className="AddColumn"
+                    className="Filez AddColumn"
                     title="Add column"
                 >
-                    <RiInsertColumnRight size={35} color={"#fff"} style={{ height: "100%" }} />
+                    <RiInsertColumnRight size={25} color={"#fff"} style={{ height: "100%" }} />
                 </button>
             </div>
         );

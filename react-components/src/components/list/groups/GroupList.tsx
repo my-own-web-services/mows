@@ -4,13 +4,9 @@ import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
-
-const defaultStyle: CSSProperties = {
-    width: "100%",
-    height: "100%",
-    background: "#111",
-    color: "#fff"
-};
+import GroupListTopBar from "./GroupListTopBar";
+import { AiOutlineFolder, AiOutlineFolderView } from "react-icons/ai";
+import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
 
 interface GroupListProps {
     readonly displayTopBar?: boolean;
@@ -72,44 +68,105 @@ export default class GroupList extends PureComponent<GroupListProps, GroupListSt
     };
     loadMoreGroups = async (startIndex: number, limit: number) => {};
 
+    handleRightClick = (e: any, data: any) => {
+        console.log(data);
+    };
+
+    defaultRowRenderer = (item: FileGroup, style: CSSProperties) => {
+        return (
+            <div className="DefaultRowRenderer" style={style}>
+                <div className="Group">
+                    {/*@ts-ignore*/}
+                    <ContextMenuTrigger disableIfShiftIsPressed={true} id={item._id}>
+                        <div className="GroupItems clickable">
+                            <span>
+                                {item.groupType === "static" ? (
+                                    <AiOutlineFolder size={20} />
+                                ) : (
+                                    <AiOutlineFolderView size={20} />
+                                )}
+                            </span>
+                            <span className="itemName">{item.name}</span>
+                            <span className="itemCount">{item.itemCount}</span>
+                        </div>
+                    </ContextMenuTrigger>
+                    {/*@ts-ignore*/}
+                    <ContextMenu id={item._id}>
+                        {/*@ts-ignore*/}
+                        <MenuItem
+                            className="clickable"
+                            data={{ _id: item._id }}
+                            onClick={() => {
+                                console.log(item);
+                            }}
+                        >
+                            <span>Log Group</span>
+                        </MenuItem>
+                        {/*@ts-ignore*/}
+                        <MenuItem
+                            className="clickable"
+                            data={{ _id: item._id }}
+                            onClick={() => {
+                                console.log(item);
+                            }}
+                        >
+                            <span>Delete Group</span>
+                        </MenuItem>
+                    </ContextMenu>
+                </div>
+            </div>
+        );
+    };
+
     render = () => {
         const fullListLength = this.state.listLength;
 
         return (
-            <div className="GroupList" style={{ ...defaultStyle, ...this.props.style }}>
-                <AutoSizer>
-                    {({ height, width }) => (
-                        <InfiniteLoader
-                            isItemLoaded={index => this.state.groupList[index] !== undefined}
-                            itemCount={fullListLength}
-                            loadMoreItems={this.loadMoreGroups}
-                            threshold={20}
-                            minimumBatchSize={10}
-                        >
-                            {({ onItemsRendered, ref }) => (
-                                <FixedSizeList
-                                    itemSize={20}
-                                    height={height}
-                                    itemCount={fullListLength}
-                                    width={width}
-                                    onItemsRendered={onItemsRendered}
-                                    ref={ref}
-                                >
-                                    {({ index, style }) => {
-                                        const currentItem = this.state.groupList[index];
-                                        if (!currentItem) {
-                                            return <div style={style}>Loading...</div>;
-                                        }
-                                        if (this.props.rowRenderer) {
-                                            return this.props.rowRenderer(currentItem, style);
-                                        }
-                                        return <div style={style}>{currentItem.name}</div>;
-                                    }}
-                                </FixedSizeList>
-                            )}
-                        </InfiniteLoader>
-                    )}
-                </AutoSizer>
+            <div className="Filez GroupList" style={{ ...this.props.style }}>
+                {this.props.displayTopBar && <GroupListTopBar />}
+                <div
+                    style={{
+                        width: "100%",
+                        height: this.props.displayTopBar ? "calc(100% - 40px)" : "100%"
+                    }}
+                >
+                    <AutoSizer>
+                        {({ height, width }) => (
+                            <InfiniteLoader
+                                isItemLoaded={index => this.state.groupList[index] !== undefined}
+                                itemCount={fullListLength}
+                                loadMoreItems={this.loadMoreGroups}
+                                threshold={20}
+                                minimumBatchSize={10}
+                            >
+                                {({ onItemsRendered, ref }) => (
+                                    <FixedSizeList
+                                        itemSize={20}
+                                        height={height}
+                                        itemCount={fullListLength}
+                                        width={width}
+                                        onItemsRendered={onItemsRendered}
+                                        ref={ref}
+                                        // without this the context menu cannot be positioned fixed
+                                        // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
+                                        style={{ willChange: "none" }}
+                                    >
+                                        {({ index, style }) => {
+                                            const currentItem = this.state.groupList[index];
+                                            if (!currentItem) {
+                                                return <div style={style}>Loading...</div>;
+                                            }
+                                            if (this.props.rowRenderer) {
+                                                return this.props.rowRenderer(currentItem, style);
+                                            }
+                                            return this.defaultRowRenderer(currentItem, style);
+                                        }}
+                                    </FixedSizeList>
+                                )}
+                            </InfiniteLoader>
+                        )}
+                    </AutoSizer>
+                </div>
             </div>
         );
     };

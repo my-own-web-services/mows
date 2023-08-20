@@ -1,9 +1,9 @@
 import { CSSProperties, PureComponent } from "react";
-import { FilezContext } from "../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client";
-import Image from "./viewer/Image";
-import Audio from "./viewer/Audio";
-import Video from "./viewer/Video";
+import Image from "./formats/Image";
+import Audio from "./formats/Audio";
+import Video from "./formats/Video";
 
 interface FilezFileViewerProps {
     readonly file?: FilezFile;
@@ -72,7 +72,7 @@ export default class FilezFileViewer extends PureComponent<
         }
 
         return (
-            <div className="FilezFileViewer" style={this.props.style}>
+            <div className="Filez FileViewer" style={this.props.style}>
                 {(() => {
                     const fileType = this.state.file.mimeType;
                     if (fileType.startsWith("image/")) {
