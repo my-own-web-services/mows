@@ -331,8 +331,6 @@ volumes:
         name: filez-storage
     filez-db:
         name: filez-db
-    interossea-db:
-        name: interossea-db
     {{- range $config.filez.addons }}
     {{- if eq .storage true }}
     filez-addons-{{ .name }}:
@@ -342,6 +340,8 @@ volumes:
     {{- if eq $config.interossea.server.create true }}
     interossea-keys:
         name: interossea-keys
+    interossea-db:
+        name: interossea-db
     {{- end }}
     
 networks:

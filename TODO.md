@@ -55,6 +55,8 @@
 
 ## Other
 
+-   hexlerz like blog
+-   upload mini spiel browser mit musik aktiv halten
 -   files should be able to appear multiple times in manual groups (for example for playlists)
 -   wer hat wann zeit app
 -   ui library to facilitate the building of apps +++++
