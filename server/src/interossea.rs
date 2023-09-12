@@ -47,7 +47,6 @@ impl Interossea {
         req: &Request<Body>,
         addr: SocketAddr,
     ) -> anyhow::Result<UserAssertion> {
-        let config = &SERVER_CONFIG;
         let authorization_header = some_or_bail!(
             req.headers().get("InterosseaUserAssertion"),
             "No UserAssertion header"
@@ -89,7 +88,6 @@ impl Interossea {
         addr: SocketAddr,
         session_map: Arc<RwLock<HashMap<String, UserAssertion>>>,
     ) -> anyhow::Result<UserAssertion> {
-        let config = &SERVER_CONFIG;
         let cookies = get_cookies(req)?;
         let session = some_or_bail!(cookies.get("session"), "No session cookie found");
 
