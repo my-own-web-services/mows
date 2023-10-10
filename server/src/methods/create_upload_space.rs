@@ -28,7 +28,7 @@ pub async fn create_upload_space(
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let cusr: CreateUploadSpaceRequest = serde_json::from_slice(&body)?;
 
-    let upload_space_id = generate_id();
+    let upload_space_id = generate_id(16);
 
     let mut limits = HashMap::new();
 
@@ -46,7 +46,7 @@ pub async fn create_upload_space(
         );
     }
 
-    let file_group_id = generate_id();
+    let file_group_id = generate_id(16);
 
     let group = FilezGroups::FilezFileGroup(FilezFileGroup {
         owner_id: user_id.to_string(),

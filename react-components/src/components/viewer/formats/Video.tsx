@@ -2,7 +2,8 @@ import type dashjs from "dashjs";
 import type { MediaPlayerClass } from "dashjs";
 import { FilezFile } from "@firstdorsal/filez-client";
 import { Component, createRef } from "react";
-import { UiConfig } from "../../FilezProvider";
+import { UiConfig } from "../../../FilezProvider";
+
 interface VideoProps {
     readonly file: FilezFile;
     readonly uiConfig: UiConfig;

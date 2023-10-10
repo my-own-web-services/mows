@@ -15,11 +15,14 @@ services:
         build:
             context: {{ $config.filez.server.build.path }}
             dockerfile: {{ $config.filez.server.build.dockerfile }}
+        {{- else }}
+        image: firstdorsal/filez-server
+
         {{- end }}
         {{- if eq $config.filez.runAsRoot true }}
         user: root
         {{- end }}
-        image: firstdorsal/filez-server
+        
         container_name: filez-server
         volumes:
             - ./config/filez-server.yml:/config.yml:ro
@@ -79,8 +82,9 @@ services:
         build:
             context: {{ $config.filez.web.build.path }}
             dockerfile: {{ $config.filez.web.build.dockerfile }}
-        {{- end }}
+        {{- else }}
         image: firstdorsal/filez-web
+        {{- end }}        
         container_name: filez-web
         volumes:
             - ./config/filez-web.yml:/config.yml:ro
@@ -115,8 +119,9 @@ services:
         build:
             context: {{.build.path}}
             dockerfile: {{.build.dockerfile}}
-        {{- end }}
+        {{- else }}
         image: {{.image}}
+        {{- end }}        
         {{- if eq $config.filez.runAsRoot true }}
         user: root
         {{- end }}
@@ -199,8 +204,9 @@ services:
         build:
             context: {{ $config.interossea.web.build.path }}
             dockerfile: {{ $config.interossea.web.build.dockerfile }}
-        {{- end }}
+        {{- else }}
         image: firstdorsal/interossea-web
+        {{- end }}        
         container_name: interossea-web
         volumes:
             - ./config/interossea-web.yml:/config.yml:ro
@@ -260,8 +266,9 @@ services:
         build:
             context: {{ $config.interossea.server.build.path }}
             dockerfile: {{ $config.interossea.server.build.dockerfile }}
-        {{- end }}
+        {{- else }}
         image: firstdorsal/interossea-server
+        {{- end }}        
         container_name: interossea-server
         restart: always
         networks:

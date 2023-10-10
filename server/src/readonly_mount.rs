@@ -64,7 +64,7 @@ pub async fn scan_readonly_mount(
         file_groups[0].file_group_id.clone()
     } else {
         // create group
-        let group_id = generate_id();
+        let group_id = generate_id(16);
         db.create_group(&FilezGroups::FilezFileGroup(FilezFileGroup {
             owner_id: mount.owner_id.to_string(),
             name: Some(mount_name.to_string()),
@@ -112,7 +112,7 @@ pub async fn import_readonly_file(
         "Could not convert file name to str"
     );
 
-    let file_id = generate_id();
+    let file_id = generate_id(16);
 
     // TODO enable it optional
     //let file_hash = get_file_hash(path)?;

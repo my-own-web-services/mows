@@ -59,7 +59,7 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
     };
 
     render = () => {
-        if (this.state.filezClient === undefined) {
+        if (!this.state.filezClient) {
             return null;
         }
         return (

@@ -1,6 +1,6 @@
 import { FilezFile, ProcessedImage } from "@firstdorsal/filez-client";
 import { PureComponent } from "react";
-import { UiConfig } from "../../FilezProvider";
+import { UiConfig } from "../../../FilezProvider";
 
 interface ImageProps {
     readonly file: FilezFile;

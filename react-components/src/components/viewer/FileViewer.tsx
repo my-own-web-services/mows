@@ -4,6 +4,8 @@ import { FilezFile } from "@firstdorsal/filez-client";
 import Image from "./formats/Image";
 import Audio from "./formats/Audio";
 import Video from "./formats/Video";
+import Text from "./formats/Text";
+import { isText } from "../../utils";
 
 interface FilezFileViewerProps {
     readonly file?: FilezFile;
@@ -86,6 +88,10 @@ export default class FilezFileViewer extends PureComponent<
                     } else if (fileType.startsWith("video/")) {
                         return (
                             <Video file={this.state.file} uiConfig={this.context.uiConfig}></Video>
+                        );
+                    } else if (isText(this.state.file)) {
+                        return (
+                            <Text file={this.state.file} uiConfig={this.context.uiConfig}></Text>
                         );
                     } else {
                         return <div>Can't display this type of file: {fileType}</div>;

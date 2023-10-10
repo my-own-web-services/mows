@@ -16,9 +16,13 @@ createUsers:
 magicLink:
     cooldownMinutes: 1
     expirationMinutes: 10
-    skipIpCheck: true
+    maxUseCount: 10
 
 keyFolder: /keys/
+
+security:
+    usePreSessionIds: false
+    useIpCheck: false
 
 services:
     - id: filez

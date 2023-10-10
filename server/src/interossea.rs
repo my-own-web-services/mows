@@ -134,7 +134,7 @@ pub async fn get_session_cookie(
     addr: SocketAddr,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let new_session_id = generate_id();
+    let new_session_id = generate_id(32);
 
     let ua = INTEROSSEA
         .get()

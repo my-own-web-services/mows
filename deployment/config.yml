@@ -55,15 +55,14 @@ filez:
         publicHostname:
             domain: vindelicum.eu
             subdomain: filez
+    # THIS IS NOT IMPLEMENTED
     # this will chmod all files and folders and give any user read access to them on each path
     # this isn't optimal because it does something outside the container space but is required when running the containers as non root users
     readonlyMounts:
-        - name: testVideo
-          path: /home/paul/Downloads/test_video/
-          ownerId: JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ
-        - name: testImages
-          path: /home/paul/Downloads/test_images/
-          ownerId: JIapiYfZ5YQPmAs6T39vw3arVs03UBkZ
+        - name: example-files
+          path: /home/paul/Documents/filez/example-files
+          ownerId: F0PVw43TfyvQmWuqjV-79B4pIV0MrW6A
+
     # TODO if the number of addons is greater than 10 the network assignment will fail
     addons:
         - name: video

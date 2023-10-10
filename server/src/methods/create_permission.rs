@@ -21,7 +21,7 @@ pub async fn create_permission(
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let cpr: CreatePermissionRequest = serde_json::from_slice(&body)?;
 
-    let permission_id = generate_id();
+    let permission_id = generate_id(16);
 
     let permission = FilezPermission {
         owner_id: user_id.to_string(),

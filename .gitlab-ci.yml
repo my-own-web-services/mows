@@ -21,7 +21,7 @@ docker-build-server:
         entrypoint: [""]
     script:
         - export CI_PUBLIC_REGISTRY=index.docker.io
-        - export CI_PRIVATE_REGISTRY=hub.y.gy
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-server
         - export DOCKER_PATH=/server/
         - mkdir -p /kaniko/.docker
@@ -41,7 +41,7 @@ docker-build-web:
         entrypoint: [""]
     script:
         - export CI_PUBLIC_REGISTRY=index.docker.io
-        - export CI_PRIVATE_REGISTRY=hub.y.gy
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-web
         - export DOCKER_PATH=/web/
         - mkdir -p /kaniko/.docker
@@ -61,7 +61,7 @@ docker-build-addons-video:
         entrypoint: [""]
     script:
         - export CI_PUBLIC_REGISTRY=index.docker.io
-        - export CI_PRIVATE_REGISTRY=hub.y.gy
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-addons-video
         - export DOCKER_PATH=/addons/video/
         - mkdir -p /kaniko/.docker
@@ -81,7 +81,7 @@ docker-build-addons-image:
         entrypoint: [""]
     script:
         - export CI_PUBLIC_REGISTRY=index.docker.io
-        - export CI_PRIVATE_REGISTRY=hub.y.gy
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-addons-image
         - export DOCKER_PATH=/addons/image/
         - mkdir -p /kaniko/.docker
@@ -101,7 +101,7 @@ docker-build-addons-metadata:
         entrypoint: [""]
     script:
         - export CI_PUBLIC_REGISTRY=index.docker.io
-        - export CI_PRIVATE_REGISTRY=hub.y.gy
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-addons-metadata
         - export DOCKER_PATH=/addons/metadata/
         - mkdir -p /kaniko/.docker

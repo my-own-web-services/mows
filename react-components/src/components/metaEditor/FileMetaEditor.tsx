@@ -3,7 +3,7 @@ import { CSSProperties, PureComponent } from "react";
 import { InputPicker, Panel, PanelGroup, TagPicker } from "rsuite";
 import Input from "rsuite/Input";
 import { ItemDataType } from "rsuite/esm/@types/common";
-import { bytesToSize, utcTimeStampToTimeAndDate } from "../../utils";
+import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../utils";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import { BiHistory, BiLink } from "react-icons/bi";
 import { MdStorage } from "react-icons/md";
@@ -145,7 +145,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                             </div>
                             <div className="size">
                                 <label>Size</label>
-                                {bytesToSize(this.props.file.size)}
+                                {bytesToHumanReadableSize(this.props.file.size)}
                             </div>
                         </div>
                     </Panel>

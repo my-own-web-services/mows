@@ -1,5 +1,5 @@
 use crate::{
-    config::{ServerConfig, SERVER_CONFIG},
+    config::SERVER_CONFIG,
     db::DB,
     get_acl, get_acl_users,
     internal_types::{Auth, MergedFilezPermission},
@@ -54,13 +54,13 @@ pub fn get_cookies(req: &Request<Body>) -> anyhow::Result<HashMap<String, String
     Ok(cookies)
 }
 
-pub fn generate_id() -> String {
+pub fn generate_id(length: usize) -> String {
     use rand::Rng;
     const CHARSET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    const LEN: usize = 32;
+
     let mut rng = rand::thread_rng();
 
-    (0..LEN)
+    (0..length)
         .map(|_| {
             let idx = rng.gen_range(0..CHARSET.len());
             CHARSET[idx] as char
@@ -70,7 +70,7 @@ pub fn generate_id() -> String {
 
 fn merge_values(a: &mut Value, b: &Value) {
     match (a, b) {
-        (&mut Value::Object(ref mut a), &Value::Object(ref b)) => {
+        (&mut Value::Object(ref mut a), Value::Object(ref b)) => {
             for (k, v) in b {
                 merge_values(a.entry(k.clone()).or_insert(Value::Null), v);
             }

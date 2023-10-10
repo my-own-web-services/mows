@@ -8,7 +8,7 @@ import FileListTopBar from "./FileListTopBar";
 import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
 
 interface FileListProps {
-    readonly id?: string;
+    readonly id: string;
     readonly style?: CSSProperties;
     readonly rowRenderer?: (item: FilezFile, style: CSSProperties) => JSX.Element;
     /**
@@ -21,7 +21,7 @@ interface FileListProps {
 interface FileListState {
     readonly fileList: FilezFile[];
     readonly listLength: number;
-    readonly initialLoad: boolean;
+    readonly initialLoadFinished: boolean;
 }
 
 export default class FileList extends PureComponent<FileListProps, FileListState> {
@@ -33,7 +33,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         super(props);
         this.state = {
             fileList: [],
-            initialLoad: false,
+            initialLoadFinished: false,
             listLength: 0
         };
     }
@@ -42,68 +42,64 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         await this.loadData();
     };
 
-    componentDidUpdate = (
+    componentDidUpdate = async (
         prevProps: Readonly<FileListProps>,
         prevState: Readonly<FileListState>
     ) => {
-        const filezClient = this?.context?.filezClient;
-        // TODO handle updates when (group)id changes
-        if (prevState.initialLoad === false && filezClient !== null) {
-            this.loadData();
+        if (this.context === null) {
+            throw new Error("FileList must be used inside Filez to provide the FilezContext");
+        } else {
+            const filezClient = this.context.filezClient;
+            // TODO handle updates when (group)id changes
+            if (prevState.initialLoadFinished === true && filezClient !== null) {
+                if (prevProps.id !== this.props.id) {
+                    await this.loadData();
+                }
+            }
         }
     };
 
     loadData = async () => {
+        console.log("loadData");
+
         if (this.context === null) {
             throw new Error("FileList must be used inside Filez to provide the FilezContext");
         } else {
-            const filezClient = this?.context?.filezClient;
+            const filezClient = this.context.filezClient;
+            this.moreFilesLoading = true;
 
-            if (filezClient === null) {
-                return;
-            }
-
-            if (this.props.id === undefined) {
-                throw new Error("File list has no id");
-            }
             const [groups, files] = await Promise.all([
                 filezClient.get_own_file_groups(),
                 filezClient.get_file_infos_by_group_id(this.props.id, 0, 20)
             ]);
+            this.moreFilesLoading = false;
             const currentGroup = groups.find(group => group._id === this.props.id);
             if (currentGroup === undefined) {
                 throw new Error("Current group does not exist");
             }
+
             this.setState({
                 fileList: files,
-                initialLoad: true,
+                initialLoadFinished: true,
                 listLength: currentGroup.itemCount
             });
         }
     };
 
     loadMoreFiles = async (startIndex: number, limit: number) => {
+        console.log("loadMoreFiles", startIndex, limit);
+
         if (this.context === null) {
             throw new Error("FileList must be used inside Filez to provide the FilezContext");
         } else {
-            const filezClient = this?.context?.filezClient;
+            const filezClient = this.context.filezClient;
 
-            if (filezClient === null) {
-                return;
-            }
-
-            if (this.props.id === undefined) {
-                throw new Error("File list has no id");
-            }
             if (this.moreFilesLoading === false) {
-                this.moreFilesLoading = true;
-
                 const newFiles = await filezClient.get_file_infos_by_group_id(
                     this.props.id,
                     startIndex,
                     limit
                 );
-                this.moreFilesLoading = false;
 
                 this.setState(({ fileList }) => {
                     for (let i = 0; i < newFiles.length; i++) {
@@ -180,7 +176,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                                         {({ index, style }) => {
                                             const currentItem = this.state.fileList[index];
                                             if (!currentItem) {
-                                                return <div style={style}>Loading...</div>;
+                                                return <div style={style}></div>;
                                             }
                                             if (this.props.rowRenderer) {
                                                 return this.props.rowRenderer(currentItem, style);

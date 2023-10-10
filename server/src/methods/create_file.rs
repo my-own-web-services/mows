@@ -122,7 +122,7 @@ pub async fn create_file(
     .path
     .clone();
 
-    let file_id = generate_id();
+    let file_id = generate_id(16);
     let (folder_path, file_name) = get_folder_and_file_path(&file_id, &storage_path);
 
     fs::create_dir_all(&folder_path)?;

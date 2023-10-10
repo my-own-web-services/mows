@@ -12,11 +12,20 @@ export const utcTimeStampToTimeAndDate = (
     return `${date.toLocaleDateString("de")} ${date.toLocaleTimeString("de")}`;
 };
 
-export const bytesToSize = (bytes: number): string => {
+export const bytesToHumanReadableSize = (bytes: number): string => {
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     if (bytes === 0) {
         return "0 Byte";
     }
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i)) + " " + sizes[i];
+};
+
+export const isText = (file: FilezFile): boolean => {
+    if (file.mimeType.startsWith("text/")) return true;
+    if (file.mimeType.startsWith("application/json")) return true;
+    if (file.mimeType.startsWith("application/xml")) return true;
+    if (file.mimeType.startsWith("application/octet-stream")) return true;
+
+    return false;
 };

@@ -25,7 +25,7 @@ pub async fn create_group(
 
     let cgr: CreateGroupRequest = serde_json::from_slice(&body)?;
 
-    let group_id = generate_id();
+    let group_id = generate_id(16);
 
     let group = match cgr.group_type {
         crate::types::GroupType::User => FilezGroups::FilezUserGroup(FilezUserGroup {

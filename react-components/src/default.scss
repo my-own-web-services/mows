@@ -115,6 +115,18 @@ button.Filez {
                 object-fit: contain;
             }
         }
+        .Text {
+            overflow-x: hidden;
+            overflow-y: scroll;
+            width: 100%;
+            height: 100%;
+            pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                margin: 0px;
+                padding: 10px;
+            }
+        }
     }
 
     &.FileMetaEditor {

@@ -20,14 +20,15 @@ pub async fn get_ocr(file: &FilezFile) -> Option<OcrResult> {
 
     let tesseract_args = Args {
         lang: "deu".to_string(),
-        dpi: 150,
-        psm: 3,
-        oem: 3,
+        dpi: Some(150),
+        psm: Some(3),
+        oem: Some(3),
         config_variables: HashMap::new(),
     };
 
     if file.mime_type.as_str() == "application/pdf" {
-        todo!()
+        println!("pdf not implemented yet");
+        None
     } else if valid_image_types.contains(&file.mime_type.as_str()) {
         // run ocr on image
         match Image::from_path(&file.path) {

@@ -56,7 +56,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         };
     }
 
-    let addr: SocketAddr = SERVER_CONFIG.http.internal_address.parse().unwrap();
+    let internal_http_addr: SocketAddr = SERVER_CONFIG.http.internal_address.parse().unwrap();
 
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
 
@@ -78,17 +78,18 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         };
     });
 
-    let server = Server::bind(&addr).serve(make_service_fn(move |conn: &AddrStream| {
-        let addr = conn.remote_addr();
-        let session_map = Arc::clone(&session_map);
-        async move {
-            Ok::<_, Infallible>(service_fn(move |req| {
-                handle_request(req, addr, Arc::clone(&session_map))
-            }))
-        }
-    }));
+    let server =
+        Server::bind(&internal_http_addr).serve(make_service_fn(move |conn: &AddrStream| {
+            let addr = conn.remote_addr();
+            let session_map = Arc::clone(&session_map);
+            async move {
+                Ok::<_, Infallible>(service_fn(move |req| {
+                    handle_request(req, addr, Arc::clone(&session_map))
+                }))
+            }
+        }));
 
-    println!("Listening on http://{}", addr);
+    println!("Listening on http://{}", internal_http_addr);
 
     server.with_graceful_shutdown(shutdown_signal()).await?;
 
