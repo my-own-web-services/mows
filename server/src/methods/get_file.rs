@@ -78,7 +78,7 @@ pub async fn get_file(
 
             Path::new(&config.app_storage.path)
                 .join(folder_path)
-                .join(&file_name)
+                .join(file_name)
                 .join(&af.1)
         }
         None => Path::new(&file.path).to_path_buf(),
@@ -148,7 +148,7 @@ pub async fn get_file(
         None => file.mime_type,
     };
 
-    let illegal_types = vec!["text/html", "application/javascript", "text/css"];
+    let illegal_types = ["text/html", "application/javascript", "text/css"];
 
     let res = res.header(
         "Content-Type",

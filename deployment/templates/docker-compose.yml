@@ -58,7 +58,7 @@ services:
             - interossea-server
             {{- end }}
         environment:
-            MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
+            MONGODB_ROOT_PASSWORD: $MONGODB_ROOT_PASSWORD_FILEZ
             INTEROSSEA_INTERNAL_URL: {{ $config.interossea.server.internalHostname }}
         labels:
             traefik:
@@ -157,7 +157,7 @@ services:
         restart: always
         {{- if eq .db true }}
         environment:
-            MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
+            MONGODB_ROOT_PASSWORD: $MONGODB_ROOT_PASSWORD_FILEZ
             CLEAR_OWN_APP_DATA_ON_START: {{ .resetOnRestart }}
             {{- if eq .name "metadata" }}
             OMDB_API_KEY: $OMDB_API_KEY
@@ -166,30 +166,28 @@ services:
             - filez-addons-{{.name}}-db
         {{- end }}
     {{- end }}
-    filezdb:
-        build:
-            context: ../../db/
-            dockerfile: Dockerfile
-        image: mongo:6
+    filez-db:
+        image: bitnami/mongodb
         restart: always
-        container_name: filezdb
-        hostname: filezdb.localhost
+        container_name: filez-db
+        hostname: filez-db.localhost
         volumes:
-            - filez-db:/data/db/:rw
-            - ./filezdb-configdb/:/data/configdb:rw
+            - filez-db:/bitnami:rw
         {{- if eq $config.filez.server.db.exposeToLocalhost true}}
         ports:
             - 127.0.0.1:{{ $config.filez.server.db.port }}:{{ $config.filez.server.db.port }}
         {{- end }}
-        command: ["--port","{{ $config.filez.server.db.port }}","--bind_ip_all", "--keyFile", "/keyfile", "--replSet", "rs0"]
         environment:
-            MONGO_INITDB_ROOT_USERNAME: root
-            MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_FILEZ
-        healthcheck:
-            test: |
-                test $$(mongosh --port "{{ $config.filez.server.db.port }}" --quiet -u root -p $MONGO_INITDB_ROOT_PASSWORD_FILEZ --eval "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'filezdb.localhost:{{ $config.filez.server.db.port }}' }] }).ok } catch (_) { rs.status().ok }") -eq 1
-            interval: 10s
-            start_period: 10s
+            MONGODB_ROOT_PASSWORD: $MONGODB_ROOT_PASSWORD_FILEZ
+            MONGODB_ROOT_USER: root
+            MONGODB_ADVERTISED_HOSTNAME: filez-db.localhost
+            MONGODB_ADVERTISED_PORT_NUMBER: {{ $config.filez.server.db.port }}
+
+            MONGODB_REPLICA_SET_MODE: primary
+            MONGODB_REPLICA_SET_KEY: "abcdefg"
+            MONGODB_REPLICA_SET_NAME: replicaset
+
+            MONGODB_PORT_NUMBER: {{ $config.filez.server.db.port }}
         networks:
             - filez-server-db
             {{- range $config.filez.addons }}
@@ -235,30 +233,28 @@ services:
                                     port: 80
     {{- end }}
     {{- if eq $config.interossea.server.create true }}
-    interosseadb:
-        build:
-            context: ../../db/
-            dockerfile: Dockerfile
+    interossea-db:
+        image: bitnami/mongodb
         restart: always
-        container_name: interosseadb
-        hostname: interosseadb.localhost
+        container_name: interossea-db
+        hostname: interossea-db.localhost
         volumes:
-            - interossea-db:/data/db/:rw
-            - ./interosseadb-configdb/:/data/configdb:rw
+            - interossea-db:/bitnami:rw
         {{- if eq $config.interossea.server.db.exposeToLocalhost true}}
         ports:
             - 127.0.0.1:{{ $config.interossea.server.db.port }}:{{ $config.interossea.server.db.port }}
         {{- end }}
-        command: ["--port","{{ $config.interossea.server.db.port }}","--bind_ip_all", "--keyFile", "/keyfile", "--replSet", "rs0"]
-
         environment:
-            MONGO_INITDB_ROOT_USERNAME: root
-            MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_INTEROSSEA
-        healthcheck:
-            test: |
-                test $$(mongosh --port "{{ $config.interossea.server.db.port }}" --quiet -u root -p $MONGO_INITDB_ROOT_PASSWORD_INTEROSSEA --eval "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'interosseadb.localhost:{{ $config.interossea.server.db.port }}' }] }).ok } catch (_) { rs.status().ok }") -eq 1
-            interval: 10s
-            start_period: 10s
+            MONGODB_ROOT_PASSWORD: $MONGODB_ROOT_PASSWORD_INTEROSSEA
+            MONGODB_ROOT_USER: root
+            MONGODB_ADVERTISED_HOSTNAME: interossea-db.localhost
+            MONGODB_ADVERTISED_PORT_NUMBER: {{ $config.interossea.server.db.port }}
+
+            MONGODB_REPLICA_SET_MODE: primary
+            MONGODB_REPLICA_SET_KEY: "abcdefg"
+            MONGODB_REPLICA_SET_NAME: replicaset
+
+            MONGODB_PORT_NUMBER: {{ $config.interossea.server.db.port }}
         networks:
             - interossea-db
     interossea-server:
@@ -280,7 +276,7 @@ services:
             - interossea-keys:/keys/:rw
             - ./config/interossea-redirects.env:/redirects/filez.env:ro
         environment:
-            MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD_INTEROSSEA
+            MONGODB_ROOT_PASSWORD: $MONGODB_ROOT_PASSWORD_INTEROSSEA
             INTEROSSEA_MAIL_PASSWORD: $INTEROSSEA_MAIL_PASSWORD
         labels:
             traefik:

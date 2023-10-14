@@ -46,6 +46,7 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
         );
 
         await client.init();
+        await client.create_user();
         //console.log(uiConfig);
 
         this.setState(state => {

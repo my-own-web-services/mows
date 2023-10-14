@@ -1,6 +1,6 @@
 import { FilezFile } from "@firstdorsal/filez-client";
 import { CSSProperties, PureComponent } from "react";
-import { InputPicker, Panel, PanelGroup, TagPicker } from "rsuite";
+import { IconButton, InputPicker, Panel, PanelGroup, TagPicker } from "rsuite";
 import Input from "rsuite/Input";
 import { ItemDataType } from "rsuite/esm/@types/common";
 import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../utils";
@@ -8,6 +8,8 @@ import { AiOutlineInfoCircle } from "react-icons/ai";
 import { BiHistory, BiLink } from "react-icons/bi";
 import { MdStorage } from "react-icons/md";
 import { FaPeopleArrows } from "react-icons/fa";
+import { FileDownload } from "@rsuite/icons";
+import { FilezContext } from "../../FilezProvider";
 
 interface MetaEditorProps {
     readonly file?: FilezFile;
@@ -25,6 +27,9 @@ interface MetaEditorState {
 }
 
 export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEditorState> {
+    static contextType = FilezContext;
+    declare context: React.ContextType<typeof FilezContext>;
+
     constructor(props: MetaEditorProps) {
         super(props);
         this.state = {
@@ -147,6 +152,19 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                 <label>Size</label>
                                 {bytesToHumanReadableSize(this.props.file.size)}
                             </div>
+                        </div>
+                        <div className="Export">
+                            <a
+                                href={`${this.context?.uiConfig.filezServerAddress}/api/get_file/${this.props.file?._id}?d`}
+                            >
+                                <IconButton
+                                    placement="right"
+                                    appearance="primary"
+                                    icon={<FileDownload />}
+                                >
+                                    Download
+                                </IconButton>
+                            </a>
                         </div>
                     </Panel>
                     <Panel

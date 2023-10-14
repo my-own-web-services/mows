@@ -4,6 +4,60 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct Job {
+    #[serde(rename = "_id")]
+    pub job_id: String,
+    /**
+     The id of the app that should handle the job
+    */
+    pub for_app_id: String,
+    /**
+     A key value store to give the app information about how the job should be performed
+    */
+    pub app_info: HashMap<String, Value>,
+    pub job_type: JobType,
+    pub status: JobStatus,
+    pub created_time_millis: i64,
+    pub updated_time_millis: i64,
+    pub end_time_millis: Option<i64>,
+    pub stages: Vec<JobStage>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum JobType {
+    FileJob(FileJob),
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FileJob {
+    pub file_id: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct JobStage {
+    pub status: JobStatus,
+    pub started_time_millis: i64,
+    pub end_time_millis: Option<i64>,
+    pub title: String,
+    pub description: String,
+    pub error: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum JobStatus {
+    Pending,
+    Running,
+    Done,
+    Error,
+    Rejected,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct SearchRequest {
     pub search_type: SearchRequestType,
     pub limit: u32,

@@ -6,22 +6,63 @@ import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
 import FileListTopBar from "./FileListTopBar";
 import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
+import SortingBar from "./SortingBar";
+import update from "immutability-helper";
+import { bytesToHumanReadableSize } from "../../../utils";
+
+export interface Column {
+    readonly field: string;
+    readonly direction: ColumnDirection;
+    readonly width: number;
+    readonly minWidth: number;
+    readonly render?: (item: FilezFile) => JSX.Element;
+}
+
+export enum ColumnDirection {
+    DESCENDING = 0,
+    NEUTRAL = 1,
+    ASCENDING = 2
+}
+
+const defaultColumns: Column[] = [
+    {
+        field: "name",
+        direction: ColumnDirection.DESCENDING,
+        width: 50,
+        minWidth: 50
+    },
+    {
+        field: "size",
+        direction: ColumnDirection.NEUTRAL,
+        width: 50,
+        minWidth: 50,
+        render: (item: FilezFile) => {
+            return <span>{bytesToHumanReadableSize(item.size)}</span>;
+        }
+    }
+];
 
 interface FileListProps {
     readonly id: string;
     readonly style?: CSSProperties;
-    readonly rowRenderer?: (item: FilezFile, style: CSSProperties) => JSX.Element;
+    readonly rowRenderer?: (
+        item: FilezFile,
+        style: CSSProperties,
+        columns: Column[]
+    ) => JSX.Element;
     /**
      * Default Row Renderer onClick handler
      */
     readonly drrOnClick?: (item: FilezFile) => void;
     readonly displayTopBar?: boolean;
+    readonly displaySortingBar?: boolean;
 }
 
 interface FileListState {
     readonly fileList: FilezFile[];
     readonly listLength: number;
     readonly initialLoadFinished: boolean;
+    readonly columns: Column[];
 }
 
 export default class FileList extends PureComponent<FileListProps, FileListState> {
@@ -34,7 +75,8 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         this.state = {
             fileList: [],
             initialLoadFinished: false,
-            listLength: 0
+            listLength: 0,
+            columns: [...defaultColumns]
         };
     }
 
@@ -111,7 +153,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         }
     };
 
-    defaultRowRenderer = (item: FilezFile, style: CSSProperties) => {
+    defaultRowRenderer = (item: FilezFile, style: CSSProperties, columns: Column[]) => {
         return (
             <div
                 className="DefaultRowRenderer"
@@ -120,7 +162,27 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                 {/*@ts-ignore*/}
                 <ContextMenuTrigger disableIfShiftIsPressed={true} id={item._id}>
                     <div className="clickable" style={style}>
-                        {item.name}
+                        {columns.map((column, index) => {
+                            /*@ts-ignore*/
+                            const field = item[column.field];
+                            return (
+                                <span
+                                    key={column.field + index}
+                                    style={{
+                                        width: column.width + "%",
+                                        display: "block",
+                                        float: "left",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap"
+                                    }}
+                                >
+                                    {column.render
+                                        ? column.render(item)
+                                        : field ?? `Field '${column.field}' does not exist on File`}
+                                </span>
+                            );
+                        })}
                     </div>
                 </ContextMenuTrigger>
                 {/*@ts-ignore*/}
@@ -140,16 +202,73 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         );
     };
 
+    updateColumnWidths = (columns: number[]) => {
+        this.setState(state => {
+            return update(state, {
+                columns: {
+                    $set: state.columns.map((column, index) => {
+                        return {
+                            ...column,
+                            width: columns[index]
+                        };
+                    })
+                }
+            });
+        });
+    };
+
+    updateColumnDirections = (columnIndex: number) => {
+        this.setState(state => {
+            return update(state, {
+                columns: {
+                    $set: state.columns.map((column, i) => {
+                        if (i === columnIndex) {
+                            return {
+                                ...column,
+                                direction: (column.direction + 1) % 3
+                            };
+                        } else {
+                            return {
+                                ...column,
+                                direction: ColumnDirection.NEUTRAL
+                            };
+                        }
+                    })
+                }
+            });
+        });
+    };
+
+    updateSorting = () => {};
+
     render = () => {
         const fullListLength = this.state.listLength;
+
+        const barHeights = (() => {
+            let height = 0;
+            if (this.props.displayTopBar) {
+                height += 40;
+            }
+            if (this.props.displaySortingBar !== false) {
+                height += 20;
+            }
+            return height;
+        })();
 
         return (
             <div className="Filez FileList" style={{ ...this.props.style }}>
                 {this.props.displayTopBar && <FileListTopBar />}
+                {this.props.displaySortingBar !== false && (
+                    <SortingBar
+                        columns={this.state.columns}
+                        updateColumnDirections={this.updateColumnDirections}
+                        updateSortingColumnWidths={this.updateColumnWidths}
+                    />
+                )}
                 <div
                     style={{
                         width: "100%",
-                        height: this.props.displayTopBar ? "calc(100% - 40px)" : "100%"
+                        height: `calc(100% - ${barHeights}px)`
                     }}
                 >
                     <AutoSizer>
@@ -179,9 +298,17 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                                                 return <div style={style}></div>;
                                             }
                                             if (this.props.rowRenderer) {
-                                                return this.props.rowRenderer(currentItem, style);
+                                                return this.props.rowRenderer(
+                                                    currentItem,
+                                                    style,
+                                                    this.state.columns
+                                                );
                                             }
-                                            return this.defaultRowRenderer(currentItem, style);
+                                            return this.defaultRowRenderer(
+                                                currentItem,
+                                                style,
+                                                this.state.columns
+                                            );
                                         }}
                                     </FixedSizeList>
                                 )}

@@ -61,7 +61,7 @@ filez:
     readonlyMounts:
         - name: example-files
           path: /home/paul/Documents/filez/example-files
-          ownerId: F0PVw43TfyvQmWuqjV-79B4pIV0MrW6A
+          ownerId: IZLia0BauiwG5pXLAbzQGHAezqkHUKnx
 
     # TODO if the number of addons is greater than 10 the network assignment will fail
     addons:

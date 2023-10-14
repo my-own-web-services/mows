@@ -7,7 +7,7 @@ timeoutSeconds: 5
 storagePath: /output/
 
 db:
-    url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filezdb.localhost:{{ $config.filez.server.db.port }}
+    url: mongodb://root:$MONGODB_ROOT_PASSWORD@filez-db.localhost:{{ $config.filez.server.db.port }}
 
 video:
     # vp9 or av1

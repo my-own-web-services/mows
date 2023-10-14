@@ -3,6 +3,7 @@
 ## 1. Aktuell
 
 -   background job visibility and management
+
 -   Schnellere Suche
 -   React Components
     -   Group List

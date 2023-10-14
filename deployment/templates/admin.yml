@@ -2,10 +2,10 @@
 {{- $env := envFile "../results/.env" -}}
 # TREAT THESE URIS LIKE PASSWORDS AS THEY CONTAIN THEM
 {{- if eq $config.filez.server.db.exposeToLocalhost true}}
-filez-db-uri: mongodb://root:{{ $env.MONGO_INITDB_ROOT_PASSWORD_FILEZ }}@filezdb.localhost:{{ $config.filez.server.db.port }}/?replicaSet=rs0
+filez-db-uri: mongodb://root:{{ $env.MONGODB_ROOT_PASSWORD_FILEZ }}@filez-db.localhost:{{ $config.filez.server.db.port }}/?replicaSet=replicaset
 {{- end }}
 
 {{- if eq $config.interossea.server.db.exposeToLocalhost true}}
-interossea-db-uri: mongodb://root:{{ $env.MONGO_INITDB_ROOT_PASSWORD_INTEROSSEA }}@interosseadb.localhost:{{ $config.interossea.server.db.port }}/?replicaSet=rs0
+interossea-db-uri: mongodb://root:{{ $env.MONGODB_ROOT_PASSWORD_INTEROSSEA }}@interossea-db.localhost:{{ $config.interossea.server.db.port }}/?replicaSet=replicaset
 {{- end }}
 

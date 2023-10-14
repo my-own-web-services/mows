@@ -43,7 +43,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                         style={{ width: "300px", float: "left", height: "500px" }}
                     />
                     <FileList
-                        id="5-qVs7E3ApgltzTUgyfegCcymbBXnEni"
+                        id="XD2oq1d7-ZpFWYWr"
                         style={{ width: "500px", float: "left", height: "500px" }}
                         displayTopBar={true}
                         drrOnClick={item => {

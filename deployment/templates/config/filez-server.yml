@@ -25,7 +25,7 @@ http:
     internalAddress: "[::]:80"
 
 db:
-    url: mongodb://root:$MONGO_INITDB_ROOT_PASSWORD@filezdb.localhost:{{ $config.filez.server.db.port }}
+    url: mongodb://root:$MONGODB_ROOT_PASSWORD@filez-db.localhost:{{ $config.filez.server.db.port }}
 
 interossea:
     url: http://$INTEROSSEA_INTERNAL_URL
