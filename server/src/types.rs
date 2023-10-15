@@ -118,6 +118,15 @@ pub struct AdvancedSearchRequest {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct GetFileInfosByGroupIdResponseBody {
+    pub total_count: u32,
+    pub files: Vec<FilezFile>,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateUploadSpaceRequest {
     pub limits: HashMap<String, CusrLimits>,
 }

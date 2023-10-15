@@ -1,6 +1,6 @@
 import { Component, createRef } from "react";
-import { FilezFile } from "@firstdorsal/filez-client";
 import { UiConfig } from "../../../FilezProvider";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 interface AudioProps {
     readonly file: FilezFile;

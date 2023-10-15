@@ -6,14 +6,15 @@ export const isFile = (item: FilezFile | FileGroupType): item is FilezFile => {
 };
 
 export const utcTimeStampToTimeAndDate = (
-    utcTimeStamp: number,
+    utcTimeStamp: bigint,
     seconds: boolean = false
 ): string => {
-    const date = new Date(seconds ? utcTimeStamp * 1000 : utcTimeStamp);
+    const utcTimeStamp_num = Number(utcTimeStamp);
+    const date = new Date(seconds ? utcTimeStamp_num * 1000 : utcTimeStamp_num);
     return `${date.toLocaleDateString("de")} ${date.toLocaleTimeString("de")}`;
 };
 
-export const bytesToHumanReadableSize = (bigint_bytes: bigint): string => {
+export const bytesToHumanReadableSize = (bigint_bytes: bigint | number): string => {
     const bytes = Number(bigint_bytes);
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     if (bytes === 0) {

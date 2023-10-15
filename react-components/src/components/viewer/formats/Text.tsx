@@ -1,7 +1,7 @@
-import { FilezFile } from "@firstdorsal/filez-client";
 import { PureComponent } from "react";
 import { FilezContext, UiConfig } from "../../../FilezProvider";
 import { bytesToHumanReadableSize } from "../../../utils";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 interface TextProps {
     readonly file: FilezFile;

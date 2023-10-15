@@ -1,7 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::SortOrder,
+    types::{FilezFile, GetFileInfosByGroupIdResponseBody, SortOrder},
     utils::{get_query_item, get_query_item_number},
 };
 use hyper::{Body, Request, Response};
@@ -31,18 +31,29 @@ pub async fn get_file_infos_by_group_id(
         _ => SortOrder::Ascending,
     });
 
-    let files = db
-        .get_files_by_group_id(&group_id, limit, from_index as u64, field, sort_order)
+    let filter = get_query_item(&req, "s");
+
+    let (files, total_count) = db
+        .get_files_by_group_id(
+            &group_id,
+            limit,
+            from_index as u64,
+            field,
+            sort_order,
+            filter,
+        )
         .await?;
 
     let files = files
-        .iter()
+        .into_iter()
         .filter(|f| f.owner_id == user_id)
-        .collect::<Vec<_>>();
+        .collect::<Vec<FilezFile>>();
+
+    let res_body = GetFileInfosByGroupIdResponseBody { files, total_count };
 
     Ok(res
         .status(200)
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&files)?.into())
+        .body(serde_json::to_string(&res_body)?.into())
         .unwrap())
 }

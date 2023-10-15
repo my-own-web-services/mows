@@ -9,6 +9,7 @@ import { FilezFileGroup } from "./apiTypes/FilezFileGroup.js";
 import { FilezUser } from "./apiTypes/FilezUser.js";
 import { UpdateFileInfosRequestField } from "./apiTypes/UpdateFileInfosRequestField.js";
 import { UpdateFileGroupRequestBody } from "./apiTypes/UpdateFileGroupRequestBody.js";
+import { GetFileInfosByGroupIdResponseBody } from "./apiTypes/GetFileInfosByGroupIdResponseBody.js";
 
 export * from "./types.js";
 
@@ -123,7 +124,8 @@ export class FilezClient {
         from_index: number,
         limit: number | null,
         sort_field: string | null,
-        sort_order: SortOrder | null
+        sort_order: SortOrder | null,
+        filter: string | null
     ) => {
         const url = `${
             this.filezEndpoint
@@ -131,12 +133,12 @@ export class FilezClient {
             limit === null ? "" : "&l=" + limit
         }${sort_field === null ? "" : "&f=" + sort_field}${
             sort_order === null ? "" : "&o=" + sort_order
-        }`;
+        }${filter === null ? "" : "&s=" + filter}`;
 
         const res = await fetch(url, {
             credentials: "include"
         });
-        const files: FilezFile[] = await res.json();
+        const files: GetFileInfosByGroupIdResponseBody = await res.json();
         return files;
     };
 

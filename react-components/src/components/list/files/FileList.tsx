@@ -71,7 +71,7 @@ interface FileListState {
     readonly initialLoadFinished: boolean;
     readonly columns: Column[];
     readonly listType: ListType;
-    readonly search: string;
+    readonly commitedSearch: string;
 }
 
 export default class FileList extends PureComponent<FileListProps, FileListState> {
@@ -89,7 +89,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             listLength: 0,
             columns: [...defaultColumns],
             listType: props.initialListType ?? ListType.List,
-            search: ""
+            commitedSearch: ""
         };
     }
 
@@ -123,25 +123,19 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             const filezClient = this.context.filezClient;
             this.moreFilesLoading = true;
 
-            const [groups, files] = await Promise.all([
-                filezClient.get_own_file_groups(),
-                filezClient.get_file_infos_by_group_id(
-                    this.props.id,
-                    0,
-                    30,
-                    ...this.get_current_column_sorting(this.state.columns)
-                )
-            ]);
+            const res = await filezClient.get_file_infos_by_group_id(
+                this.props.id,
+                0,
+                30,
+                ...this.get_current_column_sorting(this.state.columns),
+                this.state.commitedSearch
+            );
             this.moreFilesLoading = false;
-            const currentGroup = groups.find(group => group._id === this.props.id);
-            if (currentGroup === undefined) {
-                throw new Error("Current group does not exist");
-            }
 
             this.setState({
-                fileList: files,
+                fileList: res.files,
                 initialLoadFinished: true,
-                listLength: currentGroup.itemCount
+                listLength: res.totalCount
             });
         }
     };
@@ -155,16 +149,17 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             const filezClient = this.context.filezClient;
 
             if (this.moreFilesLoading === false) {
-                const newFiles = await filezClient.get_file_infos_by_group_id(
+                const { files } = await filezClient.get_file_infos_by_group_id(
                     this.props.id,
                     startIndex,
                     limit,
-                    ...this.get_current_column_sorting(this.state.columns)
+                    ...this.get_current_column_sorting(this.state.columns),
+                    this.state.commitedSearch
                 );
 
                 this.setState(({ fileList }) => {
-                    for (let i = 0; i < newFiles.length; i++) {
-                        fileList[startIndex + i] = newFiles[i];
+                    for (let i = 0; i < files.length; i++) {
+                        fileList[startIndex + i] = files[i];
                     }
                     return { fileList };
                 });
@@ -282,8 +277,11 @@ export default class FileList extends PureComponent<FileListProps, FileListState
     updateListType = (listType: ListType) => {
         this.setState({ listType });
     };
-    updateSearch = (search: string) => {
-        this.setState({ search });
+    commitSearch = (search: string) => {
+        this.setState({ commitedSearch: search }, () => {
+            this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
+            this.loadData();
+        });
     };
 
     render = () => {
@@ -306,7 +304,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     <FileListTopBar
                         updateListType={this.updateListType}
                         currentListType={this.state.listType}
-                        updateSearch={this.updateSearch}
+                        commitSearch={this.commitSearch}
                     />
                 )}
                 {this.props.displaySortingBar !== false && (
@@ -340,7 +338,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                                         ref={ref}
                                         // without this the context menu cannot be positioned fixed
                                         // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
-                                        style={{ willChange: "none" }}
+                                        style={{ willChange: "none", overflowY: "scroll" }}
                                     >
                                         {({ index, style }) => {
                                             const currentItem = this.state.fileList[index];

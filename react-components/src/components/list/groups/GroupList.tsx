@@ -1,4 +1,3 @@
-import { FileGroup } from "@firstdorsal/filez-client";
 import { CSSProperties, PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
@@ -7,15 +6,16 @@ import { FixedSizeList } from "react-window";
 import GroupListTopBar from "./GroupListTopBar";
 import { AiOutlineFolder, AiOutlineFolderView } from "react-icons/ai";
 import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
+import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 
 interface GroupListProps {
     readonly displayTopBar?: boolean;
     readonly style?: CSSProperties;
-    readonly rowRenderer?: (item: FileGroup, style: CSSProperties) => JSX.Element;
+    readonly rowRenderer?: (item: FilezFileGroup, style: CSSProperties) => JSX.Element;
 }
 
 interface GroupListState {
-    readonly groupList: FileGroup[];
+    readonly groupList: FilezFileGroup[];
     readonly listLength: number;
     readonly initialLoad: boolean;
 }
@@ -38,7 +38,7 @@ export default class GroupList extends PureComponent<GroupListProps, GroupListSt
     };
 
     componentDidUpdate = (
-        prevProps: Readonly<GroupListProps>,
+        _prevProps: Readonly<GroupListProps>,
         prevState: Readonly<GroupListState>
     ) => {
         const filezClient = this?.context?.filezClient;
@@ -66,13 +66,13 @@ export default class GroupList extends PureComponent<GroupListProps, GroupListSt
             });
         }
     };
-    loadMoreGroups = async (startIndex: number, limit: number) => {};
+    loadMoreGroups = async (_startIndex: number, _limit: number) => {};
 
-    handleRightClick = (e: any, data: any) => {
+    handleRightClick = (_e: any, data: any) => {
         console.log(data);
     };
 
-    defaultRowRenderer = (item: FileGroup, style: CSSProperties) => {
+    defaultRowRenderer = (item: FilezFileGroup, style: CSSProperties) => {
         return (
             <div className="DefaultRowRenderer" style={style}>
                 <div className="Group">

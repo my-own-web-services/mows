@@ -1,11 +1,11 @@
 import { CSSProperties, PureComponent } from "react";
 import { FilezContext } from "../../FilezProvider";
-import { FilezFile } from "@firstdorsal/filez-client";
 import Image from "./formats/Image";
 import Audio from "./formats/Audio";
 import Video from "./formats/Video";
 import Text from "./formats/Text";
 import { isText } from "../../utils";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 interface FilezFileViewerProps {
     readonly file?: FilezFile;
@@ -47,9 +47,9 @@ export default class FilezFileViewer extends PureComponent<
     };
 
     componentDidUpdate = async (
-        prevProps: Readonly<FilezFileViewerProps>,
-        prevState: Readonly<FilezFileViewerState>,
-        snapshot?: any
+        _prevProps: Readonly<FilezFileViewerProps>,
+        _prevState: Readonly<FilezFileViewerState>,
+        _snapshot?: any
     ) => {
         if (this.props.file && this.props.file._id !== this.state.file?._id) {
             this.setState({ file: this.props.file });

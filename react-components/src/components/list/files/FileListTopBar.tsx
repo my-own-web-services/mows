@@ -7,11 +7,13 @@ import FileList, { ListType } from "./FileList";
 
 interface FileListTopBarProps {
     readonly updateListType: InstanceType<typeof FileList>["updateListType"];
-    readonly updateSearch: InstanceType<typeof FileList>["updateSearch"];
+    readonly commitSearch: InstanceType<typeof FileList>["commitSearch"];
     readonly currentListType: ListType;
 }
 
-interface FileListTopBarState {}
+interface FileListTopBarState {
+    readonly search: string;
+}
 
 export default class FileListTopBar extends PureComponent<
     FileListTopBarProps,
@@ -19,15 +21,37 @@ export default class FileListTopBar extends PureComponent<
 > {
     constructor(props: FileListTopBarProps) {
         super(props);
-        this.state = {};
+        this.state = {
+            search: ""
+        };
     }
+
+    commitSearch = () => {
+        this.props.commitSearch(this.state.search);
+    };
 
     render = () => {
         return (
             <div style={{ width: "100%", height: "40px" }} className="FileListTopBar">
                 <InputGroup size="sm" inside style={{ width: "200px", float: "left" }}>
-                    <Input title="Search File Groups" placeholder="Search Files" />
-                    <InputGroup.Button>
+                    <Input
+                        value={this.state.search}
+                        onChange={value => {
+                            this.setState({ search: value });
+                        }}
+                        onKeyDown={event => {
+                            if (event.key === "Enter") {
+                                this.commitSearch();
+                            }
+                        }}
+                        title="Search File Groups"
+                        placeholder="Search Files"
+                    />
+                    <InputGroup.Button
+                        onClick={() => {
+                            this.commitSearch();
+                        }}
+                    >
                         <AiOutlineSearch size={21} />
                     </InputGroup.Button>
                 </InputGroup>

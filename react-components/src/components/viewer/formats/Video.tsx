@@ -1,8 +1,8 @@
 import type dashjs from "dashjs";
 import type { MediaPlayerClass } from "dashjs";
-import { FilezFile } from "@firstdorsal/filez-client";
 import { Component, createRef } from "react";
 import { UiConfig } from "../../../FilezProvider";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 interface VideoProps {
     readonly file: FilezFile;
@@ -74,7 +74,7 @@ export default class Video extends Component<VideoProps, VideoState> {
             this.player.initialize(
                 this.videoRef.current,
                 `${this.props.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/video/manifest.mpd?c`,
-                true
+                false
             );
         }
     };

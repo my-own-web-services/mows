@@ -807,7 +807,8 @@ impl DB {
         from_index: u64,
         sort_field: Option<String>,
         sort_order: SortOrder,
-    ) -> anyhow::Result<Vec<FilezFile>> {
+        filter: Option<String>,
+    ) -> anyhow::Result<(Vec<FilezFile>, u32)> {
         let collection = self.db.collection::<FilezFile>("files");
 
         let sort_field = sort_field.unwrap_or("name".to_string());
@@ -823,25 +824,52 @@ impl DB {
             .skip(from_index)
             .build();
 
-        let files = collection
-            .find(
-                doc! {
-                    "$or":[
+        let db_filter = doc! {
+            "$and": [
+                {
+                    "$or": [
+                        {"staticFileGroupIds": group_id},
+                        {"dynamicFileGroupIds": group_id}
+                    ]
+                },
+                {
+                    "$or": [
                         {
-                            "staticFileGroupIds": group_id
+                            "name": {
+                                "$regex": &filter
+                            }
                         },
                         {
-                            "dynamicFileGroupIds": group_id
+                            "_id": &filter
+                        },
+                        {
+                            "ownerId": &filter
+                        },
+                        {
+                            "keywords": {
+                                "$regex": &filter
+                            }
+                        },
+                        {
+                            "mimeType": {
+                                "$regex": &filter
+                            }
                         }
                     ]
                 },
-                find_options,
-            )
-            .await?
-            .try_collect::<Vec<_>>()
-            .await?;
+            ]
+        };
 
-        Ok(files)
+        let (files, total_count) = (
+            collection
+                .find(db_filter.clone(), find_options)
+                .await?
+                .try_collect::<Vec<_>>()
+                .await?,
+            collection.count_documents(db_filter, None).await?,
+        );
+
+        Ok((files, total_count as u32))
     }
 
     pub async fn get_user_by_id(&self, user_id: &str) -> anyhow::Result<Option<FilezUser>> {

@@ -15,6 +15,7 @@
     "dashjs": "^4.7.1",
     "immutability-helper": "^3.1.1",
     "less": "^4.2.0",
+    "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-contexify": "^6.0.0",
     "react-contextmenu": "^2.14.0",
