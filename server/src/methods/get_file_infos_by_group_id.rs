@@ -1,4 +1,9 @@
-use crate::{db::DB, internal_types::Auth, utils::get_query_item_number};
+use crate::{
+    db::DB,
+    internal_types::Auth,
+    types::SortOrder,
+    utils::{get_query_item, get_query_item_number},
+};
 use hyper::{Body, Request, Response};
 
 pub async fn get_file_infos_by_group_id(
@@ -19,8 +24,15 @@ pub async fn get_file_infos_by_group_id(
     let limit = get_query_item_number(&req, "l");
     let from_index = get_query_item_number(&req, "i").unwrap_or(0);
 
+    let field = get_query_item(&req, "f");
+    let sort_order = get_query_item(&req, "o").map_or(SortOrder::Ascending, |s| match s.as_str() {
+        "ascending" => SortOrder::Ascending,
+        "descending" => SortOrder::Descending,
+        _ => SortOrder::Ascending,
+    });
+
     let files = db
-        .get_files_by_group_id(&group_id, limit, from_index as u64)
+        .get_files_by_group_id(&group_id, limit, from_index as u64, field, sort_order)
         .await?;
 
     let files = files

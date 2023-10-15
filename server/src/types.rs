@@ -1,7 +1,19 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use ts_rs::TS;
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum SortOrder {
+    Ascending,
+    Descending,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Job {
@@ -14,6 +26,7 @@ pub struct Job {
     /**
      A key value store to give the app information about how the job should be performed
     */
+    #[ts(type = "Record<string, any>")]
     pub app_info: HashMap<String, Value>,
     pub job_type: JobType,
     pub status: JobStatus,
@@ -23,18 +36,24 @@ pub struct Job {
     pub stages: Vec<JobStage>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum JobType {
     FileJob(FileJob),
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FileJob {
     pub file_id: String,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct JobStage {
@@ -46,6 +65,8 @@ pub struct JobStage {
     pub error: Option<String>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum JobStatus {
@@ -56,6 +77,8 @@ pub enum JobStatus {
     Rejected,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchRequest {
@@ -63,6 +86,8 @@ pub struct SearchRequest {
     pub limit: u32,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum SearchRequestType {
@@ -70,6 +95,8 @@ pub enum SearchRequestType {
     AdvancedSearch(AdvancedSearchRequest),
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SimpleSearchRequest {
@@ -77,6 +104,8 @@ pub struct SimpleSearchRequest {
     pub group_id: String,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedSearchRequest {
@@ -85,12 +114,16 @@ pub struct AdvancedSearchRequest {
     pub filters: Vec<FilterRule>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateUploadSpaceRequest {
     pub limits: HashMap<String, CusrLimits>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CusrLimits {
@@ -99,6 +132,8 @@ pub struct CusrLimits {
     pub max_bandwidth: u64,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdatePermissionsRequest {
@@ -107,6 +142,8 @@ pub struct UpdatePermissionsRequest {
     pub resource_type: FileResourceType,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum FileResourceType {
@@ -114,6 +151,8 @@ pub enum FileResourceType {
     File,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeleteGroupRequest {
@@ -121,12 +160,16 @@ pub struct DeleteGroupRequest {
     pub group_type: GroupType,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeletePermissionRequest {
     pub permission_id: String,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePermissionRequest {
@@ -135,12 +178,16 @@ pub struct CreatePermissionRequest {
     pub ribston: Option<String>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePermissionResponse {
     pub permission_id: String,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateFileGroupRequestBody {
@@ -152,6 +199,8 @@ pub struct UpdateFileGroupRequestBody {
     pub new_mime_types: Option<Vec<String>>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateGroupRequest {
@@ -159,24 +208,34 @@ pub struct CreateGroupRequest {
     pub group_type: GroupType,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum GroupType {
     User,
     File,
 }
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateGroupResponse {
     pub group_id: String,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateFileInfosRequest {
     pub file_id: String,
     pub field: UpdateFileInfosRequestField,
 }
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub enum UpdateFileInfosRequestField {
     MimeType(String),
@@ -187,6 +246,8 @@ pub enum UpdateFileInfosRequestField {
     Keywords(Vec<String>),
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateFileRequest {
@@ -194,12 +255,16 @@ pub struct UpdateFileRequest {
     pub modified: Option<i64>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateFileResponse {
     pub sha256: String,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateFileRequest {
@@ -211,6 +276,8 @@ pub struct CreateFileRequest {
     pub modified: Option<i64>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateFileResponse {
@@ -219,15 +286,20 @@ pub struct CreateFileResponse {
     pub sha256: String,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SetAppDataRequest {
     pub app_data_type: AppDataType,
     pub id: String,
     pub app_name: String,
+    #[ts(type = "any")]
     pub app_data: Value,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum AppDataType {
@@ -237,6 +309,8 @@ pub enum AppDataType {
 
 // Database specifics
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezFile {
@@ -305,6 +379,7 @@ pub struct FilezFile {
      The String is the app name and the Value is its data
      can be updated by set_app_data
     */
+    #[ts(type = "Record<string, any>")]
     pub app_data: HashMap<String, Value>,
     /**
       can be updated by update_permission_ids_on_resource
@@ -320,11 +395,14 @@ pub struct FilezFile {
     pub readonly: bool,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezUser {
     #[serde(rename = "_id")]
     pub user_id: String,
+    #[ts(type = "Record<string, any>")]
     pub app_data: HashMap<String, Value>,
     pub limits: HashMap<String, UsageLimits>,
     /**
@@ -333,6 +411,8 @@ pub struct FilezUser {
     pub user_group_ids: Vec<String>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UsageLimits {
@@ -344,6 +424,8 @@ pub struct UsageLimits {
     pub used_bandwidth: u64,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]
@@ -352,6 +434,8 @@ pub enum FilezGroups {
     FilezFileGroup(FilezFileGroup),
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezUserGroup {
@@ -363,6 +447,8 @@ pub struct FilezUserGroup {
 }
 
 // file groups are just selectors for files
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezFileGroup {
@@ -384,9 +470,11 @@ pub struct FilezFileGroup {
     pub group_hierarchy_paths: Vec<String>,
     pub group_type: FileGroupType,
     pub dynamic_group_rules: Option<FilterRule>,
-    pub item_count: u64,
+    pub item_count: u32,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilterRule {
@@ -395,6 +483,8 @@ pub struct FilterRule {
     pub value: String,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum FilterRuleType {
@@ -402,6 +492,8 @@ pub enum FilterRuleType {
     NotMatchRegex,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum FileGroupType {
@@ -409,6 +501,8 @@ pub enum FileGroupType {
     Dynamic,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadSpace {
@@ -419,6 +513,8 @@ pub struct UploadSpace {
     pub file_group_id: String,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezPermission {
@@ -431,6 +527,8 @@ pub struct FilezPermission {
     pub ribston: Option<String>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilezPermissionAcl {
@@ -439,6 +537,8 @@ pub struct FilezPermissionAcl {
     pub users: Option<UsersAcl>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct EveryoneAcl {
     pub get_file: Option<bool>,
@@ -447,6 +547,8 @@ pub struct EveryoneAcl {
     pub get_file_info: Option<bool>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct PasswordAcl {
     pub get_file: Option<Vec<String>>,
@@ -455,6 +557,8 @@ pub struct PasswordAcl {
     pub get_file_info: Option<Vec<String>>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct UsersAcl {
     pub get_file: Option<UsersAclUsersAndUserGroups>,
@@ -467,6 +571,8 @@ pub struct UsersAcl {
     pub update_file_infos_static_file_groups: Option<UsersAclUsersAndUserGroups>,
 }
 
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UsersAclUsersAndUserGroups {

@@ -1,15 +1,14 @@
 import { InterosseaClient } from "@firstdorsal/interossea-client";
-import {
-    CreateFileRequest,
-    CreateGroupRequest,
-    CreateGroupResponse,
-    FileGroup,
-    FilezFile,
-    FilezUser,
-    SearchRequest,
-    UpdateFileGroupRequestBody,
-    UpdateFileInfosRequestField
-} from "./types.js";
+import { SearchRequest } from "./apiTypes/SearchRequest.js";
+import { FilezFile } from "./apiTypes/FilezFile.js";
+import { CreateFileRequest } from "./apiTypes/CreateFileRequest.js";
+import { CreateGroupRequest } from "./apiTypes/CreateGroupRequest.js";
+import { CreateGroupResponse } from "./apiTypes/CreateGroupResponse.js";
+import { SortOrder } from "./apiTypes/SortOrder.js";
+import { FilezFileGroup } from "./apiTypes/FilezFileGroup.js";
+import { FilezUser } from "./apiTypes/FilezUser.js";
+import { UpdateFileInfosRequestField } from "./apiTypes/UpdateFileInfosRequestField.js";
+import { UpdateFileGroupRequestBody } from "./apiTypes/UpdateFileGroupRequestBody.js";
 
 export * from "./types.js";
 
@@ -119,13 +118,24 @@ export class FilezClient {
         return file;
     };
 
-    get_file_infos_by_group_id = async (groupId: string, from_index = 0, limit = 100) => {
-        const res = await fetch(
-            `${this.filezEndpoint}/api/get_file_infos_by_group_id/${groupId}?i=${from_index}&l=${limit}`,
-            {
-                credentials: "include"
-            }
-        );
+    get_file_infos_by_group_id = async (
+        groupId: string,
+        from_index: number,
+        limit: number | null,
+        sort_field: string | null,
+        sort_order: SortOrder | null
+    ) => {
+        const url = `${
+            this.filezEndpoint
+        }/api/get_file_infos_by_group_id/${groupId}?i=${from_index}${
+            limit === null ? "" : "&l=" + limit
+        }${sort_field === null ? "" : "&f=" + sort_field}${
+            sort_order === null ? "" : "&o=" + sort_order
+        }`;
+
+        const res = await fetch(url, {
+            credentials: "include"
+        });
         const files: FilezFile[] = await res.json();
         return files;
     };
@@ -142,7 +152,7 @@ export class FilezClient {
         const res = await fetch(`${this.filezEndpoint}/api/get_own_file_groups/`, {
             credentials: "include"
         });
-        const fileGroups: FileGroup[] = await res.json();
+        const fileGroups: FilezFileGroup[] = await res.json();
         return fileGroups;
     };
 

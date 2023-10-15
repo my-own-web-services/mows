@@ -1,6 +1,7 @@
-import { FileGroup, FilezFile } from "@firstdorsal/filez-client";
+import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
-export const isFile = (item: FilezFile | FileGroup): item is FilezFile => {
+export const isFile = (item: FilezFile | FileGroupType): item is FilezFile => {
     return (<FilezFile>item).mimeType !== undefined;
 };
 
@@ -12,7 +13,8 @@ export const utcTimeStampToTimeAndDate = (
     return `${date.toLocaleDateString("de")} ${date.toLocaleTimeString("de")}`;
 };
 
-export const bytesToHumanReadableSize = (bytes: number): string => {
+export const bytesToHumanReadableSize = (bigint_bytes: bigint): string => {
+    const bytes = Number(bigint_bytes);
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     if (bytes === 0) {
         return "0 Byte";

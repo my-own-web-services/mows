@@ -4,7 +4,7 @@ use crate::{
     some_or_bail,
     types::{
         AppDataType, DeleteGroupRequest, DeletePermissionRequest, FilezFile, FilezFileGroup,
-        FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest,
+        FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest, SortOrder,
         UpdatePermissionsRequest, UploadSpace, UsageLimits,
     },
     utils::merge_permissions,
@@ -805,13 +805,36 @@ impl DB {
         group_id: &str,
         limit: Option<i64>,
         from_index: u64,
+        sort_field: Option<String>,
+        sort_order: SortOrder,
     ) -> anyhow::Result<Vec<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
-        //TODO
-        let find_options = FindOptions::builder().limit(limit).skip(from_index).build();
+
+        let sort_field = sort_field.unwrap_or("name".to_string());
+
+        let find_options = FindOptions::builder()
+            .sort(doc! {
+                sort_field: match sort_order {
+                    SortOrder::Ascending => 1,
+                    SortOrder::Descending => -1
+                }
+            })
+            .limit(limit)
+            .skip(from_index)
+            .build();
+
         let files = collection
             .find(
-                doc! {"$or":[{"staticFileGroupIds": group_id},{"dynamicFileGroupIds": group_id}]},
+                doc! {
+                    "$or":[
+                        {
+                            "staticFileGroupIds": group_id
+                        },
+                        {
+                            "dynamicFileGroupIds": group_id
+                        }
+                    ]
+                },
                 find_options,
             )
             .await?
@@ -848,7 +871,9 @@ impl DB {
         let cursor = collection
             .find(
                 doc! {
-                    "_id": {"$in": static_file_group_ids.clone()}
+                    "_id": {
+                        "$in": static_file_group_ids.clone()
+                    }
                 },
                 None,
             )
@@ -874,7 +899,14 @@ impl DB {
             let collection = self.db.collection::<FilezPermission>("permissions");
 
             let mut cursor = collection
-                .find(doc! {"_id": {"$in": file.permission_ids.clone()}}, None)
+                .find(
+                    doc! {
+                        "_id": {
+                            "$in": file.permission_ids.clone()
+                        }
+                    },
+                    None,
+                )
                 .await?;
 
             while let Some(permission) = cursor.try_next().await? {
@@ -898,7 +930,12 @@ impl DB {
 
         let file = some_or_bail!(
             files_collection
-                .find_one(doc! {"_id": file.file_id.clone()}, None)
+                .find_one(
+                    doc! {
+                        "_id": file.file_id.clone()
+                    },
+                    None
+                )
                 .await?,
             "file not found"
         );

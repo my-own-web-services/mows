@@ -51,8 +51,8 @@ export default class SortingBar extends PureComponent<SortingBarProps, SortingBa
                             >
                                 {column.field}
                                 <span style={{}}>
-                                    {column.direction === ColumnDirection.ASCENDING && "▲"}
-                                    {column.direction === ColumnDirection.DESCENDING && "▼"}
+                                    {column.direction === ColumnDirection.ASCENDING && "▼"}
+                                    {column.direction === ColumnDirection.DESCENDING && "▲"}
                                 </span>
                             </button>
                         );

@@ -1,5 +1,29 @@
 # Nächste Schritte
 
+```
+suche nach
+tags
+video/film
+    schauspieler etc.
+    titel
+musik
+    liedtext
+    titel
+    jahr
+
+dokumente:
+    text
+```
+
+Filter: Only filters based on a single criteria, such as the name and leaves the ordering intact.
+
+Search: Applies all metadata and complex algorithms to the search such as boosting. Search is more complex, because you have to rank the best results first. (example: Google) Filtering doesn't care about that.
+
+just filtering files seems like the best option
+simple word matches and full text "search/filtering"
+
+maybe a field search like `file.keywords: test` to only search for the word "test" in the keywords for example
+
 ## 1. Aktuell
 
 -   background job visibility and management

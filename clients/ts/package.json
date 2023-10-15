@@ -1,6 +1,6 @@
 {
     "name": "@firstdorsal/filez-client",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "main": "dist/js/main.js",
     "module": "dist/js/main.js",
     "types": "dist/js/main.d.ts",

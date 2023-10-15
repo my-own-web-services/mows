@@ -1,5 +1,4 @@
-import { FilezFile } from "@firstdorsal/filez-client";
-import { CSSProperties, PureComponent } from "react";
+import { CSSProperties, PureComponent, createRef } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 import { FilezContext } from "../../../FilezProvider";
@@ -9,6 +8,8 @@ import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
 import SortingBar from "./SortingBar";
 import update from "immutability-helper";
 import { bytesToHumanReadableSize } from "../../../utils";
+import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 export interface Column {
     readonly field: string;
@@ -19,15 +20,15 @@ export interface Column {
 }
 
 export enum ColumnDirection {
-    DESCENDING = 0,
-    NEUTRAL = 1,
-    ASCENDING = 2
+    ASCENDING = 0,
+    DESCENDING = 1,
+    NEUTRAL = 2
 }
 
 const defaultColumns: Column[] = [
     {
         field: "name",
-        direction: ColumnDirection.DESCENDING,
+        direction: ColumnDirection.ASCENDING,
         width: 50,
         minWidth: 50
     },
@@ -56,6 +57,12 @@ interface FileListProps {
     readonly drrOnClick?: (item: FilezFile) => void;
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
+    readonly initialListType?: ListType;
+}
+
+export enum ListType {
+    Grid,
+    List
 }
 
 interface FileListState {
@@ -63,6 +70,8 @@ interface FileListState {
     readonly listLength: number;
     readonly initialLoadFinished: boolean;
     readonly columns: Column[];
+    readonly listType: ListType;
+    readonly search: string;
 }
 
 export default class FileList extends PureComponent<FileListProps, FileListState> {
@@ -70,13 +79,17 @@ export default class FileList extends PureComponent<FileListProps, FileListState
     declare context: React.ContextType<typeof FilezContext>;
     moreFilesLoading = false;
 
+    infiniteLoaderRef = createRef<InfiniteLoader>();
+
     constructor(props: FileListProps) {
         super(props);
         this.state = {
             fileList: [],
             initialLoadFinished: false,
             listLength: 0,
-            columns: [...defaultColumns]
+            columns: [...defaultColumns],
+            listType: props.initialListType ?? ListType.List,
+            search: ""
         };
     }
 
@@ -112,7 +125,12 @@ export default class FileList extends PureComponent<FileListProps, FileListState
 
             const [groups, files] = await Promise.all([
                 filezClient.get_own_file_groups(),
-                filezClient.get_file_infos_by_group_id(this.props.id, 0, 20)
+                filezClient.get_file_infos_by_group_id(
+                    this.props.id,
+                    0,
+                    30,
+                    ...this.get_current_column_sorting(this.state.columns)
+                )
             ]);
             this.moreFilesLoading = false;
             const currentGroup = groups.find(group => group._id === this.props.id);
@@ -140,7 +158,8 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                 const newFiles = await filezClient.get_file_infos_by_group_id(
                     this.props.id,
                     startIndex,
-                    limit
+                    limit,
+                    ...this.get_current_column_sorting(this.state.columns)
                 );
 
                 this.setState(({ fileList }) => {
@@ -151,6 +170,64 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                 });
             }
         }
+    };
+
+    get_current_column_sorting = (columns: Column[]): [string, SortOrder] => {
+        for (const column of columns) {
+            if (column.direction !== ColumnDirection.NEUTRAL) {
+                return [
+                    column.field,
+                    column.direction === ColumnDirection.ASCENDING ? "ascending" : "descending"
+                ];
+            }
+        }
+        return ["name", "ascending"];
+    };
+
+    updateColumnWidths = (columns: number[]) => {
+        this.setState(state => {
+            return update(state, {
+                columns: {
+                    $set: state.columns.map((column, index) => {
+                        return {
+                            ...column,
+                            width: columns[index]
+                        };
+                    })
+                }
+            });
+        });
+    };
+
+    updateColumnDirections = async (columnIndex: number) => {
+        this.setState(
+            state => {
+                return update(state, {
+                    columns: {
+                        $set: state.columns.map((column, i) => {
+                            if (i === columnIndex) {
+                                return {
+                                    ...column,
+                                    direction:
+                                        column.direction === ColumnDirection.ASCENDING
+                                            ? ColumnDirection.DESCENDING
+                                            : ColumnDirection.ASCENDING
+                                };
+                            } else {
+                                return {
+                                    ...column,
+                                    direction: ColumnDirection.NEUTRAL
+                                };
+                            }
+                        })
+                    }
+                });
+            },
+            () => {
+                this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
+                this.loadData();
+            }
+        );
     };
 
     defaultRowRenderer = (item: FilezFile, style: CSSProperties, columns: Column[]) => {
@@ -202,51 +279,19 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         );
     };
 
-    updateColumnWidths = (columns: number[]) => {
-        this.setState(state => {
-            return update(state, {
-                columns: {
-                    $set: state.columns.map((column, index) => {
-                        return {
-                            ...column,
-                            width: columns[index]
-                        };
-                    })
-                }
-            });
-        });
+    updateListType = (listType: ListType) => {
+        this.setState({ listType });
     };
-
-    updateColumnDirections = (columnIndex: number) => {
-        this.setState(state => {
-            return update(state, {
-                columns: {
-                    $set: state.columns.map((column, i) => {
-                        if (i === columnIndex) {
-                            return {
-                                ...column,
-                                direction: (column.direction + 1) % 3
-                            };
-                        } else {
-                            return {
-                                ...column,
-                                direction: ColumnDirection.NEUTRAL
-                            };
-                        }
-                    })
-                }
-            });
-        });
+    updateSearch = (search: string) => {
+        this.setState({ search });
     };
-
-    updateSorting = () => {};
 
     render = () => {
         const fullListLength = this.state.listLength;
 
         const barHeights = (() => {
             let height = 0;
-            if (this.props.displayTopBar) {
+            if (this.props.displayTopBar !== false) {
                 height += 40;
             }
             if (this.props.displaySortingBar !== false) {
@@ -257,7 +302,13 @@ export default class FileList extends PureComponent<FileListProps, FileListState
 
         return (
             <div className="Filez FileList" style={{ ...this.props.style }}>
-                {this.props.displayTopBar && <FileListTopBar />}
+                {this.props.displayTopBar !== false && (
+                    <FileListTopBar
+                        updateListType={this.updateListType}
+                        currentListType={this.state.listType}
+                        updateSearch={this.updateSearch}
+                    />
+                )}
                 {this.props.displaySortingBar !== false && (
                     <SortingBar
                         columns={this.state.columns}
@@ -277,8 +328,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                                 isItemLoaded={index => this.state.fileList[index] !== undefined}
                                 itemCount={fullListLength}
                                 loadMoreItems={this.loadMoreFiles}
-                                threshold={20}
-                                minimumBatchSize={10}
+                                ref={this.infiniteLoaderRef}
                             >
                                 {({ onItemsRendered, ref }) => (
                                     <FixedSizeList

@@ -1,10 +1,10 @@
 import { CSSProperties, PureComponent } from "react";
 import FilezProvider from "./FilezProvider";
-import { FilezFile } from "@firstdorsal/filez-client";
 import FileViewer from "./components/viewer/FileViewer";
-import FileList from "./components/list/files/FileList";
+import FileList, { ListType } from "./components/list/files/FileList";
 import GroupList from "./components/list/groups/GroupList";
 import FileMetaEditor from "./components/metaEditor/FileMetaEditor";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 interface AppProps {}
 
@@ -45,7 +45,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                     <FileList
                         id="XD2oq1d7-ZpFWYWr"
                         style={{ width: "500px", float: "left", height: "500px" }}
-                        displayTopBar={true}
+                        initialListType={ListType.List}
                         drrOnClick={item => {
                             this.setState({ selectedFile: item });
                         }}
