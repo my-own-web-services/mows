@@ -57,7 +57,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                     {this.state.selectedFile && (
                         <FileMetaEditor
                             style={{ width: "500px", float: "left", height: "500px" }}
-                            file={this.state.selectedFile}
+                            fileId={this.state.selectedFile._id}
                         />
                     )}
                 </FilezProvider>

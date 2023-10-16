@@ -246,6 +246,7 @@ pub struct UpdateFileInfosRequest {
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub enum UpdateFileInfosRequestField {
     MimeType(String),
     Name(String),

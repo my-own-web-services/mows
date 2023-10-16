@@ -171,15 +171,21 @@ export class FilezClient {
         return (await res.json()) as FilezUser;
     };
 
+    get_aggregated_keywords = async () => {
+        const res = await fetch(`${this.filezEndpoint}/api/get_aggregated_keywords/`, {
+            credentials: "include"
+        });
+        const json: string[] = await res.json();
+        return json;
+    };
+
     update_file_infos = async (fileId: string, field: UpdateFileInfosRequestField) => {
         const res = await fetch(`${this.filezEndpoint}/api/update_file_infos/`, {
             method: "POST",
             credentials: "include",
             body: JSON.stringify({ fileId, field })
         });
-        if (!res.ok) {
-            throw new Error("Error updating file infos: " + res.statusText);
-        }
+        return res;
     };
 
     update_file = async () => {

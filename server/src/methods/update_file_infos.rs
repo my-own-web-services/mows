@@ -11,6 +11,7 @@ use crate::{
 };
 use anyhow::bail;
 use hyper::{Body, Request, Response};
+use itertools::Itertools;
 use tokio::fs;
 
 pub async fn update_file_infos(
@@ -85,6 +86,7 @@ pub async fn update_file_infos(
         }
         UpdateFileInfosRequestField::Keywords(new_keywords) => {
             check_keywords(&new_keywords)?;
+
             match check_auth(auth, &filez_file, &db, "update_file_infos_keywords").await {
                 Ok(true) => {}
                 Ok(false) => {
@@ -92,6 +94,23 @@ pub async fn update_file_infos(
                 }
                 Err(e) => bail!(e),
             }
+
+            let new_keywords = new_keywords
+                .into_iter()
+                .map(|k| {
+                    if k.contains('>') {
+                        // trim whitespace in front and after the > character
+                        k.split('>')
+                            .map(|s| s.trim())
+                            .collect::<Vec<&str>>()
+                            .join(">")
+                    } else {
+                        k.trim().to_string()
+                    }
+                })
+                .filter(|k| !k.is_empty())
+                .unique()
+                .collect::<Vec<String>>();
             db.update_keywords(&filez_file.file_id, &new_keywords)
                 .await?;
 

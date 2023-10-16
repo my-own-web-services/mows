@@ -1,36 +1,27 @@
 import { CSSProperties, PureComponent } from "react";
-import { IconButton, InputGroup, InputPicker, Panel, PanelGroup, TagPicker } from "rsuite";
-import Input from "rsuite/Input";
+import { IconButton, InputPicker, Panel, PanelGroup } from "rsuite";
 import { ItemDataType } from "rsuite/esm/@types/common";
 import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../utils";
-import { AiOutlineCheck, AiOutlineInfoCircle } from "react-icons/ai";
-import { BiHistory, BiLink, BiUndo } from "react-icons/bi";
+import { AiOutlineInfoCircle } from "react-icons/ai";
+import { BiHistory, BiLink } from "react-icons/bi";
 import { MdStorage } from "react-icons/md";
 import { FaPeopleArrows } from "react-icons/fa";
 import { FileDownload } from "@rsuite/icons";
 import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import { cloneDeep } from "lodash";
-import update from "immutability-helper";
+import Keywords from "./Keywords";
+import Name from "./Name";
+import FileAccessControl from "./FileAccessControl";
 
 interface MetaEditorProps {
-    readonly file: FilezFile;
+    readonly fileId: string;
     readonly style?: CSSProperties;
 }
 
 interface MetaEditorState {
-    readonly localData: MetaData;
-    readonly serverData: MetaData;
-    readonly knownKeywords: string[];
+    readonly file: FilezFile;
     readonly knownMimeTypes: string[];
     readonly knownOwners: ItemDataType[];
-}
-
-interface MetaData {
-    readonly name: string;
-    readonly ownerId: string;
-    readonly keywords: string[];
-    readonly mimeType: string;
 }
 
 export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEditorState> {
@@ -40,19 +31,10 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
     constructor(props: MetaEditorProps) {
         super(props);
 
-        const data: MetaData = {
-            ownerId: props.file.ownerId,
-            keywords: props.file.keywords,
-            mimeType: props.file.mimeType,
-            name: props.file.name
-        };
-
         this.state = {
             knownOwners: [],
-            knownKeywords: [],
-            knownMimeTypes: [props.file.mimeType],
-            localData: cloneDeep(data),
-            serverData: cloneDeep(data)
+            knownMimeTypes: [],
+            file: null as unknown as FilezFile
         };
     }
 
@@ -60,29 +42,30 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
         await this.loadFile();
     };
 
-    componentDidUpdate = (
+    componentDidUpdate = async (
         prevProps: Readonly<MetaEditorProps>,
         _prevState: Readonly<MetaEditorState>,
         _snapshot?: any
     ) => {
-        if (prevProps.file !== this.props.file) {
-            this.loadFile();
+        if (prevProps.fileId !== this.props.fileId) {
+            await this.loadFile();
         }
     };
 
     loadFile = async () => {
-        if (!this.props.file) return;
+        if (!this.context) return;
+
+        const file = await this.context.filezClient.get_file_info(this.props.fileId);
 
         this.setState({
-            knownOwners: [{ value: this.props.file.ownerId, label: this.props.file.ownerId }],
-            knownKeywords: [],
-            knownMimeTypes: [this.props.file.mimeType]
+            file
         });
     };
 
     render = () => {
-        if (!this.props.file) return;
-
+        if (this.state.file === null) {
+            return;
+        }
         const inputSize = "sm";
         return (
             <div style={{ ...this.props.style }} className="Filez FileMetaEditor">
@@ -102,68 +85,10 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                     >
                         <div>
                             <div className="basicsBox">
-                                <label>Name</label>
-                                <InputGroup>
-                                    <Input
-                                        className="selectable"
-                                        size={inputSize}
-                                        value={this.state.localData.name}
-                                        onChange={(value: string) => {
-                                            this.setState(
-                                                update(this.state, {
-                                                    localData: {
-                                                        name: { $set: value }
-                                                    }
-                                                })
-                                            );
-                                        }}
-                                    />
-                                    {this.state.localData.name !== this.state.serverData.name && (
-                                        <>
-                                            <InputGroup.Button
-                                                onClick={() => {
-                                                    this.setState(
-                                                        update(this.state, {
-                                                            localData: {
-                                                                name: {
-                                                                    $set: this.state.serverData.name
-                                                                }
-                                                            }
-                                                        })
-                                                    );
-                                                }}
-                                                title="Cancel"
-                                            >
-                                                <BiUndo />
-                                            </InputGroup.Button>
-                                            <InputGroup.Button appearance="primary" title="Save">
-                                                <AiOutlineCheck />
-                                            </InputGroup.Button>
-                                        </>
-                                    )}
-                                </InputGroup>
+                                <Name file={this.state.file} inputSize={inputSize} />
                             </div>
                             <div className="basicsBox">
-                                <label>Keywords</label>
-                                <TagPicker
-                                    size={inputSize}
-                                    value={this.state.localData.keywords}
-                                    data={this.state.knownKeywords.map(keyword => ({
-                                        value: keyword
-                                    }))}
-                                    onChange={(keywords: string[]) => {
-                                        this.setState(
-                                            update(this.state, {
-                                                localData: {
-                                                    keywords: { $set: keywords }
-                                                }
-                                            })
-                                        );
-                                    }}
-                                    block
-                                    virtualized
-                                    creatable
-                                />
+                                <Keywords file={this.state.file} inputSize={inputSize} />
                             </div>
                             <div className="basicsBox">
                                 <label>Owner</label>
@@ -171,7 +96,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                     size={inputSize}
                                     block
                                     virtualized
-                                    value={this.state.localData.ownerId}
+                                    value={this.state.file.ownerId}
                                     data={this.state.knownOwners}
                                 />
                             </div>
@@ -182,7 +107,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                     block
                                     virtualized
                                     creatable
-                                    value={this.state.localData.mimeType}
+                                    value={this.state.file.mimeType}
                                     data={this.state.knownMimeTypes.map(mimeType => ({
                                         value: mimeType,
                                         label: mimeType
@@ -193,22 +118,22 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                         <div className="basicsBox">
                             <div className="created">
                                 <label>Created</label>
-                                {utcTimeStampToTimeAndDate(this.props.file.created)}
+                                {utcTimeStampToTimeAndDate(this.state.file.created)}
                             </div>
                             <div className="modified">
                                 <label>Modified</label>
 
-                                {this.props.file.modified !== null &&
-                                    utcTimeStampToTimeAndDate(this.props.file.modified)}
+                                {this.state.file.modified !== null &&
+                                    utcTimeStampToTimeAndDate(this.state.file.modified)}
                             </div>
                             <div className="size">
                                 <label>Size</label>
-                                {bytesToHumanReadableSize(this.props.file.size)}
+                                {bytesToHumanReadableSize(this.state.file.size)}
                             </div>
                         </div>
                         <div className="Export">
                             <a
-                                href={`${this.context?.uiConfig.filezServerAddress}/api/get_file/${this.props.file?._id}?d`}
+                                href={`${this.context?.uiConfig.filezServerAddress}/api/get_file/${this.props.fileId}?d`}
                             >
                                 <IconButton
                                     placement="right"
@@ -245,7 +170,9 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                             </div>
                         }
                         bordered
-                    ></Panel>
+                    >
+                        <FileAccessControl file={this.state.file} />
+                    </Panel>
                     <Panel
                         className="panel"
                         collapsible

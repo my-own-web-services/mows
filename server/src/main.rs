@@ -9,6 +9,7 @@ use filez::methods::create_user::create_user;
 use filez::methods::delete_file::delete_file;
 use filez::methods::delete_group::delete_group;
 use filez::methods::delete_permission::delete_permission;
+use filez::methods::get_aggregated_keywords::get_aggregated_keywords;
 use filez::methods::get_file::get_file;
 use filez::methods::get_file_info::get_file_info;
 use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
@@ -223,6 +224,8 @@ async fn handle_inner(
         get_permissions_for_current_user(req, db, &auth, res).await
     } else if p == "/get_own_file_groups/" && m == Method::GET {
         get_own_file_groups(req, db, &auth, res).await
+    } else if p == "/get_aggregated_keywords/" && m == Method::GET {
+        get_aggregated_keywords(req, db, &auth, res).await
     } else if p == "/search/" && m == Method::POST {
         search(req, db, &auth, res).await
     } else if p == "/create_user/" && m == Method::POST {

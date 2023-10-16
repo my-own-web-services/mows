@@ -17,6 +17,7 @@ pub mod methods {
     pub mod delete_file;
     pub mod delete_group;
     pub mod delete_permission;
+    pub mod get_aggregated_keywords;
     pub mod get_file;
     pub mod get_file_info;
     pub mod get_file_infos_by_group_id;

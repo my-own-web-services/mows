@@ -103,67 +103,64 @@ export default class FileList extends PureComponent<FileListProps, FileListState
     ) => {
         if (this.context === null) {
             throw new Error("FileList must be used inside Filez to provide the FilezContext");
-        } else {
-            const filezClient = this.context.filezClient;
-            // TODO handle updates when (group)id changes
-            if (prevState.initialLoadFinished === true && filezClient !== null) {
-                if (prevProps.id !== this.props.id) {
-                    await this.loadData();
-                }
+        }
+        const filezClient = this.context.filezClient;
+        // TODO handle updates when (group)id changes
+        if (prevState.initialLoadFinished === true && filezClient !== null) {
+            if (prevProps.id !== this.props.id) {
+                await this.loadData();
             }
         }
     };
 
     loadData = async () => {
-        console.log("loadData");
+        //console.log("loadData");
 
         if (this.context === null) {
             throw new Error("FileList must be used inside Filez to provide the FilezContext");
-        } else {
-            const filezClient = this.context.filezClient;
-            this.moreFilesLoading = true;
-
-            const res = await filezClient.get_file_infos_by_group_id(
-                this.props.id,
-                0,
-                30,
-                ...this.get_current_column_sorting(this.state.columns),
-                this.state.commitedSearch
-            );
-            this.moreFilesLoading = false;
-
-            this.setState({
-                fileList: res.files,
-                initialLoadFinished: true,
-                listLength: res.totalCount
-            });
         }
+        const filezClient = this.context.filezClient;
+        this.moreFilesLoading = true;
+
+        const res = await filezClient.get_file_infos_by_group_id(
+            this.props.id,
+            0,
+            30,
+            ...this.get_current_column_sorting(this.state.columns),
+            this.state.commitedSearch
+        );
+        this.moreFilesLoading = false;
+
+        this.setState({
+            fileList: res.files,
+            initialLoadFinished: true,
+            listLength: res.totalCount
+        });
     };
 
     loadMoreFiles = async (startIndex: number, limit: number) => {
-        console.log("loadMoreFiles", startIndex, limit);
+        //console.log("loadMoreFiles", startIndex, limit);
 
         if (this.context === null) {
             throw new Error("FileList must be used inside Filez to provide the FilezContext");
-        } else {
-            const filezClient = this.context.filezClient;
+        }
+        const filezClient = this.context.filezClient;
 
-            if (this.moreFilesLoading === false) {
-                const { files } = await filezClient.get_file_infos_by_group_id(
-                    this.props.id,
-                    startIndex,
-                    limit,
-                    ...this.get_current_column_sorting(this.state.columns),
-                    this.state.commitedSearch
-                );
+        if (this.moreFilesLoading === false) {
+            const { files } = await filezClient.get_file_infos_by_group_id(
+                this.props.id,
+                startIndex,
+                limit,
+                ...this.get_current_column_sorting(this.state.columns),
+                this.state.commitedSearch
+            );
 
-                this.setState(({ fileList }) => {
-                    for (let i = 0; i < files.length; i++) {
-                        fileList[startIndex + i] = files[i];
-                    }
-                    return { fileList };
-                });
-            }
+            this.setState(({ fileList }) => {
+                for (let i = 0; i < files.length; i++) {
+                    fileList[startIndex + i] = files[i];
+                }
+                return { fileList };
+            });
         }
     };
 

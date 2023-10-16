@@ -675,6 +675,47 @@ impl DB {
         })
     }
 
+    pub async fn get_aggregated_keywords(&self, owner_id: &str) -> anyhow::Result<Vec<String>> {
+        let collection = self.db.collection::<FilezFile>("files");
+
+        let res = collection
+            .aggregate(
+                vec![
+                    doc! {
+                        "$match": {
+                            "ownerId": owner_id
+                        }
+                    },
+                    doc! {
+                        "$unwind": "$keywords"
+                    },
+                    doc! {
+                        "$group": {
+                            "_id": "$keywords"
+                        }
+                    },
+                    doc! {
+                        "$project": {
+                            "_id": 0,
+                            "keyword": "$_id"
+                        }
+                    },
+                ],
+                None,
+            )
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let mut keywords: Vec<String> = vec![];
+
+        for doc in res {
+            keywords.push(doc.get_str("keyword")?.to_string());
+        }
+
+        Ok(keywords)
+    }
+
     pub async fn update_file_name(
         &self,
         file_id: &str,
