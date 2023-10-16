@@ -1,14 +1,13 @@
-use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth};
+use crate::{db::DB, internal_types::Auth};
 use hyper::{Body, Request, Response};
 
 // create self user for an IR user assertion with default limits
 pub async fn create_user(
-    mut req: Request<Body>,
+    mut _req: Request<Body>,
     db: DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let config = &SERVER_CONFIG;
     let user_id = match &auth.authenticated_user {
         Some(user_id) => user_id,
         None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),

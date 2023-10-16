@@ -29,7 +29,7 @@ pub async fn handle_dynamic_group_update(db: &DB, update_type: &UpdateType) -> a
 
             let new_groups = handle_file_change(file, &groups.iter().collect());
 
-            let files_to_be_updated = vec![(file.file_id.clone(), new_groups)];
+            let _files_to_be_updated = vec![(file.file_id.clone(), new_groups)];
 
             // TODO update stuff
         }

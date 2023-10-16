@@ -1,8 +1,8 @@
-use crate::{db::DB, internal_types::Auth, types::DeleteGroupRequest};
+use crate::{db::DB, internal_types::Auth};
 use hyper::{Body, Request, Response};
 
 pub async fn get_aggregated_keywords(
-    req: Request<Body>,
+    _req: Request<Body>,
     db: DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
