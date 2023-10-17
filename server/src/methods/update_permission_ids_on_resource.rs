@@ -1,4 +1,4 @@
-use crate::{db::DB, internal_types::Auth, types::UpdatePermissionsRequest};
+use crate::{db::DB, internal_types::Auth, types::UpdatePermissionsRequestBody};
 use hyper::{Body, Request, Response};
 
 // update permission ids on resource: either fileGroup or file
@@ -15,7 +15,7 @@ pub async fn update_permission_ids_on_resource(
     };
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
-    let upr: UpdatePermissionsRequest = serde_json::from_slice(&body)?;
+    let upr: UpdatePermissionsRequestBody = serde_json::from_slice(&body)?;
 
     db.update_permission_ids_on_resource(&upr, user_id).await?;
 

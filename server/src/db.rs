@@ -1,13 +1,11 @@
 use crate::{
     config::SERVER_CONFIG,
-    internal_types::MergedFilezPermission,
     some_or_bail,
     types::{
-        AppDataType, DeleteGroupRequest, DeletePermissionRequest, FilezFile, FilezFileGroup,
-        FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest, SortOrder,
-        UpdatePermissionsRequest, UploadSpace, UsageLimits,
+        AppDataType, DeleteGroupRequestBody, DeletePermissionRequestBody, FilezFile,
+        FilezFileGroup, FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest,
+        SortOrder, UpdatePermissionsRequestBody, UploadSpace, UsageLimits,
     },
-    utils::merge_permissions,
 };
 use anyhow::bail;
 use futures::{stream::TryStreamExt, StreamExt};
@@ -371,7 +369,7 @@ impl DB {
 
     pub async fn update_permission_ids_on_resource(
         &self,
-        upr: &UpdatePermissionsRequest,
+        upr: &UpdatePermissionsRequestBody,
         user_id: &str,
     ) -> anyhow::Result<UpdateResult> {
         // check if all permissions are owned by the user
@@ -563,7 +561,7 @@ impl DB {
 
     pub async fn delete_permission(
         &self,
-        dpr: &DeletePermissionRequest,
+        dpr: &DeletePermissionRequestBody,
         owner_id: &str,
     ) -> anyhow::Result<DeleteResult> {
         let collection = self.db.collection::<FilezPermission>("permissions");
@@ -581,7 +579,7 @@ impl DB {
 
     pub async fn delete_group(
         &self,
-        dgr: &DeleteGroupRequest,
+        dgr: &DeleteGroupRequestBody,
         owner_id: &str,
     ) -> anyhow::Result<DeleteResult> {
         Ok(match dgr.group_type {
@@ -955,10 +953,10 @@ impl DB {
         Ok(())
     }
 
-    pub async fn get_merged_permissions_from_file(
+    pub async fn get_permissions_from_file(
         &self,
         file: &FilezFile,
-    ) -> anyhow::Result<MergedFilezPermission> {
+    ) -> anyhow::Result<Vec<FilezPermission>> {
         let mut permissions = vec![];
 
         // TODO check groups permissions
@@ -983,7 +981,7 @@ impl DB {
             }
         }
 
-        merge_permissions(permissions)
+        Ok(permissions)
     }
 
     pub async fn delete_file_by_id(&self, file: &FilezFile) -> anyhow::Result<()> {

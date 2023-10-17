@@ -1,16 +1,9 @@
-use crate::{
-    config::SERVER_CONFIG,
-    db::DB,
-    get_acl, get_acl_users,
-    internal_types::{Auth, MergedFilezPermission},
-    some_or_bail,
-    types::{FilezFile, FilezPermission},
-};
+use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth, some_or_bail, types::FilezFile};
 use anyhow::bail;
 use hyper::{Body, Request};
 use qstring::QString;
 use serde_json::Value;
-use std::{collections::HashMap, num::ParseIntError, path::Path, vec};
+use std::{collections::HashMap, num::ParseIntError, path::Path};
 
 pub fn is_allowed_origin(origin_to_test: &str) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
@@ -79,30 +72,6 @@ fn merge_values(a: &mut Value, b: &Value) {
             *a = b.clone();
         }
     }
-}
-
-pub fn merge_permissions(
-    permissions: Vec<FilezPermission>,
-) -> anyhow::Result<MergedFilezPermission> {
-    let mut merged_permission = MergedFilezPermission {
-        ribston: vec![],
-        acl: None,
-    };
-
-    let mut merged_acl = Value::Null;
-
-    for permission in permissions {
-        if let Some(ribston) = permission.ribston {
-            merged_permission.ribston.push(ribston);
-        }
-        if let Some(acl) = permission.acl {
-            merge_values(&mut merged_acl, &serde_json::to_value(&acl)?);
-        }
-    }
-
-    merged_permission.acl = serde_json::from_value(merged_acl)?;
-
-    Ok(merged_permission)
 }
 
 pub fn get_range(req: &Request<Body>) -> anyhow::Result<(u64, Result<u64, ParseIntError>)> {
@@ -180,7 +149,7 @@ pub async fn check_auth(
     auth: &Auth,
     file: &FilezFile,
     db: &DB,
-    acl_type: &str,
+    required_acl_what: &str,
 ) -> anyhow::Result<bool> {
     let config = &SERVER_CONFIG;
     let mut auth_ok = false;
@@ -200,71 +169,14 @@ pub async fn check_auth(
 
         // user is not the owner
         // check if file is public
-        let permissions = db.get_merged_permissions_from_file(file).await?;
+        let permissions = db.get_permissions_from_file(file).await?;
 
-        if let Some(permissions_acl) = permissions.acl {
-            // check if public
-            if let Some(everyone_acl_perm) = permissions_acl
-                .everyone
-                .and_then(|everyone| get_acl!(everyone, acl_type))
-            {
-                if everyone_acl_perm {
-                    auth_ok = true;
-                }
-            }
+        if !auth_ok { // TODO handle ribston
 
-            // check if password present and correct
-            if !auth_ok {
-                if let Some(token) = &auth.token {
-                    // handle password
+            // if we dont have permission from the easy to check acl yet we need to check ribston
 
-                    if let Some(passwords_acl_perm) = permissions_acl
-                        .passwords
-                        .and_then(|passwords| get_acl!(passwords, acl_type))
-                    {
-                        if passwords_acl_perm.contains(token) {
-                            auth_ok = true;
-                        }
-                    }
-                }
-            }
-            if !auth_ok {
-                if let Some(user_id) = &auth.authenticated_user {
-                    if let Some(users_acl_perm) = permissions_acl
-                        .users
-                        .and_then(|users| get_acl_users!(users, acl_type))
-                    {
-                        if let Some(users_acl_perm_user_ids) = users_acl_perm.user_ids {
-                            if users_acl_perm_user_ids.contains(user_id) {
-                                // user is in list of users that have access
-                                auth_ok = true;
-                            }
-                        }
-                        if !auth_ok {
-                            if let Some(users_acl_perm_user_group_ids) =
-                                users_acl_perm.user_group_ids
-                            {
-                                if let Some(user) = db.get_user_by_id(user_id).await? {
-                                    for user_group in user.user_group_ids {
-                                        if users_acl_perm_user_group_ids.contains(&user_group) {
-                                            // user is in a user group that has access to the resource
-                                            auth_ok = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if !auth_ok { // TODO handle ribston
-
-                // if we dont have permission from the easy to check acl yet we need to check ribston
-
-                // send all policies to ribston for evaluation
-                // all need to be true for access to be granted
-            }
+            // send all policies to ribston for evaluation
+            // all need to be true for access to be granted
         }
     }
 

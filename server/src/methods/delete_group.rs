@@ -1,4 +1,4 @@
-use crate::{db::DB, internal_types::Auth, types::DeleteGroupRequest};
+use crate::{db::DB, internal_types::Auth, types::DeleteGroupRequestBody};
 use hyper::{Body, Request, Response};
 
 pub async fn delete_group(
@@ -13,7 +13,7 @@ pub async fn delete_group(
     };
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
-    let dgr: DeleteGroupRequest = serde_json::from_slice(&body)?;
+    let dgr: DeleteGroupRequestBody = serde_json::from_slice(&body)?;
 
     db.delete_group(&dgr, user_id).await?;
 

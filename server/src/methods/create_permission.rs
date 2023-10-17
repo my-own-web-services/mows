@@ -1,7 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{CreatePermissionRequest, CreatePermissionResponse, FilezPermission},
+    types::{CreatePermissionRequestBody, CreatePermissionResponseBody, FilezPermission},
     utils::generate_id,
 };
 use hyper::{Body, Request, Response};
@@ -19,7 +19,7 @@ pub async fn create_permission(
     };
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
-    let cpr: CreatePermissionRequest = serde_json::from_slice(&body)?;
+    let cpr: CreatePermissionRequestBody = serde_json::from_slice(&body)?;
 
     let permission_id = generate_id(16);
 
@@ -28,12 +28,13 @@ pub async fn create_permission(
         name: cpr.name,
         permission_id: permission_id.clone(),
         acl: cpr.acl,
+        use_type: cpr.use_type,
         ribston: cpr.ribston,
     };
 
     db.create_permission(&permission).await?;
 
-    let res_body = CreatePermissionResponse { permission_id };
+    let res_body = CreatePermissionResponseBody { permission_id };
 
     Ok(res
         .status(201)

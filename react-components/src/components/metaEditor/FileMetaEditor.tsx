@@ -151,6 +151,21 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                         header={
                             <div className="header">
                                 <span className="icon">
+                                    <FaPeopleArrows size={18} />
+                                </span>
+                                <span>Access </span>
+                            </div>
+                        }
+                        bordered
+                    >
+                        <FileAccessControl file={this.state.file} inputSize={inputSize} />
+                    </Panel>
+                    <Panel
+                        className="panel"
+                        collapsible
+                        header={
+                            <div className="header">
+                                <span className="icon">
                                     <MdStorage size={18} />
                                 </span>
                                 <span>Storage</span>
@@ -158,21 +173,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                         }
                         bordered
                     ></Panel>
-                    <Panel
-                        className="panel"
-                        collapsible
-                        header={
-                            <div className="header">
-                                <span className="icon">
-                                    <FaPeopleArrows size={18} />
-                                </span>
-                                <span>Access Control</span>
-                            </div>
-                        }
-                        bordered
-                    >
-                        <FileAccessControl file={this.state.file} />
-                    </Panel>
+
                     <Panel
                         className="panel"
                         collapsible

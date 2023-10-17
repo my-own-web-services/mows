@@ -2,7 +2,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     types::{
-        CreateUploadSpaceRequest, FileGroupType, FilezFileGroup, FilezGroups, UploadSpace,
+        CreateUploadSpaceRequestBody, FileGroupType, FilezFileGroup, FilezGroups, UploadSpace,
         UsageLimits,
     },
     utils::generate_id,
@@ -26,7 +26,7 @@ pub async fn create_upload_space(
     };
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
-    let cusr: CreateUploadSpaceRequest = serde_json::from_slice(&body)?;
+    let cusr: CreateUploadSpaceRequestBody = serde_json::from_slice(&body)?;
 
     let upload_space_id = generate_id(16);
 

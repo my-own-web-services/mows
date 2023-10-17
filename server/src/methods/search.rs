@@ -1,7 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{SearchRequest, SearchRequestType},
+    types::{SearchRequestBody, SearchType},
     utils::{check_search_limit, check_search_query, filter_files_by_owner_id},
 };
 use hyper::{Body, Request, Response};
@@ -20,12 +20,12 @@ pub async fn search(
     //let user = db.get_user_by_id(user_id).await?;
     let body = hyper::body::to_bytes(req.into_body()).await?;
 
-    let sr: SearchRequest = serde_json::from_slice(&body)?;
+    let sr: SearchRequestBody = serde_json::from_slice(&body)?;
 
     check_search_limit(sr.limit)?;
 
     match sr.search_type {
-        SearchRequestType::SimpleSearch(ss) => {
+        SearchType::SimpleSearch(ss) => {
             // a simple search will search through all fields
             // first searching through the indexed fields and
             // then the non-indexed fields if the limit was not reached
@@ -44,6 +44,6 @@ pub async fn search(
                 .body(serde_json::to_string(&filtered_files)?.into())
                 .unwrap())
         }
-        SearchRequestType::AdvancedSearch(_ads) => todo!(),
+        SearchType::AdvancedSearch(_ads) => todo!(),
     }
 }

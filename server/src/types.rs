@@ -81,8 +81,8 @@ pub enum JobStatus {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct SearchRequest {
-    pub search_type: SearchRequestType,
+pub struct SearchRequestBody {
+    pub search_type: SearchType,
     pub limit: u32,
 }
 
@@ -90,16 +90,16 @@ pub struct SearchRequest {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum SearchRequestType {
-    SimpleSearch(SimpleSearchRequest),
-    AdvancedSearch(AdvancedSearchRequest),
+pub enum SearchType {
+    SimpleSearch(SimpleSearch),
+    AdvancedSearch(AdvancedSearch),
 }
 
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct SimpleSearchRequest {
+pub struct SimpleSearch {
     pub query: String,
     pub group_id: String,
 }
@@ -108,7 +108,7 @@ pub struct SimpleSearchRequest {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct AdvancedSearchRequest {
+pub struct AdvancedSearch {
     pub query: String,
     pub group_id: String,
     pub filters: Vec<FilterRule>,
@@ -127,7 +127,7 @@ pub struct GetFileInfosByGroupIdResponseBody {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateUploadSpaceRequest {
+pub struct CreateUploadSpaceRequestBody {
     pub limits: HashMap<String, CusrLimits>,
 }
 
@@ -145,7 +145,7 @@ pub struct CusrLimits {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdatePermissionsRequest {
+pub struct UpdatePermissionsRequestBody {
     pub permission_ids: Vec<String>,
     pub resource_id: String,
     pub resource_type: FileResourceType,
@@ -164,7 +164,7 @@ pub enum FileResourceType {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct DeleteGroupRequest {
+pub struct DeleteGroupRequestBody {
     pub group_id: String,
     pub group_type: GroupType,
 }
@@ -173,7 +173,7 @@ pub struct DeleteGroupRequest {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct DeletePermissionRequest {
+pub struct DeletePermissionRequestBody {
     pub permission_id: String,
 }
 
@@ -181,17 +181,18 @@ pub struct DeletePermissionRequest {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CreatePermissionRequest {
+pub struct CreatePermissionRequestBody {
     pub name: Option<String>,
     pub acl: Option<FilezPermissionAcl>,
     pub ribston: Option<String>,
+    pub use_type: FilezPermissionUseType,
 }
 
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CreatePermissionResponse {
+pub struct CreatePermissionResponseBody {
     pub permission_id: String,
 }
 
@@ -530,6 +531,8 @@ pub struct UploadSpace {
 pub struct FilezPermission {
     #[serde(rename = "_id")]
     pub permission_id: String,
+    /** Whether the permission can be used once or multiple times */
+    pub use_type: FilezPermissionUseType,
     pub name: Option<String>,
     /** Id of the User owning the permission */
     pub owner_id: String,
@@ -541,53 +544,64 @@ pub struct FilezPermission {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct FilezPermissionAcl {
-    pub everyone: Option<EveryoneAcl>,
-    pub passwords: Option<PasswordAcl>,
-    pub users: Option<UsersAcl>,
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct EveryoneAcl {
-    pub get_file: Option<bool>,
-    pub update_file: Option<bool>,
-    pub delete_file: Option<bool>,
-    pub get_file_info: Option<bool>,
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct PasswordAcl {
-    pub get_file: Option<Vec<String>>,
-    pub update_file: Option<Vec<String>>,
-    pub delete_file: Option<Vec<String>>,
-    pub get_file_info: Option<Vec<String>>,
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct UsersAcl {
-    pub get_file: Option<UsersAclUsersAndUserGroups>,
-    pub update_file: Option<UsersAclUsersAndUserGroups>,
-    pub delete_file: Option<UsersAclUsersAndUserGroups>,
-    pub get_file_info: Option<UsersAclUsersAndUserGroups>,
-    pub update_file_infos_name: Option<UsersAclUsersAndUserGroups>,
-    pub update_file_infos_mime_type: Option<UsersAclUsersAndUserGroups>,
-    pub update_file_infos_keywords: Option<UsersAclUsersAndUserGroups>,
-    pub update_file_infos_static_file_groups: Option<UsersAclUsersAndUserGroups>,
+pub enum FilezPermissionUseType {
+    Once,
+    Multiple,
 }
 
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct UsersAclUsersAndUserGroups {
+pub struct FilezPermissionAcl {
+    pub who: FilezPermissionAclWho,
+    pub what_file: Vec<FilezFilePermissionAclWhatOptions>,
+    pub what_group: Vec<FilezGroupPermissionAclWhatOptions>,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FilezPermissionAclWho {
+    pub link: Option<bool>,
+    pub password: Option<String>,
+    pub users: Option<FilezPermissionAclUsers>,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FilezPermissionAclUsers {
     /** List of users that have access to the parent resource */
-    pub user_ids: Option<Vec<String>>,
+    pub user_ids: Vec<String>,
     /** List of user groups that have access to the parent resource */
-    pub user_group_ids: Option<Vec<String>>,
+    pub user_group_ids: Vec<String>,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub enum FilezFilePermissionAclWhatOptions {
+    GetFile,
+    GetFileInfos,
+    DeleteFile,
+    UpdateFileInfosName,
+    UpdateFileInfosMimeType,
+    UpdateFileInfosKeywords,
+    UpdateFileInfosStaticFileGroups,
+    UpdateFile,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub enum FilezGroupPermissionAclWhatOptions {
+    ListFiles,
+    GetGroupInfos,
+    DeleteGroup,
+    UpdateGroupInfosName,
+    UpdateGroupInfosKeywords,
+    UpdateGroupInfosDynamicGroupRules,
 }

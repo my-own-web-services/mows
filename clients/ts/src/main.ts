@@ -1,5 +1,4 @@
 import { InterosseaClient } from "@firstdorsal/interossea-client";
-import { SearchRequest } from "./apiTypes/SearchRequest.js";
 import { FilezFile } from "./apiTypes/FilezFile.js";
 import { CreateFileRequest } from "./apiTypes/CreateFileRequest.js";
 import { CreateGroupRequest } from "./apiTypes/CreateGroupRequest.js";
@@ -10,6 +9,10 @@ import { FilezUser } from "./apiTypes/FilezUser.js";
 import { UpdateFileInfosRequestField } from "./apiTypes/UpdateFileInfosRequestField.js";
 import { UpdateFileGroupRequestBody } from "./apiTypes/UpdateFileGroupRequestBody.js";
 import { GetFileInfosByGroupIdResponseBody } from "./apiTypes/GetFileInfosByGroupIdResponseBody.js";
+import { FilezPermission } from "./apiTypes/FilezPermission.js";
+import { CreatePermissionRequestBody } from "./apiTypes/CreatePermissionRequestBody.js";
+import { SearchRequestBody } from "./apiTypes/SearchRequestBody.js";
+import { CreatePermissionResponseBody } from "./apiTypes/CreatePermissionResponseBody.js";
 
 export * from "./types.js";
 
@@ -39,7 +42,7 @@ export class FilezClient {
         await this.interosseaClient.init();
     };
 
-    search = async (searchRequest: SearchRequest) => {
+    search = async (searchRequest: SearchRequestBody) => {
         const res = await fetch(`${this.filezEndpoint}/api/search/`, {
             credentials: "include",
             method: "POST",
@@ -47,6 +50,16 @@ export class FilezClient {
         });
         const files: FilezFile[] = await res.json();
         return files;
+    };
+
+    create_permission = async (body: CreatePermissionRequestBody) => {
+        const res = await fetch(`${this.filezEndpoint}/api/create_permission/`, {
+            method: "POST",
+            credentials: "include",
+            body: JSON.stringify(body)
+        });
+        const json: CreatePermissionResponseBody = await res.json();
+        return json;
     };
 
     create_user = async () => {
@@ -162,6 +175,9 @@ export class FilezClient {
         const res = await fetch(`${this.filezEndpoint}/api/get_permissions_for_current_user/`, {
             credentials: "include"
         });
+
+        const json: FilezPermission[] = await res.json();
+        return json;
     };
 
     get_user_info = async () => {

@@ -9,14 +9,14 @@ import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile"
 interface AppProps {}
 
 interface AppState {
-    readonly selectedFile?: FilezFile;
+    readonly selectedFileId?: string;
 }
 
 export default class App extends PureComponent<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            selectedFile: undefined
+            selectedFileId: "Fk89LMiInn_34B3u"
         };
     }
 
@@ -25,7 +25,7 @@ export default class App extends PureComponent<AppProps, AppState> {
             <div
                 className="Filez clickable"
                 onClick={() => {
-                    this.setState({ selectedFile: item });
+                    this.setState({ selectedFileId: item._id });
                 }}
                 style={{ ...style }}
             >
@@ -47,17 +47,17 @@ export default class App extends PureComponent<AppProps, AppState> {
                         style={{ width: "500px", float: "left", height: "500px" }}
                         initialListType={ListType.List}
                         drrOnClick={item => {
-                            this.setState({ selectedFile: item });
+                            this.setState({ selectedFileId: item._id });
                         }}
                     />
                     <FileViewer
                         style={{ width: "500px", float: "left", height: "500px" }}
-                        file={this.state.selectedFile}
+                        fileId={this.state.selectedFileId}
                     />
-                    {this.state.selectedFile && (
+                    {this.state.selectedFileId && (
                         <FileMetaEditor
                             style={{ width: "500px", float: "left", height: "500px" }}
-                            fileId={this.state.selectedFile._id}
+                            fileId={this.state.selectedFileId}
                         />
                     )}
                 </FilezProvider>
