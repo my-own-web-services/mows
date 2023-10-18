@@ -1,9 +1,11 @@
-import { FileGroup, FilezClient, FilezFile } from "@firstdorsal/filez-client";
+import { FilezClient } from "@firstdorsal/filez-client";
 import { createContext, PureComponent } from "react";
 import update from "immutability-helper";
 import "rsuite/styles/index.less";
 import "./default.scss";
 import { CustomProvider } from "rsuite";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 
 export interface FilezContext {
     filezClient: FilezClient;
@@ -18,7 +20,7 @@ interface FilezProviderProps {
 
 interface FilezProviderState {
     readonly fileList: FilezFile[];
-    readonly groupList: FileGroup[];
+    readonly groupList: FilezFileGroup[];
     readonly filezClient: FilezClient;
     readonly uiConfig: UiConfig;
 }
@@ -46,7 +48,7 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
         );
 
         await client.init();
-        await client.create_user();
+        await client.create_own_user();
         //console.log(uiConfig);
 
         this.setState(state => {

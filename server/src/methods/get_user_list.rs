@@ -1,7 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{FilezFile, GetFileInfosByGroupIdResponseBody, GetUserListResponseBody, SortOrder},
+    types::{GetUserListResponseBody, SortOrder},
     utils::{get_query_item, get_query_item_number},
 };
 use hyper::{Body, Request, Response};
@@ -12,8 +12,11 @@ pub async fn get_user_list(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let user_id = match &auth.authenticated_user {
-        Some(user_id) => user_id.clone(),
+    let user = match &auth.authenticated_user {
+        Some(ir_user_id) => match db.get_user_by_ir_id(ir_user_id).await? {
+            Some(u) => u,
+            None => return Ok(res.status(412).body(Body::from("User has not been created on the filez server, although it is present on the IR server. Run create_own first."))?),
+        },
         None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
     };
 
@@ -22,22 +25,15 @@ pub async fn get_user_list(
 
     let field = get_query_item(&req, "f");
     let sort_order = get_query_item(&req, "o").map_or(SortOrder::Ascending, |s| match s.as_str() {
-        "ascending" => SortOrder::Ascending,
-        "descending" => SortOrder::Descending,
+        "Ascending" => SortOrder::Ascending,
+        "Descending" => SortOrder::Descending,
         _ => SortOrder::Ascending,
     });
 
     let filter = get_query_item(&req, "s");
 
     let (users, total_count) = db
-        .get_user_list(
-            &user_id,
-            limit,
-            from_index as u64,
-            field,
-            sort_order,
-            filter,
-        )
+        .get_user_list(&user, limit, from_index as u64, field, sort_order, filter)
         .await?;
 
     let res_body = GetUserListResponseBody { users, total_count };

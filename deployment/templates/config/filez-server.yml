@@ -32,9 +32,11 @@ interossea:
     assertionValiditySeconds: 600
 
 dev:
-    insecureSkipInterossea: false
-    createDevUser: true
-    disableComplexAccessControl: true
+    {{- range $key, $value := $config.filez.server.dev }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+    mockUserPath: /.dev/mock_users.yml
+    
 
 constraints:
     maxFileSize: 10000000000 # 10 GB
@@ -58,5 +60,17 @@ readonlyMounts:
     {{ .name }}:
         path: /readonly/{{ .name }}/
         rescanSeconds: 120
-        ownerId: {{ .ownerId }}
+        ownerEmail: {{ .ownerEmail }}
     {{- end }}
+
+
+users:
+    makeAdmin: 
+        {{- range $config.filez.server.users.makeAdmin }}
+        - {{ . }}
+        {{- end }}
+    create:
+        {{- range $config.filez.server.users.create }}
+        - {{ . }}
+        {{- end }}
+    allowNew: {{ $config.filez.server.users.allowNew }}

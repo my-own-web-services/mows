@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{interossea::UserAssertion, types::FilezPermissionAcl};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct Auth {

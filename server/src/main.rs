@@ -1,5 +1,6 @@
 use filez::config::SERVER_CONFIG;
 use filez::db::DB;
+use filez::dev::dev;
 use filez::internal_types::Auth;
 use filez::interossea::{get_session_cookie, Interossea, UserAssertion, INTEROSSEA};
 
@@ -16,12 +17,13 @@ use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
 use filez::methods::get_own_file_groups::get_own_file_groups;
 use filez::methods::get_permissions_for_current_user::get_permissions_for_current_user;
 
+use filez::methods::get_user_list::get_user_list;
 use filez::methods::group::create::create_group;
 use filez::methods::group::delete::delete_group;
 use filez::methods::permission::create::create_permission;
 use filez::methods::permission::delete::delete_permission;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
-use filez::methods::user::create::create_user;
+use filez::methods::user::create_own::create_own_user;
 use filez::methods::user::get::get_user;
 use filez::readonly_mount::scan_readonly_mounts;
 use filez::utils::{get_token_from_query, is_allowed_origin};
@@ -64,9 +66,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     db.create_collections().await?;
 
-    if config.dev.create_dev_user {
-        db.create_dev_user().await?;
-    }
+    let _ = dev(&db).await;
 
     tokio::spawn(async move {
         println!("Scanning readonly mounts...");
@@ -171,6 +171,7 @@ async fn handle_inner(
             client_ip: "127.0.0.1".to_string(),
             service_origin: "localhost".to_string(),
             ir_admin: true,
+            ir_email: "mail@example.com".to_string(),
         }),
         false => {
             match INTEROSSEA
@@ -217,8 +218,8 @@ async fn handle_inner(
         get_file_infos_by_group_id(req, db, &auth, res).await
     } else if p.starts_with("/user/get/") && m == Method::GET {
         get_user(req, db, &auth, res).await
-    } else if p == "/user/create/" && m == Method::POST {
-        create_user(req, db, &auth, res).await
+    } else if p == "/user/create_own/" && m == Method::POST {
+        create_own_user(req, db, &auth, res).await
     } else if p == "/file_group/update/" && m == Method::POST {
         update_file_group(req, db, &auth, res).await
     } else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
@@ -227,6 +228,8 @@ async fn handle_inner(
         get_permissions_for_current_user(req, db, &auth, res).await
     } else if p == "/get_own_file_groups/" && m == Method::GET {
         get_own_file_groups(req, db, &auth, res).await
+    } else if p == "/get_user_list/" && m == Method::GET {
+        get_user_list(req, db, &auth, res).await
     } else if p == "/get_aggregated_keywords/" && m == Method::GET {
         get_aggregated_keywords(req, db, &auth, res).await
     } else if p == "/get_assertion_validity_seconds/" && m == Method::GET {

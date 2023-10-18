@@ -53,8 +53,8 @@ export class FilezClient {
         return json;
     };
 
-    create_user = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/user/create/`, {
+    create_own_user = async () => {
+        const res = await fetch(`${this.filezEndpoint}/api/user/create_own/`, {
             method: "POST",
             credentials: "include"
         });
@@ -145,8 +145,8 @@ export class FilezClient {
         return files;
     };
 
-    get_file = async (fileId: string) => {
-        const res = await fetch(`${this.filezEndpoint}/api/file/get/${fileId}`, {
+    get_file = async (file_id: string) => {
+        const res = await fetch(`${this.filezEndpoint}/api/file/get/${file_id}`, {
             credentials: "include"
         });
         const content = await res.text();

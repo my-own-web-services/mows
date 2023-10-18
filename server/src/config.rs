@@ -61,6 +61,7 @@ pub struct ServerConfig {
     pub app_storage: AppStorage,
     pub services: Vec<Service>,
     pub constraints: Constraints,
+    pub users: UsersConfig,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
@@ -96,15 +97,24 @@ pub struct DefaultUserLimits {
 pub struct ReadonlyMountConfig {
     pub path: String,
     pub rescan_seconds: u64,
-    pub owner_id: String,
+    pub owner_email: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DevConfig {
     pub insecure_skip_interossea: bool,
-    pub create_dev_user: bool,
     pub disable_complex_access_control: bool,
+    pub create_mock_users: bool,
+    pub mock_user_path: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UsersConfig {
+    pub make_admin: Vec<String>,
+    pub create: Vec<String>,
+    pub allow_new: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

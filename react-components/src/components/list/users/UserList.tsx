@@ -30,6 +30,30 @@ export default class UserList extends PureComponent<UserListProps, UserListState
         };
     }
 
+    componentDidMount = async () => {
+        await this.loadItems();
+    };
+
+    loadItems = async () => {
+        if (!this.context) return;
+        if (this.moreItemsLoading) return;
+
+        this.moreItemsLoading = true;
+
+        const filezClient = this.context.filezClient;
+        const { users, total_count } = await filezClient.get_user_list(
+            0,
+            30,
+            null,
+            null,
+            this.state.commitedSearch
+        );
+        this.setState({
+            userList: users,
+            listLength: total_count
+        });
+    };
+
     loadMoreItems = async (startIndex: number, limit: number) => {
         if (!this.context) return;
         if (this.moreItemsLoading) return;

@@ -4,14 +4,15 @@ use crate::{
     types::{
         AppDataType, DeleteGroupRequestBody, DeletePermissionRequestBody, FilezFile,
         FilezFileGroup, FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest,
-        SortOrder, UpdatePermissionsRequestBody, UploadSpace, UsageLimits,
+        SortOrder, UpdatePermissionsRequestBody, UploadSpace, UsageLimits, UserStatus,
     },
+    utils::generate_id,
 };
 use anyhow::bail;
 use futures::{stream::TryStreamExt, StreamExt};
 use mongodb::{
     bson::doc,
-    options::FindOptions,
+    options::{FindOneOptions, FindOptions},
     results::{DeleteResult, InsertOneResult, UpdateResult},
 };
 use mongodb::{options::ClientOptions, Client, Database, IndexModel};
@@ -45,202 +46,54 @@ impl DB {
 
         let files_collection = self.db.collection::<FilezFile>("files");
 
-        files_collection.drop_indexes(None).await?;
+        //files_collection.drop_indexes(None).await?;
 
         {
             let index = IndexModel::builder()
                 .keys(doc! {"static_file_group_ids": 1})
                 .build();
-            files_collection.create_index(index, None).await?;
+            match files_collection.create_index(index, None).await {
+                Ok(_) => {}
+                Err(e) => println!("Error creating index on files collection: {:?}", e),
+            };
         }
         {
             let index = IndexModel::builder()
                 .keys(doc! {"dynamic_file_group_ids": 1})
                 .build();
-            files_collection.create_index(index, None).await?;
+            match files_collection.create_index(index, None).await {
+                Ok(_) => {}
+                Err(e) => println!("Error creating index on files collection: {:?}", e),
+            };
         }
         {
             let index = IndexModel::builder().keys(doc! {"keywords": 1}).build();
-            files_collection.create_index(index, None).await?;
+            match files_collection.create_index(index, None).await {
+                Ok(_) => {}
+                Err(e) => println!("Error creating index on files collection: {:?}", e),
+            };
         }
         {
             let index = IndexModel::builder().keys(doc! {"owner_id": 1}).build();
-            files_collection.create_index(index, None).await?;
+            match files_collection.create_index(index, None).await {
+                Ok(_) => {}
+                Err(e) => println!("Error creating index on files collection: {:?}", e),
+            };
         }
 
+        let user_collection = self.db.collection::<FilezUser>("users");
+
+        //user_collection.drop_indexes(None).await?;
+
         {
-            let index = IndexModel::builder().keys(doc! {"$**": "text"}).build();
-            files_collection.create_index(index, None).await?;
+            let index = IndexModel::builder().keys(doc! {"ir_user_id": 1}).build();
+            match user_collection.create_index(index, None).await {
+                Ok(_) => {}
+                Err(e) => println!("Error creating index on users collection: {:?}", e),
+            };
         }
 
         Ok(())
-    }
-
-    pub async fn search(
-        &self,
-        query: &str,
-        file_group_id: &str,
-        limit: u32,
-    ) -> anyhow::Result<Vec<FilezFile>> {
-        let collection = self.db.collection::<FilezFile>("files");
-
-        // get maximum size for group
-        let file_group = if let Some(fg) = self.get_file_group_by_id(file_group_id).await? {
-            fg
-        } else {
-            bail!("File group not found");
-        };
-
-        let max_size = file_group.item_count;
-
-        let options1 = FindOptions::builder()
-            .limit(limit as i64)
-            .sort(doc! { "score": { "$meta": "textScore" } })
-            .build();
-
-        // the mongodb text search is very strange and incosistent
-        // if the limit is not reached AND there are still files left in the collection/group
-        // we search the most relevant fields for substring matches
-        // if this still is not enough, we search for a substring match in all fields
-        // .find({$where:"JSON.stringify(this).indexOf('aa')!=-1"})
-
-        let files1 = collection
-            .find(
-                doc! {
-                    "$and": [
-                        { "$or": [
-                                {"static_file_group_ids": file_group_id},
-                                {"dynamic_file_group_ids": file_group_id}
-                            ]
-                        },
-                        { "$text": { "$search": query } }
-                    ]
-                },
-                options1,
-            )
-            .await?
-            .try_collect::<Vec<_>>()
-            .await?;
-
-        // if we matched all files we can return
-        if files1.len() >= max_size as usize || files1.len() >= limit as usize {
-            Ok(files1)
-        } else {
-            let options2 = FindOptions::builder().limit(limit as i64).build();
-            let files2 = collection
-                .find(
-                    doc! {
-                        "$and": [
-                            {
-                                "$or": [
-                                    {"static_file_group_ids": file_group_id},
-                                    {"dynamic_file_group_ids": file_group_id}
-                                ]
-                            },
-                            {
-                                "$or": [
-                                    {
-                                        "name": {
-                                            "$regex": query
-                                        }
-                                    },
-                                    {
-                                        "_id": query
-                                    },
-                                    {
-                                        "owner_id": query
-                                    },
-                                    {
-                                        "keywords": {
-                                            "$regex": query
-                                        }
-                                    }
-                                ]
-                            },
-                        ]
-                    },
-                    options2,
-                )
-                .await?
-                .try_collect::<Vec<_>>()
-                .await?;
-
-            if files2.len() >= max_size as usize || files2.len() >= limit as usize {
-                // combine files1 and files2 and sort out duplicates differentiated by _id
-
-                let mut new_files: Vec<FilezFile> = vec![];
-
-                let mut file_map: HashMap<String, FilezFile> = HashMap::new();
-
-                for file in files1 {
-                    file_map.insert(file.file_id.clone(), file);
-                }
-
-                for file in files2 {
-                    file_map.insert(file.file_id.clone(), file);
-                }
-
-                for (_, file) in file_map {
-                    new_files.push(file);
-                }
-
-                Ok(new_files)
-            } else {
-                let options3 = FindOptions::builder().limit(limit as i64).build();
-                let files3 = collection
-                    .find(
-                        doc! {
-                            "$and": [
-                                {
-                                    "$or": [
-                                        {"static_file_group_ids": file_group_id},
-                                        {"dynamic_file_group_ids": file_group_id}
-                                    ]
-                                },
-                                {
-                                    "$where":format!("JSON.stringify(this).indexOf('{}')!=-1",query)
-                                },
-                            ]
-                        },
-                        options3,
-                    )
-                    .await?
-                    .try_collect::<Vec<_>>()
-                    .await?;
-
-                let mut new_files: Vec<FilezFile> = vec![];
-
-                let mut file_map: HashMap<String, FilezFile> = HashMap::new();
-
-                for file in files1 {
-                    file_map.insert(file.file_id.clone(), file);
-                }
-
-                for file in files2 {
-                    file_map.insert(file.file_id.clone(), file);
-                }
-
-                for file in files3 {
-                    file_map.insert(file.file_id.clone(), file);
-                }
-
-                for (_, file) in file_map {
-                    new_files.push(file);
-                }
-
-                Ok(new_files)
-            }
-        }
-    }
-
-    pub async fn create_dev_user(&self) -> anyhow::Result<()> {
-        match self.create_user("dev").await {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                println!("Error creating dev user: {}", e);
-                Ok(())
-            }
-        }
     }
 
     pub async fn get_upload_space_by_token(
@@ -465,19 +318,41 @@ impl DB {
         Ok(res)
     }
 
-    pub async fn create_user(&self, user_id: &str) -> anyhow::Result<()> {
+    pub async fn link_ir_user(
+        &self,
+        user_id: &str,
+        ir_user_id: &str,
+    ) -> anyhow::Result<UpdateResult> {
+        let collection = self.db.collection::<FilezUser>("users");
+
+        Ok(collection
+            .update_one(
+                doc! {
+                    "_id": user_id
+                },
+                doc! {
+                    "$set": {
+                        "ir_user_id": ir_user_id,
+                        "status": "Active",
+                    }
+                },
+                None,
+            )
+            .await?)
+    }
+
+    pub async fn create_user(
+        &self,
+        ir_user_id: Option<String>,
+        user_status: Option<UserStatus>,
+        user_name: Option<String>,
+        email: Option<String>,
+    ) -> anyhow::Result<String> {
         let mut session = self.client.start_session(None).await?;
         session.start_transaction(None).await?;
 
         let users_collection = self.db.collection::<FilezUser>("users");
         let config = &SERVER_CONFIG;
-
-        let user = users_collection
-            .find_one(doc! {"_id": user_id}, None)
-            .await?;
-        if user.is_some() {
-            bail!("User already exists")
-        }
 
         let mut limits: HashMap<String, UsageLimits> = HashMap::new();
 
@@ -496,17 +371,30 @@ impl DB {
             );
         }
 
+        let user_id = generate_id(16);
+
+        let make_admin = match &email {
+            Some(m) => config.users.make_admin.contains(m),
+            None => false,
+        };
+
         let user = FilezUser {
-            user_id: user_id.to_string(),
+            user_id: user_id.clone(),
+            ir_user_id,
             app_data: HashMap::new(),
             limits,
             user_group_ids: vec![],
             friends: vec![],
-            name: None,
+            name: user_name,
             pending_friend_confirmations: vec![],
             pending_friend_requests: vec![],
-            status: crate::types::UserStatus::Active,
+            status: user_status.unwrap_or(UserStatus::Active),
             visibility: crate::types::UserVisibility::Public,
+            email,
+            role: match make_admin {
+                true => crate::types::UserRole::Admin,
+                false => crate::types::UserRole::User,
+            },
         };
 
         users_collection
@@ -518,7 +406,7 @@ impl DB {
         file_groups_collection
             .insert_one_with_session(
                 &FilezFileGroup {
-                    file_group_id: format!("{}_all", user_id),
+                    file_group_id: format!("{}_all", &user_id),
                     owner_id: user_id.to_string(),
                     name: Some("All".to_string()),
                     permission_ids: vec![],
@@ -533,8 +421,9 @@ impl DB {
                 &mut session,
             )
             .await?;
+        session.commit_transaction().await?;
 
-        Ok(session.commit_transaction().await?)
+        Ok(user_id.clone())
     }
 
     pub async fn get_file_groups_by_owner_id(
@@ -544,7 +433,12 @@ impl DB {
         let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         let file_groups = collection
-            .find(doc! {"owner_id": owner_id}, None)
+            .find(
+                doc! {
+                    "owner_id": owner_id
+                },
+                None,
+            )
             .await?
             .try_collect::<Vec<_>>()
             .await?;
@@ -559,7 +453,12 @@ impl DB {
         let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
         let res = collection
-            .find_one(doc! {"_id": user_group_id}, None)
+            .find_one(
+                doc! {
+                    "_id": user_group_id
+                },
+                None,
+            )
             .await?;
 
         Ok(res)
@@ -594,7 +493,10 @@ impl DB {
 
                 collection
                     .delete_one(
-                        doc! {"_id": dgr.group_id.clone(), "owner_id": owner_id},
+                        doc! {
+                            "_id": dgr.group_id.clone(),
+                            "owner_id": owner_id
+                        },
                         None,
                     )
                     .await?
@@ -603,7 +505,10 @@ impl DB {
                 let collection = self.db.collection::<FilezFileGroup>("file_groups");
                 collection
                     .delete_one(
-                        doc! {"_id": dgr.group_id.clone(), "owner_id": owner_id},
+                        doc! {
+                            "_id": dgr.group_id.clone(),
+                            "owner_id": owner_id
+                        },
                         None,
                     )
                     .await?
@@ -629,7 +534,13 @@ impl DB {
         let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         let file_groups = collection
-            .find(doc! {"owner_id": owner_id,"name":group_name}, None)
+            .find(
+                doc! {
+                    "owner_id": owner_id,
+                    "name":group_name
+                },
+                None,
+            )
             .await?
             .try_collect::<Vec<_>>()
             .await?;
@@ -661,7 +572,11 @@ impl DB {
                 collection
                     .update_one(
                         doc! {"_id":sadr.id},
-                        doc! {"$set":{ update_key: bson::to_bson(&sadr.app_data)? }},
+                        doc! {
+                            "$set":{
+                                update_key: bson::to_bson(&sadr.app_data)?
+                            }
+                        },
                         None,
                     )
                     .await?
@@ -670,8 +585,14 @@ impl DB {
                 let collection = self.db.collection::<FilezFile>("files");
                 collection
                     .update_one(
-                        doc! {"_id":sadr.id},
-                        doc! {"$set":{ update_key: bson::to_bson(&sadr.app_data)? }},
+                        doc! {
+                            "_id":sadr.id
+                        },
+                        doc! {
+                            "$set":{
+                                update_key: bson::to_bson(&sadr.app_data)?
+                            }
+                        },
                         None,
                     )
                     .await?
@@ -728,8 +649,14 @@ impl DB {
         let collection = self.db.collection::<FilezFile>("files");
         Ok(collection
             .update_one(
-                doc! {"_id":file_id},
-                doc! {"$set":{ "name": new_name }},
+                doc! {
+                    "_id":file_id
+                },
+                doc! {
+                    "$set":{
+                        "name": new_name
+                    }
+                },
                 None,
             )
             .await?)
@@ -743,8 +670,14 @@ impl DB {
         let collection = self.db.collection::<FilezFile>("files");
         Ok(collection
             .update_one(
-                doc! {"_id":file_id},
-                doc! {"$set":{ "mime_type": new_mime_type }},
+                doc! {
+                    "_id": file_id
+                },
+                doc! {
+                    "$set":{
+                        "mime_type": new_mime_type
+                    }
+                },
                 None,
             )
             .await?)
@@ -847,7 +780,7 @@ impl DB {
 
     pub async fn get_user_list(
         &self,
-        requesting_user: &str,
+        requesting_user: &FilezUser,
         limit: Option<i64>,
         from_index: u64,
         sort_field: Option<String>,
@@ -855,6 +788,8 @@ impl DB {
         filter: Option<String>,
     ) -> anyhow::Result<(Vec<FilezUser>, u32)> {
         let collection = self.db.collection::<FilezUser>("users");
+
+        let requesting_user_id = &requesting_user.user_id;
 
         let sort_field = sort_field.unwrap_or("_id".to_string());
 
@@ -869,31 +804,67 @@ impl DB {
             .skip(from_index)
             .build();
 
-        let db_filter = doc! {
-            "$and":[
-                {
-                    "$or": [
+        let filter = match filter {
+            Some(f) => doc! {
+                "$or": [
+                    {
+                        "_id": &f
+                    },
+                    {
+                        "name": {
+                            "$regex": &f
+                        }
+                    },
+                    {
+                        "email": {
+                            "$regex": &f
+                        }
+                    },
+
+                ]
+            },
+            None => doc! {},
+        };
+
+        let visible = match requesting_user.role {
+            crate::types::UserRole::Admin => {
+                doc! {}
+            }
+            crate::types::UserRole::User => {
+                doc! {
+                    "$or":[
                         {
-                            "_id": &filter
+                            "$and":[
+                                {
+                                    "visibility": {
+                                        "$eq": "Public"
+                                    }
+                                },
+                                {
+                                    "status": {
+                                        "$eq": "Active"
+                                    }
+                                }
+
+                            ]
                         },
                         {
-                            "name": {
-                                "$regex": &filter
-                            }
+                            "friends": requesting_user_id
                         }
                     ]
-                },
+                }
+            }
+        };
+
+        let db_filter = doc! {
+            "$and":[
+                filter,
                 {
                     "_id": {
-                        "$ne": requesting_user
+                        "$ne": requesting_user_id
                     }
                 },
-                {
-                    "visibility": {
-                        "$eq": "active"
-                    }
-                }
-
+                visible
             ]
         };
 
@@ -984,6 +955,39 @@ impl DB {
     pub async fn get_user_by_id(&self, user_id: &str) -> anyhow::Result<Option<FilezUser>> {
         let collection = self.db.collection::<FilezUser>("users");
         let user = collection.find_one(doc! {"_id": user_id}, None).await?;
+        Ok(user)
+    }
+
+    pub async fn get_user_id_by_ir_id(&self, ir_user_id: &str) -> anyhow::Result<Option<String>> {
+        use serde::{Deserialize, Serialize};
+        #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+        pub struct OnlyId {
+            pub _id: String,
+        }
+
+        let collection = self.db.collection::<OnlyId>("users");
+        let find_options = FindOneOptions::builder()
+            .projection(doc! {"_id": 1})
+            .build();
+
+        let user = collection
+            .find_one(doc! {"ir_user_id": ir_user_id}, find_options)
+            .await?;
+
+        Ok(user.map(|u| u._id))
+    }
+
+    pub async fn get_user_by_ir_id(&self, ir_user_id: &str) -> anyhow::Result<Option<FilezUser>> {
+        let collection = self.db.collection::<FilezUser>("users");
+        let user = collection
+            .find_one(doc! {"ir_user_id": ir_user_id}, None)
+            .await?;
+        Ok(user)
+    }
+
+    pub async fn get_user_by_email(&self, email: &str) -> anyhow::Result<Option<FilezUser>> {
+        let collection = self.db.collection::<FilezUser>("users");
+        let user = collection.find_one(doc! {"email": email}, None).await?;
         Ok(user)
     }
 

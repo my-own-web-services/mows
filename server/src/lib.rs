@@ -1,5 +1,6 @@
 pub mod config;
 pub mod db;
+pub mod dev;
 pub mod dynamic_groups;
 pub mod internal_types;
 pub mod interossea;
@@ -32,7 +33,7 @@ pub mod methods {
         pub mod create;
     }
     pub mod user {
-        pub mod create;
+        pub mod create_own;
         pub mod get;
     }
     pub mod file_group {

@@ -388,13 +388,15 @@ pub struct FilezFile {
 pub struct FilezUser {
     #[serde(rename = "_id")]
     pub user_id: String,
+    pub ir_user_id: Option<String>,
     pub name: Option<String>,
+    pub email: Option<String>,
+    pub role: UserRole,
     pub visibility: UserVisibility,
     pub friends: Vec<String>,
     pub pending_friend_requests: Vec<String>,
     pub pending_friend_confirmations: Vec<String>,
     pub status: UserStatus,
-
     #[ts(type = "Record<string, any>")]
     pub app_data: HashMap<String, Value>,
     pub limits: HashMap<String, UsageLimits>,
@@ -402,6 +404,14 @@ pub struct FilezUser {
     List of group ids that the user is a member of
     */
     pub user_group_ids: Vec<String>,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub enum UserRole {
+    Admin,
+    User,
 }
 
 #[derive(TS)]

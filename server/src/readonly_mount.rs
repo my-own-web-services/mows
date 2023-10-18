@@ -48,13 +48,30 @@ pub async fn scan_readonly_mount(
     ))?;
 
     // check if the user exists
-    let user = db.get_user_by_id(&mount.owner_id).await?;
-    if user.is_none() {
-        bail!("User does not exist: {}", mount.owner_id);
-    }
+    let user = match db.get_user_by_email(&mount.owner_email).await? {
+        Some(v) => v,
+        None => {
+            println!("User does not exist: {}", mount.owner_email);
+            println!("Creating Disabled user");
+            let new_user_id = db
+                .create_user(
+                    None,
+                    Some(crate::types::UserStatus::Disabled),
+                    None,
+                    Some(mount.owner_email.to_string()),
+                )
+                .await?;
+            match db.get_user_by_id(&new_user_id).await? {
+                Some(v) => v,
+                None => {
+                    bail!("User does not exist after creation");
+                }
+            }
+        }
+    };
 
     let file_groups = db
-        .get_file_groups_by_name(mount_name, &mount.owner_id)
+        .get_file_groups_by_name(mount_name, &user.user_id)
         .await?;
 
     #[allow(clippy::comparison_chain)]
@@ -66,7 +83,7 @@ pub async fn scan_readonly_mount(
         // create group
         let group_id = generate_id(16);
         db.create_group(&FilezGroups::FilezFileGroup(FilezFileGroup {
-            owner_id: mount.owner_id.to_string(),
+            owner_id: user.user_id.to_string(),
             name: Some(mount_name.to_string()),
             file_group_id: group_id.clone(),
             permission_ids: vec![],
@@ -86,7 +103,7 @@ pub async fn scan_readonly_mount(
     file_bar.inc(1);
     for file in file_list {
         file_bar.inc(1);
-        import_readonly_file(db, &file, &mount.owner_id, &group_id).await?;
+        import_readonly_file(db, &file, &user.user_id, &group_id).await?;
     }
     Ok(())
 }

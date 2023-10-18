@@ -122,7 +122,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         const filezClient = this.context.filezClient;
         this.moreItemsLoading = true;
 
-        const res = await filezClient.get_file_infos_by_group_id(
+        const { files, total_count } = await filezClient.get_file_infos_by_group_id(
             this.props.id,
             0,
             30,
@@ -132,9 +132,9 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         this.moreItemsLoading = false;
 
         this.setState({
-            fileList: res.files,
+            fileList: files,
             initialLoadFinished: true,
-            listLength: res.total_count
+            listLength: total_count
         });
     };
 

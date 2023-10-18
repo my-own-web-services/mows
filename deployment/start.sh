@@ -23,4 +23,6 @@ bash results/chmodReadonlyMounts.sh
 mozart render templates/docker-compose.yml -o results/docker-compose.yml
 mozart labels-to-compose results/docker-compose.yml -o results/docker-compose.yml
 
+cp -R templates/data results/
+
 docker compose -p filez --project-directory results/ up --build -d --remove-orphans 

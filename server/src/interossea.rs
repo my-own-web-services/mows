@@ -23,6 +23,7 @@ pub struct UserAssertion {
     pub client_ip: String,
     pub service_origin: String,
     pub ir_admin: bool,
+    pub ir_email: String,
 }
 
 #[derive(Clone)]

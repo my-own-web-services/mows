@@ -50,6 +50,10 @@ services:
             {{- range $config.filez.readonlyMounts }}
             - {{ .path }}:/readonly/{{ .name }}/:ro
             {{- end }}
+            {{- if eq $config.filez.server.dev.createMockUsers true }}
+            - ./data/dev/mock_users.yml:/.dev/mock_users.yml:ro
+            {{- end }}   
+
         restart: always
         networks:
             - filez-server-db

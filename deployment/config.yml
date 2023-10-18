@@ -47,6 +47,15 @@ filez:
         db:
             exposeToLocalhost: true
             port: 27018
+        users:
+            makeAdmin: [test@vindelicum.eu]
+            create: [test@vindelicum.eu]
+            allowNew: false
+
+        dev:
+            insecureSkipInterossea: false
+            disableComplexAccessControl: true
+            createMockUsers: true
     web:
         build:
             enabled: true
@@ -61,7 +70,7 @@ filez:
     readonlyMounts:
         - name: example-files
           path: /home/paul/Documents/filez/example-files
-          ownerId: IZLia0BauiwG5pXLAbzQGHAezqkHUKnx
+          ownerEmail: test@vindelicum.eu
 
     # TODO if the number of addons is greater than 10 the network assignment will fail
     addons:
@@ -107,7 +116,7 @@ filez:
 
 interossea:
     server:
-        allowNewUsers: false
+        allowNewUsers: true
         createUsers: [test@vindelicum.eu, peter@vindelicum.eu]
         makeUsersAdmin: [test@vindelicum.eu]
         create: true
