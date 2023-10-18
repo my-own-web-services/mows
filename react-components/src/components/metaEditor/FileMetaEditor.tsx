@@ -96,7 +96,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                     size={inputSize}
                                     block
                                     virtualized
-                                    value={this.state.file.ownerId}
+                                    value={this.state.file.owner_id}
                                     data={this.state.knownOwners}
                                 />
                             </div>
@@ -107,7 +107,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                     block
                                     virtualized
                                     creatable
-                                    value={this.state.file.mimeType}
+                                    value={this.state.file.mime_type}
                                     data={this.state.knownMimeTypes.map(mimeType => ({
                                         value: mimeType,
                                         label: mimeType
@@ -133,7 +133,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                         </div>
                         <div className="Export">
                             <a
-                                href={`${this.context?.uiConfig.filezServerAddress}/api/get_file/${this.props.fileId}?d`}
+                                href={`${this.context?.uiConfig.filezServerAddress}/api/file/get/${this.props.fileId}?d`}
                             >
                                 <IconButton
                                     placement="right"

@@ -77,7 +77,7 @@ interface FileListState {
 export default class FileList extends PureComponent<FileListProps, FileListState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
-    moreFilesLoading = false;
+    moreItemsLoading = false;
 
     infiniteLoaderRef = createRef<InfiniteLoader>();
 
@@ -120,7 +120,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             throw new Error("FileList must be used inside Filez to provide the FilezContext");
         }
         const filezClient = this.context.filezClient;
-        this.moreFilesLoading = true;
+        this.moreItemsLoading = true;
 
         const res = await filezClient.get_file_infos_by_group_id(
             this.props.id,
@@ -129,39 +129,35 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             ...this.get_current_column_sorting(this.state.columns),
             this.state.commitedSearch
         );
-        this.moreFilesLoading = false;
+        this.moreItemsLoading = false;
 
         this.setState({
             fileList: res.files,
             initialLoadFinished: true,
-            listLength: res.totalCount
+            listLength: res.total_count
         });
     };
 
-    loadMoreFiles = async (startIndex: number, limit: number) => {
-        //console.log("loadMoreFiles", startIndex, limit);
+    loadMoreItems = async (startIndex: number, limit: number) => {
+        if (!this.context) return;
+        if (this.moreItemsLoading) return;
 
-        if (this.context === null) {
-            throw new Error("FileList must be used inside Filez to provide the FilezContext");
-        }
         const filezClient = this.context.filezClient;
 
-        if (this.moreFilesLoading === false) {
-            const { files } = await filezClient.get_file_infos_by_group_id(
-                this.props.id,
-                startIndex,
-                limit,
-                ...this.get_current_column_sorting(this.state.columns),
-                this.state.commitedSearch
-            );
+        const { files } = await filezClient.get_file_infos_by_group_id(
+            this.props.id,
+            startIndex,
+            limit,
+            ...this.get_current_column_sorting(this.state.columns),
+            this.state.commitedSearch
+        );
 
-            this.setState(({ fileList }) => {
-                for (let i = 0; i < files.length; i++) {
-                    fileList[startIndex + i] = files[i];
-                }
-                return { fileList };
-            });
-        }
+        this.setState(({ fileList }) => {
+            for (let i = 0; i < files.length; i++) {
+                fileList[startIndex + i] = files[i];
+            }
+            return { fileList };
+        });
     };
 
     get_current_column_sorting = (columns: Column[]): [string, SortOrder] => {
@@ -169,11 +165,11 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             if (column.direction !== ColumnDirection.NEUTRAL) {
                 return [
                     column.field,
-                    column.direction === ColumnDirection.ASCENDING ? "ascending" : "descending"
+                    column.direction === ColumnDirection.ASCENDING ? "Ascending" : "Descending"
                 ];
             }
         }
-        return ["name", "ascending"];
+        return ["name", "Ascending"];
     };
 
     updateColumnWidths = (columns: number[]) => {
@@ -322,7 +318,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                             <InfiniteLoader
                                 isItemLoaded={index => this.state.fileList[index] !== undefined}
                                 itemCount={fullListLength}
-                                loadMoreItems={this.loadMoreFiles}
+                                loadMoreItems={this.loadMoreItems}
                                 ref={this.infiniteLoaderRef}
                             >
                                 {({ onItemsRendered, ref }) => (

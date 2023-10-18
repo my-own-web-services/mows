@@ -21,8 +21,8 @@ export default class Audio extends Component<AudioProps, AudioState> {
             <div className="Audio">
                 <audio ref={this.audioRef} controls>
                     <source
-                        src={`${uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}`}
-                        type={this.props.file.mimeType}
+                        src={`${uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}`}
+                        type={this.props.file.mime_type}
                     />
                 </audio>
             </div>

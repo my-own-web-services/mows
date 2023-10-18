@@ -18,13 +18,13 @@ impl DB {
         collection
             .update_many(
                 doc! {
-                    "appData.video": {
+                    "app_data.video": {
                         "$exists": true
                     }
                 },
                 doc! {
                     "$unset": {
-                        "appData.video": ""
+                        "app_data.video": ""
                     }
                 },
                 None,
@@ -43,19 +43,19 @@ impl DB {
                 doc! {
                     "$and": [
                         {
-                            "mimeType": {
+                            "mime_type": {
                                 "$regex": "^video/"
                             }
                         },
                         {
                             "$or": [
                             {
-                                "appData.video.status": {
+                                "app_data.video.status": {
                                     "$exists": false
                                 }
                             },
                             {
-                                "appData.video.rescan": {
+                                "app_data.video.rescan": {
                                     "$eq": true
                                 }
                             }
@@ -65,8 +65,8 @@ impl DB {
                 },
                 doc! {
                     "$set": {
-                        "appData.video.status": "processing",
-                        "appData.video.startedAt": current_time
+                        "app_data.video.status": "processing",
+                        "app_data.video.started_at": current_time
                     }
                 },
                 None,
@@ -90,9 +90,9 @@ impl DB {
                 doc! { "_id": file_id },
                 doc! {
                     "$set": {
-                        "appData.video.status": "finished",
-                        "appData.video.finishedAt": current_time,
-                        "appData.video.error": error
+                        "app_data.video.status": "finished",
+                        "app_data.video.finished_at": current_time,
+                        "app_data.video.error": error
                     }
                 },
                 None,

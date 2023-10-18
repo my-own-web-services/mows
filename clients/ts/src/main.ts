@@ -13,6 +13,7 @@ import { FilezPermission } from "./apiTypes/FilezPermission.js";
 import { CreatePermissionRequestBody } from "./apiTypes/CreatePermissionRequestBody.js";
 import { SearchRequestBody } from "./apiTypes/SearchRequestBody.js";
 import { CreatePermissionResponseBody } from "./apiTypes/CreatePermissionResponseBody.js";
+import { GetUserListResponseBody } from "./apiTypes/GetUserListResponseBody.js";
 
 export * from "./types.js";
 
@@ -42,18 +43,8 @@ export class FilezClient {
         await this.interosseaClient.init();
     };
 
-    search = async (searchRequest: SearchRequestBody) => {
-        const res = await fetch(`${this.filezEndpoint}/api/search/`, {
-            credentials: "include",
-            method: "POST",
-            body: JSON.stringify(searchRequest)
-        });
-        const files: FilezFile[] = await res.json();
-        return files;
-    };
-
     create_permission = async (body: CreatePermissionRequestBody) => {
-        const res = await fetch(`${this.filezEndpoint}/api/create_permission/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/permission/create/`, {
             method: "POST",
             credentials: "include",
             body: JSON.stringify(body)
@@ -63,14 +54,14 @@ export class FilezClient {
     };
 
     create_user = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/create_user/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/user/create/`, {
             method: "POST",
             credentials: "include"
         });
     };
 
     create_file = async (body: any, metadata: CreateFileRequest) => {
-        const res = await fetch(`${this.filezEndpoint}/api/create_file/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file/create/`, {
             method: "POST",
             credentials: "include",
             body,
@@ -81,7 +72,7 @@ export class FilezClient {
     };
 
     create_group = async (group: CreateGroupRequest) => {
-        const res = await fetch(`${this.filezEndpoint}/api/create_group/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/group/create/`, {
             method: "POST",
             credentials: "include",
             body: JSON.stringify(group)
@@ -90,42 +81,41 @@ export class FilezClient {
     };
 
     create_upload_space = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/create_upload_space/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/upload_space/create/`, {
+            method: "POST",
+            credentials: "include"
+        });
+    };
+    delete_upload_space = async () => {
+        const res = await fetch(`${this.filezEndpoint}/api/upload_space/delete/`, {
             method: "POST",
             credentials: "include"
         });
     };
 
     delete_file = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/delete_file/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file/delete/`, {
             method: "POST",
             credentials: "include"
         });
     };
 
     delete_group = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/delete_group/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/group/delete/`, {
             method: "POST",
             credentials: "include"
         });
     };
 
     delete_permission = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/delete_permission/`, {
-            method: "POST",
-            credentials: "include"
-        });
-    };
-
-    delete_upload_space = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/delete_upload_space/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/permission/delete/`, {
             method: "POST",
             credentials: "include"
         });
     };
 
     get_file_info = async (fileId: string) => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_file_info/${fileId}`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file/info/get/${fileId}`, {
             credentials: "include"
         });
         const file: FilezFile = await res.json();
@@ -156,7 +146,7 @@ export class FilezClient {
     };
 
     get_file = async (fileId: string) => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_file/${fileId}`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file/get/${fileId}`, {
             credentials: "include"
         });
         const content = await res.text();
@@ -180,11 +170,30 @@ export class FilezClient {
         return json;
     };
 
-    get_user_info = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_user_info/`, {
+    get_user = async () => {
+        const res = await fetch(`${this.filezEndpoint}/api/user/get/`, {
             credentials: "include"
         });
         return (await res.json()) as FilezUser;
+    };
+
+    get_user_list = async (
+        from_index: number,
+        limit: number | null,
+        sort_field: string | null,
+        sort_order: SortOrder | null,
+        filter: string | null
+    ) => {
+        const url = `${this.filezEndpoint}/api/get_user_list/?i=${from_index}${
+            limit === null ? "" : "&l=" + limit
+        }${sort_field === null ? "" : "&f=" + sort_field}${
+            sort_order === null ? "" : "&o=" + sort_order
+        }${filter === null ? "" : "&s=" + filter}`;
+
+        const res = await fetch(url, {
+            credentials: "include"
+        });
+        return (await res.json()) as GetUserListResponseBody;
     };
 
     get_aggregated_keywords = async () => {
@@ -196,7 +205,7 @@ export class FilezClient {
     };
 
     update_file_infos = async (fileId: string, field: UpdateFileInfosRequestField) => {
-        const res = await fetch(`${this.filezEndpoint}/api/update_file_infos/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file/info/update/`, {
             method: "POST",
             credentials: "include",
             body: JSON.stringify({ fileId, field })
@@ -205,14 +214,14 @@ export class FilezClient {
     };
 
     update_file = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/update_file/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file/update/`, {
             method: "POST",
             credentials: "include"
         });
     };
 
     update_file_group = async (req: UpdateFileGroupRequestBody) => {
-        const res = await fetch(`${this.filezEndpoint}/api/update_file_group/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file_group/update/`, {
             method: "POST",
             credentials: "include",
             body: JSON.stringify(req)

@@ -2,4 +2,4 @@
 import type { AdvancedSearch } from "./AdvancedSearch";
 import type { SimpleSearch } from "./SimpleSearch";
 
-export type SearchType = { "simpleSearch": SimpleSearch } | { "advancedSearch": AdvancedSearch };
+export type SearchType = { "SimpleSearch": SimpleSearch } | { "AdvancedSearch": AdvancedSearch };

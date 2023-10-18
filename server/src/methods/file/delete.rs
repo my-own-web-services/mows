@@ -9,7 +9,7 @@ pub async fn delete_file(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let file_id = req.uri().path().replacen("/api/delete_file/", "", 1);
+    let file_id = req.uri().path().replacen("/api/file/delete/", "", 1);
 
     let file = some_or_bail!(db.get_file_by_id(&file_id).await?, "File not found");
 

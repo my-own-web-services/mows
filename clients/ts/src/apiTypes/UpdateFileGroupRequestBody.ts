@@ -2,4 +2,4 @@
 import type { FileGroupType } from "./FileGroupType";
 import type { FilterRule } from "./FilterRule";
 
-export interface UpdateFileGroupRequestBody { fileGroupId: string, newName: string | null, newDynamicGroupRules: FilterRule | null, newGroupType: FileGroupType | null, newKeywords: Array<string> | null, newMimeTypes: Array<string> | null, }
+export interface UpdateFileGroupRequestBody { file_group_id: string, new_name: string | null, new_dynamic_group_rules: FilterRule | null, new_group_type: FileGroupType | null, new_keywords: Array<string> | null, new_mime_types: Array<string> | null, }

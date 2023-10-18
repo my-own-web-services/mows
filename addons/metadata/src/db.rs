@@ -18,13 +18,13 @@ impl DB {
         collection
             .update_many(
                 doc! {
-                    "appData.metadata": {
+                    "app_data.metadata": {
                         "$exists": true
                     }
                 },
                 doc! {
                     "$unset": {
-                        "appData.metadata": ""
+                        "app_data.metadata": ""
                     }
                 },
                 None,
@@ -42,12 +42,12 @@ impl DB {
                 doc! {
                     "$or":[
                         {
-                            "appData.metadata.status": {
+                            "app_data.metadata.status": {
                                 "$exists": false
                             }
                         },
                         {
-                            "appData.metadata.rescan": {
+                            "app_data.metadata.rescan": {
                                 "$eq": true
                             }
                         }
@@ -56,8 +56,8 @@ impl DB {
                 },
                 doc! {
                     "$set": {
-                        "appData.metadata.status": "processing",
-                        "appData.metadata.startedAt": current_time
+                        "app_data.metadata.status": "processing",
+                        "app_data.metadata.started_at": current_time
                     }
                 },
                 None,
@@ -78,10 +78,10 @@ impl DB {
                 doc! { "_id": file_id },
                 doc! {
                     "$set": {
-                        "appData.metadata.result": bson::to_bson(&metadata_result)?,
-                        "appData.metadata.status": "finished",
-                        "appData.metadata.finishedAt": current_time,
-                        "appData.image.rescan": has_poster(&metadata_result)
+                        "app_data.metadata.result": bson::to_bson(&metadata_result)?,
+                        "app_data.metadata.status": "finished",
+                        "app_data.metadata.finished_at": current_time,
+                        "app_data.image.rescan": has_poster(&metadata_result)
                     }
                 },
                 None,

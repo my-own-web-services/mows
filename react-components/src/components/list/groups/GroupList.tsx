@@ -80,14 +80,14 @@ export default class GroupList extends PureComponent<GroupListProps, GroupListSt
                     <ContextMenuTrigger disableIfShiftIsPressed={true} id={item._id}>
                         <div className="GroupItems clickable">
                             <span>
-                                {item.groupType === "static" ? (
+                                {item.group_type === "Static" ? (
                                     <AiOutlineFolder size={20} />
                                 ) : (
                                     <AiOutlineFolderView size={20} />
                                 )}
                             </span>
                             <span className="itemName">{item.name}</span>
-                            <span className="itemCount">{item.itemCount}</span>
+                            <span className="itemCount">{item.item_count}</span>
                         </div>
                     </ContextMenuTrigger>
                     {/*@ts-ignore*/}

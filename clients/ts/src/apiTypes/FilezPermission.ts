@@ -2,4 +2,4 @@
 import type { FilezPermissionAcl } from "./FilezPermissionAcl";
 import type { FilezPermissionUseType } from "./FilezPermissionUseType";
 
-export interface FilezPermission { _id: string, useType: FilezPermissionUseType, name: string | null, ownerId: string, acl: FilezPermissionAcl | null, ribston: string | null, }
+export interface FilezPermission { _id: string, use_type: FilezPermissionUseType, name: string | null, owner_id: string, acl: FilezPermissionAcl | null, ribston: string | null, }

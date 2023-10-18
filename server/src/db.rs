@@ -34,9 +34,9 @@ impl DB {
             "users",
             "files",
             "permissions",
-            "userGroups",
-            "fileGroups",
-            "uploadSpaces",
+            "user_groups",
+            "file_groups",
+            "upload_spaces",
         ];
 
         for collection in collections {
@@ -49,13 +49,13 @@ impl DB {
 
         {
             let index = IndexModel::builder()
-                .keys(doc! {"staticFileGroupIds": 1})
+                .keys(doc! {"static_file_group_ids": 1})
                 .build();
             files_collection.create_index(index, None).await?;
         }
         {
             let index = IndexModel::builder()
-                .keys(doc! {"dynamicFileGroupIds": 1})
+                .keys(doc! {"dynamic_file_group_ids": 1})
                 .build();
             files_collection.create_index(index, None).await?;
         }
@@ -64,7 +64,7 @@ impl DB {
             files_collection.create_index(index, None).await?;
         }
         {
-            let index = IndexModel::builder().keys(doc! {"ownerId": 1}).build();
+            let index = IndexModel::builder().keys(doc! {"owner_id": 1}).build();
             files_collection.create_index(index, None).await?;
         }
 
@@ -109,8 +109,8 @@ impl DB {
                 doc! {
                     "$and": [
                         { "$or": [
-                                {"staticFileGroupIds": file_group_id},
-                                {"dynamicFileGroupIds": file_group_id}
+                                {"static_file_group_ids": file_group_id},
+                                {"dynamic_file_group_ids": file_group_id}
                             ]
                         },
                         { "$text": { "$search": query } }
@@ -133,8 +133,8 @@ impl DB {
                         "$and": [
                             {
                                 "$or": [
-                                    {"staticFileGroupIds": file_group_id},
-                                    {"dynamicFileGroupIds": file_group_id}
+                                    {"static_file_group_ids": file_group_id},
+                                    {"dynamic_file_group_ids": file_group_id}
                                 ]
                             },
                             {
@@ -148,7 +148,7 @@ impl DB {
                                         "_id": query
                                     },
                                     {
-                                        "ownerId": query
+                                        "owner_id": query
                                     },
                                     {
                                         "keywords": {
@@ -193,8 +193,8 @@ impl DB {
                             "$and": [
                                 {
                                     "$or": [
-                                        {"staticFileGroupIds": file_group_id},
-                                        {"dynamicFileGroupIds": file_group_id}
+                                        {"static_file_group_ids": file_group_id},
+                                        {"dynamic_file_group_ids": file_group_id}
                                     ]
                                 },
                                 {
@@ -247,7 +247,7 @@ impl DB {
         &self,
         upload_space_id: &str,
     ) -> anyhow::Result<Option<UploadSpace>> {
-        let collection = self.db.collection::<UploadSpace>("uploadSpaces");
+        let collection = self.db.collection::<UploadSpace>("upload_spaces");
         let res = collection
             .find_one(doc! {"_id": upload_space_id}, None)
             .await?;
@@ -256,14 +256,14 @@ impl DB {
     }
 
     pub async fn create_upload_space(&self, upload_space: &UploadSpace) -> anyhow::Result<()> {
-        let collection = self.db.collection::<UploadSpace>("uploadSpaces");
+        let collection = self.db.collection::<UploadSpace>("upload_spaces");
         collection.insert_one(upload_space, None).await?;
 
         Ok(())
     }
 
     pub async fn update_file_group(&self, file_group: &FilezFileGroup) -> anyhow::Result<()> {
-        let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
         collection
             .update_one(
                 doc! {"_id": file_group.file_group_id.clone()},
@@ -279,18 +279,18 @@ impl DB {
         &self,
         owner_id: &str,
     ) -> anyhow::Result<Vec<FilezFileGroup>> {
-        let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
         let res = collection
             .find(
                 doc! {
                 "$and":[
                     {
-                        "ownerId": {
+                        "owner_id": {
                             "$eq":owner_id
                         }
                     },
                     {
-                        "groupType": {
+                        "group_type": {
                             "$eq": "dynamic"
                         }
                     }
@@ -313,7 +313,7 @@ impl DB {
         session.start_transaction(None).await?;
 
         let files_collection = self.db.collection::<FilezFile>("files");
-        let file_groups_collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         // TODO make this faster by using bulk operations
 
@@ -333,7 +333,7 @@ impl DB {
                 files_collection
                     .update_one_with_session(
                         doc! {"_id": file_id},
-                        doc! {"$push": {"dynamicFileGroupIds": &dynamic_file_group_ids[0]}},
+                        doc! {"$push": {"dynamic_file_group_ids": &dynamic_file_group_ids[0]}},
                         None,
                         &mut session,
                     )
@@ -346,7 +346,7 @@ impl DB {
             file_groups_collection
                 .update_one_with_session(
                     doc! {"_id": file_group_id},
-                    doc! {"$set": {"itemCount": bson::to_bson(&file_count)?}},
+                    doc! {"$set": {"item_count": bson::to_bson(&file_count)?}},
                     None,
                     &mut session,
                 )
@@ -359,7 +359,7 @@ impl DB {
     pub async fn get_files_by_owner_id(&self, owner_id: &str) -> anyhow::Result<Vec<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
         let res = collection
-            .find(doc! {"ownerId": owner_id}, FindOptions::builder().build())
+            .find(doc! {"owner_id": owner_id}, FindOptions::builder().build())
             .await?
             .try_collect::<Vec<_>>()
             .await?;
@@ -406,13 +406,13 @@ impl DB {
                     bail!("You do not own this FileGroup");
                 }
 
-                let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+                let collection = self.db.collection::<FilezFileGroup>("file_groups");
                 // update permissions on the file group
 
                 collection
                     .update_one(
                         doc! {"_id": group.file_group_id},
-                        doc! {"$set": {"permissionIds": upr.permission_ids.clone()}},
+                        doc! {"$set": {"permission_ids": upr.permission_ids.clone()}},
                         None,
                     )
                     .await?
@@ -431,7 +431,7 @@ impl DB {
                 collection
                     .update_one(
                         doc! {"_id": file.file_id},
-                        doc! {"$set": {"permissionIds": upr.permission_ids.clone()}},
+                        doc! {"$set": {"permission_ids": upr.permission_ids.clone()}},
                         None,
                     )
                     .await?
@@ -445,7 +445,7 @@ impl DB {
     ) -> anyhow::Result<Vec<FilezPermission>> {
         let collection = self.db.collection::<FilezPermission>("permissions");
         let permissions = collection
-            .find(doc! {"ownerId": owner_id}, None)
+            .find(doc! {"owner_id": owner_id}, None)
             .await?
             .try_collect::<Vec<_>>()
             .await?;
@@ -456,7 +456,7 @@ impl DB {
         &self,
         file_group_id: &str,
     ) -> anyhow::Result<Option<FilezFileGroup>> {
-        let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         let res = collection
             .find_one(doc! {"_id": file_group_id}, None)
@@ -501,13 +501,19 @@ impl DB {
             app_data: HashMap::new(),
             limits,
             user_group_ids: vec![],
+            friends: vec![],
+            name: None,
+            pending_friend_confirmations: vec![],
+            pending_friend_requests: vec![],
+            status: crate::types::UserStatus::Active,
+            visibility: crate::types::UserVisibility::Public,
         };
 
         users_collection
             .insert_one_with_session(&user, None, &mut session)
             .await?;
 
-        let file_groups_collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         file_groups_collection
             .insert_one_with_session(
@@ -535,10 +541,10 @@ impl DB {
         &self,
         owner_id: &str,
     ) -> anyhow::Result<Vec<FilezFileGroup>> {
-        let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         let file_groups = collection
-            .find(doc! {"ownerId": owner_id}, None)
+            .find(doc! {"owner_id": owner_id}, None)
             .await?
             .try_collect::<Vec<_>>()
             .await?;
@@ -550,7 +556,7 @@ impl DB {
         &self,
         user_group_id: &str,
     ) -> anyhow::Result<Option<FilezUserGroup>> {
-        let collection = self.db.collection::<FilezUserGroup>("userGroups");
+        let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
         let res = collection
             .find_one(doc! {"_id": user_group_id}, None)
@@ -569,8 +575,8 @@ impl DB {
         Ok(collection
             .delete_one(
                 doc! {
-                    "permissionId": dpr.permission_id.clone(),
-                    "ownerId": owner_id
+                    "permission_id": dpr.permission_id.clone(),
+                    "owner_id": owner_id
                 },
                 None,
             )
@@ -584,20 +590,20 @@ impl DB {
     ) -> anyhow::Result<DeleteResult> {
         Ok(match dgr.group_type {
             crate::types::GroupType::User => {
-                let collection = self.db.collection::<FilezUserGroup>("userGroups");
+                let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
                 collection
                     .delete_one(
-                        doc! {"_id": dgr.group_id.clone(), "ownerId": owner_id},
+                        doc! {"_id": dgr.group_id.clone(), "owner_id": owner_id},
                         None,
                     )
                     .await?
             }
             crate::types::GroupType::File => {
-                let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+                let collection = self.db.collection::<FilezFileGroup>("file_groups");
                 collection
                     .delete_one(
-                        doc! {"_id": dgr.group_id.clone(), "ownerId": owner_id},
+                        doc! {"_id": dgr.group_id.clone(), "owner_id": owner_id},
                         None,
                     )
                     .await?
@@ -620,10 +626,10 @@ impl DB {
         group_name: &str,
         owner_id: &str,
     ) -> anyhow::Result<Vec<FilezFileGroup>> {
-        let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         let file_groups = collection
-            .find(doc! {"ownerId": owner_id,"name":group_name}, None)
+            .find(doc! {"owner_id": owner_id,"name":group_name}, None)
             .await?
             .try_collect::<Vec<_>>()
             .await?;
@@ -634,12 +640,12 @@ impl DB {
     pub async fn create_group(&self, group: &FilezGroups) -> anyhow::Result<InsertOneResult> {
         Ok(match group {
             FilezGroups::FilezUserGroup(g) => {
-                let collection = self.db.collection::<FilezUserGroup>("userGroups");
+                let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
                 collection.insert_one(g, None).await?
             }
             FilezGroups::FilezFileGroup(g) => {
-                let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+                let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
                 collection.insert_one(g, None).await?
             }
@@ -647,7 +653,7 @@ impl DB {
     }
 
     pub async fn set_app_data(&self, sadr: SetAppDataRequest) -> anyhow::Result<UpdateResult> {
-        let update_key = format!("appData.{}", sadr.app_name);
+        let update_key = format!("app_data.{}", sadr.app_name);
 
         Ok(match sadr.app_data_type {
             AppDataType::User => {
@@ -681,7 +687,7 @@ impl DB {
                 vec![
                     doc! {
                         "$match": {
-                            "ownerId": owner_id
+                            "owner_id": owner_id
                         }
                     },
                     doc! {
@@ -738,7 +744,7 @@ impl DB {
         Ok(collection
             .update_one(
                 doc! {"_id":file_id},
-                doc! {"$set":{ "mimeType": new_mime_type }},
+                doc! {"$set":{ "mime_type": new_mime_type }},
                 None,
             )
             .await?)
@@ -753,7 +759,7 @@ impl DB {
         Ok(collection
             .update_one(
                 doc! {"_id":file_id},
-                doc! {"$set":{ "staticFileGroupIds": new_static_file_group_ids }},
+                doc! {"$set":{ "static_file_group_ids": new_static_file_group_ids }},
                 None,
             )
             .await?)
@@ -791,7 +797,7 @@ impl DB {
         files_collection
             .update_one_with_session(
                 doc! { "_id": &file.file_id },
-                doc! { "$set":{ "storageId": new_storage_id, "path": new_path }},
+                doc! { "$set":{ "storage_id": new_storage_id, "path": new_path }},
                 None,
                 &mut session,
             )
@@ -799,11 +805,11 @@ impl DB {
 
         // update storage usage
         let old_storage_id = some_or_bail!(&file.storage_id, "old storage id is none");
-        let old_used_storage_key = format!("limits.{}.usedStorage", old_storage_id);
-        let old_file_count_key = format!("limits.{}.fileCount", old_storage_id);
+        let old_used_storage_key = format!("limits.{}.used_storage", old_storage_id);
+        let old_file_count_key = format!("limits.{}.file_count", old_storage_id);
 
-        let new_used_storage_key = format!("limits.{}.usedStorage", new_storage_id);
-        let new_file_count_key = format!("limits.{}.fileCount", new_storage_id);
+        let new_used_storage_key = format!("limits.{}.used_storage", new_storage_id);
+        let new_file_count_key = format!("limits.{}.file_count", new_storage_id);
 
         users_collection
             .update_one_with_session(
@@ -833,10 +839,74 @@ impl DB {
         Ok(collection
             .update_one(
                 doc! {"_id":file_id},
-                doc! {"$set":{ "pendingNewOwnerId": new_owner_id }},
+                doc! {"$set":{ "pending_new_owner_id": new_owner_id }},
                 None,
             )
             .await?)
+    }
+
+    pub async fn get_user_list(
+        &self,
+        requesting_user: &str,
+        limit: Option<i64>,
+        from_index: u64,
+        sort_field: Option<String>,
+        sort_order: SortOrder,
+        filter: Option<String>,
+    ) -> anyhow::Result<(Vec<FilezUser>, u32)> {
+        let collection = self.db.collection::<FilezUser>("users");
+
+        let sort_field = sort_field.unwrap_or("_id".to_string());
+
+        let find_options = FindOptions::builder()
+            .sort(doc! {
+                sort_field: match sort_order {
+                    SortOrder::Ascending => 1,
+                    SortOrder::Descending => -1
+                }
+            })
+            .limit(limit)
+            .skip(from_index)
+            .build();
+
+        let db_filter = doc! {
+            "$and":[
+                {
+                    "$or": [
+                        {
+                            "_id": &filter
+                        },
+                        {
+                            "name": {
+                                "$regex": &filter
+                            }
+                        }
+                    ]
+                },
+                {
+                    "_id": {
+                        "$ne": requesting_user
+                    }
+                },
+                {
+                    "visibility": {
+                        "$eq": "active"
+                    }
+                }
+
+            ]
+        };
+
+        let (users, total_count) = (
+            collection
+                .find(db_filter.clone(), find_options)
+                .await?
+                .try_collect::<Vec<_>>()
+                .await?,
+            collection.count_documents(db_filter, None).await?,
+        );
+
+        Ok((users, total_count as u32))
     }
 
     pub async fn get_files_by_group_id(
@@ -867,8 +937,8 @@ impl DB {
             "$and": [
                 {
                     "$or": [
-                        {"staticFileGroupIds": group_id},
-                        {"dynamicFileGroupIds": group_id}
+                        {"static_file_group_ids": group_id},
+                        {"dynamic_file_group_ids": group_id}
                     ]
                 },
                 {
@@ -882,7 +952,7 @@ impl DB {
                             "_id": &filter
                         },
                         {
-                            "ownerId": &filter
+                            "owner_id": &filter
                         },
                         {
                             "keywords": {
@@ -890,7 +960,7 @@ impl DB {
                             }
                         },
                         {
-                            "mimeType": {
+                            "mime_type": {
                                 "$regex": &filter
                             }
                         }
@@ -933,7 +1003,7 @@ impl DB {
         &self,
         static_file_group_ids: &Vec<String>,
     ) -> anyhow::Result<()> {
-        let collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         let cursor = collection
             .find(
@@ -992,7 +1062,7 @@ impl DB {
         session.start_transaction(None).await?;
 
         let files_collection = self.db.collection::<FilezFile>("files");
-        let files_groups_collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let files_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
         let users_collection = self.db.collection::<FilezUser>("users");
 
         let file = some_or_bail!(
@@ -1017,8 +1087,8 @@ impl DB {
             file.storage_id,
             "The to be deleted file has no associated storage id"
         );
-        let user_key_used_storage = format!("limits.{}.usedStorage", fsid);
-        let user_key_used_files = format!("limits.{}.usedFiles", fsid);
+        let user_key_used_storage = format!("limits.{}.used_storage", fsid);
+        let user_key_used_files = format!("limits.{}.used_files", fsid);
 
         users_collection
             .update_one_with_session(
@@ -1046,7 +1116,7 @@ impl DB {
                     },
                     doc! {
                         "$inc": {
-                            "itemCount": -1
+                            "item_count": -1
                         }
                     },
                     None,
@@ -1063,7 +1133,7 @@ impl DB {
                     },
                     doc! {
                         "$inc": {
-                            "itemCount": -1
+                            "item_count": -1
                         }
                     },
                     None,
@@ -1094,7 +1164,7 @@ impl DB {
             old_file.storage_id.clone(),
             "The to be deleted file has no associated storage id"
         );
-        let user_key_used_storage = format!("limits.{}.usedStorage", fsid);
+        let user_key_used_storage = format!("limits.{}.used_storage", fsid);
 
         let inc_value = new_size as i64 - old_file.size as i64;
 
@@ -1143,7 +1213,7 @@ impl DB {
 
         session.start_transaction(None).await?;
 
-        let files_groups_collection = self.db.collection::<FilezFileGroup>("fileGroups");
+        let files_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
         let files_collection = self.db.collection::<FilezFile>("files");
         let users_collection = self.db.collection::<FilezUser>("users");
 
@@ -1154,8 +1224,8 @@ impl DB {
                 file.storage_id.clone(),
                 "The to be created file has no associated storage id"
             );
-            let user_key_used_storage = format!("limits.{}.usedStorage", fsid);
-            let user_key_used_files = format!("limits.{}.usedFiles", fsid);
+            let user_key_used_storage = format!("limits.{}.used_storage", fsid);
+            let user_key_used_files = format!("limits.{}.used_files", fsid);
             users_collection
                 .update_one_with_session(
                     doc! {
@@ -1180,7 +1250,7 @@ impl DB {
                     },
                     doc! {
                         "$inc": {
-                            "itemCount": 1
+                            "item_count": 1
                         }
                     },
                     None,
@@ -1197,7 +1267,7 @@ impl DB {
                             },
                             doc! {
                                 "$inc": {
-                                    "itemCount": 1
+                                    "item_count": 1
                                 }
                             },
                             None,

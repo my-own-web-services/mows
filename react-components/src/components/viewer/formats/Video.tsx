@@ -23,7 +23,7 @@ export default class Video extends Component<VideoProps, VideoState> {
                 this.videoRef.current.load();
 
                 this.player.attachSource(
-                    `${this.props.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/video/manifest.mpd?c`
+                    `${this.props.uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`
                 );
             }
         }
@@ -31,7 +31,9 @@ export default class Video extends Component<VideoProps, VideoState> {
 
     hasConvertedVersion = () => {
         const f = this.props.file;
-        return f.appData.video?.status === "finished" && typeof f.appData.video?.error !== "string";
+        return (
+            f.app_data.video?.status === "finished" && typeof f.app_data.video?.error !== "string"
+        );
     };
 
     componentDidMount = async () => {
@@ -73,7 +75,7 @@ export default class Video extends Component<VideoProps, VideoState> {
 
             this.player.initialize(
                 this.videoRef.current,
-                `${this.props.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}/video/manifest.mpd?c`,
+                `${this.props.uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`,
                 false
             );
         }
@@ -95,8 +97,8 @@ export default class Video extends Component<VideoProps, VideoState> {
                         >
                             {!hasConvertedVersion && (
                                 <source
-                                    src={`${this.props.uiConfig.filezServerAddress}/api/get_file/${this.props.file._id}`}
-                                    type={f.mimeType}
+                                    src={`${this.props.uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}`}
+                                    type={f.mime_type}
                                 />
                             )}
                         </video>

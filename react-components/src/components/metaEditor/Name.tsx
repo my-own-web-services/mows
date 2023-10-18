@@ -88,7 +88,7 @@ export default class Name extends PureComponent<NameProps, NameState> {
                                     const res = await this.context?.filezClient.update_file_infos(
                                         this.props.file._id,
                                         {
-                                            name: this.state.localName
+                                            Name: this.state.localName
                                         }
                                     );
                                     if (res?.status === 200) {

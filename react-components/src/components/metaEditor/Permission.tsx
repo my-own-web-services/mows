@@ -31,13 +31,13 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
         super(props);
         const maybePw = props.permission?.acl?.who.password;
         this.state = {
-            selectedWhat: props.permission?.acl?.whatFile ?? [],
+            selectedWhat: props.permission?.acl?.what_file ?? [],
             enabledLink: props.permission?.acl?.who.link ?? false,
             enabledPassword: typeof maybePw === "string" && maybePw.length > 0,
             password: props.permission?.acl?.who.password ?? "",
             passwordVisible: false,
-            selectedUserIds: props.permission?.acl?.who.users?.userIds ?? [],
-            selectedUserGroupIds: props.permission?.acl?.who.users?.userGroupIds ?? []
+            selectedUserIds: props.permission?.acl?.who.users?.user_ids ?? [],
+            selectedUserGroupIds: props.permission?.acl?.who.users?.user_group_ids ?? []
         };
     }
 
@@ -212,19 +212,19 @@ const data = [
 const defaultFilePermission: FilezPermission = {
     _id: "",
     acl: {
-        whatFile: [],
-        whatGroup: [],
+        what_file: [],
+        what_group: [],
         who: {
             link: false,
             password: null,
             users: {
-                userGroupIds: [],
-                userIds: []
+                user_group_ids: [],
+                user_ids: []
             }
         }
     },
     name: "",
-    ownerId: "",
+    owner_id: "",
     ribston: "",
-    useType: "once"
+    use_type: "Once"
 };

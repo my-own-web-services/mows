@@ -3,4 +3,4 @@ import type { JobStage } from "./JobStage";
 import type { JobStatus } from "./JobStatus";
 import type { JobType } from "./JobType";
 
-export interface Job { _id: string, forAppId: string, appInfo: Record<string, any>, jobType: JobType, status: JobStatus, createdTimeMillis: bigint, updatedTimeMillis: bigint, endTimeMillis: bigint | null, stages: Array<JobStage>, }
+export interface Job { _id: string, for_app_id: string, app_info: Record<string, any>, job_type: JobType, status: JobStatus, created_time_millis: bigint, updated_time_millis: bigint, end_time_millis: bigint | null, stages: Array<JobStage>, }

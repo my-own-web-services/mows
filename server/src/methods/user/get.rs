@@ -1,7 +1,7 @@
 use crate::{db::DB, internal_types::Auth};
 use hyper::{Body, Request, Response};
 
-pub async fn get_user_info(
+pub async fn get_user(
     _req: Request<Body>,
     db: DB,
     auth: &Auth,

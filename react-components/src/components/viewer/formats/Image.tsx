@@ -19,7 +19,7 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
 
     render = () => {
         const f = this.props.file;
-        const processedImage = f.appData?.image?.result as ProcessedImage;
+        const processedImage = f.app_data?.image?.result as ProcessedImage;
         const [previewWidth, shouldUseOriginal] = getImagePreviewWidth(
             f,
             this.props.itemWidth ?? 500
@@ -33,7 +33,7 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
             <div className="Image" style={{ width: "100%" }}>
                 {processedImage && !shouldUseOriginal ? (
                     <img
-                        src={`${this.props.uiConfig.filezServerAddress}/api/get_file/${f._id}/image/${previewWidth}.avif?c`}
+                        src={`${this.props.uiConfig.filezServerAddress}/api/file/get/${f._id}/image/${previewWidth}.avif?c`}
                         loading="lazy"
                         width={processedImage.width}
                         height={processedImage.height}
@@ -41,7 +41,7 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
                     />
                 ) : (
                     <img
-                        src={`${this.props.uiConfig.filezServerAddress}/api/get_file/${f._id}?c`}
+                        src={`${this.props.uiConfig.filezServerAddress}/api/file/get/${f._id}?c`}
                         loading="lazy"
                         draggable={false}
                     />
@@ -53,14 +53,14 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
 
 export const isImageDisplayable = (filezFile: FilezFile) => {
     const diplayableMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (diplayableMimeTypes.includes(filezFile.mimeType)) return true;
+    if (diplayableMimeTypes.includes(filezFile.mime_type)) return true;
     return false;
 };
 
 export const getImagePreviewWidth = (filezFile: FilezFile, viewportItemWidth: number) => {
     viewportItemWidth = viewportItemWidth * window.devicePixelRatio;
 
-    const maybeImageAddon = filezFile.appData.image;
+    const maybeImageAddon = filezFile.app_data.image;
     if (maybeImageAddon) {
         const imageAddon: ImageAddon = maybeImageAddon;
         if (imageAddon.result) {

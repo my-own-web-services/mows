@@ -8,7 +8,7 @@ pub async fn get_file_info(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let file_id = req.uri().path().replacen("/api/get_file_info/", "", 1);
+    let file_id = req.uri().path().replacen("/api/file/info/get/", "", 1);
 
     let file = some_or_bail!(db.get_file_by_id(&file_id).await?, "File not found");
 

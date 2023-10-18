@@ -205,7 +205,7 @@ export default class Keywords extends PureComponent<KeywordsProps, KeywordsState
                         const res = await this.context?.filezClient.update_file_infos(
                             this.props.file._id,
                             {
-                                keywords
+                                Keywords: keywords
                             }
                         );
                         if (res?.status === 200) {

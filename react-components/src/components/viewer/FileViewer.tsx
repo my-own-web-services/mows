@@ -76,7 +76,7 @@ export default class FilezFileViewer extends PureComponent<
         return (
             <div className="Filez FileViewer" style={this.props.style}>
                 {(() => {
-                    const fileType = this.state.file.mimeType;
+                    const fileType = this.state.file.mime_type;
                     if (fileType.startsWith("image/")) {
                         return (
                             <Image file={this.state.file} uiConfig={this.context.uiConfig}></Image>

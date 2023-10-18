@@ -18,7 +18,7 @@ pub async fn get_file(
     mut res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
-    let path = req.uri().path().replacen("/api/get_file/", "", 1);
+    let path = req.uri().path().replacen("/api/file/get/", "", 1);
 
     let parts = path.split('/').collect::<Vec<_>>();
     let file_id = if !parts.is_empty() {

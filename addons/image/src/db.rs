@@ -18,13 +18,13 @@ impl DB {
         collection
             .update_many(
                 doc! {
-                    "appData.image": {
+                    "app_data.image": {
                         "$exists": true
                     }
                 },
                 doc! {
                     "$unset": {
-                        "appData.image": ""
+                        "app_data.image": ""
                     }
                 },
                 None,
@@ -43,19 +43,19 @@ impl DB {
                 doc! {
                     "$and":[
                         {
-                            "mimeType": {
+                            "mime_type": {
                                 "$regex": "^(image|audio|video)/"
                             }
                         },
                         {
                             "$or": [
                                 {
-                                    "appData.image.status": {
+                                    "app_data.image.status": {
                                         "$exists": false
                                     }
                                 },
                                 {
-                                    "appData.image.rescan": {
+                                    "app_data.image.rescan": {
                                         "$eq": true
                                     }
                                 }
@@ -66,9 +66,9 @@ impl DB {
                 },
                 doc! {
                     "$set": {
-                        "appData.image.status": "processing",
-                        "appData.image.startedAt": current_time,
-                        "appData.image.rescan": false
+                        "app_data.image.status": "processing",
+                        "app_data.image.started_at": current_time,
+                        "app_data.image.rescan": false
                     }
                 },
                 None,
@@ -93,10 +93,10 @@ impl DB {
                 doc! { "_id": file_id },
                 doc! {
                     "$set": {
-                        "appData.image.status": "finished",
-                        "appData.image.finishedAt": current_time,
-                        "appData.image.error": error,
-                        "appData.image.result": bson::to_bson(&result)?
+                        "app_data.image.status": "finished",
+                        "app_data.image.finished_at": current_time,
+                        "app_data.image.error": error,
+                        "app_data.image.result": bson::to_bson(&result)?
                     }
                 },
                 None,

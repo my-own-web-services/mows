@@ -3,4 +3,4 @@ import type { FilezFilePermissionAclWhatOptions } from "./FilezFilePermissionAcl
 import type { FilezGroupPermissionAclWhatOptions } from "./FilezGroupPermissionAclWhatOptions";
 import type { FilezPermissionAclWho } from "./FilezPermissionAclWho";
 
-export interface FilezPermissionAcl { who: FilezPermissionAclWho, whatFile: Array<FilezFilePermissionAclWhatOptions>, whatGroup: Array<FilezGroupPermissionAclWhatOptions>, }
+export interface FilezPermissionAcl { who: FilezPermissionAclWho, what_file: Array<FilezFilePermissionAclWhatOptions>, what_group: Array<FilezGroupPermissionAclWhatOptions>, }
