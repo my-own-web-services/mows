@@ -50,10 +50,10 @@ button.Filez {
         height: 100%;
     }
 
-    &.GroupList {
+    &.FileGroupList {
         width: 100%;
         height: 100%;
-        .GroupListTopBar {
+        .FileGroupListTopBar {
             .Buttons {
                 float: left;
                 margin-left: 5px;
@@ -85,8 +85,12 @@ button.Filez {
     &.FileList {
         width: 100%;
         height: 100%;
+    }
 
-        .FileListTopBar {
+    &.ResourceList {
+        width: 100%;
+        height: 100%;
+        .ListTopBar {
             padding-top: 5px;
             .Buttons {
                 float: left;

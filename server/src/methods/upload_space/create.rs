@@ -2,8 +2,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     types::{
-        CreateUploadSpaceRequestBody, FileGroupType, FilezFileGroup, FilezGroups, UploadSpace,
-        UsageLimits,
+        CreateUploadSpaceRequestBody, FileGroupType, FilezFileGroup, UploadSpace, UsageLimits,
     },
     utils::generate_id,
 };
@@ -15,15 +14,17 @@ pub async fn create_upload_space(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
+    res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let user_id = match &auth.authenticated_user {
-        Some(user_id) => user_id,
-        None => {
-            return Ok(Response::builder()
-                .status(401)
-                .body(Body::from("Unauthorized"))?)
-        }
+    let requesting_user = match &auth.authenticated_user {
+        Some(ir_user_id) => match db.get_user_by_ir_id(ir_user_id).await? {
+            Some(u) => u,
+            None => return Ok(res.status(412).body(Body::from("User has not been created on the filez server, although it is present on the IR server. Run create_own first."))?),
+        },
+        None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
     };
+
+    let user_id = requesting_user.user_id;
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let cusr: CreateUploadSpaceRequestBody = serde_json::from_slice(&body)?;
@@ -48,7 +49,7 @@ pub async fn create_upload_space(
 
     let file_group_id = generate_id(16);
 
-    let group = FilezGroups::FilezFileGroup(FilezFileGroup {
+    let group = FilezFileGroup {
         owner_id: user_id.to_string(),
         name: None,
         file_group_id: file_group_id.clone(),
@@ -59,9 +60,9 @@ pub async fn create_upload_space(
         group_type: FileGroupType::Static,
         item_count: 0,
         dynamic_group_rules: None,
-    });
+    };
 
-    db.create_group(&group).await?;
+    db.create_file_group(&group).await?;
 
     // yes the user can set arbitrary limits here that are higher than their own limits
     // the check against their own limits and the uploadSpace limits will be performed on upload

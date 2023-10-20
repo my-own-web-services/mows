@@ -29,7 +29,7 @@ pub struct ReducedFilezUser {
     pub name: Option<String>,
     pub friendship_status: FriendshipStatus,
     pub status: UserStatus,
-    pub visibility: UserVisibility,
+    pub visibility: Visibility,
     pub role: UserRole,
     pub shared_user_groups: Vec<String>,
 }
@@ -47,8 +47,8 @@ pub enum FriendshipStatus {
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct GetUserListResponseBody {
-    pub users: Vec<ReducedFilezUser>,
+pub struct GetItemListResponseBody<T> {
+    pub items: Vec<T>,
     pub total_count: u32,
 }
 
@@ -123,47 +123,6 @@ pub enum JobStatus {
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct SearchRequestBody {
-    pub search_type: SearchType,
-    pub limit: u32,
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub enum SearchType {
-    SimpleSearch(SimpleSearch),
-    AdvancedSearch(AdvancedSearch),
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct SimpleSearch {
-    pub query: String,
-    pub group_id: String,
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct AdvancedSearch {
-    pub query: String,
-    pub group_id: String,
-    pub filters: Vec<FilterRule>,
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct GetFileInfosByGroupIdResponseBody {
-    pub total_count: u32,
-    pub files: Vec<FilezFile>,
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct CreateUploadSpaceRequestBody {
     pub limits: HashMap<String, CusrLimits>,
 }
@@ -192,14 +151,6 @@ pub struct UpdatePermissionsRequestBody {
 pub enum FileResourceType {
     FileGroup,
     File,
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct DeleteGroupRequestBody {
-    pub group_id: String,
-    pub group_type: GroupType,
 }
 
 #[derive(TS)]
@@ -241,23 +192,30 @@ pub struct UpdateFileGroupRequestBody {
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct CreateGroupRequest {
+pub struct CreateFileGroupRequestBody {
     pub name: Option<String>,
-    pub group_type: GroupType,
+    pub visibility: Visibility,
 }
 
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub enum GroupType {
-    User,
-    File,
+pub struct CreateUserGroupRequestBody {
+    pub name: Option<String>,
+    pub visibility: Visibility,
 }
 
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct CreateGroupResponse {
+pub struct CreateUserGroupResponseBody {
+    pub group_id: String,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub struct CreateFileGroupResponseBody {
     pub group_id: String,
 }
 
@@ -433,7 +391,7 @@ pub struct FilezUser {
     pub name: Option<String>,
     pub email: Option<String>,
     pub role: UserRole,
-    pub visibility: UserVisibility,
+    pub visibility: Visibility,
     pub friends: Vec<String>,
     /*
     Incoming friend requests awaiting confirmation by the user
@@ -469,7 +427,7 @@ pub enum UserStatus {
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub enum UserVisibility {
+pub enum Visibility {
     Public,
     Private,
 }
@@ -491,19 +449,20 @@ pub struct UsageLimits {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(untagged)]
 pub enum FilezGroups {
-    FilezUserGroup(FilezUserGroup),
+    FilezUserGroup(UserGroup),
     FilezFileGroup(FilezFileGroup),
 }
 
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-pub struct FilezUserGroup {
+pub struct UserGroup {
     #[serde(rename = "_id")]
     pub user_group_id: String,
     pub name: Option<String>,
     /** Id of the User owning the user group*/
     pub owner_id: String,
+    pub visibility: Visibility,
 }
 
 // file groups are just selectors for files

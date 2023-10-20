@@ -82,7 +82,7 @@ pub async fn scan_readonly_mount(
     } else {
         // create group
         let group_id = generate_id(16);
-        db.create_group(&FilezGroups::FilezFileGroup(FilezFileGroup {
+        db.create_file_group(&FilezFileGroup {
             owner_id: user.user_id.to_string(),
             name: Some(mount_name.to_string()),
             file_group_id: group_id.clone(),
@@ -93,7 +93,7 @@ pub async fn scan_readonly_mount(
             group_type: FileGroupType::Static,
             item_count: 0,
             dynamic_group_rules: None,
-        }))
+        })
         .await?;
         group_id
     };

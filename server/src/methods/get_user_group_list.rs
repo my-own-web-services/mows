@@ -1,12 +1,12 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{FilezFile, GetItemListResponseBody, SortOrder},
+    types::{GetItemListResponseBody, SortOrder, UserGroup},
     utils::{get_query_item, get_query_item_number},
 };
 use hyper::{Body, Request, Response};
 
-pub async fn get_file_infos_by_group_id(
+pub async fn get_user_group_list(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
@@ -19,10 +19,6 @@ pub async fn get_file_infos_by_group_id(
         },
         None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
     };
-    let group_id = req
-        .uri()
-        .path()
-        .replacen("/api/get_file_infos_by_group_id/", "", 1);
 
     let limit = get_query_item_number(&req, "l");
     let from_index = get_query_item_number(&req, "i").unwrap_or(0);
@@ -37,8 +33,8 @@ pub async fn get_file_infos_by_group_id(
     let filter = get_query_item(&req, "s");
 
     let (items, total_count) = db
-        .get_files_by_group_id(
-            &group_id,
+        .get_user_group_list(
+            &requesting_user,
             limit,
             from_index as u64,
             field,
@@ -47,12 +43,7 @@ pub async fn get_file_infos_by_group_id(
         )
         .await?;
 
-    let items = items
-        .into_iter()
-        .filter(|f| f.owner_id == requesting_user.user_id)
-        .collect::<Vec<FilezFile>>();
-
-    let res_body = GetItemListResponseBody::<FilezFile> { items, total_count };
+    let res_body = GetItemListResponseBody::<UserGroup> { items, total_count };
 
     Ok(res
         .status(200)

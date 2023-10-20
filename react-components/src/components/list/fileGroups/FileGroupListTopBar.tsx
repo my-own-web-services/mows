@@ -2,15 +2,15 @@ import { PureComponent } from "react";
 import { AiOutlineFolderAdd, AiOutlineSearch } from "react-icons/ai";
 import { IoReloadSharp } from "react-icons/io5";
 import { ButtonGroup, IconButton, Input, InputGroup } from "rsuite";
-interface GroupListTopBarProps {}
+interface FileGroupListTopBarProps {}
 
-interface GroupListTopBarState {}
+interface FileGroupListTopBarState {}
 
-export default class GroupListTopBar extends PureComponent<
-    GroupListTopBarProps,
-    GroupListTopBarState
+export default class FileGroupListTopBar extends PureComponent<
+    FileGroupListTopBarProps,
+    FileGroupListTopBarState
 > {
-    constructor(props: GroupListTopBarProps) {
+    constructor(props: FileGroupListTopBarProps) {
         super(props);
         this.state = {};
     }
@@ -18,7 +18,7 @@ export default class GroupListTopBar extends PureComponent<
     render = () => {
         return (
             <div
-                className="Filez GroupListTopBar"
+                className="Filez FileGroupListTopBar"
                 style={{ width: "100%", height: "40px", padding: "5px" }}
             >
                 <InputGroup size="sm" inside style={{ width: "200px", float: "left" }}>

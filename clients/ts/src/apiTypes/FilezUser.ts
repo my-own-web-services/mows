@@ -2,6 +2,6 @@
 import type { UsageLimits } from "./UsageLimits";
 import type { UserRole } from "./UserRole";
 import type { UserStatus } from "./UserStatus";
-import type { UserVisibility } from "./UserVisibility";
+import type { Visibility } from "./Visibility";
 
-export interface FilezUser { _id: string, ir_user_id: string | null, name: string | null, email: string | null, role: UserRole, visibility: UserVisibility, friends: Array<string>, pending_incoming_friend_requests: Array<string>, status: UserStatus, app_data: Record<string, any>, limits: Record<string, UsageLimits>, user_group_ids: Array<string>, }
+export interface FilezUser { _id: string, ir_user_id: string | null, name: string | null, email: string | null, role: UserRole, visibility: Visibility, friends: Array<string>, pending_incoming_friend_requests: Array<string>, status: UserStatus, app_data: Record<string, any>, limits: Record<string, UsageLimits>, user_group_ids: Array<string>, }

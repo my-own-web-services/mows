@@ -11,6 +11,7 @@ import { FriendshipStatus } from "@firstdorsal/filez-client/dist/js/apiTypes/Fri
 interface ChangeFriendshipStatusProps {
     readonly user: ReducedFilezUser;
     readonly toaster: ReturnType<typeof useToaster>;
+    readonly size?: "xs" | "sm" | "md" | "lg";
 }
 
 interface ChangeFriendshipStatusState {
@@ -61,6 +62,7 @@ class ChangeFriendshipStatus extends PureComponent<
     };
 
     render = () => {
+        const size = this.props.size ?? "sm";
         return (
             <span className="ChangeFriendshipStatus">
                 {match(this.state.status)
@@ -68,7 +70,7 @@ class ChangeFriendshipStatus extends PureComponent<
                         <Button
                             title="Awaiting their confirmation"
                             disabled
-                            size="sm"
+                            size={size}
                             appearance="default"
                         >
                             <BiUserVoice />
@@ -77,7 +79,7 @@ class ChangeFriendshipStatus extends PureComponent<
                     .with("AwaitingYourConfirmation", () => (
                         <ButtonGroup>
                             <Button
-                                size="sm"
+                                size={size}
                                 title="Accept friend request"
                                 appearance="primary"
                                 color="green"
@@ -88,7 +90,7 @@ class ChangeFriendshipStatus extends PureComponent<
                                 <BiUserCheck />
                             </Button>
                             <Button
-                                size="sm"
+                                size={size}
                                 title="Reject friend request"
                                 appearance="primary"
                                 color="red"
@@ -102,7 +104,7 @@ class ChangeFriendshipStatus extends PureComponent<
                     ))
                     .with("Friends", () => (
                         <Button
-                            size="sm"
+                            size={size}
                             title="Remove friend"
                             appearance="primary"
                             color="red"
@@ -115,7 +117,7 @@ class ChangeFriendshipStatus extends PureComponent<
                     ))
                     .with("NotFriends", () => (
                         <Button
-                            size="sm"
+                            size={size}
                             title="Send friend request"
                             color="green"
                             appearance="primary"

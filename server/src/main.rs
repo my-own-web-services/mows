@@ -3,7 +3,6 @@ use filez::db::DB;
 use filez::dev::dev;
 use filez::internal_types::Auth;
 use filez::interossea::{get_session_cookie, Interossea, UserAssertion, INTEROSSEA};
-
 use filez::methods::file::create::create_file;
 use filez::methods::file::delete::delete_file;
 use filez::methods::file::get::get_file;
@@ -11,21 +10,23 @@ use filez::methods::file::info::get::get_file_info;
 use filez::methods::file::info::update::update_file_infos;
 use filez::methods::file::set_app_data::set_app_data;
 use filez::methods::file::update::update_file;
+use filez::methods::file_group::create::create_file_group;
+use filez::methods::file_group::delete::delete_file_group;
 use filez::methods::file_group::update::update_file_group;
 use filez::methods::get_aggregated_keywords::get_aggregated_keywords;
 use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
 use filez::methods::get_own_file_groups::get_own_file_groups;
 use filez::methods::get_permissions_for_current_user::get_permissions_for_current_user;
-
+use filez::methods::get_user_group_list::get_user_group_list;
 use filez::methods::get_user_list::get_user_list;
-use filez::methods::group::create::create_group;
-use filez::methods::group::delete::delete_group;
 use filez::methods::permission::create::create_permission;
 use filez::methods::permission::delete::delete_permission;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::methods::user::create_own::create_own_user;
 use filez::methods::user::get::get_user;
 use filez::methods::user::update_friendship_status::update_friendship_status;
+use filez::methods::user_group::create::create_user_group;
+use filez::methods::user_group::delete::delete_user_group;
 use filez::readonly_mount::scan_readonly_mounts;
 use filez::utils::{get_token_from_query, is_allowed_origin};
 use hyper::server::conn::AddrStream;
@@ -192,7 +193,7 @@ async fn handle_inner(
         token: get_token_from_query(&req),
         user_assertion,
     };
-
+    /* file */
     if p.starts_with("/file/get/") && m == Method::GET {
         get_file(req, db, &auth, res).await
     } else if p == "/file/create/" && m == Method::POST {
@@ -203,29 +204,45 @@ async fn handle_inner(
         update_file(req, db, &auth, res).await
     } else if p == "/file/set_app_data/" && m == Method::POST {
         set_app_data(req, db, &auth, res).await
-    } else if p.starts_with("/file/info/get/") && m == Method::GET {
+    }
+    /* file info */
+    else if p.starts_with("/file/info/get/") && m == Method::GET {
         get_file_info(req, db, &auth, res).await
     } else if p == "/file/info/update/" && m == Method::POST {
         update_file_infos(req, db, &auth, res).await
-    } else if p == "/group/create/" && m == Method::POST {
-        create_group(req, db, &auth, res).await
-    } else if p == "/group/delete/" && m == Method::POST {
-        delete_group(req, db, &auth, res).await
-    } else if p == "/permission/create/" && m == Method::POST {
+    } else if p.starts_with("/get_file_infos_by_group_id/") && m == Method::GET {
+        get_file_infos_by_group_id(req, db, &auth, res).await
+    }
+    /* file group */
+    else if p == "/file_group/create/" && m == Method::POST {
+        create_file_group(req, db, &auth, res).await
+    } else if p == "/file_group/delete/" && m == Method::POST {
+        delete_file_group(req, db, &auth, res).await
+    } else if p == "/file_group/update/" && m == Method::POST {
+        update_file_group(req, db, &auth, res).await
+    }
+    /* user group */
+    else if p == "/user_group/create/" && m == Method::POST {
+        create_user_group(req, db, &auth, res).await
+    } else if p == "/user_group/delete/" && m == Method::POST {
+        delete_user_group(req, db, &auth, res).await
+    }
+    /* permissions */
+    else if p == "/permission/create/" && m == Method::POST {
         create_permission(req, db, &auth, res).await
     } else if p == "/permission/delete/" && m == Method::POST {
         delete_permission(req, db, &auth, res).await
-    } else if p.starts_with("/get_file_infos_by_group_id/") && m == Method::GET {
-        get_file_infos_by_group_id(req, db, &auth, res).await
-    } else if p.starts_with("/user/get/") && m == Method::GET {
+    }
+    /* user */
+    else if p.starts_with("/user/get/") && m == Method::GET {
         get_user(req, db, &auth, res).await
     } else if p == "/user/create_own/" && m == Method::POST {
         create_own_user(req, db, &auth, res).await
     } else if p == "/user/update_friendship_status/" && m == Method::POST {
         update_friendship_status(req, db, &auth, res).await
-    } else if p == "/file_group/update/" && m == Method::POST {
-        update_file_group(req, db, &auth, res).await
-    } else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
+    }
+    /* misc */
+    else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
         update_permission_ids_on_resource(req, db, &auth, res).await
     } else if p == "/get_permissions_for_current_user/" && m == Method::GET {
         get_permissions_for_current_user(req, db, &auth, res).await
@@ -233,18 +250,26 @@ async fn handle_inner(
         get_own_file_groups(req, db, &auth, res).await
     } else if p == "/get_user_list/" && m == Method::GET {
         get_user_list(req, db, &auth, res).await
+    } else if p == "/get_user_group_list/" && m == Method::GET {
+        get_user_group_list(req, db, &auth, res).await
     } else if p == "/get_aggregated_keywords/" && m == Method::GET {
         get_aggregated_keywords(req, db, &auth, res).await
-    } else if p == "/get_assertion_validity_seconds/" && m == Method::GET {
+    }
+    /* interossea accounts management */
+    else if p == "/get_assertion_validity_seconds/" && m == Method::GET {
         Ok(res
             .status(200)
             .body(Body::from(
                 config.interossea.assertion_validity_seconds.to_string(),
             ))
             .unwrap())
-    } else if m == Method::OPTIONS {
-        Ok(res.status(200).body(Body::from("OK")).unwrap())
-    } else {
+    }
+    /* cors */
+    else if m == Method::OPTIONS {
+        Ok(res.status(200).body(Body::from("Ok")).unwrap())
+    }
+    /* everything else */
+    else {
         Ok(res.status(404).body(Body::from("Not found")).unwrap())
     }
 }

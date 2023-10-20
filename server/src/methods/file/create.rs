@@ -3,7 +3,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     some_or_bail,
-    types::{CreateFileRequest, CreateFileResponse, FilezFile},
+    types::{CreateFileRequest, CreateFileResponse, FilezFile, UploadSpace},
     utils::{check_file_name, check_mime_type, generate_id, get_folder_and_file_path},
 };
 use anyhow::bail;
@@ -34,8 +34,12 @@ pub async fn create_file(
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
+
     let (user_id, upload_space) = match &auth.authenticated_user {
-        Some(user_id) => (user_id.clone(), None),
+        Some(ir_user_id) => match db.get_user_id_by_ir_id(ir_user_id).await? {
+            Some(u) => (u, None),
+            None => return Ok(res.status(412).body(Body::from("User has not been created on the filez server, although it is present on the IR server. Run create_own first."))?),
+        },
         None => match &auth.token {
             Some(token) => {
                 if config.dev.disable_complex_access_control {

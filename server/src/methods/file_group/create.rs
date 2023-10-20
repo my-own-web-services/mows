@@ -1,13 +1,15 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{CreatePermissionRequestBody, CreatePermissionResponseBody, FilezPermission},
+    types::{
+        CreateFileGroupRequestBody, CreateFileGroupResponseBody, FileGroupType, FilezFileGroup,
+    },
     utils::generate_id,
 };
-use hyper::{Body, Request, Response};
+use hyper::{body::Body, Request, Response};
 
-// creates a permission for an authenticated user
-pub async fn create_permission(
+// creates a group for an authenticated user
+pub async fn create_file_group(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
@@ -22,22 +24,27 @@ pub async fn create_permission(
     };
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
-    let cpr: CreatePermissionRequestBody = serde_json::from_slice(&body)?;
 
-    let permission_id = generate_id(16);
+    let cgr: CreateFileGroupRequestBody = serde_json::from_slice(&body)?;
 
-    let permission = FilezPermission {
+    let group_id = generate_id(16);
+
+    let file_group = FilezFileGroup {
         owner_id: requesting_user.user_id.to_string(),
-        name: cpr.name,
-        permission_id: permission_id.clone(),
-        acl: cpr.acl,
-        use_type: cpr.use_type,
-        ribston: cpr.ribston,
+        name: cgr.name,
+        file_group_id: group_id.clone(),
+        permission_ids: vec![],
+        keywords: vec![],
+        group_hierarchy_paths: vec![],
+        mime_types: vec![],
+        group_type: FileGroupType::Static,
+        item_count: 0,
+        dynamic_group_rules: None,
     };
 
-    db.create_permission(&permission).await?;
+    db.create_file_group(&file_group).await?;
 
-    let res_body = CreatePermissionResponseBody { permission_id };
+    let res_body = CreateFileGroupResponseBody { group_id };
 
     Ok(res
         .status(201)

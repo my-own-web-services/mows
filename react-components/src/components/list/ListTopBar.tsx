@@ -3,23 +3,20 @@ import { AiOutlineSearch } from "react-icons/ai";
 import { ButtonGroup, IconButton, Input, InputGroup, Slider } from "rsuite";
 import { BsFillGridFill } from "react-icons/bs";
 import { FaThList } from "react-icons/fa";
-import FileList, { ListType } from "./FileList";
+import ResourceList, { ListType } from "./ResourceList";
 
-interface FileListTopBarProps {
-    readonly updateListType: InstanceType<typeof FileList>["updateListType"];
-    readonly commitSearch: InstanceType<typeof FileList>["commitSearch"];
+interface ListTopBarProps {
+    readonly updateListType: InstanceType<typeof ResourceList>["updateListType"];
+    readonly commitSearch: InstanceType<typeof ResourceList>["commitSearch"];
     readonly currentListType: ListType;
 }
 
-interface FileListTopBarState {
+interface ListTopBarState {
     readonly search: string;
 }
 
-export default class FileListTopBar extends PureComponent<
-    FileListTopBarProps,
-    FileListTopBarState
-> {
-    constructor(props: FileListTopBarProps) {
+export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBarState> {
+    constructor(props: ListTopBarProps) {
         super(props);
         this.state = {
             search: ""
@@ -32,7 +29,7 @@ export default class FileListTopBar extends PureComponent<
 
     render = () => {
         return (
-            <div style={{ width: "100%", height: "40px" }} className="FileListTopBar">
+            <div style={{ width: "100%", height: "40px" }} className="ListTopBar">
                 <InputGroup size="sm" inside style={{ width: "200px", float: "left" }}>
                     <Input
                         value={this.state.search}
@@ -44,8 +41,7 @@ export default class FileListTopBar extends PureComponent<
                                 this.commitSearch();
                             }
                         }}
-                        title="Search File Groups"
-                        placeholder="Search Files"
+                        placeholder="Search..."
                     />
                     <InputGroup.Button
                         onClick={() => {

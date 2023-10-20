@@ -1,7 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{FriendshipStatus, GetUserListResponseBody, ReducedFilezUser, SortOrder},
+    types::{FriendshipStatus, GetItemListResponseBody, ReducedFilezUser, SortOrder},
     utils::{get_query_item, get_query_item_number},
 };
 use hyper::{Body, Request, Response};
@@ -32,7 +32,7 @@ pub async fn get_user_list(
 
     let filter = get_query_item(&req, "s");
 
-    let (users, total_count) = db
+    let (items, total_count) = db
         .get_user_list(
             &requesting_user,
             limit,
@@ -43,7 +43,7 @@ pub async fn get_user_list(
         )
         .await?;
 
-    let users = users
+    let items = items
         .into_iter()
         .map(|u| {
             let friend_status = if requesting_user
@@ -62,6 +62,14 @@ pub async fn get_user_list(
                 FriendshipStatus::NotFriends
             };
 
+            // get all the elements from the two arrays that overlap
+            let shared_user_groups = u
+                .user_group_ids
+                .iter()
+                .filter(|id| requesting_user.user_group_ids.contains(id))
+                .cloned()
+                .collect::<Vec<String>>();
+
             ReducedFilezUser {
                 _id: u.user_id,
                 name: u.name,
@@ -69,11 +77,12 @@ pub async fn get_user_list(
                 status: u.status,
                 visibility: u.visibility,
                 role: u.role,
+                shared_user_groups,
             }
         })
         .collect::<Vec<ReducedFilezUser>>();
 
-    let res_body = GetUserListResponseBody { users, total_count };
+    let res_body = GetItemListResponseBody::<ReducedFilezUser> { items, total_count };
 
     Ok(res
         .status(200)

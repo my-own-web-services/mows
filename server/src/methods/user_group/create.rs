@@ -1,13 +1,13 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{CreatePermissionRequestBody, CreatePermissionResponseBody, FilezPermission},
+    types::{CreateUserGroupRequestBody, CreateUserGroupResponseBody, UserGroup},
     utils::generate_id,
 };
-use hyper::{Body, Request, Response};
+use hyper::{body::Body, Request, Response};
 
-// creates a permission for an authenticated user
-pub async fn create_permission(
+// creates a group for an authenticated user
+pub async fn create_user_group(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
@@ -22,22 +22,21 @@ pub async fn create_permission(
     };
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
-    let cpr: CreatePermissionRequestBody = serde_json::from_slice(&body)?;
 
-    let permission_id = generate_id(16);
+    let cgr: CreateUserGroupRequestBody = serde_json::from_slice(&body)?;
 
-    let permission = FilezPermission {
+    let group_id = generate_id(16);
+
+    let user_group = UserGroup {
         owner_id: requesting_user.user_id.to_string(),
-        name: cpr.name,
-        permission_id: permission_id.clone(),
-        acl: cpr.acl,
-        use_type: cpr.use_type,
-        ribston: cpr.ribston,
+        name: cgr.name,
+        user_group_id: group_id.clone(),
+        visibility: cgr.visibility,
     };
 
-    db.create_permission(&permission).await?;
+    db.create_user_group(&user_group).await?;
 
-    let res_body = CreatePermissionResponseBody { permission_id };
+    let res_body = CreateUserGroupResponseBody { group_id };
 
     Ok(res
         .status(201)

@@ -1,7 +1,8 @@
-use crate::{db::DB, internal_types::Auth, types::DeletePermissionRequestBody};
-use hyper::{Body, Request, Response};
+use crate::{db::DB, internal_types::Auth};
+use hyper::{body::Body, Request, Response};
 
-pub async fn delete_permission(
+// creates a group for an authenticated user
+pub async fn delete_user_group(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
@@ -15,10 +16,18 @@ pub async fn delete_permission(
         None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
     };
 
-    let body = hyper::body::to_bytes(req.into_body()).await?;
-    let dgr: DeletePermissionRequestBody = serde_json::from_slice(&body)?;
+    let user_group_id = req.uri().path().replacen("/api/user_group/delete/", "", 1);
 
-    db.delete_permission(&dgr, &requesting_user.user_id).await?;
+    let user_group = match db.get_user_group_by_id(&user_group_id).await? {
+        Some(ug) => ug,
+        None => return Ok(res.status(404).body(Body::from("User group not found"))?),
+    };
+
+    if user_group.owner_id != requesting_user.user_id {
+        return Ok(res.status(401).body(Body::from("Unauthorized"))?);
+    }
+
+    db.delete_user_group(&user_group).await?;
 
     Ok(res.status(200).body(Body::from("OK"))?)
 }

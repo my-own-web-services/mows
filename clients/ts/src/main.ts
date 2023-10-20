@@ -1,21 +1,21 @@
 import { InterosseaClient } from "@firstdorsal/interossea-client";
 import { FilezFile } from "./apiTypes/FilezFile.js";
 import { CreateFileRequest } from "./apiTypes/CreateFileRequest.js";
-import { CreateGroupRequest } from "./apiTypes/CreateGroupRequest.js";
-import { CreateGroupResponse } from "./apiTypes/CreateGroupResponse.js";
-import { SortOrder } from "./apiTypes/SortOrder.js";
 import { FilezFileGroup } from "./apiTypes/FilezFileGroup.js";
 import { FilezUser } from "./apiTypes/FilezUser.js";
 import { UpdateFileInfosRequestField } from "./apiTypes/UpdateFileInfosRequestField.js";
 import { UpdateFileGroupRequestBody } from "./apiTypes/UpdateFileGroupRequestBody.js";
-import { GetFileInfosByGroupIdResponseBody } from "./apiTypes/GetFileInfosByGroupIdResponseBody.js";
 import { FilezPermission } from "./apiTypes/FilezPermission.js";
 import { CreatePermissionRequestBody } from "./apiTypes/CreatePermissionRequestBody.js";
-import { SearchRequestBody } from "./apiTypes/SearchRequestBody.js";
 import { CreatePermissionResponseBody } from "./apiTypes/CreatePermissionResponseBody.js";
-import { GetUserListResponseBody } from "./apiTypes/GetUserListResponseBody.js";
 import { UpdateFriendshipStatusRequestBody } from "./apiTypes/UpdateFriendshipStatusRequestBody.js";
 import { UpdateFriendStatus } from "./apiTypes/UpdateFriendStatus.js";
+import { CreateFileGroupRequestBody } from "./apiTypes/CreateFileGroupRequestBody.js";
+import { CreateUserGroupRequestBody } from "./apiTypes/CreateUserGroupRequestBody.js";
+import { GetResourceParams } from "./types.js";
+import { GetItemListResponseBody } from "./apiTypes/GetItemListResponseBody.js";
+import { UserGroup } from "./apiTypes/UserGroup.js";
+import { ReducedFilezUser } from "./apiTypes/ReducedFilezUser.js";
 
 export * from "./types.js";
 
@@ -60,6 +60,7 @@ export class FilezClient {
             method: "POST",
             credentials: "include"
         });
+        return res;
     };
 
     create_file = async (body: any, metadata: CreateFileRequest) => {
@@ -71,15 +72,7 @@ export class FilezClient {
                 request: JSON.stringify(metadata)
             }
         });
-    };
-
-    create_group = async (group: CreateGroupRequest) => {
-        const res = await fetch(`${this.filezEndpoint}/api/group/create/`, {
-            method: "POST",
-            credentials: "include",
-            body: JSON.stringify(group)
-        });
-        return (await res.json()) as CreateGroupResponse;
+        return res;
     };
 
     create_upload_space = async () => {
@@ -87,12 +80,14 @@ export class FilezClient {
             method: "POST",
             credentials: "include"
         });
+        return res;
     };
     delete_upload_space = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/upload_space/delete/`, {
             method: "POST",
             credentials: "include"
         });
+        return res;
     };
 
     delete_file = async () => {
@@ -100,13 +95,7 @@ export class FilezClient {
             method: "POST",
             credentials: "include"
         });
-    };
-
-    delete_group = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/group/delete/`, {
-            method: "POST",
-            credentials: "include"
-        });
+        return res;
     };
 
     delete_permission = async () => {
@@ -114,6 +103,7 @@ export class FilezClient {
             method: "POST",
             credentials: "include"
         });
+        return res;
     };
 
     get_file_info = async (fileId: string) => {
@@ -124,27 +114,22 @@ export class FilezClient {
         return file;
     };
 
-    get_file_infos_by_group_id = async (
-        groupId: string,
-        from_index: number,
-        limit: number | null,
-        sort_field: string | null,
-        sort_order: SortOrder | null,
-        filter: string | null
-    ) => {
-        const url = `${
-            this.filezEndpoint
-        }/api/get_file_infos_by_group_id/${groupId}?i=${from_index}${
-            limit === null ? "" : "&l=" + limit
-        }${sort_field === null ? "" : "&f=" + sort_field}${
-            sort_order === null ? "" : "&o=" + sort_order
-        }${filter === null ? "" : "&s=" + filter}`;
+    get_file_infos_by_group_id = async (params: GetResourceParams) => {
+        const url = `${this.filezEndpoint}/api/get_file_infos_by_group_id/${
+            params.id ? params.id : ""
+        }?i=${params.from_index}${params.limit === null ? "" : "&l=" + params.limit}${
+            params.sort_field === null ? "" : "&f=" + params.sort_field
+        }${params.sort_order === null ? "" : "&o=" + params.sort_order}${
+            params.filter === null ? "" : "&s=" + params.filter
+        }`;
 
         const res = await fetch(url, {
             credentials: "include"
         });
-        const files: GetFileInfosByGroupIdResponseBody = await res.json();
-        return files;
+
+        const json: GetItemListResponseBody<FilezFile> = await res.json();
+
+        return json;
     };
 
     get_file = async (file_id: string) => {
@@ -155,12 +140,21 @@ export class FilezClient {
         return content;
     };
 
-    get_own_file_groups = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_own_file_groups/`, {
+    get_own_file_groups = async (params: GetResourceParams) => {
+        const url = `${this.filezEndpoint}/api/get_own_file_groups/${
+            params.id ? params.id : ""
+        }?i=${params.from_index}${params.limit === null ? "" : "&l=" + params.limit}${
+            params.sort_field === null ? "" : "&f=" + params.sort_field
+        }${params.sort_order === null ? "" : "&o=" + params.sort_order}${
+            params.filter === null ? "" : "&s=" + params.filter
+        }`;
+
+        const res = await fetch(url, {
             credentials: "include"
         });
-        const fileGroups: FilezFileGroup[] = await res.json();
-        return fileGroups;
+        const json: GetItemListResponseBody<FilezFileGroup> = await res.json();
+
+        return json;
     };
 
     get_permissions_for_current_user = async () => {
@@ -179,23 +173,22 @@ export class FilezClient {
         return (await res.json()) as FilezUser;
     };
 
-    get_user_list = async (
-        from_index: number,
-        limit: number | null,
-        sort_field: string | null,
-        sort_order: SortOrder | null,
-        filter: string | null
-    ) => {
-        const url = `${this.filezEndpoint}/api/get_user_list/?i=${from_index}${
-            limit === null ? "" : "&l=" + limit
-        }${sort_field === null ? "" : "&f=" + sort_field}${
-            sort_order === null ? "" : "&o=" + sort_order
-        }${filter === null ? "" : "&s=" + filter}`;
+    get_user_list = async (params: GetResourceParams) => {
+        const url = `${this.filezEndpoint}/api/get_user_list/${params.id ? params.id : ""}?i=${
+            params.from_index
+        }${params.limit === null ? "" : "&l=" + params.limit}${
+            params.sort_field === null ? "" : "&f=" + params.sort_field
+        }${params.sort_order === null ? "" : "&o=" + params.sort_order}${
+            params.filter === null ? "" : "&s=" + params.filter
+        }`;
 
         const res = await fetch(url, {
             credentials: "include"
         });
-        return (await res.json()) as GetUserListResponseBody;
+
+        const json: GetItemListResponseBody<ReducedFilezUser> = await res.json();
+
+        return json;
     };
 
     update_friendship_status = async (user_id: string, new_status: UpdateFriendStatus) => {
@@ -208,6 +201,24 @@ export class FilezClient {
         });
 
         return res;
+    };
+
+    get_user_group_list = async (params: GetResourceParams) => {
+        const url = `${this.filezEndpoint}/api/get_user_group_list/${
+            params.id ? params.id : ""
+        }?i=${params.from_index}${params.limit === null ? "" : "&l=" + params.limit}${
+            params.sort_field === null ? "" : "&f=" + params.sort_field
+        }${params.sort_order === null ? "" : "&o=" + params.sort_order}${
+            params.filter === null ? "" : "&s=" + params.filter
+        }`;
+
+        const res = await fetch(url, {
+            credentials: "include"
+        });
+
+        const json: GetItemListResponseBody<UserGroup> = await res.json();
+
+        return json;
     };
 
     get_aggregated_keywords = async () => {
@@ -232,6 +243,7 @@ export class FilezClient {
             method: "POST",
             credentials: "include"
         });
+        return res;
     };
 
     update_file_group = async (req: UpdateFileGroupRequestBody) => {
@@ -240,6 +252,7 @@ export class FilezClient {
             credentials: "include",
             body: JSON.stringify(req)
         });
+        return res;
     };
 
     update_permission_ids_on_resource = async () => {
@@ -247,5 +260,40 @@ export class FilezClient {
             method: "POST",
             credentials: "include"
         });
+        return res;
+    };
+
+    create_file_group = async (body: CreateFileGroupRequestBody) => {
+        const res = await fetch(`${this.filezEndpoint}/api/file_group/create/`, {
+            method: "POST",
+            credentials: "include",
+            body: JSON.stringify(body)
+        });
+        return res;
+    };
+
+    create_user_group = async (body: CreateUserGroupRequestBody) => {
+        const res = await fetch(`${this.filezEndpoint}/api/user_group/create/`, {
+            method: "POST",
+            credentials: "include",
+            body: JSON.stringify(body)
+        });
+        return res;
+    };
+
+    delete_file_group = async (group_id: string) => {
+        const res = await fetch(`${this.filezEndpoint}/api/file_group/delete/${group_id}`, {
+            method: "POST",
+            credentials: "include"
+        });
+        return res;
+    };
+
+    delete_user_group = async (group_id: string) => {
+        const res = await fetch(`${this.filezEndpoint}/api/user_group/delete/${group_id}`, {
+            method: "POST",
+            credentials: "include"
+        });
+        return res;
     };
 }

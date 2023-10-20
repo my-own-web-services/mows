@@ -2,10 +2,9 @@ use crate::{
     config::SERVER_CONFIG,
     some_or_bail,
     types::{
-        AppDataType, DeleteGroupRequestBody, DeletePermissionRequestBody, FileGroupType, FilezFile,
-        FilezFileGroup, FilezGroups, FilezPermission, FilezUser, FilezUserGroup, GroupType,
-        SetAppDataRequest, SortOrder, UpdatePermissionsRequestBody, UploadSpace, UsageLimits,
-        UserRole, UserStatus, UserVisibility,
+        AppDataType, DeletePermissionRequestBody, FileGroupType, FilezFile, FilezFileGroup,
+        FilezPermission, FilezUser, SetAppDataRequest, SortOrder, UpdatePermissionsRequestBody,
+        UploadSpace, UsageLimits, UserGroup, UserRole, UserStatus, Visibility,
     },
     utils::generate_id,
 };
@@ -389,7 +388,7 @@ impl DB {
             name: user_name,
             pending_incoming_friend_requests: vec![],
             status: user_status.unwrap_or(UserStatus::Active),
-            visibility: UserVisibility::Public,
+            visibility: Visibility::Public,
             email,
             role: match make_admin {
                 true => UserRole::Admin,
@@ -446,11 +445,72 @@ impl DB {
         Ok(file_groups)
     }
 
+    pub async fn get_file_groups_by_owner_id_for_virtual_list(
+        &self,
+        owner_id: &str,
+        limit: Option<i64>,
+        from_index: u64,
+        sort_field: Option<String>,
+        sort_order: SortOrder,
+        search_filter: Option<String>,
+    ) -> anyhow::Result<(Vec<FilezFileGroup>, u32)> {
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
+
+        let sort_field = sort_field.unwrap_or("_id".to_string());
+
+        let find_options = FindOptions::builder()
+            .sort(doc! {
+                sort_field: match sort_order {
+                    SortOrder::Ascending => 1,
+                    SortOrder::Descending => -1
+                }
+            })
+            .limit(limit)
+            .skip(from_index)
+            .build();
+
+        let search_filter = match search_filter {
+            Some(f) => doc! {
+                "$or": [
+                    {
+                        "_id": &f
+                    },
+                    {
+                        "name": {
+                            "$regex": &f
+                        }
+                    },
+                ]
+            },
+            None => doc! {},
+        };
+
+        let db_filter = doc! {
+            "$and":[
+                search_filter,
+                {
+                    "owner_id": owner_id
+                }
+            ]
+        };
+
+        let (items, total_count) = (
+            collection
+                .find(db_filter.clone(), find_options)
+                .await?
+                .try_collect::<Vec<_>>()
+                .await?,
+            collection.count_documents(db_filter, None).await?,
+        );
+
+        Ok((items, total_count as u32))
+    }
+
     pub async fn get_user_group_by_id(
         &self,
         user_group_id: &str,
-    ) -> anyhow::Result<Option<FilezUserGroup>> {
-        let collection = self.db.collection::<FilezUserGroup>("user_groups");
+    ) -> anyhow::Result<Option<UserGroup>> {
+        let collection = self.db.collection::<UserGroup>("user_groups");
 
         let res = collection
             .find_one(
@@ -480,40 +540,6 @@ impl DB {
                 None,
             )
             .await?)
-    }
-
-    pub async fn delete_group(
-        &self,
-        dgr: &DeleteGroupRequestBody,
-        owner_id: &str,
-    ) -> anyhow::Result<DeleteResult> {
-        Ok(match dgr.group_type {
-            GroupType::User => {
-                let collection = self.db.collection::<FilezUserGroup>("user_groups");
-
-                collection
-                    .delete_one(
-                        doc! {
-                            "_id": dgr.group_id.clone(),
-                            "owner_id": owner_id
-                        },
-                        None,
-                    )
-                    .await?
-            }
-            GroupType::File => {
-                let collection = self.db.collection::<FilezFileGroup>("file_groups");
-                collection
-                    .delete_one(
-                        doc! {
-                            "_id": dgr.group_id.clone(),
-                            "owner_id": owner_id
-                        },
-                        None,
-                    )
-                    .await?
-            }
-        })
     }
 
     pub async fn create_permission(
@@ -548,19 +574,24 @@ impl DB {
         Ok(file_groups)
     }
 
-    pub async fn create_group(&self, group: &FilezGroups) -> anyhow::Result<InsertOneResult> {
-        Ok(match group {
-            FilezGroups::FilezUserGroup(g) => {
-                let collection = self.db.collection::<FilezUserGroup>("user_groups");
+    pub async fn create_user_group(
+        &self,
+        user_group: &UserGroup,
+    ) -> anyhow::Result<InsertOneResult> {
+        let collection = self.db.collection::<UserGroup>("user_groups");
 
-                collection.insert_one(g, None).await?
-            }
-            FilezGroups::FilezFileGroup(g) => {
-                let collection = self.db.collection::<FilezFileGroup>("file_groups");
+        let res = collection.insert_one(user_group, None).await?;
+        Ok(res)
+    }
 
-                collection.insert_one(g, None).await?
-            }
-        })
+    pub async fn create_file_group(
+        &self,
+        file_group: &FilezFileGroup,
+    ) -> anyhow::Result<InsertOneResult> {
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
+
+        let res = collection.insert_one(file_group, None).await?;
+        Ok(res)
     }
 
     pub async fn set_app_data(&self, sadr: SetAppDataRequest) -> anyhow::Result<UpdateResult> {
@@ -778,6 +809,80 @@ impl DB {
             .await?)
     }
 
+    pub async fn get_user_group_list(
+        &self,
+        requesting_user: &FilezUser,
+        limit: Option<i64>,
+        from_index: u64,
+        sort_field: Option<String>,
+        sort_order: SortOrder,
+        search_filter: Option<String>,
+    ) -> anyhow::Result<(Vec<UserGroup>, u32)> {
+        let collection = self.db.collection::<UserGroup>("user_groups");
+        let requesting_user_id = &requesting_user.user_id;
+        let requesting_user_user_groups = &requesting_user.user_group_ids;
+        let sort_field = sort_field.unwrap_or("_id".to_string());
+
+        let find_options = FindOptions::builder()
+            .sort(doc! {
+                sort_field: match sort_order {
+                    SortOrder::Ascending => 1,
+                    SortOrder::Descending => -1
+                }
+            })
+            .limit(limit)
+            .skip(from_index)
+            .build();
+
+        let search_filter = match search_filter {
+            Some(f) => doc! {
+                "$or": [
+                    {
+                        "_id": &f
+                    },
+                    {
+                        "name": {
+                            "$regex": &f
+                        }
+                    },
+                ]
+            },
+            None => doc! {},
+        };
+
+        let db_filter = doc! {
+            "$and":[
+                search_filter,
+                {
+                    "$or":[
+                        {
+                            "owner_id": requesting_user_id
+                        },
+                        {
+                            "visibility": "Public"
+                        },
+                        {
+                            "_id": {
+                                "$in": requesting_user_user_groups
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+
+        let (user_groups, total_count) = (
+            collection
+                .find(db_filter.clone(), find_options)
+                .await?
+                .try_collect::<Vec<_>>()
+                .await?,
+            collection.count_documents(db_filter, None).await?,
+        );
+
+        Ok((user_groups, total_count as u32))
+    }
+
     pub async fn get_user_list(
         &self,
         requesting_user: &FilezUser,
@@ -785,7 +890,7 @@ impl DB {
         from_index: u64,
         sort_field: Option<String>,
         sort_order: SortOrder,
-        filter: Option<String>,
+        search_filter: Option<String>,
     ) -> anyhow::Result<(Vec<FilezUser>, u32)> {
         let collection = self.db.collection::<FilezUser>("users");
 
@@ -804,7 +909,7 @@ impl DB {
             .skip(from_index)
             .build();
 
-        let filter = match filter {
+        let search_filter = match search_filter {
             Some(f) => doc! {
                 "$or": [
                     {
@@ -858,7 +963,7 @@ impl DB {
 
         let db_filter = doc! {
             "$and":[
-                filter,
+                search_filter,
                 {
                     "_id": {
                         "$ne": requesting_user_id
@@ -904,6 +1009,35 @@ impl DB {
             .skip(from_index)
             .build();
 
+        let search_filter = match filter {
+            Some(f) => doc! {
+                "$or": [
+                    {
+                        "name": {
+                            "$regex": &f
+                        }
+                    },
+                    {
+                        "_id": &f
+                    },
+                    {
+                        "owner_id": &f
+                    },
+                    {
+                        "keywords": {
+                            "$regex": &f
+                        }
+                    },
+                    {
+                        "mime_type": {
+                            "$regex": &f
+                        }
+                    }
+                ]
+            },
+            None => doc! {},
+        };
+
         let db_filter = doc! {
             "$and": [
                 {
@@ -912,35 +1046,11 @@ impl DB {
                         {"dynamic_file_group_ids": group_id}
                     ]
                 },
-                {
-                    "$or": [
-                        {
-                            "name": {
-                                "$regex": &filter
-                            }
-                        },
-                        {
-                            "_id": &filter
-                        },
-                        {
-                            "owner_id": &filter
-                        },
-                        {
-                            "keywords": {
-                                "$regex": &filter
-                            }
-                        },
-                        {
-                            "mime_type": {
-                                "$regex": &filter
-                            }
-                        }
-                    ]
-                },
+                search_filter,
             ]
         };
 
-        let (files, total_count) = (
+        let (items, total_count) = (
             collection
                 .find(db_filter.clone(), find_options)
                 .await?
@@ -948,8 +1058,7 @@ impl DB {
                 .await?,
             collection.count_documents(db_filter, None).await?,
         );
-
-        Ok((files, total_count as u32))
+        Ok((items, total_count as u32))
     }
 
     pub async fn get_user_by_id(&self, user_id: &str) -> anyhow::Result<Option<FilezUser>> {
@@ -1407,5 +1516,93 @@ impl DB {
                 None,
             )
             .await?)
+    }
+
+    pub async fn delete_file_group(&self, file_group: &FilezFileGroup) -> anyhow::Result<()> {
+        let mut session = self.client.start_session(None).await?;
+
+        session.start_transaction(None).await?;
+
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
+
+        collection
+            .delete_one_with_session(
+                doc! {
+                    "_id": file_group.file_group_id.clone()
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        let files_collection = self.db.collection::<FilezFile>("files");
+
+        // remove the group from all files
+        files_collection
+            .update_many_with_session(
+                doc! {
+                    "$or": [
+                        {
+                            "static_file_group_ids": file_group.file_group_id.clone()
+                        },
+                        {
+                            "dynamic_file_group_ids": file_group.file_group_id.clone()
+                        }
+                    ]
+                },
+                doc! {
+                    "$pull": {
+                        "static_file_group_ids": file_group.file_group_id.clone(),
+                        "dynamic_file_group_ids": file_group.file_group_id.clone()
+                    }
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        Ok(session.commit_transaction().await?)
+    }
+
+    pub async fn delete_user_group(&self, user_group: &UserGroup) -> anyhow::Result<()> {
+        let mut session = self.client.start_session(None).await?;
+
+        session.start_transaction(None).await?;
+
+        let collection = self.db.collection::<UserGroup>("user_groups");
+
+        collection
+            .delete_one_with_session(
+                doc! {
+                    "_id": user_group.user_group_id.clone()
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        let users_collection = self.db.collection::<FilezUser>("users");
+
+        // remove the group from all files
+        users_collection
+            .update_many_with_session(
+                doc! {
+                    "$or": [
+                        {
+                            "user_group_ids": user_group.user_group_id.clone()
+                        }
+                    ]
+                },
+                doc! {
+                    "$pull": {
+                        "user_group_ids": user_group.user_group_id.clone(),
+                    }
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        Ok(session.commit_transaction().await?)
     }
 }

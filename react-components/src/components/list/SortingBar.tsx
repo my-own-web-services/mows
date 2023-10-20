@@ -1,17 +1,22 @@
 import { PureComponent } from "react";
 import Split from "react-split";
-import FileList, { Column, ColumnDirection } from "./FileList";
+import ResourceList, { Column, ColumnDirection } from "./ResourceList";
 
-interface SortingBarProps {
-    readonly updateSortingColumnWidths: InstanceType<typeof FileList>["updateColumnWidths"];
-    readonly updateColumnDirections: InstanceType<typeof FileList>["updateColumnDirections"];
-    readonly columns: Column[];
+interface SortingBarProps<ResourceType> {
+    readonly updateSortingColumnWidths: InstanceType<
+        typeof ResourceList
+    >["updateSortingColumnWidths"];
+    readonly updateColumnDirections: InstanceType<typeof ResourceList>["updateColumnDirections"];
+    readonly columns: Column<ResourceType>[];
 }
 
-interface SortingBarState {}
+interface SortingBarState<ResourceType> {}
 
-export default class SortingBar extends PureComponent<SortingBarProps, SortingBarState> {
-    constructor(props: SortingBarProps) {
+export default class SortingBar<ResourceType> extends PureComponent<
+    SortingBarProps<ResourceType>,
+    SortingBarState<ResourceType>
+> {
+    constructor(props: SortingBarProps<ResourceType>) {
         super(props);
     }
 
