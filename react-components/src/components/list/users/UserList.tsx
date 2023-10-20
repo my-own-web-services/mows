@@ -1,15 +1,16 @@
 import { CSSProperties, PureComponent, createRef } from "react";
 import { FilezContext } from "../../../FilezProvider";
-import { FilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezUser";
 import { AutoSizer, FixedSizeList } from "rsuite/esm/Windowing";
 import InfiniteLoader from "react-window-infinite-loader";
+import { ReducedFilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/ReducedFilezUser";
+import ChangeFriendshipStatus from "./ChangeFriendshipStatus";
 
 interface UserListProps {
-    readonly rowRenderer?: (user: FilezUser, style: CSSProperties) => JSX.Element;
+    readonly rowRenderer?: (user: ReducedFilezUser, style: CSSProperties) => JSX.Element;
 }
 
 interface UserListState {
-    readonly userList: FilezUser[];
+    readonly userList: ReducedFilezUser[];
     readonly listLength: number;
     readonly commitedSearch: string;
 }
@@ -75,10 +76,15 @@ export default class UserList extends PureComponent<UserListProps, UserListState
         });
     };
 
-    defaultRowRenderer = (user: FilezUser, style: CSSProperties) => {
+    defaultRowRenderer = (user: ReducedFilezUser, style: CSSProperties) => {
         return (
-            <div className="Filez" style={{ ...style }}>
-                <div>{user._id}</div>
+            <div className="Filez Row" style={{ ...style }}>
+                <div>
+                    <span style={{ marginRight: "10px" }}>{user.name ?? user._id}</span>
+                    <span style={{ marginRight: "10px" }}>{user.role}</span>
+                    <span style={{ marginRight: "10px" }}>{user.status}</span>
+                    <ChangeFriendshipStatus user={user} />
+                </div>
             </div>
         );
     };
@@ -86,7 +92,7 @@ export default class UserList extends PureComponent<UserListProps, UserListState
     render = () => {
         const fullListLength = this.state.listLength;
         return (
-            <div className="UserList">
+            <div className="Filez UserList">
                 <AutoSizer>
                     {({ height, width }) => (
                         <InfiniteLoader
@@ -97,7 +103,7 @@ export default class UserList extends PureComponent<UserListProps, UserListState
                         >
                             {({ onItemsRendered, ref }) => (
                                 <FixedSizeList
-                                    itemSize={20}
+                                    itemSize={30}
                                     height={height}
                                     itemCount={fullListLength}
                                     width={width}

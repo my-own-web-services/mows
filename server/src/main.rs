@@ -25,6 +25,7 @@ use filez::methods::permission::delete::delete_permission;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::methods::user::create_own::create_own_user;
 use filez::methods::user::get::get_user;
+use filez::methods::user::update_friendship_status::update_friendship_status;
 use filez::readonly_mount::scan_readonly_mounts;
 use filez::utils::{get_token_from_query, is_allowed_origin};
 use hyper::server::conn::AddrStream;
@@ -220,6 +221,8 @@ async fn handle_inner(
         get_user(req, db, &auth, res).await
     } else if p == "/user/create_own/" && m == Method::POST {
         create_own_user(req, db, &auth, res).await
+    } else if p == "/user/update_friendship_status/" && m == Method::POST {
+        update_friendship_status(req, db, &auth, res).await
     } else if p == "/file_group/update/" && m == Method::POST {
         update_file_group(req, db, &auth, res).await
     } else if p == "/update_permission_ids_on_resource/" && m == Method::POST {

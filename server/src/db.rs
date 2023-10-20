@@ -2,9 +2,10 @@ use crate::{
     config::SERVER_CONFIG,
     some_or_bail,
     types::{
-        AppDataType, DeleteGroupRequestBody, DeletePermissionRequestBody, FilezFile,
-        FilezFileGroup, FilezGroups, FilezPermission, FilezUser, FilezUserGroup, SetAppDataRequest,
-        SortOrder, UpdatePermissionsRequestBody, UploadSpace, UsageLimits, UserStatus,
+        AppDataType, DeleteGroupRequestBody, DeletePermissionRequestBody, FileGroupType, FilezFile,
+        FilezFileGroup, FilezGroups, FilezPermission, FilezUser, FilezUserGroup, GroupType,
+        SetAppDataRequest, SortOrder, UpdatePermissionsRequestBody, UploadSpace, UsageLimits,
+        UserRole, UserStatus, UserVisibility,
     },
     utils::generate_id,
 };
@@ -386,14 +387,13 @@ impl DB {
             user_group_ids: vec![],
             friends: vec![],
             name: user_name,
-            pending_friend_confirmations: vec![],
-            pending_friend_requests: vec![],
+            pending_incoming_friend_requests: vec![],
             status: user_status.unwrap_or(UserStatus::Active),
-            visibility: crate::types::UserVisibility::Public,
+            visibility: UserVisibility::Public,
             email,
             role: match make_admin {
-                true => crate::types::UserRole::Admin,
-                false => crate::types::UserRole::User,
+                true => UserRole::Admin,
+                false => UserRole::User,
             },
         };
 
@@ -413,7 +413,7 @@ impl DB {
                     keywords: vec![],
                     mime_types: vec![],
                     group_hierarchy_paths: vec![],
-                    group_type: crate::types::FileGroupType::Static,
+                    group_type: FileGroupType::Static,
                     dynamic_group_rules: None,
                     item_count: 0,
                 },
@@ -488,7 +488,7 @@ impl DB {
         owner_id: &str,
     ) -> anyhow::Result<DeleteResult> {
         Ok(match dgr.group_type {
-            crate::types::GroupType::User => {
+            GroupType::User => {
                 let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
                 collection
@@ -501,7 +501,7 @@ impl DB {
                     )
                     .await?
             }
-            crate::types::GroupType::File => {
+            GroupType::File => {
                 let collection = self.db.collection::<FilezFileGroup>("file_groups");
                 collection
                     .delete_one(
@@ -1286,5 +1286,126 @@ impl DB {
             .await?;
 
         Ok(session.commit_transaction().await?)
+    }
+
+    pub async fn send_friend_request(
+        &self,
+        requesting_user_id: &str,
+        other_user_id: &str,
+    ) -> anyhow::Result<UpdateResult> {
+        let collection = &self.db.collection::<FilezUser>("users");
+
+        Ok(collection
+            .update_one(
+                doc! {"_id": other_user_id},
+                doc! {
+                    "$push": {
+                        "pending_incoming_friend_requests": requesting_user_id
+                    }
+                },
+                None,
+            )
+            .await?)
+    }
+
+    pub async fn remove_friend(
+        &self,
+        requesting_user_id: &str,
+        other_user_id: &str,
+    ) -> anyhow::Result<()> {
+        let mut session = self.client.start_session(None).await?;
+
+        session.start_transaction(None).await?;
+        let collection = &self.db.collection::<FilezUser>("users");
+
+        collection
+            .update_one_with_session(
+                doc! {"_id": other_user_id},
+                doc! {
+                    "$pull": {
+                        "friends": requesting_user_id
+                    }
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        collection
+            .update_one_with_session(
+                doc! {"_id": requesting_user_id},
+                doc! {
+                    "$pull": {
+                        "friends": other_user_id
+                    }
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        Ok(session.commit_transaction().await?)
+    }
+
+    pub async fn accept_friend_request(
+        &self,
+        requesting_user_id: &str,
+        other_user_id: &str,
+    ) -> anyhow::Result<()> {
+        let mut session = self.client.start_session(None).await?;
+
+        session.start_transaction(None).await?;
+        let collection = &self.db.collection::<FilezUser>("users");
+
+        collection
+            .update_one_with_session(
+                doc! {"_id": requesting_user_id},
+                doc! {
+                    "$pull": {
+                        "pending_incoming_friend_requests": other_user_id
+                    },
+                    "$push": {
+                        "friends": other_user_id
+                    }
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        collection
+            .update_one_with_session(
+                doc! {"_id": other_user_id},
+                doc! {
+                    "$push": {
+                        "friends": requesting_user_id
+                    }
+                },
+                None,
+                &mut session,
+            )
+            .await?;
+
+        Ok(session.commit_transaction().await?)
+    }
+
+    pub async fn reject_friend_request(
+        &self,
+        requesting_user_id: &str,
+        other_user_id: &str,
+    ) -> anyhow::Result<UpdateResult> {
+        let collection = &self.db.collection::<FilezUser>("users");
+
+        Ok(collection
+            .update_one(
+                doc! {"_id": requesting_user_id},
+                doc! {
+                    "$pull": {
+                        "pending_incoming_friend_requests": other_user_id
+                    }
+                },
+                None,
+            )
+            .await?)
     }
 }

@@ -14,6 +14,8 @@ import { CreatePermissionRequestBody } from "./apiTypes/CreatePermissionRequestB
 import { SearchRequestBody } from "./apiTypes/SearchRequestBody.js";
 import { CreatePermissionResponseBody } from "./apiTypes/CreatePermissionResponseBody.js";
 import { GetUserListResponseBody } from "./apiTypes/GetUserListResponseBody.js";
+import { UpdateFriendshipStatusRequestBody } from "./apiTypes/UpdateFriendshipStatusRequestBody.js";
+import { UpdateFriendStatus } from "./apiTypes/UpdateFriendStatus.js";
 
 export * from "./types.js";
 
@@ -194,6 +196,18 @@ export class FilezClient {
             credentials: "include"
         });
         return (await res.json()) as GetUserListResponseBody;
+    };
+
+    update_friendship_status = async (user_id: string, new_status: UpdateFriendStatus) => {
+        const body: UpdateFriendshipStatusRequestBody = { user_id, new_status };
+
+        const res = await fetch(`${this.filezEndpoint}/api/user/update_friendship_status/`, {
+            method: "POST",
+            credentials: "include",
+            body: JSON.stringify(body)
+        });
+
+        return res;
     };
 
     get_aggregated_keywords = async () => {

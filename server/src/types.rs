@@ -6,8 +6,49 @@ use ts_rs::TS;
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub struct UpdateFriendshipStatusRequestBody {
+    pub user_id: String,
+    pub new_status: UpdateFriendStatus,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub enum UpdateFriendStatus {
+    SendFriendRequest,
+    RemoveFriend,
+    AcceptFriendRequest,
+    RejectFriendRequest,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub struct ReducedFilezUser {
+    pub _id: String,
+    pub name: Option<String>,
+    pub friendship_status: FriendshipStatus,
+    pub status: UserStatus,
+    pub visibility: UserVisibility,
+    pub role: UserRole,
+    pub shared_user_groups: Vec<String>,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub enum FriendshipStatus {
+    Friends,
+    NotFriends,
+    AwaitingTheirConfirmation,
+    AwaitingYourConfirmation,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct GetUserListResponseBody {
-    pub users: Vec<FilezUser>,
+    pub users: Vec<ReducedFilezUser>,
     pub total_count: u32,
 }
 
@@ -394,8 +435,10 @@ pub struct FilezUser {
     pub role: UserRole,
     pub visibility: UserVisibility,
     pub friends: Vec<String>,
-    pub pending_friend_requests: Vec<String>,
-    pub pending_friend_confirmations: Vec<String>,
+    /*
+    Incoming friend requests awaiting confirmation by the user
+    */
+    pub pending_incoming_friend_requests: Vec<String>,
     pub status: UserStatus,
     #[ts(type = "Record<string, any>")]
     pub app_data: HashMap<String, Value>,

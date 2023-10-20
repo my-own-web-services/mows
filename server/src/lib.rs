@@ -35,6 +35,7 @@ pub mod methods {
     pub mod user {
         pub mod create_own;
         pub mod get;
+        pub mod update_friendship_status;
     }
     pub mod file_group {
         pub mod update;

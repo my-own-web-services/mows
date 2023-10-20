@@ -1,9 +1,5 @@
-import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-
-export const isFile = (item: FilezFile | FileGroupType): item is FilezFile => {
-    return (<FilezFile>item).mimeType !== undefined;
-};
+import { useToaster } from "rsuite";
 
 export const utcTimeStampToTimeAndDate = (
     utcTimeStamp: bigint,
@@ -25,10 +21,18 @@ export const bytesToHumanReadableSize = (bigint_bytes: bigint | number): string 
 };
 
 export const isText = (file: FilezFile): boolean => {
-    if (file.mimeType.startsWith("text/")) return true;
-    if (file.mimeType.startsWith("application/json")) return true;
-    if (file.mimeType.startsWith("application/xml")) return true;
-    if (file.mimeType.startsWith("application/octet-stream")) return true;
+    if (file.mime_type.startsWith("text/")) return true;
+    if (file.mime_type.startsWith("application/json")) return true;
+    if (file.mime_type.startsWith("application/xml")) return true;
+    if (file.mime_type.startsWith("application/octet-stream")) return true;
 
     return false;
+};
+
+export const withToasterHook = (Component: any) => {
+    return (props: any) => {
+        const toaster = useToaster();
+
+        return <Component toaster={toaster} {...props} />;
+    };
 };
