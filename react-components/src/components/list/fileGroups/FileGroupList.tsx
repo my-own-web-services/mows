@@ -3,7 +3,7 @@ import { FilezContext } from "../../../FilezProvider";
 import { AiOutlineFolder, AiOutlineFolderView } from "react-icons/ai";
 import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
-import ResourceList from "../ResourceList";
+import ResourceList from "../resource/ResourceList";
 
 interface FileGroupListProps {
     readonly displayTopBar?: boolean;
@@ -78,6 +78,7 @@ export default class FileGroupList extends PureComponent<FileGroupListProps, Fil
         return (
             <div className="Filez FileGroupList" style={{ ...this.props.style }}>
                 <ResourceList
+                    resourceType="File Group"
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_own_file_groups}
                     rowRenderer={this.rowRenderer}

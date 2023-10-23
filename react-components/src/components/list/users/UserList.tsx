@@ -2,7 +2,7 @@ import { CSSProperties, PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import { ReducedFilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/ReducedFilezUser";
 import ChangeFriendshipStatus from "./ChangeFriendshipStatus";
-import ResourceList from "../ResourceList";
+import ResourceList from "../resource/ResourceList";
 
 interface UserListProps {
     readonly style?: CSSProperties;
@@ -33,7 +33,7 @@ export default class UserList extends PureComponent<UserListProps, UserListState
                     <span style={{ marginRight: "10px" }}>{user.name ?? user._id}</span>
                     <span style={{ marginRight: "10px" }}>{user.role}</span>
                     <span style={{ marginRight: "10px" }}>{user.status}</span>
-                    <ChangeFriendshipStatus user={user} />
+                    <ChangeFriendshipStatus size="sm" user={user} />
                 </div>
             </div>
         );
@@ -44,6 +44,7 @@ export default class UserList extends PureComponent<UserListProps, UserListState
         return (
             <div className="Filez UserList" style={{ ...this.props.style }}>
                 <ResourceList
+                    resourceType="User"
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_user_list}
                     rowRenderer={this.rowRenderer}

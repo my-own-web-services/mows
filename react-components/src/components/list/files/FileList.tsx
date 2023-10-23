@@ -4,7 +4,7 @@ import InfiniteLoader from "react-window-infinite-loader";
 import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
 import { bytesToHumanReadableSize } from "../../../utils";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import ResourceList, { Column, ColumnDirection, ListType } from "../ResourceList";
+import ResourceList, { Column, ColumnDirection, ListType } from "../resource/ResourceList";
 
 const defaultColumns: Column<FilezFile>[] = [
     {
@@ -113,6 +113,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         return (
             <div className="Filez FileList" style={{ ...this.props.style }}>
                 <ResourceList
+                    resourceType="File"
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_file_infos_by_group_id}
                     id={this.props.id}

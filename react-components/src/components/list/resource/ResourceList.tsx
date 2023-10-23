@@ -1,6 +1,6 @@
 import { GetResourceParams } from "@firstdorsal/filez-client";
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
-import { CSSProperties, PureComponent, createRef } from "react";
+import { CSSProperties, PureComponent, ReactElement, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
 import SortingBar from "./SortingBar";
@@ -29,21 +29,38 @@ export enum ListType {
 }
 
 interface ResourceListProps<ResourceType> {
-    readonly style?: CSSProperties;
+    /**
+     The default field to sort the list by.
+     */
+    readonly defaultSortField: string;
+    /**
+     The type of the resource to be displayed.
+     */
+    readonly resourceType: string;
+    /**
+     A function that renders the resource in the list.
+     */
     readonly rowRenderer: (
         item: ResourceType,
         style: CSSProperties,
         columns?: Column<ResourceType>[]
     ) => JSX.Element;
-    readonly displayTopBar?: boolean;
-    readonly displaySortingBar?: boolean;
+    /**
+     A function that gets the resource in from the server/db and returns it. This has to be implemented in a specific way to support the infinite scrolling.
+     */
     readonly get_items_function: (
         props: GetResourceParams
     ) => Promise<{ items: ResourceType[]; total_count: number }>;
+    /**
+    If provided renders a button to call it as well as the UI rendered by the function to create the resource.
+    */
+    readonly createResource?: ReactElement<any, any>;
+    readonly style?: CSSProperties;
+    readonly displayTopBar?: boolean;
+    readonly displaySortingBar?: boolean;
     readonly topBar?: JSX.Element;
     readonly id?: string;
     readonly columns?: Column<ResourceType>[];
-    readonly defaultSortField: string;
 }
 
 interface ResourceListState<ResourceType> {
@@ -79,7 +96,7 @@ export default class ResourceList<ResourceType> extends PureComponent<
 
     componentDidUpdate = async (
         prevProps: Readonly<ResourceListProps<ResourceType>>,
-        prevState: Readonly<ResourceListState<ResourceType>>
+        _prevState: Readonly<ResourceListState<ResourceType>>
     ) => {
         if (prevProps.id !== this.props.id) {
             await this.loadItems();
@@ -202,6 +219,11 @@ export default class ResourceList<ResourceType> extends PureComponent<
         });
     };
 
+    refreshList = () => {
+        this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
+        this.loadItems();
+    };
+
     render = () => {
         const fullListLength = this.state.total_count;
 
@@ -219,6 +241,9 @@ export default class ResourceList<ResourceType> extends PureComponent<
             <div className="Filez ResourceList" style={{ ...this.props.style }}>
                 {this.props.displayTopBar !== false && (
                     <ListTopBar
+                        refreshList={this.refreshList}
+                        resourceType={this.props.resourceType}
+                        createResource={this.props.createResource}
                         updateListType={this.updateListType}
                         currentListType={this.state.listType}
                         commitSearch={this.commitSearch}

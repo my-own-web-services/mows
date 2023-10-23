@@ -1,26 +1,35 @@
-import { PureComponent } from "react";
+import { PureComponent, ReactElement, cloneElement, createRef } from "react";
 import { AiOutlineSearch } from "react-icons/ai";
-import { ButtonGroup, IconButton, Input, InputGroup, Slider } from "rsuite";
+import { Button, ButtonGroup, IconButton, Input, InputGroup, Modal, Slider } from "rsuite";
 import { BsFillGridFill } from "react-icons/bs";
 import { FaThList } from "react-icons/fa";
 import ResourceList, { ListType } from "./ResourceList";
+import { BiPlus } from "react-icons/bi";
 
 interface ListTopBarProps {
     readonly updateListType: InstanceType<typeof ResourceList>["updateListType"];
     readonly commitSearch: InstanceType<typeof ResourceList>["commitSearch"];
     readonly currentListType: ListType;
+    readonly resourceType: string;
+    readonly createResource?: ReactElement<any, any>;
+    readonly refreshList: () => void;
 }
 
 interface ListTopBarState {
     readonly search: string;
+    readonly createModalOpen: boolean;
 }
 
 export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBarState> {
+    createResourceRef: any;
+
     constructor(props: ListTopBarProps) {
         super(props);
         this.state = {
-            search: ""
+            search: "",
+            createModalOpen: false
         };
+        this.createResourceRef = createRef();
     }
 
     commitSearch = () => {
@@ -51,6 +60,56 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                         <AiOutlineSearch size={21} />
                     </InputGroup.Button>
                 </InputGroup>
+                {this.props.createResource && (
+                    <span className="Buttons">
+                        <IconButton
+                            onClick={() => {
+                                this.setState({ createModalOpen: true });
+                            }}
+                            title={`Create new ${this.props.resourceType}`}
+                            size="xs"
+                            icon={<BiPlus size={18} />}
+                        />
+                        <Modal
+                            onClose={() => {
+                                this.setState({ createModalOpen: false });
+                            }}
+                            open={this.state.createModalOpen}
+                        >
+                            <Modal.Header>
+                                <Modal.Title>Create {this.props.resourceType}</Modal.Title>
+                            </Modal.Header>
+                            <Modal.Body>
+                                {cloneElement(this.props.createResource, {
+                                    ref: this.createResourceRef
+                                })}
+                            </Modal.Body>
+                            <Modal.Footer>
+                                <Button
+                                    onClick={async () => {
+                                        const res = await this.createResourceRef.current.create();
+                                        if (res) {
+                                            this.setState({ createModalOpen: false });
+                                            this.props.refreshList();
+                                        }
+                                    }}
+                                    appearance="primary"
+                                >
+                                    Create
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        this.setState({ createModalOpen: false });
+                                    }}
+                                    appearance="subtle"
+                                >
+                                    Cancel
+                                </Button>
+                            </Modal.Footer>
+                        </Modal>
+                    </span>
+                )}
+
                 <span className="Buttons">
                     <ButtonGroup size="xs">
                         <IconButton
@@ -75,6 +134,7 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                         />
                     </ButtonGroup>
                 </span>
+
                 {this.props.currentListType === ListType.Grid && (
                     <Slider
                         style={{
@@ -87,7 +147,7 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                         min={0}
                         max={100}
                         step={1}
-                    ></Slider>
+                    />
                 )}
             </div>
         );

@@ -2,7 +2,7 @@ use crate::{
     config::{ReadonlyMountConfig, SERVER_CONFIG},
     db::DB,
     some_or_bail,
-    types::{FileGroupType, FilezFile, FilezFileGroup, FilezGroups},
+    types::{FileGroupType, FilezFile, FilezFileGroup},
     utils::generate_id,
 };
 use anyhow::bail;

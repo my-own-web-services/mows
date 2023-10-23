@@ -38,9 +38,6 @@ export default class App extends PureComponent<AppProps, AppState> {
         return (
             <div className="App">
                 <FilezProvider>
-                    <FileList style={{ height: "500px" }} id="1iVsRnLWVjM_L8mB" />
-                    <FileGroupList style={{ height: "500px" }} />
-                    <UserList style={{ height: "500px" }} />
                     <UserGroupList style={{ height: "500px" }} />
                 </FilezProvider>
             </div>
@@ -49,6 +46,10 @@ export default class App extends PureComponent<AppProps, AppState> {
 }
 
 /*
+<FileList style={{ height: "500px" }} id="1iVsRnLWVjM_L8mB" />
+                    <FileGroupList style={{ height: "500px" }} />
+                    <UserList style={{ height: "500px" }} />
+
 
  <UserList style={{ height: "400px" }} />
                     <UserGroupList style={{ height: "400px" }} />

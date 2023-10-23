@@ -447,15 +447,6 @@ pub struct UsageLimits {
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(untagged)]
-pub enum FilezGroups {
-    FilezUserGroup(UserGroup),
-    FilezFileGroup(FilezFileGroup),
-}
-
-#[derive(TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct UserGroup {
     #[serde(rename = "_id")]
     pub user_group_id: String,
