@@ -16,11 +16,11 @@ use filez::methods::file_group::update::update_file_group;
 use filez::methods::get_aggregated_keywords::get_aggregated_keywords;
 use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
 use filez::methods::get_own_file_groups::get_own_file_groups;
-use filez::methods::get_permissions_for_current_user::get_permissions_for_current_user;
+use filez::methods::get_own_permissions::{self, get_own_permissions};
 use filez::methods::get_user_group_list::get_user_group_list;
 use filez::methods::get_user_list::get_user_list;
-use filez::methods::permission::create::create_permission;
 use filez::methods::permission::delete::delete_permission;
+use filez::methods::permission::update::update_permission;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::methods::user::create_own::create_own_user;
 use filez::methods::user::get::get_user;
@@ -228,8 +228,8 @@ async fn handle_inner(
         delete_user_group(req, db, &auth, res).await
     }
     /* permissions */
-    else if p == "/permission/create/" && m == Method::POST {
-        create_permission(req, db, &auth, res).await
+    else if p == "/permission/update/" && m == Method::POST {
+        update_permission(req, db, &auth, res).await
     } else if p == "/permission/delete/" && m == Method::POST {
         delete_permission(req, db, &auth, res).await
     }
@@ -244,8 +244,8 @@ async fn handle_inner(
     /* misc */
     else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
         update_permission_ids_on_resource(req, db, &auth, res).await
-    } else if p == "/get_permissions_for_current_user/" && m == Method::GET {
-        get_permissions_for_current_user(req, db, &auth, res).await
+    } else if p == "/get_own_permissions/" && m == Method::GET {
+        get_own_permissions(req, db, &auth, res).await
     } else if p == "/get_own_file_groups/" && m == Method::GET {
         get_own_file_groups(req, db, &auth, res).await
     } else if p == "/get_user_list/" && m == Method::GET {

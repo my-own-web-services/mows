@@ -1,4 +1,5 @@
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
 import { useToaster } from "rsuite";
 
 export const utcTimeStampToTimeAndDate = (
@@ -35,4 +36,26 @@ export const withToasterHook = (Component: any) => {
 
         return <Component toaster={toaster} {...props} />;
     };
+};
+
+export const defaultFilePermission: FilezPermission = {
+    _id: "",
+    content: {
+        type: "File",
+        acl: {
+            what: [],
+            who: {
+                link: false,
+                password: null,
+                users: {
+                    user_group_ids: [],
+                    user_ids: []
+                }
+            }
+        },
+        ribston: null
+    },
+    name: "",
+    owner_id: "",
+    use_type: "Once"
 };

@@ -1,10 +1,7 @@
-use crate::{
-    db::DB,
-    internal_types::Auth,
-    types::{UpdateFriendStatus, UpdateFriendshipStatusRequestBody},
-};
+use crate::{db::DB, internal_types::Auth};
 use hyper::{Body, Request, Response};
-
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 pub async fn update_friendship_status(
     req: Request<Body>,
     db: DB,
@@ -82,4 +79,20 @@ pub async fn update_friendship_status(
                 .body(Body::from("No friend request from this user"))?,
         },
     })
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct UpdateFriendshipStatusRequestBody {
+    pub user_id: String,
+    pub new_status: UpdateFriendStatus,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub enum UpdateFriendStatus {
+    SendFriendRequest,
+    RemoveFriend,
+    AcceptFriendRequest,
+    RejectFriendRequest,
 }

@@ -2,4 +2,4 @@
 import type { FilezPermissionUseType } from "./FilezPermissionUseType";
 import type { PermissionResourceType } from "./PermissionResourceType";
 
-export interface FilezPermission { _id: string, use_type: FilezPermissionUseType, name: string | null, owner_id: string, content: PermissionResourceType, }
+export interface UpdatePermissionRequestBody { _id: string | null, name: string | null, content: PermissionResourceType, use_type: FilezPermissionUseType, }

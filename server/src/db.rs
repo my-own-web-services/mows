@@ -292,6 +292,31 @@ impl DB {
         })
     }
 
+    pub async fn get_permission_by_id(
+        &self,
+        permission_id: &str,
+    ) -> anyhow::Result<Option<FilezPermission>> {
+        let collection = self.db.collection::<FilezPermission>("permissions");
+        let res = collection
+            .find_one(doc! {"permission_id": permission_id}, None)
+            .await?;
+
+        Ok(res)
+    }
+
+    pub async fn update_permission(&self, permission: &FilezPermission) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezPermission>("permissions");
+        collection
+            .update_one(
+                doc! {"permission_id": permission.permission_id.clone()},
+                doc! {"$set": bson::to_bson(permission)?},
+                None,
+            )
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn get_permissions_by_owner_id(
         &self,
         owner_id: &str,
@@ -303,6 +328,73 @@ impl DB {
             .try_collect::<Vec<_>>()
             .await?;
         Ok(permissions)
+    }
+
+    pub async fn get_permissions_by_owner_id_for_virtual_list(
+        &self,
+        owner_id: &str,
+        limit: Option<i64>,
+        from_index: u64,
+        sort_field: Option<String>,
+        sort_order: SortOrder,
+        search_filter: Option<String>,
+    ) -> anyhow::Result<(Vec<FilezPermission>, u32)> {
+        let collection = self.db.collection::<FilezPermission>("permissions");
+
+        let sort_field = sort_field.unwrap_or("_id".to_string());
+
+        let find_options = FindOptions::builder()
+            .sort(doc! {
+                sort_field: match sort_order {
+                    SortOrder::Ascending => 1,
+                    SortOrder::Descending => -1
+                }
+            })
+            .limit(limit)
+            .skip(from_index)
+            .build();
+
+        let search_filter = match search_filter {
+            Some(f) => {
+                if !f.is_empty() {
+                    doc! {
+                        "$or": [
+                            {
+                                "_id": &f
+                            },
+                            {
+                                "name": {
+                                    "$regex": &f
+                                }
+                            },
+                        ]
+                    }
+                } else {
+                    doc! {}
+                }
+            }
+            None => doc! {},
+        };
+
+        let db_filter = doc! {
+            "$and": [
+                search_filter,
+                {
+                    "owner_id": owner_id
+                }
+            ]
+        };
+
+        let (items, total_count) = (
+            collection
+                .find(db_filter.clone(), find_options)
+                .await?
+                .try_collect::<Vec<_>>()
+                .await?,
+            collection.count_documents(db_filter, None).await?,
+        );
+
+        Ok((items, total_count as u32))
     }
 
     pub async fn get_file_group_by_id(
@@ -470,18 +562,24 @@ impl DB {
             .build();
 
         let search_filter = match search_filter {
-            Some(f) => doc! {
-                "$or": [
-                    {
-                        "_id": &f
-                    },
-                    {
-                        "name": {
-                            "$regex": &f
-                        }
-                    },
-                ]
-            },
+            Some(f) => {
+                if !f.is_empty() {
+                    doc! {
+                        "$or": [
+                            {
+                                "_id": &f
+                            },
+                            {
+                                "name": {
+                                    "$regex": &f
+                                }
+                            },
+                        ]
+                    }
+                } else {
+                    doc! {}
+                }
+            }
             None => doc! {},
         };
 
@@ -835,18 +933,24 @@ impl DB {
             .build();
 
         let search_filter = match search_filter {
-            Some(f) => doc! {
-                "$or": [
-                    {
-                        "_id": &f
-                    },
-                    {
-                        "name": {
-                            "$regex": &f
-                        }
-                    },
-                ]
-            },
+            Some(f) => {
+                if !f.is_empty() {
+                    doc! {
+                        "$or": [
+                            {
+                                "_id": &f
+                            },
+                            {
+                                "name": {
+                                    "$regex": &f
+                                }
+                            },
+                        ]
+                    }
+                } else {
+                    doc! {}
+                }
+            }
             None => doc! {},
         };
 
@@ -910,24 +1014,30 @@ impl DB {
             .build();
 
         let search_filter = match search_filter {
-            Some(f) => doc! {
-                "$or": [
-                    {
-                        "_id": &f
-                    },
-                    {
-                        "name": {
-                            "$regex": &f
-                        }
-                    },
-                    {
-                        "email": {
-                            "$regex": &f
-                        }
-                    },
+            Some(f) => {
+                if !f.is_empty() {
+                    doc! {
+                        "$or": [
+                            {
+                                "_id": &f
+                            },
+                            {
+                                "name": {
+                                    "$regex": &f
+                                }
+                            },
+                            {
+                                "email": {
+                                    "$regex": &f
+                                }
+                            },
 
-                ]
-            },
+                        ]
+                    }
+                } else {
+                    doc! {}
+                }
+            }
             None => doc! {},
         };
 

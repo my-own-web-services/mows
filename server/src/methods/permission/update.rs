@@ -1,0 +1,96 @@
+use crate::{
+    db::DB,
+    internal_types::Auth,
+    types::{FilezPermission, FilezPermissionUseType, PermissionResourceType},
+    utils::generate_id,
+};
+use hyper::{Body, Request, Response};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+// creates a permission for an authenticated user
+pub async fn update_permission(
+    req: Request<Body>,
+    db: DB,
+    auth: &Auth,
+    res: hyper::http::response::Builder,
+) -> anyhow::Result<Response<Body>> {
+    let requesting_user = match &auth.authenticated_user {
+        Some(ir_user_id) => match db.get_user_by_ir_id(ir_user_id).await? {
+            Some(u) => u,
+            None => return Ok(res.status(412).body(Body::from("User has not been created on the filez server, although it is present on the IR server. Run create_own first."))?),
+        },
+        None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
+    };
+
+    let body = hyper::body::to_bytes(req.into_body()).await?;
+    let cpr: UpdatePermissionRequestBody = serde_json::from_slice(&body)?;
+
+    match cpr._id {
+        Some(id) => {
+            let permission = match db.get_permission_by_id(&id).await? {
+                Some(p) => p,
+                None => return Ok(res.status(404).body(Body::from("Permission not found"))?),
+            };
+
+            if permission.owner_id != requesting_user.user_id {
+                return Ok(res.status(403).body(Body::from("Forbidden"))?);
+            }
+
+            let permission = FilezPermission {
+                owner_id: requesting_user.user_id.to_string(),
+                name: permission.name,
+                permission_id: permission.permission_id,
+                content: cpr.content,
+                use_type: cpr.use_type,
+            };
+
+            db.update_permission(&permission).await?;
+
+            let res_body = UpdatePermissionResponseBody {
+                permission_id: permission.permission_id,
+            };
+
+            Ok(res
+                .status(200)
+                .body(Body::from(serde_json::to_string(&res_body)?))?)
+        }
+        None => {
+            let permission_id = generate_id(16);
+
+            let permission = FilezPermission {
+                owner_id: requesting_user.user_id.to_string(),
+                name: cpr.name,
+                permission_id: permission_id.clone(),
+                content: cpr.content,
+                use_type: cpr.use_type,
+            };
+
+            db.create_permission(&permission).await?;
+
+            let res_body = UpdatePermissionResponseBody { permission_id };
+
+            Ok(res
+                .status(201)
+                .body(Body::from(serde_json::to_string(&res_body)?))?)
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct UpdatePermissionRequestBody {
+    /*
+    If an id is provided an existing permission will be updated
+    */
+    pub _id: Option<String>,
+    pub name: Option<String>,
+    pub content: PermissionResourceType,
+    pub use_type: FilezPermissionUseType,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct UpdatePermissionResponseBody {
+    pub permission_id: String,
+}

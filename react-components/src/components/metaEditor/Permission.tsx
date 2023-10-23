@@ -1,43 +1,62 @@
-import { FilezPermissionAclWhatOptions } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermissionAclWhatOptions";
 import { PureComponent } from "react";
-import { Button, CheckPicker, CheckTreePicker, Checkbox, Input, InputGroup } from "rsuite";
+import {
+    Button,
+    CheckPicker,
+    CheckTreePicker,
+    Checkbox,
+    Input,
+    InputGroup,
+    InputPicker
+} from "rsuite";
 import { FilezContext } from "../../FilezProvider";
 import EyeIcon from "@rsuite/icons/legacy/Eye";
 import EyeSlashIcon from "@rsuite/icons/legacy/EyeSlash";
 import { BiCopy } from "react-icons/bi";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
+import { match } from "ts-pattern";
+import { FilezPermissionAcl } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermissionAcl";
 
 interface PermissionProps {
     readonly readonly?: boolean;
-    readonly fileId: string;
-    readonly inputSize: "lg" | "md" | "sm" | "xs";
+    readonly itemId?: string;
+    readonly inputSize?: "lg" | "md" | "sm" | "xs";
     readonly permission?: FilezPermission;
+    readonly permissionType?: "File" | "FileGroup" | "User" | "UserGroup";
+    readonly disableSaveButton?: boolean;
 }
 
 interface PermissionState {
-    readonly selectedWhat: FilezPermissionAclWhatOptions[];
+    readonly selectedWhat: string[];
     readonly enabledLink: boolean;
     readonly enabledPassword: boolean;
     readonly password: string;
     readonly passwordVisible: boolean;
     readonly selectedUserIds: string[];
     readonly selectedUserGroupIds: string[];
+    readonly permissionType: "File" | "FileGroup" | "User" | "UserGroup";
 }
 
 export default class Permission extends PureComponent<PermissionProps, PermissionState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
+
     constructor(props: PermissionProps) {
         super(props);
-        const maybePw = props.permission?.acl?.who.password;
+
+        const acl = props.permission?.content?.acl;
+        const type = props.permission?.content.type;
+
+        const maybePw = acl?.who.password;
+
         this.state = {
-            selectedWhat: props.permission?.acl?.what_file ?? [],
-            enabledLink: props.permission?.acl?.who.link ?? false,
+            selectedWhat: acl?.what ?? [],
+            enabledLink: acl?.who.link ?? false,
             enabledPassword: typeof maybePw === "string" && maybePw.length > 0,
-            password: props.permission?.acl?.who.password ?? "",
+            password: acl?.who.password ?? "",
             passwordVisible: false,
-            selectedUserIds: props.permission?.acl?.who.users?.user_ids ?? [],
-            selectedUserGroupIds: props.permission?.acl?.who.users?.user_group_ids ?? []
+            selectedUserIds: acl?.who.users?.user_ids ?? [],
+            selectedUserGroupIds: acl?.who.users?.user_group_ids ?? [],
+            permissionType: type ?? props.permissionType ?? "File"
         };
     }
 
@@ -45,12 +64,62 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
         if (!this.context) return;
     };
 
+    saveData = async () => {
+        if (!this.context) return;
+        const {
+            selectedWhat,
+            enabledLink,
+            enabledPassword,
+            password,
+            permissionType,
+            selectedUserIds,
+            selectedUserGroupIds
+        } = this.state;
+
+        const acl: FilezPermissionAcl<any> = {
+            what: selectedWhat,
+            who: {
+                link: enabledLink,
+                password: enabledPassword ? password : null,
+                users: {
+                    user_ids: selectedUserIds,
+                    user_group_ids: selectedUserGroupIds
+                }
+            }
+        };
+
+        const res = await this.context.filezClient.update_permission({
+            permission_id: this.props.itemId,
+            //@ts-ignore
+            content: {
+                type: permissionType,
+                acl
+            },
+            use_type: "Multiple"
+        });
+
+        return res.permission_id;
+    };
+
     render = () => {
-        const link = `${window.location.origin}?f=${this.props.fileId}`;
+        const link = `${window.location.origin}?f=${this.props.itemId}`;
         const inputWidths = "80%";
         return (
             <div className="Permission">
                 <div style={{ marginBottom: "5px" }}>
+                    <div>
+                        <InputPicker
+                            data={["File", "FileGroup", "User", "UserGroup"].map(v => {
+                                return { label: v, value: v };
+                            })}
+                            value={this.state.permissionType}
+                            onChange={value => {
+                                this.setState({ permissionType: value, selectedWhat: [] });
+                            }}
+                            size={this.props.inputSize}
+                            readOnly={this.props.readonly}
+                        />
+                    </div>
                     <div style={{ display: "inline-block", width: "50%" }}>
                         <label>Everyone with the Link</label>
                         <Checkbox
@@ -111,7 +180,16 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                     </div>
                 </div>
                 <div>
-                    <label>and the following users/groups</label>
+                    <label>and the following users</label>
+                    <CheckPicker
+                        placeholder="nobody"
+                        groupBy="type"
+                        size={this.props.inputSize}
+                        block
+                        virtualized
+                        data={[]}
+                    />
+                    <label>and user groups</label>
                     <CheckPicker
                         placeholder="nobody"
                         groupBy="type"
@@ -128,26 +206,52 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                     block
                     size={this.props.inputSize}
                     defaultExpandAll
-                    data={data}
+                    data={match(this.state.permissionType)
+                        .with("File", () => filePermissionTreeData)
+                        .with("FileGroup", () => fileGroupPermissionTreeData)
+                        .with("User", () => userPermissionTreeData)
+                        .with("UserGroup", () => userGroupPermissionTreeData)
+                        .exhaustive()}
                     onChange={permissions => {
                         permissions = permissions.flatMap(p => {
-                            if (p === "Get") {
-                                return ["GetFile", "GetFileInfos"];
-                            } else if (p === "UpdateMeta") {
-                                return [
-                                    "UpdateFileInfosName",
-                                    "UpdateFileInfosMimeType",
-                                    "UpdateFileInfosKeywords",
-                                    "UpdateFileInfosStaticFileGroups"
-                                ];
-                            } else {
-                                return p;
-                            }
+                            return match(this.state.permissionType)
+                                .with("File", () => {
+                                    if (p === "Get") {
+                                        return ["GetFile", "GetFileInfos"];
+                                    } else if (p === "UpdateMeta") {
+                                        return [
+                                            "UpdateFileInfosName",
+                                            "UpdateFileInfosMimeType",
+                                            "UpdateFileInfosKeywords",
+                                            "UpdateFileInfosStaticFileGroups"
+                                        ];
+                                    } else {
+                                        return p;
+                                    }
+                                })
+                                .with("FileGroup", () => {
+                                    if (p === "UpdateGroupInfos") {
+                                        return [
+                                            "UpdateGroupInfosName",
+                                            "UpdateGroupInfosKeywords",
+                                            "UpdateGroupInfosDynamicGroupRules"
+                                        ];
+                                    } else {
+                                        return p;
+                                    }
+                                })
+                                .with("User", () => {
+                                    return p;
+                                })
+                                .with("UserGroup", () => {
+                                    return p;
+                                })
+                                .exhaustive();
                         });
                         console.log(permissions);
                     }}
                 />
-                {this.props.readonly !== true && (
+                {this.props.readonly !== true && this.props.disableSaveButton !== true && (
                     <Button
                         size={this.props.inputSize}
                         style={{ marginTop: "10px" }}
@@ -162,7 +266,43 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
     };
 }
 
-const data = [
+const userPermissionTreeData = [{}];
+const userGroupPermissionTreeData = [{}];
+
+const fileGroupPermissionTreeData = [
+    {
+        label: "List Files",
+        value: "ListFiles"
+    },
+    {
+        label: "Get Infos",
+        value: "GetGroupInfos"
+    },
+    {
+        label: "Update Infos",
+        value: "UpdateGroupInfos",
+        children: [
+            {
+                label: "Name",
+                value: "UpdateGroupInfosName"
+            },
+            {
+                label: "Keywords",
+                value: "UpdateGroupInfosKeywords"
+            },
+            {
+                label: "Dynamic Group Rules",
+                value: "UpdateGroupInfosDynamicGroupRules"
+            }
+        ]
+    },
+    {
+        label: "Delete",
+        value: "DeleteGroup"
+    }
+];
+
+const filePermissionTreeData = [
     {
         label: "Read",
         value: "Get",
@@ -208,23 +348,3 @@ const data = [
         value: "UpdateFile"
     }
 ];
-
-const defaultFilePermission: FilezPermission = {
-    _id: "",
-    acl: {
-        what_file: [],
-        what_group: [],
-        who: {
-            link: false,
-            password: null,
-            users: {
-                user_group_ids: [],
-                user_ids: []
-            }
-        }
-    },
-    name: "",
-    owner_id: "",
-    ribston: "",
-    use_type: "Once"
-};

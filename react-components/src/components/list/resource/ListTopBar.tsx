@@ -21,7 +21,7 @@ interface ListTopBarState {
 }
 
 export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBarState> {
-    createResourceRef: any;
+    createResourceRef: React.RefObject<any>;
 
     constructor(props: ListTopBarProps) {
         super(props);

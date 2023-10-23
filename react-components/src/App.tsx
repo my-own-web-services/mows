@@ -7,6 +7,7 @@ import FileMetaEditor from "./components/metaEditor/FileMetaEditor";
 import FilezFileViewer from "./components/viewer/FileViewer";
 import UserGroupList from "./components/list/userGroups/UserGroupList";
 import FileGroupList from "./components/list/fileGroups/FileGroupList";
+import PermissionList from "./components/list/permissions/PermissionList";
 
 interface AppProps {}
 
@@ -38,7 +39,7 @@ export default class App extends PureComponent<AppProps, AppState> {
         return (
             <div className="App">
                 <FilezProvider>
-                    <UserGroupList style={{ height: "500px" }} />
+                    <PermissionList style={{ height: "500px" }} />
                 </FilezProvider>
             </div>
         );
@@ -46,6 +47,9 @@ export default class App extends PureComponent<AppProps, AppState> {
 }
 
 /*
+
+ <UserGroupList style={{ height: "500px" }} />
+
 <FileList style={{ height: "500px" }} id="1iVsRnLWVjM_L8mB" />
                     <FileGroupList style={{ height: "500px" }} />
                     <UserList style={{ height: "500px" }} />

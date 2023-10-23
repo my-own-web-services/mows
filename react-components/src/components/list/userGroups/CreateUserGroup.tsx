@@ -42,7 +42,7 @@ export default class CreateUserGroup extends PureComponent<
         this.setState({ users: items });
     };
 
-    create = async () => {
+    create = async (): Promise<boolean> => {
         if (!this.context) return false;
         const { name, visibility } = this.state;
         const res = await this.context.filezClient.create_user_group({

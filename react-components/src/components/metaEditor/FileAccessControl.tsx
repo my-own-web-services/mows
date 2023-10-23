@@ -40,7 +40,7 @@ export default class FileAccessControl extends PureComponent<
     render = () => {
         return (
             <div className="FileAccessControl">
-                <Permission inputSize={this.props.inputSize} fileId={this.props.file._id} />
+                <Permission inputSize={this.props.inputSize} itemId={this.props.file._id} />
             </div>
         );
     };

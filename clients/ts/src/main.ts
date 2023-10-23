@@ -6,8 +6,6 @@ import { FilezUser } from "./apiTypes/FilezUser.js";
 import { UpdateFileInfosRequestField } from "./apiTypes/UpdateFileInfosRequestField.js";
 import { UpdateFileGroupRequestBody } from "./apiTypes/UpdateFileGroupRequestBody.js";
 import { FilezPermission } from "./apiTypes/FilezPermission.js";
-import { CreatePermissionRequestBody } from "./apiTypes/CreatePermissionRequestBody.js";
-import { CreatePermissionResponseBody } from "./apiTypes/CreatePermissionResponseBody.js";
 import { UpdateFriendshipStatusRequestBody } from "./apiTypes/UpdateFriendshipStatusRequestBody.js";
 import { UpdateFriendStatus } from "./apiTypes/UpdateFriendStatus.js";
 import { CreateFileGroupRequestBody } from "./apiTypes/CreateFileGroupRequestBody.js";
@@ -16,6 +14,8 @@ import { GetResourceParams } from "./types.js";
 import { GetItemListResponseBody } from "./apiTypes/GetItemListResponseBody.js";
 import { UserGroup } from "./apiTypes/UserGroup.js";
 import { ReducedFilezUser } from "./apiTypes/ReducedFilezUser.js";
+import { UpdatePermissionRequestBody } from "./apiTypes/UpdatePermissionRequestBody.js";
+import { UpdatePermissionResponseBody } from "./apiTypes/UpdatePermissionResponseBody.js";
 
 export * from "./types.js";
 
@@ -45,13 +45,13 @@ export class FilezClient {
         await this.interosseaClient.init();
     };
 
-    create_permission = async (body: CreatePermissionRequestBody) => {
-        const res = await fetch(`${this.filezEndpoint}/api/permission/create/`, {
+    update_permission = async (body: UpdatePermissionRequestBody) => {
+        const res = await fetch(`${this.filezEndpoint}/api/permission/update/`, {
             method: "POST",
             credentials: "include",
             body: JSON.stringify(body)
         });
-        const json: CreatePermissionResponseBody = await res.json();
+        const json: UpdatePermissionResponseBody = await res.json();
         return json;
     };
 
@@ -157,12 +157,20 @@ export class FilezClient {
         return json;
     };
 
-    get_permissions_for_current_user = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/get_permissions_for_current_user/`, {
+    get_own_permissions = async (params: GetResourceParams) => {
+        const url = `${this.filezEndpoint}/api/get_own_permissions/${
+            params.id ? params.id : ""
+        }?i=${params.from_index}${params.limit === null ? "" : "&l=" + params.limit}${
+            params.sort_field === null ? "" : "&f=" + params.sort_field
+        }${params.sort_order === null ? "" : "&o=" + params.sort_order}${
+            params.filter === null ? "" : "&s=" + params.filter
+        }`;
+        const res = await fetch(url, {
             credentials: "include"
         });
 
-        const json: FilezPermission[] = await res.json();
+        const json: GetItemListResponseBody<FilezPermission> = await res.json();
+
         return json;
     };
 

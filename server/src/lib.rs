@@ -23,8 +23,8 @@ pub mod methods {
     }
 
     pub mod permission {
-        pub mod create;
         pub mod delete;
+        pub mod update;
     }
     pub mod upload_space {
         pub mod create;
@@ -48,7 +48,7 @@ pub mod methods {
     pub mod get_aggregated_keywords;
     pub mod get_file_infos_by_group_id;
     pub mod get_own_file_groups;
-    pub mod get_permissions_for_current_user;
+    pub mod get_own_permissions;
     pub mod get_user_group_list;
     pub mod get_user_list;
     pub mod update_permission_ids_on_resource;
