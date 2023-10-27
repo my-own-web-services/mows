@@ -2,18 +2,32 @@ use crate::{
     config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
+    permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
-    types::{UpdateFileInfosRequest, UpdateFileInfosRequestField},
     utils::{
-        check_auth, check_file_name, check_keywords, check_mime_type, check_owner_id,
-        check_static_file_groups, check_storage_id, get_folder_and_file_path,
+        check_file_name, check_keywords, check_mime_type, check_owner_id, check_static_file_groups,
+        check_storage_id, get_folder_and_file_path,
     },
 };
 use anyhow::bail;
 use hyper::{Body, Request, Response};
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use tokio::fs;
+use ts_rs::TS;
+/**
+# Updates the infos of a file.
 
+## Call
+`/api/file/info/update/`
+## Permissions
+File > UpdateFileInfosName
+File > UpdateFileInfosMimeType
+File > UpdateFileInfosStaticFileGroups
+File > UpdateFileInfosKeywords
+
+
+*/
 pub async fn update_file_infos(
     req: Request<Body>,
     db: DB,
@@ -33,7 +47,16 @@ pub async fn update_file_infos(
         UpdateFileInfosRequestField::MimeType(new_mime_type) => {
             check_mime_type(&new_mime_type)?;
 
-            match check_auth(auth, &filez_file, &db, "update_file_infos_mime_type").await {
+            match check_auth(
+                auth,
+                &AuthResourceToCheck::File((
+                    &filez_file,
+                    FilezFilePermissionAclWhatOptions::UpdateFileInfosMimeType,
+                )),
+                &db,
+            )
+            .await
+            {
                 Ok(true) => {}
                 Ok(false) => {
                     return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
@@ -48,7 +71,16 @@ pub async fn update_file_infos(
         UpdateFileInfosRequestField::Name(new_name) => {
             check_file_name(&new_name)?;
 
-            match check_auth(auth, &filez_file, &db, "update_file_infos_name").await {
+            match check_auth(
+                auth,
+                &AuthResourceToCheck::File((
+                    &filez_file,
+                    FilezFilePermissionAclWhatOptions::UpdateFileInfosName,
+                )),
+                &db,
+            )
+            .await
+            {
                 Ok(true) => {}
                 Ok(false) => {
                     return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
@@ -64,9 +96,11 @@ pub async fn update_file_infos(
             check_static_file_groups(&new_static_file_group_ids)?;
             match check_auth(
                 auth,
-                &filez_file,
+                &AuthResourceToCheck::File((
+                    &filez_file,
+                    FilezFilePermissionAclWhatOptions::UpdateFileInfosStaticFileGroups,
+                )),
                 &db,
-                "update_file_infos_static_file_groups",
             )
             .await
             {
@@ -87,7 +121,16 @@ pub async fn update_file_infos(
         UpdateFileInfosRequestField::Keywords(new_keywords) => {
             check_keywords(&new_keywords)?;
 
-            match check_auth(auth, &filez_file, &db, "update_file_infos_keywords").await {
+            match check_auth(
+                auth,
+                &AuthResourceToCheck::File((
+                    &filez_file,
+                    FilezFilePermissionAclWhatOptions::UpdateFileInfosKeywords,
+                )),
+                &db,
+            )
+            .await
+            {
                 Ok(true) => {}
                 Ok(false) => {
                     return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
@@ -118,7 +161,7 @@ pub async fn update_file_infos(
         }
         UpdateFileInfosRequestField::OwnerId(new_owner_id) => {
             // check if the file is owned by the user
-            if let Some(requesting_user_id) = &auth.authenticated_user {
+            if let Some(requesting_user_id) = &auth.authenticated_ir_user_id {
                 if requesting_user_id == &filez_file.owner_id {
                     // mark the file as in transfer
                     // the new owner has to accept the transfer
@@ -138,7 +181,7 @@ pub async fn update_file_infos(
         }
         UpdateFileInfosRequestField::StorageId(new_storage_id) => {
             // check if user is the owner
-            if let Some(requesting_user_id) = &auth.authenticated_user {
+            if let Some(requesting_user_id) = &auth.authenticated_ir_user_id {
                 if requesting_user_id == &filez_file.owner_id {
                     // check if storage id is valid
                     check_storage_id(&new_storage_id)?;
@@ -211,4 +254,22 @@ pub async fn update_file_infos(
             Ok(res.status(401).body(Body::from("Unauthorized")).unwrap())
         }
     }
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct UpdateFileInfosRequest {
+    pub file_id: String,
+    pub field: UpdateFileInfosRequestField,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub enum UpdateFileInfosRequestField {
+    MimeType(String),
+    Name(String),
+    OwnerId(String),
+    StorageId(String),
+    StaticFileGroupIds(Vec<String>),
+    Keywords(Vec<String>),
 }

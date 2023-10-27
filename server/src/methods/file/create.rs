@@ -3,11 +3,12 @@ use crate::{
     db::DB,
     internal_types::Auth,
     some_or_bail,
-    types::{CreateFileRequest, CreateFileResponse, FilezFile, UploadSpace},
+    types::FilezFile,
     utils::{check_file_name, check_mime_type, generate_id, get_folder_and_file_path},
 };
 use anyhow::bail;
 use hyper::{body::HttpBody, Body, Request, Response};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
@@ -16,8 +17,15 @@ use std::{
     io::Write,
     vec,
 };
+use ts_rs::TS;
 
-/*
+/**
+# Creates a new file.
+
+## Call
+`/api/file/create/`
+## Permissions
+None
 The options for calling the create file function are:
 - Create a file as authenticated user
 - Create a file in an uploadSpace with a token
@@ -26,7 +34,6 @@ the upload space has to be created by an authenticated user and access to it can
 files uploaded will be owned by the owner of the upload space and decrease their quota as normal
 
 */
-
 pub async fn create_file(
     mut req: Request<Body>,
     db: DB,
@@ -35,7 +42,7 @@ pub async fn create_file(
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
 
-    let (user_id, upload_space) = match &auth.authenticated_user {
+    let (user_id, upload_space) = match &auth.authenticated_ir_user_id {
         Some(ir_user_id) => match db.get_user_id_by_ir_id(ir_user_id).await? {
             Some(u) => (u, None),
             None => return Ok(res.status(412).body(Body::from("User has not been created on the filez server, although it is present on the IR server. Run create_own first."))?),
@@ -253,4 +260,23 @@ pub async fn create_file(
             bail!("Failed to create file in database: {}", e);
         }
     }
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct CreateFileRequest {
+    pub name: String,
+    pub mime_type: String,
+    pub storage_id: Option<String>,
+    pub static_file_group_ids: Option<Vec<String>>,
+    pub created: Option<i64>,
+    pub modified: Option<i64>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct CreateFileResponse {
+    pub file_id: String,
+    pub storage_name: String,
+    pub sha256: String,
 }

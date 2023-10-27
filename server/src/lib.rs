@@ -5,6 +5,7 @@ pub mod dynamic_groups;
 pub mod internal_types;
 pub mod interossea;
 pub mod macros;
+pub mod permissions;
 pub mod readonly_mount;
 pub mod types;
 pub mod utils;
@@ -18,7 +19,6 @@ pub mod methods {
         pub mod create;
         pub mod delete;
         pub mod get;
-        pub mod set_app_data;
         pub mod update;
     }
 
@@ -31,7 +31,7 @@ pub mod methods {
     }
     pub mod user {
         pub mod create_own;
-        pub mod get;
+        pub mod get_own;
         pub mod update_friendship_status;
     }
     pub mod file_group {
@@ -51,5 +51,6 @@ pub mod methods {
     pub mod get_own_permissions;
     pub mod get_user_group_list;
     pub mod get_user_list;
+    pub mod set_app_data;
     pub mod update_permission_ids_on_resource;
 }

@@ -12,7 +12,7 @@ pub async fn get_file_infos_by_group_id(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let requesting_user = match &auth.authenticated_user {
+    let requesting_user = match &auth.authenticated_ir_user_id {
         Some(ir_user_id) => match db.get_user_by_ir_id(ir_user_id).await? {
             Some(u) => u,
             None => return Ok(res.status(412).body(Body::from("User has not been created on the filez server, although it is present on the IR server. Run create_own first."))?),

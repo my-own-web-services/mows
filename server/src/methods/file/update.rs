@@ -1,19 +1,29 @@
 use crate::{
     db::DB,
     internal_types::Auth,
+    permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
-    types::{UpdateFileRequest, UpdateFileResponse},
-    utils::check_auth,
 };
 use anyhow::bail;
 use hyper::{body::HttpBody, Body, Request, Response};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File},
     io::Write,
 };
+use ts_rs::TS;
 
-// update the files contents
+/**
+# Updates the contents of a file.
+
+## Call
+`/api/file/update/`
+## Permissions
+File > UpdateFile
+
+
+*/
 pub async fn update_file(
     mut req: Request<Body>,
     db: DB,
@@ -42,7 +52,13 @@ pub async fn update_file(
         Err(_) => bail!("User not found"),
     };
 
-    match check_auth(auth, &filez_file, &db, "update_file").await {
+    match check_auth(
+        auth,
+        &AuthResourceToCheck::File((&filez_file, FilezFilePermissionAclWhatOptions::UpdateFile)),
+        &db,
+    )
+    .await
+    {
         Ok(true) => {}
         Ok(false) => {
             return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
@@ -117,4 +133,17 @@ pub async fn update_file(
             .status(200)
             .body(Body::from(serde_json::to_string(&cfr)?))?)
     }
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct UpdateFileRequest {
+    pub file_id: String,
+    pub modified: Option<i64>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct UpdateFileResponse {
+    pub sha256: String,
 }

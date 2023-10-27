@@ -1,4 +1,4 @@
-use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth, some_or_bail, types::FilezFile};
+use crate::{config::SERVER_CONFIG, db::DB, some_or_bail, types::FilezFile};
 use anyhow::bail;
 use hyper::{Body, Request};
 use qstring::QString;
@@ -61,7 +61,7 @@ pub fn generate_id(length: usize) -> String {
         .collect()
 }
 
-fn merge_values(a: &mut Value, b: &Value) {
+pub fn merge_values(a: &mut Value, b: &Value) {
     match (a, b) {
         (&mut Value::Object(ref mut a), Value::Object(ref b)) => {
             for (k, v) in b {
@@ -143,44 +143,6 @@ pub fn get_query_item_number(req: &Request<Body>, item: &str) -> Option<i64> {
         },
         None => None,
     }
-}
-
-pub async fn check_auth(
-    auth: &Auth,
-    file: &FilezFile,
-    db: &DB,
-    required_acl_what: &str,
-) -> anyhow::Result<bool> {
-    let config = &SERVER_CONFIG;
-    let mut auth_ok = false;
-
-    if let Some(user_id) = &auth.authenticated_user {
-        // user present
-        if file.owner_id == *user_id {
-            // user is the owner
-            auth_ok = true;
-        }
-    }
-
-    if !auth_ok {
-        if config.dev.disable_complex_access_control {
-            bail!("Complex access control has been disabled");
-        };
-
-        // user is not the owner
-        // check if file is public
-        let permissions = db.get_permissions_from_file(file).await?;
-
-        if !auth_ok { // TODO handle ribston
-
-            // if we dont have permission from the easy to check acl yet we need to check ribston
-
-            // send all policies to ribston for evaluation
-            // all need to be true for access to be granted
-        }
-    }
-
-    Ok(auth_ok)
 }
 
 pub fn check_file_name(file_name: &str) -> anyhow::Result<()> {

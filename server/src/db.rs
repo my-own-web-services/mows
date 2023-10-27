@@ -1,10 +1,14 @@
 use crate::{
     config::SERVER_CONFIG,
+    methods::{
+        set_app_data::SetAppDataRequest,
+        update_permission_ids_on_resource::UpdatePermissionIdsOnResourceRequestBody,
+    },
+    permissions::FilezPermission,
     some_or_bail,
     types::{
-        AppDataType, DeletePermissionRequestBody, FileGroupType, FilezFile, FilezFileGroup,
-        FilezPermission, FilezUser, SetAppDataRequest, SortOrder, UpdatePermissionsRequestBody,
-        UploadSpace, UsageLimits, UserGroup, UserRole, UserStatus, Visibility,
+        AppDataType, FileGroupType, FilezFile, FilezFileGroup, FilezUser, SortOrder, UploadSpace,
+        UsageLimits, UserGroup, UserRole, UserStatus, Visibility,
     },
     utils::generate_id,
 };
@@ -222,7 +226,7 @@ impl DB {
 
     pub async fn update_permission_ids_on_resource(
         &self,
-        upr: &UpdatePermissionsRequestBody,
+        upr: &UpdatePermissionIdsOnResourceRequestBody,
         user_id: &str,
     ) -> anyhow::Result<UpdateResult> {
         // check if all permissions are owned by the user
@@ -624,7 +628,7 @@ impl DB {
 
     pub async fn delete_permission(
         &self,
-        dpr: &DeletePermissionRequestBody,
+        permission_id: &str,
         owner_id: &str,
     ) -> anyhow::Result<DeleteResult> {
         let collection = self.db.collection::<FilezPermission>("permissions");
@@ -632,7 +636,7 @@ impl DB {
         Ok(collection
             .delete_one(
                 doc! {
-                    "permission_id": dpr.permission_id.clone(),
+                    "permission_id": permission_id,
                     "owner_id": owner_id
                 },
                 None,

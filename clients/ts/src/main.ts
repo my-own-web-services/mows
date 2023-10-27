@@ -90,16 +90,16 @@ export class FilezClient {
         return res;
     };
 
-    delete_file = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/file/delete/`, {
+    delete_file = async (file_id: string) => {
+        const res = await fetch(`${this.filezEndpoint}/api/file/delete/${file_id}`, {
             method: "POST",
             credentials: "include"
         });
         return res;
     };
 
-    delete_permission = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/permission/delete/`, {
+    delete_permission = async (permission_id: string) => {
+        const res = await fetch(`${this.filezEndpoint}/api/permission/delete/${permission_id}`, {
             method: "POST",
             credentials: "include"
         });

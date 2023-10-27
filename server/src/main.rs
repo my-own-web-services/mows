@@ -8,7 +8,6 @@ use filez::methods::file::delete::delete_file;
 use filez::methods::file::get::get_file;
 use filez::methods::file::info::get::get_file_info;
 use filez::methods::file::info::update::update_file_infos;
-use filez::methods::file::set_app_data::set_app_data;
 use filez::methods::file::update::update_file;
 use filez::methods::file_group::create::create_file_group;
 use filez::methods::file_group::delete::delete_file_group;
@@ -16,14 +15,15 @@ use filez::methods::file_group::update::update_file_group;
 use filez::methods::get_aggregated_keywords::get_aggregated_keywords;
 use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
 use filez::methods::get_own_file_groups::get_own_file_groups;
-use filez::methods::get_own_permissions::{self, get_own_permissions};
+use filez::methods::get_own_permissions::get_own_permissions;
 use filez::methods::get_user_group_list::get_user_group_list;
 use filez::methods::get_user_list::get_user_list;
 use filez::methods::permission::delete::delete_permission;
 use filez::methods::permission::update::update_permission;
+use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::methods::user::create_own::create_own_user;
-use filez::methods::user::get::get_user;
+use filez::methods::user::get_own::get_own_user;
 use filez::methods::user::update_friendship_status::update_friendship_status;
 use filez::methods::user_group::create::create_user_group;
 use filez::methods::user_group::delete::delete_user_group;
@@ -189,7 +189,7 @@ async fn handle_inner(
     };
 
     let auth = Auth {
-        authenticated_user: user_assertion.as_ref().map(|ua| ua.user_id.clone()),
+        authenticated_ir_user_id: user_assertion.as_ref().map(|ua| ua.user_id.clone()),
         token: get_token_from_query(&req),
         user_assertion,
     };
@@ -202,8 +202,6 @@ async fn handle_inner(
         delete_file(req, db, &auth, res).await
     } else if p == "/file/update/" && m == Method::POST {
         update_file(req, db, &auth, res).await
-    } else if p == "/file/set_app_data/" && m == Method::POST {
-        set_app_data(req, db, &auth, res).await
     }
     /* file info */
     else if p.starts_with("/file/info/get/") && m == Method::GET {
@@ -234,8 +232,8 @@ async fn handle_inner(
         delete_permission(req, db, &auth, res).await
     }
     /* user */
-    else if p.starts_with("/user/get/") && m == Method::GET {
-        get_user(req, db, &auth, res).await
+    else if p.starts_with("/user/get_own/") && m == Method::GET {
+        get_own_user(req, db, &auth, res).await
     } else if p == "/user/create_own/" && m == Method::POST {
         create_own_user(req, db, &auth, res).await
     } else if p == "/user/update_friendship_status/" && m == Method::POST {
@@ -254,6 +252,8 @@ async fn handle_inner(
         get_user_group_list(req, db, &auth, res).await
     } else if p == "/get_aggregated_keywords/" && m == Method::GET {
         get_aggregated_keywords(req, db, &auth, res).await
+    } else if p == "/set_app_data/" && m == Method::POST {
+        set_app_data(req, db, &auth, res).await
     }
     /* interossea accounts management */
     else if p == "/get_assertion_validity_seconds/" && m == Method::GET {

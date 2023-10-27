@@ -2,8 +2,9 @@ use crate::{
     config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
+    permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
-    utils::{check_auth, get_folder_and_file_path, get_query_item, get_range},
+    utils::{get_folder_and_file_path, get_query_item, get_range},
 };
 use anyhow::bail;
 use http_range::HttpRange;
@@ -11,6 +12,21 @@ use hyper::{Body, Request, Response};
 use hyper_staticfile::util::FileBytesStreamRange;
 use std::path::Path;
 
+/**
+# Gets a files contents by id in raw form as well as derivatives of the file created by converters or other apps.
+
+## Call
+Raw File:
+`/api/file/get/{file_id}`
+Derivatives:
+`/api/file/get/{file_id}/{app_name}/{app_file_path}`
+The app_file_path is set by the app and should be defined in the specific app's documentation.
+
+## Permissions
+File > GetFile
+File > GetFileDerivatives // TODO: implement
+
+*/
 pub async fn get_file(
     req: Request<Body>,
     db: DB,
@@ -43,7 +59,7 @@ pub async fn get_file(
     };
 
     if app_file.is_none() && parts.len() > 1 {
-        bail!("Invalid path");
+        return Ok(res.status(400).body(Body::from("Invalid Path")).unwrap());
     }
 
     let file = match db.get_file_by_id(&file_id).await {
@@ -53,7 +69,13 @@ pub async fn get_file(
         }
     };
 
-    match check_auth(auth, &file, &db, "get_file").await {
+    match check_auth(
+        auth,
+        &AuthResourceToCheck::File((&file, FilezFilePermissionAclWhatOptions::GetFile)),
+        &db,
+    )
+    .await
+    {
         Ok(true) => {}
         Ok(false) => {
             return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());

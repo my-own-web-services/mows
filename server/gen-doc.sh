@@ -1,0 +1,1 @@
+cargo doc --bin main --no-deps

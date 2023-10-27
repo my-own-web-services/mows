@@ -217,7 +217,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                             return match(this.state.permissionType)
                                 .with("File", () => {
                                     if (p === "Get") {
-                                        return ["GetFile", "GetFileInfos"];
+                                        return ["GetFile", "GetFileDerivatives", "GetFileInfos"];
                                     } else if (p === "UpdateMeta") {
                                         return [
                                             "UpdateFileInfosName",
@@ -310,6 +310,10 @@ const filePermissionTreeData = [
             {
                 label: "File",
                 value: "GetFile"
+            },
+            {
+                label: "File Derivatives",
+                value: "GetFileDerivatives"
             },
             {
                 label: "File Metadata",
