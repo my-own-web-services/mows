@@ -21,25 +21,16 @@ export default class App extends PureComponent<AppProps, AppState> {
         this.state = {};
     }
 
-    renderListItem = (item: FilezFile, style: CSSProperties) => {
-        return (
-            <div
-                className="Filez clickable"
-                onClick={() => {
-                    this.setState({ selectedFileId: item._id });
-                }}
-                style={{ ...style }}
-            >
-                <div>{item.name}</div>
-            </div>
-        );
-    };
-
     render = () => {
         return (
             <div className="App">
                 <FilezProvider>
                     <FileGroupList style={{ height: "500px" }} />
+                    <PermissionList style={{ height: "500px" }} />
+                    <UserGroupList style={{ height: "500px" }} />
+
+                    <FileList style={{ height: "500px" }} id="gx1mbpdVu-NVxJsL" />
+                    <UserList style={{ height: "500px" }} />
                 </FilezProvider>
             </div>
         );
@@ -48,11 +39,7 @@ export default class App extends PureComponent<AppProps, AppState> {
 
 /*
 
-             <PermissionList style={{ height: "500px" }} />
-                    <UserGroupList style={{ height: "500px" }} />
-
-                    <FileList style={{ height: "500px" }} id="1iVsRnLWVjM_L8mB" />
-                    <UserList style={{ height: "500px" }} />
+            
 
 
  <UserList style={{ height: "400px" }} />

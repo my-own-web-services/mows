@@ -19,13 +19,14 @@ import { FilezPermissionAcl } from "@firstdorsal/filez-client/dist/js/apiTypes/F
 interface PermissionProps {
     readonly readonly?: boolean;
     readonly itemId?: string;
-    readonly inputSize?: "lg" | "md" | "sm" | "xs";
+    readonly size?: "lg" | "md" | "sm" | "xs";
     readonly permission?: FilezPermission;
     readonly permissionType?: "File" | "FileGroup" | "User" | "UserGroup";
     readonly disableSaveButton?: boolean;
     readonly disableTypeChange?: boolean;
     readonly hideTypeChanger?: boolean;
     readonly onSave?: (permissionId: string) => void;
+    readonly useOnce?: boolean;
 }
 
 interface PermissionState {
@@ -102,7 +103,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                 type: permissionType,
                 acl
             },
-            use_type: "Multiple"
+            use_type: this.props.useOnce ? "Once" : "Multiple"
         });
 
         return res.permission_id;
@@ -131,23 +132,25 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                                 onChange={value => {
                                     this.setState({ permissionType: value, selectedWhat: [] });
                                 }}
-                                size={this.props.inputSize}
+                                size={this.props.size}
                                 readOnly={this.props.readonly ?? this.props.disableTypeChange}
                             />
                         )}
                     </div>
-                    <div>
-                        <label>Name</label>
-                        <Input
-                            value={this.state.name}
-                            onChange={value => {
-                                this.setState({ name: value });
-                            }}
-                            size={this.props.inputSize}
-                            placeholder="Name"
-                            disabled={this.props.readonly}
-                        />
-                    </div>
+                    {this.props.useOnce !== true && (
+                        <div>
+                            <label>Name</label>
+                            <Input
+                                value={this.state.name}
+                                onChange={value => {
+                                    this.setState({ name: value });
+                                }}
+                                size={this.props.size}
+                                placeholder="Name"
+                                disabled={this.props.readonly}
+                            />
+                        </div>
+                    )}
                     <div style={{ display: "inline-block", width: "50%" }}>
                         <label>Everyone with the Link</label>
                         <Checkbox
@@ -158,7 +161,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                             }}
                         />
                         <InputGroup
-                            size={this.props.inputSize}
+                            size={this.props.size}
                             style={{ width: inputWidths, display: "inline-block" }}
                             inside
                         >
@@ -186,7 +189,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                         <InputGroup
                             style={{ width: inputWidths, display: "inline-block" }}
                             inside
-                            size={this.props.inputSize}
+                            size={this.props.size}
                         >
                             <Input
                                 placeholder="Password"
@@ -212,7 +215,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                     <CheckPicker
                         placeholder="nobody"
                         groupBy="type"
-                        size={this.props.inputSize}
+                        size={this.props.size}
                         block
                         virtualized
                         data={[]}
@@ -221,7 +224,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                     <CheckPicker
                         placeholder="nobody"
                         groupBy="type"
-                        size={this.props.inputSize}
+                        size={this.props.size}
                         block
                         virtualized
                         data={[]}
@@ -232,7 +235,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                 <CheckTreePicker
                     placeholder="do nothing"
                     block
-                    size={this.props.inputSize}
+                    size={this.props.size}
                     defaultExpandAll
                     data={match(this.state.permissionType)
                         .with("File", () => filePermissionTreeData)
@@ -282,7 +285,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                 {this.props.readonly !== true && this.props.disableSaveButton !== true && (
                     <Button
                         onClick={this.handleSave}
-                        size={this.props.inputSize}
+                        size={this.props.size}
                         style={{ marginTop: "10px" }}
                         appearance="primary"
                         disabled={this.props.readonly}

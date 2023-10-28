@@ -59,51 +59,30 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         };
     }
 
-    rowRenderer = (item: FilezFile, style: CSSProperties, columns?: Column<FilezFile>[]) => {
+    rowRenderer = (item: FilezFile, columns?: Column<FilezFile>[]) => {
         return (
-            <div
-                className="DefaultRowRenderer"
-                onClick={() => this.props.drrOnItemClick && this.props.drrOnItemClick(item)}
-            >
-                {/*@ts-ignore*/}
-                <ContextMenuTrigger disableIfShiftIsPressed={true} id={item._id}>
-                    <div className="clickable" style={style}>
-                        {columns?.map((column, index) => {
-                            /*@ts-ignore*/
-                            const field = item[column.field];
-                            return (
-                                <span
-                                    key={column.field + index}
-                                    style={{
-                                        width: column.width + "%",
-                                        display: "block",
-                                        float: "left",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap"
-                                    }}
-                                >
-                                    {column.render
-                                        ? column.render(item)
-                                        : field ?? `Field '${column.field}' does not exist on File`}
-                                </span>
-                            );
-                        })}
-                    </div>
-                </ContextMenuTrigger>
-                {/*@ts-ignore*/}
-                <ContextMenu id={item._id}>
-                    {/*@ts-ignore*/}
-                    <MenuItem
-                        className="clickable"
-                        data={{ _id: item._id }}
-                        onClick={() => {
-                            console.log(item);
-                        }}
-                    >
-                        <span>Log File</span>
-                    </MenuItem>
-                </ContextMenu>
+            <div onClick={() => this.props.drrOnItemClick && this.props.drrOnItemClick(item)}>
+                {columns?.map((column, index) => {
+                    /*@ts-ignore*/
+                    const field = item[column.field];
+                    return (
+                        <span
+                            key={column.field + index}
+                            style={{
+                                width: column.width + "%",
+                                display: "block",
+                                float: "left",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap"
+                            }}
+                        >
+                            {column.render
+                                ? column.render(item)
+                                : field ?? `Field '${column.field}' does not exist on File`}
+                        </span>
+                    );
+                })}
             </div>
         );
     };

@@ -4,11 +4,13 @@ import { PureComponent } from "react";
 import { Input, InputPicker, TagPicker } from "rsuite";
 import update from "immutability-helper";
 import { FilezContext } from "../../../FilezProvider";
-import SelectPermissions from "../../utils/SelectPermissions";
 import { match } from "ts-pattern";
+import SelectOrCreateUseOncePermission from "../../utils/SelectOrCreateUseOncePermission";
+import Permission from "../permissions/Permission";
 
 interface FileGroupProps {
     readonly group?: FilezFileGroup;
+    readonly oncePermissionRef?: React.RefObject<Permission>;
 }
 
 interface FileGroupState {
@@ -42,18 +44,22 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
         };
     }
 
-    create = async () => {
+    create = async (useOncePermissionId?: string) => {
         if (!this.context) return false;
         const cg = this.state.clientGroup;
 
         if (cg._id === "") {
+            const permission_ids = cg.permission_ids;
+            if (useOncePermissionId) {
+                permission_ids.push(useOncePermissionId);
+            }
             const res = await this.context.filezClient.create_file_group({
                 dynamic_group_rules: cg.dynamic_group_rules,
                 group_type: cg.group_type,
                 keywords: cg.keywords,
                 mime_types: cg.mime_types,
                 name: cg.name,
-                permission_ids: cg.permission_ids,
+                permission_ids,
                 group_hierarchy_paths: cg.group_hierarchy_paths
             });
             if (res.status === 201) {
@@ -169,7 +175,8 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                 <div>
                     <label htmlFor="">Permissions</label>
                     <br />
-                    <SelectPermissions
+                    <SelectOrCreateUseOncePermission
+                        oncePermissionRef={this.props.oncePermissionRef}
                         onUpdate={value => {
                             this.setState(
                                 update(this.state, {

@@ -7,6 +7,7 @@ import update from "immutability-helper";
 import { match } from "ts-pattern";
 
 interface SelectPermissionsProps {
+    readonly size?: "lg" | "md" | "sm" | "xs";
     readonly type: "File" | "User" | "UserGroup" | "FileGroup";
     readonly onUpdate?: (permissionIds: string[]) => void;
 }
@@ -71,6 +72,7 @@ export default class SelectPermissions extends PureComponent<
         return (
             <div className="SelectPermissions">
                 <TagPicker
+                    size={this.props.size}
                     data={this.state.existingPermissions.map(p => {
                         return {
                             label: p.name ?? p._id,
@@ -84,6 +86,7 @@ export default class SelectPermissions extends PureComponent<
                     }}
                 />
                 <Button
+                    size={this.props.size}
                     onClick={() => {
                         this.setState({ newPermissionModalOpen: true });
                     }}
@@ -111,6 +114,7 @@ export default class SelectPermissions extends PureComponent<
                     </Modal.Header>
                     <Modal.Body>
                         <Permission
+                            size={this.props.size}
                             onSave={this.newPermissionCreated}
                             permissionType="FileGroup"
                             disableTypeChange={true}

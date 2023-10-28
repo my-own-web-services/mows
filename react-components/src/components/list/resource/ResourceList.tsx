@@ -8,9 +8,37 @@ import { FixedSizeList } from "react-window";
 import { AutoSizer } from "rsuite/esm/Windowing";
 import ListTopBar from "./ListTopBar";
 import { cloneDeep } from "lodash";
+import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
+
+export interface FilezMenuItems {
+    name: string;
+    onClick: (item: any) => void;
+}
+
+const defaultMenuItems: FilezMenuItems[] = [
+    {
+        name: "Log to console",
+        onClick: (item: any) => {
+            console.log(item);
+        }
+    },
+    {
+        name: "Delete",
+        onClick: (item: any) => {
+            console.log(item);
+        }
+    },
+    {
+        name: "Edit",
+        onClick: (item: any) => {
+            console.log(item);
+        }
+    }
+];
 
 export interface Column<ResourceType> {
     readonly field: string;
+    readonly alternateField?: string;
     readonly direction: ColumnDirection;
     readonly width: number;
     readonly minWidth: number;
@@ -40,11 +68,7 @@ interface ResourceListProps<ResourceType> {
     /**
      A function that renders the resource in the list.
      */
-    readonly rowRenderer: (
-        item: ResourceType,
-        style: CSSProperties,
-        columns?: Column<ResourceType>[]
-    ) => JSX.Element;
+    readonly rowRenderer: (item: ResourceType, columns?: Column<ResourceType>[]) => JSX.Element;
     /**
      A function that gets the resource in from the server/db and returns it. This has to be implemented in a specific way to support the infinite scrolling.
      */
@@ -61,6 +85,7 @@ interface ResourceListProps<ResourceType> {
     readonly topBar?: JSX.Element;
     readonly id?: string;
     readonly columns?: Column<ResourceType>[];
+    readonly disableContextMenu?: boolean;
 }
 
 interface ResourceListState<ResourceType> {
@@ -69,6 +94,7 @@ interface ResourceListState<ResourceType> {
     readonly commitedSearch: string;
     readonly columns?: Column<ResourceType>[];
     readonly listType: ListType;
+    readonly menuItems: FilezMenuItems[];
 }
 
 export default class ResourceList<ResourceType> extends PureComponent<
@@ -86,7 +112,8 @@ export default class ResourceList<ResourceType> extends PureComponent<
             total_count: 0,
             commitedSearch: "",
             columns: cloneDeep(props.columns),
-            listType: ListType.List
+            listType: ListType.List,
+            menuItems: defaultMenuItems
         };
     }
 
@@ -284,14 +311,65 @@ export default class ResourceList<ResourceType> extends PureComponent<
                                     >
                                         {({ index, style }) => {
                                             const currentItem = this.state.items[index];
+                                            //@ts-ignore
+                                            const id = currentItem?._id as string;
                                             if (!currentItem) {
                                                 return <div style={style}></div>;
                                             }
-                                            return this.props.rowRenderer(
-                                                currentItem,
-                                                style,
-                                                this.state.columns
-                                            );
+                                            if (this.props.disableContextMenu) {
+                                                return (
+                                                    <div
+                                                        className="DefaultRowRenderer"
+                                                        style={style}
+                                                    >
+                                                        {this.props.rowRenderer(
+                                                            currentItem,
+                                                            this.state.columns
+                                                        )}
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <>
+                                                        <div
+                                                            className="DefaultRowRenderer"
+                                                            style={style}
+                                                        >
+                                                            {/*@ts-ignore*/}
+                                                            <ContextMenuTrigger
+                                                                style={style}
+                                                                disableIfShiftIsPressed={true}
+                                                                // @ts-ignore
+                                                                id={id}
+                                                            >
+                                                                {this.props.rowRenderer(
+                                                                    currentItem,
+                                                                    this.state.columns
+                                                                )}
+                                                            </ContextMenuTrigger>
+                                                        </div>
+                                                        {/*@ts-ignore*/}
+                                                        <ContextMenu id={id}>
+                                                            {this.state.menuItems.map(item => {
+                                                                return (
+                                                                    // @ts-ignore
+                                                                    <MenuItem
+                                                                        key={item.name}
+                                                                        className="clickable"
+                                                                        onClick={() => {
+                                                                            item.onClick(
+                                                                                currentItem
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        {item.name}
+                                                                    </MenuItem>
+                                                                );
+                                                            })}
+                                                        </ContextMenu>
+                                                    </>
+                                                );
+                                            }
                                         }}
                                     </FixedSizeList>
                                 )}

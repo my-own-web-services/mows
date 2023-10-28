@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 /**
-# Updates a permission.
+# Updates or creates a permission.
 
 ## Call
 `/api/permission/update/`

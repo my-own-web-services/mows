@@ -50,41 +50,23 @@ button.Filez {
         height: 100%;
     }
 
-    &.FileGroupList {
+    .Group {
         width: 100%;
         height: 100%;
-        .FileGroupListTopBar {
-            .Buttons {
+
+        .GroupItems {
+            padding: 0px 5px;
+            width: 100%;
+            height: 100%;
+            span {
+                display: block;
                 float: left;
-                margin-left: 5px;
-                margin-top: 1px;
-            }
-        }
-
-        .DefaultRowRenderer {
-            .Group {
-                width: 100%;
-                height: 100%;
-
-                .GroupItems {
-                    padding: 0px 5px;
-                    width: 100%;
-                    height: 100%;
-                    span {
-                        display: block;
-                        float: left;
-                        margin-right: 5px;
-                        &.itemCount {
-                            color: #777;
-                        }
-                    }
+                margin-right: 5px;
+                &.itemCount {
+                    color: #777;
                 }
             }
         }
-    }
-    &.FileList {
-        width: 100%;
-        height: 100%;
     }
 
     &.ResourceList {
@@ -97,15 +79,6 @@ button.Filez {
                 margin-left: 5px;
                 margin-top: 1px;
             }
-        }
-    }
-
-    &.UserList {
-        width: 100%;
-        height: 100%;
-
-        .Row {
-            font-size: 16px;
         }
     }
 
