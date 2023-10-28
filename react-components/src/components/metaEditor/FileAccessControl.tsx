@@ -2,7 +2,7 @@ import { PureComponent } from "react";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
 import { FilezContext } from "../../FilezProvider";
-import Permission from "./Permission";
+import Permission from "../list/permissions/Permission";
 
 interface FileAccessControlProps {
     readonly file: FilezFile;
@@ -30,10 +30,16 @@ export default class FileAccessControl extends PureComponent<
 
     componentDidMount = async () => {
         if (!this.context) return;
-        const permissions = await this.context.filezClient.get_permissions_for_current_user();
+        const { items } = await this.context.filezClient.get_own_permissions({
+            filter: "",
+            from_index: 0,
+            limit: null,
+            sort_field: null,
+            sort_order: null
+        });
         this.setState({
-            serverPermissions: permissions,
-            clientPermissions: permissions
+            serverPermissions: items,
+            clientPermissions: items
         });
     };
 

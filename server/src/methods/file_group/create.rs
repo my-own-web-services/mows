@@ -1,7 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{FileGroupType, FilezFileGroup, Visibility},
+    types::{FileGroupType, FilezFileGroup, FilterRule},
     utils::generate_id,
 };
 use hyper::{body::Body, Request, Response};
@@ -39,13 +39,13 @@ pub async fn create_file_group(
         owner_id: requesting_user.user_id.to_string(),
         name: cgr.name,
         file_group_id: group_id.clone(),
-        permission_ids: vec![],
-        keywords: vec![],
-        group_hierarchy_paths: vec![],
-        mime_types: vec![],
-        group_type: FileGroupType::Static,
+        permission_ids: cgr.permission_ids,
+        keywords: cgr.keywords,
+        group_hierarchy_paths: cgr.group_hierarchy_paths,
+        mime_types: cgr.mime_types,
+        group_type: cgr.group_type,
         item_count: 0,
-        dynamic_group_rules: None,
+        dynamic_group_rules: cgr.dynamic_group_rules,
     };
 
     db.create_file_group(&file_group).await?;
@@ -67,5 +67,10 @@ pub struct CreateFileGroupResponseBody {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct CreateFileGroupRequestBody {
     pub name: Option<String>,
-    pub visibility: Visibility,
+    pub keywords: Vec<String>,
+    pub mime_types: Vec<String>,
+    pub group_hierarchy_paths: Vec<String>,
+    pub group_type: FileGroupType,
+    pub dynamic_group_rules: Option<FilterRule>,
+    pub permission_ids: Vec<String>,
 }

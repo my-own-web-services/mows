@@ -41,6 +41,7 @@ pub async fn create_user_group(
         name: cgr.name,
         user_group_id: group_id.clone(),
         visibility: cgr.visibility,
+        permission_ids: vec![],
     };
 
     db.create_user_group(&user_group).await?;

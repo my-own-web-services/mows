@@ -47,7 +47,7 @@ pub async fn create_file(
             Some(u) => (u, None),
             None => return Ok(res.status(412).body(Body::from("User has not been created on the filez server, although it is present on the IR server. Run create_own first."))?),
         },
-        None => match &auth.token {
+        None => match &auth.password {
             Some(token) => {
                 if config.dev.disable_complex_access_control {
                     return Ok(res

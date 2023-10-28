@@ -120,8 +120,8 @@ pub fn get_folder_and_file_path(id: &str, storage_path: &str) -> (String, String
     )
 }
 
-pub fn get_token_from_query(req: &Request<Body>) -> Option<String> {
-    get_query_item(req, "t")
+pub fn get_password_from_query(req: &Request<Body>) -> Option<String> {
+    get_query_item(req, "pw")
 }
 
 #[allow(clippy::manual_map)]

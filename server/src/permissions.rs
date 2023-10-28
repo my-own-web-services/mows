@@ -3,10 +3,12 @@ use crate::{
     db::DB,
     internal_types::Auth,
     types::{FilezFile, FilezFileGroup, FilezUser, UserGroup},
+    utils::merge_values,
 };
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
 
+use serde_json::Value;
 use ts_rs::TS;
 
 pub enum AuthResourceToCheck<'a> {
@@ -31,6 +33,7 @@ pub async fn check_auth(
         None => return Ok(false),
     };
 
+    // check if the requesting user is the owner of the resource
     let owner_id = match auth_resource {
         AuthResourceToCheck::File(f) => &f.0.owner_id,
         AuthResourceToCheck::FileGroup(fg) => &fg.0.owner_id,
@@ -47,16 +50,127 @@ pub async fn check_auth(
         bail!("Complex access control has been disabled");
     };
 
-    // user is not the owner
-    // check if file is public
-    // let permissions = db.get_permissions_from_file(file).await?;
+    let permission_ids = match auth_resource {
+        AuthResourceToCheck::File(f) => &f.0.permission_ids,
+        AuthResourceToCheck::FileGroup(fg) => &fg.0.permission_ids,
+        AuthResourceToCheck::User(u) => &u.0.permission_ids,
+        AuthResourceToCheck::UserGroup(ug) => &ug.0.permission_ids,
+    };
 
-    // if we dont have permission from the easy to check acl yet we need to check ribston
+    let permissions = db.get_permissions_by_resource_id(permission_ids).await?;
 
-    // send all policies to ribston for evaluation
-    // all need to be true for access to be granted
+    let merged_permission_content = merge_permission_content(permissions)?;
+
+    let maybe_acl_who = match (merged_permission_content, auth_resource) {
+        (PermissionResourceType::File(prt), AuthResourceToCheck::File(ar)) => {
+            if let Some(acl) = prt.acl {
+                if acl.what.contains(&ar.1) {
+                    Some(acl.who)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+
+        (PermissionResourceType::FileGroup(prt), AuthResourceToCheck::FileGroup(ar)) => {
+            if let Some(acl) = prt.acl {
+                if acl.what.contains(&ar.1) {
+                    Some(acl.who)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+
+        (PermissionResourceType::UserGroup(prt), AuthResourceToCheck::UserGroup(ar)) => {
+            if let Some(acl) = prt.acl {
+                if acl.what.contains(&ar.1) {
+                    Some(acl.who)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+
+        (PermissionResourceType::User(prt), AuthResourceToCheck::User(ar)) => {
+            if let Some(acl) = prt.acl {
+                if acl.what.contains(&ar.1) {
+                    Some(acl.who)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+
+        _ => bail!("Permission type does not match resource type"),
+    };
+
+    match maybe_acl_who {
+        Some(acl_who) => {
+            if let Some(link) = acl_who.link {
+                if link {
+                    return Ok(true);
+                }
+            }
+            if let Some(policy_passwords) = acl_who.passwords {
+                if let Some(auth_password) = &auth.password {
+                    if policy_passwords.contains(auth_password) {
+                        return Ok(true);
+                    }
+                }
+            }
+            if let Some(policy_users) = acl_who.users {
+                if policy_users.user_ids.contains(&requesting_user.user_id) {
+                    return Ok(true);
+                }
+
+                // check if both arrays share at least one element
+
+                if requesting_user
+                    .user_group_ids
+                    .iter()
+                    .any(|user_group_id| policy_users.user_group_ids.contains(user_group_id))
+                {
+                    return Ok(true);
+                }
+            }
+        }
+        None => {
+            // check ribston
+        }
+    };
 
     Ok(false)
+}
+
+pub fn merge_permission_content(
+    permissions: Vec<FilezPermission>,
+) -> anyhow::Result<PermissionResourceType> {
+    if permissions.is_empty() {
+        bail!("No permissions to merge");
+    };
+
+    let mut merged_permission_content = Value::Null;
+
+    for permission in permissions {
+        merge_values(
+            &mut merged_permission_content,
+            &serde_json::to_value(permission.content)?,
+        );
+    }
+
+    let merged_permission_content: PermissionResourceType =
+        serde_json::from_value(merged_permission_content)?;
+
+    Ok(merged_permission_content)
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
@@ -107,7 +221,7 @@ pub struct FilezPermissionAcl<T> {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct FilezPermissionAclWho {
     pub link: Option<bool>,
-    pub password: Option<String>,
+    pub passwords: Option<Vec<String>>,
     pub users: Option<FilezPermissionAclUsers>,
 }
 

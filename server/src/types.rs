@@ -235,6 +235,7 @@ pub struct FilezUser {
     List of group ids that the user is a member of
     */
     pub user_group_ids: Vec<String>,
+    pub permission_ids: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
@@ -279,6 +280,7 @@ pub struct UserGroup {
     /** Id of the User owning the user group*/
     pub owner_id: String,
     pub visibility: Visibility,
+    pub permission_ids: Vec<String>,
 }
 
 // file groups are just selectors for files

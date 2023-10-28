@@ -490,6 +490,7 @@ impl DB {
                 true => UserRole::Admin,
                 false => UserRole::User,
             },
+            permission_ids: vec![],
         };
 
         users_collection
@@ -1250,23 +1251,20 @@ impl DB {
         Ok(())
     }
 
-    pub async fn get_permissions_from_file(
+    pub async fn get_permissions_by_resource_id(
         &self,
-        file: &FilezFile,
+        permission_ids: &Vec<String>,
     ) -> anyhow::Result<Vec<FilezPermission>> {
         let mut permissions = vec![];
 
-        // TODO check groups permissions
-
-        // get the permission from the permission ids of the file
-        if !file.permission_ids.is_empty() {
+        if !permission_ids.is_empty() {
             let collection = self.db.collection::<FilezPermission>("permissions");
 
             let mut cursor = collection
                 .find(
                     doc! {
                         "_id": {
-                            "$in": file.permission_ids.clone()
+                            "$in": permission_ids
                         }
                     },
                     None,

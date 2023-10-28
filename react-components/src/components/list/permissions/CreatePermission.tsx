@@ -1,5 +1,5 @@
 import { PureComponent, createRef } from "react";
-import Permission from "../../metaEditor/Permission";
+import Permission from "./Permission";
 
 interface CreatePermissionProps {}
 
@@ -9,24 +9,24 @@ export default class CreatePermission extends PureComponent<
     CreatePermissionProps,
     CreatePermissionState
 > {
-    permissionRef: React.RefObject<Permission>;
+    ref: React.RefObject<Permission>;
 
     constructor(props: CreatePermissionProps) {
         super(props);
         this.state = {};
 
-        this.permissionRef = createRef();
+        this.ref = createRef();
     }
 
     create = async (): Promise<boolean> => {
-        const res = await this.permissionRef.current?.saveData();
+        const res = await this.ref.current?.saveData();
         return res ? true : false;
     };
 
     render = () => {
         return (
             <div className="CreatePermission">
-                <Permission ref={this.permissionRef} disableSaveButton={true} />
+                <Permission ref={this.ref} disableSaveButton={true} />
             </div>
         );
     };

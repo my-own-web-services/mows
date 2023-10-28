@@ -8,7 +8,7 @@ import {
     InputGroup,
     InputPicker
 } from "rsuite";
-import { FilezContext } from "../../FilezProvider";
+import { FilezContext } from "../../../FilezProvider";
 import EyeIcon from "@rsuite/icons/legacy/Eye";
 import EyeSlashIcon from "@rsuite/icons/legacy/EyeSlash";
 import { BiCopy } from "react-icons/bi";
@@ -23,13 +23,17 @@ interface PermissionProps {
     readonly permission?: FilezPermission;
     readonly permissionType?: "File" | "FileGroup" | "User" | "UserGroup";
     readonly disableSaveButton?: boolean;
+    readonly disableTypeChange?: boolean;
+    readonly hideTypeChanger?: boolean;
+    readonly onSave?: (permissionId: string) => void;
 }
 
 interface PermissionState {
+    readonly name: string;
     readonly selectedWhat: string[];
     readonly enabledLink: boolean;
     readonly enabledPassword: boolean;
-    readonly password: string;
+    readonly passwords: string[];
     readonly passwordVisible: boolean;
     readonly selectedUserIds: string[];
     readonly selectedUserGroupIds: string[];
@@ -46,13 +50,14 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
         const acl = props.permission?.content?.acl;
         const type = props.permission?.content.type;
 
-        const maybePw = acl?.who.password;
+        const maybePw = acl?.who.passwords;
 
         this.state = {
+            name: props.permission?.name ?? "",
             selectedWhat: acl?.what ?? [],
             enabledLink: acl?.who.link ?? false,
-            enabledPassword: typeof maybePw === "string" && maybePw.length > 0,
-            password: acl?.who.password ?? "",
+            enabledPassword: maybePw !== null && maybePw !== undefined && maybePw.length > 0,
+            passwords: acl?.who.passwords ?? [],
             passwordVisible: false,
             selectedUserIds: acl?.who.users?.user_ids ?? [],
             selectedUserGroupIds: acl?.who.users?.user_group_ids ?? [],
@@ -70,17 +75,18 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
             selectedWhat,
             enabledLink,
             enabledPassword,
-            password,
+            passwords,
             permissionType,
             selectedUserIds,
-            selectedUserGroupIds
+            selectedUserGroupIds,
+            name
         } = this.state;
 
         const acl: FilezPermissionAcl<any> = {
             what: selectedWhat,
             who: {
                 link: enabledLink,
-                password: enabledPassword ? password : null,
+                passwords: enabledPassword ? passwords : null,
                 users: {
                     user_ids: selectedUserIds,
                     user_group_ids: selectedUserGroupIds
@@ -89,6 +95,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
         };
 
         const res = await this.context.filezClient.update_permission({
+            name,
             permission_id: this.props.itemId,
             //@ts-ignore
             content: {
@@ -101,6 +108,13 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
         return res.permission_id;
     };
 
+    handleSave = async () => {
+        const res = await this.saveData();
+        if (res) {
+            this.props.onSave?.(res);
+        }
+    };
+
     render = () => {
         const link = `${window.location.origin}?f=${this.props.itemId}`;
         const inputWidths = "80%";
@@ -108,16 +122,30 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
             <div className="Permission">
                 <div style={{ marginBottom: "5px" }}>
                     <div>
-                        <InputPicker
-                            data={["File", "FileGroup", "User", "UserGroup"].map(v => {
-                                return { label: v, value: v };
-                            })}
-                            value={this.state.permissionType}
+                        {this.props.hideTypeChanger !== true && (
+                            <InputPicker
+                                data={["File", "FileGroup", "User", "UserGroup"].map(v => {
+                                    return { label: v, value: v };
+                                })}
+                                value={this.state.permissionType}
+                                onChange={value => {
+                                    this.setState({ permissionType: value, selectedWhat: [] });
+                                }}
+                                size={this.props.inputSize}
+                                readOnly={this.props.readonly ?? this.props.disableTypeChange}
+                            />
+                        )}
+                    </div>
+                    <div>
+                        <label>Name</label>
+                        <Input
+                            value={this.state.name}
                             onChange={value => {
-                                this.setState({ permissionType: value, selectedWhat: [] });
+                                this.setState({ name: value });
                             }}
                             size={this.props.inputSize}
-                            readOnly={this.props.readonly}
+                            placeholder="Name"
+                            disabled={this.props.readonly}
                         />
                     </div>
                     <div style={{ display: "inline-block", width: "50%" }}>
@@ -163,9 +191,9 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                             <Input
                                 placeholder="Password"
                                 type={this.state.passwordVisible ? "text" : "password"}
-                                value={this.state.password}
+                                value={this.state.passwords[0]}
                                 onChange={value => {
-                                    this.setState({ password: value });
+                                    this.setState({ passwords: [value] });
                                 }}
                                 disabled={!this.state.enabledPassword}
                             />
@@ -253,6 +281,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                 />
                 {this.props.readonly !== true && this.props.disableSaveButton !== true && (
                     <Button
+                        onClick={this.handleSave}
                         size={this.props.inputSize}
                         style={{ marginTop: "10px" }}
                         appearance="primary"

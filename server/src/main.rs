@@ -28,7 +28,7 @@ use filez::methods::user::update_friendship_status::update_friendship_status;
 use filez::methods::user_group::create::create_user_group;
 use filez::methods::user_group::delete::delete_user_group;
 use filez::readonly_mount::scan_readonly_mounts;
-use filez::utils::{get_token_from_query, is_allowed_origin};
+use filez::utils::{get_password_from_query, is_allowed_origin};
 use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server};
@@ -190,7 +190,7 @@ async fn handle_inner(
 
     let auth = Auth {
         authenticated_ir_user_id: user_assertion.as_ref().map(|ua| ua.user_id.clone()),
-        token: get_token_from_query(&req),
+        password: get_password_from_query(&req),
         user_assertion,
     };
     /* file */
