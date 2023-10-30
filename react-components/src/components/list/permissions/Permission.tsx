@@ -24,6 +24,7 @@ interface PermissionProps {
     readonly permissionType?: "File" | "FileGroup" | "User" | "UserGroup";
     readonly disableSaveButton?: boolean;
     readonly disableTypeChange?: boolean;
+    readonly hideName?: boolean;
     readonly hideTypeChanger?: boolean;
     readonly onSave?: (permissionId: string) => void;
     readonly useOnce?: boolean;

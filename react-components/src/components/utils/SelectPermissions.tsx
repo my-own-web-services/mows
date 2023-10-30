@@ -10,6 +10,7 @@ interface SelectPermissionsProps {
     readonly size?: "lg" | "md" | "sm" | "xs";
     readonly type: "File" | "User" | "UserGroup" | "FileGroup";
     readonly onUpdate?: (permissionIds: string[]) => void;
+    readonly selectedPermissionIds?: string[];
 }
 
 interface SelectPermissionsState {
@@ -29,7 +30,7 @@ export default class SelectPermissions extends PureComponent<
         this.state = {
             existingPermissions: [],
             newPermissionModalOpen: false,
-            selectedPermissionIds: []
+            selectedPermissionIds: props.selectedPermissionIds ?? []
         };
     }
 
@@ -47,8 +48,12 @@ export default class SelectPermissions extends PureComponent<
             sort_order: "Ascending"
         });
 
+        const existingPermissions = items.filter(item => {
+            return item.use_type === "Multiple";
+        });
+
         if (items) {
-            this.setState({ existingPermissions: items });
+            this.setState({ existingPermissions });
         }
     };
 

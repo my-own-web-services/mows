@@ -57,6 +57,7 @@ export default class EditPermission extends PureComponent<
                 <Permission
                     permission={this.state.permissions[0]}
                     ref={this.ref}
+                    useOnce={this.state.permissions[0].use_type === "Once"}
                     disableSaveButton={true}
                 />
             </div>

@@ -31,8 +31,8 @@ export default class SortingBar<ResourceType> extends PureComponent<
                         verticalAlign: "top",
                         display: "flex"
                     }}
-                    sizes={this.props.columns.map(column => column.width)}
-                    minSize={this.props.columns.map(column => column.minWidth)}
+                    sizes={this.props.columns.map(column => column.widthPercent)}
+                    minSize={this.props.columns.map(column => column.minWidthPixels)}
                     direction="horizontal"
                     cursor="col-resize"
                     onDrag={this.props.updateSortingColumnWidths}

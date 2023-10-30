@@ -162,8 +162,8 @@ export interface Column<ResourceType> {
     readonly field: string;
     readonly alternateField?: string;
     readonly direction: ColumnDirection;
-    readonly width: number;
-    readonly minWidth: number;
+    readonly widthPercent: number;
+    readonly minWidthPixels: number;
     readonly render?: (item: ResourceType) => JSX.Element;
 }
 
@@ -333,7 +333,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                     $set: state.columns.map((column, index) => {
                         return {
                             ...column,
-                            width: columns[index]
+                            widthPercent: columns[index]
                         };
                     })
                 }
@@ -467,8 +467,22 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     };
 
     rowRenderer = (item: ResourceType, style: CSSProperties, columns?: Column<ResourceType>[]) => {
-        const inner = () => (
-            <>
+        const { show } = useContextMenu({
+            id: item._id
+        });
+
+        return (
+            <div
+                onClick={e => this.onRowClick(e, item)}
+                style={{
+                    ...style
+                }}
+                onContextMenu={e => {
+                    this.onRowClick(e, item, true);
+                    show({ event: e });
+                }}
+                className={`Row${this.state.selectedItems[item._id] ? " selected" : ""}`}
+            >
                 {columns ? (
                     columns.map((column, index) => {
                         /*@ts-ignore*/
@@ -481,7 +495,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                             <span
                                 key={column.field + index}
                                 style={{
-                                    width: column.width + "%",
+                                    width: column.widthPercent + "%",
                                     display: "block",
                                     float: "left",
                                     overflow: "hidden",
@@ -501,26 +515,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                 ) : (
                     <span>{item._id}</span>
                 )}
-            </>
-        );
-
-        const { show } = useContextMenu({
-            id: item._id
-        });
-
-        return (
-            <div
-                onClick={e => this.onRowClick(e, item)}
-                style={{
-                    ...style
-                }}
-                onContextMenu={e => {
-                    this.onRowClick(e, item, true);
-                    show({ event: e });
-                }}
-                className={`Row${this.state.selectedItems[item._id] ? " selected" : ""}`}
-            >
-                {inner()}
                 {!this.props.disableContextMenu && (
                     <Menu id={item._id}>
                         {this.state.menuItems.flatMap(menuItem => {

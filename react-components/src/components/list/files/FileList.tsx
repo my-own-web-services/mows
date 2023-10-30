@@ -10,14 +10,14 @@ const defaultColumns: Column<FilezFile>[] = [
     {
         field: "name",
         direction: ColumnDirection.ASCENDING,
-        width: 50,
-        minWidth: 50
+        widthPercent: 50,
+        minWidthPixels: 50
     },
     {
         field: "size",
         direction: ColumnDirection.NEUTRAL,
-        width: 50,
-        minWidth: 50,
+        widthPercent: 50,
+        minWidthPixels: 50,
         render: (item: FilezFile) => {
             return <span>{bytesToHumanReadableSize(item.size)}</span>;
         }
@@ -69,7 +69,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                         <span
                             key={column.field + index}
                             style={{
-                                width: column.width + "%",
+                                width: column.widthPercent + "%",
                                 display: "block",
                                 float: "left",
                                 overflow: "hidden",

@@ -10,16 +10,25 @@ const defaultColumns: Column<FilezPermission>[] = [
         field: "name",
         alternateField: "_id",
         direction: ColumnDirection.ASCENDING,
-        width: 50,
-        minWidth: 50
+        widthPercent: 33,
+        minWidthPixels: 50
     },
     {
         field: "type",
         direction: ColumnDirection.NEUTRAL,
-        width: 50,
-        minWidth: 50,
+        widthPercent: 33,
+        minWidthPixels: 50,
         render: (item: FilezPermission) => {
             return <span>{item.content.type}</span>;
+        }
+    },
+    {
+        field: "use_type",
+        direction: ColumnDirection.NEUTRAL,
+        widthPercent: 33,
+        minWidthPixels: 50,
+        render: (item: FilezPermission) => {
+            return <span>{item.use_type}</span>;
         }
     }
 ];

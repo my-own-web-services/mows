@@ -10,29 +10,28 @@ export default class CreateFileGroup extends PureComponent<
     CreateFileGroupProps,
     CreateFileGroupState
 > {
-    ref: React.RefObject<FileGroup>;
+    fileGroupRef: React.RefObject<FileGroup>;
     oncePermissionRef: React.RefObject<Permission>;
 
     constructor(props: CreateFileGroupProps) {
         super(props);
         this.state = {};
 
-        this.ref = createRef();
+        this.fileGroupRef = createRef();
         this.oncePermissionRef = createRef();
     }
 
     create = async (): Promise<boolean> => {
-        const createPermissionRes = await this.oncePermissionRef.current?.saveData();
-        if (!createPermissionRes) return false;
+        const useOncePermissionId = await this.oncePermissionRef?.current?.saveData();
 
-        const res = await this.ref.current?.create(createPermissionRes);
+        const res = await this.fileGroupRef.current?.create(useOncePermissionId);
         return res ? true : false;
     };
 
     render = () => {
         return (
             <div className="CreateFileGroup">
-                <FileGroup oncePermissionRef={this.oncePermissionRef} ref={this.ref} />
+                <FileGroup oncePermissionRef={this.oncePermissionRef} ref={this.fileGroupRef} />
             </div>
         );
     };

@@ -2,6 +2,7 @@ import { PureComponent, createRef } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import FileGroup from "./FileGroup";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
+import Permission from "../permissions/Permission";
 
 interface EditFileGroupProps {
     readonly resourceIds?: string[];
@@ -14,14 +15,16 @@ interface EditFileGroupState {
 export default class EditFileGroup extends PureComponent<EditFileGroupProps, EditFileGroupState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
-    ref: React.RefObject<FileGroup>;
+    fileGroupRef: React.RefObject<FileGroup>;
+    oncePermissionRef: React.RefObject<Permission>;
 
     constructor(props: EditFileGroupProps) {
         super(props);
         this.state = {
             fileGroups: []
         };
-        this.ref = createRef();
+        this.fileGroupRef = createRef();
+        this.oncePermissionRef = createRef();
     }
 
     componentDidMount = async () => {
@@ -43,7 +46,9 @@ export default class EditFileGroup extends PureComponent<EditFileGroupProps, Edi
     };
 
     update = async (): Promise<boolean> => {
-        const res = await this.ref.current?.update();
+        const useOncePermissionId = await this.oncePermissionRef?.current?.saveData();
+
+        const res = await this.fileGroupRef.current?.update(useOncePermissionId);
         return res ? true : false;
     };
 
@@ -51,7 +56,11 @@ export default class EditFileGroup extends PureComponent<EditFileGroupProps, Edi
         if (!this.state.fileGroups[0]) return null;
         return (
             <div className="EditFileGroup">
-                <FileGroup group={this.state.fileGroups[0]} ref={this.ref} />
+                <FileGroup
+                    oncePermissionRef={this.oncePermissionRef}
+                    group={this.state.fileGroups[0]}
+                    ref={this.fileGroupRef}
+                />
             </div>
         );
     };
