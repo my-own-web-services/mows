@@ -50,7 +50,7 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                                 this.commitSearch();
                             }
                         }}
-                        placeholder="Search..."
+                        placeholder={`Search ${this.props.resourceType}s...`}
                     />
                     <InputGroup.Button
                         onClick={() => {

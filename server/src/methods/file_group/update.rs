@@ -29,6 +29,8 @@ pub async fn update_file_group(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
+    crate::check_content_type_json!(req, res);
+
     let ufgr: UpdateFileGroupRequestBody =
         serde_json::from_slice(&hyper::body::to_bytes(req.into_body()).await?)?;
 

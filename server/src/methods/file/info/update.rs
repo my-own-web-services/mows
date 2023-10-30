@@ -35,6 +35,9 @@ pub async fn update_file_infos(
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
+
+    crate::check_content_type_json!(req, res);
+
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let ufir: UpdateFileInfosRequest = serde_json::from_slice(&body)?;
 

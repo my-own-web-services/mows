@@ -26,15 +26,13 @@ export default class UserList extends PureComponent<UserListProps, UserListState
         };
     }
 
-    rowRenderer = (user: ReducedFilezUser, style: CSSProperties) => {
+    rowRenderer = (user: ReducedFilezUser) => {
         return (
-            <div className="Filez Row" style={{ ...style }}>
-                <div>
-                    <span style={{ marginRight: "10px" }}>{user.name ?? user._id}</span>
-                    <span style={{ marginRight: "10px" }}>{user.role}</span>
-                    <span style={{ marginRight: "10px" }}>{user.status}</span>
-                    <ChangeFriendshipStatus size="sm" user={user} />
-                </div>
+            <div>
+                <span style={{ marginRight: "10px" }}>{user.name ?? user._id}</span>
+                <span style={{ marginRight: "10px" }}>{user.role}</span>
+                <span style={{ marginRight: "10px" }}>{user.status}</span>
+                <ChangeFriendshipStatus size="sm" user={user} />
             </div>
         );
     };

@@ -3,7 +3,7 @@
     --bg2: #222;
     --fg: #fff;
     --hover: #333;
-    --accent: darkorange;
+    --accent: #0099ff55;
 }
 
 button.Filez {
@@ -28,6 +28,15 @@ button.Filez {
     }
     .active {
         background: var(--accent);
+    }
+
+    .Row {
+        &:hover {
+            background: var(--hover);
+        }
+        &.selected {
+            background-color: var(--accent) !important;
+        }
     }
 
     nav.react-contextmenu {

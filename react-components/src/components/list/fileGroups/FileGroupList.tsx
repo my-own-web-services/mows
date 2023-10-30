@@ -29,7 +29,7 @@ export default class FileGroupList extends PureComponent<FileGroupListProps, Fil
     rowRenderer = (item: FilezFileGroup) => {
         return (
             <div className="Group">
-                <div className="GroupItems clickable">
+                <div className="GroupItems">
                     <span>
                         {item.group_type === "Static" ? (
                             <AiOutlineFolder size={20} />

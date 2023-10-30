@@ -41,37 +41,8 @@ export default class PermissionList extends PureComponent<
         this.state = {};
     }
 
-    rowRenderer = (item: FilezPermission, columns?: Column<FilezPermission>[]) => {
-        return (
-            <div className="Filez Row">
-                {columns?.map((column, index) => {
-                    /*@ts-ignore*/
-                    const field = item[column.field]
-                        ? /*@ts-ignore*/
-                          item[column.field]
-                        : /*@ts-ignore*/
-                          item[column.alternateField];
-                    return (
-                        <span
-                            key={column.field + index}
-                            style={{
-                                width: column.width + "%",
-                                display: "block",
-                                float: "left",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap"
-                            }}
-                        >
-                            {column.render
-                                ? column.render(item)
-                                : field ??
-                                  `Field '${column.field}' does not exist on this Permission`}
-                        </span>
-                    );
-                })}
-            </div>
-        );
+    rowRenderer = (item: FilezPermission) => {
+        return <div></div>;
     };
 
     render = () => {

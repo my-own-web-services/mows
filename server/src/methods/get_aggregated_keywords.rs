@@ -7,13 +7,7 @@ pub async fn get_aggregated_keywords(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let requesting_user = match &auth.authenticated_ir_user_id {
-        Some(ir_user_id) => match db.get_user_by_ir_id(ir_user_id).await? {
-            Some(u) => u,
-            None => return Ok(res.status(412).body(Body::from("User has not been created on the filez server, although it is present on the IR server. Run create_own first."))?),
-        },
-        None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
-    };
+    let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
 
     let keywords = db.get_aggregated_keywords(&requesting_user.user_id).await?;
 

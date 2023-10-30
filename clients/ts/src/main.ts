@@ -49,7 +49,10 @@ export class FilezClient {
         const res = await fetch(`${this.filezEndpoint}/api/permission/update/`, {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            headers: {
+                "Content-Type": "application/json"
+            }
         });
         const json: UpdatePermissionResponseBody = await res.json();
         return json;
@@ -205,7 +208,10 @@ export class FilezClient {
         const res = await fetch(`${this.filezEndpoint}/api/user/update_friendship_status/`, {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            headers: {
+                "Content-Type": "application/json"
+            }
         });
 
         return res;
@@ -241,7 +247,10 @@ export class FilezClient {
         const res = await fetch(`${this.filezEndpoint}/api/file/info/update/`, {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify({ fileId, field })
+            body: JSON.stringify({ fileId, field }),
+            headers: {
+                "Content-Type": "application/json"
+            }
         });
         return res;
     };
@@ -258,7 +267,10 @@ export class FilezClient {
         const res = await fetch(`${this.filezEndpoint}/api/file_group/update/`, {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify(req)
+            body: JSON.stringify(req),
+            headers: {
+                "Content-Type": "application/json"
+            }
         });
         return res;
     };
@@ -275,7 +287,10 @@ export class FilezClient {
         const res = await fetch(`${this.filezEndpoint}/api/file_group/create/`, {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            headers: {
+                "Content-Type": "application/json"
+            }
         });
         return res;
     };
@@ -284,7 +299,10 @@ export class FilezClient {
         const res = await fetch(`${this.filezEndpoint}/api/user_group/create/`, {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            headers: {
+                "Content-Type": "application/json"
+            }
         });
         return res;
     };
