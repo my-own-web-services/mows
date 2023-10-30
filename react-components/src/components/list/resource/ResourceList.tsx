@@ -344,7 +344,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         callAfterClick?: () => void
     ) => {
         // @ts-ignore
-        //if (e.target?.classList?.contains("clickable")) return;
+        if (e.target?.classList?.contains("clickable")) return;
 
         if (e.ctrlKey) {
             this.setState(
@@ -408,8 +408,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     };
 
     rowRenderer = (item: ResourceType, style: CSSProperties, columns?: Column<ResourceType>[]) => {
-        console.log("rendering row");
-
         const inner = () => (
             <>
                 {columns ? (

@@ -151,7 +151,7 @@ async fn handle_inner(
                     .header("Access-Control-Allow-Credentials", "true")
                     .header(
                         "Access-Control-Allow-Headers",
-                        "interosseauserassertion, request",
+                        "interosseauserassertion, request, content-type",
                     )
             } else {
                 Response::builder()
