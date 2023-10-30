@@ -1,7 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{GetItemListResponseBody, SortOrder, UserGroup},
+    types::{FilezUserGroup, GetItemListResponseBody, SortOrder},
     utils::{get_query_item, get_query_item_number},
 };
 use hyper::{Body, Request, Response};
@@ -37,7 +37,7 @@ pub async fn get_user_group_list(
         )
         .await?;
 
-    let res_body = GetItemListResponseBody::<UserGroup> { items, total_count };
+    let res_body = GetItemListResponseBody::<FilezUserGroup> { items, total_count };
 
     Ok(res
         .status(200)

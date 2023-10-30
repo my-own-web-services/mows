@@ -2,6 +2,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezUserGroupPermissionAclWhatOptions},
+    utils::get_query_item,
 };
 use anyhow::bail;
 use hyper::{body::Body, Request, Response};
@@ -10,7 +11,7 @@ use hyper::{body::Body, Request, Response};
 # Delete a user group.
 
 ## Call
-`/api/user_group/delete/`
+`/api/user_group/delete/?id={user_group_id}`
 ## Permissions
 UserGroup > DeleteGroup
 
@@ -21,7 +22,10 @@ pub async fn delete_user_group(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let user_group_id = req.uri().path().replacen("/api/user_group/delete/", "", 1);
+    let user_group_id = match get_query_item(&req, "id") {
+        Some(v) => v,
+        None => return Ok(res.status(400).body(Body::from("Missing id"))?),
+    };
 
     let user_group = match db.get_user_group_by_id(&user_group_id).await? {
         Some(ug) => ug,

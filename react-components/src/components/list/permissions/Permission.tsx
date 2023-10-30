@@ -39,6 +39,7 @@ interface PermissionState {
     readonly selectedUserIds: string[];
     readonly selectedUserGroupIds: string[];
     readonly permissionType: "File" | "FileGroup" | "User" | "UserGroup";
+    readonly permissionId: string | null;
 }
 
 export default class Permission extends PureComponent<PermissionProps, PermissionState> {
@@ -62,7 +63,8 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
             passwordVisible: false,
             selectedUserIds: acl?.who.users?.user_ids ?? [],
             selectedUserGroupIds: acl?.who.users?.user_group_ids ?? [],
-            permissionType: type ?? props.permissionType ?? "File"
+            permissionType: type ?? props.permissionType ?? "File",
+            permissionId: props.permission?._id ?? null
         };
     }
 
@@ -80,7 +82,8 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
             permissionType,
             selectedUserIds,
             selectedUserGroupIds,
-            name
+            name,
+            permissionId
         } = this.state;
 
         const acl: FilezPermissionAcl<any> = {
@@ -97,7 +100,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
 
         const res = await this.context.filezClient.update_permission({
             name,
-            permission_id: this.props.itemId,
+            _id: permissionId,
             //@ts-ignore
             content: {
                 type: permissionType,
@@ -125,6 +128,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                     <div>
                         {this.props.hideTypeChanger !== true && (
                             <InputPicker
+                                cleanable={false}
                                 data={["File", "FileGroup", "User", "UserGroup"].map(v => {
                                     return { label: v, value: v };
                                 })}

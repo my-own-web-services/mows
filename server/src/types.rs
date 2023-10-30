@@ -273,7 +273,7 @@ pub struct UsageLimits {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub struct UserGroup {
+pub struct FilezUserGroup {
     #[serde(rename = "_id")]
     pub user_group_id: String,
     pub name: Option<String>,
@@ -306,6 +306,7 @@ pub struct FilezFileGroup {
     pub group_type: FileGroupType,
     pub dynamic_group_rules: Option<FilterRule>,
     pub item_count: u32,
+    pub readonly: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

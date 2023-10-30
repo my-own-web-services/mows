@@ -4,6 +4,7 @@ import { AiOutlineFolder, AiOutlineFolderView } from "react-icons/ai";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import ResourceList from "../resource/ResourceList";
 import CreateFileGroup from "./CreateFileGroup";
+import EditFileGroup from "./EditFileGroup";
 
 interface FileGroupListProps {
     readonly displayTopBar?: boolean;
@@ -51,7 +52,8 @@ export default class FileGroupList extends PureComponent<FileGroupListProps, Fil
             <div className="Filez FileGroupList" style={{ ...this.props.style }}>
                 <ResourceList
                     createResource={<CreateFileGroup />}
-                    resourceType="File Group"
+                    editResource={<EditFileGroup />}
+                    resourceType="FileGroup"
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_own_file_groups}
                     rowRenderer={this.rowRenderer}

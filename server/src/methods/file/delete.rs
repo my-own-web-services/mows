@@ -3,6 +3,7 @@ use crate::{
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
+    utils::get_query_item,
 };
 use anyhow::bail;
 use hyper::{Body, Request, Response};
@@ -12,7 +13,7 @@ use tokio::fs;
 # Deletes a single file by id.
 
 ## Call
-`/api/file/delete/{file_id}`
+`/api/file/delete/?id={file_id}`
 ## Permissions
 File > DeleteFile
 */
@@ -22,8 +23,10 @@ pub async fn delete_file(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let file_id = req.uri().path().replacen("/api/file/delete/", "", 1);
-
+    let file_id = match get_query_item(&req, "id") {
+        Some(v) => v,
+        None => return Ok(res.status(400).body(Body::from("Missing id"))?),
+    };
     let file = some_or_bail!(db.get_file_by_id(&file_id).await?, "File not found");
 
     match check_auth(

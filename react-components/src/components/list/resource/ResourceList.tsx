@@ -1,6 +1,6 @@
 import { FilezClient, GetResourceParams } from "@firstdorsal/filez-client";
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
-import { CSSProperties, PureComponent, ReactElement, createRef } from "react";
+import { CSSProperties, PureComponent, ReactElement, cloneElement, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
 import SortingBar from "./SortingBar";
@@ -8,43 +8,51 @@ import { FixedSizeList } from "react-window";
 import { AutoSizer } from "rsuite/esm/Windowing";
 import ListTopBar from "./ListTopBar";
 import { cloneDeep } from "lodash";
-import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
 import { Button, Modal } from "rsuite";
 import { FilezContext } from "../../../FilezProvider";
 import { match } from "ts-pattern";
+import { Item, Menu, useContextMenu } from "react-contexify";
+import "react-contexify/dist/ReactContexify.css";
+import { EditResource } from "../../../types";
 
 export interface FilezMenuItems<ResourceType> {
     name: string;
-    onClickOneItem?: (item: ResourceType) => void;
-    onClickMultipleItems?: (items: ResourceType[]) => void;
-    render?: (
-        items: BaseResource[],
-        resourceType: string,
-        close: () => void,
-        filezClient: FilezClient
-    ) => JSX.Element;
+    resources?: string[];
+    onClick?: (items: ResourceType[]) => void;
+    render?: (props: FilezMenuItemsRenderProps) => JSX.Element;
+}
+
+export interface FilezMenuItemsRenderProps {
+    items: BaseResource[];
+    resourceType: string;
+    handleClose: () => void;
+    editResource?: ReactElement<any, any>;
+    filezClient?: FilezClient;
+    refreshList?: InstanceType<typeof ResourceList>["refreshList"];
 }
 
 const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
     {
         name: "Log to console",
-        onClickOneItem: (item: BaseResource) => {
-            console.log(item);
-        },
-        onClickMultipleItems: (items: BaseResource[]) => {
-            console.log(items);
+        onClick: (items: BaseResource[]) => {
+            if (items.length === 1) {
+                console.log(items[0]);
+            } else {
+                console.log(items);
+            }
         }
     },
     {
         name: "Delete",
-
-        render: (
-            items: BaseResource[],
-            resourceType: string,
-            handleClose: () => void,
-            filezClient: FilezClient
-        ) => {
-            if (items.length === 0) return <></>;
+        resources: ["Permission", "File", "FileGroup", "UserGroup"],
+        render: ({
+            items,
+            resourceType,
+            handleClose,
+            filezClient,
+            refreshList
+        }: FilezMenuItemsRenderProps) => {
+            if (items.length === 0 || !filezClient) return <></>;
             const multiple = items.length > 1;
             const single = items.length === 1;
 
@@ -66,7 +74,7 @@ const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
                             color="red"
                             style={{ marginRight: "10px" }}
                             appearance="primary"
-                            onClick={() => {
+                            onClick={async () => {
                                 const promises = items.map(item => {
                                     return match(resourceType)
                                         .with("Permission", () => {
@@ -80,11 +88,19 @@ const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
                                         })
                                         .with("UserGroup", () => {
                                             return filezClient.delete_user_group(item._id);
+                                        })
+                                        .otherwise(() => {
+                                            throw new Error(
+                                                `Resource type ${resourceType} is not supported`
+                                            );
                                         });
                                 });
-                                Promise.all(promises).then(() => {
+                                const res = await Promise.all(promises);
+
+                                if (res) {
+                                    await refreshList?.();
                                     handleClose();
-                                });
+                                }
                             }}
                         >
                             Delete
@@ -98,11 +114,46 @@ const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
     },
     {
         name: "Edit",
-        onClickOneItem: (item: BaseResource) => {
-            console.log(item);
-        },
-        onClickMultipleItems: (items: BaseResource[]) => {
-            console.log(items);
+        resources: ["Permission", "File", "FileGroup", "UserGroup"],
+        render: ({
+            items,
+            resourceType,
+            handleClose,
+            editResource,
+            refreshList
+        }: FilezMenuItemsRenderProps) => {
+            if (!editResource) return <></>;
+            const editResourceRef: React.RefObject<EditResource> = createRef();
+            return (
+                <Modal open={true} onClose={handleClose}>
+                    <Modal.Header>
+                        <Modal.Title>Edit {resourceType}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        {cloneElement(editResource, {
+                            ref: editResourceRef,
+                            resourceIds: items.map(item => item._id)
+                        })}
+                        <br />
+                        <Button
+                            onClick={async () => {
+                                if (!editResourceRef.current) return;
+                                const res = await editResourceRef.current.update();
+                                if (res) {
+                                    await refreshList?.();
+                                    handleClose();
+                                }
+                            }}
+                            style={{ marginRight: "10px" }}
+                            appearance="primary"
+                        >
+                            Update
+                        </Button>
+
+                        <Button onClick={handleClose}>Cancel</Button>
+                    </Modal.Body>
+                </Modal>
+            );
         }
     }
 ];
@@ -154,6 +205,7 @@ interface ResourceListProps<ResourceType extends BaseResource> {
     If provided renders a button to call it as well as the UI rendered by the function to create the resource.
     */
     readonly createResource?: ReactElement<any, any>;
+    readonly editResource?: ReactElement<any, any>;
     readonly style?: CSSProperties;
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
@@ -333,78 +385,85 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         });
     };
 
-    refreshList = () => {
+    refreshList = async () => {
         this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
-        this.loadItems();
+        await this.loadItems();
     };
 
     onRowClick = (
         e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
         item: ResourceType,
-        callAfterClick?: () => void
+        rightClick?: boolean
     ) => {
         // @ts-ignore
         if (e.target?.classList?.contains("clickable")) return;
 
         if (e.ctrlKey) {
-            this.setState(
-                state => {
-                    return {
-                        selectedItems: {
-                            ...state.selectedItems,
-                            [item._id]: state.selectedItems[item._id] ? false : true
-                        }
-                    };
-                },
-                () => callAfterClick?.()
-            );
+            this.setState(state => {
+                return {
+                    selectedItems: {
+                        ...state.selectedItems,
+                        [item._id]: state.selectedItems[item._id] ? false : true
+                    }
+                };
+            });
         } else if (e.shiftKey) {
-            this.setState(
-                state => {
-                    return update(state, {
-                        selectedItems: {
-                            $set: (() => {
-                                const selectedItems = cloneDeep(state.selectedItems);
-                                const noneSelected = Object.keys(selectedItems).every(
-                                    id => !selectedItems[id]
-                                );
+            this.setState(state => {
+                return update(state, {
+                    selectedItems: {
+                        $set: (() => {
+                            const selectedItems = cloneDeep(state.selectedItems);
+                            const noneSelected = Object.keys(selectedItems).every(
+                                id => !selectedItems[id]
+                            );
 
-                                if (noneSelected) {
-                                    selectedItems[item._id] = true;
-                                    return selectedItems;
-                                }
-
-                                const items = state.items;
-                                const startIndex = items.findIndex(
-                                    i =>
-                                        i._id ===
-                                        Object.keys(selectedItems).find(id => selectedItems[id])
-                                );
-                                const endIndex = items.findIndex(i => i._id === item._id);
-                                const minIndex = Math.min(startIndex, endIndex);
-                                const maxIndex = Math.max(startIndex, endIndex);
-                                for (let i = minIndex; i <= maxIndex; i++) {
-                                    selectedItems[items[i]._id] = true;
-                                }
+                            if (noneSelected) {
+                                selectedItems[item._id] = true;
                                 return selectedItems;
-                            })()
-                        }
-                    });
-                },
-                () => callAfterClick?.()
-            );
+                            }
+
+                            const items = state.items;
+                            const startIndex = items.findIndex(
+                                i =>
+                                    i._id ===
+                                    Object.keys(selectedItems).find(id => selectedItems[id])
+                            );
+                            const endIndex = items.findIndex(i => i._id === item._id);
+                            const minIndex = Math.min(startIndex, endIndex);
+                            const maxIndex = Math.max(startIndex, endIndex);
+                            for (let i = minIndex; i <= maxIndex; i++) {
+                                selectedItems[items[i]._id] = true;
+                            }
+                            return selectedItems;
+                        })()
+                    }
+                });
+            });
+        } else if (rightClick) {
+            const selectedItems = this.getSelectedItems();
+            if (selectedItems.length <= 1) {
+                this.setState({
+                    selectedItems: {
+                        [item._id]: true
+                    }
+                });
+            }
         } else {
-            this.setState(
-                state => {
-                    return {
-                        selectedItems: {
-                            [item._id]: state.selectedItems[item._id] ? false : true
-                        }
-                    };
-                },
-                () => callAfterClick?.()
-            );
+            this.setState({
+                selectedItems: {
+                    [item._id]: true
+                }
+            });
         }
+    };
+
+    getSelectedItems = (): ResourceType[] => {
+        return Object.keys(this.state.selectedItems)
+            .filter(id => this.state.selectedItems[id] === true)
+            .flatMap(id => {
+                const item = this.state.items.find(item => item._id === id);
+                return item ? [item] : [];
+            });
     };
 
     rowRenderer = (item: ResourceType, style: CSSProperties, columns?: Column<ResourceType>[]) => {
@@ -445,66 +504,56 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             </>
         );
 
+        const { show } = useContextMenu({
+            id: item._id
+        });
+
         return (
             <div
                 onClick={e => this.onRowClick(e, item)}
                 style={{
                     ...style
                 }}
+                onContextMenu={e => {
+                    this.onRowClick(e, item, true);
+                    show({ event: e });
+                }}
                 className={`Row${this.state.selectedItems[item._id] ? " selected" : ""}`}
             >
-                {this.props.disableContextMenu ? (
-                    inner()
-                ) : (
-                    <>
-                        {/*@ts-ignore*/}
-                        <ContextMenuTrigger
-                            style={style}
-                            disableIfShiftIsPressed={true}
-                            id={item._id}
-                        >
-                            {inner()}
-                        </ContextMenuTrigger>
-                        {/*@ts-ignore*/}
-                        <ContextMenu id={item._id}>
-                            {this.state.menuItems.map(menuItem => {
-                                return (
-                                    // @ts-ignore
-                                    <MenuItem
-                                        key={menuItem.name}
-                                        className="clickable"
-                                        onClick={e => {
-                                            // select the current item
-                                            // TODO this does not work if no item is selected yet
-                                            let selected = Object.keys(this.state.selectedItems)
-                                                .filter(id => this.state.selectedItems[id] === true)
-                                                .flatMap(id => {
-                                                    const item = this.state.items.find(
-                                                        item => item._id === id
-                                                    );
-                                                    return item ? [item] : [];
-                                                });
+                {inner()}
+                {!this.props.disableContextMenu && (
+                    <Menu id={item._id}>
+                        {this.state.menuItems.flatMap(menuItem => {
+                            if (
+                                menuItem.resources &&
+                                !menuItem.resources.includes(this.props.resourceType)
+                            ) {
+                                return [];
+                            }
+                            return [
+                                <Item
+                                    key={menuItem.name}
+                                    className="clickable"
+                                    onClick={() => {
+                                        // select the current item
+                                        // TODO this does not work if no item is selected yet
+                                        let selected = this.getSelectedItems();
+                                        if (menuItem.onClick) {
+                                            menuItem.onClick(
+                                                selected.length > 1 ? [item] : selected
+                                            );
+                                        }
 
-                                            if (selected.length > 1) {
-                                                if (menuItem.onClickMultipleItems) {
-                                                    menuItem.onClickMultipleItems(selected);
-                                                }
-                                            } else {
-                                                if (menuItem.onClickOneItem) {
-                                                    menuItem.onClickOneItem(item);
-                                                }
-                                            }
-                                            this.setState({
-                                                renderModalName: menuItem.name
-                                            });
-                                        }}
-                                    >
-                                        {menuItem.name}
-                                    </MenuItem>
-                                );
-                            })}
-                        </ContextMenu>
-                    </>
+                                        this.setState({
+                                            renderModalName: menuItem.name
+                                        });
+                                    }}
+                                >
+                                    {menuItem.name}
+                                </Item>
+                            ];
+                        })}
+                    </Menu>
                 )}
             </div>
         );
@@ -534,16 +583,18 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                     return (
                         mi &&
                         mi.render &&
-                        mi.render(
-                            this.state.items.filter(
+                        mi.render({
+                            items: this.state.items.filter(
                                 item => this.state.selectedItems[item._id] === true
                             ),
-                            this.props.resourceType,
-                            () => {
+                            resourceType: this.props.resourceType,
+                            handleClose: () => {
                                 this.setState({ renderModalName: "" });
                             },
-                            this.context.filezClient
-                        )
+                            editResource: this.props.editResource,
+                            filezClient: this.context.filezClient,
+                            refreshList: this.refreshList
+                        })
                     );
                 })()}
                 {this.props.displayTopBar !== false && (

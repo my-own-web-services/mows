@@ -4,7 +4,6 @@ import { PureComponent } from "react";
 import { Input, InputPicker, TagPicker } from "rsuite";
 import update from "immutability-helper";
 import { FilezContext } from "../../../FilezProvider";
-import { match } from "ts-pattern";
 import SelectOrCreateUseOncePermission from "../../utils/SelectOrCreateUseOncePermission";
 import Permission from "../permissions/Permission";
 
@@ -49,7 +48,7 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
         const cg = this.state.clientGroup;
 
         if (cg._id === "") {
-            const permission_ids = cg.permission_ids;
+            const permission_ids = cloneDeep(cg.permission_ids);
             if (useOncePermissionId) {
                 permission_ids.push(useOncePermissionId);
             }
@@ -71,30 +70,27 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
         return false;
     };
 
-    update = async (
-        fieldToUpdate:
-            | "Name"
-            | "DynamicGroupRules"
-            | "GroupType"
-            | "Keywords"
-            | "MimeTypes"
-            | "GroupHierarchyPaths"
-    ) => {
+    update = async () => {
         if (!this.context) return false;
         const cg = this.state.clientGroup;
+        const sg = this.state.serverGroup;
 
         const res = await this.context.filezClient.update_file_group({
             file_group_id: cg._id,
-            // @ts-ignore
-            field: {
-                [fieldToUpdate]: match(fieldToUpdate)
-                    .with("Name", () => cg.name)
-                    .with("DynamicGroupRules", () => cg.dynamic_group_rules)
-                    .with("GroupType", () => cg.group_type)
-                    .with("Keywords", () => cg.keywords)
-                    .with("MimeTypes", () => cg.mime_types)
-                    .with("GroupHierarchyPaths", () => cg.group_hierarchy_paths)
-                    .exhaustive()
+            fields: {
+                dynamic_group_rules:
+                    cg.dynamic_group_rules === sg.dynamic_group_rules
+                        ? null
+                        : cg.dynamic_group_rules,
+                group_type: cg.group_type === sg.group_type ? null : cg.group_type,
+                keywords: cg.keywords === sg.keywords ? null : cg.keywords,
+                mime_types: cg.mime_types === sg.mime_types ? null : cg.mime_types,
+                name: cg.name === sg.name ? null : cg.name,
+                group_hierarchy_paths:
+                    cg.group_hierarchy_paths === sg.group_hierarchy_paths
+                        ? null
+                        : cg.group_hierarchy_paths,
+                permission_ids: cg.permission_ids === sg.permission_ids ? null : cg.permission_ids
             }
         });
         if (res.status === 200) {

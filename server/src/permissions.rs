@@ -2,7 +2,7 @@ use crate::{
     config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
-    types::{FilezFile, FilezFileGroup, FilezUser, UserGroup},
+    types::{FilezFile, FilezFileGroup, FilezUser, FilezUserGroup},
     utils::merge_values,
 };
 use anyhow::bail;
@@ -15,7 +15,7 @@ pub enum AuthResourceToCheck<'a> {
     File((&'a FilezFile, FilezFilePermissionAclWhatOptions)),
     FileGroup((&'a FilezFileGroup, FilezFileGroupPermissionAclWhatOptions)),
     User((&'a FilezUser, FilezUserPermissionAclWhatOptions)),
-    UserGroup((&'a UserGroup, FilezUserGroupPermissionAclWhatOptions)),
+    UserGroup((&'a FilezUserGroup, FilezUserGroupPermissionAclWhatOptions)),
 }
 
 pub async fn check_auth(
@@ -267,6 +267,8 @@ pub enum FilezFileGroupPermissionAclWhatOptions {
 pub enum FilezUserGroupPermissionAclWhatOptions {
     GetGroupInfos,
     DeleteGroup,
+    UpdateGroupInfosName,
+    UpdateGroupInfosVisibility,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

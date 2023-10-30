@@ -42,7 +42,7 @@ pub async fn update_permission(
 
             let permission = FilezPermission {
                 owner_id: requesting_user.user_id.to_string(),
-                name: permission.name,
+                name: cpr.name.or(permission.name),
                 permission_id: permission.permission_id,
                 content: cpr.content,
                 use_type: cpr.use_type,

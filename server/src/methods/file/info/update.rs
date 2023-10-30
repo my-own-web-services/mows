@@ -46,233 +46,241 @@ pub async fn update_file_infos(
         Err(_) => bail!("File not found"),
     };
 
-    match ufir.field {
-        UpdateFileInfosRequestField::MimeType(new_mime_type) => {
-            check_mime_type(&new_mime_type)?;
+    if let Some(new_mime_type) = &ufir.fields.mime_type {
+        check_mime_type(new_mime_type)?;
 
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::File((
-                    &filez_file,
-                    FilezFilePermissionAclWhatOptions::UpdateFileInfosMimeType,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::File((
+                &filez_file,
+                FilezFilePermissionAclWhatOptions::UpdateFileInfosMimeType,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
             }
-            db.update_mime_type(&filez_file.file_id, &new_mime_type)
-                .await?;
-
-            Ok(res.status(200).body(Body::from("Updated")).unwrap())
+            Err(e) => bail!(e),
         }
-        UpdateFileInfosRequestField::Name(new_name) => {
-            check_file_name(&new_name)?;
+        db.update_file_mime_type(&filez_file.file_id, new_mime_type)
+            .await?;
+    };
 
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::File((
-                    &filez_file,
-                    FilezFilePermissionAclWhatOptions::UpdateFileInfosName,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
+    if let Some(new_name) = &ufir.fields.name {
+        check_file_name(new_name)?;
+
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::File((
+                &filez_file,
+                FilezFilePermissionAclWhatOptions::UpdateFileInfosName,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
             }
-            db.update_file_name(&filez_file.file_id, &new_name).await?;
-
-            Ok(res.status(200).body(Body::from("Updated")).unwrap())
+            Err(e) => bail!(e),
         }
+        db.update_file_name(&filez_file.file_id, new_name).await?;
+    };
 
-        UpdateFileInfosRequestField::StaticFileGroupIds(new_static_file_group_ids) => {
-            check_static_file_groups(&new_static_file_group_ids)?;
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::File((
-                    &filez_file,
-                    FilezFilePermissionAclWhatOptions::UpdateFileInfosStaticFileGroups,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
+    if let Some(new_static_file_group_ids) = &ufir.fields.static_file_group_ids {
+        check_static_file_groups(new_static_file_group_ids)?;
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::File((
+                &filez_file,
+                FilezFilePermissionAclWhatOptions::UpdateFileInfosStaticFileGroups,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
             }
-            db.check_file_group_existence(&new_static_file_group_ids)
-                .await?;
-
-            db.update_static_file_group_ids(&filez_file.file_id, &new_static_file_group_ids)
-                .await?;
-
-            Ok(res.status(200).body(Body::from("Updated")).unwrap())
+            Err(e) => bail!(e),
         }
-        UpdateFileInfosRequestField::Keywords(new_keywords) => {
-            check_keywords(&new_keywords)?;
+        db.check_file_group_existence(new_static_file_group_ids)
+            .await?;
 
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::File((
-                    &filez_file,
-                    FilezFilePermissionAclWhatOptions::UpdateFileInfosKeywords,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
+        db.update_file_static_file_group_ids(&filez_file.file_id, new_static_file_group_ids)
+            .await?;
+    };
+
+    if let Some(new_keywords) = &ufir.fields.keywords {
+        check_keywords(new_keywords)?;
+
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::File((
+                &filez_file,
+                FilezFilePermissionAclWhatOptions::UpdateFileInfosKeywords,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
             }
-
-            let new_keywords = new_keywords
-                .into_iter()
-                .map(|k| {
-                    if k.contains('>') {
-                        // trim whitespace in front and after the > character
-                        k.split('>')
-                            .map(|s| s.trim())
-                            .collect::<Vec<&str>>()
-                            .join(">")
-                    } else {
-                        k.trim().to_string()
-                    }
-                })
-                .filter(|k| !k.is_empty())
-                .unique()
-                .collect::<Vec<String>>();
-            db.update_keywords(&filez_file.file_id, &new_keywords)
-                .await?;
-
-            Ok(res.status(200).body(Body::from("Updated")).unwrap())
+            Err(e) => bail!(e),
         }
-        UpdateFileInfosRequestField::OwnerId(new_owner_id) => {
-            // check if the file is owned by the user
-            if let Some(requesting_user_id) = &auth.authenticated_ir_user_id {
-                if requesting_user_id == &filez_file.owner_id {
-                    // mark the file as in transfer
-                    // the new owner has to accept the transfer
-                    check_owner_id(&new_owner_id)?;
 
-                    if db.get_user_by_id(&new_owner_id).await?.is_none() {
-                        bail!("New owner does not exist")
-                    }
-
-                    db.update_pending_new_owner_id(&filez_file.file_id, &new_owner_id)
-                        .await?;
-                    return Ok(res.status(200).body(Body::from("Updated")).unwrap());
+        let new_keywords = new_keywords
+            .iter()
+            .map(|k| {
+                if k.contains('>') {
+                    // trim whitespace in front and after the > character
+                    k.split('>')
+                        .map(|s| s.trim())
+                        .collect::<Vec<&str>>()
+                        .join(">")
+                } else {
+                    k.trim().to_string()
                 }
+            })
+            .filter(|k| !k.is_empty())
+            .unique()
+            .collect::<Vec<String>>();
+        db.update_file_keywords(&filez_file.file_id, &new_keywords)
+            .await?;
+    };
+
+    if let Some(new_owner_id) = &ufir.fields.owner_id {
+        // check if the file is owned by the user
+        if let Some(requesting_user_id) = &auth.authenticated_ir_user_id {
+            if requesting_user_id == &filez_file.owner_id {
+                // mark the file as in transfer
+                // the new owner has to accept the transfer
+                check_owner_id(new_owner_id)?;
+
+                if db.get_user_by_id(new_owner_id).await?.is_none() {
+                    bail!("New owner does not exist")
+                }
+
+                db.update_pending_new_owner_id(&filez_file.file_id, new_owner_id)
+                    .await?;
             }
-
-            Ok(res.status(401).body(Body::from("Unauthorized")).unwrap())
         }
-        UpdateFileInfosRequestField::StorageId(new_storage_id) => {
-            // check if user is the owner
-            if let Some(requesting_user_id) = &auth.authenticated_ir_user_id {
-                if requesting_user_id == &filez_file.owner_id {
-                    // check if storage id is valid
-                    check_storage_id(&new_storage_id)?;
+    };
 
-                    if filez_file.readonly {
-                        bail!("File is readonly")
-                    }
+    if let Some(new_storage_id) = &ufir.fields.storage_id {
+        if let Some(requesting_user_id) = &auth.authenticated_ir_user_id {
+            if requesting_user_id == &filez_file.owner_id {
+                // check if storage id is valid
+                check_storage_id(new_storage_id)?;
 
-                    if filez_file.storage_id.is_some() {
-                        if filez_file.storage_id.as_ref().unwrap() == &new_storage_id {
-                            bail!("File is already stored on the storage")
-                        }
-                    } else {
-                        bail!("File is not stored on a storage with a storage id")
-                    }
+                if filez_file.readonly {
+                    bail!("File is readonly")
+                }
 
-                    // check if storage path exists
-                    let new_storage_path = some_or_bail!(
-                        config.storage.get(&new_storage_id),
-                        format!(
-                            "Storage name: '{}' is missing in the config file",
-                            new_storage_id
-                        )
+                // check if storage path exists
+                let new_storage_path = some_or_bail!(
+                    config.storage.get(new_storage_id),
+                    format!(
+                        "Storage name: '{}' is missing in the config file",
+                        new_storage_id
                     )
-                    .path
-                    .clone();
+                )
+                .path
+                .clone();
 
-                    // check if the user has access to the storage and their limits wouldn't be exceeded if the file was moved
-                    let user = some_or_bail!(
-                        db.get_user_by_id(requesting_user_id).await?,
-                        "User not found"
-                    );
-                    let user_storage_limits = some_or_bail!(
-                        user.limits.get(&new_storage_id),
-                        "User does not have access to the storage"
-                    );
-                    if user_storage_limits.max_files <= user_storage_limits.used_files {
-                        bail!("User has reached the maximum number of files for this storage")
-                    }
-                    if user_storage_limits.max_storage
-                        <= user_storage_limits.used_storage + filez_file.size
-                    {
-                        bail!("User has reached the maximum size for this storage")
-                    }
-
-                    // move the file
-                    let (new_folder_path, new_file_name) =
-                        get_folder_and_file_path(&filez_file.file_id, &new_storage_path);
-
-                    fs::create_dir_all(&new_folder_path).await?;
-                    let new_file_path = format!("{}/{}", new_folder_path, new_file_name);
-
-                    fs::copy(&filez_file.path, &new_file_path).await?;
-
-                    match db
-                        .update_storage_id(&filez_file, &new_storage_id, &new_file_path, &user)
-                        .await
-                    {
-                        Ok(_) => {
-                            fs::remove_file(&filez_file.path).await?;
-                            return Ok(res.status(200).body(Body::from("Updated")).unwrap());
-                        }
-                        Err(e) => {
-                            fs::remove_file(&new_file_path).await?;
-                            bail!("Failed to update storage id: {e}")
-                        }
-                    };
+                // check if the user has access to the storage and their limits wouldn't be exceeded if the file was moved
+                let user = some_or_bail!(
+                    db.get_user_by_id(requesting_user_id).await?,
+                    "User not found"
+                );
+                let user_storage_limits = some_or_bail!(
+                    user.limits.get(new_storage_id),
+                    "User does not have access to the storage"
+                );
+                if user_storage_limits.max_files <= user_storage_limits.used_files {
+                    bail!("User has reached the maximum number of files for this storage")
                 }
+                if user_storage_limits.max_storage
+                    <= user_storage_limits.used_storage + filez_file.size
+                {
+                    bail!("User has reached the maximum size for this storage")
+                }
+
+                // move the file
+                let (new_folder_path, new_file_name) =
+                    get_folder_and_file_path(&filez_file.file_id, &new_storage_path);
+
+                fs::create_dir_all(&new_folder_path).await?;
+                let new_file_path = format!("{}/{}", new_folder_path, new_file_name);
+
+                fs::copy(&filez_file.path, &new_file_path).await?;
+
+                match db
+                    .update_file_storage_id(&filez_file, new_storage_id, &new_file_path, &user)
+                    .await
+                {
+                    Ok(_) => {
+                        fs::remove_file(&filez_file.path).await?;
+                        return Ok(res.status(200).body(Body::from("Updated")).unwrap());
+                    }
+                    Err(e) => {
+                        fs::remove_file(&new_file_path).await?;
+                        bail!("Failed to update storage id: {e}")
+                    }
+                };
             }
-            Ok(res.status(401).body(Body::from("Unauthorized")).unwrap())
         }
+    };
+
+    if let Some(permission_ids) = ufir.fields.permission_ids {
+        let requesting_user = match &auth.authenticated_ir_user_id {
+            Some(ir_user_id) => match db.get_user_by_ir_id(ir_user_id).await? {
+                Some(u) => u,
+                None => bail!("User has not been created on the filez server, although it is present on the IR server. Run create_own first."),
+            },
+            None =>  return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap()),
+        };
+
+        if requesting_user.user_id != filez_file.owner_id {
+            return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+        }
+        // check if all permissions are owned by the requesting user
+        let permissions = db.get_permissions_by_resource_id(&permission_ids).await?;
+        for permission in permissions {
+            if permission.owner_id != requesting_user.user_id {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+            }
+        }
+
+        db.update_file_permission_ids(&filez_file.file_id, &permission_ids)
+            .await?;
     }
+
+    Ok(res.status(201).body(Body::from("Ok")).unwrap())
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct UpdateFileInfosRequest {
     pub file_id: String,
-    pub field: UpdateFileInfosRequestField,
+    pub fields: UpdateFileInfosRequestField,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub enum UpdateFileInfosRequestField {
-    MimeType(String),
-    Name(String),
-    OwnerId(String),
-    StorageId(String),
-    StaticFileGroupIds(Vec<String>),
-    Keywords(Vec<String>),
+pub struct UpdateFileInfosRequestField {
+    pub mime_type: Option<String>,
+    pub name: Option<String>,
+    pub static_file_group_ids: Option<Vec<String>>,
+    pub keywords: Option<Vec<String>>,
+    pub owner_id: Option<String>,
+    pub storage_id: Option<String>,
+    pub permission_ids: Option<Vec<String>>,
 }

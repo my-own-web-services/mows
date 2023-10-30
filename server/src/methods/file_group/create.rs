@@ -42,6 +42,7 @@ pub async fn create_file_group(
         group_type: cgr.group_type,
         item_count: 0,
         dynamic_group_rules: cgr.dynamic_group_rules,
+        readonly: false,
     };
 
     db.create_file_group(&file_group).await?;
@@ -55,12 +56,6 @@ pub async fn create_file_group(
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub struct CreateFileGroupResponseBody {
-    pub group_id: String,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct CreateFileGroupRequestBody {
     pub name: Option<String>,
     pub keywords: Vec<String>,
@@ -69,4 +64,10 @@ pub struct CreateFileGroupRequestBody {
     pub group_type: FileGroupType,
     pub dynamic_group_rules: Option<FilterRule>,
     pub permission_ids: Vec<String>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct CreateFileGroupResponseBody {
+    pub group_id: String,
 }

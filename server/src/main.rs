@@ -27,6 +27,7 @@ use filez::methods::user::get_own::get_own_user;
 use filez::methods::user::update_friendship_status::update_friendship_status;
 use filez::methods::user_group::create::create_user_group;
 use filez::methods::user_group::delete::delete_user_group;
+use filez::methods::user_group::update::update_user_group;
 use filez::readonly_mount::scan_readonly_mounts;
 use filez::utils::{get_password_from_query, is_allowed_origin};
 use hyper::server::conn::AddrStream;
@@ -137,7 +138,7 @@ async fn handle_inner(
     } else {
         return Ok(Response::builder()
             .status(404)
-            .body(Body::from("Not found"))
+            .body(Body::from("Method not found"))
             .unwrap());
     }
     let m = req.method();
@@ -193,12 +194,13 @@ async fn handle_inner(
         password: get_password_from_query(&req),
         user_assertion,
     };
+    dbg!(p, m, &auth);
     /* file */
     if p.starts_with("/file/get/") && m == Method::GET {
         get_file(req, db, &auth, res).await
     } else if p == "/file/create/" && m == Method::POST {
         create_file(req, db, &auth, res).await
-    } else if p.starts_with("/file/delete/") && m == Method::POST {
+    } else if p == "/file/delete/" && m == Method::POST {
         delete_file(req, db, &auth, res).await
     } else if p == "/file/update/" && m == Method::POST {
         update_file(req, db, &auth, res).await
@@ -224,6 +226,8 @@ async fn handle_inner(
         create_user_group(req, db, &auth, res).await
     } else if p == "/user_group/delete/" && m == Method::POST {
         delete_user_group(req, db, &auth, res).await
+    } else if p == "/user_group/update/" && m == Method::POST {
+        update_user_group(req, db, &auth, res).await
     }
     /* permissions */
     else if p == "/permission/update/" && m == Method::POST {
@@ -270,6 +274,9 @@ async fn handle_inner(
     }
     /* everything else */
     else {
-        Ok(res.status(404).body(Body::from("Not found")).unwrap())
+        Ok(res
+            .status(404)
+            .body(Body::from("Method not found"))
+            .unwrap())
     }
 }

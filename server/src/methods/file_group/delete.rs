@@ -2,6 +2,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFileGroupPermissionAclWhatOptions},
+    utils::get_query_item,
 };
 use anyhow::bail;
 use hyper::{body::Body, Request, Response};
@@ -10,7 +11,7 @@ use hyper::{body::Body, Request, Response};
 # Deletes a file group.
 
 ## Call
-`/api/file_group/delete/`
+`/api/file_group/delete/?id={group_id}`
 ## Permissions
 FileGroup > DeleteGroup
 */
@@ -20,7 +21,10 @@ pub async fn delete_file_group(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let file_group_id = req.uri().path().replacen("/api/file_group/delete/", "", 1);
+    let file_group_id = match get_query_item(&req, "id") {
+        Some(v) => v,
+        None => return Ok(res.status(400).body(Body::from("Missing id"))?),
+    };
 
     let file_group = match db.get_file_group_by_id(&file_group_id).await? {
         Some(fg) => fg,
@@ -46,5 +50,5 @@ pub async fn delete_file_group(
 
     db.delete_file_group(&file_group).await?;
 
-    Ok(res.status(200).body(Body::from("OK"))?)
+    Ok(res.status(200).body(Body::from("Ok"))?)
 }

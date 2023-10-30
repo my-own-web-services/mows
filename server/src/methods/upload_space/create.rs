@@ -64,6 +64,7 @@ pub async fn create_upload_space(
         group_type: FileGroupType::Static,
         item_count: 0,
         dynamic_group_rules: None,
+        readonly: false,
     };
 
     db.create_file_group(&group).await?;

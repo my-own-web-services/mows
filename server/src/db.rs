@@ -7,8 +7,8 @@ use crate::{
     permissions::FilezPermission,
     some_or_bail,
     types::{
-        AppDataType, FileGroupType, FilezFile, FilezFileGroup, FilezUser, SortOrder, UploadSpace,
-        UsageLimits, UserGroup, UserRole, UserStatus, Visibility,
+        AppDataType, FileGroupType, FilezFile, FilezFileGroup, FilezUser, FilezUserGroup,
+        SortOrder, UploadSpace, UsageLimits, UserRole, UserStatus, Visibility,
     },
     utils::generate_id,
 };
@@ -302,7 +302,7 @@ impl DB {
     ) -> anyhow::Result<Option<FilezPermission>> {
         let collection = self.db.collection::<FilezPermission>("permissions");
         let res = collection
-            .find_one(doc! {"permission_id": permission_id}, None)
+            .find_one(doc! {"_id": permission_id}, None)
             .await?;
 
         Ok(res)
@@ -312,7 +312,7 @@ impl DB {
         let collection = self.db.collection::<FilezPermission>("permissions");
         collection
             .update_one(
-                doc! {"permission_id": permission.permission_id.clone()},
+                doc! {"_id": permission.permission_id.clone()},
                 doc! {"$set": bson::to_bson(permission)?},
                 None,
             )
@@ -512,6 +512,7 @@ impl DB {
                     group_type: FileGroupType::Static,
                     dynamic_group_rules: None,
                     item_count: 0,
+                    readonly: true,
                 },
                 None,
                 &mut session,
@@ -612,8 +613,8 @@ impl DB {
     pub async fn get_user_group_by_id(
         &self,
         user_group_id: &str,
-    ) -> anyhow::Result<Option<UserGroup>> {
-        let collection = self.db.collection::<UserGroup>("user_groups");
+    ) -> anyhow::Result<Option<FilezUserGroup>> {
+        let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
         let res = collection
             .find_one(
@@ -627,18 +628,13 @@ impl DB {
         Ok(res)
     }
 
-    pub async fn delete_permission(
-        &self,
-        permission_id: &str,
-        owner_id: &str,
-    ) -> anyhow::Result<DeleteResult> {
+    pub async fn delete_permission(&self, permission_id: &str) -> anyhow::Result<DeleteResult> {
         let collection = self.db.collection::<FilezPermission>("permissions");
 
         Ok(collection
             .delete_one(
                 doc! {
-                    "permission_id": permission_id,
-                    "owner_id": owner_id
+                    "_id": permission_id,
                 },
                 None,
             )
@@ -666,7 +662,7 @@ impl DB {
             .find(
                 doc! {
                     "owner_id": owner_id,
-                    "name":group_name
+                    "name": group_name
                 },
                 None,
             )
@@ -679,12 +675,29 @@ impl DB {
 
     pub async fn create_user_group(
         &self,
-        user_group: &UserGroup,
+        user_group: &FilezUserGroup,
     ) -> anyhow::Result<InsertOneResult> {
-        let collection = self.db.collection::<UserGroup>("user_groups");
+        let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
         let res = collection.insert_one(user_group, None).await?;
         Ok(res)
+    }
+
+    pub async fn update_user_group(&self, user_group: &FilezUserGroup) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezUserGroup>("user_groups");
+        collection
+            .update_one(
+                doc! {
+                    "_id": &user_group.user_group_id
+                },
+                doc! {
+                    "$set": bson::to_bson(user_group)?
+                },
+                None,
+            )
+            .await?;
+
+        Ok(())
     }
 
     pub async fn create_file_group(
@@ -705,7 +718,9 @@ impl DB {
                 let collection = self.db.collection::<FilezUser>("users");
                 collection
                     .update_one(
-                        doc! {"_id":sadr.id},
+                        doc! {
+                            "_id": sadr.id
+                        },
                         doc! {
                             "$set":{
                                 update_key: bson::to_bson(&sadr.app_data)?
@@ -720,7 +735,7 @@ impl DB {
                 collection
                     .update_one(
                         doc! {
-                            "_id":sadr.id
+                            "_id": sadr.id
                         },
                         doc! {
                             "$set":{
@@ -787,7 +802,7 @@ impl DB {
                     "_id":file_id
                 },
                 doc! {
-                    "$set":{
+                    "$set": {
                         "name": new_name
                     }
                 },
@@ -796,7 +811,7 @@ impl DB {
             .await?)
     }
 
-    pub async fn update_mime_type(
+    pub async fn update_file_mime_type(
         &self,
         file_id: &str,
         new_mime_type: &str,
@@ -808,7 +823,7 @@ impl DB {
                     "_id": file_id
                 },
                 doc! {
-                    "$set":{
+                    "$set": {
                         "mime_type": new_mime_type
                     }
                 },
@@ -817,7 +832,7 @@ impl DB {
             .await?)
     }
 
-    pub async fn update_static_file_group_ids(
+    pub async fn update_file_static_file_group_ids(
         &self,
         file_id: &str,
         new_static_file_group_ids: &Vec<String>,
@@ -825,14 +840,20 @@ impl DB {
         let collection = self.db.collection::<FilezFile>("files");
         Ok(collection
             .update_one(
-                doc! {"_id":file_id},
-                doc! {"$set":{ "static_file_group_ids": new_static_file_group_ids }},
+                doc! {
+                    "_id": file_id
+                },
+                doc! {
+                    "$set": {
+                        "static_file_group_ids": new_static_file_group_ids
+                    }
+                },
                 None,
             )
             .await?)
     }
 
-    pub async fn update_keywords(
+    pub async fn update_file_keywords(
         &self,
         file_id: &str,
         new_keywords: &Vec<String>,
@@ -840,14 +861,20 @@ impl DB {
         let collection = self.db.collection::<FilezFile>("files");
         Ok(collection
             .update_one(
-                doc! {"_id":file_id},
-                doc! {"$set":{ "keywords": new_keywords }},
+                doc! {
+                    "_id": file_id
+                },
+                doc! {
+                    "$set": {
+                        "keywords": new_keywords
+                    }
+                },
                 None,
             )
             .await?)
     }
 
-    pub async fn update_storage_id(
+    pub async fn update_file_storage_id(
         &self,
         file: &FilezFile,
         new_storage_id: &str,
@@ -863,8 +890,14 @@ impl DB {
         // set new storage path and id
         files_collection
             .update_one_with_session(
-                doc! { "_id": &file.file_id },
-                doc! { "$set":{ "storage_id": new_storage_id, "path": new_path }},
+                doc! {
+                    "_id": &file.file_id
+                },
+                doc! {
+                    "$set": {
+                        "storage_id": new_storage_id, "path": new_path
+                    }
+                },
                 None,
                 &mut session,
             )
@@ -880,9 +913,11 @@ impl DB {
 
         users_collection
             .update_one_with_session(
-                doc! {"_id": &user.user_id },
                 doc! {
-                    "$inc":{
+                    "_id": &user.user_id
+                },
+                doc! {
+                    "$inc": {
                         old_used_storage_key: -(file.size as i64),
                         new_used_storage_key: file.size as i64,
                         old_file_count_key: -1,
@@ -905,8 +940,35 @@ impl DB {
         let collection = self.db.collection::<FilezFile>("files");
         Ok(collection
             .update_one(
-                doc! {"_id":file_id},
-                doc! {"$set":{ "pending_new_owner_id": new_owner_id }},
+                doc! {
+                    "_id":file_id
+                },
+                doc! {
+                    "$set": {
+                         "pending_new_owner_id": new_owner_id
+                    }
+                },
+                None,
+            )
+            .await?)
+    }
+
+    pub async fn update_file_permission_ids(
+        &self,
+        file_id: &str,
+        new_permission_ids: &Vec<String>,
+    ) -> anyhow::Result<UpdateResult> {
+        let collection = self.db.collection::<FilezFile>("files");
+        Ok(collection
+            .update_one(
+                doc! {
+                    "_id":file_id
+                },
+                doc! {
+                    "$set":{
+                        "permission_ids": new_permission_ids
+                    }
+                },
                 None,
             )
             .await?)
@@ -920,8 +982,8 @@ impl DB {
         sort_field: Option<String>,
         sort_order: SortOrder,
         search_filter: Option<String>,
-    ) -> anyhow::Result<(Vec<UserGroup>, u32)> {
-        let collection = self.db.collection::<UserGroup>("user_groups");
+    ) -> anyhow::Result<(Vec<FilezUserGroup>, u32)> {
+        let collection = self.db.collection::<FilezUserGroup>("user_groups");
         let requesting_user_id = &requesting_user.user_id;
         let requesting_user_user_groups = &requesting_user.user_group_ids;
         let sort_field = sort_field.unwrap_or("_id".to_string());
@@ -1676,12 +1738,12 @@ impl DB {
         Ok(session.commit_transaction().await?)
     }
 
-    pub async fn delete_user_group(&self, user_group: &UserGroup) -> anyhow::Result<()> {
+    pub async fn delete_user_group(&self, user_group: &FilezUserGroup) -> anyhow::Result<()> {
         let mut session = self.client.start_session(None).await?;
 
         session.start_transaction(None).await?;
 
-        let collection = self.db.collection::<UserGroup>("user_groups");
+        let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
         collection
             .delete_one_with_session(

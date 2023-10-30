@@ -1,7 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{UserGroup, Visibility},
+    types::{FilezUserGroup, Visibility},
     utils::generate_id,
 };
 use hyper::{body::Body, Request, Response};
@@ -31,7 +31,7 @@ pub async fn create_user_group(
 
     let group_id = generate_id(16);
 
-    let user_group = UserGroup {
+    let user_group = FilezUserGroup {
         owner_id: requesting_user.user_id.to_string(),
         name: cgr.name,
         user_group_id: group_id.clone(),
@@ -53,6 +53,7 @@ pub async fn create_user_group(
 pub struct CreateUserGroupRequestBody {
     pub name: Option<String>,
     pub visibility: Visibility,
+    pub permission_ids: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

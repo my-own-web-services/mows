@@ -12,10 +12,11 @@ import { CreateFileGroupRequestBody } from "./apiTypes/CreateFileGroupRequestBod
 import { CreateUserGroupRequestBody } from "./apiTypes/CreateUserGroupRequestBody.js";
 import { GetResourceParams } from "./types.js";
 import { GetItemListResponseBody } from "./apiTypes/GetItemListResponseBody.js";
-import { UserGroup } from "./apiTypes/UserGroup.js";
 import { ReducedFilezUser } from "./apiTypes/ReducedFilezUser.js";
 import { UpdatePermissionRequestBody } from "./apiTypes/UpdatePermissionRequestBody.js";
 import { UpdatePermissionResponseBody } from "./apiTypes/UpdatePermissionResponseBody.js";
+import { UpdateUserGroupRequestBody } from "./apiTypes/UpdateUserGroupRequestBody.js";
+import { FilezUserGroup } from "./apiTypes/FilezUserGroup.js";
 
 export * from "./types.js";
 
@@ -94,7 +95,7 @@ export class FilezClient {
     };
 
     delete_file = async (file_id: string) => {
-        const res = await fetch(`${this.filezEndpoint}/api/file/delete/${file_id}`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file/delete/?id=${file_id}`, {
             method: "POST",
             credentials: "include"
         });
@@ -102,10 +103,13 @@ export class FilezClient {
     };
 
     delete_permission = async (permission_id: string) => {
-        const res = await fetch(`${this.filezEndpoint}/api/permission/delete/${permission_id}`, {
-            method: "POST",
-            credentials: "include"
-        });
+        const res = await fetch(
+            `${this.filezEndpoint}/api/permission/delete/?id=${permission_id}`,
+            {
+                method: "POST",
+                credentials: "include"
+            }
+        );
         return res;
     };
 
@@ -230,7 +234,7 @@ export class FilezClient {
             credentials: "include"
         });
 
-        const json: GetItemListResponseBody<UserGroup> = await res.json();
+        const json: GetItemListResponseBody<FilezUserGroup> = await res.json();
 
         return json;
     };
@@ -275,6 +279,18 @@ export class FilezClient {
         return res;
     };
 
+    update_user_group = async (req: UpdateUserGroupRequestBody) => {
+        const res = await fetch(`${this.filezEndpoint}/api/user_group/update/`, {
+            method: "POST",
+            credentials: "include",
+            body: JSON.stringify(req),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+        return res;
+    };
+
     update_permission_ids_on_resource = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/update_permission_ids_on_resource/`, {
             method: "POST",
@@ -308,7 +324,7 @@ export class FilezClient {
     };
 
     delete_file_group = async (group_id: string) => {
-        const res = await fetch(`${this.filezEndpoint}/api/file_group/delete/${group_id}`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file_group/delete/?id=${group_id}`, {
             method: "POST",
             credentials: "include"
         });
@@ -316,7 +332,7 @@ export class FilezClient {
     };
 
     delete_user_group = async (group_id: string) => {
-        const res = await fetch(`${this.filezEndpoint}/api/user_group/delete/${group_id}`, {
+        const res = await fetch(`${this.filezEndpoint}/api/user_group/delete/?id=${group_id}`, {
             method: "POST",
             credentials: "include"
         });

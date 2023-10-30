@@ -93,6 +93,7 @@ pub async fn scan_readonly_mount(
             group_type: FileGroupType::Static,
             item_count: 0,
             dynamic_group_rules: None,
+            readonly: true,
         })
         .await?;
         group_id

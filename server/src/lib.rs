@@ -43,6 +43,7 @@ pub mod methods {
     pub mod user_group {
         pub mod create;
         pub mod delete;
+        pub mod update;
     }
 
     pub mod get_aggregated_keywords;

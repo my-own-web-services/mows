@@ -2,4 +2,4 @@
 import type { FileGroupType } from "./FileGroupType";
 import type { FilterRule } from "./FilterRule";
 
-export type UpdateFileGroupInfosRequestField = { "Name": string } | { "DynamicGroupRules": FilterRule } | { "GroupType": FileGroupType } | { "Keywords": Array<string> } | { "MimeTypes": Array<string> } | { "GroupHierarchyPaths": Array<string> };
+export interface UpdateFileGroupInfosRequestField { name: string | null, dynamic_group_rules: FilterRule | null, group_type: FileGroupType | null, keywords: Array<string> | null, mime_types: Array<string> | null, group_hierarchy_paths: Array<string> | null, permission_ids: Array<string> | null, }

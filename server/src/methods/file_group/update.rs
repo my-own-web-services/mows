@@ -44,128 +44,154 @@ pub async fn update_file_group(
         }
     };
 
-    match ufgr.field {
-        UpdateFileGroupInfosRequestField::Name(name) => {
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::FileGroup((
-                    &group,
-                    FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosName,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
+    if let Some(name) = ufgr.fields.name {
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::FileGroup((
+                &group,
+                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosName,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
             }
-
-            group.name = Some(name);
+            Err(e) => bail!(e),
         }
-        UpdateFileGroupInfosRequestField::DynamicGroupRules(dynamic_group_rules) => {
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::FileGroup((
-                    &group,
-                    FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosDynamicGroupRules,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
-            };
 
-            group.dynamic_group_rules = Some(dynamic_group_rules);
-        }
-        UpdateFileGroupInfosRequestField::GroupType(group_type) => {
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::FileGroup((
-                    &group,
-                    FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupType,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
-            };
-
-            group.group_type = group_type;
-        }
-        UpdateFileGroupInfosRequestField::Keywords(keywords) => {
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::FileGroup((
-                    &group,
-                    FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosKeywords,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
-            }
-
-            group.keywords = keywords;
-        }
-        UpdateFileGroupInfosRequestField::MimeTypes(mime_types) => {
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::FileGroup((
-                    &group,
-                    FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosMimeTypes,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
-            };
-
-            group.mime_types = mime_types;
-        }
-        UpdateFileGroupInfosRequestField::GroupHierarchyPaths(ghp) => {
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::FileGroup((
-                    &group,
-                    FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupHierarchyPaths,
-                )),
-                &db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
-            };
-
-            group.group_hierarchy_paths = ghp;
-        }
+        group.name = Some(name);
     };
+
+    if let Some(dynamic_group_rules) = ufgr.fields.dynamic_group_rules {
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::FileGroup((
+                &group,
+                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosDynamicGroupRules,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+            }
+            Err(e) => bail!(e),
+        }
+
+        group.dynamic_group_rules = Some(dynamic_group_rules);
+    };
+
+    if let Some(group_type) = ufgr.fields.group_type {
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::FileGroup((
+                &group,
+                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupType,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+            }
+            Err(e) => bail!(e),
+        };
+
+        group.group_type = group_type;
+    };
+
+    if let Some(keywords) = ufgr.fields.keywords {
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::FileGroup((
+                &group,
+                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosKeywords,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+            }
+            Err(e) => bail!(e),
+        }
+
+        group.keywords = keywords;
+    };
+
+    if let Some(mime_types) = ufgr.fields.mime_types {
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::FileGroup((
+                &group,
+                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosMimeTypes,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+            }
+            Err(e) => bail!(e),
+        }
+
+        group.mime_types = mime_types;
+    };
+
+    if let Some(group_hierarchy_paths) = ufgr.fields.group_hierarchy_paths {
+        match check_auth(
+            auth,
+            &AuthResourceToCheck::FileGroup((
+                &group,
+                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupHierarchyPaths,
+            )),
+            &db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+            }
+            Err(e) => bail!(e),
+        }
+
+        group.group_hierarchy_paths = group_hierarchy_paths;
+    };
+
+    if let Some(permission_ids) = ufgr.fields.permission_ids {
+        let requesting_user = match &auth.authenticated_ir_user_id {
+            Some(ir_user_id) => match db.get_user_by_ir_id(ir_user_id).await? {
+                Some(u) => u,
+                None => bail!("User has not been created on the filez server, although it is present on the IR server. Run create_own first."),
+            },
+            None =>  return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap()),
+        };
+
+        if requesting_user.user_id != group.owner_id {
+            return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+        }
+        // check if all permissions are from this user
+        let permissions = db.get_permissions_by_resource_id(&permission_ids).await?;
+        for permission in permissions {
+            if permission.owner_id != requesting_user.user_id {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+            }
+        }
+
+        group.permission_ids = permission_ids;
+    }
 
     db.update_file_group(&group).await?;
 
@@ -178,16 +204,17 @@ pub async fn update_file_group(
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct UpdateFileGroupRequestBody {
     pub file_group_id: String,
-    pub field: UpdateFileGroupInfosRequestField,
+    pub fields: UpdateFileGroupInfosRequestField,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub enum UpdateFileGroupInfosRequestField {
-    Name(String),
-    DynamicGroupRules(FilterRule),
-    GroupType(FileGroupType),
-    Keywords(Vec<String>),
-    MimeTypes(Vec<String>),
-    GroupHierarchyPaths(Vec<String>),
+pub struct UpdateFileGroupInfosRequestField {
+    pub name: Option<String>,
+    pub dynamic_group_rules: Option<FilterRule>,
+    pub group_type: Option<FileGroupType>,
+    pub keywords: Option<Vec<String>>,
+    pub mime_types: Option<Vec<String>>,
+    pub group_hierarchy_paths: Option<Vec<String>>,
+    pub permission_ids: Option<Vec<String>>,
 }
