@@ -5,6 +5,7 @@ import { BsFillGridFill } from "react-icons/bs";
 import { FaThList } from "react-icons/fa";
 import ResourceList, { ListType } from "./ResourceList";
 import { BiPlus } from "react-icons/bi";
+import { IoReload } from "react-icons/io5";
 
 interface ListTopBarProps {
     readonly updateListType: InstanceType<typeof ResourceList>["updateListType"];
@@ -109,6 +110,14 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                         </Modal>
                     </span>
                 )}
+                <span className="Buttons">
+                    <IconButton
+                        onClick={this.props.refreshList}
+                        title={`Reload`}
+                        size="xs"
+                        icon={<IoReload size={18} />}
+                    />
+                </span>
 
                 <span className="Buttons">
                     <ButtonGroup size="xs">

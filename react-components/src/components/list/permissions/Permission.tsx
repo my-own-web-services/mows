@@ -138,7 +138,11 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                                     this.setState({ permissionType: value, selectedWhat: [] });
                                 }}
                                 size={this.props.size}
-                                readOnly={this.props.readonly ?? this.props.disableTypeChange}
+                                readOnly={
+                                    this.props.readonly ??
+                                    this.props.useOnce ??
+                                    this.props.disableTypeChange
+                                }
                             />
                         )}
                     </div>
@@ -240,6 +244,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                 <CheckTreePicker
                     placeholder="do nothing"
                     block
+                    value={this.state.selectedWhat}
                     size={this.props.size}
                     defaultExpandAll
                     data={match(this.state.permissionType)
@@ -284,7 +289,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                                 })
                                 .exhaustive();
                         });
-                        console.log(permissions);
+                        this.setState({ selectedWhat: permissions as string[] });
                     }}
                 />
                 {this.props.readonly !== true && this.props.disableSaveButton !== true && (
@@ -303,8 +308,36 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
     };
 }
 
-const userPermissionTreeData = [{}];
-const userGroupPermissionTreeData = [{}];
+const userPermissionTreeData = [
+    {
+        label: "Get",
+        value: "GetUser"
+    }
+];
+const userGroupPermissionTreeData = [
+    {
+        label: "Get Infos",
+        value: "GetGroupInfos"
+    },
+    {
+        label: "Update Infos",
+        value: "UpdateGroupInfos",
+        children: [
+            {
+                label: "Name",
+                value: "UpdateGroupInfosName"
+            },
+            {
+                label: "Visibility",
+                value: "UpdateGroupInfosVisibility"
+            }
+        ]
+    },
+    {
+        label: "Delete",
+        value: "DeleteGroup"
+    }
+];
 
 const fileGroupPermissionTreeData = [
     {

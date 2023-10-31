@@ -1,5 +1,6 @@
 import { PureComponent, createRef } from "react";
 import UserGroup from "./UserGroup";
+import Permission from "../permissions/Permission";
 
 interface CreateUserGroupProps {}
 
@@ -9,23 +10,26 @@ export default class CreateUserGroup extends PureComponent<
     CreateUserGroupProps,
     CreateUserGroupState
 > {
-    ref: React.RefObject<UserGroup>;
+    userGroupRef: React.RefObject<UserGroup>;
+    oncePermissionRef: React.RefObject<Permission>;
 
     constructor(props: CreateUserGroupProps) {
         super(props);
         this.state = {};
-        this.ref = createRef();
+        this.userGroupRef = createRef();
+        this.oncePermissionRef = createRef();
     }
 
     create = async (): Promise<boolean> => {
-        const res = await this.ref.current?.create();
+        const useOncePermissionId = await this.oncePermissionRef?.current?.saveData();
+        const res = await this.userGroupRef.current?.create(useOncePermissionId);
         return res ? true : false;
     };
 
     render = () => {
         return (
             <div className="CreateUserGroup">
-                <UserGroup ref={this.ref} />
+                <UserGroup oncePermissionRef={this.oncePermissionRef} ref={this.userGroupRef} />
             </div>
         );
     };

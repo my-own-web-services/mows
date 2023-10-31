@@ -18,7 +18,8 @@ interface FileGroupProps {
 interface FileGroupState {
     readonly serverGroup: FilezFileGroup;
     readonly clientGroup: FilezFileGroup;
-    readonly currentPermissions?: FilezPermission[];
+    readonly availablePermissions?: FilezPermission[];
+    readonly useOncePermissionEnabled: boolean;
 }
 
 const defaultGroup: FilezFileGroup = {
@@ -50,13 +51,14 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
         const group = props.group ?? defaultGroup;
         this.state = {
             clientGroup: cloneDeep(group),
-            serverGroup: cloneDeep(group)
+            serverGroup: cloneDeep(group),
+            useOncePermissionEnabled: false
         };
     }
 
     componentDidMount = async () => {
         if (!this.context) return;
-        const { items } = await this.context.filezClient.get_own_permissions({
+        let { items } = await this.context.filezClient.get_own_permissions({
             filter: "",
             limit: null,
             from_index: 0,
@@ -64,8 +66,23 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
             sort_order: "Ascending"
         });
 
+        items = items?.filter(p => p.content.type === "FileGroup");
+
         if (items) {
-            this.setState({ currentPermissions: items });
+            const useOncePermission = items?.find(p => {
+                if (
+                    this.state.clientGroup.permission_ids.includes(p._id) &&
+                    p.use_type === "Once"
+                ) {
+                    return p;
+                }
+            });
+            console.log(useOncePermission);
+
+            this.setState({
+                availablePermissions: items,
+                useOncePermissionEnabled: useOncePermission !== undefined
+            });
         }
     };
 
@@ -102,9 +119,7 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
         const cg = this.state.clientGroup;
         const sg = this.state.serverGroup;
 
-        console.log(useOncePermissionId);
-
-        const permission_ids = cloneDeep(cg.permission_ids);
+        let permission_ids = cloneDeep(cg.permission_ids);
         if (useOncePermissionId) {
             this.setState(
                 update(this.state, {
@@ -114,6 +129,25 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                 })
             );
             permission_ids.push(useOncePermissionId);
+        } else {
+            const useOncePermission = this.state.availablePermissions?.find(p => {
+                if (cg.permission_ids.includes(p._id) && p.use_type === "Once") {
+                    return p;
+                }
+            });
+            if (useOncePermission) {
+                permission_ids = permission_ids.filter(id => id !== useOncePermission._id);
+
+                this.context.filezClient.delete_permission(useOncePermission?._id);
+
+                this.setState(
+                    update(this.state, {
+                        clientGroup: {
+                            permission_ids: { $set: permission_ids }
+                        }
+                    })
+                );
+            }
         }
 
         const res = await this.context.filezClient.update_file_group({
@@ -151,7 +185,7 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
     };
 
     render = () => {
-        if (this.state.currentPermissions === undefined) return null;
+        if (this.state.availablePermissions === undefined) return null;
         return (
             <div className="FileGroup">
                 <div>
@@ -231,9 +265,34 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                     <label htmlFor="">Permissions</label>
                     <br />
                     <SelectOrCreateUseOncePermission
+                        useOncePermissionEnabled={this.state.useOncePermissionEnabled}
+                        updateOncePermissionUse={enabled => {
+                            this.setState({ useOncePermissionEnabled: enabled });
+                        }}
+                        useOncePermission={
+                            this.state.availablePermissions.find(p => {
+                                if (
+                                    this.state.clientGroup.permission_ids.includes(p._id) &&
+                                    p.use_type === "Once"
+                                ) {
+                                    return p;
+                                }
+                            }) ?? undefined
+                        }
+                        selectedPermissionIds={
+                            this.state.availablePermissions
+                                .filter(p => {
+                                    if (
+                                        this.state.clientGroup.permission_ids.includes(p._id) &&
+                                        p.use_type === "Multiple"
+                                    ) {
+                                        return p;
+                                    }
+                                })
+                                .map(p => p._id) ?? []
+                        }
                         oncePermissionRef={this.props.oncePermissionRef}
-                        currentPermissions={this.state.currentPermissions}
-                        onUpdate={value => {
+                        onSelectUpdate={value => {
                             this.setState(
                                 update(this.state, {
                                     clientGroup: {

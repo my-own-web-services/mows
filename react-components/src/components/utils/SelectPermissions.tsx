@@ -49,7 +49,7 @@ export default class SelectPermissions extends PureComponent<
         });
 
         const existingPermissions = items.filter(item => {
-            return item.use_type === "Multiple";
+            return item.use_type === "Multiple" && item.content.type === this.props.type;
         });
 
         if (items) {
@@ -121,7 +121,7 @@ export default class SelectPermissions extends PureComponent<
                         <Permission
                             size={this.props.size}
                             onSave={this.newPermissionCreated}
-                            permissionType="FileGroup"
+                            permissionType={this.props.type}
                             disableTypeChange={true}
                             hideTypeChanger={true}
                         />

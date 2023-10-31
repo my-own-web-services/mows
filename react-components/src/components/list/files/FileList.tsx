@@ -1,7 +1,6 @@
 import { CSSProperties, PureComponent, createRef } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
-import { ContextMenu, ContextMenuTrigger, MenuItem } from "react-contextmenu";
 import { bytesToHumanReadableSize } from "../../../utils";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import ResourceList, { Column, ColumnDirection, ListType } from "../resource/ResourceList";

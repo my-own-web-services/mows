@@ -7,15 +7,16 @@ import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/File
 interface SelectOrCreateUseOncePermissionProps {
     readonly size?: "lg" | "md" | "sm" | "xs";
     readonly type: "File" | "User" | "UserGroup" | "FileGroup";
-    readonly onUpdate?: (permissionIds: string[]) => void;
+    readonly onSelectUpdate?: (permissionIds: string[]) => void;
+    readonly selectedPermissionIds?: string[];
+
     readonly oncePermissionRef?: React.RefObject<Permission>;
-    readonly currentPermissions?: FilezPermission[];
+    readonly updateOncePermissionUse: (enabled: boolean) => void;
+    readonly useOncePermissionEnabled: boolean;
+    readonly useOncePermission?: FilezPermission;
 }
 
-interface SelectOrCreateUseOncePermissionState {
-    readonly showAnon: boolean;
-    readonly anonPermission?: FilezPermission;
-}
+interface SelectOrCreateUseOncePermissionState {}
 
 export default class SelectOrCreateUseOncePermission extends PureComponent<
     SelectOrCreateUseOncePermissionProps,
@@ -23,17 +24,11 @@ export default class SelectOrCreateUseOncePermission extends PureComponent<
 > {
     constructor(props: SelectOrCreateUseOncePermissionProps) {
         super(props);
-        const anonPermission = this.props.currentPermissions?.find(p => p.use_type === "Once");
-
-        this.state = {
-            showAnon: anonPermission ? true : false,
-            anonPermission
-        };
     }
 
     handleUpdate = (permissionIds: string[]) => {
-        if (this.props.onUpdate) {
-            this.props.onUpdate(permissionIds);
+        if (this.props.onSelectUpdate) {
+            this.props.onSelectUpdate(permissionIds);
         }
     };
 
@@ -44,21 +39,17 @@ export default class SelectOrCreateUseOncePermission extends PureComponent<
                     size={this.props.size}
                     type={this.props.type}
                     onUpdate={this.handleUpdate}
-                    selectedPermissionIds={
-                        this.props.currentPermissions?.flatMap(p => {
-                            return p.use_type === "Multiple" ? [p._id] : [];
-                        }) ?? []
-                    }
+                    selectedPermissionIds={this.props.selectedPermissionIds}
                 />
                 <label htmlFor="">Use Once Permission</label>
                 <Toggle
                     size={this.props.size}
-                    checked={this.state.showAnon}
-                    onChange={checked => this.setState({ showAnon: checked })}
+                    checked={this.props.useOncePermissionEnabled}
+                    onChange={checked => this.props.updateOncePermissionUse(checked)}
                 />
-                {this.state.showAnon && (
+                {this.props.useOncePermissionEnabled && (
                     <Permission
-                        permission={this.state.anonPermission}
+                        permission={this.props.useOncePermission}
                         ref={this.props.oncePermissionRef}
                         permissionType={this.props.type}
                         disableSaveButton

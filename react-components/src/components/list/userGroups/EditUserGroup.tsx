@@ -2,6 +2,7 @@ import { PureComponent, createRef } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import UserGroup from "./UserGroup";
 import { FilezUserGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezUserGroup";
+import Permission from "../permissions/Permission";
 
 interface EditUserGroupProps {
     readonly resourceIds?: string[];
@@ -14,14 +15,16 @@ interface EditUserGroupState {
 export default class EditUserGroup extends PureComponent<EditUserGroupProps, EditUserGroupState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
-    ref: React.RefObject<UserGroup>;
+    userGroupRef: React.RefObject<UserGroup>;
+    oncePermissionRef: React.RefObject<Permission>;
 
     constructor(props: EditUserGroupProps) {
         super(props);
         this.state = {
             userGroups: []
         };
-        this.ref = createRef();
+        this.userGroupRef = createRef();
+        this.oncePermissionRef = createRef();
     }
 
     componentDidMount = async () => {
@@ -35,15 +38,16 @@ export default class EditUserGroup extends PureComponent<EditUserGroupProps, Edi
             sort_order: "Ascending"
         });
 
-        const fileGroups = items.filter(item => {
+        const userGroups = items.filter(item => {
             return this.props.resourceIds?.includes(item._id) ?? false;
         });
 
-        this.setState({ userGroups: fileGroups });
+        this.setState({ userGroups });
     };
 
     update = async (): Promise<boolean> => {
-        const res = await this.ref.current?.update();
+        const useOncePermissionId = await this.oncePermissionRef?.current?.saveData();
+        const res = await this.userGroupRef.current?.update(useOncePermissionId);
         return res ? true : false;
     };
 
@@ -51,7 +55,11 @@ export default class EditUserGroup extends PureComponent<EditUserGroupProps, Edi
         if (!this.state.userGroups[0]) return null;
         return (
             <div className="EditUserGroup">
-                <UserGroup group={this.state.userGroups[0]} ref={this.ref} />
+                <UserGroup
+                    oncePermissionRef={this.oncePermissionRef}
+                    group={this.state.userGroups[0]}
+                    ref={this.userGroupRef}
+                />
             </div>
         );
     };
