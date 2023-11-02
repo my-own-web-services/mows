@@ -239,27 +239,3 @@ pub fn filter_files_by_owner_id(files: &Vec<FilezFile>, owner_id: &str) -> Vec<F
     }
     filtered_files
 }
-
-pub async fn create_users(db: &DB) -> anyhow::Result<()> {
-    let config = &SERVER_CONFIG;
-
-    let users_to_create = config.users.create.clone();
-
-    for user in users_to_create {
-        if db.get_user_by_email(&user).await?.is_none() {
-            let res = db
-                .create_user(
-                    None,
-                    Some(crate::types::UserStatus::Active),
-                    None,
-                    Some(user),
-                )
-                .await;
-            if res.is_err() {
-                println!("Error creating mock user: {:?}", res);
-            }
-        }
-    }
-
-    Ok(())
-}

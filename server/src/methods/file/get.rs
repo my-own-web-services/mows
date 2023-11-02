@@ -1,10 +1,10 @@
 use crate::{
-    config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
-    utils::{get_folder_and_file_path, get_query_item, get_range},
+    storage::{get_app_data_folder_for_file, get_storage_location_from_file},
+    utils::{get_query_item, get_range},
 };
 use anyhow::bail;
 use http_range::HttpRange;
@@ -33,7 +33,6 @@ pub async fn get_file(
     auth: &Auth,
     mut res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let config = &SERVER_CONFIG;
     let path = req.uri().path().replacen("/api/file/get/", "", 1);
 
     let parts = path.split('/').collect::<Vec<_>>();
@@ -47,11 +46,11 @@ pub async fn get_file(
         if parts.len() < 2 {
             None
         } else {
-            let maybe_app = parts[1].to_string();
-            let maybe_app_file = parts[2..].join("/");
+            let maybe_app_id = parts[1].to_string();
+            let maybe_app_file_path = parts[2..].join("/");
 
-            if !maybe_app.is_empty() && !maybe_app_file.is_empty() {
-                Some((maybe_app, maybe_app_file))
+            if !maybe_app_id.is_empty() && !maybe_app_file_path.is_empty() {
+                Some((maybe_app_id, maybe_app_file_path))
             } else {
                 None
             }
@@ -95,15 +94,15 @@ pub async fn get_file(
     }
 
     let full_file_path = match &app_file {
-        Some(af) => {
-            let (folder_path, file_name) = get_folder_and_file_path(&file_id, &af.0);
+        Some((app_id, app_file_path)) => {
+            let app_storage_folder = get_app_data_folder_for_file(&file, app_id)?;
 
-            Path::new(&config.app_storage.path)
-                .join(folder_path)
-                .join(file_name)
-                .join(&af.1)
+            Path::new(&app_storage_folder.file_folder).join(app_file_path)
         }
-        None => Path::new(&file.path).to_path_buf(),
+        None => {
+            let sl = get_storage_location_from_file(&file)?;
+            Path::new(&sl.full_path).to_path_buf()
+        }
     };
 
     let file_handle = tokio::fs::File::open(&full_file_path).await?;

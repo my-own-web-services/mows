@@ -18,19 +18,25 @@ interface AppState {
 export default class App extends PureComponent<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
-        this.state = {};
+        this.state = {
+            selectedFileId: "FMKqaV3BXrBbHQfn"
+        };
     }
 
     render = () => {
         return (
             <div className="App">
                 <FilezProvider>
+                    <FileList style={{ height: "500px" }} id="wxzrFR4ELDVD3uTB" />
                     <FileGroupList style={{ height: "500px" }} />
                     <PermissionList style={{ height: "500px" }} />
                     <UserGroupList style={{ height: "500px" }} />
 
-                    <FileList style={{ height: "500px" }} id="gx1mbpdVu-NVxJsL" />
                     <UserList style={{ height: "500px" }} />
+                    <FilezFileViewer
+                        style={{ width: "500px", float: "left", height: "500px" }}
+                        fileId={this.state.selectedFileId}
+                    />
                 </FilezProvider>
             </div>
         );

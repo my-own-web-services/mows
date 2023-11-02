@@ -450,21 +450,21 @@ impl DB {
         let users_collection = self.db.collection::<FilezUser>("users");
         let config = &SERVER_CONFIG;
 
-        let mut limits: HashMap<String, UsageLimits> = HashMap::new();
+        let mut limits: HashMap<String, Option<UsageLimits>> = HashMap::new();
 
-        for (storage_name, storage_config) in &config.storage {
-            let dul = &storage_config.default_user_limits;
-            limits.insert(
-                storage_name.to_string(),
-                UsageLimits {
+        for (storage_name, storage_config) in &config.storage.storages {
+            let l = storage_config
+                .default_user_limits
+                .as_ref()
+                .map(|dul| UsageLimits {
                     max_storage: dul.max_storage,
                     used_storage: 0,
                     max_files: dul.max_files,
                     used_files: 0,
                     max_bandwidth: dul.max_bandwidth,
                     used_bandwidth: 0,
-                },
-            );
+                });
+            limits.insert(storage_name.to_string(), l);
         }
 
         let user_id = generate_id(16);
@@ -783,6 +783,8 @@ impl DB {
 
         let mut keywords: Vec<String> = vec![];
 
+        dbg!(&res);
+
         for doc in res {
             keywords.push(doc.get_str("keyword")?.to_string());
         }
@@ -878,7 +880,6 @@ impl DB {
         &self,
         file: &FilezFile,
         new_storage_id: &str,
-        new_path: &str,
         user: &FilezUser,
     ) -> anyhow::Result<()> {
         let mut session = self.client.start_session(None).await?;
@@ -895,7 +896,7 @@ impl DB {
                 },
                 doc! {
                     "$set": {
-                        "storage_id": new_storage_id, "path": new_path
+                        "storage_id": new_storage_id,
                     }
                 },
                 None,
@@ -1283,9 +1284,16 @@ impl DB {
         Ok(file)
     }
 
-    pub async fn get_file_by_path(&self, file_path: &str) -> anyhow::Result<Option<FilezFile>> {
+    pub async fn get_file_by_readonly_path(&self, path: &str) -> anyhow::Result<Option<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
-        let file = collection.find_one(doc! {"path": file_path}, None).await?;
+        let file = collection
+            .find_one(
+                doc! {
+                    "readonly_path": path,
+                },
+                None,
+            )
+            .await?;
         Ok(file)
     }
 

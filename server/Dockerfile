@@ -17,9 +17,6 @@ RUN useradd -u 50001 -N filez-server
 RUN groupadd -g 50001 filez-server
 
 # create readonly dirs
-RUN mkdir /readonly
-RUN chown filez-server:filez-server /readonly
-
 RUN mkdir /.dev
 RUN chown filez-server:filez-server /.dev
 
@@ -29,7 +26,6 @@ WORKDIR /app
 COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-server
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
-COPY --from=build --chown=filez-server:filez-server /readonly /readonly
 COPY --from=build --chown=filez-server:filez-server /.dev /.dev
 
 

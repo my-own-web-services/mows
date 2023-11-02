@@ -48,17 +48,12 @@ pub struct ConfigVariablePrefix {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerConfig {
-    #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
-    pub storage: HashMap<String, StorageConfig>,
-    pub default_storage: String,
+    pub storage: StorageConfig,
     pub db: DbConfig,
     pub interossea: InterosseaConfig,
     pub http: HttpConfig,
     pub dev: DevConfig,
-    #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
-    pub readonly_mounts: HashMap<String, ReadonlyMountConfig>,
     pub service_id: String,
-    pub app_storage: AppStorage,
     pub services: Vec<Service>,
     pub constraints: Constraints,
     pub users: UsersConfig,
@@ -80,24 +75,10 @@ pub struct Constraints {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct AppStorage {
-    pub path: String,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct DefaultUserLimits {
     pub max_storage: u64,
     pub max_files: u64,
     pub max_bandwidth: u64,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ReadonlyMountConfig {
-    pub path: String,
-    pub rescan_seconds: u64,
-    pub owner_email: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -136,13 +117,38 @@ pub struct DbConfig {
     pub url: String,
 }
 
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageConfig {
+    #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    pub storages: HashMap<String, Storage>,
+    pub default_storage: String,
+}
+
 /**
 A storage location: either to seperate files onto different drives or because of speed or type
 */
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct StorageConfig {
+pub struct Storage {
     pub path: String,
     pub limit: Option<u64>,
-    pub default_user_limits: DefaultUserLimits,
+    #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    pub app_storage: HashMap<String, AppStorage>,
+    pub default_user_limits: Option<DefaultUserLimits>,
+    pub readonly: Option<ReadonlyConfig>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadonlyConfig {
+    pub rescan_seconds: u64,
+    pub owner_email: String,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AppStorage {
+    pub path: String,
+    pub limit: Option<u64>,
 }

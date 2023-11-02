@@ -26,6 +26,7 @@ additionalAllowedApps:
 
 filez:
     runAsRoot: true
+    defaultStorage: default
     storage:
         default:
             # volume or bind mount
@@ -35,7 +36,28 @@ filez:
                 maxStorage: 10000000000 # 10GB
                 maxFiles: 100000
                 maxBandwidth: 0
-    defaultStorage: default
+            appStorage:
+                image:
+                    type: volume
+                    path: ""
+                video:
+                    type: volume
+                    path: ""
+            readonly: false
+        readonlyExample:
+            type: bind
+            path: "/home/paul/Documents/filez/example-files"
+            readonly:
+                ownerEmail: test@vindelicum.eu
+                rescanSeconds: 120
+            appStorage:
+                image:
+                    type: volume
+                    path: ""
+                video:
+                    type: volume
+                    path: ""
+
     server:
         build:
             enabled: true
@@ -64,13 +86,6 @@ filez:
         publicHostname:
             domain: vindelicum.eu
             subdomain: filez
-    # THIS IS NOT IMPLEMENTED
-    # this will chmod all files and folders and give any user read access to them on each path
-    # this isn't optimal because it does something outside the container space but is required when running the containers as non root users
-    readonlyMounts:
-        - name: example-files
-          path: /home/paul/Documents/filez/example-files
-          ownerEmail: test@vindelicum.eu
 
     # TODO if the number of addons is greater than 10 the network assignment will fail
     addons:
@@ -80,9 +95,6 @@ filez:
           filezAccess: true
           image: firstdorsal/filez-addons-video
           resetOnRestart: true
-          storageOptions:
-              type: bind
-              path: ./videoBind
           build:
               enabled: true
               path: ../../addons/video/
@@ -93,9 +105,6 @@ filez:
           filezAccess: true
           image: firstdorsal/filez-addons-image
           resetOnRestart: true
-          storageOptions:
-              type: volume
-              path:
           build:
               enabled: true
               path: ../../addons/image/
@@ -106,9 +115,6 @@ filez:
           filezAccess: true
           image: firstdorsal/filez-addons-metadata
           resetOnRestart: true
-          storageOptions:
-              type: volume
-              path:
           build:
               enabled: true
               path: ../../addons/metadata/

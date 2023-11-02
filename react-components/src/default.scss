@@ -16,6 +16,11 @@
     --contexify-activeArrow-color: #fff;
 }
 
+.rs-uploader-file-items {
+    overflow-y: auto;
+    max-height: 300px;
+}
+
 button.Filez {
     all: unset;
     cursor: pointer;

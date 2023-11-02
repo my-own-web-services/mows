@@ -27,29 +27,23 @@ services:
         volumes:
             - ./config/filez-server.yml:/config.yml:ro
 
-            {{- range $key, $value := $config.filez.storage }}
-            {{- if eq $value.type "volume" }}
+{{- range $key, $value := $config.filez.storage }}
+
+    {{- if eq $value.type "volume" }}
             - filez-storage-{{ $key }}:/storage/{{ $key }}/:rw
-            {{- end }}
-            {{- if eq $value.type "bind" }}
+    {{- else if eq $value.type "bind" }}
             - {{ $value.path }}:/storage/{{ $key }}/:rw
-            {{- end }}
-            {{- end }}
+    {{- end }}
 
-            {{- range $config.filez.addons }}
-            {{- if eq .storage true }}
-            {{- if eq .storageOptions.type "volume" }}
-            - filez-addons-{{.name}}:/appdata/{{.name}}:ro
-            {{- end }}
-            {{- if eq .storageOptions.type "bind" }}
-            - {{.storageOptions.path}}:/appdata/{{.name}}:ro
-            {{- end }}            
-            {{- end }}
-            {{- end }}
+    {{- range $appKey, $appValue := $value.appStorage  }}
+        {{- if eq $appValue.type "volume" }}
+            - filez-storage-{{ $key }}-{{ $appKey }}:/app_data/{{ $key }}/{{ $appKey }}/:rw
+        {{- else if eq $appValue.type "bind" }}
+            - {{ $appValue.path }}:/app_data/{{ $key }}/{{ $appKey }}/:rw
+        {{- end }}
+    {{- end }}
+{{- end }}
 
-            {{- range $config.filez.readonlyMounts }}
-            - {{ .path }}:/readonly/{{ .name }}/:ro
-            {{- end }}
             {{- if eq $config.filez.server.dev.createMockUsers true }}
             - ./data/dev/mock_users.yml:/.dev/mock_users.yml:ro
             {{- end }}   
@@ -117,47 +111,41 @@ services:
                             loadbalancer:
                                 server:
                                     port: 80
-    {{- range $config.filez.addons }}
-    filez-addons-{{.name}}:
-        {{- if eq .build.enabled true }}
+    {{- range $addon :=$config.filez.addons }}
+    filez-addons-{{$addon.name}}:
+        {{- if eq $addon.build.enabled true }}
         build:
-            context: {{.build.path}}
-            dockerfile: {{.build.dockerfile}}
+            context: {{$addon.build.path}}
+            dockerfile: {{$addon.build.dockerfile}}
         {{- else }}
-        image: {{.image}}
+        image: {{$addon.image}}
         {{- end }}        
         {{- if eq $config.filez.runAsRoot true }}
         user: root
         {{- end }}
-        container_name: filez-addons-{{.name}}
+        container_name: filez-addons-{{$addon.name}}
         volumes:
-            - ./config/{{.name}}.yml:/config.yml:ro
-            {{- if eq .filezAccess true }}
-            
-            {{- range $key, $value := $config.filez.storage }}
-            {{- if eq $value.type "volume" }}
-            - filez-storage-{{ $key }}:/storage/{{ $key }}/:rw
+            - ./config/{{$addon.name}}.yml:/config.yml:ro
+{{- if eq $addon.filezAccess true }}
+    {{- range $key, $value := $config.filez.storage }}
+        {{- if eq $value.type "volume" }}
+            - filez-storage-{{ $key }}:/storage/{{ $key }}/:ro
+        {{- else if eq $value.type "bind" }}
+            - {{ $value.path }}:/storage/{{ $key }}/:ro
+        {{- end }}
+    {{- end }}
+{{- end }}
+{{- range $key, $value := $config.filez.storage }}
+    {{- range $appKey, $appValue := $value.appStorage  }}
+        {{- if eq $addon.name $appKey }}
+            {{- if eq $appValue.type "volume" }}
+            - filez-storage-{{ $key }}-{{ $appKey }}:/output/{{ $key }}/:rw
+            {{- else if eq $appValue.type "bind" }}
+            - {{ $appValue.path }}:/output/{{ $key }}/:rw
             {{- end }}
-            {{- if eq $value.type "bind" }}
-            - {{ $value.path }}:/storage/{{ $key }}/:rw
-            {{- end }}
-            {{- end }}
-
-            {{- range $config.filez.readonlyMounts }}
-            - {{ .path }}:/readonly/{{ .name }}/:ro
-            {{- end }}
-
-            {{- end }}
-
-            {{- if eq .storage true }}
-            {{- if eq .storageOptions.type "volume" }}
-            - filez-addons-{{.name}}:/output:rw
-            {{- end }}
-            {{- if eq .storageOptions.type "bind" }}
-            - {{.storageOptions.path}}:/output:rw
-            {{- end }}
-            {{- end }}
-            
+        {{- end }}
+    {{- end }}
+{{- end }}
         restart: always
         {{- if eq .db true }}
         environment:
@@ -328,33 +316,31 @@ services:
         
     {{- end }}
 volumes:
-    {{- range $key, $value := $config.filez.storage }}
+{{- range $key, $value := $config.filez.storage }}
     {{- if eq $value.type "volume" }}
     filez-storage-{{ $key }}:
         name: filez-storage-{{ $key }}
     {{- end }}
+    {{- range $appKey, $appValue := $value.appStorage  }}
+        {{- if eq $appValue.type "volume" }}
+    filez-storage-{{ $key }}-{{ $appKey }}:
+        name: filez-storage-{{ $key }}-{{ $appKey }}
+        {{- end }}
     {{- end }}
-    filez-storage:
-        name: filez-storage
+{{- end }}
     filez-db:
         name: filez-db
-    {{- range $config.filez.addons }}
-    {{- if eq .storage true }}
-    filez-addons-{{ .name }}:
-        name: filez-addons-{{ .name }}
-    {{- end }}
-    {{- end }}
-    {{- if eq $config.interossea.server.create true }}
+{{- if eq $config.interossea.server.create true }}
     interossea-keys:
         name: interossea-keys
     interossea-db:
         name: interossea-db
-    {{- end }}
+{{- end }}
     
 networks:
     {{ $config.reverseProxy.network }}:
         name: {{ $config.reverseProxy.network }}
-        {{- if eq $config.reverseProxy.create true }}
+{{- if eq $config.reverseProxy.create true }}
         driver: bridge
         enable_ipv6: true
         ipam:
@@ -362,7 +348,7 @@ networks:
             config:
                 - subnet: {{ $config.networks.subnet.legacy }}.240/28
                 - subnet: {{ $config.networks.subnet.v6 }}f0/124
-        {{- end }}
+{{- end }}
     filez-server-db:
         name: filez-server-db
         driver: bridge
@@ -372,7 +358,7 @@ networks:
             config:
                 - subnet: {{ $config.networks.subnet.legacy }}.224/28
                 - subnet: {{ $config.networks.subnet.v6 }}e0/124
-    {{- if eq $config.interossea.server.create true }}
+{{- if eq $config.interossea.server.create true }}
     interossea-server:
         name: interossea-server
         driver: bridge
@@ -391,8 +377,8 @@ networks:
             config:
                 - subnet: {{ $config.networks.subnet.legacy }}.192/28
                 - subnet: {{ $config.networks.subnet.v6 }}c0/124
-    {{- end }}
-    {{- range $index, $addon := $config.filez.addons }}
+{{- end }}
+{{- range $index, $addon := $config.filez.addons }}
     {{- if eq .db true }}
     filez-addons-{{ .name }}-db:
         name: filez-addons-{{ .name }}-db
@@ -404,4 +390,4 @@ networks:
                 - subnet: {{ $config.networks.subnet.legacy }}.{{ mul $index 16}}/28
                 - subnet: {{ $config.networks.subnet.v6 }}{{ $index }}0/124
     {{- end }}
-    {{- end }}
+{{- end }}

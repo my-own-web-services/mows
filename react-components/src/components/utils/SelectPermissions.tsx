@@ -60,16 +60,21 @@ export default class SelectPermissions extends PureComponent<
     newPermissionCreated = async (newPermissionId: string) => {
         await this.loadPermissions();
 
-        this.setState(state => {
-            return update(state, {
-                selectedPermissionIds: {
-                    $push: [newPermissionId]
-                },
-                newPermissionModalOpen: {
-                    $set: false
-                }
-            });
-        });
+        this.setState(
+            state => {
+                return update(state, {
+                    selectedPermissionIds: {
+                        $push: [newPermissionId]
+                    },
+                    newPermissionModalOpen: {
+                        $set: false
+                    }
+                });
+            },
+            () => {
+                this.props.onUpdate?.(this.state.selectedPermissionIds);
+            }
+        );
     };
 
     render = () => {

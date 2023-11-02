@@ -28,11 +28,6 @@ RUN groupadd -g 50001 filez-addons-video
 
 RUN mkdir /output && chown filez-addons-video:filez-addons-video /output
 
-# create readonly dirs
-RUN mkdir /readonly
-
-
-
 # 1. APP STAGE
 FROM alpine 
 WORKDIR /app
@@ -43,7 +38,7 @@ COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 COPY --from=build /output /output
-COPY --from=build --chown=filez-addons-video:filez-addons-video /readonly /readonly
+
 
 
 #RUN ./ffmpeg -f lavfi -i testsrc=duration=1:size=1280x720:rate=30 -c:v libsvt_vp9 -rc 1 -b:v 10M -preset 1 -y test.ivf

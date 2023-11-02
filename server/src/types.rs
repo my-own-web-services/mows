@@ -59,8 +59,11 @@ pub struct Job {
     pub app_info: HashMap<String, Value>,
     pub job_type: JobType,
     pub status: JobStatus,
+    #[ts(type = "number")]
     pub created_time_millis: i64,
+    #[ts(type = "number")]
     pub updated_time_millis: i64,
+    #[ts(type = "number")]
     pub end_time_millis: Option<i64>,
     pub stages: Vec<JobStage>,
 }
@@ -84,7 +87,9 @@ pub struct FileJob {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct JobStage {
     pub status: JobStatus,
+    #[ts(type = "number")]
     pub started_time_millis: i64,
+    #[ts(type = "number")]
     pub end_time_millis: Option<i64>,
     pub title: String,
     pub description: String,
@@ -106,8 +111,11 @@ pub enum JobStatus {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct CusrLimits {
+    #[ts(type = "number")]
     pub max_storage: u64,
+    #[ts(type = "number")]
     pub max_files: u64,
+    #[ts(type = "number")]
     pub max_bandwidth: u64,
 }
 
@@ -160,24 +168,29 @@ pub struct FilezFile {
       can be updated with update_file_infos
     */
     pub storage_id: Option<String>,
-    pub path: String,
     /**
       can be updated by updating the files content with update_file
     */
+    #[ts(type = "number")]
     pub size: u64,
     /**
       can't be updated
     */
+    #[ts(type = "number")]
     pub server_created: i64,
+    #[ts(type = "number")]
     pub created: i64,
+    #[ts(type = "number")]
     pub modified: Option<i64>,
     /**
       the last time the file was accessed
     */
+    #[ts(type = "number")]
     pub accessed: Option<i64>,
     /**
       how many times the file was accessed
     */
+    #[ts(type = "number")]
     pub accessed_count: u64,
     /**
       can be updated with update_file_infos
@@ -190,6 +203,7 @@ pub struct FilezFile {
     /**
         UTC timecode after which the file should be deleted
     */
+    #[ts(type = "number")]
     pub time_of_death: Option<i64>,
     /**
      A key value store for apps to store information
@@ -210,6 +224,7 @@ pub struct FilezFile {
       can't be updated
     */
     pub readonly: bool,
+    pub readonly_path: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
@@ -230,7 +245,7 @@ pub struct FilezUser {
     pub status: UserStatus,
     #[ts(type = "Record<string, any>")]
     pub app_data: HashMap<String, Value>,
-    pub limits: HashMap<String, UsageLimits>,
+    pub limits: HashMap<String, Option<UsageLimits>>,
     /**
     List of group ids that the user is a member of
     */
@@ -263,11 +278,17 @@ pub enum Visibility {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct UsageLimits {
+    #[ts(type = "number")]
     pub max_storage: u64,
+    #[ts(type = "number")]
     pub used_storage: u64,
+    #[ts(type = "number")]
     pub max_files: u64,
+    #[ts(type = "number")]
     pub used_files: u64,
+    #[ts(type = "number")]
     pub max_bandwidth: u64,
+    #[ts(type = "number")]
     pub used_bandwidth: u64,
 }
 

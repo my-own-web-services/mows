@@ -293,6 +293,8 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                         }
                         oncePermissionRef={this.props.oncePermissionRef}
                         onSelectUpdate={value => {
+                            console.log(value);
+
                             this.setState(
                                 update(this.state, {
                                     clientGroup: {

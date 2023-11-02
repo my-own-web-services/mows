@@ -4,9 +4,10 @@ use crate::{
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
+    storage::{get_future_storage_location, get_storage_location_from_file},
     utils::{
         check_file_name, check_keywords, check_mime_type, check_owner_id, check_static_file_groups,
-        check_storage_id, get_folder_and_file_path,
+        check_storage_id,
     },
 };
 use anyhow::bail;
@@ -185,25 +186,26 @@ pub async fn update_file_infos(
                 }
 
                 // check if storage path exists
-                let new_storage_path = some_or_bail!(
-                    config.storage.get(new_storage_id),
+                some_or_bail!(
+                    config.storage.storages.get(new_storage_id),
                     format!(
                         "Storage name: '{}' is missing in the config file",
                         new_storage_id
                     )
-                )
-                .path
-                .clone();
+                );
 
                 // check if the user has access to the storage and their limits wouldn't be exceeded if the file was moved
                 let user = some_or_bail!(
                     db.get_user_by_id(requesting_user_id).await?,
                     "User not found"
                 );
-                let user_storage_limits = some_or_bail!(
-                    user.limits.get(new_storage_id),
-                    "User does not have access to the storage"
-                );
+                let user_storage_limits = match &user.limits.get(new_storage_id) {
+                    Some(Some(ul)) => ul,
+                    _ => bail!(
+                        "Storage name: '{}' is missing specifications on the user entry",
+                        new_storage_id
+                    ),
+                };
                 if user_storage_limits.max_files <= user_storage_limits.used_files {
                     bail!("User has reached the maximum number of files for this storage")
                 }
@@ -214,24 +216,29 @@ pub async fn update_file_infos(
                 }
 
                 // move the file
-                let (new_folder_path, new_file_name) =
-                    get_folder_and_file_path(&filez_file.file_id, &new_storage_path);
+                let new_storage_location =
+                    get_future_storage_location(&filez_file.file_id, Some(new_storage_id))?;
 
-                fs::create_dir_all(&new_folder_path).await?;
-                let new_file_path = format!("{}/{}", new_folder_path, new_file_name);
+                let old_storage_location = get_storage_location_from_file(&filez_file)?;
 
-                fs::copy(&filez_file.path, &new_file_path).await?;
+                fs::create_dir_all(&new_storage_location.folder_path).await?;
+
+                fs::copy(
+                    &old_storage_location.full_path,
+                    &new_storage_location.full_path,
+                )
+                .await?;
 
                 match db
-                    .update_file_storage_id(&filez_file, new_storage_id, &new_file_path, &user)
+                    .update_file_storage_id(&filez_file, new_storage_id, &user)
                     .await
                 {
                     Ok(_) => {
-                        fs::remove_file(&filez_file.path).await?;
+                        fs::remove_file(&old_storage_location.full_path).await?;
                         return Ok(res.status(200).body(Body::from("Updated")).unwrap());
                     }
                     Err(e) => {
-                        fs::remove_file(&new_file_path).await?;
+                        fs::remove_file(&new_storage_location.full_path).await?;
                         bail!("Failed to update storage id: {e}")
                     }
                 };

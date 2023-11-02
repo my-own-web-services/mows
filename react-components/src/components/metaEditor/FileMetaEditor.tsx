@@ -9,7 +9,7 @@ import { FaPeopleArrows } from "react-icons/fa";
 import { FileDownload } from "@rsuite/icons";
 import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import Keywords from "./Keywords";
+import Keywords from "./KeywordPicker";
 import Name from "./Name";
 import FileAccessControl from "./FileAccessControl";
 

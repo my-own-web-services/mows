@@ -5,21 +5,31 @@ variablePrefix: "$"
 serviceId: filez
 
 storage:
-    {{- range $key, $value := $config.filez.storage }}
-    {{ $key }}:
-        path: /storage/{{ $key }}/
-        defaultUserLimits:
-            maxStorage: {{ $value.defaultUserLimits.maxStorage }}
-            maxFiles: {{ $value.defaultUserLimits.maxFiles }}
-            maxBandwidth: {{ $value.defaultUserLimits.maxBandwidth }}
-    {{- end }}
+    defaultStorage: {{ $config.filez.defaultStorage }}
+    storages:
+        {{- range $key, $value := $config.filez.storage }}
+        {{ $key }}:
+            path: /storage/{{ $key }}/
+            
+            appStorage:
+                {{- range $appKey, $appValue := $value.appStorage }}
+                {{ $appKey }}:
+                    path: /app_data/{{ $key }}/{{ $appKey }}/
+                {{- end }}
+            {{- if $value.readonly }}
+            readonly: 
+                ownerEmail: {{ $value.readonly.ownerEmail }}
+                rescanSeconds: {{ $value.readonly.rescanSeconds }}
+            {{- else }}
+            defaultUserLimits:
+                maxStorage: {{ $value.defaultUserLimits.maxStorage }}
+                maxFiles: {{ $value.defaultUserLimits.maxFiles }}
+                maxBandwidth: {{ $value.defaultUserLimits.maxBandwidth }}
+            {{- end }}
+        {{- end }}
 
 
 
-defaultStorage: {{ $config.filez.defaultStorage }}
-
-appStorage:
-    path: /appdata/
 
 http:
     internalAddress: "[::]:80"
@@ -53,16 +63,6 @@ services:
         {{- end }}
     {{- end }}
     
-
-
-readonlyMounts:
-    {{- range $config.filez.readonlyMounts }}
-    {{ .name }}:
-        path: /readonly/{{ .name }}/
-        rescanSeconds: 120
-        ownerEmail: {{ .ownerEmail }}
-    {{- end }}
-
 
 users:
     makeAdmin: 

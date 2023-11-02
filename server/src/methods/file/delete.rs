@@ -3,6 +3,7 @@ use crate::{
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
+    storage::get_storage_location_from_file,
     utils::get_query_item,
 };
 use anyhow::bail;
@@ -44,7 +45,9 @@ pub async fn delete_file(
     }
 
     db.delete_file_by_id(&file).await?;
-    fs::remove_file(&file.path).await?;
+
+    let fl = get_storage_location_from_file(&file)?;
+    fs::remove_file(fl.full_path).await?;
 
     Ok(res.status(200).body(Body::from("OK"))?)
 }

@@ -1,5 +1,5 @@
 use crate::{
-    config::{ReadonlyMountConfig, SERVER_CONFIG},
+    config::{ReadonlyConfig, SERVER_CONFIG},
     db::DB,
     some_or_bail,
     types::{FileGroupType, FilezFile, FilezFileGroup},
@@ -19,13 +19,15 @@ use std::{
 pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
 
-    for (mount_name, mount) in &config.readonly_mounts {
-        match scan_readonly_mount(db, mount_name, mount).await {
-            Ok(_) => {
-                println!("Success")
-            }
-            Err(e) => {
-                println!("Failed: {e}")
+    for (mount_name, storage) in &config.storage.storages {
+        if let Some(roc) = &storage.readonly {
+            match scan_readonly_mount(db, mount_name, &storage.path, roc).await {
+                Ok(_) => {
+                    println!("Success")
+                }
+                Err(e) => {
+                    println!("Failed: {e}")
+                }
             }
         }
     }
@@ -35,12 +37,14 @@ pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
 pub async fn scan_readonly_mount(
     db: &DB,
     mount_name: &str,
-    mount: &ReadonlyMountConfig,
+    storage_path: &str,
+    mount: &ReadonlyConfig,
 ) -> anyhow::Result<()> {
     print!("Scanning {}: ", mount_name);
-    let path = Path::new(&mount.path);
+
+    let path = Path::new(storage_path);
     if !path.exists() {
-        bail!("Readonly mount path does not exist: {}", mount.path);
+        bail!("Readonly mount path does not exist: {}", storage_path);
     }
     let file_list = recursive_read_dir(some_or_bail!(
         path.to_str(),
@@ -104,7 +108,7 @@ pub async fn scan_readonly_mount(
     file_bar.inc(1);
     for file in file_list {
         file_bar.inc(1);
-        import_readonly_file(db, &file, &user.user_id, &group_id).await?;
+        import_readonly_file(db, &file, mount_name, &user.user_id, &group_id).await?;
     }
     Ok(())
 }
@@ -112,23 +116,24 @@ pub async fn scan_readonly_mount(
 pub async fn import_readonly_file(
     db: &DB,
     file: &DirEntry,
+    mount_name: &str,
     owner_id: &str,
     group_id: &str,
 ) -> anyhow::Result<()> {
     let path = &file.path();
     let path_str = some_or_bail!(path.to_str(), "Could not convert path to str");
 
-    if (db.get_file_by_path(path_str).await?).is_some() {
+    let file_name = some_or_bail!(
+        some_or_bail!(path.file_name(), "Could not get file name").to_str(),
+        "Could not convert file name to str"
+    );
+
+    if (db.get_file_by_readonly_path(path_str).await?).is_some() {
         // file already exists
         return Ok(());
     }
 
     // TODO check if file has been updated since last import
-
-    let file_name = some_or_bail!(
-        some_or_bail!(path.file_name(), "Could not get file name").to_str(),
-        "Could not convert file name to str"
-    );
 
     let file_id = generate_id(16);
 
@@ -151,7 +156,7 @@ pub async fn import_readonly_file(
             owner_id: owner_id.to_string(),
             pending_new_owner_id: None,
             sha256: None,
-            storage_id: None,
+            storage_id: Some(mount_name.to_string()),
             size: file_size,
             server_created: current_time,
             modified: get_modified_time_secs(&metadata).map(|o| o * 1000),
@@ -167,8 +172,8 @@ pub async fn import_readonly_file(
             ),
             permission_ids: vec![],
             keywords: vec![],
-            path: path_str.to_string(),
             readonly: true,
+            readonly_path: Some(path_str.to_string()),
         },
         true,
     )

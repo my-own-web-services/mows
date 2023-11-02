@@ -23,7 +23,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
 
     let mut resolution_command = Command::new(ffprobe_path);
 
-    resolution_command.args(&[
+    resolution_command.args([
         "-v",
         "error",
         "-select_streams",

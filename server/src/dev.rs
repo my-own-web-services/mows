@@ -8,6 +8,9 @@ pub async fn dev(db: &DB) -> anyhow::Result<()> {
     if config.dev.create_mock_users {
         create_mock_users(db).await?;
     }
+    if !config.users.create.is_empty() {
+        create_users(db).await?;
+    }
 
     Ok(())
 }
@@ -32,6 +35,30 @@ pub async fn create_mock_users(db: &DB) -> anyhow::Result<()> {
                     Some(mock_user.status),
                     Some(mock_user.name),
                     Some(mock_user.email),
+                )
+                .await;
+            if res.is_err() {
+                println!("Error creating mock user: {:?}", res);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn create_users(db: &DB) -> anyhow::Result<()> {
+    let config = &SERVER_CONFIG;
+
+    let users_to_create = config.users.create.clone();
+
+    for user in users_to_create {
+        if db.get_user_by_email(&user).await?.is_none() {
+            let res = db
+                .create_user(
+                    None,
+                    Some(crate::types::UserStatus::Active),
+                    None,
+                    Some(user),
                 )
                 .await;
             if res.is_err() {

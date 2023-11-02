@@ -26,19 +26,13 @@ export default class SelectOrCreateUseOncePermission extends PureComponent<
         super(props);
     }
 
-    handleUpdate = (permissionIds: string[]) => {
-        if (this.props.onSelectUpdate) {
-            this.props.onSelectUpdate(permissionIds);
-        }
-    };
-
     render = () => {
         return (
             <div className="SelectOrCreateUseOncePermission">
                 <SelectPermissions
                     size={this.props.size}
                     type={this.props.type}
-                    onUpdate={this.handleUpdate}
+                    onUpdate={permissionIds => this.props.onSelectUpdate?.(permissionIds)}
                     selectedPermissionIds={this.props.selectedPermissionIds}
                 />
                 <label htmlFor="">Use Once Permission</label>

@@ -6,7 +6,7 @@ import { ItemDataType } from "rsuite/esm/@types/common";
 import update from "immutability-helper";
 import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import { cloneDeep } from "lodash";
+import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 
 const knownCategories = [
     {
@@ -37,27 +37,31 @@ const knownCategories = [
     }
 ];
 
-interface KeywordsProps {
-    readonly inputSize: "lg" | "md" | "sm" | "xs";
-    readonly file: FilezFile;
+interface KeywordPickerProps {
+    readonly inputSize?: "lg" | "md" | "sm" | "xs";
+    readonly resourceType: "File" | "FileGroup";
+    readonly resource?: FilezFile | FilezFileGroup;
+    readonly onKeywordsChanged?: (keywords: string[]) => void;
 }
 
-interface KeywordsState {
+interface KeywordPickerState {
     readonly knownKeywords: string[];
     readonly localKeywords: string[];
     readonly serverKeywords: string[];
+    readonly knownKeywordsLoaded: boolean;
 }
 
-export default class Keywords extends PureComponent<KeywordsProps, KeywordsState> {
+export default class KeywordPicker extends PureComponent<KeywordPickerProps, KeywordPickerState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
-    constructor(props: KeywordsProps) {
+    constructor(props: KeywordPickerProps) {
         super(props);
         this.state = {
             knownKeywords: [],
             localKeywords: [],
-            serverKeywords: []
+            serverKeywords: [],
+            knownKeywordsLoaded: false
         };
     }
 
@@ -67,42 +71,27 @@ export default class Keywords extends PureComponent<KeywordsProps, KeywordsState
 
     init = async () => {
         await this.loadKeywords();
-        this.setState(state =>
-            update(state, {
-                localKeywords: { $set: cloneDeep(this.props.file.keywords) },
-                serverKeywords: { $set: cloneDeep(this.props.file.keywords) }
-            })
-        );
-    };
-
-    componentDidUpdate = async (
-        prevProps: Readonly<KeywordsProps>,
-        _prevState: Readonly<KeywordsState>,
-        _snapshot?: any
-    ) => {
-        if (prevProps.file._id !== this.props.file._id) {
-            await this.init();
-        }
     };
 
     loadKeywords = async () => {
         if (!this.context) throw new Error("No filez context set");
-        const knownKeywords = await this.get_keywords(this.props.file);
+        const knownKeywords = await this.get_keywords(this.props.resource);
         this.setState({
-            knownKeywords
+            knownKeywords,
+            knownKeywordsLoaded: true
         });
     };
 
-    get_keywords = async (file: FilezFile) => {
+    get_keywords = async (resource?: FilezFile | FilezFileGroup) => {
         if (!this.context) throw new Error("No filez context set");
         const otherDocumentKeywords = await this.context.filezClient.get_aggregated_keywords();
-        const thisDocumentKeywords = file.keywords;
+        const thisDocumentKeywords = resource?.keywords ?? [];
         const distinctKeywords = new Set([...otherDocumentKeywords, ...thisDocumentKeywords]);
         return [...distinctKeywords];
     };
 
     render = () => {
-        if (this.state.knownKeywords.length === 0) return null;
+        if (this.state.knownKeywordsLoaded === false) return null;
 
         return (
             <div className="Keywords">
@@ -200,21 +189,11 @@ export default class Keywords extends PureComponent<KeywordsProps, KeywordsState
                                         return [...distinctKeywords];
                                     })()
                                 }
-                            })
-                        );
-                        const res = await this.context?.filezClient.update_file_infos(
-                            this.props.file._id,
-                            {
-                                Keywords: keywords
+                            }),
+                            () => {
+                                this.props.onKeywordsChanged?.(this.state.localKeywords);
                             }
                         );
-                        if (res?.status === 200) {
-                            this.setState(
-                                update(this.state, {
-                                    serverKeywords: { $set: keywords }
-                                })
-                            );
-                        }
                     }}
                     block
                     virtualized

@@ -7,6 +7,7 @@ pub mod interossea;
 pub mod macros;
 pub mod permissions;
 pub mod readonly_mount;
+pub mod storage;
 pub mod types;
 pub mod utils;
 

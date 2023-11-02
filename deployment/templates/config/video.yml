@@ -4,7 +4,7 @@ variablePrefix: "$"
 # time between database request for new videos to convert if the last request did not return a file
 timeoutSeconds: 5
 
-storagePath: /output/
+storagePath: /app_data/
 
 db:
     url: mongodb://root:$MONGODB_ROOT_PASSWORD@filez-db.localhost:{{ $config.filez.server.db.port }}

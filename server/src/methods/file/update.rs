@@ -3,6 +3,7 @@ use crate::{
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
+    storage::get_storage_location_from_file,
 };
 use anyhow::bail;
 use hyper::{body::HttpBody, Body, Request, Response};
@@ -70,13 +71,13 @@ pub async fn update_file(
 
     // first size check
     let size_hint = req.body().size_hint();
-    let storage_limits = some_or_bail!(
-        file_owner.limits.get(&storage_id),
-        format!(
+    let storage_limits = match &file_owner.limits.get(&storage_id) {
+        Some(Some(ul)) => ul,
+        _ => bail!(
             "Storage name: '{}' is missing specifications on the user entry",
             storage_id
-        )
-    );
+        ),
+    };
     let bytes_left = storage_limits.max_storage - storage_limits.used_storage;
     if size_hint.lower() > bytes_left
         || size_hint.upper().is_some() && size_hint.upper().unwrap() > bytes_left
@@ -90,7 +91,10 @@ pub async fn update_file(
     }
 
     // write file to disk but abbort if limits where exceeded
-    let new_file_path = format!("{}_update", &filez_file.path);
+
+    let file_path = get_storage_location_from_file(&filez_file)?;
+
+    let new_file_path = format!("{}_update", &file_path.full_path);
     dbg!(&new_file_path);
     let mut file = File::create(&new_file_path)?;
     let mut hasher = Sha256::new();
@@ -127,7 +131,7 @@ pub async fn update_file(
         fs::remove_file(&new_file_path)?;
         bail!("Failed to create file in database: {}", cft.err().unwrap());
     } else {
-        fs::rename(&new_file_path, &filez_file.path)?;
+        fs::rename(&new_file_path, &file_path.full_path)?;
         let cfr = UpdateFileResponse { sha256: hash };
         Ok(res
             .status(200)

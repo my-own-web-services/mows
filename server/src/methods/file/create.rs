@@ -3,8 +3,9 @@ use crate::{
     db::DB,
     internal_types::Auth,
     some_or_bail,
+    storage::get_future_storage_location,
     types::FilezFile,
-    utils::{check_file_name, check_mime_type, generate_id, get_folder_and_file_path},
+    utils::{check_file_name, check_mime_type, generate_id},
 };
 use anyhow::bail;
 use hyper::{body::HttpBody, Body, Request, Response};
@@ -79,15 +80,18 @@ pub async fn create_file(
 
     let storage_name = create_request
         .storage_id
-        .unwrap_or_else(|| config.default_storage.clone());
+        .unwrap_or_else(|| config.storage.default_storage.clone());
 
     // check for user limits
     // first size check
     let size_hint = req.body().size_hint();
-    let storage_limits = some_or_bail!(
-        user.limits.get(&storage_name),
-        format!("Invalid storage name: {}", storage_name)
-    );
+    let storage_limits = match &user.limits.get(&storage_name) {
+        Some(Some(ul)) => ul,
+        _ => bail!(
+            "Storage name: '{}' is missing specifications on the user entry",
+            storage_name
+        ),
+    };
 
     let bytes_left = storage_limits.max_storage - storage_limits.used_storage;
     if size_hint.lower() > bytes_left
@@ -123,22 +127,13 @@ pub async fn create_file(
         }
     }
 
-    let storage_path = some_or_bail!(
-        config.storage.get(&storage_name),
-        format!(
-            "Storage name: '{}' is missing in the config file",
-            storage_name
-        )
-    )
-    .path
-    .clone();
-
     let file_id = generate_id(16);
-    let (folder_path, file_name) = get_folder_and_file_path(&file_id, &storage_path);
+    let future_storage_location = get_future_storage_location(&file_id, Some(&storage_name))?;
 
-    fs::create_dir_all(&folder_path)?;
+    fs::create_dir_all(&future_storage_location.folder_path)?;
+
     // write file to disk but abbort if limits where exceeded
-    let file_path = format!("{}/{}", folder_path, file_name);
+    let file_path = future_storage_location.full_path;
     let mut file = File::create(&file_path)?;
     let mut hasher = Sha256::new();
 
@@ -237,8 +232,8 @@ pub async fn create_file(
                     .unwrap_or(current_time),
                 permission_ids: vec![],
                 keywords: vec![],
-                path: file_path.clone(),
                 readonly: false,
+                readonly_path: None,
             },
             false,
         )
@@ -269,7 +264,9 @@ pub struct CreateFileRequest {
     pub mime_type: String,
     pub storage_id: Option<String>,
     pub static_file_group_ids: Option<Vec<String>>,
+    #[ts(type = "number")]
     pub created: Option<i64>,
+    #[ts(type = "number")]
     pub modified: Option<i64>,
 }
 

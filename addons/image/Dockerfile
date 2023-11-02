@@ -34,9 +34,7 @@ RUN mkdir -p /home/filez-addons-image/.config/darktable && mkdir -p /home/filez-
 # create output dir
 RUN mkdir /output/ && chown -R filez-addons-image:filez-addons-image /output/
 
-# create readonly input dirs
-RUN mkdir /readonly
-RUN chown filez-addons-image:filez-addons-image /readonly
+
 
 USER filez-addons-image
 STOPSIGNAL SIGKILL

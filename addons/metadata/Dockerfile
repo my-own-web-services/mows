@@ -35,12 +35,6 @@ COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 
-# create readonly dirs
-RUN mkdir /readonly
-
-
-RUN chown filez-addons-metadata:filez-addons-metadata /readonly
-
 USER filez-addons-metadata
 STOPSIGNAL SIGKILL
 # run it 
