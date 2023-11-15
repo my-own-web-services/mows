@@ -1,4 +1,8 @@
 use anyhow::bail;
+use filez_common::{
+    server::FilezFile,
+    storage::index::{get_app_data_folder_for_file, get_storage_location_from_file},
+};
 use imageprocessing::{
     config::CONFIG,
     convert::{convert, convert_raw},
@@ -7,11 +11,10 @@ use imageprocessing::{
     external::video_poster::get_video_poster_amazon,
     image_types::ProcessedImage,
     metadata_types::Metadata,
-    types::FilezFile,
-    utils::get_resolutions,
+    utils::{get_resolutions, is_raw},
 };
 use mongodb::options::ClientOptions;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
@@ -43,9 +46,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut error: Option<String> = None;
         match file {
             Some(file) => {
-                println!("Processing file: {:?}", file.path);
+                println!("Processing file: {:?}", file.name);
+
+                let file_source_path =
+                    get_storage_location_from_file(&config.storage, &file)?.full_path;
+                let target_folder_path =
+                    get_app_data_folder_for_file(&config.storage, &file, "image")?.file_folder;
+
                 if file.mime_type.starts_with("audio/") {
-                    match handle_audio(&file).await {
+                    match handle_audio(&file_source_path, &target_folder_path).await {
                         Some(album_art) => {
                             image_processing_result = Some(album_art);
                         }
@@ -54,7 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                         }
                     };
                 } else if file.mime_type.starts_with("image/") {
-                    match handle_image(&file).await {
+                    match handle_image(&file, &file_source_path, &target_folder_path).await {
                         Some(image) => {
                             image_processing_result = Some(image);
                         }
@@ -63,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                         }
                     };
                 } else if file.mime_type.starts_with("video/") {
-                    match handle_video(&file).await {
+                    match handle_video(&file, &file_source_path, &target_folder_path).await {
                         Some(image) => {
                             image_processing_result = Some(image);
                         }
@@ -75,7 +84,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     error = Some("Unknown file type".to_string());
                 }
 
-                dbg!(&file.path);
                 match db
                     .update_image_processing_status_finished(
                         &file.file_id,
@@ -100,7 +108,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 }
 
-pub async fn try_video_poster(file: &FilezFile) -> anyhow::Result<String> {
+pub async fn try_video_poster(
+    file: &FilezFile,
+    target_folder_path: &PathBuf,
+) -> anyhow::Result<PathBuf> {
     if !&CONFIG.external.omdb_amazon_posters {
         bail!("OMDB Amazon posters are disabled");
     };
@@ -111,13 +122,7 @@ pub async fn try_video_poster(file: &FilezFile) -> anyhow::Result<String> {
                 if let Some(external) = metadata_result.external {
                     if let Some(omdb) = external.omdb {
                         if let Some(poster_path) = omdb.poster {
-                            match get_video_poster_amazon(
-                                &poster_path,
-                                &CONFIG.storage_path,
-                                &file.file_id,
-                            )
-                            .await
-                            {
+                            match get_video_poster_amazon(&poster_path, target_folder_path).await {
                                 Ok(file_path) => return Ok(file_path),
                                 Err(e) => bail!("Could not get video poster: {}", e),
                             }
@@ -131,8 +136,12 @@ pub async fn try_video_poster(file: &FilezFile) -> anyhow::Result<String> {
     bail!("No video poster url found")
 }
 
-pub async fn handle_video(file: &FilezFile) -> Option<ProcessedImage> {
-    let path = match try_video_poster(file).await {
+pub async fn handle_video(
+    file: &FilezFile,
+    source_path: &PathBuf,
+    target_folder_path: &PathBuf,
+) -> Option<ProcessedImage> {
+    let path = match try_video_poster(file, target_folder_path).await {
         Ok(path) => path,
         Err(e) => {
             // try something else like thumbnail extraction or similar
@@ -154,7 +163,7 @@ pub async fn handle_video(file: &FilezFile) -> Option<ProcessedImage> {
 
     let resolutions = get_resolutions(width, height);
 
-    match convert(&path, &CONFIG.storage_path, &file.file_id, &resolutions).await {
+    match convert(&path, target_folder_path, &resolutions).await {
         Ok(_) => Some(ProcessedImage {
             width,
             height,
@@ -167,18 +176,17 @@ pub async fn handle_video(file: &FilezFile) -> Option<ProcessedImage> {
     }
 }
 
-pub async fn handle_image(file: &FilezFile) -> Option<ProcessedImage> {
-    let raw_formats = vec![
-        "cr2", "crw", "nef", "orf", "raf", "rw2", "arw", "dng", "erf", "mrw",
-    ];
+pub async fn handle_image(
+    file: &FilezFile,
+    source_path: &PathBuf,
+    target_folder_path: &PathBuf,
+) -> Option<ProcessedImage> {
+    let mut path = source_path.clone();
 
-    let ending = Path::new(&file.path).extension()?.to_str()?.to_lowercase();
-
-    let mut path = file.path.clone();
-    if raw_formats.contains(&ending.as_str()) {
-        match convert_raw(&path, &CONFIG.storage_path, &file.file_id).await {
-            Ok(target_path) => {
-                path = target_path;
+    if is_raw(file) {
+        match convert_raw(&path, target_folder_path).await {
+            Ok(raw_path) => {
+                path = raw_path;
             }
             Err(e) => {
                 println!("Error converting raw image: {}", e);
@@ -200,7 +208,7 @@ pub async fn handle_image(file: &FilezFile) -> Option<ProcessedImage> {
 
     let resolutions = get_resolutions(width, height);
 
-    match convert(&path, &CONFIG.storage_path, &file.file_id, &resolutions).await {
+    match convert(&path, target_folder_path, &resolutions).await {
         Ok(_) => Some(ProcessedImage {
             width,
             height,
@@ -213,8 +221,11 @@ pub async fn handle_image(file: &FilezFile) -> Option<ProcessedImage> {
     }
 }
 
-pub async fn handle_audio(file: &FilezFile) -> Option<ProcessedImage> {
-    match extract_album_art(&file.path, &file.file_id).await {
+pub async fn handle_audio(
+    source_path: &PathBuf,
+    target_folder_path: &PathBuf,
+) -> Option<ProcessedImage> {
+    match extract_album_art(source_path, target_folder_path).await {
         Ok(album_art) => Some(album_art),
         Err(e) => {
             println!("Error extracting thumbnail: {}", e);

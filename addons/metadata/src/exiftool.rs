@@ -1,8 +1,8 @@
 use anyhow::{bail, Ok};
 use serde_json::Value;
-use std::{collections::HashMap, process::Command};
+use std::{collections::HashMap, path::PathBuf, process::Command};
 
-pub async fn get_metadata_exiftool(path: &str) -> anyhow::Result<HashMap<String, Value>> {
+pub async fn get_metadata_exiftool(path: &PathBuf) -> anyhow::Result<HashMap<String, Value>> {
     let output = Command::new("./Image-ExifTool-12.55/exiftool")
         .arg(path)
         .arg("-json")

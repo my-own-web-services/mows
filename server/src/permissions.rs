@@ -1,11 +1,6 @@
-use crate::{
-    config::SERVER_CONFIG,
-    db::DB,
-    internal_types::Auth,
-    types::{FilezFile, FilezFileGroup, FilezUser, FilezUserGroup},
-    utils::merge_values,
-};
+use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth, utils::merge_values};
 use anyhow::bail;
+use filez_common::server::{FilezFile, FilezFileGroup, FilezUser, FilezUserGroup};
 use serde::{Deserialize, Serialize};
 
 use serde_json::Value;

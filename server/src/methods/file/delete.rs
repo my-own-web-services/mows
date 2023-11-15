@@ -1,12 +1,13 @@
 use crate::{
+    config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
-    storage::get_storage_location_from_file,
     utils::get_query_item,
 };
 use anyhow::bail;
+use filez_common::storage::index::get_storage_location_from_file;
 use hyper::{Body, Request, Response};
 use tokio::fs;
 
@@ -24,6 +25,8 @@ pub async fn delete_file(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
+    let config = &SERVER_CONFIG;
+
     let file_id = match get_query_item(&req, "id") {
         Some(v) => v,
         None => return Ok(res.status(400).body(Body::from("Missing id"))?),
@@ -46,7 +49,7 @@ pub async fn delete_file(
 
     db.delete_file_by_id(&file).await?;
 
-    let fl = get_storage_location_from_file(&file)?;
+    let fl = get_storage_location_from_file(&config.storage, &file)?;
     fs::remove_file(fl.full_path).await?;
 
     Ok(res.status(200).body(Body::from("OK"))?)

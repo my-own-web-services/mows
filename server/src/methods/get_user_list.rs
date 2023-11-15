@@ -1,8 +1,10 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{FriendshipStatus, GetItemListResponseBody, ReducedFilezUser, SortOrder},
     utils::{get_query_item, get_query_item_number},
+};
+use filez_common::server::{
+    FriendshipStatus, GetItemListResponseBody, ReducedFilezUser, SortOrder,
 };
 use hyper::{Body, Request, Response};
 

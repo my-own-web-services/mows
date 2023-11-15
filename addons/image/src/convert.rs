@@ -1,23 +1,19 @@
-use crate::utils::get_folder_and_file_path;
-use std::process::Command;
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 pub async fn convert(
-    source_path: &str,
-    storage_path: &str,
-    file_id: &str,
+    source_path: &PathBuf,
+    target_folder_path: &PathBuf,
     resolutions: &Vec<u32>,
 ) -> anyhow::Result<()> {
     let image = image::open(source_path)?;
 
-    let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
-
-    let target_path = format!("{folder_path}/{file_name}/");
-    println!("converting to avif: target_path: {}", target_path);
-
-    std::fs::create_dir_all(&target_path)?;
+    std::fs::create_dir_all(target_folder_path)?;
 
     for resolution in resolutions {
-        let path = format!("{target_path}{resolution}.avif");
+        let path = Path::new(target_folder_path).join(format!("{resolution}.avif"));
 
         image
             .resize(
@@ -32,15 +28,12 @@ pub async fn convert(
 }
 
 pub async fn convert_raw(
-    source_path: &str,
-    storage_path: &str,
-    file_id: &str,
-) -> anyhow::Result<String> {
-    let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
+    source_path: &PathBuf,
+    target_folder_path: &PathBuf,
+) -> anyhow::Result<PathBuf> {
+    let target_path = Path::new(target_folder_path).join("raw.jpg");
 
-    let target_path = format!("{folder_path}/{file_name}/raw.jpg");
-
-    println!("converting raw: target_path: {}", target_path);
+    println!("converting raw: target_path: {}", target_path.display());
 
     // ensure image does not exist
     std::fs::remove_file(&target_path).ok();

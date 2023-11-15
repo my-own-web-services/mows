@@ -61,8 +61,8 @@ filez:
     server:
         build:
             enabled: true
-            path: ../../server/
-            dockerfile: Dockerfile
+            path: ../../
+            dockerfile: server/Dockerfile
         publicHostname:
             domain: vindelicum.eu
             subdomain: filez-server
@@ -97,8 +97,8 @@ filez:
           resetOnRestart: true
           build:
               enabled: true
-              path: ../../addons/video/
-              dockerfile: Dockerfile
+              path: ../../
+              dockerfile: addons/video/Dockerfile
         - name: image
           db: true
           storage: true
@@ -107,8 +107,8 @@ filez:
           resetOnRestart: true
           build:
               enabled: true
-              path: ../../addons/image/
-              dockerfile: Dockerfile
+              path: ../../
+              dockerfile: ./addons/image/Dockerfile
         - name: metadata
           db: true
           storage: false
@@ -117,8 +117,8 @@ filez:
           resetOnRestart: true
           build:
               enabled: true
-              path: ../../addons/metadata/
-              dockerfile: Dockerfile
+              path: ../../
+              dockerfile: addons/metadata/Dockerfile
 
 interossea:
     server:

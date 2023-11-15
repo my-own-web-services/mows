@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use filez_common::server::FilezFile;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::Value;
@@ -7,7 +8,6 @@ use serde_json::Value;
 use crate::{
     metadata_types::{self, Clues},
     some_or_bail,
-    types::FilezFile,
 };
 
 pub async fn get_clues(

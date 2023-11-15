@@ -139,9 +139,9 @@ services:
     {{- range $appKey, $appValue := $value.appStorage  }}
         {{- if eq $addon.name $appKey }}
             {{- if eq $appValue.type "volume" }}
-            - filez-storage-{{ $key }}-{{ $appKey }}:/output/{{ $key }}/:rw
+            - filez-storage-{{ $key }}-{{ $appKey }}:/app_data/{{ $key }}/{{ $appKey }}/:rw
             {{- else if eq $appValue.type "bind" }}
-            - {{ $appValue.path }}:/output/{{ $key }}/:rw
+            - {{ $appValue.path }}:/app_data/{{ $key }}/{{ $appKey }}/:rw
             {{- end }}
         {{- end }}
     {{- end }}

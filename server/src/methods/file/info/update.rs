@@ -4,13 +4,13 @@ use crate::{
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
-    storage::{get_future_storage_location, get_storage_location_from_file},
     utils::{
         check_file_name, check_keywords, check_mime_type, check_owner_id, check_static_file_groups,
         check_storage_id,
     },
 };
 use anyhow::bail;
+use filez_common::storage::index::{get_future_storage_location, get_storage_location_from_file};
 use hyper::{Body, Request, Response};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -216,10 +216,14 @@ pub async fn update_file_infos(
                 }
 
                 // move the file
-                let new_storage_location =
-                    get_future_storage_location(&filez_file.file_id, Some(new_storage_id))?;
+                let new_storage_location = get_future_storage_location(
+                    &config.storage,
+                    &filez_file.file_id,
+                    Some(new_storage_id),
+                )?;
 
-                let old_storage_location = get_storage_location_from_file(&filez_file)?;
+                let old_storage_location =
+                    get_storage_location_from_file(&config.storage, &filez_file)?;
 
                 fs::create_dir_all(&new_storage_location.folder_path).await?;
 

@@ -1,11 +1,14 @@
-use crate::{
-    config::{VideoConfigCodec, CONFIG},
-    utils::get_folder_and_file_path,
-};
+use crate::config::{VideoConfigCodec, CONFIG};
 use anyhow::bail;
-use std::process::Command;
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
-pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> anyhow::Result<()> {
+pub async fn convert(
+    file_source_path: &PathBuf,
+    file_target_folder: &PathBuf,
+) -> anyhow::Result<()> {
     let config = &CONFIG;
     let video_quality = config.video.quality;
     let mut video_targets = config.video.target_resolutions.clone();
@@ -13,13 +16,9 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
     let ffprobe_path = "./ffprobe";
     video_targets.sort();
 
-    dbg!(&source_path);
+    let thumbnail_folder = Path::new(file_target_folder).join("t");
 
-    let (folder_path, file_name) = get_folder_and_file_path(file_id, storage_path);
-
-    let target_path = format!("{folder_path}/{file_name}/");
-
-    std::fs::create_dir_all(format!("{target_path}t"))?;
+    std::fs::create_dir_all(thumbnail_folder)?;
 
     let mut resolution_command = Command::new(ffprobe_path);
 
@@ -32,7 +31,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         "stream=width,height",
         "-of",
         "csv=s=x:p=0",
-        source_path,
+        file_source_path.to_str().unwrap(),
     ]);
 
     let output = resolution_command.output()?.stdout;
@@ -60,7 +59,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .arg("format=duration")
         .arg("-of")
         .arg("default=noprint_wrappers=1:nokey=1")
-        .arg(source_path);
+        .arg(file_source_path);
 
     let output = video_length_command.output()?.stdout;
     let video_length_str = std::str::from_utf8(&output)?.trim();
@@ -81,12 +80,12 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .arg("-hide_banner")
         .arg("-y")
         .arg("-i")
-        .arg(source_path)
+        .arg(file_source_path)
         .arg("-c:v")
         .arg("libwebp")
         .arg("-vf")
         .arg(format!("scale=-1:480,fps=1/{a}"))
-        .arg(format!("{target_path}t/%d.webp"));
+        .arg(Path::new(file_target_folder).join("t/%d.webp"));
 
     thumbnail_command.spawn()?.wait()?;
 
@@ -99,13 +98,14 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .arg("-hide_banner")
         .arg("-y")
         .arg("-i")
-        .arg(source_path)
+        .arg(file_source_path)
         .arg("-dash")
         .arg("1")
         .arg("-f")
         .arg("webm");
 
     for video_target in &video_targets {
+        let video_target_path = Path::new(file_target_folder).join(format!("{video_target}.webm"));
         match config.video.codec {
             VideoConfigCodec::Vp9 => {
                 video_command
@@ -120,7 +120,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
                     .arg(video_quality.to_string())
                     .arg("-dash")
                     .arg("1")
-                    .arg(format!("{target_path}{video_target}.webm"));
+                    .arg(video_target_path);
             }
             VideoConfigCodec::Av1 => {
                 video_command
@@ -135,7 +135,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
                     .arg(video_quality.to_string())
                     .arg("-dash")
                     .arg("1")
-                    .arg(format!("{target_path}{video_target}.webm"));
+                    .arg(video_target_path);
             }
         }
     }
@@ -155,7 +155,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .arg("-hide_banner")
         .arg("-y")
         .arg("-i")
-        .arg(source_path)
+        .arg(file_source_path)
         .arg("-vn")
         .arg("-c:a")
         .arg("libopus")
@@ -165,7 +165,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         .arg("webm")
         .arg("-dash")
         .arg("1")
-        .arg(format!("{target_path}audio.webm"));
+        .arg(Path::new(file_target_folder).join("audio.webm"));
 
     let audio_result = audio_command.spawn()?.wait();
 
@@ -187,7 +187,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
             .arg("-f")
             .arg("webm_dash_manifest")
             .arg("-i")
-            .arg(format!("{target_path}{video_target}.webm"));
+            .arg(Path::new(file_target_folder).join(format!("{video_target}.webm")));
         video_adaption_sets += format!("{},", i).as_str();
         all_targets += 1;
     }
@@ -197,7 +197,7 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
             .arg("-f")
             .arg("webm_dash_manifest")
             .arg("-i")
-            .arg(format!("{target_path}audio.webm"));
+            .arg(Path::new(file_target_folder).join("audio.webm"));
         audio_adaption_sets += format!("{},", video_targets.len()).as_str();
 
         all_targets += 1;
@@ -217,12 +217,14 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
         Err(_) => format!("id=0,streams={video_adaption_sets}"),
     };
 
+    let manifest_path = Path::new(file_target_folder).join("manifest.mpd");
+
     manifest_command
         .arg("-f")
         .arg("webm_dash_manifest")
         .arg("-adaptation_sets")
         .arg(adaption_sets)
-        .arg(format!("{target_path}manifest.mpd"));
+        .arg(&manifest_path);
 
     let manifest_command_exit_code = manifest_command.spawn()?.wait()?;
 
@@ -232,9 +234,9 @@ pub async fn convert(source_path: &str, storage_path: &str, file_id: &str) -> an
 
     // fix manifest
     if config.video.codec == VideoConfigCodec::Av1 {
-        let manifest = tokio::fs::read_to_string(format!("{target_path}manifest.mpd")).await?;
+        let manifest = tokio::fs::read_to_string(&manifest_path).await?;
         let manifest = manifest.replace(r#"codecs="av1""#, r#"codecs="av01.0.00M.08""#);
-        tokio::fs::write(format!("{target_path}manifest.mpd"), manifest).await?;
+        tokio::fs::write(&manifest_path, manifest).await?;
     };
 
     Ok(())

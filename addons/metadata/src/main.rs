@@ -1,3 +1,4 @@
+use filez_common::storage::index::get_storage_location_from_file;
 use metadata::{
     clues::get_clues, config::CONFIG, db::DB, exiftool::get_metadata_exiftool,
     external::lookup::external_lookup, metadata_types::MetadataResult, ocr::get_ocr,
@@ -30,8 +31,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         };
         match unscanned_file {
             Some(file) => {
-                println!("Scanning {}", file.path);
-                let exifdata = match get_metadata_exiftool(&file.path).await {
+                let file_source_path =
+                    get_storage_location_from_file(&config.storage, &file)?.full_path;
+
+                println!("Scanning {}", file_source_path.display());
+                let exifdata = match get_metadata_exiftool(&file_source_path).await {
                     Ok(ed) => Some(ed),
                     Err(e) => {
                         println!("Error: {}", e);
@@ -39,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     }
                 };
 
-                let ocr = get_ocr(&file).await;
+                let ocr = get_ocr(&file, &file_source_path).await;
 
                 let clues = get_clues(&file, &exifdata).await?;
                 let mut metadata_result = MetadataResult {

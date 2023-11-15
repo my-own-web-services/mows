@@ -63,6 +63,9 @@ ts-rs = "7.0.0"
 
 itertools = "0.11.0"
 
+filez-common = { path = "../common/" }
+
+
 # TODO go back to using the original mime_guess as dcraw types get merged
 [patch.crates-io]
 mime_guess = { git = "https://github.com/hfiguiere/mime_guess", branch = "dcraw-types" }

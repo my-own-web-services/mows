@@ -1,9 +1,8 @@
+use super::providers::omdb;
 use crate::{
     config::CONFIG,
     metadata_types::{External, MetadataResult},
 };
-
-use super::providers::omdb;
 
 pub async fn external_lookup(metadata_result: &MetadataResult) -> anyhow::Result<External> {
     let config = &CONFIG;

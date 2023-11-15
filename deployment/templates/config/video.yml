@@ -4,7 +4,28 @@ variablePrefix: "$"
 # time between database request for new videos to convert if the last request did not return a file
 timeoutSeconds: 5
 
-storagePath: /app_data/
+storage:
+    defaultStorage: {{ $config.filez.defaultStorage }}
+    storages:
+        {{- range $key, $value := $config.filez.storage }}
+        {{ $key }}:
+            path: /storage/{{ $key }}/
+            appStorage:
+                {{- range $appKey, $appValue := $value.appStorage }}
+                {{ $appKey }}:
+                    path: /app_data/{{ $key }}/{{ $appKey }}/
+                {{- end }}
+            {{- if $value.readonly }}
+            readonly: 
+                ownerEmail: {{ $value.readonly.ownerEmail }}
+                rescanSeconds: {{ $value.readonly.rescanSeconds }}
+            {{- else }}
+            defaultUserLimits:
+                maxStorage: {{ $value.defaultUserLimits.maxStorage }}
+                maxFiles: {{ $value.defaultUserLimits.maxFiles }}
+                maxBandwidth: {{ $value.defaultUserLimits.maxBandwidth }}
+            {{- end }}
+        {{- end }}
 
 db:
     url: mongodb://root:$MONGODB_ROOT_PASSWORD@filez-db.localhost:{{ $config.filez.server.db.port }}

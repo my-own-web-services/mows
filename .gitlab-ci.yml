@@ -23,15 +23,14 @@ docker-build-server:
         - export CI_PUBLIC_REGISTRY=index.docker.io
         - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-server
-        - export DOCKER_PATH=/server/
         - mkdir -p /kaniko/.docker
         - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
         - >-
             /kaniko/executor
             --cache=true
-            --context="${CI_PROJECT_DIR}${DOCKER_PATH}"
+            --context="${CI_PROJECT_DIR}"
             --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
-            --dockerfile="Dockerfile"
+            --dockerfile="./server/Dockerfile"
             --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
 
 docker-build-web:
@@ -43,15 +42,14 @@ docker-build-web:
         - export CI_PUBLIC_REGISTRY=index.docker.io
         - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-web
-        - export DOCKER_PATH=/web/
         - mkdir -p /kaniko/.docker
         - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
         - >-
             /kaniko/executor
             --cache=true
-            --context="${CI_PROJECT_DIR}${DOCKER_PATH}"
+            --context="${CI_PROJECT_DIR}"
             --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
-            --dockerfile="Dockerfile"
+            --dockerfile="./web/Dockerfile"
             --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
 
 docker-build-addons-video:
@@ -63,15 +61,14 @@ docker-build-addons-video:
         - export CI_PUBLIC_REGISTRY=index.docker.io
         - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-addons-video
-        - export DOCKER_PATH=/addons/video/
         - mkdir -p /kaniko/.docker
         - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
         - >-
             /kaniko/executor
             --cache=true
-            --context="${CI_PROJECT_DIR}${DOCKER_PATH}"
+            --context="${CI_PROJECT_DIR}"
             --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
-            --dockerfile="Dockerfile"
+            --dockerfile="./addons/video/Dockerfile"
             --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
 
 docker-build-addons-image:
@@ -83,15 +80,14 @@ docker-build-addons-image:
         - export CI_PUBLIC_REGISTRY=index.docker.io
         - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-addons-image
-        - export DOCKER_PATH=/addons/image/
         - mkdir -p /kaniko/.docker
         - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
         - >-
             /kaniko/executor
             --cache=true
-            --context="${CI_PROJECT_DIR}${DOCKER_PATH}"
+            --context="${CI_PROJECT_DIR}"
             --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
-            --dockerfile="Dockerfile"
+            --dockerfile="./addons/image/Dockerfile"
             --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
 
 docker-build-addons-metadata:
@@ -103,13 +99,12 @@ docker-build-addons-metadata:
         - export CI_PUBLIC_REGISTRY=index.docker.io
         - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
         - export IMAGE_NAME=firstdorsal/filez-addons-metadata
-        - export DOCKER_PATH=/addons/metadata/
         - mkdir -p /kaniko/.docker
         - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
         - >-
             /kaniko/executor
             --cache=true
-            --context="${CI_PROJECT_DIR}${DOCKER_PATH}"
+            --context="${CI_PROJECT_DIR}"
             --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
-            --dockerfile="Dockerfile"
+            --dockerfile="./addons/metadata/Dockerfile"
             --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"

@@ -6,12 +6,13 @@ use crate::{
     },
     permissions::FilezPermission,
     some_or_bail,
-    types::{
-        AppDataType, FileGroupType, FilezFile, FilezFileGroup, FilezUser, FilezUserGroup,
-        SortOrder, UploadSpace, UsageLimits, UserRole, UserStatus, Visibility,
-    },
     utils::generate_id,
 };
+use filez_common::server::{
+    AppDataType, FileGroupType, FileResourceType, FilezFile, FilezFileGroup, FilezUser,
+    FilezUserGroup, SortOrder, UploadSpace, UsageLimits, UserRole, UserStatus, Visibility,
+};
+
 use anyhow::bail;
 use futures::{stream::TryStreamExt, StreamExt};
 use mongodb::{
@@ -254,7 +255,7 @@ impl DB {
 
         // update permissions on the resource
         Ok(match upr.resource_type {
-            crate::types::FileResourceType::FileGroup => {
+            FileResourceType::FileGroup => {
                 let group = some_or_bail!(
                     self.get_file_group_by_id(&upr.resource_id).await?,
                     "Could not find file group"
@@ -274,7 +275,7 @@ impl DB {
                     )
                     .await?
             }
-            crate::types::FileResourceType::File => {
+            FileResourceType::File => {
                 let file = some_or_bail!(
                     self.get_file_by_id(&upr.resource_id).await?,
                     "Could not find file"
@@ -1110,10 +1111,10 @@ impl DB {
         };
 
         let visible = match requesting_user.role {
-            crate::types::UserRole::Admin => {
+            UserRole::Admin => {
                 doc! {}
             }
-            crate::types::UserRole::User => {
+            UserRole::User => {
                 doc! {
                     "$or":[
                         {

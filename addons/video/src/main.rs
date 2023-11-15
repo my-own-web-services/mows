@@ -1,3 +1,4 @@
+use filez_common::storage::index::{get_app_data_folder_for_file, get_storage_location_from_file};
 use mongodb::options::ClientOptions;
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
@@ -29,8 +30,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         };
         match file {
             Some(file) => {
+                let file_source_path =
+                    get_storage_location_from_file(&config.storage, &file)?.full_path;
+                let file_target_folder =
+                    get_app_data_folder_for_file(&config.storage, &file, "video")?.file_folder;
+
                 println!("Processing file: {:?}", &file.file_id);
-                let res = match convert(&file.path, &config.storage_path, &file.file_id).await {
+                let res = match convert(&file_source_path, &file_target_folder).await {
                     Ok(_) => None,
                     Err(e) => Some(e.to_string()),
                 };

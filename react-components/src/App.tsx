@@ -19,7 +19,7 @@ export default class App extends PureComponent<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            selectedFileId: "FMKqaV3BXrBbHQfn"
+            selectedFileId: "kgBRBXqBXrHZBuHF"
         };
     }
 

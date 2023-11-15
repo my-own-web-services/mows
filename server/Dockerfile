@@ -5,11 +5,13 @@ USER root
 RUN apt-get update && apt-get install upx -y
 RUN cargo install cargo-build-deps
 
-COPY Cargo.toml Cargo.lock ./
+COPY ./server/Cargo.toml ./server/Cargo.lock ./
+COPY ./common /common
+
 RUN cargo build-deps --release
 RUN rm -f target/x86_64-unknown-linux-musl/release/deps/filez-server*
 # build
-COPY --chown=root:root src src
+COPY --chown=root:root ./server/src src
 RUN cargo build --release --bin main
 RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main

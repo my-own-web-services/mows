@@ -3,11 +3,10 @@ use crate::{
     db::DB,
     internal_types::Auth,
     some_or_bail,
-    storage::get_future_storage_location,
-    types::FilezFile,
     utils::{check_file_name, check_mime_type, generate_id},
 };
 use anyhow::bail;
+use filez_common::{server::FilezFile, storage::index::get_future_storage_location};
 use hyper::{body::HttpBody, Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -128,7 +127,8 @@ pub async fn create_file(
     }
 
     let file_id = generate_id(16);
-    let future_storage_location = get_future_storage_location(&file_id, Some(&storage_name))?;
+    let future_storage_location =
+        get_future_storage_location(&config.storage, &file_id, Some(&storage_name))?;
 
     fs::create_dir_all(&future_storage_location.folder_path)?;
 

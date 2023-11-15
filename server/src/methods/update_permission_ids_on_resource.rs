@@ -1,4 +1,5 @@
-use crate::{db::DB, internal_types::Auth, types::FileResourceType};
+use crate::{db::DB, internal_types::Auth};
+use filez_common::server::FileResourceType;
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

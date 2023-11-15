@@ -15,11 +15,13 @@ RUN chmod +x /ffmpeg /ffprobe
 
 RUN cargo install cargo-build-deps
 
-COPY Cargo.toml Cargo.lock ./
+COPY ./addons/video/Cargo.toml ./addons/video/Cargo.lock ./
+COPY ./common /common
+
 RUN cargo build-deps --release
 RUN rm -f target/x86_64-unknown-linux-musl/release/deps/filez-addons-video*
 # build
-COPY --chown=root:root src src
+COPY --chown=root:root ./addons/video/src src
 RUN cargo build --release --bin main
 RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main

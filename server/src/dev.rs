@@ -1,5 +1,6 @@
-use crate::{config::SERVER_CONFIG, db::DB, types::UserStatus};
+use crate::{config::SERVER_CONFIG, db::DB};
 use anyhow::bail;
+use filez_common::server::UserStatus;
 use serde::{Deserialize, Serialize};
 
 pub async fn dev(db: &DB) -> anyhow::Result<()> {
@@ -54,12 +55,7 @@ pub async fn create_users(db: &DB) -> anyhow::Result<()> {
     for user in users_to_create {
         if db.get_user_by_email(&user).await?.is_none() {
             let res = db
-                .create_user(
-                    None,
-                    Some(crate::types::UserStatus::Active),
-                    None,
-                    Some(user),
-                )
+                .create_user(None, Some(UserStatus::Active), None, Some(user))
                 .await;
             if res.is_err() {
                 println!("Error creating mock user: {:?}", res);

@@ -1,5 +1,6 @@
-use crate::{db::DB, internal_types::Auth, some_or_bail, types::AppDataType};
+use crate::{db::DB, internal_types::Auth, some_or_bail};
 use anyhow::bail;
+use filez_common::server::AppDataType;
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

@@ -1,4 +1,5 @@
-use crate::{image_types::ProcessedImage, types::FilezFile};
+use crate::image_types::ProcessedImage;
+use filez_common::server::FilezFile;
 use mongodb::{bson::doc, options::ClientOptions, Client, Database};
 
 pub struct DB {

@@ -1,7 +1,5 @@
-use crate::{
-    db::DB,
-    types::{FilezFile, FilezFileGroup, FilterRuleType},
-};
+use crate::db::DB;
+use filez_common::server::{FilezFile, FilezFileGroup, FilterRuleType};
 use regex::Regex;
 use serde_json::Value;
 

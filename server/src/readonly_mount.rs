@@ -1,11 +1,9 @@
-use crate::{
-    config::{ReadonlyConfig, SERVER_CONFIG},
-    db::DB,
-    some_or_bail,
-    types::{FileGroupType, FilezFile, FilezFileGroup},
-    utils::generate_id,
-};
+use crate::{config::SERVER_CONFIG, db::DB, some_or_bail, utils::generate_id};
 use anyhow::bail;
+use filez_common::{
+    server::{FileGroupType, FilezFile, FilezFileGroup, UserStatus},
+    storage::types::ReadonlyConfig,
+};
 use indicatif::ProgressBar;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -13,7 +11,7 @@ use std::{
     collections::HashMap,
     fs::{DirEntry, File, Metadata},
     io::{self},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
@@ -37,14 +35,17 @@ pub async fn scan_readonly_mounts(db: &DB) -> anyhow::Result<()> {
 pub async fn scan_readonly_mount(
     db: &DB,
     mount_name: &str,
-    storage_path: &str,
+    storage_path: &PathBuf,
     mount: &ReadonlyConfig,
 ) -> anyhow::Result<()> {
     print!("Scanning {}: ", mount_name);
 
     let path = Path::new(storage_path);
     if !path.exists() {
-        bail!("Readonly mount path does not exist: {}", storage_path);
+        bail!(
+            "Readonly mount path does not exist: {}",
+            storage_path.display()
+        );
     }
     let file_list = recursive_read_dir(some_or_bail!(
         path.to_str(),
@@ -60,7 +61,7 @@ pub async fn scan_readonly_mount(
             let new_user_id = db
                 .create_user(
                     None,
-                    Some(crate::types::UserStatus::Disabled),
+                    Some(UserStatus::Disabled),
                     None,
                     Some(mount.owner_email.to_string()),
                 )

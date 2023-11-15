@@ -1,5 +1,6 @@
-use crate::{config::SERVER_CONFIG, db::DB, some_or_bail, types::FilezFile};
+use crate::{config::SERVER_CONFIG, some_or_bail};
 use anyhow::bail;
+use filez_common::server::FilezFile;
 use hyper::{Body, Request};
 use qstring::QString;
 use serde_json::Value;
@@ -102,22 +103,6 @@ pub fn get_range(req: &Request<Body>) -> anyhow::Result<(u64, Result<u64, ParseI
         }
         None => bail!("No range"),
     }
-}
-
-pub fn get_folder_and_file_path(id: &str, storage_path: &str) -> (String, String) {
-    let (folder, file_name) = id.split_at(3);
-    let fd = folder
-        .chars()
-        .map(|c| c.to_string())
-        .collect::<Vec<_>>()
-        .join("/");
-    (
-        Path::new(storage_path)
-            .join(fd)
-            .to_string_lossy()
-            .to_string(),
-        file_name.to_string(),
-    )
 }
 
 pub fn get_password_from_query(req: &Request<Body>) -> Option<String> {

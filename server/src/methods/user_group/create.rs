@@ -1,9 +1,5 @@
-use crate::{
-    db::DB,
-    internal_types::Auth,
-    types::{FilezUserGroup, Visibility},
-    utils::generate_id,
-};
+use crate::{db::DB, internal_types::Auth, utils::generate_id};
+use filez_common::server::{FilezUserGroup, Visibility};
 use hyper::{body::Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

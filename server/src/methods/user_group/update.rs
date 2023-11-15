@@ -2,9 +2,9 @@ use crate::{
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezUserGroupPermissionAclWhatOptions},
-    types::Visibility,
 };
 use anyhow::bail;
+use filez_common::server::Visibility;
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

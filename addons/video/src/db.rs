@@ -1,4 +1,4 @@
-use crate::types::FilezFile;
+use filez_common::server::FilezFile;
 use mongodb::{bson::doc, options::ClientOptions, Client, Database};
 
 pub struct DB {

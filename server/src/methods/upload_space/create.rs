@@ -1,9 +1,5 @@
-use crate::{
-    db::DB,
-    internal_types::Auth,
-    types::{FileGroupType, FilezFileGroup, UploadSpace, UsageLimits},
-    utils::generate_id,
-};
+use crate::{db::DB, internal_types::Auth, utils::generate_id};
+use filez_common::server::{FileGroupType, FilezFileGroup, UploadSpace, UsageLimits};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

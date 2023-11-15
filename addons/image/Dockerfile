@@ -1,15 +1,19 @@
 # 0. BUILD STAGE
 FROM clux/muslrust:stable AS build
 # build deps
+
+
 USER root
 RUN apt-get update && apt-get install upx nasm -y
 RUN cargo install cargo-build-deps
 
-COPY Cargo.toml Cargo.lock ./
+COPY ./addons/image/Cargo.toml ./addons/image/Cargo.lock ./
+COPY ./common /common
+
 RUN cargo build-deps --release
 RUN rm -f target/x86_64-unknown-linux-musl/release/deps/filez-addons-image*
 # build
-COPY --chown=root:root src src
+COPY --chown=root:root ./addons/image/src src
 RUN cargo build --release --bin main
 RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main

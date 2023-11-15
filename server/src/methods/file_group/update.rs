@@ -3,9 +3,9 @@ use crate::{
     dynamic_groups::{handle_dynamic_group_update, UpdateType},
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFileGroupPermissionAclWhatOptions},
-    types::{FileGroupType, FilterRule},
 };
 use anyhow::bail;
+use filez_common::server::{FileGroupType, FilterRule};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

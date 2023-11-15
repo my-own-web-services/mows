@@ -1,9 +1,9 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{FilezFile, GetItemListResponseBody, SortOrder},
     utils::{get_query_item, get_query_item_number},
 };
+use filez_common::server::{FilezFile, GetItemListResponseBody, SortOrder};
 use hyper::{Body, Request, Response};
 
 pub async fn get_file_infos_by_group_id(

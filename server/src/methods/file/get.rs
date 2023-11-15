@@ -1,12 +1,13 @@
 use crate::{
+    config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
-    storage::{get_app_data_folder_for_file, get_storage_location_from_file},
     utils::{get_query_item, get_range},
 };
 use anyhow::bail;
+use filez_common::storage::index::{get_app_data_folder_for_file, get_storage_location_from_file};
 use http_range::HttpRange;
 use hyper::{Body, Request, Response};
 use hyper_staticfile::util::FileBytesStreamRange;
@@ -33,6 +34,7 @@ pub async fn get_file(
     auth: &Auth,
     mut res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
+    let config = &SERVER_CONFIG;
     let path = req.uri().path().replacen("/api/file/get/", "", 1);
 
     let parts = path.split('/').collect::<Vec<_>>();
@@ -95,12 +97,12 @@ pub async fn get_file(
 
     let full_file_path = match &app_file {
         Some((app_id, app_file_path)) => {
-            let app_storage_folder = get_app_data_folder_for_file(&file, app_id)?;
+            let app_storage_folder = get_app_data_folder_for_file(&config.storage, &file, app_id)?;
 
             Path::new(&app_storage_folder.file_folder).join(app_file_path)
         }
         None => {
-            let sl = get_storage_location_from_file(&file)?;
+            let sl = get_storage_location_from_file(&config.storage, &file)?;
             Path::new(&sl.full_path).to_path_buf()
         }
     };

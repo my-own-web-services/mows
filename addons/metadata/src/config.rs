@@ -1,4 +1,5 @@
 use anyhow::bail;
+use filez_common::storage::types::StorageConfig;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
@@ -47,6 +48,7 @@ pub struct ConfigVariablePrefix {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
+    pub storage: StorageConfig,
     pub timeout_seconds: u64,
     pub db: DbConfig,
     pub dev: DevConfig,
@@ -56,12 +58,12 @@ pub struct Config {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExternalConfig {
-    pub omdb: omdbConfig,
+    pub omdb: OmdbConfig,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct omdbConfig {
+pub struct OmdbConfig {
     pub enabled: bool,
     pub api_key: String,
 }

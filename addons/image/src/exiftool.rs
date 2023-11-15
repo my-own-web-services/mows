@@ -1,13 +1,15 @@
 use crate::convert::convert;
 use crate::image_types::ProcessedImage;
+use crate::some_or_bail;
 use crate::utils::get_resolutions;
-use crate::{config::CONFIG, some_or_bail, utils::get_folder_and_file_path};
 use anyhow::bail;
 use anyhow::Ok;
 use serde_json::Value;
+use std::path::Path;
+use std::path::PathBuf;
 use std::{collections::HashMap, io::Write, process::Command};
 
-pub async fn get_metadata_exiftool(path: &str) -> anyhow::Result<HashMap<String, Value>> {
+pub async fn get_metadata_exiftool(path: &PathBuf) -> anyhow::Result<HashMap<String, Value>> {
     let output = Command::new("./Image-ExifTool-12.55/exiftool")
         .arg(path)
         .arg("-json")
@@ -31,10 +33,11 @@ pub async fn get_metadata_exiftool(path: &str) -> anyhow::Result<HashMap<String,
     }
 }
 
-pub async fn extract_album_art(file_path: &str, file_id: &str) -> anyhow::Result<ProcessedImage> {
-    let config = &CONFIG;
-
-    let exif_data = get_metadata_exiftool(file_path).await?;
+pub async fn extract_album_art(
+    source_path: &PathBuf,
+    target_folder_path: &PathBuf,
+) -> anyhow::Result<ProcessedImage> {
+    let exif_data = get_metadata_exiftool(source_path).await?;
 
     let (file_extension, mime_type) = match exif_data.get("PictureMIMEType") {
         Some(e) => match e.to_string().as_str() {
@@ -45,18 +48,15 @@ pub async fn extract_album_art(file_path: &str, file_id: &str) -> anyhow::Result
         None => bail!("FileTypeExtension not found"),
     };
 
-    let (folder_path, file_name) = get_folder_and_file_path(file_id, &config.storage_path);
-    let path = format!("{folder_path}/{file_name}/");
-
-    std::fs::create_dir_all(&path)?;
+    std::fs::create_dir_all(target_folder_path)?;
 
     let output = Command::new("./Image-ExifTool-12.55/exiftool")
-        .arg(file_path)
+        .arg(source_path)
         .arg("-b")
         .arg("-Picture")
         .output()?;
 
-    let output_path = format!("{path}i.{file_extension}");
+    let output_path = Path::new(target_folder_path).join(format!("i.{file_extension}"));
 
     let mut file = std::fs::File::create(&output_path)?;
     file.write_all(&output.stdout)?;
@@ -87,7 +87,7 @@ pub async fn extract_album_art(file_path: &str, file_id: &str) -> anyhow::Result
     // dont create images that are larger than the source
     let resolutions = get_resolutions(width, height);
 
-    convert(&output_path, &config.storage_path, file_id, &resolutions).await?;
+    convert(&output_path, target_folder_path, &resolutions).await?;
     tokio::fs::remove_file(&output_path).await?;
 
     Ok(ProcessedImage {

@@ -1,9 +1,9 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    types::{FilezUserGroup, GetItemListResponseBody, SortOrder},
     utils::{get_query_item, get_query_item_number},
 };
+use filez_common::server::{FilezUserGroup, GetItemListResponseBody, SortOrder};
 use hyper::{Body, Request, Response};
 
 pub async fn get_user_group_list(

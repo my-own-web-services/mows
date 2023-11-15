@@ -1,9 +1,5 @@
-use crate::{
-    db::DB,
-    internal_types::Auth,
-    types::{FileGroupType, FilezFileGroup, FilterRule},
-    utils::generate_id,
-};
+use crate::{db::DB, internal_types::Auth, utils::generate_id};
+use filez_common::server::{FileGroupType, FilezFileGroup, FilterRule};
 use hyper::{body::Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

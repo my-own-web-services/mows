@@ -1,11 +1,12 @@
 use crate::{
+    config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
-    storage::get_storage_location_from_file,
 };
 use anyhow::bail;
+use filez_common::storage::index::get_storage_location_from_file;
 use hyper::{body::HttpBody, Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -31,6 +32,7 @@ pub async fn update_file(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
+    let config = &SERVER_CONFIG;
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
     if request_header.len() > 5000 {
@@ -92,9 +94,9 @@ pub async fn update_file(
 
     // write file to disk but abbort if limits where exceeded
 
-    let file_path = get_storage_location_from_file(&filez_file)?;
+    let file_path = get_storage_location_from_file(&config.storage, &filez_file)?;
 
-    let new_file_path = format!("{}_update", &file_path.full_path);
+    let new_file_path = format!("{}_update", &file_path.full_path.display());
     dbg!(&new_file_path);
     let mut file = File::create(&new_file_path)?;
     let mut hasher = Sha256::new();
