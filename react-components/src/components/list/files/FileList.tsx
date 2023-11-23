@@ -5,6 +5,7 @@ import { bytesToHumanReadableSize } from "../../../utils";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import ResourceList, { Column, ColumnDirection, ListType } from "../resource/ResourceList";
 import CreateFile from "./CreateFile";
+import EditFile from "./EditFile";
 
 const defaultColumns: Column<FilezFile>[] = [
     {
@@ -93,6 +94,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             <div className="Filez FileList" style={{ ...this.props.style }}>
                 <ResourceList
                     createResource={<CreateFile />}
+                    editResource={<EditFile />}
                     resourceType="File"
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_file_infos_by_group_id}

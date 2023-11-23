@@ -19,7 +19,7 @@ export default class App extends PureComponent<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            selectedFileId: "kgBRBXqBXrHZBuHF"
+            selectedFileId: "4A7lGTlhgk20IbS6"
         };
     }
 
@@ -27,7 +27,7 @@ export default class App extends PureComponent<AppProps, AppState> {
         return (
             <div className="App">
                 <FilezProvider>
-                    <FileList style={{ height: "500px" }} id="wxzrFR4ELDVD3uTB" />
+                    <FileList style={{ height: "500px" }} id="KgmuP8hQvO6gTL0Q_all" />
                     <FileGroupList style={{ height: "500px" }} />
                     <PermissionList style={{ height: "500px" }} />
                     <UserGroupList style={{ height: "500px" }} />

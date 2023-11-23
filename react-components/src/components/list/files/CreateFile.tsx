@@ -1,13 +1,13 @@
 import { PureComponent, createRef } from "react";
-import File from "./File";
 import Permission from "../permissions/Permission";
+import UploadFile from "./UploadFile";
 
 interface CreateFileProps {}
 
 interface CreateFileState {}
 
 export default class CreateFile extends PureComponent<CreateFileProps, CreateFileState> {
-    fileRef: React.RefObject<File>;
+    fileRef: React.RefObject<UploadFile>;
     oncePermissionRef: React.RefObject<Permission>;
     constructor(props: CreateFileProps) {
         super(props);
@@ -26,7 +26,11 @@ export default class CreateFile extends PureComponent<CreateFileProps, CreateFil
     render = () => {
         return (
             <div className="CreateFile">
-                <File oncePermissionRef={this.oncePermissionRef} ref={this.fileRef} />
+                <UploadFile
+                    oncePermissionRef={this.oncePermissionRef}
+                    ref={this.fileRef}
+                    type="create"
+                />
             </div>
         );
     };

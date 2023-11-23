@@ -9,17 +9,18 @@ import { FaPeopleArrows } from "react-icons/fa";
 import { FileDownload } from "@rsuite/icons";
 import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import Keywords from "./KeywordPicker";
+import KeywordPicker from "./KeywordPicker";
 import Name from "./Name";
-import FileAccessControl from "./FileAccessControl";
+import Permission from "../list/permissions/Permission";
+import { isEqual } from "lodash";
 
 interface MetaEditorProps {
-    readonly fileId: string;
+    readonly fileIds: string[];
     readonly style?: CSSProperties;
 }
 
 interface MetaEditorState {
-    readonly file: FilezFile;
+    readonly files: FilezFile[] | null;
     readonly knownMimeTypes: string[];
     readonly knownOwners: ItemDataType[];
 }
@@ -34,12 +35,12 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
         this.state = {
             knownOwners: [],
             knownMimeTypes: [],
-            file: null as unknown as FilezFile
+            files: null
         };
     }
 
     componentDidMount = async () => {
-        await this.loadFile();
+        await this.loadFileInfos();
     };
 
     componentDidUpdate = async (
@@ -47,26 +48,30 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
         _prevState: Readonly<MetaEditorState>,
         _snapshot?: any
     ) => {
-        if (prevProps.fileId !== this.props.fileId) {
-            await this.loadFile();
+        if (!isEqual(prevProps.fileIds, this.props.fileIds)) {
+            await this.loadFileInfos();
         }
     };
 
-    loadFile = async () => {
+    loadFileInfos = async () => {
         if (!this.context) return;
 
-        const file = await this.context.filezClient.get_file_info(this.props.fileId);
+        const files = await this.context.filezClient.get_file_infos(this.props.fileIds);
+        console.log(files);
 
         this.setState({
-            file
+            files
         });
     };
 
     render = () => {
-        if (this.state.file === null) {
+        if (this.state.files === null) {
             return;
         }
         const inputSize = "sm";
+
+        const singleFile = this.state.files.length === 1 ? this.state.files[0] : null;
+
         return (
             <div style={{ ...this.props.style }} className="Filez FileMetaEditor">
                 <PanelGroup accordion bordered>
@@ -84,66 +89,81 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                         bordered
                     >
                         <div>
+                            {singleFile && (
+                                <div className="basicsBox">
+                                    <Name file={singleFile} inputSize={inputSize} />
+                                </div>
+                            )}
                             <div className="basicsBox">
-                                <Name file={this.state.file} inputSize={inputSize} />
-                            </div>
-                            <div className="basicsBox">
-                                <Keywords file={this.state.file} inputSize={inputSize} />
-                            </div>
-                            <div className="basicsBox">
-                                <label>Owner</label>
-                                <InputPicker
-                                    size={inputSize}
-                                    block
-                                    virtualized
-                                    value={this.state.file.owner_id}
-                                    data={this.state.knownOwners}
+                                <KeywordPicker
+                                    resourceType="File"
+                                    resources={this.state.files}
+                                    inputSize={inputSize}
+                                    onKeywordsChanged={(keywords: string[]) => {}}
                                 />
                             </div>
-                            <div className="basicsBox">
-                                <label>Mime Type</label>
-                                <InputPicker
-                                    size={inputSize}
-                                    block
-                                    virtualized
-                                    creatable
-                                    value={this.state.file.mime_type}
-                                    data={this.state.knownMimeTypes.map(mimeType => ({
-                                        value: mimeType,
-                                        label: mimeType
-                                    }))}
-                                />
-                            </div>
+                            {singleFile && (
+                                <div className="basicsBox">
+                                    <label>Owner</label>
+                                    <InputPicker
+                                        size={inputSize}
+                                        block
+                                        virtualized
+                                        value={singleFile.owner_id}
+                                        data={this.state.knownOwners}
+                                    />
+                                </div>
+                            )}
+                            {singleFile && (
+                                <div className="basicsBox">
+                                    <label>Mime Type</label>
+                                    <InputPicker
+                                        size={inputSize}
+                                        block
+                                        virtualized
+                                        creatable
+                                        value={singleFile.mime_type}
+                                        data={this.state.knownMimeTypes.map(mimeType => ({
+                                            value: mimeType,
+                                            label: mimeType
+                                        }))}
+                                    />
+                                </div>
+                            )}
                         </div>
-                        <div className="basicsBox">
-                            <div className="created">
-                                <label>Created</label>
-                                {utcTimeStampToTimeAndDate(this.state.file.created)}
-                            </div>
-                            <div className="modified">
-                                <label>Modified</label>
+                        {singleFile && (
+                            <div className="basicsBox">
+                                <div className="created">
+                                    <label>Created</label>
+                                    {utcTimeStampToTimeAndDate(singleFile.created)}
+                                </div>
+                                <div className="modified">
+                                    <label>Modified</label>
 
-                                {this.state.file.modified !== null &&
-                                    utcTimeStampToTimeAndDate(this.state.file.modified)}
+                                    {singleFile.modified !== null &&
+                                        utcTimeStampToTimeAndDate(singleFile.modified)}
+                                </div>
+                                <div className="size">
+                                    <label>Size</label>
+                                    {bytesToHumanReadableSize(singleFile.size)}
+                                </div>
                             </div>
-                            <div className="size">
-                                <label>Size</label>
-                                {bytesToHumanReadableSize(this.state.file.size)}
-                            </div>
-                        </div>
-                        <div className="Export">
-                            <a
-                                href={`${this.context?.uiConfig.filezServerAddress}/api/file/get/${this.props.fileId}?d`}
-                            >
-                                <IconButton
-                                    placement="right"
-                                    appearance="primary"
-                                    icon={<FileDownload />}
+                        )}
+                        {singleFile && (
+                            <div className="Export">
+                                <a
+                                    href={`${this.context?.uiConfig.filezServerAddress}/api/file/get/${singleFile._id}?d`}
                                 >
-                                    Download
-                                </IconButton>
-                            </a>
-                        </div>
+                                    <IconButton
+                                        placement="right"
+                                        appearance="primary"
+                                        icon={<FileDownload />}
+                                    >
+                                        Download
+                                    </IconButton>
+                                </a>
+                            </div>
+                        )}
                     </Panel>
                     <Panel
                         className="panel"
@@ -158,7 +178,16 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                         }
                         bordered
                     >
-                        <FileAccessControl file={this.state.file} inputSize={inputSize} />
+                        {singleFile && (
+                            <Permission
+                                useOnce
+                                disableTypeChange
+                                hideTypeChanger
+                                permissionType="File"
+                                size={inputSize}
+                                itemId={singleFile._id}
+                            />
+                        )}
                     </Panel>
                     <Panel
                         className="panel"

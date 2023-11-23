@@ -750,6 +750,7 @@ impl DB {
         })
     }
 
+    // TODO make this work for all types of resources
     pub async fn get_aggregated_keywords(&self, owner_id: &str) -> anyhow::Result<Vec<String>> {
         let collection = self.db.collection::<FilezFile>("files");
 
@@ -1285,6 +1286,28 @@ impl DB {
         Ok(file)
     }
 
+    pub async fn get_files_by_ids(&self, file_ids: &Vec<String>) -> anyhow::Result<Vec<FilezFile>> {
+        let collection = self.db.collection::<FilezFile>("files");
+        let mut cursor = collection
+            .find(
+                doc! {
+                    "_id": {
+                        "$in": file_ids
+                    }
+                },
+                None,
+            )
+            .await?;
+
+        let mut files = vec![];
+
+        while let Some(file) = cursor.try_next().await? {
+            files.push(file);
+        }
+
+        Ok(files)
+    }
+
     pub async fn get_file_by_readonly_path(&self, path: &str) -> anyhow::Result<Option<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
         let file = collection
@@ -1322,7 +1345,7 @@ impl DB {
         Ok(())
     }
 
-    pub async fn get_permissions_by_resource_id(
+    pub async fn get_permissions_by_resource_ids(
         &self,
         permission_ids: &Vec<String>,
     ) -> anyhow::Result<Vec<FilezPermission>> {

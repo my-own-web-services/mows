@@ -4,7 +4,7 @@ use filez_common::server::FilezFile;
 use hyper::{Body, Request};
 use qstring::QString;
 use serde_json::Value;
-use std::{collections::HashMap, num::ParseIntError, path::Path};
+use std::{collections::HashMap, num::ParseIntError};
 
 pub fn is_allowed_origin(origin_to_test: &str) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;

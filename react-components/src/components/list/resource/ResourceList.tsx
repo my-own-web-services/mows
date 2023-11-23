@@ -35,6 +35,7 @@ const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
     {
         name: "Log to console",
         onClick: (items: BaseResource[]) => {
+            // TODO this does not log multiple elements as it should
             if (items.length === 1) {
                 console.log(items[0]);
             } else {

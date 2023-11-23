@@ -6,7 +6,7 @@ use filez::interossea::{get_session_cookie, Interossea, UserAssertion, INTEROSSE
 use filez::methods::file::create::create_file;
 use filez::methods::file::delete::delete_file;
 use filez::methods::file::get::get_file;
-use filez::methods::file::info::get::get_file_info;
+use filez::methods::file::info::get::get_file_infos;
 use filez::methods::file::info::update::update_file_infos;
 use filez::methods::file::update::update_file;
 use filez::methods::file_group::create::create_file_group;
@@ -194,7 +194,7 @@ async fn handle_inner(
         password: get_password_from_query(&req),
         user_assertion,
     };
-    dbg!(p, m, &auth);
+    //dbg!(p, m, &auth);
     /* file */
     if p.starts_with("/file/get/") && m == Method::GET {
         get_file(req, db, &auth, res).await
@@ -206,8 +206,8 @@ async fn handle_inner(
         update_file(req, db, &auth, res).await
     }
     /* file info */
-    else if p.starts_with("/file/info/get/") && m == Method::GET {
-        get_file_info(req, db, &auth, res).await
+    else if p.starts_with("/file/info/get/") && m == Method::POST {
+        get_file_infos(req, db, &auth, res).await
     } else if p == "/file/info/update/" && m == Method::POST {
         update_file_infos(req, db, &auth, res).await
     } else if p.starts_with("/get_file_infos_by_group_id/") && m == Method::GET {

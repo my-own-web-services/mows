@@ -93,7 +93,7 @@ pub async fn update_user_group(
             return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
         }
         // check if all permissions are from this user
-        let permissions = db.get_permissions_by_resource_id(&permission_ids).await?;
+        let permissions = db.get_permissions_by_resource_ids(&permission_ids).await?;
         for permission in permissions {
             if permission.owner_id != requesting_user.user_id {
                 return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());

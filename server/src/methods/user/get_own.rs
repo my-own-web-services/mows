@@ -18,11 +18,9 @@ pub async fn get_own_user(
 ) -> anyhow::Result<Response<Body>> {
     let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
 
-    let user = db.get_user_by_id(&requesting_user.user_id).await?;
-
     Ok(res
         .status(200)
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user)?.into())
+        .body(serde_json::to_string(&requesting_user)?.into())
         .unwrap())
 }

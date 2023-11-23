@@ -79,6 +79,36 @@ export class FilezClient {
         return res;
     };
 
+    create_file_with_upload_progress = (
+        body: any,
+        metadata: CreateFileRequest,
+        onProgress: (uploadedBytes: number) => void,
+        onError: (error: any) => void
+    ) => {
+        const xhr = new XMLHttpRequest();
+        const success = new Promise((resolve, reject) => {
+            xhr.upload.addEventListener("progress", event => {
+                if (event.lengthComputable) {
+                    onProgress(event.loaded);
+                }
+            });
+            xhr.withCredentials = true;
+
+            xhr.open("POST", `${this.filezEndpoint}/api/file/create/`, true);
+            xhr.setRequestHeader("request", JSON.stringify(metadata));
+            xhr.send(body);
+
+            xhr.addEventListener("error", () => {
+                onError(xhr.response);
+            });
+
+            xhr.addEventListener("loadend", () => {
+                resolve(xhr.readyState === 4 && xhr.status === 200);
+            });
+        });
+        return { success, xhr };
+    };
+
     create_upload_space = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/upload_space/create/`, {
             method: "POST",
@@ -86,6 +116,7 @@ export class FilezClient {
         });
         return res;
     };
+
     delete_upload_space = async () => {
         const res = await fetch(`${this.filezEndpoint}/api/upload_space/delete/`, {
             method: "POST",
@@ -113,11 +144,13 @@ export class FilezClient {
         return res;
     };
 
-    get_file_info = async (fileId: string) => {
-        const res = await fetch(`${this.filezEndpoint}/api/file/info/get/${fileId}`, {
-            credentials: "include"
+    get_file_infos = async (file_ids: string[]) => {
+        const res = await fetch(`${this.filezEndpoint}/api/file/info/get/`, {
+            credentials: "include",
+            method: "POST",
+            body: JSON.stringify({ file_ids })
         });
-        const file: FilezFile = await res.json();
+        const file: FilezFile[] = await res.json();
         return file;
     };
 
@@ -181,8 +214,8 @@ export class FilezClient {
         return json;
     };
 
-    get_user = async () => {
-        const res = await fetch(`${this.filezEndpoint}/api/user/get/`, {
+    get_own_user = async () => {
+        const res = await fetch(`${this.filezEndpoint}/api/user/get_own/`, {
             credentials: "include"
         });
         return (await res.json()) as FilezUser;
@@ -246,6 +279,8 @@ export class FilezClient {
         const json: string[] = await res.json();
         return json;
     };
+
+    get_storage_list = async () => {};
 
     update_file_infos = async (fileId: string, field: UpdateFileInfosRequestField) => {
         const res = await fetch(`${this.filezEndpoint}/api/file/info/update/`, {

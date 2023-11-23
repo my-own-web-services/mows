@@ -9,8 +9,8 @@ use crate::{
 use anyhow::bail;
 use filez_common::storage::index::get_storage_location_from_file;
 use hyper::{Body, Request, Response};
+use mongodb::error::TRANSIENT_TRANSACTION_ERROR;
 use tokio::fs;
-
 /**
 # Deletes a single file by id.
 
@@ -31,6 +31,7 @@ pub async fn delete_file(
         Some(v) => v,
         None => return Ok(res.status(400).body(Body::from("Missing id"))?),
     };
+
     let file = some_or_bail!(db.get_file_by_id(&file_id).await?, "File not found");
 
     match check_auth(
@@ -47,7 +48,16 @@ pub async fn delete_file(
         Err(e) => bail!(e),
     }
 
-    db.delete_file_by_id(&file).await?;
+    while let Err(e) = db.delete_file_by_id(&file).await {
+        // TODO clean this up
+        // TODO retry at other locations where this could potentially happen
+        if e.to_string().contains(TRANSIENT_TRANSACTION_ERROR) {
+            println!("TransientTransactionError, retrying commit operation...");
+            continue;
+        } else {
+            bail!(e);
+        }
+    }
 
     let fl = get_storage_location_from_file(&config.storage, &file)?;
     fs::remove_file(fl.full_path).await?;

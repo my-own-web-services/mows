@@ -39,9 +39,9 @@ export default class FilezFileViewer extends PureComponent<
             const filezClient = this?.context?.filezClient;
 
             if (filezClient) {
-                const file = await filezClient.get_file_info(this.props.fileId);
+                const files = await filezClient.get_file_infos([this.props.fileId]);
 
-                this.setState({ file });
+                this.setState({ file: files[0] });
             }
         }
     };
@@ -58,8 +58,10 @@ export default class FilezFileViewer extends PureComponent<
                 const filezClient = this?.context?.filezClient;
 
                 if (filezClient) {
-                    const file = await this.context.filezClient.get_file_info(this.props.fileId);
-                    this.setState({ file, fileId: this.props.fileId });
+                    const files = await this.context.filezClient.get_file_infos([
+                        this.props.fileId
+                    ]);
+                    this.setState({ file: files[0], fileId: this.props.fileId });
                 }
             }
         }

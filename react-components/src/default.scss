@@ -16,9 +16,18 @@
     --contexify-activeArrow-color: #fff;
 }
 
+.disabled {
+    background-color: var(--rs-input-disabled-bg);
+    color: var(--rs-text-disabled);
+}
+
 .rs-uploader-file-items {
     overflow-y: auto;
     max-height: 300px;
+}
+
+.rs-progress-info {
+    width: 70px;
 }
 
 button.Filez {
@@ -31,7 +40,7 @@ button.Filez {
 }
 
 .Filez {
-    background: var(--bg);
+    //background: var(--bg);
     color: var(--fg);
     user-select: none;
 
@@ -141,7 +150,7 @@ button.Filez {
     }
 
     &.FileMetaEditor {
-        overflow-y: scroll;
+        overflow-y: auto;
         .panel {
             .header {
                 svg {

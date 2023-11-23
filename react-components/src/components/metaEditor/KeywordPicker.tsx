@@ -40,15 +40,20 @@ const knownCategories = [
 interface KeywordPickerProps {
     readonly inputSize?: "lg" | "md" | "sm" | "xs";
     readonly resourceType: "File" | "FileGroup";
-    readonly resource?: FilezFile | FilezFileGroup;
+    readonly resources?: FilezFile[] | FilezFileGroup[];
     readonly onKeywordsChanged?: (keywords: string[]) => void;
+    readonly disabled?: boolean;
 }
 
 interface KeywordPickerState {
     readonly knownKeywords: string[];
-    readonly localKeywords: string[];
-    readonly serverKeywords: string[];
+    readonly selectedKeywords: string[];
     readonly knownKeywordsLoaded: boolean;
+}
+
+interface Keyword {
+    readonly value: string;
+    readonly appliedIds: string[];
 }
 
 export default class KeywordPicker extends PureComponent<KeywordPickerProps, KeywordPickerState> {
@@ -59,8 +64,7 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
         super(props);
         this.state = {
             knownKeywords: [],
-            localKeywords: [],
-            serverKeywords: [],
+            selectedKeywords: [],
             knownKeywordsLoaded: false
         };
     }
@@ -75,18 +79,18 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
 
     loadKeywords = async () => {
         if (!this.context) throw new Error("No filez context set");
-        const knownKeywords = await this.get_keywords(this.props.resource);
+        const knownKeywords = await this.get_keywords(this.props.resources);
         this.setState({
             knownKeywords,
             knownKeywordsLoaded: true
         });
     };
 
-    get_keywords = async (resource?: FilezFile | FilezFileGroup) => {
+    get_keywords = async (resources?: FilezFile[] | FilezFileGroup[]) => {
         if (!this.context) throw new Error("No filez context set");
-        const otherDocumentKeywords = await this.context.filezClient.get_aggregated_keywords();
-        const thisDocumentKeywords = resource?.keywords ?? [];
-        const distinctKeywords = new Set([...otherDocumentKeywords, ...thisDocumentKeywords]);
+        const otherResourcesKeywords = await this.context.filezClient.get_aggregated_keywords();
+        const currentResourcesKeywords = resources?.flatMap(resource => resource.keywords) ?? [];
+        const distinctKeywords = new Set([...otherResourcesKeywords, ...currentResourcesKeywords]);
         return [...distinctKeywords];
     };
 
@@ -95,11 +99,16 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
 
         return (
             <div className="Keywords">
-                <label>Keywords</label>
+                <label className={this.props.disabled ? "disabled" : ""}>Keywords</label>
                 <TagPicker
                     size={this.props.inputSize}
-                    value={this.state.localKeywords}
+                    value={this.state.selectedKeywords}
                     groupBy="category"
+                    block
+                    virtualized
+                    creatable
+                    cleanable={false}
+                    disabled={this.props.disabled}
                     data={this.state.knownKeywords.map(keyword => {
                         return {
                             value: keyword,
@@ -179,7 +188,7 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
 
                         this.setState(
                             update(this.state, {
-                                localKeywords: { $set: keywords },
+                                selectedKeywords: { $set: keywords },
                                 knownKeywords: {
                                     $set: (() => {
                                         const distinctKeywords = new Set([
@@ -191,14 +200,10 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
                                 }
                             }),
                             () => {
-                                this.props.onKeywordsChanged?.(this.state.localKeywords);
+                                this.props.onKeywordsChanged?.(this.state.selectedKeywords);
                             }
                         );
                     }}
-                    block
-                    virtualized
-                    creatable
-                    cleanable={false}
                 />
             </div>
         );

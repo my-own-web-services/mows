@@ -3,19 +3,19 @@ import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/File
 import { useToaster } from "rsuite";
 
 export const utcTimeStampToTimeAndDate = (
-    utcTimeStamp: bigint,
+    utcTimeStamp: bigint | number,
     seconds: boolean = false
 ): string => {
-    const utcTimeStamp_num = Number(utcTimeStamp);
-    const date = new Date(seconds ? utcTimeStamp_num * 1000 : utcTimeStamp_num);
+    const utcTimeStampNum = Number(utcTimeStamp);
+    const date = new Date(seconds ? utcTimeStampNum * 1000 : utcTimeStampNum);
     return `${date.toLocaleDateString("de")} ${date.toLocaleTimeString("de")}`;
 };
 
-export const bytesToHumanReadableSize = (bigint_bytes: bigint | number): string => {
-    const bytes = Number(bigint_bytes);
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+export const bytesToHumanReadableSize = (maybe_bigint_bytes: bigint | number): string => {
+    const bytes = Number(maybe_bigint_bytes);
+    const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB"];
     if (bytes === 0) {
-        return "0 Byte";
+        return "0 Bytes";
     }
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i)) + " " + sizes[i];
@@ -46,7 +46,7 @@ export const defaultFilePermission: FilezPermission = {
             what: [],
             who: {
                 link: false,
-                password: null,
+                passwords: [],
                 users: {
                     user_group_ids: [],
                     user_ids: []
