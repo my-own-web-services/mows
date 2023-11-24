@@ -9,7 +9,7 @@ import { FaPeopleArrows } from "react-icons/fa";
 import { FileDownload } from "@rsuite/icons";
 import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import KeywordPicker from "./KeywordPicker";
+import KeywordPicker, { Keyword } from "./KeywordPicker";
 import Name from "./Name";
 import Permission from "../list/permissions/Permission";
 import { isEqual } from "lodash";
@@ -99,7 +99,22 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                     resourceType="File"
                                     resources={this.state.files}
                                     inputSize={inputSize}
-                                    onKeywordsChanged={(keywords: string[]) => {}}
+                                    onKeywordsChanged={(keywords: Keyword[]) => {
+                                        if (!this.context) return;
+                                        if (!this.state.files) return;
+                                        this.context.filezClient.update_file_infos(
+                                            this.state.files[0]._id,
+                                            {
+                                                keywords: keywords.map(keyword => keyword.value),
+                                                mime_type: null,
+                                                name: null,
+                                                owner_id: null,
+                                                permission_ids: null,
+                                                static_file_group_ids: null,
+                                                storage_id: null
+                                            }
+                                        );
+                                    }}
                                 />
                             </div>
                             {singleFile && (

@@ -41,19 +41,19 @@ interface KeywordPickerProps {
     readonly inputSize?: "lg" | "md" | "sm" | "xs";
     readonly resourceType: "File" | "FileGroup";
     readonly resources?: FilezFile[] | FilezFileGroup[];
-    readonly onKeywordsChanged?: (keywords: string[]) => void;
+    readonly onKeywordsChanged?: (keywords: Keyword[]) => void;
     readonly disabled?: boolean;
 }
 
 interface KeywordPickerState {
-    readonly knownKeywords: string[];
+    readonly knownKeywords: Keyword[];
     readonly selectedKeywords: string[];
     readonly knownKeywordsLoaded: boolean;
 }
 
-interface Keyword {
+export interface Keyword {
     readonly value: string;
-    readonly appliedIds: string[];
+    readonly appliedResourceIds: string[];
 }
 
 export default class KeywordPicker extends PureComponent<KeywordPickerProps, KeywordPickerState> {
@@ -80,19 +80,128 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
     loadKeywords = async () => {
         if (!this.context) throw new Error("No filez context set");
         const knownKeywords = await this.get_keywords(this.props.resources);
+
+        const selectedKeywords: string[] = [];
+        this.props.resources?.forEach(resource => {
+            resource.keywords.forEach(keyword => {
+                if (!selectedKeywords.includes(keyword)) {
+                    selectedKeywords.push(keyword);
+                }
+            });
+        });
+
         this.setState({
             knownKeywords,
-            knownKeywordsLoaded: true
+            knownKeywordsLoaded: true,
+            selectedKeywords
         });
     };
 
-    get_keywords = async (resources?: FilezFile[] | FilezFileGroup[]) => {
+    get_keywords = async (resources?: FilezFile[] | FilezFileGroup[]): Promise<Keyword[]> => {
         if (!this.context) throw new Error("No filez context set");
         const otherResourcesKeywords = await this.context.filezClient.get_aggregated_keywords();
-        const currentResourcesKeywords = resources?.flatMap(resource => resource.keywords) ?? [];
-        const distinctKeywords = new Set([...otherResourcesKeywords, ...currentResourcesKeywords]);
-        return [...distinctKeywords];
+
+        const distincKeywords: Keyword[] = [];
+
+        otherResourcesKeywords.forEach(keyword => {
+            distincKeywords.push({
+                value: keyword,
+                appliedResourceIds:
+                    resources?.flatMap(resource => {
+                        if (resource.keywords.includes(keyword)) {
+                            return [resource._id];
+                        } else {
+                            return [];
+                        }
+                    }) ?? []
+            });
+        });
+
+        console.log(distincKeywords);
+
+        return distincKeywords;
     };
+
+    splitAndFixKeywords = (keywords: string[]): string[] => {
+        return keywords
+            .flatMap(keyword => {
+                if (keyword.includes(",")) {
+                    return keyword
+                        .split(",")
+                        .map(keyword => keyword.trim())
+                        .filter(keyword => keyword !== "");
+                } else {
+                    return keyword;
+                }
+            })
+            .map(keyword => {
+                // if keyword includes > character trim the whitespace in front and after
+                if (keyword.includes(">")) {
+                    return keyword
+                        .split(">")
+                        .map(keyword => {
+                            const trimmed_keyword = keyword.trim();
+                            let return_word = trimmed_keyword;
+                            for (const knownCategory of knownCategories) {
+                                if (knownCategory.name.toLowerCase() === trimmed_keyword) {
+                                    return_word = knownCategory.name;
+                                    break;
+                                }
+                            }
+                            return return_word;
+                        })
+
+                        .join(">");
+                } else {
+                    return keyword;
+                }
+            });
+    };
+
+    handleCreate = async (keyword: string) => {
+        const keywords = this.splitAndFixKeywords([keyword]);
+
+        this.setState(
+            update(this.state, {
+                selectedKeywords: {
+                    $set: keywords
+                },
+                knownKeywords: {
+                    $push: (() => {
+                        return keywords.flatMap(keyword => {
+                            if (!this.state.knownKeywords.map(k => k.value).includes(keyword)) {
+                                return [
+                                    {
+                                        value: keyword,
+                                        appliedResourceIds:
+                                            this.props.resources?.map(resource => resource._id) ??
+                                            []
+                                    }
+                                ];
+                            } else {
+                                return [];
+                            }
+                        });
+                    })()
+                }
+            }),
+            () => {
+                this.props.onKeywordsChanged?.(
+                    this.state.selectedKeywords.map(keyword => {
+                        return {
+                            value: keyword,
+                            appliedResourceIds:
+                                this.props.resources?.map(resource => resource._id) ?? []
+                        };
+                    })
+                );
+            }
+        );
+    };
+
+    handleTagRemove = async (keyword: string) => {};
+
+    handleSelect = async (keywords: string[]) => {};
 
     render = () => {
         if (this.state.knownKeywordsLoaded === false) return null;
@@ -111,26 +220,35 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
                     disabled={this.props.disabled}
                     data={this.state.knownKeywords.map(keyword => {
                         return {
-                            value: keyword,
+                            value: keyword.value,
                             label: (() => {
-                                if (keyword.includes(">")) {
-                                    const currentCategory = keyword.split(">")[0];
+                                const dontApplyToAllSymbol =
+                                    keyword.appliedResourceIds.length ===
+                                    this.props.resources?.length
+                                        ? ""
+                                        : "*";
+
+                                const val = keyword.value + dontApplyToAllSymbol;
+
+                                if (keyword.value.includes(">")) {
+                                    const currentCategory = keyword.value.split(">")[0];
 
                                     const foundKnownCategory = knownCategories.find(
                                         c => c.name === currentCategory
                                     );
+
                                     if (foundKnownCategory) {
-                                        return foundKnownCategory.render(keyword);
+                                        return foundKnownCategory.render(val);
                                     } else {
-                                        return keyword;
+                                        return val;
                                     }
                                 } else {
-                                    return keyword;
+                                    return val;
                                 }
                             })(),
                             category: (() => {
-                                if (keyword.includes(">")) {
-                                    return keyword.split(">")[0];
+                                if (keyword.value.includes(">")) {
+                                    return keyword.value.split(">")[0];
                                 } else {
                                     return "Other";
                                 }
@@ -144,7 +262,17 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
                         if (valueToSearch === undefined) return false;
                         return valueToSearch.includes(keywordToSearch);
                     }}
-                    onChange={async (keywords: string[]) => {
+                    onCreate={this.handleCreate}
+                    onTagRemove={this.handleTagRemove}
+                    onSelect={this.handleSelect}
+                />
+            </div>
+        );
+    };
+}
+
+/*
+ onChange={async (keywords: string[]) => {
                         // if keyword contains commas it will be split into multiple keywords with trimmed whitespace
                         keywords = keywords
                             .flatMap(keyword => {
@@ -188,7 +316,17 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
 
                         this.setState(
                             update(this.state, {
-                                selectedKeywords: { $set: keywords },
+                                selectedKeywords: {
+                                    $set: keywords.map(keyword => {
+                                        return {
+                                            value: keyword,
+                                            appliedResourceIds:
+                                                this.props.resources?.map(
+                                                    resource => resource._id
+                                                ) ?? []
+                                        };
+                                    })
+                                },
                                 knownKeywords: {
                                     $set: (() => {
                                         const distinctKeywords = new Set([
@@ -204,8 +342,5 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
                             }
                         );
                     }}
-                />
-            </div>
-        );
-    };
-}
+
+*/

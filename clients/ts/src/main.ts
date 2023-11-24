@@ -282,11 +282,11 @@ export class FilezClient {
 
     get_storage_list = async () => {};
 
-    update_file_infos = async (fileId: string, field: UpdateFileInfosRequestField) => {
+    update_file_infos = async (file_id: string, fields: UpdateFileInfosRequestField) => {
         const res = await fetch(`${this.filezEndpoint}/api/file/info/update/`, {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify({ fileId, field }),
+            body: JSON.stringify({ file_id, fields }),
             headers: {
                 "Content-Type": "application/json"
             }
