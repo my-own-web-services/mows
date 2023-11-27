@@ -13,6 +13,7 @@ import KeywordPicker, { Keyword } from "./KeywordPicker";
 import Name from "./Name";
 import Permission from "../list/permissions/Permission";
 import { isEqual } from "lodash";
+import StoragePicker from "./StoragePicker";
 
 interface MetaEditorProps {
     readonly fileIds: string[];
@@ -105,13 +106,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                         this.context.filezClient.update_file_infos(
                                             this.state.files[0]._id,
                                             {
-                                                keywords: keywords.map(keyword => keyword.value),
-                                                mime_type: null,
-                                                name: null,
-                                                owner_id: null,
-                                                permission_ids: null,
-                                                static_file_group_ids: null,
-                                                storage_id: null
+                                                keywords: keywords.map(keyword => keyword.value)
                                             }
                                         );
                                     }}
@@ -216,7 +211,11 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                             </div>
                         }
                         bordered
-                    ></Panel>
+                    >
+                        <StoragePicker
+                            fileIds={this.state.files.map(file => file._id)}
+                        ></StoragePicker>
+                    </Panel>
 
                     <Panel
                         className="panel"

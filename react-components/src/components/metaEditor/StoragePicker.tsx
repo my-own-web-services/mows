@@ -3,8 +3,10 @@ import { FilezContext } from "../../FilezProvider";
 import { InputPicker } from "rsuite";
 import { UsageLimits } from "@firstdorsal/filez-client/dist/js/apiTypes/UsageLimits";
 import { bytesToHumanReadableSize } from "../../utils";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 interface StoragePickerProps {
+    readonly fileIds?: string[];
     readonly onChange?: (storage_id: string) => void;
     readonly disabled?: boolean;
 }
@@ -12,6 +14,9 @@ interface StoragePickerProps {
 interface StoragePickerState {
     readonly selectedStorageId: string | null;
     readonly availableStorages: StorageOptions[] | null;
+    readonly files: FilezFile[] | null;
+    readonly someFilesReadonly: boolean;
+    readonly mixedStorages: boolean;
 }
 
 interface StorageOptions {
@@ -26,12 +31,34 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
         super(props);
         this.state = {
             selectedStorageId: null,
-            availableStorages: null
+            availableStorages: null,
+            files: null,
+            someFilesReadonly: false,
+            mixedStorages: false
         };
     }
 
     componentDidMount = async () => {
         await this.getUserStorageLimits();
+        await this.getFiles();
+    };
+
+    getFiles = async () => {
+        if (!this.context) return;
+        if (!this.props.fileIds) return;
+        const files = await this.context.filezClient.get_file_infos(this.props.fileIds);
+
+        const storage_ids = files.map(file => file.storage_id);
+        const unique_storage_ids = [...new Set(storage_ids)];
+        const someFilesReadonly = files.some(file => file.readonly);
+
+        if (unique_storage_ids.length === 1) {
+            this.setState({ selectedStorageId: unique_storage_ids[0], someFilesReadonly });
+        } else {
+            this.setState({ selectedStorageId: null, someFilesReadonly });
+        }
+
+        this.setState({ files });
     };
 
     getUserStorageLimits = async () => {
@@ -54,14 +81,32 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
         this.setState({ availableStorages });
     };
 
+    onChange = (value: string) => {
+        this.setState({ selectedStorageId: value });
+        if (this.props.onChange) this.props.onChange(value);
+        if (!this.context) return;
+        if (!this.props.fileIds || !this.state.files) return;
+        const promises = this.state.files.map(file =>
+            this.context?.filezClient.update_file_infos(file._id, { storage_id: value })
+        );
+        const responses = Promise.all(promises);
+    };
+
     render = () => {
         if (this.state.availableStorages === null) return;
+        if (this.props.fileIds && this.state.files === null) return;
+
         return (
             <div className="StoragePicker">
                 <label className={this.props.disabled ? "disabled" : ""}>Storage</label>
                 <br />
                 <InputPicker
-                    disabled={this.props.disabled}
+                    disabled={this.props.disabled ?? this.state.someFilesReadonly}
+                    placeholder={(() => {
+                        if (this.state.someFilesReadonly) return "Storage is readonly";
+                        if (this.state.mixedStorages) return "Mixed storages";
+                        return "Select storage";
+                    })()}
                     data={this.state.availableStorages.map(storageOption => {
                         const label = `${storageOption.storage_id} (${bytesToHumanReadableSize(
                             storageOption.limits.used_storage
@@ -69,7 +114,7 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
                         return { label, value: storageOption.storage_id };
                     })}
                     value={this.state.selectedStorageId}
-                    onChange={value => this.setState({ selectedStorageId: value })}
+                    onChange={this.onChange}
                 />
             </div>
         );

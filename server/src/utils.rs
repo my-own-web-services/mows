@@ -1,10 +1,44 @@
-use crate::{config::SERVER_CONFIG, some_or_bail};
+use crate::{config::SERVER_CONFIG, db::DB, some_or_bail};
 use anyhow::bail;
-use filez_common::server::FilezFile;
+use filez_common::server::{FilezFile, UsageLimits};
 use hyper::{Body, Request};
 use qstring::QString;
 use serde_json::Value;
 use std::{collections::HashMap, num::ParseIntError};
+
+pub async fn update_default_user_limits(db: &DB) -> anyhow::Result<()> {
+    let storage_config = &SERVER_CONFIG.storage;
+    let users = db.get_all_users().await?;
+
+    // HELP WANTED: OPTIMIZE THIS to scale for large number of users
+
+    for user in &users {
+        let mut limits = user.limits.clone();
+        for (storage_name, storage) in &storage_config.storages {
+            if storage.readonly.is_some() {
+                if let Some(default_user_limits) = &storage.default_user_limits {
+                    if !limits.contains_key(storage_name) {
+                        limits.insert(
+                            storage_name.to_string(),
+                            Some(UsageLimits {
+                                max_storage: default_user_limits.max_storage,
+                                max_files: default_user_limits.max_files,
+                                max_bandwidth: default_user_limits.max_bandwidth,
+                                used_bandwidth: 0,
+                                used_files: 0,
+                                used_storage: 0,
+                            }),
+                        );
+                    }
+                }
+            }
+        }
+
+        db.update_user_limits(&user.user_id, &limits).await?;
+    }
+
+    Ok(())
+}
 
 pub fn is_allowed_origin(origin_to_test: &str) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;

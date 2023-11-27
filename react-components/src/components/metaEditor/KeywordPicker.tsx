@@ -117,8 +117,6 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
             });
         });
 
-        console.log(distincKeywords);
-
         return distincKeywords;
     };
 
@@ -185,17 +183,7 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
                     })()
                 }
             }),
-            () => {
-                this.props.onKeywordsChanged?.(
-                    this.state.selectedKeywords.map(keyword => {
-                        return {
-                            value: keyword,
-                            appliedResourceIds:
-                                this.props.resources?.map(resource => resource._id) ?? []
-                        };
-                    })
-                );
-            }
+            () => {}
         );
     };
 

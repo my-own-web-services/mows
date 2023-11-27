@@ -32,6 +32,7 @@ filez:
             # volume or bind mount
             type: volume
             path: ""
+            readonly: false
             defaultUserLimits:
                 maxStorage: 10000000000 # 10GB
                 maxFiles: 100000
@@ -43,7 +44,21 @@ filez:
                 video:
                     type: volume
                     path: ""
+        hdd:
+            type: volume
+            path: ""
             readonly: false
+            defaultUserLimits:
+                maxStorage: 10000000000 # 10GB
+                maxFiles: 100000
+                maxBandwidth: 0
+            appStorage:
+                image:
+                    type: volume
+                    path: ""
+                video:
+                    type: volume
+                    path: ""
         readonlyExample:
             type: bind
             path: "/home/paul/Documents/filez/example-files"

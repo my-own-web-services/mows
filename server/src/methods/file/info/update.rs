@@ -287,11 +287,18 @@ pub struct UpdateFileInfosRequest {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct UpdateFileInfosRequestField {
+    #[ts(optional)]
     pub mime_type: Option<String>,
+    #[ts(optional)]
     pub name: Option<String>,
+    #[ts(optional)]
     pub static_file_group_ids: Option<Vec<String>>,
+    #[ts(optional)]
     pub keywords: Option<Vec<String>>,
+    #[ts(optional)]
     pub owner_id: Option<String>,
+    #[ts(optional)]
     pub storage_id: Option<String>,
+    #[ts(optional)]
     pub permission_ids: Option<Vec<String>>,
 }

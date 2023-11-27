@@ -785,13 +785,47 @@ impl DB {
 
         let mut keywords: Vec<String> = vec![];
 
-        dbg!(&res);
-
         for doc in res {
             keywords.push(doc.get_str("keyword")?.to_string());
         }
 
         Ok(keywords)
+    }
+
+    pub async fn get_all_users(&self) -> anyhow::Result<Vec<FilezUser>> {
+        let collection = self.db.collection::<FilezUser>("users");
+
+        let res = collection
+            .find(doc! {}, None)
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        Ok(res)
+    }
+
+    pub async fn update_user_limits(
+        &self,
+        user_id: &str,
+        limits: &HashMap<String, Option<UsageLimits>>,
+    ) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezUser>("users");
+
+        collection
+            .update_one(
+                doc! {
+                    "_id": user_id
+                },
+                doc! {
+                    "$set": {
+                        "limits": bson::to_bson(&limits)?
+                    }
+                },
+                None,
+            )
+            .await?;
+
+        Ok(())
     }
 
     pub async fn update_file_name(

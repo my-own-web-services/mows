@@ -29,7 +29,7 @@ use filez::methods::user_group::create::create_user_group;
 use filez::methods::user_group::delete::delete_user_group;
 use filez::methods::user_group::update::update_user_group;
 use filez::readonly_mount::scan_readonly_mounts;
-use filez::utils::{get_password_from_query, is_allowed_origin};
+use filez::utils::{get_password_from_query, is_allowed_origin, update_default_user_limits};
 use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server};
@@ -68,6 +68,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
 
     db.create_collections().await?;
+
+    // this may happen when a new storage option is added to the config
+    update_default_user_limits(&db).await?;
 
     let _ = dev(&db).await;
 
