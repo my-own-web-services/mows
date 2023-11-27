@@ -38,7 +38,6 @@ export default class EditFile extends PureComponent<EditFileProps, EditFileState
         if (!this.props.resourceIds || this.props.resourceIds.length === 0) return null;
         return (
             <div className="EditFile">
-                <FilezFileViewer fileId={this.props.resourceIds[0]} />
                 <MetaEditor fileIds={this.props.resourceIds} />
             </div>
         );
@@ -46,6 +45,9 @@ export default class EditFile extends PureComponent<EditFileProps, EditFileState
 }
 
 /*
+
+<FilezFileViewer fileId={this.props.resourceIds[0]} />
+
 What can be done on multiple files at once:
 - Keywords
 - storage

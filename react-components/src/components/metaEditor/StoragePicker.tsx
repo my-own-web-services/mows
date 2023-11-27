@@ -1,6 +1,6 @@
 import { PureComponent } from "react";
 import { FilezContext } from "../../FilezProvider";
-import { InputPicker } from "rsuite";
+import { InputPicker, Loader } from "rsuite";
 import { UsageLimits } from "@firstdorsal/filez-client/dist/js/apiTypes/UsageLimits";
 import { bytesToHumanReadableSize } from "../../utils";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
@@ -17,6 +17,7 @@ interface StoragePickerState {
     readonly files: FilezFile[] | null;
     readonly someFilesReadonly: boolean;
     readonly mixedStorages: boolean;
+    readonly updatingStorageLocation: boolean;
 }
 
 interface StorageOptions {
@@ -34,7 +35,8 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
             availableStorages: null,
             files: null,
             someFilesReadonly: false,
-            mixedStorages: false
+            mixedStorages: false,
+            updatingStorageLocation: false
         };
     }
 
@@ -53,9 +55,13 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
         const someFilesReadonly = files.some(file => file.readonly);
 
         if (unique_storage_ids.length === 1) {
-            this.setState({ selectedStorageId: unique_storage_ids[0], someFilesReadonly });
+            this.setState({
+                selectedStorageId: unique_storage_ids[0],
+                someFilesReadonly,
+                mixedStorages: false
+            });
         } else {
-            this.setState({ selectedStorageId: null, someFilesReadonly });
+            this.setState({ selectedStorageId: null, someFilesReadonly, mixedStorages: true });
         }
 
         this.setState({ files });
@@ -81,15 +87,25 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
         this.setState({ availableStorages });
     };
 
-    onChange = (value: string) => {
-        this.setState({ selectedStorageId: value });
+    onChange = async (value: string) => {
         if (this.props.onChange) this.props.onChange(value);
         if (!this.context) return;
-        if (!this.props.fileIds || !this.state.files) return;
-        const promises = this.state.files.map(file =>
-            this.context?.filezClient.update_file_infos(file._id, { storage_id: value })
-        );
-        const responses = Promise.all(promises);
+        if (!this.props.fileIds || !this.state.files) {
+            this.setState({ selectedStorageId: value });
+            return;
+        }
+        this.setState({ updatingStorageLocation: true });
+        const promises = this.state.files.flatMap(file => {
+            if (file.storage_id === value) return [];
+            return [this.context?.filezClient.update_file_infos(file._id, { storage_id: value })];
+        });
+        const responses = await Promise.all(promises);
+        this.setState({ updatingStorageLocation: false });
+        if (responses.some(response => response?.status !== 200)) {
+            //TODO: show error
+            return;
+        }
+        this.setState({ selectedStorageId: value });
     };
 
     render = () => {
@@ -101,7 +117,11 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
                 <label className={this.props.disabled ? "disabled" : ""}>Storage</label>
                 <br />
                 <InputPicker
-                    disabled={this.props.disabled ?? this.state.someFilesReadonly}
+                    disabled={
+                        this.props.disabled ??
+                        this.state.someFilesReadonly ??
+                        this.state.updatingStorageLocation
+                    }
                     placeholder={(() => {
                         if (this.state.someFilesReadonly) return "Storage is readonly";
                         if (this.state.mixedStorages) return "Mixed storages";
@@ -116,6 +136,7 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
                     value={this.state.selectedStorageId}
                     onChange={this.onChange}
                 />
+                {this.state.updatingStorageLocation && <Loader />}
             </div>
         );
     };

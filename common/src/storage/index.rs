@@ -38,7 +38,7 @@ pub fn get_storage_location_from_file(
             let (folder_path, file_name) = get_folder_and_file_path(&file.file_id, &storage.path);
             let full_path = Path::new(&folder_path).join(&file_name);
 
-            dbg!(&folder_path, &file_name, &full_path);
+            //dbg!(&folder_path, &file_name, &full_path);
 
             Ok(StorageLocations {
                 folder_path,

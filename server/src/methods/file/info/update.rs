@@ -13,6 +13,7 @@ use anyhow::bail;
 use filez_common::storage::index::{get_future_storage_location, get_storage_location_from_file};
 use hyper::{Body, Request, Response};
 use itertools::Itertools;
+use mongodb::error::TRANSIENT_TRANSACTION_ERROR;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 use ts_rs::TS;
@@ -38,6 +39,8 @@ pub async fn update_file_infos(
     let config = &SERVER_CONFIG;
 
     crate::check_content_type_json!(req, res);
+
+    let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let ufir: UpdateFileInfosRequest = serde_json::from_slice(&body)?;
@@ -176,77 +179,89 @@ pub async fn update_file_infos(
     };
 
     if let Some(new_storage_id) = &ufir.fields.storage_id {
-        if let Some(requesting_user_id) = &auth.authenticated_ir_user_id {
-            if requesting_user_id == &filez_file.owner_id {
-                // check if storage id is valid
-                check_storage_id(new_storage_id)?;
+        if requesting_user.user_id == filez_file.owner_id {
+            // check if storage id is valid
+            check_storage_id(new_storage_id)?;
 
-                if filez_file.readonly {
-                    bail!("File is readonly")
+            // check if storage ids are the same
+            if let Some(current_storage_id) = &filez_file.storage_id {
+                if current_storage_id == new_storage_id {
+                    bail!("Storage ids are the same")
                 }
-
-                // check if storage path exists
-                some_or_bail!(
-                    config.storage.storages.get(new_storage_id),
-                    format!(
-                        "Storage name: '{}' is missing in the config file",
-                        new_storage_id
-                    )
-                );
-
-                // check if the user has access to the storage and their limits wouldn't be exceeded if the file was moved
-                let user = some_or_bail!(
-                    db.get_user_by_id(requesting_user_id).await?,
-                    "User not found"
-                );
-                let user_storage_limits = match &user.limits.get(new_storage_id) {
-                    Some(Some(ul)) => ul,
-                    _ => bail!(
-                        "Storage name: '{}' is missing specifications on the user entry",
-                        new_storage_id
-                    ),
-                };
-                if user_storage_limits.max_files <= user_storage_limits.used_files {
-                    bail!("User has reached the maximum number of files for this storage")
-                }
-                if user_storage_limits.max_storage
-                    <= user_storage_limits.used_storage + filez_file.size
-                {
-                    bail!("User has reached the maximum size for this storage")
-                }
-
-                // move the file
-                let new_storage_location = get_future_storage_location(
-                    &config.storage,
-                    &filez_file.file_id,
-                    Some(new_storage_id),
-                )?;
-
-                let old_storage_location =
-                    get_storage_location_from_file(&config.storage, &filez_file)?;
-
-                fs::create_dir_all(&new_storage_location.folder_path).await?;
-
-                fs::copy(
-                    &old_storage_location.full_path,
-                    &new_storage_location.full_path,
-                )
-                .await?;
-
-                match db
-                    .update_file_storage_id(&filez_file, new_storage_id, &user)
-                    .await
-                {
-                    Ok(_) => {
-                        fs::remove_file(&old_storage_location.full_path).await?;
-                        return Ok(res.status(200).body(Body::from("Updated")).unwrap());
-                    }
-                    Err(e) => {
-                        fs::remove_file(&new_storage_location.full_path).await?;
-                        bail!("Failed to update storage id: {e}")
-                    }
-                };
             }
+
+            if filez_file.readonly {
+                bail!("File is readonly")
+            }
+
+            // check if storage path exists
+            some_or_bail!(
+                config.storage.storages.get(new_storage_id),
+                format!(
+                    "Storage name: '{}' is missing in the config file",
+                    new_storage_id
+                )
+            );
+
+            // check if the user has access to the storage and their limits wouldn't be exceeded if the file was moved
+
+            let user_storage_limits = match &requesting_user.limits.get(new_storage_id) {
+                Some(Some(ul)) => ul,
+                _ => bail!(
+                    "Storage name: '{}' is missing specifications on the user entry",
+                    new_storage_id
+                ),
+            };
+            if user_storage_limits.max_files <= user_storage_limits.used_files {
+                bail!("User has reached the maximum number of files for this storage")
+            }
+            if user_storage_limits.max_storage <= user_storage_limits.used_storage + filez_file.size
+            {
+                bail!("User has reached the maximum size for this storage")
+            }
+
+            // move the file
+            let new_storage_location = get_future_storage_location(
+                &config.storage,
+                &filez_file.file_id,
+                Some(new_storage_id),
+            )?;
+
+            let old_storage_location =
+                get_storage_location_from_file(&config.storage, &filez_file)?;
+
+            fs::create_dir_all(&new_storage_location.folder_path).await?;
+
+            if let Err(e) = fs::copy(
+                &old_storage_location.full_path,
+                &new_storage_location.full_path,
+            )
+            .await
+            {
+                println!("FATAL ERROR: Failed to move file: {}", e);
+                bail!("Failed to move file")
+            };
+
+            while let Err(e) = db
+                .update_file_storage_id(&filez_file, new_storage_id, &requesting_user)
+                .await
+            {
+                // TODO clean this up
+                if e.to_string().contains(TRANSIENT_TRANSACTION_ERROR) {
+                    println!("TransientTransactionError, retrying commit operation...");
+                    continue;
+                } else {
+                    if let Err(e) = fs::remove_file(&new_storage_location.full_path).await {
+                        println!("FATAL ERROR: Failed to remove new file: {}", e);
+                    };
+
+                    bail!("Failed to update storage id: {e}")
+                }
+            }
+            if let Err(e) = fs::remove_file(&old_storage_location.full_path).await {
+                println!("FATAL ERROR: Failed to remove old file: {}", e);
+            };
+            return Ok(res.status(200).body(Body::from("Updated")).unwrap());
         }
     };
 

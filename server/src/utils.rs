@@ -10,20 +10,20 @@ pub async fn update_default_user_limits(db: &DB) -> anyhow::Result<()> {
     let storage_config = &SERVER_CONFIG.storage;
     let users = db.get_all_users().await?;
 
-    // HELP WANTED: OPTIMIZE THIS to scale for large number of users
+    // HELP WANTED: optimize this to scale to a larger number of users
 
     for user in &users {
         let mut limits = user.limits.clone();
         for (storage_name, storage) in &storage_config.storages {
-            if storage.readonly.is_some() {
-                if let Some(default_user_limits) = &storage.default_user_limits {
+            if storage.readonly.is_none() {
+                if let Some(storage_default_user_limits) = &storage.default_user_limits {
                     if !limits.contains_key(storage_name) {
                         limits.insert(
                             storage_name.to_string(),
                             Some(UsageLimits {
-                                max_storage: default_user_limits.max_storage,
-                                max_files: default_user_limits.max_files,
-                                max_bandwidth: default_user_limits.max_bandwidth,
+                                max_storage: storage_default_user_limits.max_storage,
+                                max_files: storage_default_user_limits.max_files,
+                                max_bandwidth: storage_default_user_limits.max_bandwidth,
                                 used_bandwidth: 0,
                                 used_files: 0,
                                 used_storage: 0,
