@@ -17,6 +17,7 @@ import { UpdatePermissionRequestBody } from "./apiTypes/UpdatePermissionRequestB
 import { UpdatePermissionResponseBody } from "./apiTypes/UpdatePermissionResponseBody.js";
 import { UpdateUserGroupRequestBody } from "./apiTypes/UpdateUserGroupRequestBody.js";
 import { FilezUserGroup } from "./apiTypes/FilezUserGroup.js";
+import { FileGroupType } from "./apiTypes/FileGroupType.js";
 
 export * from "./types.js";
 
@@ -180,14 +181,14 @@ export class FilezClient {
         return content;
     };
 
-    get_own_file_groups = async (params: GetResourceParams) => {
+    get_own_file_groups = async (params: GetResourceParams, type?: FileGroupType) => {
         const url = `${this.filezEndpoint}/api/get_own_file_groups/${
             params.id ? params.id : ""
         }?i=${params.from_index}${params.limit === null ? "" : "&l=" + params.limit}${
             params.sort_field === null ? "" : "&f=" + params.sort_field
         }${params.sort_order === null ? "" : "&o=" + params.sort_order}${
             params.filter === null ? "" : "&s=" + params.filter
-        }`;
+        }${type ? "&t=" + type : ""}`;
 
         const res = await fetch(url, {
             credentials: "include"

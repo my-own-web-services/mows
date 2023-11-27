@@ -552,6 +552,7 @@ impl DB {
         sort_field: Option<String>,
         sort_order: SortOrder,
         search_filter: Option<String>,
+        group_type: Option<FileGroupType>,
     ) -> anyhow::Result<(Vec<FilezFileGroup>, u32)> {
         let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
@@ -590,12 +591,23 @@ impl DB {
             None => doc! {},
         };
 
+        let group_type_filter = match group_type {
+            Some(gt) => doc! {
+                "group_type": match gt {
+                    FileGroupType::Static => "Static",
+                    FileGroupType::Dynamic => "Dynamic"
+                }
+            },
+            None => doc! {},
+        };
+
         let db_filter = doc! {
             "$and":[
                 search_filter,
                 {
                     "owner_id": owner_id
-                }
+                },
+                group_type_filter
             ]
         };
 

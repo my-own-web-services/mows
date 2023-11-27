@@ -3,7 +3,6 @@ import FileComp from "./UploadFile";
 import Permission from "../permissions/Permission";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import MetaEditor from "../../metaEditor/FileMetaEditor";
-import FilezFileViewer from "../../viewer/FileViewer";
 
 interface EditFileProps {
     readonly resourceIds?: string[];

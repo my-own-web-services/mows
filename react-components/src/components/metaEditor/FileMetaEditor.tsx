@@ -14,6 +14,7 @@ import Name from "./Name";
 import Permission from "../list/permissions/Permission";
 import { isEqual } from "lodash";
 import StoragePicker from "./StoragePicker";
+import StaticFileGroupPicker from "./StaticFileGroupPicker";
 
 interface MetaEditorProps {
     readonly fileIds: string[];
@@ -95,6 +96,13 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                     <Name file={singleFile} inputSize={inputSize} />
                                 </div>
                             )}
+                            <div className="basicsBox">
+                                <label>Static File Groups</label>
+                                <StaticFileGroupPicker
+                                    size={inputSize}
+                                    fileIds={this.state.files.map(file => file._id)}
+                                />
+                            </div>
                             <div className="basicsBox">
                                 <KeywordPicker
                                     resourceType="File"
