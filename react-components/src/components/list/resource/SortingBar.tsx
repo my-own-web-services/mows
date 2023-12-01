@@ -1,4 +1,4 @@
-import { Component, PureComponent } from "react";
+import { Component, PureComponent, createRef } from "react";
 import Split from "react-split";
 import ResourceList, { Column, ColumnDirection } from "./ResourceList";
 import { Item, Menu, useContextMenu } from "react-contexify";
@@ -17,43 +17,41 @@ interface SortingBarProps<ResourceType> {
     readonly resourceListId: string;
 }
 
-interface SortingBarState<ResourceType> {}
+interface SortingBarState<ResourceType> {
+    readonly show: boolean;
+}
 
 export default class SortingBar<ResourceType> extends Component<
     SortingBarProps<ResourceType>,
     SortingBarState<ResourceType>
 > {
+    splitRef = createRef<Split>();
+
     constructor(props: SortingBarProps<ResourceType>) {
         super(props);
+        this.state = {
+            show: true
+        };
     }
 
     getId = () => {
         return this.props.resourceListId + "-sorting-bar";
     };
 
-    shouldComponentUpdate(
-        nextProps: Readonly<SortingBarProps<ResourceType>>,
-        nextState: Readonly<SortingBarState<ResourceType>>,
-        nextContext: any
-    ): boolean {
-        return (
-            nextProps.columns.filter(c => c.visible).length !==
-            this.props.columns.filter(c => c.visible).length
-        );
-    }
-
     componentDidUpdate(
         prevProps: Readonly<SortingBarProps<ResourceType>>,
         prevState: Readonly<SortingBarState<ResourceType>>,
         snapshot?: any
     ): void {
-        console.log("SortingBar.componentDidUpdate");
-
         if (
             prevProps.columns.filter(c => c.visible).length !==
             this.props.columns.filter(c => c.visible).length
         ) {
-            this.forceUpdate();
+            this.setState({ show: false }, () => {
+                setTimeout(() => {
+                    this.setState({ show: true });
+                }, 0);
+            });
         }
     }
 
@@ -63,9 +61,12 @@ export default class SortingBar<ResourceType> extends Component<
         });
 
         const activeColumns = this.props.columns.filter(c => c.visible);
-        if (activeColumns.length === 0) {
-            return;
-        }
+
+        const styles = {
+            border: "1px solid var(--gutters)",
+            height: "20px",
+            width: "100%"
+        };
 
         return (
             <div
@@ -75,69 +76,72 @@ export default class SortingBar<ResourceType> extends Component<
                     show({ event: e });
                 }}
             >
-                <Split
-                    gutterSize={dragHandleWidth}
-                    className="Columns"
-                    style={{
-                        height: "20px",
-                        width: "100%",
-                        verticalAlign: "top",
-                        display: "flex",
-                        border: "1px solid var(--gutters)"
-                    }}
-                    sizes={activeColumns.map(column => column.widthPercent)}
-                    minSize={activeColumns.map(column => column.minWidthPixels)}
-                    direction="horizontal"
-                    cursor="col-resize"
-                    onDrag={this.props.updateSortingColumnWidths}
-                >
-                    {activeColumns.map((column, index) => {
-                        return (
-                            <button
-                                className="Filez"
-                                key={column.field}
-                                style={{
-                                    background: "none",
-                                    fontSize: "100%",
-                                    color: "#fff",
-                                    padding: "0",
-                                    margin: "0",
-                                    height: "100%",
-                                    paddingLeft: "5px"
-                                }}
-                                onClick={() => this.props.updateColumnDirections(column.field)}
-                            >
-                                <div style={{ float: "left" }}>{column.field}</div>
-                                <span>
-                                    {(() => {
-                                        const chevronStyle = {
-                                            marginTop: "2px",
-                                            display: "block",
-                                            float: "left"
-                                        };
-                                        const chevronSize = 16;
-                                        if (column.direction === ColumnDirection.ASCENDING) {
-                                            return (
-                                                <BiChevronDown
-                                                    size={chevronSize}
-                                                    style={chevronStyle}
-                                                />
-                                            );
-                                        }
-                                        if (column.direction === ColumnDirection.DESCENDING) {
-                                            return (
-                                                <BiChevronUp
-                                                    size={chevronSize}
-                                                    style={chevronStyle}
-                                                />
-                                            );
-                                        }
-                                    })()}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </Split>
+                {this.state.show && activeColumns.length ? (
+                    <Split
+                        ref={this.splitRef}
+                        gutterSize={dragHandleWidth}
+                        className="Columns"
+                        style={{
+                            ...styles,
+                            verticalAlign: "top",
+                            display: "flex"
+                        }}
+                        sizes={activeColumns.map(column => column.widthPercent)}
+                        minSize={activeColumns.map(column => column.minWidthPixels)}
+                        direction="horizontal"
+                        cursor="col-resize"
+                        onDrag={this.props.updateSortingColumnWidths}
+                    >
+                        {activeColumns.map((column, index) => {
+                            return (
+                                <button
+                                    className="Filez"
+                                    key={column.field}
+                                    style={{
+                                        background: "none",
+                                        fontSize: "100%",
+                                        color: "#fff",
+                                        padding: "0",
+                                        margin: "0",
+                                        height: "100%",
+                                        paddingLeft: "5px"
+                                    }}
+                                    onClick={() => this.props.updateColumnDirections(column.field)}
+                                >
+                                    <div style={{ float: "left" }}>{column.field}</div>
+                                    <span>
+                                        {(() => {
+                                            const chevronStyle = {
+                                                marginTop: "2px",
+                                                display: "block",
+                                                float: "left"
+                                            };
+                                            const chevronSize = 16;
+                                            if (column.direction === ColumnDirection.ASCENDING) {
+                                                return (
+                                                    <BiChevronDown
+                                                        size={chevronSize}
+                                                        style={chevronStyle}
+                                                    />
+                                                );
+                                            }
+                                            if (column.direction === ColumnDirection.DESCENDING) {
+                                                return (
+                                                    <BiChevronUp
+                                                        size={chevronSize}
+                                                        style={chevronStyle}
+                                                    />
+                                                );
+                                            }
+                                        })()}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </Split>
+                ) : (
+                    <div style={styles}></div>
+                )}
                 <Menu id={this.getId()}>
                     {this.props.columns.map((column, index) => {
                         return (
