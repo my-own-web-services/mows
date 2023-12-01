@@ -3,9 +3,9 @@ import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder"
 import { CSSProperties, PureComponent, ReactElement, cloneElement, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
-import SortingBar from "./SortingBar";
+import SortingBar, { dragHandleWidth } from "./SortingBar";
 import { FixedSizeList } from "react-window";
-import { AutoSizer } from "rsuite/esm/Windowing";
+import AutoSizer from "react-virtualized-auto-sizer";
 import ListTopBar from "./ListTopBar";
 import { cloneDeep } from "lodash";
 import { Button, Modal } from "rsuite";
@@ -165,6 +165,7 @@ export interface Column<ResourceType> {
     readonly direction: ColumnDirection;
     readonly widthPercent: number;
     readonly minWidthPixels: number;
+    readonly visible: boolean;
     readonly render?: (item: ResourceType) => JSX.Element;
 }
 
@@ -195,7 +196,11 @@ interface ResourceListProps<ResourceType extends BaseResource> {
     /**
      A function that renders the resource in the list.
      */
-    readonly rowRenderer?: (item: ResourceType) => JSX.Element;
+    readonly rowRenderer?: (
+        item: ResourceType,
+        style: CSSProperties,
+        columns?: Column<ResourceType>[]
+    ) => JSX.Element;
     /**
      A function that gets the resource in from the server/db and returns it. This has to be implemented in a specific way to support the infinite scrolling.
      */
@@ -211,7 +216,7 @@ interface ResourceListProps<ResourceType extends BaseResource> {
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
     readonly topBar?: JSX.Element;
-    readonly id?: string;
+    readonly id: string;
     readonly columns?: Column<ResourceType>[];
     readonly disableContextMenu?: boolean;
 }
@@ -332,6 +337,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             return update(state, {
                 columns: {
                     $set: state.columns.map((column, index) => {
+                        if (column.visible === false) return column;
                         return {
                             ...column,
                             widthPercent: columns[index]
@@ -342,7 +348,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         });
     };
 
-    updateColumnDirections = async (columnIndex: number) => {
+    updateColumnDirections = async (columnId: string) => {
         this.setState(
             state => {
                 if (state.columns === undefined) return state;
@@ -350,7 +356,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                 return update(state, {
                     columns: {
                         $set: state.columns.map((column, i) => {
-                            if (i === columnIndex) {
+                            if (column.field === columnId) {
                                 return {
                                     ...column,
                                     direction:
@@ -467,6 +473,27 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             });
     };
 
+    updateColumnVisibility = (columnId: string, visible: boolean) => {
+        console.log("updateColumnVisibility", columnId, visible);
+
+        this.setState(state => {
+            if (!state.columns) return state;
+            return update(state, {
+                columns: {
+                    $set: state.columns.map(column => {
+                        if (column.field === columnId) {
+                            return {
+                                ...column,
+                                visible
+                            };
+                        }
+                        return column;
+                    })
+                }
+            });
+        });
+    };
+
     rowRenderer = (item: ResourceType, style: CSSProperties, columns?: Column<ResourceType>[]) => {
         const { show } = useContextMenu({
             id: item._id
@@ -485,34 +512,53 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                 className={`Row${this.state.selectedItems[item._id] ? " selected" : ""}`}
             >
                 {columns ? (
-                    columns.map((column, index) => {
-                        /*@ts-ignore*/
-                        const field = item[column.field]
-                            ? /*@ts-ignore*/
-                              item[column.field]
-                            : /*@ts-ignore*/
-                              item[column.alternateField];
-                        return (
-                            <span
-                                key={column.field + index}
-                                style={{
-                                    width: column.widthPercent + "%",
-                                    display: "block",
-                                    float: "left",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap"
-                                }}
-                            >
-                                {column.render
-                                    ? column.render(item)
-                                    : field ??
-                                      `Field '${column.field}' does not exist on this ${this.props.resourceType}`}
-                            </span>
-                        );
-                    })
+                    (() => {
+                        const activeColumns = columns.filter(c => c.visible);
+
+                        return activeColumns.map((column, index) => {
+                            /*@ts-ignore*/
+                            const field = item[column.field]
+                                ? /*@ts-ignore*/
+                                  item[column.field]
+                                : /*@ts-ignore*/
+                                  item[column.alternateField];
+
+                            const width = (() => {
+                                if (index === activeColumns.length - 1) {
+                                    // 17px is the width of the scrollbar
+                                    return `calc(${column.widthPercent}% - 17px)`;
+                                }
+                                let dhwFixed = dragHandleWidth - 2;
+                                if (index === 0) {
+                                    return `calc(${column.widthPercent}% + ${dhwFixed}px)`;
+                                }
+                                // for some reason this works
+                                return `calc(${column.widthPercent}% + ${dhwFixed / 2}px)`;
+                            })();
+                            return (
+                                <span
+                                    key={column.field + index}
+                                    style={{
+                                        width,
+                                        height: "100%",
+                                        display: "block",
+                                        float: "left",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                        paddingLeft: "5px"
+                                    }}
+                                >
+                                    {column.render
+                                        ? column.render(item)
+                                        : field ??
+                                          `Field '${column.field}' does not exist on this ${this.props.resourceType}`}
+                                </span>
+                            );
+                        });
+                    })()
                 ) : this.props.rowRenderer ? (
-                    this.props.rowRenderer(item)
+                    this.props.rowRenderer(item, style, columns)
                 ) : (
                     <span>{item._id}</span>
                 )}
@@ -604,9 +650,11 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                 )}
                 {this.props.displaySortingBar !== false && this.state.columns && (
                     <SortingBar
+                        resourceListId={this.props.id}
                         columns={this.state.columns}
                         updateColumnDirections={this.updateColumnDirections}
                         updateSortingColumnWidths={this.updateSortingColumnWidths}
+                        updateColumnVisibility={this.updateColumnVisibility}
                     />
                 )}
                 <div
@@ -616,41 +664,45 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                     }}
                 >
                     <AutoSizer>
-                        {({ height, width }) => (
-                            <InfiniteLoader
-                                isItemLoaded={index => this.state.items[index] !== undefined}
-                                itemCount={fullListLength}
-                                loadMoreItems={this.loadMoreItems}
-                                ref={this.infiniteLoaderRef}
-                            >
-                                {({ onItemsRendered, ref }) => (
-                                    <FixedSizeList
-                                        itemSize={20}
-                                        height={height}
-                                        itemCount={fullListLength}
-                                        width={width}
-                                        onItemsRendered={onItemsRendered}
-                                        ref={ref}
-                                        // without this the context menu cannot be positioned fixed
-                                        // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
-                                        style={{ willChange: "none", overflowY: "scroll" }}
-                                    >
-                                        {({ index, style }) => {
-                                            const currentItem = this.state.items[index];
-                                            if (!currentItem) {
-                                                return <div style={style}></div>;
-                                            }
+                        {({ height, width }) => {
+                            return (
+                                <InfiniteLoader
+                                    isItemLoaded={index => this.state.items[index] !== undefined}
+                                    itemCount={fullListLength}
+                                    loadMoreItems={this.loadMoreItems}
+                                    ref={this.infiniteLoaderRef}
+                                >
+                                    {({ onItemsRendered, ref }) => {
+                                        return (
+                                            <FixedSizeList
+                                                itemSize={20}
+                                                height={height}
+                                                itemCount={fullListLength}
+                                                width={width}
+                                                onItemsRendered={onItemsRendered}
+                                                ref={ref}
+                                                // without this the context menu cannot be positioned fixed
+                                                // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
+                                                style={{ willChange: "none", overflowY: "scroll" }}
+                                            >
+                                                {({ index, style }) => {
+                                                    const currentItem = this.state.items[index];
+                                                    if (!currentItem) {
+                                                        return <div style={style}></div>;
+                                                    }
 
-                                            return this.rowRenderer(
-                                                currentItem,
-                                                style,
-                                                this.state.columns
-                                            );
-                                        }}
-                                    </FixedSizeList>
-                                )}
-                            </InfiniteLoader>
-                        )}
+                                                    return this.rowRenderer(
+                                                        currentItem,
+                                                        style,
+                                                        this.state.columns
+                                                    );
+                                                }}
+                                            </FixedSizeList>
+                                        );
+                                    }}
+                                </InfiniteLoader>
+                            );
+                        }}
                     </AutoSizer>
                 </div>
             </div>

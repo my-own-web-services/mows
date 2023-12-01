@@ -1,26 +1,64 @@
 import { CSSProperties, PureComponent, createRef } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
-import { bytesToHumanReadableSize } from "../../../utils";
+import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../../utils";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import ResourceList, { Column, ColumnDirection, ListType } from "../resource/ResourceList";
 import CreateFile from "./CreateFile";
 import EditFile from "./EditFile";
+import FileIcon from "../../fileIcons/FileIcon";
 
 const defaultColumns: Column<FilezFile>[] = [
     {
         field: "name",
         direction: ColumnDirection.ASCENDING,
         widthPercent: 50,
-        minWidthPixels: 50
+        minWidthPixels: 50,
+        visible: true,
+        render: (item: FilezFile) => {
+            return (
+                <span style={{ height: "100%" }}>
+                    <FileIcon
+                        style={{
+                            height: "100%",
+                            float: "left",
+                            paddingRight: "4px"
+                        }}
+                        file={item}
+                    />
+                    {item.name}
+                </span>
+            );
+        }
     },
     {
         field: "size",
         direction: ColumnDirection.NEUTRAL,
-        widthPercent: 50,
+        widthPercent: 10,
         minWidthPixels: 50,
+        visible: true,
         render: (item: FilezFile) => {
             return <span>{bytesToHumanReadableSize(item.size)}</span>;
+        }
+    },
+    {
+        field: "mime_type",
+        direction: ColumnDirection.NEUTRAL,
+        widthPercent: 20,
+        minWidthPixels: 50,
+        visible: true,
+        render: (item: FilezFile) => {
+            return <span>{item.mime_type}</span>;
+        }
+    },
+    {
+        field: "modified",
+        direction: ColumnDirection.NEUTRAL,
+        widthPercent: 20,
+        minWidthPixels: 50,
+        visible: true,
+        render: (item: FilezFile) => {
+            return <span>{utcTimeStampToTimeAndDate(item.modified)}</span>;
         }
     }
 ];
@@ -42,9 +80,7 @@ interface FileListProps {
     readonly initialListType?: ListType;
 }
 
-interface FileListState {
-    readonly columns: Column<FilezFile>[];
-}
+interface FileListState {}
 
 export default class FileList extends PureComponent<FileListProps, FileListState> {
     static contextType = FilezContext;
@@ -55,38 +91,8 @@ export default class FileList extends PureComponent<FileListProps, FileListState
 
     constructor(props: FileListProps) {
         super(props);
-        this.state = {
-            columns: [...defaultColumns]
-        };
+        this.state = {};
     }
-
-    rowRenderer = (item: FilezFile, columns?: Column<FilezFile>[]) => {
-        return (
-            <div onClick={() => this.props.drrOnItemClick && this.props.drrOnItemClick(item)}>
-                {columns?.map((column, index) => {
-                    /*@ts-ignore*/
-                    const field = item[column.field];
-                    return (
-                        <span
-                            key={column.field + index}
-                            style={{
-                                width: column.widthPercent + "%",
-                                display: "block",
-                                float: "left",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap"
-                            }}
-                        >
-                            {column.render
-                                ? column.render(item)
-                                : field ?? `Field '${column.field}' does not exist on File`}
-                        </span>
-                    );
-                })}
-            </div>
-        );
-    };
 
     render = () => {
         if (!this.context) return;
@@ -99,10 +105,9 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_file_infos_by_group_id}
                     id={this.props.id}
-                    rowRenderer={this.rowRenderer}
                     displaySortingBar={this.props.displaySortingBar}
                     displayTopBar={this.props.displayTopBar}
-                    columns={this.state.columns}
+                    columns={defaultColumns}
                 />
             </div>
         );

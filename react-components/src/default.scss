@@ -4,6 +4,7 @@
     --fg: #fff;
     --hover: #333;
     --accent: #0099ff55;
+    --gutters: #333;
 
     --contexify-menu-bgColor: rgba(40, 40, 40, 0.98);
     --contexify-separator-color: #4c4c4c;
@@ -181,7 +182,6 @@ button.Filez {
 
 .gutter {
     background-color: #eee;
-
     background-repeat: no-repeat;
     background-position: 50%;
 }
@@ -191,18 +191,27 @@ button.Filez {
     &::after {
         content: "";
         position: absolute;
-        top: 0;
-        left: 0;
+        top: 0px;
+        left: 5px;
         width: 1px;
+        margin-left: 5px;
         height: 100%;
-        background: var(--bg2);
+        background: var(--gutters);
         background-repeat: no-repeat;
         background-position: 50%;
+        &:hover {
+            background: red;
+        }
     }
     background-color: transparent;
 
     cursor: col-resize;
 }
+
+.SortingBar .Gutter:hover {
+    background-color: var(--hover);
+}
+
 .SortingBar {
     border-bottom: 1px solid var(--bg2);
 }

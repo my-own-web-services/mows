@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 # Gets infomartion about a single file.
 
 ## Call
-`/api/file/info/get/{file_id}`
+`/api/file/info/get/`
 ## Permissions
 File > GetFileInfos
 
