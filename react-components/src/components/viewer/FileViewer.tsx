@@ -52,7 +52,7 @@ export default class FilezFileViewer extends PureComponent<
 
     componentDidUpdate = async (
         prevProps: Readonly<FilezFileViewerProps>,
-        prevState: Readonly<FilezFileViewerState>,
+        _prevState: Readonly<FilezFileViewerState>,
         _snapshot?: any
     ) => {
         if (this.props.file && this.props.file._id !== this.state.file?._id) {
@@ -73,10 +73,10 @@ export default class FilezFileViewer extends PureComponent<
 
     render = () => {
         if (!this.state.file) {
-            return <div></div>;
+            return;
         }
         if (!this.context) {
-            return <div></div>;
+            return;
         }
 
         return (

@@ -1,5 +1,5 @@
 import { PureComponent } from "react";
-import { FilezContext, UiConfig } from "../../../FilezProvider";
+import { FilezContext } from "../../../FilezProvider";
 import { bytesToHumanReadableSize } from "../../../utils";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FileViewerViewMode } from "../FileViewer";

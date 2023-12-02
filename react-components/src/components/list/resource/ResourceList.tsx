@@ -1,6 +1,13 @@
 import { FilezClient, GetResourceParams } from "@firstdorsal/filez-client";
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
-import { CSSProperties, PureComponent, ReactElement, cloneElement, createRef } from "react";
+import {
+    CSSProperties,
+    Component,
+    PureComponent,
+    ReactElement,
+    cloneElement,
+    createRef
+} from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
 import SortingBar, { dragHandleWidth } from "./SortingBar";
@@ -14,8 +21,8 @@ import { match } from "ts-pattern";
 import { Item, Menu, useContextMenu } from "react-contexify";
 import "react-contexify/dist/ReactContexify.css";
 import { EditResource } from "../../../types";
-import FilezFileViewer, { FileViewerViewMode } from "../../viewer/FileViewer";
-import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+
+import GridRow from "./GridRow";
 
 export interface FilezMenuItems<ResourceType> {
     name: string;
@@ -240,7 +247,7 @@ interface SelectedItems {
     [key: string]: boolean;
 }
 
-export default class ResourceList<ResourceType extends BaseResource> extends PureComponent<
+export default class ResourceList<ResourceType extends BaseResource> extends Component<
     ResourceListProps<ResourceType>,
     ResourceListState<ResourceType>
 > {
@@ -394,7 +401,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
                 return update(state, {
                     columns: {
-                        $set: state.columns.map((column, i) => {
+                        $set: state.columns.map(column => {
                             if (column.field === columnId) {
                                 return {
                                     ...column,
@@ -436,9 +443,9 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         await this.loadItems();
     };
 
-    onRowClick = (
+    onItemClick = (
         e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
-        item: ResourceType,
+        item: BaseResource,
         rightClick?: boolean
     ) => {
         // @ts-ignore
@@ -533,64 +540,33 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         });
     };
 
-    gridRowRenderer = (items: ResourceType[], style: CSSProperties, rowHeight: number) => {
-        return (
-            <div style={{ ...style }}>
-                {items.map(item => {
-                    return (
-                        <div
-                            key={item._id}
-                            style={{
-                                height: "100%",
-                                width: rowHeight - 2,
-                                outline: "1px solid var(--gutters)",
-                                float: "left",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                padding: "5px"
-                            }}
-                        >
-                            {(() => {
-                                if (this.props.resourceType === "File") {
-                                    return (
-                                        <FilezFileViewer
-                                            width={rowHeight}
-                                            file={item as unknown as FilezFile}
-                                            style={{ width: "100%", height: "100%" }}
-                                            viewMode={FileViewerViewMode.Preview}
-                                        />
-                                    );
-                                }
-                            })()}
-                        </div>
-                    );
-                })}
-            </div>
-        );
-    };
-
     updateGridColumnCount = (columnCount: number) => {
         this.setState({ gridColumnCount: columnCount });
     };
 
-    rowRenderer = (item: ResourceType, style: CSSProperties, columns?: Column<ResourceType>[]) => {
+    rowRenderer = (
+        item: ResourceType,
+        style: CSSProperties,
+        columns?: Column<ResourceType>[],
+        isSelected?: boolean
+    ) => {
         const { show } = useContextMenu({
             id: item._id
         });
 
         return (
             <div
-                onClick={e => this.onRowClick(e, item)}
+                onClick={e => this.onItemClick(e, item)}
                 style={{
                     ...style,
                     whiteSpace: "nowrap",
                     overflow: "hidden"
                 }}
                 onContextMenu={e => {
-                    this.onRowClick(e, item, true);
+                    this.onItemClick(e, item, true);
                     show({ event: e });
                 }}
-                className={`Row${this.state.selectedItems[item._id] ? " selected" : ""}`}
+                className={`Row${isSelected ? " selected" : ""}`}
             >
                 {columns ? (
                     (() => {
@@ -680,6 +656,14 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             </div>
         );
     };
+
+    shouldComponentUpdate(
+        nextProps: Readonly<ResourceListProps<ResourceType>>,
+        nextState: Readonly<ResourceListState<ResourceType>>,
+        nextContext: any
+    ): boolean {
+        return true;
+    }
 
     render = () => {
         if (!this.context?.filezClient) return;
@@ -776,8 +760,16 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 : width / this.state.gridColumnCount;
                                         return (
                                             <FixedSizeList
+                                                itemKey={index => {
+                                                    if (this.state.listType === ListType.Grid) {
+                                                        return index * this.state.gridColumnCount;
+                                                    } else {
+                                                        return index;
+                                                    }
+                                                }}
                                                 itemSize={rowHeight}
                                                 height={height}
+                                                itemData={this.state.items}
                                                 itemCount={itemCount}
                                                 width={width}
                                                 onItemsRendered={onItemsRendered}
@@ -786,7 +778,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
                                                 style={{ willChange: "none", overflowY: "scroll" }}
                                             >
-                                                {({ index, style }) => {
+                                                {({ index, style, data }) => {
                                                     if (this.state.listType === ListType.Grid) {
                                                         const startIndex =
                                                             index * this.state.gridColumnCount;
@@ -797,18 +789,37 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                             startIndex,
                                                             endIndex
                                                         );
-                                                        return this.gridRowRenderer(
-                                                            currentItems,
-                                                            style,
-                                                            rowHeight
+                                                        return (
+                                                            <GridRow
+                                                                resourceType={
+                                                                    this.props.resourceType
+                                                                }
+                                                                rowIndex={index}
+                                                                items={currentItems}
+                                                                style={style}
+                                                                onItemClick={this.onItemClick}
+                                                                rowHeight={rowHeight}
+                                                                columns={this.state.columns}
+                                                                isSelected={currentItems.map(
+                                                                    item =>
+                                                                        this.state.selectedItems[
+                                                                            item._id
+                                                                        ]
+                                                                )}
+                                                            />
                                                         );
                                                     } else {
                                                         const currentItem = this.state.items[index];
+                                                        const isSelected =
+                                                            this.state.selectedItems[
+                                                                currentItem._id
+                                                            ];
 
                                                         return this.rowRenderer(
                                                             currentItem,
                                                             style,
-                                                            this.state.columns
+                                                            this.state.columns,
+                                                            isSelected
                                                         );
                                                     }
                                                 }}
