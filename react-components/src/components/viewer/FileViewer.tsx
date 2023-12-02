@@ -11,11 +11,17 @@ interface FilezFileViewerProps {
     readonly file?: FilezFile;
     readonly fileId?: string;
     readonly style?: CSSProperties;
+    readonly viewMode?: FileViewerViewMode;
+    readonly width?: number;
+}
+
+export enum FileViewerViewMode {
+    Preview,
+    Full
 }
 
 interface FilezFileViewerState {
     readonly file?: FilezFile | null;
-    readonly fileId?: string;
 }
 
 export default class FilezFileViewer extends PureComponent<
@@ -28,14 +34,12 @@ export default class FilezFileViewer extends PureComponent<
     constructor(props: FilezFileViewerProps) {
         super(props);
         this.state = {
-            file: null
+            file: props.file
         };
     }
 
     componentDidMount = async () => {
-        if (this.props.file !== undefined) {
-            this.setState({ file: this.props.file });
-        } else if (this.props.fileId !== undefined) {
+        if (this.props.fileId !== undefined) {
             const filezClient = this?.context?.filezClient;
 
             if (filezClient) {
@@ -47,13 +51,13 @@ export default class FilezFileViewer extends PureComponent<
     };
 
     componentDidUpdate = async (
-        _prevProps: Readonly<FilezFileViewerProps>,
-        _prevState: Readonly<FilezFileViewerState>,
+        prevProps: Readonly<FilezFileViewerProps>,
+        prevState: Readonly<FilezFileViewerState>,
         _snapshot?: any
     ) => {
         if (this.props.file && this.props.file._id !== this.state.file?._id) {
             this.setState({ file: this.props.file });
-        } else if (this.props.fileId && this.props.fileId !== this.state.fileId) {
+        } else if (this.props.fileId && this.props.fileId !== prevProps.fileId) {
             if (this.context !== null) {
                 const filezClient = this?.context?.filezClient;
 
@@ -61,7 +65,7 @@ export default class FilezFileViewer extends PureComponent<
                     const files = await this.context.filezClient.get_file_infos([
                         this.props.fileId
                     ]);
-                    this.setState({ file: files[0], fileId: this.props.fileId });
+                    this.setState({ file: files[0] });
                 }
             }
         }
@@ -81,20 +85,22 @@ export default class FilezFileViewer extends PureComponent<
                     const fileType = this.state.file.mime_type;
                     if (fileType.startsWith("image/")) {
                         return (
-                            <Image file={this.state.file} uiConfig={this.context.uiConfig}></Image>
+                            <Image
+                                itemWidth={this.props.width}
+                                viewMode={this.props.viewMode}
+                                file={this.state.file}
+                            ></Image>
                         );
                     } else if (fileType.startsWith("audio/")) {
                         return (
-                            <Audio file={this.state.file} uiConfig={this.context.uiConfig}></Audio>
+                            <Audio viewMode={this.props.viewMode} file={this.state.file}></Audio>
                         );
                     } else if (fileType.startsWith("video/")) {
                         return (
-                            <Video file={this.state.file} uiConfig={this.context.uiConfig}></Video>
+                            <Video viewMode={this.props.viewMode} file={this.state.file}></Video>
                         );
                     } else if (isText(this.state.file)) {
-                        return (
-                            <Text file={this.state.file} uiConfig={this.context.uiConfig}></Text>
-                        );
+                        return <Text viewMode={this.props.viewMode} file={this.state.file}></Text>;
                     } else {
                         return <div>Can't display this type of file: {fileType}</div>;
                     }

@@ -10,7 +10,7 @@ import { UpdateFriendshipStatusRequestBody } from "./apiTypes/UpdateFriendshipSt
 import { UpdateFriendStatus } from "./apiTypes/UpdateFriendStatus.js";
 import { CreateFileGroupRequestBody } from "./apiTypes/CreateFileGroupRequestBody.js";
 import { CreateUserGroupRequestBody } from "./apiTypes/CreateUserGroupRequestBody.js";
-import { GetResourceParams } from "./types.js";
+import { GetFileOptions, GetResourceParams } from "./types.js";
 import { GetItemListResponseBody } from "./apiTypes/GetItemListResponseBody.js";
 import { ReducedFilezUser } from "./apiTypes/ReducedFilezUser.js";
 import { UpdatePermissionRequestBody } from "./apiTypes/UpdatePermissionRequestBody.js";
@@ -173,12 +173,20 @@ export class FilezClient {
         return json;
     };
 
-    get_file = async (file_id: string) => {
-        const res = await fetch(`${this.filezEndpoint}/api/file/get/${file_id}`, {
-            credentials: "include"
-        });
-        const content = await res.text();
-        return content;
+    get_file = async (file_id: string, options?: GetFileOptions) => {
+        const res = await fetch(
+            `${this.filezEndpoint}/api/file/get/${file_id}${options?.cache ? "?c" : ""}`,
+            {
+                credentials: "include",
+                headers: {
+                    ...(options?.range && {
+                        Range: `bytes=${options?.range.from}-${options?.range.to}`
+                    })
+                }
+            }
+        );
+
+        return res;
     };
 
     get_own_file_groups = async (params: GetResourceParams, type?: FileGroupType) => {

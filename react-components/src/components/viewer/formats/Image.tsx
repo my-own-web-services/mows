@@ -1,17 +1,21 @@
 import { ProcessedImage } from "@firstdorsal/filez-client";
 import { PureComponent } from "react";
-import { UiConfig } from "../../../FilezProvider";
+import { FilezContext, UiConfig } from "../../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { FileViewerViewMode } from "../FileViewer";
 
 interface ImageProps {
     readonly file: FilezFile;
     readonly itemWidth?: number;
-    readonly uiConfig: UiConfig;
+    readonly viewMode?: FileViewerViewMode;
 }
 
 interface ImageState {}
 
 export default class Image extends PureComponent<ImageProps, ImageState> {
+    static contextType = FilezContext;
+    declare context: React.ContextType<typeof FilezContext>;
+
     constructor(props: ImageProps) {
         super(props);
         this.state = {};
@@ -29,11 +33,14 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
 
         if (!isDisplayable && !processedImage) return;
 
+        const uiConfig = this.context?.uiConfig;
+        if (!uiConfig) return;
+
         return (
             <div className="Image" style={{ width: "100%" }}>
                 {processedImage && !shouldUseOriginal ? (
                     <img
-                        src={`${this.props.uiConfig.filezServerAddress}/api/file/get/${f._id}/image/${previewWidth}.avif?c`}
+                        src={`${uiConfig.filezServerAddress}/api/file/get/${f._id}/image/${previewWidth}.avif?c`}
                         loading="lazy"
                         width={processedImage.width}
                         height={processedImage.height}
@@ -41,7 +48,7 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
                     />
                 ) : (
                     <img
-                        src={`${this.props.uiConfig.filezServerAddress}/api/file/get/${f._id}?c`}
+                        src={`${uiConfig.filezServerAddress}/api/file/get/${f._id}?c`}
                         loading="lazy"
                         draggable={false}
                     />

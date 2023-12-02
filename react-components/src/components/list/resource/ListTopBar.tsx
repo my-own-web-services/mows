@@ -10,6 +10,8 @@ import { IoReload } from "react-icons/io5";
 interface ListTopBarProps {
     readonly updateListType: InstanceType<typeof ResourceList>["updateListType"];
     readonly commitSearch: InstanceType<typeof ResourceList>["commitSearch"];
+    readonly updateGridColumnCount: InstanceType<typeof ResourceList>["updateGridColumnCount"];
+    readonly gridColumnCount: number;
     readonly currentListType: ListType;
     readonly resourceType: string;
     readonly createResource?: ReactElement<any, any>;
@@ -145,18 +147,26 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                 </span>
 
                 {this.props.currentListType === ListType.Grid && (
-                    <Slider
-                        style={{
-                            width: "200px",
-                            float: "right",
-                            marginTop: "10px",
-                            marginRight: "10px"
-                        }}
-                        defaultValue={0}
-                        min={0}
-                        max={100}
-                        step={1}
-                    />
+                    <>
+                        <Slider
+                            style={{
+                                width: "200px",
+                                float: "left",
+                                marginTop: "12px",
+                                marginLeft: "10px"
+                            }}
+                            tooltip={false}
+                            defaultValue={10}
+                            value={this.props.gridColumnCount}
+                            min={1}
+                            max={30}
+                            step={1}
+                            onChange={this.props.updateGridColumnCount}
+                        />
+                        <div style={{ marginLeft: "10px", float: "left", paddingTop: "4px" }}>
+                            {this.props.gridColumnCount}
+                        </div>
+                    </>
                 )}
             </div>
         );

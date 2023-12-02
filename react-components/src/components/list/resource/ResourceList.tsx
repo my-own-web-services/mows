@@ -14,6 +14,8 @@ import { match } from "ts-pattern";
 import { Item, Menu, useContextMenu } from "react-contexify";
 import "react-contexify/dist/ReactContexify.css";
 import { EditResource } from "../../../types";
+import FilezFileViewer, { FileViewerViewMode } from "../../viewer/FileViewer";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 export interface FilezMenuItems<ResourceType> {
     name: string;
@@ -160,13 +162,13 @@ const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
 ];
 
 export interface Column<ResourceType> {
-    readonly field: string;
-    readonly alternateField?: string;
-    readonly direction: ColumnDirection;
-    readonly widthPercent: number;
-    readonly minWidthPixels: number;
-    readonly visible: boolean;
-    readonly render?: (item: ResourceType) => JSX.Element;
+    field: string;
+    alternateField?: string;
+    direction: ColumnDirection;
+    widthPercent: number;
+    minWidthPixels: number;
+    visible: boolean;
+    render?: (item: ResourceType) => JSX.Element;
 }
 
 export enum ColumnDirection {
@@ -219,6 +221,7 @@ interface ResourceListProps<ResourceType extends BaseResource> {
     readonly id: string;
     readonly columns?: Column<ResourceType>[];
     readonly disableContextMenu?: boolean;
+    readonly initialListType?: ListType;
 }
 
 interface ResourceListState<ResourceType> {
@@ -230,6 +233,7 @@ interface ResourceListState<ResourceType> {
     readonly menuItems: FilezMenuItems<ResourceType>[];
     readonly selectedItems: SelectedItems;
     readonly renderModalName: string;
+    readonly gridColumnCount: number;
 }
 
 interface SelectedItems {
@@ -255,10 +259,11 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             total_count: 0,
             commitedSearch: "",
             columns: cloneDeep(props.columns),
-            listType: ListType.List,
+            listType: this.props.initialListType ?? ListType.List,
             menuItems: defaultMenuItems,
             selectedItems: {},
-            renderModalName: ""
+            renderModalName: "",
+            gridColumnCount: 10
         };
     }
 
@@ -313,6 +318,11 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         if (this.moreItemsLoading) return;
         const { sort_field, sort_order } = this.get_current_column_sorting();
 
+        if (this.state.listType === ListType.Grid) {
+            startIndex = startIndex * this.state.gridColumnCount;
+            limit = limit * this.state.gridColumnCount;
+        }
+
         const { items: newItems } = await this.props.get_items_function({
             id: this.props.id,
             from_index: startIndex,
@@ -343,6 +353,35 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                             widthPercent: columns[index]
                         };
                     })
+                }
+            });
+        });
+    };
+
+    createColumn = (field: string) => {
+        this.setState(state => {
+            if (state.columns === undefined) return state;
+
+            const widthPercent = 100 / (state.columns.length + 1);
+
+            const newColumn: Column<ResourceType> = {
+                field,
+                direction: ColumnDirection.NEUTRAL,
+                widthPercent,
+                minWidthPixels: 50,
+                visible: true
+            };
+
+            return update(state, {
+                columns: {
+                    $set: [
+                        ...state.columns.map(c => {
+                            // update the widthPercent that all columns have in total 100%
+                            c.widthPercent = widthPercent;
+                            return c;
+                        }),
+                        newColumn
+                    ]
                 }
             });
         });
@@ -494,6 +533,46 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         });
     };
 
+    gridRowRenderer = (items: ResourceType[], style: CSSProperties, rowHeight: number) => {
+        return (
+            <div style={{ ...style }}>
+                {items.map(item => {
+                    return (
+                        <div
+                            key={item._id}
+                            style={{
+                                height: "100%",
+                                width: rowHeight - 2,
+                                outline: "1px solid var(--gutters)",
+                                float: "left",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                padding: "5px"
+                            }}
+                        >
+                            {(() => {
+                                if (this.props.resourceType === "File") {
+                                    return (
+                                        <FilezFileViewer
+                                            width={rowHeight}
+                                            file={item as unknown as FilezFile}
+                                            style={{ width: "100%", height: "100%" }}
+                                            viewMode={FileViewerViewMode.Preview}
+                                        />
+                                    );
+                                }
+                            })()}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    updateGridColumnCount = (columnCount: number) => {
+        this.setState({ gridColumnCount: columnCount });
+    };
+
     rowRenderer = (item: ResourceType, style: CSSProperties, columns?: Column<ResourceType>[]) => {
         const { show } = useContextMenu({
             id: item._id
@@ -503,7 +582,9 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             <div
                 onClick={e => this.onRowClick(e, item)}
                 style={{
-                    ...style
+                    ...style,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden"
                 }}
                 onContextMenu={e => {
                     this.onRowClick(e, item, true);
@@ -528,7 +609,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                     // 17px is the width of the scrollbar
                                     return `calc(${column.widthPercent}% - 17px)`;
                                 }
-                                let dhwFixed = dragHandleWidth - 2;
+                                let dhwFixed = dragHandleWidth - 5;
                                 if (index === 0) {
                                     return `calc(${column.widthPercent}% + ${dhwFixed}px)`;
                                 }
@@ -614,6 +695,11 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             }
             return height;
         })();
+
+        const itemCount =
+            this.state.listType === ListType.Grid
+                ? Math.ceil(fullListLength / this.state.gridColumnCount)
+                : fullListLength;
         return (
             <div className="Filez ResourceList" style={{ ...this.props.style }}>
                 {(() => {
@@ -646,17 +732,22 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                         updateListType={this.updateListType}
                         currentListType={this.state.listType}
                         commitSearch={this.commitSearch}
+                        updateGridColumnCount={this.updateGridColumnCount}
+                        gridColumnCount={this.state.gridColumnCount}
                     />
                 )}
-                {this.props.displaySortingBar !== false && this.state.columns && (
-                    <SortingBar
-                        resourceListId={this.props.id}
-                        columns={this.state.columns}
-                        updateColumnDirections={this.updateColumnDirections}
-                        updateSortingColumnWidths={this.updateSortingColumnWidths}
-                        updateColumnVisibility={this.updateColumnVisibility}
-                    />
-                )}
+                {this.props.displaySortingBar !== false &&
+                    this.state.columns &&
+                    this.state.listType === ListType.List && (
+                        <SortingBar
+                            resourceListId={this.props.id}
+                            columns={this.state.columns}
+                            updateColumnDirections={this.updateColumnDirections}
+                            updateSortingColumnWidths={this.updateSortingColumnWidths}
+                            updateColumnVisibility={this.updateColumnVisibility}
+                            createColumn={this.createColumn}
+                        />
+                    )}
                 <div
                     style={{
                         width: "100%",
@@ -667,17 +758,27 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                         {({ height, width }) => {
                             return (
                                 <InfiniteLoader
-                                    isItemLoaded={index => this.state.items[index] !== undefined}
-                                    itemCount={fullListLength}
+                                    isItemLoaded={index =>
+                                        this.state.listType === ListType.List
+                                            ? this.state.items[index] !== undefined
+                                            : this.state.items[
+                                                  index * this.state.gridColumnCount
+                                              ] !== undefined
+                                    }
+                                    itemCount={itemCount}
                                     loadMoreItems={this.loadMoreItems}
                                     ref={this.infiniteLoaderRef}
                                 >
                                     {({ onItemsRendered, ref }) => {
+                                        const rowHeight =
+                                            this.state.listType === ListType.List
+                                                ? 20
+                                                : width / this.state.gridColumnCount;
                                         return (
                                             <FixedSizeList
-                                                itemSize={20}
+                                                itemSize={rowHeight}
                                                 height={height}
-                                                itemCount={fullListLength}
+                                                itemCount={itemCount}
                                                 width={width}
                                                 onItemsRendered={onItemsRendered}
                                                 ref={ref}
@@ -686,16 +787,30 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 style={{ willChange: "none", overflowY: "scroll" }}
                                             >
                                                 {({ index, style }) => {
-                                                    const currentItem = this.state.items[index];
-                                                    if (!currentItem) {
-                                                        return <div style={style}></div>;
-                                                    }
+                                                    if (this.state.listType === ListType.Grid) {
+                                                        const startIndex =
+                                                            index * this.state.gridColumnCount;
+                                                        const endIndex =
+                                                            startIndex + this.state.gridColumnCount;
 
-                                                    return this.rowRenderer(
-                                                        currentItem,
-                                                        style,
-                                                        this.state.columns
-                                                    );
+                                                        const currentItems = this.state.items.slice(
+                                                            startIndex,
+                                                            endIndex
+                                                        );
+                                                        return this.gridRowRenderer(
+                                                            currentItems,
+                                                            style,
+                                                            rowHeight
+                                                        );
+                                                    } else {
+                                                        const currentItem = this.state.items[index];
+
+                                                        return this.rowRenderer(
+                                                            currentItem,
+                                                            style,
+                                                            this.state.columns
+                                                        );
+                                                    }
                                                 }}
                                             </FixedSizeList>
                                         );

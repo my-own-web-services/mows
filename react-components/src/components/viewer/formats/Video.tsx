@@ -1,12 +1,14 @@
 import type dashjs from "dashjs";
 import type { MediaPlayerClass } from "dashjs";
 import { Component, createRef } from "react";
-import { UiConfig } from "../../../FilezProvider";
+import { FilezContext, UiConfig } from "../../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { FileViewerViewMode } from "../FileViewer";
+import Image from "./Image";
 
 interface VideoProps {
     readonly file: FilezFile;
-    readonly uiConfig: UiConfig;
+    readonly viewMode?: FileViewerViewMode;
 }
 interface VideoState {}
 
@@ -15,6 +17,9 @@ export default class Video extends Component<VideoProps, VideoState> {
     private player!: MediaPlayerClass;
     useDash = false;
 
+    static contextType = FilezContext;
+    declare context: React.ContextType<typeof FilezContext>;
+
     componentDidUpdate = async (newProps: VideoProps) => {
         if (this.videoRef.current && this.props.file._id !== newProps.file._id) {
             if (this.useDash) {
@@ -22,8 +27,11 @@ export default class Video extends Component<VideoProps, VideoState> {
 
                 this.videoRef.current.load();
 
+                const uiConfig = this.context?.uiConfig;
+                if (!uiConfig) return;
+
                 this.player.attachSource(
-                    `${this.props.uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`
+                    `${uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`
                 );
             }
         }
@@ -72,10 +80,11 @@ export default class Video extends Component<VideoProps, VideoState> {
             this.player.setXHRWithCredentialsForType("InitializationSegment", true);
             this.player.setXHRWithCredentialsForType("IndexSegment", true);
             this.player.setXHRWithCredentialsForType("other", true);
-
+            const uiConfig = this.context?.uiConfig;
+            if (!uiConfig) return;
             this.player.initialize(
                 this.videoRef.current,
-                `${this.props.uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`,
+                `${uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`,
                 false
             );
         }
@@ -84,26 +93,36 @@ export default class Video extends Component<VideoProps, VideoState> {
     render = () => {
         const f = this.props.file;
         const hasConvertedVersion = this.hasConvertedVersion();
+        const uiConfig = this.context?.uiConfig;
+        if (!uiConfig) return;
 
         return (
             <div className="Video" style={{ width: "100%" }}>
-                <div className="dash-video-player" style={{ width: "100%" }}>
-                    <div className="videoContainer" id="videoContainer" style={{ width: "100%" }}>
-                        <video
-                            data-dashjs-player
-                            ref={this.videoRef}
-                            controls
+                {this.props.viewMode === FileViewerViewMode.Preview ? (
+                    <Image file={this.props.file}></Image>
+                ) : (
+                    <div className="dash-video-player" style={{ width: "100%" }}>
+                        <div
+                            className="videoContainer"
+                            id="videoContainer"
                             style={{ width: "100%" }}
                         >
-                            {!hasConvertedVersion && (
-                                <source
-                                    src={`${this.props.uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}`}
-                                    type={f.mime_type}
-                                />
-                            )}
-                        </video>
+                            <video
+                                data-dashjs-player
+                                ref={this.videoRef}
+                                controls
+                                style={{ width: "100%" }}
+                            >
+                                {!hasConvertedVersion && (
+                                    <source
+                                        src={`${uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}`}
+                                        type={f.mime_type}
+                                    />
+                                )}
+                            </video>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         );
     };

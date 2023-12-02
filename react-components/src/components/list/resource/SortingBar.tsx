@@ -1,9 +1,11 @@
-import { Component, PureComponent, createRef } from "react";
+import { Component, createRef } from "react";
 import Split from "react-split";
 import ResourceList, { Column, ColumnDirection } from "./ResourceList";
 import { Item, Menu, useContextMenu } from "react-contexify";
-import { BiChevronDown, BiChevronUp } from "react-icons/bi";
-import { Checkbox } from "rsuite";
+import { BiCheck, BiChevronDown, BiChevronUp } from "react-icons/bi";
+import { Checkbox, Input, InputGroup } from "rsuite";
+import { Icon } from "@rsuite/icons";
+import { FaPlus } from "react-icons/fa6";
 
 export const dragHandleWidth = 10;
 
@@ -13,12 +15,14 @@ interface SortingBarProps<ResourceType> {
     >["updateSortingColumnWidths"];
     readonly updateColumnDirections: InstanceType<typeof ResourceList>["updateColumnDirections"];
     readonly updateColumnVisibility: InstanceType<typeof ResourceList>["updateColumnVisibility"];
+    readonly createColumn: InstanceType<typeof ResourceList>["createColumn"];
     readonly columns: Column<ResourceType>[];
     readonly resourceListId: string;
 }
 
 interface SortingBarState<ResourceType> {
     readonly show: boolean;
+    readonly field: string;
 }
 
 export default class SortingBar<ResourceType> extends Component<
@@ -30,7 +34,8 @@ export default class SortingBar<ResourceType> extends Component<
     constructor(props: SortingBarProps<ResourceType>) {
         super(props);
         this.state = {
-            show: true
+            show: true,
+            field: ""
         };
     }
 
@@ -145,21 +150,47 @@ export default class SortingBar<ResourceType> extends Component<
                 <Menu id={this.getId()}>
                     {this.props.columns.map((column, index) => {
                         return (
-                            <Item key={this.props.resourceListId + column.field + "-menu-item"}>
-                                <Checkbox
-                                    checked={column.visible}
-                                    onChange={() =>
-                                        this.props.updateColumnVisibility(
-                                            column.field,
-                                            !column.visible
-                                        )
-                                    }
-                                />
+                            <Item
+                                key={this.props.resourceListId + column.field + "-menu-item"}
+                                onClick={() => {
+                                    this.props.updateColumnVisibility(
+                                        column.field,
+                                        !column.visible
+                                    );
+                                }}
+                                closeOnClick={false}
+                            >
+                                <Checkbox checked={column.visible} />
 
                                 <span>{column.field}</span>
                             </Item>
                         );
                     })}
+                    <Item closeOnClick={false}>
+                        <InputGroup>
+                            {/* TODO: add input auto completion, show all fields (even nested) that are on file object as options*/}
+                            <Input
+                                value={this.state.field}
+                                placeholder="Add column"
+                                onChange={value => {
+                                    this.setState({ field: value });
+                                }}
+                                //when enter is pressed
+                                onPressEnter={() => {
+                                    this.props.createColumn(this.state.field);
+                                    this.setState({ field: "" });
+                                }}
+                            />{" "}
+                            <InputGroup.Button
+                                onClick={() => {
+                                    this.props.createColumn(this.state.field);
+                                    this.setState({ field: "" });
+                                }}
+                            >
+                                <Icon style={{ cursor: "pointer" }} as={FaPlus} />
+                            </InputGroup.Button>
+                        </InputGroup>
+                    </Item>
                 </Menu>
             </div>
         );

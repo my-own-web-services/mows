@@ -2,10 +2,11 @@ import { PureComponent } from "react";
 import { FilezContext, UiConfig } from "../../../FilezProvider";
 import { bytesToHumanReadableSize } from "../../../utils";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { FileViewerViewMode } from "../FileViewer";
 
 interface TextProps {
     readonly file: FilezFile;
-    readonly uiConfig: UiConfig;
+    readonly viewMode?: FileViewerViewMode;
 }
 
 interface TextState {
@@ -39,7 +40,14 @@ export default class Text extends PureComponent<TextProps, TextState> {
                 });
                 return;
             }
-            const text = await this.context.filezClient.get_file(this.props.file._id);
+            const res = await this.context.filezClient.get_file(
+                this.props.file._id,
+                this.props.viewMode === FileViewerViewMode.Preview
+                    ? { range: { from: 0, to: 100 }, cache: true }
+                    : undefined
+            );
+
+            const text = await res.text();
 
             this.setState({
                 textContent: text
@@ -49,7 +57,12 @@ export default class Text extends PureComponent<TextProps, TextState> {
 
     render = () => {
         return (
-            <div className="Text">
+            <div
+                className="Text"
+                style={{
+                    overflow: this.props.viewMode === FileViewerViewMode.Preview ? "hidden" : "auto"
+                }}
+            >
                 <pre>{this.state.textContent}</pre>
             </div>
         );
