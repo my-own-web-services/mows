@@ -3,10 +3,19 @@ import { FilezContext } from "../../../FilezProvider";
 import { ReducedFilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/ReducedFilezUser";
 import ChangeFriendshipStatus from "./ChangeFriendshipStatus";
 import ResourceList from "../resource/ResourceList";
+import { ListRowProps } from "../resource/ListRow";
+import { GridRowProps } from "../resource/GridRow";
 
 interface UserListProps {
     readonly style?: CSSProperties;
-    readonly rowRenderer?: (user: ReducedFilezUser, style: CSSProperties) => JSX.Element;
+    /**
+     A function that renders the resource in the list.
+     */
+    readonly listRowRenderer?: (arg0: ListRowProps<ReducedFilezUser>) => JSX.Element;
+    /**
+        A function that renders the resource in the list.
+        */
+    readonly gridRowRenderer?: (arg0: GridRowProps<ReducedFilezUser>) => JSX.Element;
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
 }
@@ -26,7 +35,8 @@ export default class UserList extends PureComponent<UserListProps, UserListState
         };
     }
 
-    rowRenderer = (user: ReducedFilezUser) => {
+    listRowRenderer = (arg0: ListRowProps<ReducedFilezUser>) => {
+        const { item: user } = arg0;
         return (
             <div>
                 <span style={{ marginRight: "10px" }}>{user.name ?? user._id}</span>
@@ -45,7 +55,12 @@ export default class UserList extends PureComponent<UserListProps, UserListState
                     resourceType="User"
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_user_list}
-                    rowRenderer={this.rowRenderer}
+                    listRowRenderer={
+                        this.props.listRowRenderer
+                            ? this.props.listRowRenderer
+                            : this.listRowRenderer
+                    }
+                    gridRowRenderer={this.props.gridRowRenderer}
                     displayTopBar={this.props.displayTopBar}
                 />
             </div>

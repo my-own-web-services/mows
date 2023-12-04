@@ -103,7 +103,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     editResource={<EditFile />}
                     resourceType="File"
                     defaultSortField="name"
-                    initialListType={ListType.Grid}
+                    initialListType={ListType.List}
                     get_items_function={this.context.filezClient.get_file_infos_by_group_id}
                     id={this.props.id}
                     displaySortingBar={this.props.displaySortingBar}

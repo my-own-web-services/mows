@@ -17,6 +17,15 @@
     --contexify-activeArrow-color: #fff;
 }
 
+.CheckIconButton {
+    &:hover {
+        color: var(--rs-color-green);
+    }
+    > svg {
+        transform: translate(1px, -1px);
+    }
+}
+
 .disabled {
     background-color: var(--rs-input-disabled-bg);
     color: var(--rs-text-disabled);

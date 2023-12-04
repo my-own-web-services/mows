@@ -1,16 +1,9 @@
 import { FilezClient, GetResourceParams } from "@firstdorsal/filez-client";
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
-import {
-    CSSProperties,
-    Component,
-    PureComponent,
-    ReactElement,
-    cloneElement,
-    createRef
-} from "react";
+import { CSSProperties, Component, ReactElement, cloneElement, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
-import SortingBar, { dragHandleWidth } from "./SortingBar";
+import SortingBar from "./SortingBar";
 import { FixedSizeList } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 import ListTopBar from "./ListTopBar";
@@ -18,11 +11,21 @@ import { cloneDeep } from "lodash";
 import { Button, Modal } from "rsuite";
 import { FilezContext } from "../../../FilezProvider";
 import { match } from "ts-pattern";
-import { Item, Menu, useContextMenu } from "react-contexify";
 import "react-contexify/dist/ReactContexify.css";
 import { EditResource } from "../../../types";
+import GridRow, { GridRowProps } from "./GridRow";
+import ListRow, { ListRowProps } from "./ListRow";
 
-import GridRow from "./GridRow";
+export interface CommonRowProps<ResourceType> {
+    readonly style: CSSProperties;
+    readonly columns?: Column<ResourceType>[];
+    readonly onItemClick?: InstanceType<typeof ResourceList>["onItemClick"];
+    readonly disableContextMenu?: boolean;
+    readonly menuItems: FilezMenuItems<ResourceType>[];
+    readonly resourceType: string;
+    readonly getSelectedItems: InstanceType<typeof ResourceList>["getSelectedItems"];
+    readonly updateRenderModalName?: InstanceType<typeof ResourceList>["updateRenderModalName"];
+}
 
 export interface FilezMenuItems<ResourceType> {
     name: string;
@@ -205,11 +208,11 @@ interface ResourceListProps<ResourceType extends BaseResource> {
     /**
      A function that renders the resource in the list.
      */
-    readonly rowRenderer?: (
-        item: ResourceType,
-        style: CSSProperties,
-        columns?: Column<ResourceType>[]
-    ) => JSX.Element;
+    readonly listRowRenderer?: (arg0: ListRowProps<ResourceType>) => JSX.Element;
+    /**
+     A function that renders the resource in the list.
+     */
+    readonly gridRowRenderer?: (arg0: GridRowProps<ResourceType>) => JSX.Element;
     /**
      A function that gets the resource in from the server/db and returns it. This has to be implemented in a specific way to support the infinite scrolling.
      */
@@ -225,7 +228,7 @@ interface ResourceListProps<ResourceType extends BaseResource> {
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
     readonly topBar?: JSX.Element;
-    readonly id: string;
+    readonly id?: string;
     readonly columns?: Column<ResourceType>[];
     readonly disableContextMenu?: boolean;
     readonly initialListType?: ListType;
@@ -540,121 +543,12 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         });
     };
 
-    updateGridColumnCount = (columnCount: number) => {
-        this.setState({ gridColumnCount: columnCount });
+    updateRenderModalName = (renderModalName: string) => {
+        this.setState({ renderModalName });
     };
 
-    rowRenderer = (
-        item: ResourceType,
-        style: CSSProperties,
-        columns?: Column<ResourceType>[],
-        isSelected?: boolean
-    ) => {
-        const { show } = useContextMenu({
-            id: item._id
-        });
-
-        return (
-            <div
-                onClick={e => this.onItemClick(e, item)}
-                style={{
-                    ...style,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden"
-                }}
-                onContextMenu={e => {
-                    this.onItemClick(e, item, true);
-                    show({ event: e });
-                }}
-                className={`Row${isSelected ? " selected" : ""}`}
-            >
-                {columns ? (
-                    (() => {
-                        const activeColumns = columns.filter(c => c.visible);
-
-                        return activeColumns.map((column, index) => {
-                            /*@ts-ignore*/
-                            const field = item[column.field]
-                                ? /*@ts-ignore*/
-                                  item[column.field]
-                                : /*@ts-ignore*/
-                                  item[column.alternateField];
-
-                            const width = (() => {
-                                if (index === activeColumns.length - 1) {
-                                    // 17px is the width of the scrollbar
-                                    return `calc(${column.widthPercent}% - 17px)`;
-                                }
-                                let dhwFixed = dragHandleWidth - 5;
-                                if (index === 0) {
-                                    return `calc(${column.widthPercent}% + ${dhwFixed}px)`;
-                                }
-                                // for some reason this works
-                                return `calc(${column.widthPercent}% + ${dhwFixed / 2}px)`;
-                            })();
-                            return (
-                                <span
-                                    key={column.field + index}
-                                    style={{
-                                        width,
-                                        height: "100%",
-                                        display: "block",
-                                        float: "left",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                        paddingLeft: "5px"
-                                    }}
-                                >
-                                    {column.render
-                                        ? column.render(item)
-                                        : field ??
-                                          `Field '${column.field}' does not exist on this ${this.props.resourceType}`}
-                                </span>
-                            );
-                        });
-                    })()
-                ) : this.props.rowRenderer ? (
-                    this.props.rowRenderer(item, style, columns)
-                ) : (
-                    <span>{item._id}</span>
-                )}
-                {!this.props.disableContextMenu && (
-                    <Menu id={item._id}>
-                        {this.state.menuItems.flatMap(menuItem => {
-                            if (
-                                menuItem.resources &&
-                                !menuItem.resources.includes(this.props.resourceType)
-                            ) {
-                                return [];
-                            }
-                            return [
-                                <Item
-                                    key={menuItem.name}
-                                    className="clickable"
-                                    onClick={() => {
-                                        // select the current item
-                                        // TODO this does not work if no item is selected yet
-                                        let selected = this.getSelectedItems();
-                                        if (menuItem.onClick) {
-                                            menuItem.onClick(
-                                                selected.length > 1 ? [item] : selected
-                                            );
-                                        }
-
-                                        this.setState({
-                                            renderModalName: menuItem.name
-                                        });
-                                    }}
-                                >
-                                    {menuItem.name}
-                                </Item>
-                            ];
-                        })}
-                    </Menu>
-                )}
-            </div>
-        );
+    updateGridColumnCount = (columnCount: number) => {
+        this.setState({ gridColumnCount: columnCount });
     };
 
     shouldComponentUpdate(
@@ -806,6 +700,19 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                                             item._id
                                                                         ]
                                                                 )}
+                                                                getSelectedItems={
+                                                                    this.getSelectedItems
+                                                                }
+                                                                menuItems={this.state.menuItems}
+                                                                disableContextMenu={
+                                                                    this.props.disableContextMenu
+                                                                }
+                                                                updateRenderModalName={
+                                                                    this.updateRenderModalName
+                                                                }
+                                                                rowRenderer={
+                                                                    this.props.gridRowRenderer
+                                                                }
                                                             />
                                                         );
                                                     } else {
@@ -815,11 +722,30 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                                 currentItem._id
                                                             ];
 
-                                                        return this.rowRenderer(
-                                                            currentItem,
-                                                            style,
-                                                            this.state.columns,
-                                                            isSelected
+                                                        return (
+                                                            <ListRow
+                                                                resourceType={
+                                                                    this.props.resourceType
+                                                                }
+                                                                item={currentItem}
+                                                                style={style}
+                                                                isSelected={isSelected}
+                                                                onItemClick={this.onItemClick}
+                                                                columns={this.state.columns}
+                                                                getSelectedItems={
+                                                                    this.getSelectedItems
+                                                                }
+                                                                disableContextMenu={
+                                                                    this.props.disableContextMenu
+                                                                }
+                                                                menuItems={this.state.menuItems}
+                                                                updateRenderModalName={
+                                                                    this.updateRenderModalName
+                                                                }
+                                                                rowRenderer={
+                                                                    this.props.listRowRenderer
+                                                                }
+                                                            />
                                                         );
                                                     }
                                                 }}

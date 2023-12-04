@@ -1,14 +1,12 @@
-import { PureComponent, ReactNode } from "react";
+import { PureComponent } from "react";
 import { BsPeople } from "react-icons/bs";
 import { FaMapLocationDot } from "react-icons/fa6";
-import { TagPicker } from "rsuite";
-import { ItemDataType } from "rsuite/esm/@types/common";
-import update from "immutability-helper";
 import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
+import MultiItemTagPicker, { Category, MultiItemTagPickerResources } from "./MultiItemTagPicker";
 
-const knownCategories = [
+const knownCategories: Category[] = [
     {
         name: "Persons",
         render: (keyword: string) => {
@@ -41,19 +39,14 @@ interface KeywordPickerProps {
     readonly inputSize?: "lg" | "md" | "sm" | "xs";
     readonly resourceType: "File" | "FileGroup";
     readonly resources?: FilezFile[] | FilezFileGroup[];
-    readonly onKeywordsChanged?: (keywords: Keyword[]) => void;
+    readonly onKeywordsChanged?: (resources: MultiItemTagPickerResources) => void;
     readonly disabled?: boolean;
 }
 
 interface KeywordPickerState {
-    readonly knownKeywords: Keyword[];
-    readonly selectedKeywords: string[];
+    readonly knownKeywords: string[];
+    readonly resourceMap: MultiItemTagPickerResources;
     readonly knownKeywordsLoaded: boolean;
-}
-
-export interface Keyword {
-    readonly value: string;
-    readonly appliedResourceIds: string[];
 }
 
 export default class KeywordPicker extends PureComponent<KeywordPickerProps, KeywordPickerState> {
@@ -63,9 +56,9 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
     constructor(props: KeywordPickerProps) {
         super(props);
         this.state = {
-            knownKeywords: [],
-            selectedKeywords: [],
-            knownKeywordsLoaded: false
+            resourceMap: {},
+            knownKeywordsLoaded: false,
+            knownKeywords: []
         };
     }
 
@@ -74,53 +67,58 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
     };
 
     init = async () => {
-        await this.loadKeywords();
-    };
-
-    loadKeywords = async () => {
-        if (!this.context) throw new Error("No filez context set");
         const knownKeywords = await this.get_keywords(this.props.resources);
-
-        const selectedKeywords: string[] = [];
-        this.props.resources?.forEach(resource => {
-            resource.keywords.forEach(keyword => {
-                if (!selectedKeywords.includes(keyword)) {
-                    selectedKeywords.push(keyword);
-                }
-            });
-        });
-
-        this.setState({
-            knownKeywords,
-            knownKeywordsLoaded: true,
-            selectedKeywords
-        });
+        const resourceMap = this.resourcesToSelectedTags(this.props.resources);
+        this.setState({ knownKeywords, resourceMap, knownKeywordsLoaded: true });
     };
 
-    get_keywords = async (resources?: FilezFile[] | FilezFileGroup[]): Promise<Keyword[]> => {
+    get_keywords = async (resources?: FilezFile[] | FilezFileGroup[]): Promise<string[]> => {
         if (!this.context) throw new Error("No filez context set");
         const otherResourcesKeywords = await this.context.filezClient.get_aggregated_keywords();
 
-        const distincKeywords: Keyword[] = [];
+        const currenResourceKeywords = resources?.flatMap(resource => resource.keywords) ?? [];
 
-        otherResourcesKeywords.forEach(keyword => {
-            distincKeywords.push({
-                value: keyword,
-                appliedResourceIds:
-                    resources?.flatMap(resource => {
-                        if (resource.keywords.includes(keyword)) {
-                            return [resource._id];
-                        } else {
-                            return [];
-                        }
-                    }) ?? []
-            });
-        });
+        const distincKeywords: string[] = [
+            ...new Set([...currenResourceKeywords, ...otherResourcesKeywords])
+        ];
 
         return distincKeywords;
     };
 
-    splitAndFixKeywords = (keywords: string[]): string[] => {
+    resourcesToSelectedTags = (resources?: FilezFile[] | FilezFileGroup[]) => {
+        const selectedTagsMap: MultiItemTagPickerResources = {};
+        resources?.forEach(resource => {
+            selectedTagsMap[resource._id] = resource.keywords;
+        });
+        return selectedTagsMap;
+    };
+
+    render = () => {
+        if (this.state.knownKeywordsLoaded === false) return null;
+
+        return (
+            <div className="Keywords">
+                <MultiItemTagPicker
+                    multiItemSelectedTags={this.state.resourceMap}
+                    knownCategories={knownCategories}
+                    possibleTags={this.state.knownKeywords}
+                    onChange={(resourceMap, knownKeywords) => {
+                        for (const [resourceId, keywords] of Object.entries(resourceMap)) {
+                            this.context?.filezClient.update_file_infos(resourceId, {
+                                keywords
+                            });
+                        }
+
+                        this.setState({ knownKeywords, resourceMap });
+                    }}
+                />
+            </div>
+        );
+    };
+}
+
+/*
+splitAndFixKeywords = (keywords: string[]): string[] => {
         return keywords
             .flatMap(keyword => {
                 if (keyword.includes(",")) {
@@ -156,48 +154,8 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
             });
     };
 
-    handleCreate = async (keyword: string) => {
-        const keywords = this.splitAndFixKeywords([keyword]);
 
-        this.setState(
-            update(this.state, {
-                selectedKeywords: {
-                    $set: keywords
-                },
-                knownKeywords: {
-                    $push: (() => {
-                        return keywords.flatMap(keyword => {
-                            if (!this.state.knownKeywords.map(k => k.value).includes(keyword)) {
-                                return [
-                                    {
-                                        value: keyword,
-                                        appliedResourceIds:
-                                            this.props.resources?.map(resource => resource._id) ??
-                                            []
-                                    }
-                                ];
-                            } else {
-                                return [];
-                            }
-                        });
-                    })()
-                }
-            }),
-            () => {}
-        );
-    };
-
-    handleTagRemove = async (keyword: string) => {};
-
-    handleSelect = async (keywords: string[]) => {};
-
-    render = () => {
-        if (this.state.knownKeywordsLoaded === false) return null;
-
-        return (
-            <div className="Keywords">
-                <label className={this.props.disabled ? "disabled" : ""}>Keywords</label>
-                <TagPicker
+<TagPicker
                     size={this.props.inputSize}
                     value={this.state.selectedKeywords}
                     groupBy="category"
@@ -254,12 +212,10 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
                     onTagRemove={this.handleTagRemove}
                     onSelect={this.handleSelect}
                 />
-            </div>
-        );
-    };
-}
 
-/*
+
+
+
  onChange={async (keywords: string[]) => {
                         // if keyword contains commas it will be split into multiple keywords with trimmed whitespace
                         keywords = keywords

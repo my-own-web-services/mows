@@ -16,32 +16,13 @@ interface AppProps {}
 
 interface AppState {
     readonly selectedFileId?: string;
-    readonly resources: MultiItemTagPickerResources;
-    readonly possibleTags: string[];
 }
 
 export default class App extends Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            selectedFileId: "4A7lGTlhgk20IbS6",
-            resources: {
-                A: ["Paul", "Olaf"],
-                B: ["Peter", "Paul", "Karl"]
-            },
-            possibleTags: [
-                "Kai",
-                "Christoph",
-                "Paul",
-                "Olaf",
-                "Peter",
-                "Rüdiger",
-                "Christian",
-                "Klaus",
-                "Karl",
-                "Kurt",
-                "Jürgen"
-            ]
+            selectedFileId: "4A7lGTlhgk20IbS6"
         };
     }
 
@@ -66,6 +47,8 @@ export default class App extends Component<AppProps, AppState> {
 }
 
 /*
+
+
 
   <FilezProvider>
 

@@ -1,10 +1,11 @@
 import { CSSProperties, PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
-import { UserGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/UserGroup";
 import ResourceList, { Column, ColumnDirection } from "../resource/ResourceList";
 import CreateUserGroup from "./CreateUserGroup";
 import EditUserGroup from "./EditUserGroup";
 import { FilezUserGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezUserGroup";
+import { ListRowProps } from "../resource/ListRow";
+import { GridRowProps } from "../resource/GridRow";
 
 const defaultColumns: Column<FilezUserGroup>[] = [
     {
@@ -12,7 +13,8 @@ const defaultColumns: Column<FilezUserGroup>[] = [
         alternateField: "_id",
         direction: ColumnDirection.ASCENDING,
         widthPercent: 33,
-        minWidthPixels: 50
+        minWidthPixels: 50,
+        visible: true
     },
     {
         field: "visibility",
@@ -21,12 +23,20 @@ const defaultColumns: Column<FilezUserGroup>[] = [
         minWidthPixels: 50,
         render: (item: FilezUserGroup) => {
             return <span>{item.visibility}</span>;
-        }
+        },
+        visible: true
     }
 ];
 
 interface UserGroupListProps {
-    readonly rowRenderer?: (user: UserGroup, style: CSSProperties) => JSX.Element;
+    /**
+     A function that renders the resource in the list.
+     */
+    readonly listRowRenderer?: (arg0: ListRowProps<FilezUserGroup>) => JSX.Element;
+    /**
+       A function that renders the resource in the list.
+       */
+    readonly gridRowRenderer?: (arg0: GridRowProps<FilezUserGroup>) => JSX.Element;
     readonly style?: CSSProperties;
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
@@ -55,6 +65,8 @@ export default class UserGroupList extends PureComponent<UserGroupListProps, Use
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_user_group_list}
                     displayTopBar={this.props.displayTopBar}
+                    listRowRenderer={this.props.listRowRenderer}
+                    gridRowRenderer={this.props.gridRowRenderer}
                 />
             </div>
         );

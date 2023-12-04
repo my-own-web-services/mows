@@ -25,7 +25,7 @@
         "react-virtualized-auto-sizer": "^1.0.20",
         "react-window": "^1.8.9",
         "react-window-infinite-loader": "^1.0.9",
-        "rsuite": "^5.38.0",
+        "rsuite": "^5.46.0",
         "sass": "^1.62.1",
         "ts-pattern": "^5.0.5"
     },

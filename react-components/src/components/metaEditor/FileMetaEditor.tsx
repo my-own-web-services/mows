@@ -104,20 +104,11 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                 />
                             </div>
                             <div className="basicsBox">
+                                <label>Keywords</label>
                                 <KeywordPicker
                                     resourceType="File"
                                     resources={this.state.files}
                                     inputSize={inputSize}
-                                    onKeywordsChanged={(keywords: Keyword[]) => {
-                                        if (!this.context) return;
-                                        if (!this.state.files) return;
-                                        this.context.filezClient.update_file_infos(
-                                            this.state.files[0]._id,
-                                            {
-                                                keywords: keywords.map(keyword => keyword.value)
-                                            }
-                                        );
-                                    }}
                                 />
                             </div>
                             {singleFile && (

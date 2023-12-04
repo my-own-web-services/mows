@@ -5,11 +5,20 @@ import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/Filez
 import ResourceList from "../resource/ResourceList";
 import CreateFileGroup from "./CreateFileGroup";
 import EditFileGroup from "./EditFileGroup";
+import { ListRowProps } from "../resource/ListRow";
+import { GridRowProps } from "../resource/GridRow";
 
 interface FileGroupListProps {
     readonly displayTopBar?: boolean;
     readonly style?: CSSProperties;
-    readonly rowRenderer?: (item: FilezFileGroup, style: CSSProperties) => JSX.Element;
+    /**
+     A function that renders the resource in the list.
+     */
+    readonly listRowRenderer?: (arg0: ListRowProps<FilezFileGroup>) => JSX.Element;
+    /**
+      A function that renders the resource in the list.
+      */
+    readonly gridRowRenderer?: (arg0: GridRowProps<FilezFileGroup>) => JSX.Element;
 }
 
 interface FileGroupListState {}
@@ -27,7 +36,8 @@ export default class FileGroupList extends PureComponent<FileGroupListProps, Fil
         console.log(data);
     };
 
-    rowRenderer = (item: FilezFileGroup) => {
+    listRowRenderer = (arg0: ListRowProps<FilezFileGroup>) => {
+        const { item } = arg0;
         return (
             <div className="Group">
                 <div className="GroupItems">
@@ -56,7 +66,12 @@ export default class FileGroupList extends PureComponent<FileGroupListProps, Fil
                     resourceType="FileGroup"
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_own_file_groups}
-                    rowRenderer={this.rowRenderer}
+                    listRowRenderer={
+                        this.props.listRowRenderer
+                            ? this.props.listRowRenderer
+                            : this.listRowRenderer
+                    }
+                    gridRowRenderer={this.props.gridRowRenderer}
                     displayTopBar={this.props.displayTopBar}
                 />
             </div>
