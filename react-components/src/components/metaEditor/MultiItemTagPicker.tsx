@@ -75,7 +75,7 @@ export default class MultiItemTagPicker extends Component<
 
         for (const tag of this.props.possibleTags) {
             const resourcesWithCurrentTag = resourceArray.filter(([_, resourceTags]) =>
-                resourceTags.includes(tag)
+                resourceTags?.includes(tag)
             ).length;
 
             const tagState: TagState = (() => {

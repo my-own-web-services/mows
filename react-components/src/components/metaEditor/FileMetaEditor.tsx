@@ -9,7 +9,7 @@ import { FaPeopleArrows } from "react-icons/fa";
 import { FileDownload } from "@rsuite/icons";
 import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import KeywordPicker, { Keyword } from "./KeywordPicker";
+import KeywordPicker from "./KeywordPicker";
 import Name from "./Name";
 import Permission from "../list/permissions/Permission";
 import { isEqual } from "lodash";
@@ -100,7 +100,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                 <label>Static File Groups</label>
                                 <StaticFileGroupPicker
                                     size={inputSize}
-                                    fileIds={this.state.files.map(file => file._id)}
+                                    resources={this.state.files}
                                 />
                             </div>
                             <div className="basicsBox">
