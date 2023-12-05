@@ -4,7 +4,11 @@ import { FaMapLocationDot } from "react-icons/fa6";
 import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
-import MultiItemTagPicker, { Category, MultiItemTagPickerResources } from "./MultiItemTagPicker";
+import MultiItemTagPicker, {
+    Category,
+    MultiItemTagPickerResources,
+    TagData
+} from "./MultiItemTagPicker";
 
 const knownCategories: Category[] = [
     {
@@ -36,15 +40,35 @@ const knownCategories: Category[] = [
 ];
 
 interface KeywordPickerProps {
+    /**
+     * @default "md"
+     * The Size of the input
+     */
     readonly inputSize?: "lg" | "md" | "sm" | "xs";
+    /**
+     * What type of resources are being edited
+     */
     readonly resourceType: "File" | "FileGroup";
+    /**
+     * The resources to edit
+     */
     readonly resources?: FilezFile[] | FilezFileGroup[];
-    readonly onKeywordsChanged?: (resources: MultiItemTagPickerResources) => void;
+    /**
+     * Called when the user changes the selection of keywords
+     */
+    readonly onChange?: (resources: MultiItemTagPickerResources) => void;
+    /**
+     *  Should the component be disabled
+     */
     readonly disabled?: boolean;
+    /**
+     * Should the component directly handle the server update of the resources
+     */
+    readonly serverUpdate?: boolean;
 }
 
 interface KeywordPickerState {
-    readonly knownKeywords: string[];
+    readonly knownKeywords: TagData[];
     readonly resourceMap: MultiItemTagPickerResources;
     readonly knownKeywordsLoaded: boolean;
 }
@@ -67,9 +91,13 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
     };
 
     init = async () => {
-        const knownKeywords = await this.get_keywords(this.props.resources);
+        const knownKeywordsStrings = await this.get_keywords(this.props.resources);
         const resourceMap = this.resourcesToSelectedTags(this.props.resources);
-        this.setState({ knownKeywords, resourceMap, knownKeywordsLoaded: true });
+        this.setState({
+            knownKeywords: knownKeywordsStrings.map(value => ({ value })),
+            resourceMap,
+            knownKeywordsLoaded: true
+        });
     };
 
     get_keywords = async (resources?: FilezFile[] | FilezFileGroup[]): Promise<string[]> => {
@@ -103,10 +131,12 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
                     knownCategories={knownCategories}
                     possibleTags={this.state.knownKeywords}
                     onChange={(resourceMap, knownKeywords) => {
-                        for (const [resourceId, keywords] of Object.entries(resourceMap)) {
-                            this.context?.filezClient.update_file_infos(resourceId, {
-                                keywords
-                            });
+                        if (this.props.serverUpdate !== false) {
+                            for (const [resourceId, keywords] of Object.entries(resourceMap)) {
+                                this.context?.filezClient.update_file_infos(resourceId, {
+                                    keywords
+                                });
+                            }
                         }
 
                         this.setState({ knownKeywords, resourceMap });

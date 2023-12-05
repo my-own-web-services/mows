@@ -213,13 +213,22 @@ pub fn check_static_file_groups(static_file_groups: &Vec<String>) -> anyhow::Res
     if static_file_groups.len() > 100 {
         bail!("Too many static file groups");
     }
-    let max_length = 100;
+    let max_length = 20;
     for static_file_group in static_file_groups {
         let static_file_group_len = static_file_group.len();
         if static_file_group_len > max_length {
-            bail!("Static file group too long: {static_file_group_len}/{max_length}");
+            bail!("Static file group ID too long: {static_file_group_len}/{max_length}");
         }
     }
+
+    //check for duplicates
+    let mut static_file_groups_clone = static_file_groups.clone();
+    static_file_groups_clone.sort();
+    static_file_groups_clone.dedup();
+    if static_file_groups_clone.len() != static_file_groups.len() {
+        bail!("Duplicate static file group IDs");
+    }
+
     Ok(())
 }
 

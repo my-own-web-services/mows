@@ -163,7 +163,7 @@ impl DB {
         Ok(res)
     }
 
-    pub async fn update_file_groups_on_many_files(
+    pub async fn update_dynamic_file_groups_on_many_files(
         &self,
         to_be_updated: &Vec<(String, Vec<String>)>,
     ) -> anyhow::Result<()> {
@@ -174,6 +174,8 @@ impl DB {
         let file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         // TODO make this faster by using bulk operations
+        // TODO what happends when file groups get removed instead of added?
+        // FIXME
 
         let mut file_count_map: HashMap<String, u64> = HashMap::new();
 
@@ -190,8 +192,14 @@ impl DB {
             if !dynamic_file_group_ids.is_empty() {
                 files_collection
                     .update_one_with_session(
-                        doc! {"_id": file_id},
-                        doc! {"$push": {"dynamic_file_group_ids": &dynamic_file_group_ids[0]}},
+                        doc! {
+                            "_id": file_id
+                        },
+                        doc! {
+                            "$push": {
+                                "dynamic_file_group_ids": &dynamic_file_group_ids[0]
+                            }
+                        },
                         None,
                         &mut session,
                     )
@@ -203,8 +211,14 @@ impl DB {
         for (file_group_id, file_count) in file_count_map {
             file_groups_collection
                 .update_one_with_session(
-                    doc! {"_id": file_group_id},
-                    doc! {"$set": {"item_count": bson::to_bson(&file_count)?}},
+                    doc! {
+                        "_id": file_group_id
+                    },
+                    doc! {
+                        "$set": {
+                            "item_count": bson::to_bson(&file_count)?
+                        }
+                    },
                     None,
                     &mut session,
                 )
@@ -882,14 +896,20 @@ impl DB {
             .await?)
     }
 
-    pub async fn update_file_static_file_group_ids(
+    pub async fn update_files_static_file_group_ids(
         &self,
         file_id: &str,
+        old_static_file_group_ids: &Vec<String>,
         new_static_file_group_ids: &Vec<String>,
-    ) -> anyhow::Result<UpdateResult> {
-        let collection = self.db.collection::<FilezFile>("files");
-        Ok(collection
-            .update_one(
+    ) -> anyhow::Result<()> {
+        let files_collection = self.db.collection::<FilezFile>("files");
+        let static_file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
+
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
+
+        files_collection
+            .update_one_with_session(
                 doc! {
                     "_id": file_id
                 },
@@ -899,8 +919,41 @@ impl DB {
                     }
                 },
                 None,
+                &mut session,
             )
-            .await?)
+            .await?;
+
+        static_file_groups_collection.update_many_with_session(
+            doc! {
+                "_id": {
+                    "$in": old_static_file_group_ids
+                }
+            },
+            doc! {
+                "$inc": {
+                    "item_count": -1
+                }
+            },
+            None,
+            &mut session,
+        );
+
+        static_file_groups_collection.update_many_with_session(
+            doc! {
+                "_id": {
+                    "$in": new_static_file_group_ids
+                }
+            },
+            doc! {
+                "$inc": {
+                    "item_count": 1
+                }
+            },
+            None,
+            &mut session,
+        );
+
+        Ok(session.commit_transaction().await?)
     }
 
     pub async fn update_file_keywords(
@@ -1365,6 +1418,38 @@ impl DB {
             )
             .await?;
         Ok(file)
+    }
+
+    pub async fn get_static_file_groups_by_ids(
+        &self,
+        file_group_ids: &Vec<String>,
+    ) -> anyhow::Result<Vec<FilezFileGroup>> {
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
+        let mut cursor = collection
+            .find(
+                doc! {
+                    "$and":[
+                        {
+                            "_id": {
+                                "$in": file_group_ids
+                            }
+                        },
+                        {
+                            "group_type": "Static"
+                        }
+                    ]
+                },
+                None,
+            )
+            .await?;
+
+        let mut file_groups = vec![];
+
+        while let Some(file_group) = cursor.try_next().await? {
+            file_groups.push(file_group);
+        }
+
+        Ok(file_groups)
     }
 
     pub async fn check_file_group_existence(

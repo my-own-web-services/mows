@@ -297,7 +297,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                             <Keywords
                                 disabled={this.state.uploading}
                                 resourceType="File"
-                                onKeywordsChanged={(keywords: string[]) => {
+                                onChange={(keywords: string[]) => {
                                     this.setState({ keywords: keywords });
                                 }}
                             />

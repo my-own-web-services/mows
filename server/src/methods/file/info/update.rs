@@ -116,8 +116,12 @@ pub async fn update_file_infos(
         db.check_file_group_existence(new_static_file_group_ids)
             .await?;
 
-        db.update_file_static_file_group_ids(&filez_file.file_id, new_static_file_group_ids)
-            .await?;
+        db.update_files_static_file_group_ids(
+            &filez_file.file_id,
+            &filez_file.static_file_group_ids,
+            new_static_file_group_ids,
+        )
+        .await?;
     };
 
     if let Some(new_keywords) = &ufir.fields.keywords {

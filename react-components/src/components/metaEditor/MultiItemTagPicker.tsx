@@ -9,18 +9,23 @@ export interface Category {
 }
 
 interface MultiItemTagPickerProps {
+    /**
+     * @default "md"
+     * The Size of the input
+     */
     readonly size?: "lg" | "md" | "sm" | "xs";
     readonly multiItemSelectedTags: MultiItemTagPickerResources;
-    readonly possibleTags: string[];
-    readonly onChange: (newResources: MultiItemTagPickerResources, possibleTags: string[]) => void;
+    readonly possibleTags: TagData[];
+    readonly onChange: (newResources: MultiItemTagPickerResources, possibleTags: TagData[]) => void;
     readonly disabled?: boolean;
     readonly knownCategories?: Category[];
+    readonly creatable?: boolean;
 }
 
 interface MultiItemTagPickerState {
     readonly selectedTags: string[];
     readonly halfCheckedTags: HalfCheckedMap;
-    readonly data: TagData[];
+    readonly data: InternalTagData[];
 }
 
 export interface HalfCheckedMap {
@@ -31,10 +36,17 @@ export interface MultiItemTagPickerResources {
     [resourceId: string]: string[];
 }
 
-interface TagData {
+export interface TagData {
+    value: string;
+    label?: string;
+    readonly?: boolean;
+}
+
+interface InternalTagData {
     label: string | JSX.Element;
     value: string;
     category: string;
+    readonly?: boolean;
 }
 
 enum TagState {
@@ -67,15 +79,15 @@ export default class MultiItemTagPicker extends Component<
     };
 
     resourcesToData = (resourceMap: MultiItemTagPickerResources) => {
-        const data: TagData[] = [];
+        const data: InternalTagData[] = [];
         const selectedTags: string[] = [];
         const halfCheckedTags: HalfCheckedMap = {};
 
         const resourceArray = Object.entries(resourceMap);
 
-        for (const tag of this.props.possibleTags) {
+        for (const { value, label, readonly } of this.props.possibleTags) {
             const resourcesWithCurrentTag = resourceArray.filter(([_, resourceTags]) =>
-                resourceTags?.includes(tag)
+                resourceTags?.includes(value)
             ).length;
 
             const tagState: TagState = (() => {
@@ -84,26 +96,28 @@ export default class MultiItemTagPicker extends Component<
                 return TagState.Some;
             })();
 
-            if (tagState !== TagState.None) selectedTags.push(tag);
-            //@ts-ignore
-            halfCheckedTags[tag] = tagState === TagState.Some ? true : false;
+            if (tagState !== TagState.None) selectedTags.push(value);
+
+            halfCheckedTags[value] = tagState === TagState.Some ? true : false;
+
             data.push({
                 label: (() => {
-                    if (tag.includes(">")) {
-                        const currentCategory = tag.split(">")[0];
+                    if (value.includes(">")) {
+                        const currentCategory = value.split(">")[0];
 
                         const foundKnownCategory = this.props.knownCategories?.find(
                             c => c.name === currentCategory
                         );
 
                         if (foundKnownCategory) {
-                            return foundKnownCategory.render(tag);
+                            return foundKnownCategory.render(value);
                         }
                     }
-                    return tag;
+                    return label ?? value;
                 })(),
-                value: tag,
-                category: tag.includes(">") ? tag.split(">")[0] : "Other"
+                value: value,
+                category: value.includes(">") ? value.split(">")[0] : "Other",
+                readonly
             });
         }
 
@@ -112,7 +126,7 @@ export default class MultiItemTagPicker extends Component<
         return { data, selectedTags, halfCheckedTags };
     };
 
-    onSelect = (selectedTags: string[], item: any) => {
+    onSelect = (_selectedTags: string[], item: any) => {
         //item is InputItemDataType
 
         const switchedToSelected = !this.state.selectedTags.includes(item?.value);
@@ -132,7 +146,7 @@ export default class MultiItemTagPicker extends Component<
         this.props.onChange(newResources, this.props.possibleTags);
     };
 
-    onCreate = (newTag: string, item: any) => {
+    onCreate = (_newTag: string, item: any) => {
         const newResources: MultiItemTagPickerResources = cloneDeep(
             this.props.multiItemSelectedTags
         );
@@ -159,7 +173,9 @@ export default class MultiItemTagPicker extends Component<
             this.props.multiItemSelectedTags
         );
         for (const [resourceId, currentTags] of Object.entries(newResources)) {
-            newResources[resourceId] = [...currentTags, checkedTagValue];
+            if (!currentTags.includes(checkedTagValue)) {
+                newResources[resourceId] = [...currentTags, checkedTagValue];
+            }
         }
         this.props.onChange(newResources, this.props.possibleTags);
     };
@@ -178,8 +194,8 @@ export default class MultiItemTagPicker extends Component<
                     onTagRemove={this.onTagRemove}
                     cleanable={false}
                     disabled={this.props.disabled}
-                    groupBy="category"
-                    creatable
+                    groupBy={this.props.knownCategories && "category"}
+                    creatable={this.props.creatable ?? false}
                     virtualized
                     block
                     renderMenuItemCheckbox={(checkboxProps: any) => {
@@ -187,8 +203,14 @@ export default class MultiItemTagPicker extends Component<
 
                         const indeterminate = this.state.halfCheckedTags[value];
 
+                        const readonly = this.props.possibleTags.find(
+                            tag => tag.value === value
+                        )?.readonly;
+
                         return (
                             <Checkbox
+                                readOnly={readonly}
+                                disabled={readonly}
                                 value={value}
                                 checked={checked}
                                 {...restProps}
@@ -199,22 +221,22 @@ export default class MultiItemTagPicker extends Component<
                             </Checkbox>
                         );
                     }}
-                    renderValue={(values: string[], items: any, selectedElement: any) => {
+                    renderValue={(values: string[], items: InternalTagData[]) => {
                         return values.map((tag, index) => {
                             const indeterminate = this.state.halfCheckedTags[tag];
 
-                            const label = items?.find((item: any) => item?.value === tag)?.label;
+                            const item = items?.find((item: any) => item?.value === tag);
 
                             return (
                                 <Tag
                                     key={index}
-                                    closable={true}
+                                    closable={item?.readonly === true ? false : true}
                                     onClose={e => {
                                         e.stopPropagation();
                                         this.onTagRemove(tag);
                                     }}
                                 >
-                                    {label}
+                                    {item?.label}
                                     {indeterminate && " *"}
                                     {indeterminate && (
                                         <span
@@ -226,8 +248,9 @@ export default class MultiItemTagPicker extends Component<
                                             className="CheckIconButton"
                                         >
                                             <CheckIcon
+                                                title="Apply to all"
                                                 style={{}}
-                                                onClick={e => {
+                                                onClick={() => {
                                                     this.onTagCheck(tag);
                                                 }}
                                             />

@@ -174,6 +174,7 @@ const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
 export interface Column<ResourceType> {
     field: string;
     alternateField?: string;
+    label: string;
     direction: ColumnDirection;
     widthPercent: number;
     minWidthPixels: number;
@@ -717,6 +718,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                         );
                                                     } else {
                                                         const currentItem = this.state.items[index];
+                                                        if (!currentItem) return <></>;
                                                         const isSelected =
                                                             this.state.selectedItems[
                                                                 currentItem._id

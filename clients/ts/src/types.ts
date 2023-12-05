@@ -8,11 +8,11 @@ export interface ProcessedImage {
 
 export interface GetResourceParams {
     id?: string;
-    from_index: number;
-    limit: number | null;
-    sort_field: string | null;
-    sort_order: SortOrder | null;
-    filter: string | null;
+    from_index?: number;
+    limit?: number | null;
+    sort_field?: string | null;
+    sort_order?: SortOrder | null;
+    filter?: string | null;
 }
 
 export interface GetFileOptions {

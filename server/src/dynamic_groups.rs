@@ -19,7 +19,7 @@ pub async fn handle_dynamic_group_update(db: &DB, update_type: &UpdateType) -> a
 
             dbg!(&files_to_be_updated);
 
-            db.update_file_groups_on_many_files(&files_to_be_updated)
+            db.update_dynamic_file_groups_on_many_files(&files_to_be_updated)
                 .await?;
         }
         UpdateType::File(file) => {

@@ -1,7 +1,9 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
+    permissions::{
+        check_auth_multiple, CommonAclWhatOptions, FilezFileGroupPermissionAclWhatOptions,
+    },
     some_or_bail,
 };
 use anyhow::bail;
@@ -10,17 +12,7 @@ use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-/**
-# Gets infomartion about a single file.
-
-## Call
-`/api/file/info/get/`
-## Permissions
-File > GetFileInfos
-
-
-*/
-pub async fn get_file_infos(
+pub async fn get_file_groups(
     req: Request<Body>,
     db: DB,
     auth: &Auth,
@@ -28,24 +20,24 @@ pub async fn get_file_infos(
 ) -> anyhow::Result<Response<Body>> {
     let body = hyper::body::to_bytes(req.into_body()).await?;
 
-    let file_ids = some_or_bail!(
-        serde_json::from_slice::<GetFileInfosRequestBody>(&body)
-            .map(|x| x.file_ids)
+    let file_group_ids = some_or_bail!(
+        serde_json::from_slice::<GetFileGroupsRequestBody>(&body)
+            .map(|x| x.file_group_ids)
             .ok(),
         "Invalid request body"
     );
 
-    let files = db
-        .get_files_by_ids(&file_ids)
+    let file_groups = db
+        .get_static_file_groups_by_ids(&file_group_ids)
         .await?
         .iter()
-        .map(|file| Box::new((*file).clone()) as Box<dyn PermissiveResource>)
+        .map(|file_group| Box::new((*file_group).clone()) as Box<dyn PermissiveResource>)
         .collect();
 
     match check_auth_multiple(
         auth,
-        &files,
-        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::GetFileInfos),
+        &file_groups,
+        &CommonAclWhatOptions::FileGroup(FilezFileGroupPermissionAclWhatOptions::GetGroupInfos),
         &db,
     )
     .await
@@ -60,19 +52,21 @@ pub async fn get_file_infos(
     Ok(res
         .status(200)
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&GetFileInfosResponseBody { files })?.into())
+        .body(Body::from(
+            serde_json::to_string(&GetFileGroupsResponseBody { file_groups }).unwrap(),
+        ))
         .unwrap())
 }
 
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[derive(Serialize, Deserialize, Debug, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub struct GetFileInfosRequestBody {
-    file_ids: Vec<String>,
+pub struct GetFileGroupsRequestBody {
+    pub file_group_ids: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub struct GetFileInfosResponseBody {
-    #[ts(type = "FilezFile[]")]
-    pub files: Vec<Box<dyn PermissiveResource>>,
+pub struct GetFileGroupsResponseBody {
+    #[ts(type = "FilezFileGroup[]")]
+    pub file_groups: Vec<Box<dyn PermissiveResource>>,
 }

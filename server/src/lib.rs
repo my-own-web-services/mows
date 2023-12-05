@@ -36,6 +36,7 @@ pub mod methods {
     pub mod file_group {
         pub mod create;
         pub mod delete;
+        pub mod get;
         pub mod update;
     }
 

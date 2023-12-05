@@ -23,7 +23,9 @@ additionalAllowedApps:
     - id: filez-react-components
       allowedOrigins: [http://localhost:5173]
       primaryOrigin: http://localhost:5173
-
+    - id: filez-storybooks
+      allowedOrigins: [http://localhost:6006]
+      primaryOrigin: http://localhost:6006
 filez:
     runAsRoot: true
     defaultStorage: default

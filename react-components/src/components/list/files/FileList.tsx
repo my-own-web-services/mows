@@ -1,4 +1,4 @@
-import { CSSProperties, PureComponent, createRef } from "react";
+import { CSSProperties, PureComponent, createRef, useContext, useEffect, useState } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
 import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../../utils";
@@ -7,12 +7,15 @@ import ResourceList, { Column, ColumnDirection, ListType } from "../resource/Res
 import CreateFile from "./CreateFile";
 import EditFile from "./EditFile";
 import FileIcon from "../../fileIcons/FileIcon";
+import { Tag } from "rsuite";
+import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 
 const defaultColumns: Column<FilezFile>[] = [
     {
         field: "name",
+        label: "Name",
         direction: ColumnDirection.ASCENDING,
-        widthPercent: 50,
+        widthPercent: 30,
         minWidthPixels: 50,
         visible: true,
         render: (item: FilezFile) => {
@@ -33,6 +36,7 @@ const defaultColumns: Column<FilezFile>[] = [
     },
     {
         field: "size",
+        label: "Size",
         direction: ColumnDirection.NEUTRAL,
         widthPercent: 10,
         minWidthPixels: 50,
@@ -43,6 +47,7 @@ const defaultColumns: Column<FilezFile>[] = [
     },
     {
         field: "mime_type",
+        label: "Mime Type",
         direction: ColumnDirection.NEUTRAL,
         widthPercent: 20,
         minWidthPixels: 50,
@@ -53,6 +58,7 @@ const defaultColumns: Column<FilezFile>[] = [
     },
     {
         field: "modified",
+        label: "Modified",
         direction: ColumnDirection.NEUTRAL,
         widthPercent: 20,
         minWidthPixels: 50,
@@ -60,8 +66,39 @@ const defaultColumns: Column<FilezFile>[] = [
         render: (item: FilezFile) => {
             return <span>{utcTimeStampToTimeAndDate(item.modified)}</span>;
         }
+    },
+    {
+        field: "static_file_group_ids",
+        label: "Static Groups",
+        direction: ColumnDirection.NEUTRAL,
+        widthPercent: 20,
+        minWidthPixels: 50,
+        visible: true,
+        render: (item: FilezFile) => <GroupTags file={item} />
     }
 ];
+
+const GroupTags = ({ file }: { file: FilezFile }) => {
+    const [groups, setGroups] = useState<FilezFileGroup[]>([]);
+    const context = useContext(FilezContext);
+
+    useEffect(() => {
+        context?.filezClient.get_file_groups(file.static_file_group_ids).then(setGroups);
+    }, [file, context]);
+
+    return (
+        <span>
+            {file.static_file_group_ids.map(id => {
+                const group = groups.find(g => g._id === id);
+                return (
+                    <Tag size="xs" key={id}>
+                        {group?.name ?? group?._id}
+                    </Tag>
+                );
+            })}
+        </span>
+    );
+};
 
 interface FileListProps {
     readonly id: string;

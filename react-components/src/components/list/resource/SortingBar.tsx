@@ -113,7 +113,7 @@ export default class SortingBar<ResourceType> extends Component<
                                     }}
                                     onClick={() => this.props.updateColumnDirections(column.field)}
                                 >
-                                    <div style={{ float: "left" }}>{column.field}</div>
+                                    <div style={{ float: "left" }}>{column.label}</div>
                                     <span>
                                         {(() => {
                                             const chevronStyle = {
