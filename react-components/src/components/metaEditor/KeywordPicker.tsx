@@ -132,11 +132,16 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
                     possibleTags={this.state.knownKeywords}
                     onChange={(resourceMap, knownKeywords) => {
                         if (this.props.serverUpdate !== false) {
-                            for (const [resourceId, keywords] of Object.entries(resourceMap)) {
-                                this.context?.filezClient.update_file_infos(resourceId, {
-                                    keywords
-                                });
-                            }
+                            this.context?.filezClient.update_file_infos(
+                                Object.entries(resourceMap).map(([file_id, keywords]) => {
+                                    return {
+                                        file_id,
+                                        fields: {
+                                            keywords
+                                        }
+                                    };
+                                })
+                            );
                         }
 
                         this.setState({ knownKeywords, resourceMap });

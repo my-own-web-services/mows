@@ -133,4 +133,6 @@ class ChangeFriendshipStatus extends PureComponent<
         );
     };
 }
-export default withToasterHook(ChangeFriendshipStatus);
+
+const ChangeFriendshipStatusWithToaster = withToasterHook(ChangeFriendshipStatus);
+export default ChangeFriendshipStatusWithToaster;

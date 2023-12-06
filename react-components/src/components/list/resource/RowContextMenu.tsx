@@ -1,5 +1,5 @@
 import { PureComponent } from "react";
-import { Item, Menu } from "react-contexify";
+import { Item, ItemParams, Menu, contextMenu } from "react-contexify";
 import ResourceList, { BaseResource, FilezMenuItems } from "./ResourceList";
 
 interface RowContextMenuProps<ResourceType> {
@@ -24,6 +24,24 @@ export default class RowContextMenu<ResourceType extends BaseResource> extends P
 
     componentDidMount = async () => {};
 
+    open = (event: any) => {
+        event.preventDefault();
+        contextMenu.show({ id: this.props.menuId, event });
+    };
+
+    onMenuItemClick = (menuItemParams: ItemParams<any, any>) => {
+        // select the current item
+        // TODO this does not work if no item is selected yet
+        const menuItem = menuItemParams.data;
+        if (!menuItem) return;
+        const selected = this.props.getSelectedItems();
+        if (menuItem.onClick) {
+            menuItem.onClick(selected.length > 1 ? [this.props.currentItem] : selected);
+        }
+
+        this.props.updateRenderModalName?.(menuItem.name);
+    };
+
     render = () => {
         return (
             <div className="RowContextMenu">
@@ -39,20 +57,8 @@ export default class RowContextMenu<ResourceType extends BaseResource> extends P
                             <Item
                                 key={menuItem.name}
                                 className="clickable"
-                                onClick={() => {
-                                    // select the current item
-                                    // TODO this does not work if no item is selected yet
-                                    let selected = this.props.getSelectedItems();
-                                    if (menuItem.onClick) {
-                                        menuItem.onClick(
-                                            selected.length > 1
-                                                ? [this.props.currentItem]
-                                                : selected
-                                        );
-                                    }
-
-                                    this.props.updateRenderModalName?.(menuItem.name);
-                                }}
+                                onClick={this.onMenuItemClick}
+                                data={menuItem}
                             >
                                 {menuItem.name}
                             </Item>

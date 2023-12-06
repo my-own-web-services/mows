@@ -39,46 +39,54 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
         this.props.commitSearch(this.state.search);
     };
 
+    changeSearch = (value: string) => {
+        this.setState({ search: value });
+    };
+
+    searchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+            this.commitSearch();
+        }
+    };
+
+    openModal = () => this.setState({ createModalOpen: true });
+
+    closeModal = () => this.setState({ createModalOpen: false });
+
+    modalCreateResource = async () => {
+        const res = await this.createResourceRef.current.create();
+        if (res) {
+            this.setState({ createModalOpen: false });
+            this.props.refreshList();
+        }
+    };
+
+    setListTypeList = () => this.props.updateListType(ListType.List);
+    setListTypeGrid = () => this.props.updateListType(ListType.Grid);
+
     render = () => {
         return (
             <div style={{ width: "100%", height: "40px" }} className="ListTopBar">
                 <InputGroup size="sm" inside style={{ width: "200px", float: "left" }}>
                     <Input
                         value={this.state.search}
-                        onChange={value => {
-                            this.setState({ search: value });
-                        }}
-                        onKeyDown={event => {
-                            if (event.key === "Enter") {
-                                this.commitSearch();
-                            }
-                        }}
+                        onChange={this.changeSearch}
+                        onKeyDown={this.searchKeyDown}
                         placeholder={`Search ${this.props.resourceType}s...`}
                     />
-                    <InputGroup.Button
-                        onClick={() => {
-                            this.commitSearch();
-                        }}
-                    >
+                    <InputGroup.Button onClick={this.commitSearch}>
                         <AiOutlineSearch size={21} />
                     </InputGroup.Button>
                 </InputGroup>
                 {this.props.createResource && (
                     <span className="Buttons">
                         <IconButton
-                            onClick={() => {
-                                this.setState({ createModalOpen: true });
-                            }}
+                            onClick={this.openModal}
                             title={`Create new ${this.props.resourceType}`}
                             size="xs"
                             icon={<BiPlus size={18} />}
                         />
-                        <Modal
-                            onClose={() => {
-                                this.setState({ createModalOpen: false });
-                            }}
-                            open={this.state.createModalOpen}
-                        >
+                        <Modal onClose={this.closeModal} open={this.state.createModalOpen}>
                             <Modal.Header>
                                 <Modal.Title>Create {this.props.resourceType}</Modal.Title>
                             </Modal.Header>
@@ -88,24 +96,10 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                                 })}
                             </Modal.Body>
                             <Modal.Footer>
-                                <Button
-                                    onClick={async () => {
-                                        const res = await this.createResourceRef.current.create();
-                                        if (res) {
-                                            this.setState({ createModalOpen: false });
-                                            this.props.refreshList();
-                                        }
-                                    }}
-                                    appearance="primary"
-                                >
+                                <Button onClick={this.modalCreateResource} appearance="primary">
                                     Create
                                 </Button>
-                                <Button
-                                    onClick={() => {
-                                        this.setState({ createModalOpen: false });
-                                    }}
-                                    appearance="subtle"
-                                >
+                                <Button onClick={this.closeModal} appearance="subtle">
                                     Cancel
                                 </Button>
                             </Modal.Footer>
@@ -127,9 +121,7 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                             appearance={
                                 this.props.currentListType === ListType.List ? "primary" : "default"
                             }
-                            onClick={() => {
-                                this.props.updateListType(ListType.List);
-                            }}
+                            onClick={this.setListTypeList}
                             title="List"
                             icon={<FaThList style={{ transform: "scale(0.9)" }} size={17} />}
                         />
@@ -137,9 +129,7 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                             appearance={
                                 this.props.currentListType === ListType.Grid ? "primary" : "default"
                             }
-                            onClick={() => {
-                                this.props.updateListType(ListType.Grid);
-                            }}
+                            onClick={this.setListTypeGrid}
                             title="Grid"
                             icon={<BsFillGridFill style={{ transform: "scale(0.9)" }} size={17} />}
                         />

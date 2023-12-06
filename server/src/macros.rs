@@ -10,6 +10,15 @@ macro_rules! some_or_bail {
 }
 
 #[macro_export]
+macro_rules! is_transient_transaction_error {
+    ($error:expr ) => {
+        $error
+            .to_string()
+            .contains(mongodb::error::TRANSIENT_TRANSACTION_ERROR)
+    };
+}
+
+#[macro_export]
 macro_rules! check_content_type_json {
     ($req:expr, $res:expr) => {
         match $req.headers().get("Content-Type") {

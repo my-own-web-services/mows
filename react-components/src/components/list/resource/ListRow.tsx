@@ -1,6 +1,5 @@
-import { PureComponent } from "react";
+import { PureComponent, createRef } from "react";
 import { BaseResource, CommonRowProps } from "./ResourceList";
-import { useContextMenu } from "react-contexify";
 import { dragHandleWidth } from "./SortingBar";
 import RowContextMenu from "./RowContextMenu";
 
@@ -16,31 +15,36 @@ export default class ListRow<ResourceType extends BaseResource> extends PureComp
     ListRowProps<ResourceType>,
     ListRowState
 > {
+    contextMenuRef: React.RefObject<RowContextMenu<ResourceType>>;
+
     constructor(props: ListRowProps<ResourceType>) {
         super(props);
         this.state = {};
+        this.contextMenuRef = createRef();
     }
 
     componentDidMount = async () => {};
 
+    onItemClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) =>
+        this.props.onItemClick?.(e, this.props.item);
+
+    onContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        this.props.onItemClick?.(e, this.props.item, true);
+        this.contextMenuRef.current?.open(e);
+    };
+
     render = () => {
-        const { item, style, isSelected, onItemClick, columns } = this.props;
-        const { show } = useContextMenu({
-            id: item._id
-        });
+        const { item, style, isSelected, columns } = this.props;
 
         return (
             <div
-                onClick={e => onItemClick?.(e, item)}
+                onClick={this.onItemClick}
                 style={{
                     ...style,
                     whiteSpace: "nowrap",
                     overflow: "hidden"
                 }}
-                onContextMenu={e => {
-                    onItemClick?.(e, item, true);
-                    show({ event: e });
-                }}
+                onContextMenu={this.onContextMenu}
                 className={`ListRow Row${isSelected ? " selected" : ""}`}
             >
                 {columns ? (
@@ -60,7 +64,7 @@ export default class ListRow<ResourceType extends BaseResource> extends PureComp
                                     // 17px is the width of the scrollbar
                                     return `calc(${column.widthPercent}% - 17px)`;
                                 }
-                                let dhwFixed = dragHandleWidth - 5;
+                                const dhwFixed = dragHandleWidth - 5;
                                 if (index === 0) {
                                     return `calc(${column.widthPercent}% + ${dhwFixed}px)`;
                                 }
@@ -96,6 +100,7 @@ export default class ListRow<ResourceType extends BaseResource> extends PureComp
                 )}
                 {!this.props.disableContextMenu && (
                     <RowContextMenu
+                        ref={this.contextMenuRef}
                         menuItems={this.props.menuItems}
                         updateRenderModalName={this.props.updateRenderModalName}
                         resourceType={this.props.resourceType}

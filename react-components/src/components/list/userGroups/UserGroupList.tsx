@@ -14,7 +14,8 @@ const defaultColumns: Column<FilezUserGroup>[] = [
         direction: ColumnDirection.ASCENDING,
         widthPercent: 33,
         minWidthPixels: 50,
-        visible: true
+        visible: true,
+        label: "Name"
     },
     {
         field: "visibility",
@@ -24,7 +25,8 @@ const defaultColumns: Column<FilezUserGroup>[] = [
         render: (item: FilezUserGroup) => {
             return <span>{item.visibility}</span>;
         },
-        visible: true
+        visible: true,
+        label: "Visibility"
     }
 ];
 

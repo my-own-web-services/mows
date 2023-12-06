@@ -22,6 +22,8 @@ import { GetFileInfosResponseBody } from "./apiTypes/GetFileInfosResponseBody.js
 import { GetFileGroupsRequestBody } from "./apiTypes/GetFileGroupsRequestBody.js";
 import { GetFileInfosRequestBody } from "./apiTypes/GetFileInfosRequestBody.js";
 import { GetFileGroupsResponseBody } from "./apiTypes/GetFileGroupsResponseBody.js";
+import { UpdateFileInfosRequestBodySingle } from "./apiTypes/UpdateFileInfosRequestBodySingle.js";
+import { UpdateFileInfosRequestBody } from "./apiTypes/UpdateFileInfosRequestBody.js";
 
 export * from "./types.js";
 
@@ -333,12 +335,13 @@ export class FilezClient {
         if (!this.initialized) await this.init();
     };
 
-    update_file_infos = async (file_id: string, fields: UpdateFileInfosRequestField) => {
+    update_file_infos = async (files: UpdateFileInfosRequestBodySingle[]) => {
         if (!this.initialized) await this.init();
+        const body: UpdateFileInfosRequestBody = { files };
         const res = await fetch(`${this.filezEndpoint}/api/file/info/update/`, {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify({ file_id, fields }),
+            body: JSON.stringify(body),
             headers: {
                 "Content-Type": "application/json"
             }

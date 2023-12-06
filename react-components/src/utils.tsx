@@ -4,7 +4,7 @@ import { useToaster } from "rsuite";
 
 export const utcTimeStampToTimeAndDate = (
     utcTimeStamp: bigint | number,
-    seconds: boolean = false
+    seconds = false
 ): string => {
     const utcTimeStampNum = Number(utcTimeStamp);
     const date = new Date(seconds ? utcTimeStampNum * 1000 : utcTimeStampNum);
@@ -31,10 +31,11 @@ export const isText = (file: FilezFile): boolean => {
 };
 
 export const withToasterHook = (Component: any) => {
+    // eslint-disable-next-line
     return (props: any) => {
         const toaster = useToaster();
 
-        return <Component toaster={toaster} {...props} />;
+        return <Component displayName="test" toaster={toaster} {...props} />;
     };
 };
 

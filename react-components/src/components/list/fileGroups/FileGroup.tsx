@@ -9,6 +9,7 @@ import Permission from "../permissions/Permission";
 import DynamicGroupRules from "./DynamicGroupRules";
 import { FilterRule } from "@firstdorsal/filez-client/dist/js/apiTypes/FilterRule";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
+import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
 
 interface FileGroupProps {
     readonly group?: FilezFileGroup;
@@ -184,6 +185,26 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
         );
     };
 
+    nameChange = (value: string) => {
+        this.setState(
+            update(this.state, {
+                clientGroup: {
+                    name: { $set: value }
+                }
+            })
+        );
+    };
+
+    groupTypeChange = (value: string) => {
+        this.setState(
+            update(this.state, {
+                clientGroup: {
+                    group_type: { $set: value as FileGroupType }
+                }
+            })
+        );
+    };
+
     render = () => {
         if (this.state.availablePermissions === undefined) return null;
         return (
@@ -193,15 +214,7 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                     <Input
                         disabled={this.state.clientGroup.readonly ?? false}
                         value={this.state.clientGroup.name ?? ""}
-                        onChange={value => {
-                            this.setState(
-                                update(this.state, {
-                                    clientGroup: {
-                                        name: { $set: value }
-                                    }
-                                })
-                            );
-                        }}
+                        onChange={this.nameChange}
                         placeholder="Name"
                     />
                 </div>
@@ -222,15 +235,7 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                         ]}
                         cleanable={false}
                         value={this.state.clientGroup.group_type}
-                        onChange={value => {
-                            this.setState(
-                                update(this.state, {
-                                    clientGroup: {
-                                        group_type: { $set: value }
-                                    }
-                                })
-                            );
-                        }}
+                        onChange={this.groupTypeChange}
                     />
                 </div>
                 {this.state.clientGroup.group_type === "Dynamic" && (

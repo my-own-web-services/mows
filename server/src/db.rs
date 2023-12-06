@@ -923,35 +923,39 @@ impl DB {
             )
             .await?;
 
-        static_file_groups_collection.update_many_with_session(
-            doc! {
-                "_id": {
-                    "$in": old_static_file_group_ids
-                }
-            },
-            doc! {
-                "$inc": {
-                    "item_count": -1
-                }
-            },
-            None,
-            &mut session,
-        );
+        static_file_groups_collection
+            .update_many_with_session(
+                doc! {
+                    "_id": {
+                        "$in": old_static_file_group_ids
+                    }
+                },
+                doc! {
+                    "$inc": {
+                        "item_count": -1
+                    }
+                },
+                None,
+                &mut session,
+            )
+            .await?;
 
-        static_file_groups_collection.update_many_with_session(
-            doc! {
-                "_id": {
-                    "$in": new_static_file_group_ids
-                }
-            },
-            doc! {
-                "$inc": {
-                    "item_count": 1
-                }
-            },
-            None,
-            &mut session,
-        );
+        static_file_groups_collection
+            .update_many_with_session(
+                doc! {
+                    "_id": {
+                        "$in": new_static_file_group_ids
+                    }
+                },
+                doc! {
+                    "$inc": {
+                        "item_count": 1
+                    }
+                },
+                None,
+                &mut session,
+            )
+            .await?;
 
         Ok(session.commit_transaction().await?)
     }

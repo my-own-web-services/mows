@@ -1,6 +1,6 @@
 import { FilezClient, GetResourceParams } from "@firstdorsal/filez-client";
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
-import { CSSProperties, Component, ReactElement, cloneElement, createRef } from "react";
+import { CSSProperties, PureComponent, ReactElement, cloneElement, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
 import SortingBar from "./SortingBar";
@@ -251,7 +251,7 @@ interface SelectedItems {
     [key: string]: boolean;
 }
 
-export default class ResourceList<ResourceType extends BaseResource> extends Component<
+export default class ResourceList<ResourceType extends BaseResource> extends PureComponent<
     ResourceListProps<ResourceType>,
     ResourceListState<ResourceType>
 > {
@@ -380,7 +380,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                 direction: ColumnDirection.NEUTRAL,
                 widthPercent,
                 minWidthPixels: 50,
-                visible: true
+                visible: true,
+                label: field
             };
 
             return update(state, {
@@ -552,13 +553,19 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         this.setState({ gridColumnCount: columnCount });
     };
 
-    shouldComponentUpdate(
-        nextProps: Readonly<ResourceListProps<ResourceType>>,
-        nextState: Readonly<ResourceListState<ResourceType>>,
-        nextContext: any
-    ): boolean {
-        return true;
-    }
+    isItemLoaded = (index: number) => {
+        return this.state.listType === ListType.List
+            ? this.state.items[index] !== undefined
+            : this.state.items[index * this.state.gridColumnCount] !== undefined;
+    };
+
+    getItemKey = (index: number) => {
+        if (this.state.listType === ListType.Grid) {
+            return index * this.state.gridColumnCount;
+        } else {
+            return index;
+        }
+    };
 
     render = () => {
         if (!this.context?.filezClient) return;
@@ -619,7 +626,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                     this.state.columns &&
                     this.state.listType === ListType.List && (
                         <SortingBar
-                            resourceListId={this.props.id}
+                            resourceListId={this.props.id ?? ""}
                             columns={this.state.columns}
                             updateColumnDirections={this.updateColumnDirections}
                             updateSortingColumnWidths={this.updateSortingColumnWidths}
@@ -637,13 +644,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                         {({ height, width }) => {
                             return (
                                 <InfiniteLoader
-                                    isItemLoaded={index =>
-                                        this.state.listType === ListType.List
-                                            ? this.state.items[index] !== undefined
-                                            : this.state.items[
-                                                  index * this.state.gridColumnCount
-                                              ] !== undefined
-                                    }
+                                    isItemLoaded={this.isItemLoaded}
                                     itemCount={itemCount}
                                     loadMoreItems={this.loadMoreItems}
                                     ref={this.infiniteLoaderRef}
@@ -655,13 +656,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                 : width / this.state.gridColumnCount;
                                         return (
                                             <FixedSizeList
-                                                itemKey={index => {
-                                                    if (this.state.listType === ListType.Grid) {
-                                                        return index * this.state.gridColumnCount;
-                                                    } else {
-                                                        return index;
-                                                    }
-                                                }}
+                                                itemKey={this.getItemKey}
                                                 itemSize={rowHeight}
                                                 height={height}
                                                 itemData={this.state.items}
@@ -719,6 +714,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                     } else {
                                                         const currentItem = this.state.items[index];
                                                         if (!currentItem) return <></>;
+
                                                         const isSelected =
                                                             this.state.selectedItems[
                                                                 currentItem._id

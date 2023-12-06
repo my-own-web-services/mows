@@ -50,11 +50,7 @@ export default class FilezFileViewer extends PureComponent<
         }
     };
 
-    componentDidUpdate = async (
-        prevProps: Readonly<FilezFileViewerProps>,
-        _prevState: Readonly<FilezFileViewerState>,
-        _snapshot?: any
-    ) => {
+    componentDidUpdate = async (prevProps: Readonly<FilezFileViewerProps>) => {
         if (this.props.file && this.props.file._id !== this.state.file?._id) {
             this.setState({ file: this.props.file });
         } else if (this.props.fileId && this.props.fileId !== prevProps.fileId) {
@@ -102,7 +98,7 @@ export default class FilezFileViewer extends PureComponent<
                     } else if (isText(this.state.file)) {
                         return <Text viewMode={this.props.viewMode} file={this.state.file}></Text>;
                     } else {
-                        return <div>Can't display this type of file: {fileType}</div>;
+                        return <div>Can&apos;t display this type of file: {fileType}</div>;
                     }
                 })()}
             </div>

@@ -3,6 +3,7 @@ import { PureComponent } from "react";
 import { Input, InputPicker } from "rsuite";
 import FileGroup from "./FileGroup";
 import update from "immutability-helper";
+import { FilterRuleType } from "@firstdorsal/filez-client/dist/js/apiTypes/FilterRuleType";
 
 interface DynamicGroupRulesProps {
     readonly rule: FilterRule;
@@ -22,6 +23,30 @@ export default class DynamicGroupRules extends PureComponent<
         this.state = {};
     }
 
+    ruleFieldChange = (value: string) => {
+        this.props.updateRule(
+            update(this.props.rule, {
+                field: { $set: value }
+            })
+        );
+    };
+
+    ruleTypeChange = (value: string) => {
+        this.props.updateRule(
+            update(this.props.rule, {
+                rule_type: { $set: value as FilterRuleType }
+            })
+        );
+    };
+
+    ruleValueChange = (value: string) => {
+        this.props.updateRule(
+            update(this.props.rule, {
+                value: { $set: value }
+            })
+        );
+    };
+
     render = () => {
         return (
             <div className="DynamicGroupRules">
@@ -30,13 +55,7 @@ export default class DynamicGroupRules extends PureComponent<
                     <Input
                         placeholder="Field"
                         value={this.props.rule.field}
-                        onChange={value =>
-                            this.props.updateRule(
-                                update(this.props.rule, {
-                                    field: { $set: value }
-                                })
-                            )
-                        }
+                        onChange={this.ruleFieldChange}
                     />
                 </div>
                 <div>
@@ -51,13 +70,7 @@ export default class DynamicGroupRules extends PureComponent<
                         })}
                         cleanable={false}
                         value={this.props.rule.rule_type}
-                        onChange={value =>
-                            this.props.updateRule(
-                                update(this.props.rule, {
-                                    rule_type: { $set: value }
-                                })
-                            )
-                        }
+                        onChange={this.ruleTypeChange}
                     />
                 </div>
                 <div>
@@ -65,13 +78,7 @@ export default class DynamicGroupRules extends PureComponent<
                     <Input
                         placeholder="Value"
                         value={this.props.rule.value}
-                        onChange={value =>
-                            this.props.updateRule(
-                                update(this.props.rule, {
-                                    value: { $set: value }
-                                })
-                            )
-                        }
+                        onChange={this.ruleValueChange}
                     />
                 </div>
             </div>

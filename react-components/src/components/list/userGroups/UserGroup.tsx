@@ -58,7 +58,7 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
             sort_order: null
         });
 
-        let permissionRes = await this.context.filezClient.get_own_permissions({
+        const permissionRes = await this.context.filezClient.get_own_permissions({
             filter: "",
             limit: null,
             from_index: 0,
