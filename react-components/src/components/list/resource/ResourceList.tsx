@@ -1,6 +1,6 @@
-import { FilezClient, GetResourceParams } from "@firstdorsal/filez-client";
+import { GetResourceParams } from "@firstdorsal/filez-client";
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
-import { CSSProperties, PureComponent, ReactElement, cloneElement, createRef } from "react";
+import { CSSProperties, ComponentType, PureComponent, ReactElement, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
 import SortingBar from "./SortingBar";
@@ -8,168 +8,33 @@ import { FixedSizeList } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 import ListTopBar from "./ListTopBar";
 import { cloneDeep } from "lodash";
-import { Button, Modal } from "rsuite";
 import { FilezContext } from "../../../FilezProvider";
-import { match } from "ts-pattern";
 import "react-contexify/dist/ReactContexify.css";
-import { EditResource } from "../../../types";
-import GridRow, { GridRowProps } from "./GridRow";
-import ListRow, { ListRowProps } from "./ListRow";
+import GridRow from "./GridRow";
+import ListRow from "./ListRow";
+import { FilezMenuItems, defaultMenuItems } from "./DefaultMenuItems";
 
-export interface CommonRowProps<ResourceType> {
-    readonly style: CSSProperties;
+export interface ListRowProps<ResourceType> {
+    readonly data: ListData<ResourceType>;
+    readonly style: React.CSSProperties;
+    readonly index: number;
+}
+
+export interface ListData<ResourceType> {
+    readonly items: ResourceType[];
+    readonly handlers: {
+        readonly onItemClick: InstanceType<typeof ResourceList>["onItemClick"];
+        readonly getSelectedItems: InstanceType<typeof ResourceList>["getSelectedItems"];
+        readonly updateRenderModalName?: InstanceType<typeof ResourceList>["updateRenderModalName"];
+    };
+    readonly selectedItems: SelectedItems;
     readonly columns?: Column<ResourceType>[];
-    readonly onItemClick?: InstanceType<typeof ResourceList>["onItemClick"];
     readonly disableContextMenu?: boolean;
     readonly menuItems: FilezMenuItems<ResourceType>[];
     readonly resourceType: string;
-    readonly getSelectedItems: InstanceType<typeof ResourceList>["getSelectedItems"];
-    readonly updateRenderModalName?: InstanceType<typeof ResourceList>["updateRenderModalName"];
+    readonly gridColumnCount: number;
+    readonly rowHeight: number;
 }
-
-export interface FilezMenuItems<ResourceType> {
-    name: string;
-    resources?: string[];
-    onClick?: (items: ResourceType[]) => void;
-    render?: (props: FilezMenuItemsRenderProps) => JSX.Element;
-}
-
-export interface FilezMenuItemsRenderProps {
-    items: BaseResource[];
-    resourceType: string;
-    handleClose: () => void;
-    editResource?: ReactElement<any, any>;
-    filezClient?: FilezClient;
-    refreshList?: InstanceType<typeof ResourceList>["refreshList"];
-}
-
-const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
-    {
-        name: "Log to console",
-        onClick: (items: BaseResource[]) => {
-            // TODO this does not log multiple elements as it should
-            if (items.length === 1) {
-                console.log(items[0]);
-            } else {
-                console.log(items);
-            }
-        }
-    },
-    {
-        name: "Delete",
-        resources: ["Permission", "File", "FileGroup", "UserGroup"],
-        render: ({
-            items,
-            resourceType,
-            handleClose,
-            filezClient,
-            refreshList
-        }: FilezMenuItemsRenderProps) => {
-            if (items.length === 0 || !filezClient) return <></>;
-            const multiple = items.length > 1;
-            const single = items.length === 1;
-
-            // @ts-ignore
-            const name = items?.[0].name ?? items[0]._id;
-
-            return (
-                <Modal open={true} onClose={handleClose}>
-                    <Modal.Header>
-                        <Modal.Title>
-                            Delete {multiple && ` ${items.length} `}
-                            {resourceType}
-                            {single && ` ${name}`}
-                            {multiple && "s"}? This cannot be undone.
-                        </Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                        <Button
-                            color="red"
-                            style={{ marginRight: "10px" }}
-                            appearance="primary"
-                            onClick={async () => {
-                                const promises = items.map(item => {
-                                    return match(resourceType)
-                                        .with("Permission", () => {
-                                            return filezClient.delete_permission(item._id);
-                                        })
-                                        .with("File", () => {
-                                            return filezClient.delete_file(item._id);
-                                        })
-                                        .with("FileGroup", () => {
-                                            return filezClient.delete_file_group(item._id);
-                                        })
-                                        .with("UserGroup", () => {
-                                            return filezClient.delete_user_group(item._id);
-                                        })
-                                        .otherwise(() => {
-                                            throw new Error(
-                                                `Resource type ${resourceType} is not supported`
-                                            );
-                                        });
-                                });
-                                const res = await Promise.all(promises);
-
-                                if (res) {
-                                    await refreshList?.();
-                                    handleClose();
-                                }
-                            }}
-                        >
-                            Delete
-                        </Button>
-
-                        <Button onClick={handleClose}>Cancel</Button>
-                    </Modal.Body>
-                </Modal>
-            );
-        }
-    },
-    {
-        name: "Edit",
-        resources: ["Permission", "File", "FileGroup", "UserGroup"],
-        render: ({
-            items,
-            resourceType,
-            handleClose,
-            editResource,
-            refreshList
-        }: FilezMenuItemsRenderProps) => {
-            if (!editResource) return <></>;
-            const editResourceRef: React.RefObject<EditResource> = createRef();
-            return (
-                <Modal open={true} onClose={handleClose}>
-                    <Modal.Header>
-                        <Modal.Title>Edit {resourceType}</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                        {cloneElement(editResource, {
-                            ref: editResourceRef,
-                            resourceIds: items.map(item => item._id)
-                        })}
-                        <br />
-                        <Button
-                            onClick={async () => {
-                                if (!editResourceRef.current) return;
-                                const res = await editResourceRef.current.update();
-                                if (res) {
-                                    await refreshList?.();
-                                    handleClose();
-                                }
-                            }}
-                            style={{ marginRight: "10px" }}
-                            appearance="primary"
-                        >
-                            Update
-                        </Button>
-
-                        <Button onClick={handleClose}>Cancel</Button>
-                    </Modal.Body>
-                </Modal>
-            );
-        }
-    }
-];
 
 export interface Column<ResourceType> {
     field: string;
@@ -188,10 +53,7 @@ export enum ColumnDirection {
     NEUTRAL = 2
 }
 
-export enum ListType {
-    Grid,
-    List
-}
+export type ListType = "List" | "Grid" | string;
 
 export interface BaseResource {
     _id: string;
@@ -207,13 +69,9 @@ interface ResourceListProps<ResourceType extends BaseResource> {
      */
     readonly resourceType: string;
     /**
-     A function that renders the resource in the list.
+     A component that renders a list row
      */
-    readonly listRowRenderer?: (arg0: ListRowProps<ResourceType>) => JSX.Element;
-    /**
-     A function that renders the resource in the list.
-     */
-    readonly gridRowRenderer?: (arg0: GridRowProps<ResourceType>) => JSX.Element;
+    readonly rowRenderer?: ComponentType<ListRowProps<ResourceType>>;
     /**
      A function that gets the resource in from the server/db and returns it. This has to be implemented in a specific way to support the infinite scrolling.
      */
@@ -270,8 +128,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             total_count: 0,
             commitedSearch: "",
             columns: cloneDeep(props.columns),
-            listType: this.props.initialListType ?? ListType.List,
-            menuItems: defaultMenuItems,
+            listType: this.props.initialListType ?? "Other",
+            menuItems: cloneDeep(defaultMenuItems),
             selectedItems: {},
             renderModalName: "",
             gridColumnCount: 10
@@ -329,7 +187,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         if (this.moreItemsLoading) return;
         const { sort_field, sort_order } = this.get_current_column_sorting();
 
-        if (this.state.listType === ListType.Grid) {
+        if (this.state.listType === "Grid") {
             startIndex = startIndex * this.state.gridColumnCount;
             limit = limit * this.state.gridColumnCount;
         }
@@ -554,13 +412,13 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     };
 
     isItemLoaded = (index: number) => {
-        return this.state.listType === ListType.List
+        return this.state.listType === "List"
             ? this.state.items[index] !== undefined
             : this.state.items[index * this.state.gridColumnCount] !== undefined;
     };
 
     getItemKey = (index: number) => {
-        if (this.state.listType === ListType.Grid) {
+        if (this.state.listType === "Grid") {
             return index * this.state.gridColumnCount;
         } else {
             return index;
@@ -583,7 +441,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         })();
 
         const itemCount =
-            this.state.listType === ListType.Grid
+            this.state.listType === "Grid"
                 ? Math.ceil(fullListLength / this.state.gridColumnCount)
                 : fullListLength;
         return (
@@ -624,7 +482,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                 )}
                 {this.props.displaySortingBar !== false &&
                     this.state.columns &&
-                    this.state.listType === ListType.List && (
+                    this.state.listType === "List" && (
                         <SortingBar
                             resourceListId={this.props.id ?? ""}
                             columns={this.state.columns}
@@ -651,7 +509,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                 >
                                     {({ onItemsRendered, ref }) => {
                                         const rowHeight =
-                                            this.state.listType === ListType.List
+                                            this.state.listType === "List"
                                                 ? 20
                                                 : width / this.state.gridColumnCount;
                                         return (
@@ -659,7 +517,27 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 itemKey={this.getItemKey}
                                                 itemSize={rowHeight}
                                                 height={height}
-                                                itemData={this.state.items}
+                                                itemData={{
+                                                    items: this.state.items,
+                                                    handlers: {
+                                                        onItemClick: this.onItemClick,
+                                                        getSelectedItems: this.getSelectedItems,
+                                                        updateRenderModalName:
+                                                            this.updateRenderModalName
+                                                    },
+                                                    selectedItems: this.state.selectedItems,
+
+                                                    //@ts-ignore TODO fix this
+                                                    columns: this.state.columns,
+                                                    disableContextMenu:
+                                                        this.props.disableContextMenu,
+                                                    //TODO fix this
+                                                    menuItems: this.state
+                                                        .menuItems as FilezMenuItems<BaseResource>[],
+                                                    resourceType: this.props.resourceType,
+                                                    gridColumnCount: this.state.gridColumnCount,
+                                                    rowHeight
+                                                }}
                                                 itemCount={itemCount}
                                                 width={width}
                                                 onItemsRendered={onItemsRendered}
@@ -668,85 +546,15 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
                                                 style={{ willChange: "none", overflowY: "scroll" }}
                                             >
-                                                {({ index, style, data }) => {
-                                                    if (this.state.listType === ListType.Grid) {
-                                                        const startIndex =
-                                                            index * this.state.gridColumnCount;
-                                                        const endIndex =
-                                                            startIndex + this.state.gridColumnCount;
-
-                                                        const currentItems = this.state.items.slice(
-                                                            startIndex,
-                                                            endIndex
-                                                        );
-                                                        return (
-                                                            <GridRow
-                                                                resourceType={
-                                                                    this.props.resourceType
-                                                                }
-                                                                rowIndex={index}
-                                                                items={currentItems}
-                                                                style={style}
-                                                                onItemClick={this.onItemClick}
-                                                                rowHeight={rowHeight}
-                                                                columns={this.state.columns}
-                                                                isSelected={currentItems.map(
-                                                                    item =>
-                                                                        this.state.selectedItems[
-                                                                            item._id
-                                                                        ]
-                                                                )}
-                                                                getSelectedItems={
-                                                                    this.getSelectedItems
-                                                                }
-                                                                menuItems={this.state.menuItems}
-                                                                disableContextMenu={
-                                                                    this.props.disableContextMenu
-                                                                }
-                                                                updateRenderModalName={
-                                                                    this.updateRenderModalName
-                                                                }
-                                                                rowRenderer={
-                                                                    this.props.gridRowRenderer
-                                                                }
-                                                            />
-                                                        );
+                                                {(() => {
+                                                    if (this.state.listType === "List") {
+                                                        return ListRow;
+                                                    } else if (this.state.listType === "Grid") {
+                                                        return GridRow;
                                                     } else {
-                                                        const currentItem = this.state.items[index];
-                                                        if (!currentItem) return <></>;
-
-                                                        const isSelected =
-                                                            this.state.selectedItems[
-                                                                currentItem._id
-                                                            ];
-
-                                                        return (
-                                                            <ListRow
-                                                                resourceType={
-                                                                    this.props.resourceType
-                                                                }
-                                                                item={currentItem}
-                                                                style={style}
-                                                                isSelected={isSelected}
-                                                                onItemClick={this.onItemClick}
-                                                                columns={this.state.columns}
-                                                                getSelectedItems={
-                                                                    this.getSelectedItems
-                                                                }
-                                                                disableContextMenu={
-                                                                    this.props.disableContextMenu
-                                                                }
-                                                                menuItems={this.state.menuItems}
-                                                                updateRenderModalName={
-                                                                    this.updateRenderModalName
-                                                                }
-                                                                rowRenderer={
-                                                                    this.props.listRowRenderer
-                                                                }
-                                                            />
-                                                        );
+                                                        return this.props.rowRenderer ?? ListRow;
                                                     }
-                                                }}
+                                                })()}
                                             </FixedSizeList>
                                         );
                                     }}

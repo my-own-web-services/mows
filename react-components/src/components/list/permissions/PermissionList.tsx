@@ -77,7 +77,7 @@ export default class PermissionList extends PureComponent<
                     get_items_function={this.context.filezClient.get_own_permissions}
                     displayTopBar={this.props.displayTopBar}
                     listRowRenderer={this.props.listRowRenderer}
-                    gridRowRenderer={this.props.gridRowRenderer}
+                    rowRenderer={this.props.gridRowRenderer}
                     columns={defaultColumns}
                 />
             </div>

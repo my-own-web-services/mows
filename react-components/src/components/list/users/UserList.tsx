@@ -60,7 +60,7 @@ export default class UserList extends PureComponent<UserListProps, UserListState
                             ? this.props.listRowRenderer
                             : this.listRowRenderer
                     }
-                    gridRowRenderer={this.props.gridRowRenderer}
+                    rowRenderer={this.props.gridRowRenderer}
                     displayTopBar={this.props.displayTopBar}
                 />
             </div>

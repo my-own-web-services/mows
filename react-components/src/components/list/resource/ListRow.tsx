@@ -1,13 +1,7 @@
 import { PureComponent, createRef } from "react";
-import { BaseResource, CommonRowProps } from "./ResourceList";
+import { BaseResource, ListData, ListRowProps } from "./ResourceList";
 import { dragHandleWidth } from "./SortingBar";
 import RowContextMenu from "./RowContextMenu";
-
-export interface ListRowProps<ResourceType> extends CommonRowProps<ResourceType> {
-    readonly item: ResourceType;
-    readonly isSelected?: boolean;
-    readonly rowRenderer?: (arg0: ListRowProps<ResourceType>) => JSX.Element;
-}
 
 interface ListRowState {}
 
@@ -23,18 +17,25 @@ export default class ListRow<ResourceType extends BaseResource> extends PureComp
         this.contextMenuRef = createRef();
     }
 
-    componentDidMount = async () => {};
+    getCurentItem = () => {
+        return this.props.data?.items?.[this.props.index];
+    };
 
-    onItemClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) =>
-        this.props.onItemClick?.(e, this.props.item);
+    onItemClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        this.props.data.handlers.onItemClick?.(e, this.getCurentItem());
+    };
 
     onContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        this.props.onItemClick?.(e, this.props.item, true);
+        this.props.data.handlers.onItemClick?.(e, this.getCurentItem(), true);
         this.contextMenuRef.current?.open(e);
     };
 
     render = () => {
-        const { item, style, isSelected, columns } = this.props;
+        if (!this.props.data) return;
+        const item = this.getCurentItem();
+        const columns = this.props.data.columns;
+        const isSelected = this.props.data.selectedItems[item._id];
+        const style = this.props.style;
 
         return (
             <div
@@ -88,23 +89,21 @@ export default class ListRow<ResourceType extends BaseResource> extends PureComp
                                     {column.render
                                         ? column.render(item)
                                         : field ??
-                                          `Field '${column.field}' does not exist on this ${this.props.resourceType}`}
+                                          `Field '${column.field}' does not exist on this ${this.props.data.resourceType}`}
                                 </span>
                             );
                         });
                     })()
-                ) : this.props.rowRenderer ? (
-                    this.props.rowRenderer(this.props)
                 ) : (
                     <span>{item._id}</span>
                 )}
-                {!this.props.disableContextMenu && (
+                {!this.props.data.disableContextMenu && (
                     <RowContextMenu
                         ref={this.contextMenuRef}
-                        menuItems={this.props.menuItems}
-                        updateRenderModalName={this.props.updateRenderModalName}
-                        resourceType={this.props.resourceType}
-                        getSelectedItems={this.props.getSelectedItems}
+                        menuItems={this.props.data.menuItems}
+                        updateRenderModalName={this.props.data.handlers.updateRenderModalName}
+                        resourceType={this.props.data.resourceType}
+                        getSelectedItems={this.props.data.handlers.getSelectedItems}
                         menuId={item._id}
                         currentItem={item}
                     />

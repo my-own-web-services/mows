@@ -61,8 +61,8 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
         }
     };
 
-    setListTypeList = () => this.props.updateListType(ListType.List);
-    setListTypeGrid = () => this.props.updateListType(ListType.Grid);
+    setListTypeList = () => this.props.updateListType("List");
+    setListTypeGrid = () => this.props.updateListType("Grid");
 
     render = () => {
         return (
@@ -119,7 +119,7 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                     <ButtonGroup size="xs">
                         <IconButton
                             appearance={
-                                this.props.currentListType === ListType.List ? "primary" : "default"
+                                this.props.currentListType === "List" ? "primary" : "default"
                             }
                             onClick={this.setListTypeList}
                             title="List"
@@ -127,7 +127,7 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                         />
                         <IconButton
                             appearance={
-                                this.props.currentListType === ListType.Grid ? "primary" : "default"
+                                this.props.currentListType === "Grid" ? "primary" : "default"
                             }
                             onClick={this.setListTypeGrid}
                             title="Grid"
@@ -136,7 +136,7 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                     </ButtonGroup>
                 </span>
 
-                {this.props.currentListType === ListType.Grid && (
+                {this.props.currentListType === "Grid" && (
                     <>
                         <Slider
                             style={{

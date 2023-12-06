@@ -68,7 +68,7 @@ export default class UserGroupList extends PureComponent<UserGroupListProps, Use
                     get_items_function={this.context.filezClient.get_user_group_list}
                     displayTopBar={this.props.displayTopBar}
                     listRowRenderer={this.props.listRowRenderer}
-                    gridRowRenderer={this.props.gridRowRenderer}
+                    rowRenderer={this.props.gridRowRenderer}
                 />
             </div>
         );

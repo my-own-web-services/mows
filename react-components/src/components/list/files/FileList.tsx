@@ -1,4 +1,12 @@
-import { CSSProperties, PureComponent, createRef, useContext, useEffect, useState } from "react";
+import {
+    CSSProperties,
+    PureComponent,
+    createRef,
+    memo,
+    useContext,
+    useEffect,
+    useState
+} from "react";
 import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
 import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../../utils";
@@ -140,7 +148,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     editResource={<EditFile />}
                     resourceType="File"
                     defaultSortField="name"
-                    initialListType={ListType.List}
+                    initialListType={"List"}
                     get_items_function={this.context.filezClient.get_file_infos_by_group_id}
                     id={this.props.id}
                     displaySortingBar={this.props.displaySortingBar}

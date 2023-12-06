@@ -1,24 +1,18 @@
-import { CSSProperties, PureComponent } from "react";
+import { CSSProperties, ComponentType, PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import { AiOutlineFolder, AiOutlineFolderView } from "react-icons/ai";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
-import ResourceList from "../resource/ResourceList";
+import ResourceList, { ListRowProps } from "../resource/ResourceList";
 import CreateFileGroup from "./CreateFileGroup";
 import EditFileGroup from "./EditFileGroup";
-import { ListRowProps } from "../resource/ListRow";
-import { GridRowProps } from "../resource/GridRow";
 
 interface FileGroupListProps {
     readonly displayTopBar?: boolean;
     readonly style?: CSSProperties;
     /**
-     A function that renders the resource in the list.
+     A component that renders the resource in the list.
      */
-    readonly listRowRenderer?: (arg0: ListRowProps<FilezFileGroup>) => JSX.Element;
-    /**
-      A function that renders the resource in the list.
-      */
-    readonly gridRowRenderer?: (arg0: GridRowProps<FilezFileGroup>) => JSX.Element;
+    readonly rowRenderer?: ComponentType<ListRowProps<FilezFileGroup>>;
 }
 
 interface FileGroupListState {}
@@ -36,8 +30,12 @@ export default class FileGroupList extends PureComponent<FileGroupListProps, Fil
         console.log(data);
     };
 
-    listRowRenderer = (arg0: ListRowProps<FilezFileGroup>) => {
-        const { item } = arg0;
+    rowRenderer = (props: ListRowProps<FilezFileGroup>) => {
+        const {
+            data: { items },
+            index
+        } = props;
+        const item = items[index];
         return (
             <div className="Group">
                 <div className="GroupItems">
@@ -66,12 +64,7 @@ export default class FileGroupList extends PureComponent<FileGroupListProps, Fil
                     resourceType="FileGroup"
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_own_file_groups}
-                    listRowRenderer={
-                        this.props.listRowRenderer
-                            ? this.props.listRowRenderer
-                            : this.listRowRenderer
-                    }
-                    gridRowRenderer={this.props.gridRowRenderer}
+                    rowRenderer={this.props.rowRenderer ? this.props.rowRenderer : this.rowRenderer}
                     displayTopBar={this.props.displayTopBar}
                 />
             </div>
