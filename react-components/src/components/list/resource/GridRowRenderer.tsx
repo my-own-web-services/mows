@@ -1,13 +1,14 @@
 import { PureComponent } from "react";
-import { BaseResource, ListRowProps } from "./ResourceList";
+import { BaseResource, ListRowProps, RowRenderer, RowRendererDirection } from "./ResourceList";
 import { useContextMenu } from "react-contexify";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import FilezFileViewer, { FileViewerViewMode } from "../../viewer/FileViewer";
 import RowContextMenu from "./RowContextMenu";
+import { BsFillGridFill } from "react-icons/bs";
 
 interface GridRowState {}
 
-export default class GridRow<ResourceType extends BaseResource> extends PureComponent<
+class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
     ListRowProps<ResourceType>,
     GridRowState
 > {
@@ -50,7 +51,7 @@ export default class GridRow<ResourceType extends BaseResource> extends PureComp
                                 show({ event: e });
                             }}
                             className={`Row ${isSelected ? " selected" : ""}`}
-                            key={"GridRow" + index + item._id}
+                            key={"GridRowRenderer" + item._id}
                             style={{
                                 height: "100%",
                                 width: rowHeight - 15 / currentItems.length,
@@ -63,6 +64,7 @@ export default class GridRow<ResourceType extends BaseResource> extends PureComp
                         >
                             {(() => {
                                 if (resourceType === "File") {
+                                    return;
                                     return (
                                         <FilezFileViewer
                                             width={rowHeight}
@@ -90,3 +92,30 @@ export default class GridRow<ResourceType extends BaseResource> extends PureComp
         );
     };
 }
+
+const GridRowRenderer: RowRenderer<BaseResource> = {
+    name: "GridRowRenderer",
+    icon: <BsFillGridFill style={{ transform: "scale(0.9)", pointerEvents: "none" }} size={17} />,
+    component: GridRowComp,
+    getRowCount: (itemCount, gridColumnCount) => {
+        return Math.ceil(itemCount / gridColumnCount);
+    },
+    getRowHeight: (width, _height, gridColumnCount) => {
+        return width / gridColumnCount;
+    },
+    direction: RowRendererDirection.Vertical,
+    getItemKey: (_items, index, gridColumnCount) => {
+        return index * gridColumnCount;
+    },
+    isItemLoaded: (items, rowIndex, gridColumnCount) => {
+        return items[rowIndex] !== undefined;
+    },
+    getStartIndexAndLimit(startIndex, limit, gridColumnCount) {
+        return {
+            startIndex: startIndex * gridColumnCount,
+            limit: limit * gridColumnCount
+        };
+    }
+};
+
+export default GridRowRenderer;

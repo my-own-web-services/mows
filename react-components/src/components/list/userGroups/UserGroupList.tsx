@@ -4,8 +4,7 @@ import ResourceList, { Column, ColumnDirection } from "../resource/ResourceList"
 import CreateUserGroup from "./CreateUserGroup";
 import EditUserGroup from "./EditUserGroup";
 import { FilezUserGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezUserGroup";
-import { ListRowProps } from "../resource/ListRow";
-import { GridRowProps } from "../resource/GridRow";
+import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
 
 const defaultColumns: Column<FilezUserGroup>[] = [
     {
@@ -22,7 +21,7 @@ const defaultColumns: Column<FilezUserGroup>[] = [
         direction: ColumnDirection.NEUTRAL,
         widthPercent: 33,
         minWidthPixels: 50,
-        render: (item: FilezUserGroup) => {
+        render: item => {
             return <span>{item.visibility}</span>;
         },
         visible: true,
@@ -31,14 +30,6 @@ const defaultColumns: Column<FilezUserGroup>[] = [
 ];
 
 interface UserGroupListProps {
-    /**
-     A function that renders the resource in the list.
-     */
-    readonly listRowRenderer?: (arg0: ListRowProps<FilezUserGroup>) => JSX.Element;
-    /**
-       A function that renders the resource in the list.
-       */
-    readonly gridRowRenderer?: (arg0: GridRowProps<FilezUserGroup>) => JSX.Element;
     readonly style?: CSSProperties;
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
@@ -67,8 +58,7 @@ export default class UserGroupList extends PureComponent<UserGroupListProps, Use
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.get_user_group_list}
                     displayTopBar={this.props.displayTopBar}
-                    listRowRenderer={this.props.listRowRenderer}
-                    rowRenderer={this.props.gridRowRenderer}
+                    rowRenderers={[ColumnListRowRenderer]}
                 />
             </div>
         );

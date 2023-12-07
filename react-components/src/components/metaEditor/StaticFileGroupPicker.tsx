@@ -70,8 +70,6 @@ export default class StaticFileGroupPicker extends PureComponent<
         const resourceMap = this.resourcesToSelectedGroups(resources);
         const knownGroups = await this.getStaticFileGroups();
 
-        console.log("StaticFileGroupPicker", { resourceMap, knownGroups });
-
         this.setState({ resourceMap, knownGroups: knownGroups ?? [], knownGroupsLoaded: true });
     };
 
@@ -104,6 +102,21 @@ export default class StaticFileGroupPicker extends PureComponent<
         return staticGroups;
     };
 
+    onChange = (resourceMap: MultiItemTagPickerResources, knownGroups: TagData[]) => {
+        if (this.props.serverUpdate !== false) {
+            this.context?.filezClient.update_file_infos(
+                Object.entries(resourceMap).map(([file_id, static_file_group_ids]) => ({
+                    file_id,
+                    fields: {
+                        static_file_group_ids
+                    }
+                }))
+            );
+        }
+        this.props.onChange?.(resourceMap, knownGroups);
+        this.setState({ knownGroups, resourceMap });
+    };
+
     render = () => {
         if (!this.state.knownGroupsLoaded) return;
 
@@ -112,22 +125,7 @@ export default class StaticFileGroupPicker extends PureComponent<
                 <MultiItemTagPicker
                     multiItemSelectedTags={this.state.resourceMap}
                     possibleTags={this.state.knownGroups}
-                    onChange={(resourceMap, knownGroups) => {
-                        if (this.props.serverUpdate !== false) {
-                            this.context?.filezClient.update_file_infos(
-                                Object.entries(resourceMap).map(
-                                    ([file_id, static_file_group_ids]) => ({
-                                        file_id,
-                                        fields: {
-                                            static_file_group_ids
-                                        }
-                                    })
-                                )
-                            );
-                        }
-                        this.props.onChange?.(resourceMap, knownGroups);
-                        this.setState({ knownGroups, resourceMap });
-                    }}
+                    onChange={this.onChange}
                     size={this.props.size}
                 />
             </div>

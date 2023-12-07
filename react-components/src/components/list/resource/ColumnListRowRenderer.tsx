@@ -1,11 +1,12 @@
 import { PureComponent, createRef } from "react";
-import { BaseResource, ListData, ListRowProps } from "./ResourceList";
+import { BaseResource, ListRowProps, RowRenderer, RowRendererDirection } from "./ResourceList";
 import { dragHandleWidth } from "./SortingBar";
 import RowContextMenu from "./RowContextMenu";
+import { FaThList } from "react-icons/fa";
 
 interface ListRowState {}
 
-export default class ListRow<ResourceType extends BaseResource> extends PureComponent<
+class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
     ListRowProps<ResourceType>,
     ListRowState
 > {
@@ -33,6 +34,7 @@ export default class ListRow<ResourceType extends BaseResource> extends PureComp
     render = () => {
         if (!this.props.data) return;
         const item = this.getCurentItem();
+        if (!item) return;
         const columns = this.props.data.columns;
         const isSelected = this.props.data.selectedItems[item._id];
         const style = this.props.style;
@@ -46,7 +48,7 @@ export default class ListRow<ResourceType extends BaseResource> extends PureComp
                     overflow: "hidden"
                 }}
                 onContextMenu={this.onContextMenu}
-                className={`ListRow Row${isSelected ? " selected" : ""}`}
+                className={`Row${isSelected ? " selected" : ""}`}
             >
                 {columns ? (
                     (() => {
@@ -112,3 +114,24 @@ export default class ListRow<ResourceType extends BaseResource> extends PureComp
         );
     };
 }
+
+const ColumnListRowRenderer: RowRenderer<BaseResource> = {
+    name: "ColumnListRowRenderer",
+    icon: <FaThList style={{ transform: "scale(0.9)", pointerEvents: "none" }} size={17} />,
+    component: ListRowComp,
+    getRowCount: (itemCount, _gridColumnCount) => {
+        return itemCount;
+    },
+    getRowHeight: (_width, _height, _gridColumnCount) => {
+        return 20;
+    },
+    direction: RowRendererDirection.Vertical,
+    getItemKey: (_items, index, _gridColumnCount) => {
+        return index;
+    },
+    isItemLoaded: (items, index, _gridColumnCount) => {
+        return items[index] !== undefined;
+    }
+};
+
+export default ColumnListRowRenderer;

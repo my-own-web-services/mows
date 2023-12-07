@@ -1,6 +1,7 @@
 import { PureComponent } from "react";
 import { Item, ItemParams, Menu, contextMenu } from "react-contexify";
-import ResourceList, { BaseResource, FilezMenuItems } from "./ResourceList";
+import ResourceList, { BaseResource } from "./ResourceList";
+import { FilezMenuItems } from "./DefaultMenuItems";
 
 interface RowContextMenuProps<ResourceType> {
     readonly menuItems: FilezMenuItems<ResourceType>[];
@@ -36,7 +37,7 @@ export default class RowContextMenu<ResourceType extends BaseResource> extends P
         if (!menuItem) return;
         const selected = this.props.getSelectedItems();
         if (menuItem.onClick) {
-            menuItem.onClick(selected.length > 1 ? [this.props.currentItem] : selected);
+            menuItem.onClick(selected);
         }
 
         this.props.updateRenderModalName?.(menuItem.name);

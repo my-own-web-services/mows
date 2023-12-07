@@ -59,7 +59,6 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
         if (!this.context) return;
 
         const files = await this.context.filezClient.get_file_infos(this.props.fileIds);
-        console.log(files);
 
         this.setState({
             files

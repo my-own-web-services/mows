@@ -1,21 +1,23 @@
 import { PureComponent, ReactElement, cloneElement, createRef } from "react";
 import { AiOutlineSearch } from "react-icons/ai";
 import { Button, ButtonGroup, IconButton, Input, InputGroup, Modal, Slider } from "rsuite";
-import { BsFillGridFill } from "react-icons/bs";
-import { FaThList } from "react-icons/fa";
-import ResourceList, { ListType } from "./ResourceList";
+import ResourceList, { BaseResource, RowRenderer, SelectedItems } from "./ResourceList";
 import { BiPlus } from "react-icons/bi";
 import { IoReload } from "react-icons/io5";
 
-interface ListTopBarProps {
+interface ListTopBarProps<ResourceType> {
     readonly updateListType: InstanceType<typeof ResourceList>["updateListType"];
     readonly commitSearch: InstanceType<typeof ResourceList>["commitSearch"];
     readonly updateGridColumnCount: InstanceType<typeof ResourceList>["updateGridColumnCount"];
     readonly gridColumnCount: number;
-    readonly currentListType: ListType;
+    readonly currentListType: string;
     readonly resourceType: string;
     readonly createResource?: ReactElement<any, any>;
     readonly refreshList: () => void;
+    readonly rowRenderers: RowRenderer<ResourceType>[];
+    readonly selectedItems: SelectedItems;
+    readonly items: ResourceType[];
+    readonly total_count: number;
 }
 
 interface ListTopBarState {
@@ -23,10 +25,13 @@ interface ListTopBarState {
     readonly createModalOpen: boolean;
 }
 
-export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBarState> {
+export default class ListTopBar<ResourceType extends BaseResource> extends PureComponent<
+    ListTopBarProps<ResourceType>,
+    ListTopBarState
+> {
     createResourceRef: React.RefObject<any>;
 
-    constructor(props: ListTopBarProps) {
+    constructor(props: ListTopBarProps<ResourceType>) {
         super(props);
         this.state = {
             search: "",
@@ -61,8 +66,13 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
         }
     };
 
-    setListTypeList = () => this.props.updateListType("List");
-    setListTypeGrid = () => this.props.updateListType("Grid");
+    updateListType = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        const target = event.target as HTMLButtonElement;
+        const listType = target.dataset.listtype;
+
+        if (!listType) return;
+        this.props.updateListType(listType);
+    };
 
     render = () => {
         return (
@@ -117,26 +127,27 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
 
                 <span className="Buttons">
                     <ButtonGroup size="xs">
-                        <IconButton
-                            appearance={
-                                this.props.currentListType === "List" ? "primary" : "default"
-                            }
-                            onClick={this.setListTypeList}
-                            title="List"
-                            icon={<FaThList style={{ transform: "scale(0.9)" }} size={17} />}
-                        />
-                        <IconButton
-                            appearance={
-                                this.props.currentListType === "Grid" ? "primary" : "default"
-                            }
-                            onClick={this.setListTypeGrid}
-                            title="Grid"
-                            icon={<BsFillGridFill style={{ transform: "scale(0.9)" }} size={17} />}
-                        />
+                        {this.props.rowRenderers.length > 1 &&
+                            this.props.rowRenderers.map(rowRenderer => {
+                                return (
+                                    <IconButton
+                                        key={rowRenderer.name}
+                                        appearance={
+                                            this.props.currentListType === rowRenderer.name
+                                                ? "primary"
+                                                : "default"
+                                        }
+                                        onClick={this.updateListType}
+                                        title={rowRenderer.name}
+                                        data-listtype={rowRenderer.name}
+                                        icon={rowRenderer.icon}
+                                    />
+                                );
+                            })}
                     </ButtonGroup>
                 </span>
 
-                {this.props.currentListType === "Grid" && (
+                {this.props.currentListType === "GridRowRenderer" && (
                     <>
                         <Slider
                             style={{
@@ -158,6 +169,20 @@ export default class ListTopBar extends PureComponent<ListTopBarProps, ListTopBa
                         </div>
                     </>
                 )}
+                <div style={{ marginTop: "5px", marginRight: "20px", float: "right" }}>
+                    <span style={{ marginRight: "10px" }}>Total: {this.props.total_count}</span>
+                    <span style={{ marginRight: "10px" }}>
+                        Loaded: {this.props.items.filter(item => item._id).length}
+                    </span>
+                    <span>
+                        Selected:{" "}
+                        {this.props.selectedItems
+                            ? Object.entries(this.props.selectedItems).filter(
+                                  ([id, selected]) => selected
+                              ).length
+                            : 0}
+                    </span>
+                </div>
             </div>
         );
     };

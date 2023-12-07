@@ -1,5 +1,5 @@
 import { FilezClient } from "@firstdorsal/filez-client";
-import { ReactElement, createRef } from "react";
+import { ReactElement, cloneElement, createRef } from "react";
 import ResourceList, { BaseResource } from "./ResourceList";
 import { Button, Modal } from "rsuite";
 import { EditResource } from "../../../types";
@@ -24,7 +24,6 @@ export const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
     {
         name: "Log to console",
         onClick: (items: BaseResource[]) => {
-            // TODO this does not log multiple elements as it should
             if (items.length === 1) {
                 console.log(items[0]);
             } else {

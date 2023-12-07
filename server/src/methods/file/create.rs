@@ -2,7 +2,7 @@ use crate::{
     config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
-    some_or_bail,
+    is_transient_transaction_error, some_or_bail,
     utils::{check_file_name, check_mime_type, generate_id},
 };
 use anyhow::bail;
@@ -206,55 +206,51 @@ pub async fn create_file(
 
     let app_data: HashMap<String, Value> = HashMap::new();
 
-    // update db in this "create file transaction"
-    let cft = db
-        .create_file(
-            FilezFile {
-                file_id: file_id.clone(),
-                mime_type: create_request.mime_type,
-                name: create_request.name,
-                owner_id: user.user_id,
-                pending_new_owner_id: None,
-                sha256: Some(hash.clone()),
-                storage_id: Some(storage_name.clone()),
-                size: bytes_written,
-                server_created: current_time,
-                modified: create_request.modified.map(|o| o * 1000),
-                static_file_group_ids: file_manual_group_ids,
-                dynamic_file_group_ids: vec![],
-                app_data,
-                accessed: None,
-                accessed_count: 0,
-                time_of_death: None,
-                created: create_request
-                    .created
-                    .map(|o| o * 1000)
-                    .unwrap_or(current_time),
-                permission_ids: vec![],
-                keywords: vec![],
-                readonly: false,
-                readonly_path: None,
-            },
-            false,
-        )
-        .await;
+    let new_filez_file = FilezFile {
+        file_id: file_id.clone(),
+        mime_type: create_request.mime_type,
+        name: create_request.name,
+        owner_id: user.user_id,
+        pending_new_owner_id: None,
+        sha256: Some(hash.clone()),
+        storage_id: Some(storage_name.clone()),
+        size: bytes_written,
+        server_created: current_time,
+        modified: create_request.modified.map(|o| o * 1000),
+        static_file_group_ids: file_manual_group_ids,
+        dynamic_file_group_ids: vec![],
+        app_data,
+        accessed: None,
+        accessed_count: 0,
+        time_of_death: None,
+        created: create_request
+            .created
+            .map(|o| o * 1000)
+            .unwrap_or(current_time),
+        permission_ids: vec![],
+        keywords: vec![],
+        readonly: false,
+        readonly_path: None,
+    };
 
-    match cft {
-        Ok(_) => {
-            let cfr = CreateFileResponse {
-                file_id,
-                storage_name,
-                sha256: hash,
-            };
-            Ok(res
-                .status(201)
-                .body(Body::from(serde_json::to_string(&cfr)?))?)
-        }
-        Err(e) => {
+    // update db in this "create file transaction"
+    while let Err(e) = db.create_file(new_filez_file.clone(), false).await {
+        if is_transient_transaction_error!(e) {
+            continue;
+        } else {
             fs::remove_file(&file_path)?;
             bail!("Failed to create file in database: {}", e);
         }
     }
+
+    let cfr = CreateFileResponse {
+        file_id,
+        storage_name,
+        sha256: hash,
+    };
+    Ok(res
+        .status(201)
+        .body(Body::from(serde_json::to_string(&cfr)?))?)
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

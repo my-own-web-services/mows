@@ -1,22 +1,16 @@
-import {
-    CSSProperties,
-    PureComponent,
-    createRef,
-    memo,
-    useContext,
-    useEffect,
-    useState
-} from "react";
+import { CSSProperties, PureComponent, createRef, useContext, useEffect, useState } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
 import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../../utils";
-import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import ResourceList, { Column, ColumnDirection, ListType } from "../resource/ResourceList";
+import ResourceList, { Column, ColumnDirection, RowHandlers } from "../resource/ResourceList";
 import CreateFile from "./CreateFile";
 import EditFile from "./EditFile";
 import FileIcon from "../../fileIcons/FileIcon";
 import { Tag } from "rsuite";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
+import GridRowRenderer from "../resource/GridRowRenderer";
+import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 const defaultColumns: Column<FilezFile>[] = [
     {
@@ -111,18 +105,10 @@ const GroupTags = ({ file }: { file: FilezFile }) => {
 interface FileListProps {
     readonly id: string;
     readonly style?: CSSProperties;
-    readonly rowRenderer?: (
-        item: FilezFile,
-        style: CSSProperties,
-        columns: Column<FilezFile>[]
-    ) => JSX.Element;
-    /**
-     * Default Row Renderer item onClick handler
-     */
-    readonly drrOnItemClick?: (item: FilezFile) => void;
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
-    readonly initialListType?: ListType;
+    readonly initialListType?: string;
+    readonly rowHandlers?: RowHandlers;
 }
 
 interface FileListState {}
@@ -148,11 +134,14 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     editResource={<EditFile />}
                     resourceType="File"
                     defaultSortField="name"
-                    initialListType={"List"}
+                    initialListType={"ColumnListRowRenderer"}
                     get_items_function={this.context.filezClient.get_file_infos_by_group_id}
                     id={this.props.id}
+                    //@ts-ignore TODO fix this generic mess
+                    rowRenderers={[GridRowRenderer, ColumnListRowRenderer]}
                     displaySortingBar={this.props.displaySortingBar}
                     displayTopBar={this.props.displayTopBar}
+                    rowHandlers={this.props.rowHandlers}
                     columns={defaultColumns}
                 />
             </div>

@@ -78,7 +78,6 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                     return p;
                 }
             });
-            console.log(useOncePermission);
 
             this.setState({
                 availablePermissions: items,

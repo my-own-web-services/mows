@@ -11,35 +11,63 @@ import PermissionList from "./components/list/permissions/PermissionList";
 import MultiItemTagPicker, {
     MultiItemTagPickerResources
 } from "./components/metaEditor/MultiItemTagPicker";
+import { BaseResource } from "./components/list/resource/ResourceList";
 
 interface AppProps {}
 
 interface AppState {
     readonly selectedFileId?: string;
+    readonly selectedGroupId: string;
 }
 
 export default class App extends Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            selectedFileId: "4A7lGTlhgk20IbS6"
+            selectedFileId: "4A7lGTlhgk20IbS6",
+            selectedGroupId: "KgmuP8hQvO6gTL0Q_all"
         };
     }
+
+    onGroupClick = (
+        e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
+        item: BaseResource,
+        rightClick?: boolean | undefined
+    ) => {
+        if (rightClick) return;
+        this.setState({ selectedGroupId: item._id });
+    };
+
+    onFileClick = (
+        e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
+        item: BaseResource,
+        rightClick?: boolean | undefined
+    ) => {
+        if (rightClick) return;
+        this.setState({ selectedFileId: item._id });
+    };
 
     render = () => {
         return (
             <div className="App">
                 <FilezProvider>
-                    <FileList style={{ height: "500px" }} id="KgmuP8hQvO6gTL0Q_all" />
-                    <FileGroupList style={{ height: "500px" }} />
-                    <PermissionList style={{ height: "500px" }} />
-                    <UserGroupList style={{ height: "500px" }} />
-
-                    <UserList style={{ height: "500px" }} />
+                    <FileList
+                        style={{ height: "500px" }}
+                        rowHandlers={{ onClick: this.onFileClick }}
+                        id={this.state.selectedGroupId}
+                    />
+                    <FileGroupList
+                        style={{ height: "500px", width: "500px", float: "left" }}
+                        rowHandlers={{ onClick: this.onGroupClick }}
+                    />
                     <FilezFileViewer
                         style={{ width: "500px", float: "left", height: "500px" }}
                         fileId={this.state.selectedFileId}
                     />
+
+                    <PermissionList style={{ height: "500px" }} />
+                    <UserGroupList style={{ height: "500px" }} />
+                    <UserList style={{ height: "500px" }} />
                 </FilezProvider>
             </div>
         );
@@ -48,7 +76,9 @@ export default class App extends Component<AppProps, AppState> {
 
 /*
 
+                    
 
+  
 
   <FilezProvider>
 
