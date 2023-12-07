@@ -4,6 +4,10 @@ import { PureComponent } from "react";
 import { ImageOrientation } from "./formats/Image";
 import { match } from "ts-pattern";
 
+// TODO - this is a work in progress, it's not quite right yet
+// exiftool returns unusable data for the regions in its json output
+// the names array is not of the same length as the other arrays...
+
 interface ImageRegionsProps {
     readonly file: FilezFile;
     readonly viewerWidth: number;
