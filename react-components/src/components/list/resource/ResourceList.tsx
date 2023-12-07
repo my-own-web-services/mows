@@ -178,7 +178,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     ) => {
         if (prevProps.id !== this.props.id) {
             await this.loadItems();
-            this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
+            //this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
         }
     };
 
@@ -421,7 +421,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     getSelectedItems = (): ResourceType[] => {
         return Object.entries(this.state.selectedItems).flatMap(([itemId, selected]) => {
             if (!selected) return [];
-            const item = this.state.items.find(item => item._id === itemId);
+            const item = this.state.items.find(item => item?._id === itemId);
             return item ? [item] : [];
         });
     };

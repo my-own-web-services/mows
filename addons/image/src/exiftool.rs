@@ -87,7 +87,7 @@ pub async fn extract_album_art(
     // dont create images that are larger than the source
     let resolutions = get_resolutions(width, height);
 
-    convert(&output_path, target_folder_path, &resolutions).await?;
+    convert(&output_path, target_folder_path).await?;
     tokio::fs::remove_file(&output_path).await?;
 
     Ok(ProcessedImage {

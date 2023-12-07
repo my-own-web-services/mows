@@ -11,6 +11,12 @@ use ts_rs::TS;
 ## Permissions
 None
 */
+
+// TODO currently files cannot be added to a static file group multiple times
+// this is unpractical for a use case like playlists where you maybe would want to add the same file multiple times
+// its not possible to have a custom sorting of files in the static file group currently
+// maybe also store the files ids on the file group document in an array
+
 pub async fn create_file_group(
     req: Request<Body>,
     db: DB,

@@ -7,6 +7,7 @@ import Image from "./Image";
 interface AudioProps {
     readonly file: FilezFile;
     readonly viewMode?: FileViewerViewMode;
+    readonly disableFallback?: boolean;
 }
 interface AudioState {}
 export default class Audio extends Component<AudioProps, AudioState> {

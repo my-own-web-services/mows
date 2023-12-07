@@ -59,18 +59,18 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                                 float: "left",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
-                                padding: "5px"
+                                padding: "1px"
                             }}
                         >
                             {(() => {
                                 if (resourceType === "File") {
-                                    return;
                                     return (
                                         <FilezFileViewer
                                             width={rowHeight}
                                             file={item as unknown as FilezFile}
                                             style={{ width: "100%", height: "100%" }}
                                             viewMode={FileViewerViewMode.Preview}
+                                            disablePreviewFalback={true}
                                         />
                                     );
                                 }
@@ -108,7 +108,13 @@ const GridRowRenderer: RowRenderer<BaseResource> = {
         return index * gridColumnCount;
     },
     isItemLoaded: (items, rowIndex, gridColumnCount) => {
-        return items[rowIndex] !== undefined;
+        const startIndex = rowIndex * gridColumnCount;
+        const endIndex = startIndex + gridColumnCount;
+
+        return (
+            items.filter((item, i) => i >= startIndex && i < endIndex && item !== undefined)
+                .length === gridColumnCount
+        );
     },
     getStartIndexAndLimit(startIndex, limit, gridColumnCount) {
         return {

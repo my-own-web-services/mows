@@ -14,7 +14,7 @@ use imageprocessing::{
     utils::{get_resolutions, is_raw},
 };
 use mongodb::options::ClientOptions;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
@@ -64,20 +64,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     };
                 } else if file.mime_type.starts_with("image/") {
                     match handle_image(&file, &file_source_path, &target_folder_path).await {
-                        Some(image) => {
+                        Ok(image) => {
                             image_processing_result = Some(image);
                         }
-                        None => {
-                            error = Some("Could not create image".to_string());
+                        Err(e) => {
+                            error = Some(e.to_string());
                         }
                     };
                 } else if file.mime_type.starts_with("video/") {
                     match handle_video(&file, &file_source_path, &target_folder_path).await {
-                        Some(image) => {
+                        Ok(image) => {
                             image_processing_result = Some(image);
                         }
-                        None => {
-                            error = Some("Could not create image".to_string());
+                        Err(e) => {
+                            error = Some(e.to_string());
                         }
                     };
                 } else {
@@ -140,48 +140,27 @@ pub async fn handle_video(
     file: &FilezFile,
     source_path: &PathBuf,
     target_folder_path: &PathBuf,
-) -> Option<ProcessedImage> {
+) -> anyhow::Result<ProcessedImage> {
     let path = match try_video_poster(file, target_folder_path).await {
         Ok(path) => path,
         Err(e) => {
             // try something else like thumbnail extraction or similar
-            println!("Error getting video poster: {}", e);
-            return None;
+            bail!("Error getting video poster: {}", e);
         }
     };
 
-    let image = match image::open(&path) {
-        Ok(image) => image,
-        Err(e) => {
-            println!("Error opening image: {}", e);
-            return None;
-        }
-    };
-
-    let width = image.width();
-    let height = image.height();
-
-    let resolutions = get_resolutions(width, height);
-
-    match convert(&path, target_folder_path, &resolutions).await {
-        Ok(_) => Some(ProcessedImage {
-            width,
-            height,
-            resolutions,
-        }),
-        Err(e) => {
-            println!("Error extracting thumbnail: {}", e);
-            None
-        }
-    }
+    convert(&path, target_folder_path).await
 }
 
 pub async fn handle_image(
     file: &FilezFile,
     source_path: &PathBuf,
     target_folder_path: &PathBuf,
-) -> Option<ProcessedImage> {
+) -> anyhow::Result<ProcessedImage> {
     let mut path = source_path.clone();
+
+    // extract the thumbnail from the images first for a quicker preview
+    // even non raw images sometimes have a thumbnail
 
     if is_raw(file) {
         match convert_raw(&path, target_folder_path).await {
@@ -189,36 +168,12 @@ pub async fn handle_image(
                 path = raw_path;
             }
             Err(e) => {
-                println!("Error converting raw image: {}", e);
-                return None;
+                bail!("Error converting raw image: {}", e);
             }
         }
     }
 
-    let image = match image::open(&path) {
-        Ok(image) => image,
-        Err(e) => {
-            println!("Error opening image: {}", e);
-            return None;
-        }
-    };
-
-    let width = image.width();
-    let height = image.height();
-
-    let resolutions = get_resolutions(width, height);
-
-    match convert(&path, target_folder_path, &resolutions).await {
-        Ok(_) => Some(ProcessedImage {
-            width,
-            height,
-            resolutions,
-        }),
-        Err(e) => {
-            println!("Error extracting thumbnail: {}", e);
-            None
-        }
-    }
+    convert(&path, target_folder_path).await
 }
 
 pub async fn handle_audio(

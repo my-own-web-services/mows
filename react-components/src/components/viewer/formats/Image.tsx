@@ -1,13 +1,17 @@
 import { ProcessedImage } from "@firstdorsal/filez-client";
-import { PureComponent } from "react";
+import { CSSProperties, PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FileViewerViewMode } from "../FileViewer";
+import { match } from "ts-pattern";
+import ImageRegions from "../ImageRegions";
+import ReactVirtualizedAutoSizer from "react-virtualized-auto-sizer";
 
 interface ImageProps {
     readonly file: FilezFile;
     readonly itemWidth?: number;
-    readonly viewMode?: FileViewerViewMode;
+    readonly viewMode: FileViewerViewMode;
+    readonly disableFallback?: boolean;
 }
 
 interface ImageState {}
@@ -32,16 +36,40 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
         const isDisplayable = isImageDisplayable(f);
 
         if (!isDisplayable && !processedImage) return;
-
+        if (!processedImage && this.props.disableFallback) return;
         const uiConfig = this.context?.uiConfig;
         if (!uiConfig) return;
 
+        const rotationStyle = getRotationStyle(f);
+        const rotation = getRotation(f);
+
         return (
-            <div className="Image" style={{ width: "100%" }}>
+            <div
+                className="Image"
+                style={{ width: "100%", display: "relative", outline: "1px solid orange" }}
+            >
+                {
+                    <ReactVirtualizedAutoSizer>
+                        {({ height, width }) => {
+                            return (
+                                <ImageRegions
+                                    itemHeight={processedImage.height}
+                                    itemWidth={processedImage.width}
+                                    viewerWidth={width}
+                                    viewerHeight={height}
+                                    rotation={rotation}
+                                    file={f}
+                                />
+                            );
+                        }}
+                    </ReactVirtualizedAutoSizer>
+                }
+
                 {processedImage && !shouldUseOriginal ? (
                     <img
+                        style={{ ...rotationStyle }}
                         src={`${uiConfig.filezServerAddress}/api/file/get/${f._id}/image/${previewWidth}.avif?c`}
-                        loading="lazy"
+                        loading="eager"
                         width={processedImage.width}
                         height={processedImage.height}
                         draggable={false}
@@ -49,7 +77,7 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
                 ) : (
                     <img
                         src={`${uiConfig.filezServerAddress}/api/file/get/${f._id}?c`}
-                        loading="lazy"
+                        loading="eager"
                         draggable={false}
                     />
                 )}
@@ -57,6 +85,66 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
         );
     };
 }
+
+export enum ImageOrientation {
+    "Horizontal (normal)" = 1,
+    "Mirror horizontal" = 2,
+    "Rotate 180" = 3,
+    "Mirror vertical" = 4,
+    "Mirror horizontal and rotate 270 CW" = 5,
+    "Rotate 90 CW" = 6,
+    "Mirror horizontal and rotate 90 CW" = 7,
+    "Rotate 270 CW" = 8
+}
+
+export const getRotation = (filezFile: FilezFile): ImageOrientation | null => {
+    const rotation = filezFile.app_data?.metadata?.result?.exifdata?.Orientation;
+    return match(rotation)
+        .with("Horizontal (normal)", () => ImageOrientation["Horizontal (normal)"])
+        .with("Mirror horizontal", () => ImageOrientation["Mirror horizontal"])
+        .with("Rotate 180", () => ImageOrientation["Rotate 180"])
+        .with("Mirror vertical", () => ImageOrientation["Mirror vertical"])
+        .with(
+            "Mirror horizontal and rotate 270 CW",
+            () => ImageOrientation["Mirror horizontal and rotate 270 CW"]
+        )
+        .with("Rotate 90 CW", () => ImageOrientation["Rotate 90 CW"])
+        .with(
+            "Mirror horizontal and rotate 90 CW",
+            () => ImageOrientation["Mirror horizontal and rotate 90 CW"]
+        )
+        .with("Rotate 270 CW", () => ImageOrientation["Rotate 270 CW"])
+        .otherwise(() => null);
+};
+
+export const getRotationStyle = (filezFile: FilezFile) => {
+    const rotation = filezFile.app_data?.metadata?.result?.exifdata?.Orientation;
+
+    /*
+    1 = Horizontal (normal)
+    2 = Mirror horizontal
+    3 = Rotate 180
+    4 = Mirror vertical
+    5 = Mirror horizontal and rotate 270 CW
+    6 = Rotate 90 CW
+    7 = Mirror horizontal and rotate 90 CW
+    8 = Rotate 270 CW
+    */
+
+    const style: CSSProperties = {
+        transform: match(rotation)
+            .with("Mirror horizontal", () => "scaleX(-1)")
+            .with("Rotate 180", () => "rotate(180deg)")
+            .with("Mirror vertical", () => "scaleY(-1)")
+            .with("Mirror horizontal and rotate 270 CW", () => "scaleX(-1) rotate(270deg)")
+            .with("Rotate 90 CW", () => "rotate(90deg)")
+            .with("Mirror horizontal and rotate 90 CW", () => "scaleX(-1) rotate(90deg)")
+            .with("Rotate 270 CW", () => "rotate(270deg)")
+            .otherwise(() => "")
+    };
+
+    return style;
+};
 
 export const isImageDisplayable = (filezFile: FilezFile) => {
     const diplayableMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];

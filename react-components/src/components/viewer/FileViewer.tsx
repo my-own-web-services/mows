@@ -11,8 +11,9 @@ interface FilezFileViewerProps {
     readonly file?: FilezFile;
     readonly fileId?: string;
     readonly style?: CSSProperties;
-    readonly viewMode?: FileViewerViewMode;
+    readonly viewMode: FileViewerViewMode;
     readonly width?: number;
+    readonly disablePreviewFalback?: boolean;
 }
 
 export enum FileViewerViewMode {
@@ -75,6 +76,9 @@ export default class FilezFileViewer extends PureComponent<
             return;
         }
 
+        const disableFallback =
+            this.props.viewMode === FileViewerViewMode.Preview && this.props.disablePreviewFalback;
+
         return (
             <div className="Filez FileViewer" style={this.props.style}>
                 {(() => {
@@ -85,18 +89,33 @@ export default class FilezFileViewer extends PureComponent<
                                 itemWidth={this.props.width}
                                 viewMode={this.props.viewMode}
                                 file={this.state.file}
+                                disableFallback={disableFallback}
                             ></Image>
                         );
                     } else if (fileType.startsWith("audio/")) {
                         return (
-                            <Audio viewMode={this.props.viewMode} file={this.state.file}></Audio>
+                            <Audio
+                                viewMode={this.props.viewMode}
+                                disableFallback={disableFallback}
+                                file={this.state.file}
+                            ></Audio>
                         );
                     } else if (fileType.startsWith("video/")) {
                         return (
-                            <Video viewMode={this.props.viewMode} file={this.state.file}></Video>
+                            <Video
+                                viewMode={this.props.viewMode}
+                                disableFallback={disableFallback}
+                                file={this.state.file}
+                            ></Video>
                         );
                     } else if (isText(this.state.file)) {
-                        return <Text viewMode={this.props.viewMode} file={this.state.file}></Text>;
+                        return (
+                            <Text
+                                viewMode={this.props.viewMode}
+                                disableFallback={disableFallback}
+                                file={this.state.file}
+                            ></Text>
+                        );
                     } else {
                         return <div>Can&apos;t display this type of file: {fileType}</div>;
                     }

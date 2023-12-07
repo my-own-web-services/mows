@@ -4,7 +4,7 @@ import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile"
 import UserList from "./components/list/users/UserList";
 import FileList from "./components/list/files/FileList";
 import FileMetaEditor from "./components/metaEditor/FileMetaEditor";
-import FilezFileViewer from "./components/viewer/FileViewer";
+import FilezFileViewer, { FileViewerViewMode } from "./components/viewer/FileViewer";
 import UserGroupList from "./components/list/userGroups/UserGroupList";
 import FileGroupList from "./components/list/fileGroups/FileGroupList";
 import PermissionList from "./components/list/permissions/PermissionList";
@@ -24,7 +24,7 @@ export default class App extends Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            selectedFileId: "4A7lGTlhgk20IbS6",
+            selectedFileId: "NgxX_t0AvTB-3A6T",
             selectedGroupId: "KgmuP8hQvO6gTL0Q_all"
         };
     }
@@ -61,6 +61,7 @@ export default class App extends Component<AppProps, AppState> {
                         rowHandlers={{ onClick: this.onGroupClick }}
                     />
                     <FilezFileViewer
+                        viewMode={FileViewerViewMode.Full}
                         style={{ width: "500px", float: "left", height: "500px" }}
                         fileId={this.state.selectedFileId}
                     />

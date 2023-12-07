@@ -9,6 +9,7 @@ import Image from "./Image";
 interface VideoProps {
     readonly file: FilezFile;
     readonly viewMode?: FileViewerViewMode;
+    readonly disableFallback?: boolean;
 }
 interface VideoState {}
 

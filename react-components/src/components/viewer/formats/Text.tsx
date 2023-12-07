@@ -7,6 +7,7 @@ import { FileViewerViewMode } from "../FileViewer";
 interface TextProps {
     readonly file: FilezFile;
     readonly viewMode?: FileViewerViewMode;
+    readonly disableFallback?: boolean;
 }
 
 interface TextState {

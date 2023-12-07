@@ -6,6 +6,8 @@ pub async fn get_metadata_exiftool(path: &PathBuf) -> anyhow::Result<HashMap<Str
     let output = Command::new("./Image-ExifTool-12.55/exiftool")
         .arg(path)
         .arg("-json")
+        .arg("-use")
+        .arg("MWG")
         .arg("-stay_open")
         .output()?;
 

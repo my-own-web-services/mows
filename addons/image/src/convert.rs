@@ -1,18 +1,42 @@
+use anyhow::bail;
+use image::io::Reader as ImageReader;
 use std::{
     path::{Path, PathBuf},
     process::Command,
 };
 
+use crate::{image_types::ProcessedImage, utils::get_resolutions};
+
 pub async fn convert(
     source_path: &PathBuf,
     target_folder_path: &PathBuf,
-    resolutions: &Vec<u32>,
-) -> anyhow::Result<()> {
-    let image = image::open(source_path)?;
+) -> anyhow::Result<ProcessedImage> {
+    let buffered_reader = match std::fs::File::open(&source_path) {
+        Ok(file) => std::io::BufReader::new(file),
+        Err(e) => {
+            bail!("Error opening buffered reader: {}", e);
+        }
+    };
+
+    // try to open the image with the mime type on the resource
+    let image = match ImageReader::new(buffered_reader)
+        .with_guessed_format()?
+        .decode()
+    {
+        Ok(image) => image,
+        Err(e2) => {
+            bail!("Error opening image: {}", e2);
+        }
+    };
+
+    let width = image.width();
+    let height = image.height();
+
+    let resolutions = get_resolutions(width, height);
 
     std::fs::create_dir_all(target_folder_path)?;
 
-    for resolution in resolutions {
+    for resolution in &resolutions {
         let path = Path::new(target_folder_path).join(format!("{resolution}.avif"));
 
         image
@@ -24,7 +48,11 @@ pub async fn convert(
             .save_with_format(path, image::ImageFormat::Avif)?;
     }
 
-    Ok(())
+    Ok(ProcessedImage {
+        width,
+        height,
+        resolutions,
+    })
 }
 
 pub async fn convert_raw(
