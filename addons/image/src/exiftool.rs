@@ -12,6 +12,7 @@ use std::{collections::HashMap, io::Write, process::Command};
 pub async fn get_metadata_exiftool(path: &PathBuf) -> anyhow::Result<HashMap<String, Value>> {
     let output = Command::new("./Image-ExifTool-12.55/exiftool")
         .arg(path)
+        .arg("-struct")
         .arg("-json")
         .arg("-stay_open")
         .output()?;

@@ -43,4 +43,4 @@ RUN mkdir /output/ && chown -R filez-addons-image:filez-addons-image /output/
 USER filez-addons-image
 STOPSIGNAL SIGKILL
 # run it 
-ENTRYPOINT ["nice -n 19 ./filez-addons-image"]
+ENTRYPOINT ["./filez-addons-image"]

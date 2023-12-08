@@ -4,12 +4,11 @@ use std::{collections::HashMap, path::PathBuf, process::Command};
 
 pub async fn get_metadata_exiftool(path: &PathBuf) -> anyhow::Result<HashMap<String, Value>> {
     let output = Command::new("./Image-ExifTool-12.55/exiftool")
-        .arg(path)
-        .arg("-json")
-        .arg("-use")
-        .arg("MWG")
-        .arg("-stay_open")
-        .output()?;
+    .arg(path)
+    .arg("-struct")
+    .arg("-json")
+    .arg("-stay_open")
+    .output()?;
 
     let parsed: Vec<HashMap<String, Value>> =
         serde_json::from_str(&String::from_utf8_lossy(&output.stdout))?;

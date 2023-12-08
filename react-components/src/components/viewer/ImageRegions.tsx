@@ -18,29 +18,33 @@ interface ImageRegionsProps {
 }
 
 interface ImageRegionsState {
-    readonly regionData?: RegionData;
+    readonly regionInfo?: RegionInfo;
 }
 
 export default class ImageRegions extends PureComponent<ImageRegionsProps, ImageRegionsState> {
     constructor(props: ImageRegionsProps) {
         super(props);
         this.state = {
-            regionData: getRegionData(props.file)
+            regionInfo: this.getRegionInfo(this.props.file)
         };
     }
 
+    getRegionInfo = (file: FilezFile) => {
+        try {
+            return convertRegionInfo(file.app_data?.metadata?.result?.exifdata.RegionInfo);
+        } catch (error) {
+            return undefined;
+        }
+    };
+
     componentDidMount = async () => {};
-    componentDidUpdate(
-        prevProps: Readonly<ImageRegionsProps>,
-        prevState: Readonly<ImageRegionsState>,
-        snapshot?: any
-    ): void {
+    componentDidUpdate(prevProps: Readonly<ImageRegionsProps>): void {
         if (prevProps.file._id !== this.props.file._id) {
-            const regionData = getRegionData(this.props.file);
-            if (!regionData) {
-                return this.setState({ regionData: undefined });
+            const regionInfo = this.getRegionInfo(this.props.file);
+            if (!regionInfo) {
+                return this.setState({ regionInfo: undefined });
             }
-            this.setState({ regionData });
+            this.setState({ regionInfo });
         }
     }
 
@@ -77,8 +81,7 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
     };
 
     render = () => {
-        console.log(this.state.regionData);
-        console.log(this.props.file);
+        console.log(this.state.regionInfo);
 
         const containedImagePosition = this.getContainedImagePosition(
             this.props.itemWidth,
@@ -108,39 +111,44 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
                         outline: "1px solid orange"
                     }}
                 >
-                    {this.state.regionData?.regions?.map((region, i) => {
-                        const defaultLeft = (region.x - region.width / 2) * 100 + "%";
-                        const defaultTop = (region.y - region.height / 2) * 100 + "%";
+                    {this.state.regionInfo?.regionList?.map((region, i) => {
+                        if (!region.area) {
+                            return null;
+                        }
+                        const { w, h, x, y } = region.area;
+
+                        const defaultLeft = (x - w / 2) * 100 + "%";
+                        const defaultTop = (y - h / 2) * 100 + "%";
                         const style = match(this.props.rotation)
                             .with(ImageOrientation["Horizontal (normal)"], () => ({
                                 left: defaultLeft,
                                 top: defaultTop,
-                                width: region.width * containedImagePosition.width,
-                                height: region.height * containedImagePosition.height
+                                width: w * containedImagePosition.width,
+                                height: h * containedImagePosition.height
                             }))
                             .with(ImageOrientation["Rotate 90 CW"], () => ({
                                 left: defaultTop,
                                 top: defaultLeft,
-                                width: region.width * containedImagePosition.height,
-                                height: region.height * containedImagePosition.width
+                                width: w * containedImagePosition.height,
+                                height: h * containedImagePosition.width
                             }))
                             .with(ImageOrientation["Rotate 180"], () => ({
                                 left: defaultLeft,
                                 top: defaultTop,
-                                width: region.width * containedImagePosition.width,
-                                height: region.height * containedImagePosition.height
+                                width: w * containedImagePosition.width,
+                                height: h * containedImagePosition.height
                             }))
                             .with(ImageOrientation["Rotate 270 CW"], () => ({
                                 left: defaultTop,
                                 top: defaultLeft,
-                                width: region.width * containedImagePosition.height,
-                                height: region.height * containedImagePosition.width
+                                width: w * containedImagePosition.height,
+                                height: h * containedImagePosition.width
                             }))
                             .otherwise(() => ({
                                 left: defaultLeft,
                                 top: defaultTop,
-                                width: region.width * containedImagePosition.width,
-                                height: region.height * containedImagePosition.height
+                                width: w * containedImagePosition.width,
+                                height: h * containedImagePosition.height
                             }));
                         return (
                             <div
@@ -173,82 +181,120 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
     };
 }
 
-export interface RegionData {
-    appliedDimensionHeight?: number; // RegionAppliedToDimensionsH
-    appliedDimensionUnit?: string; // RegionAppliedToDimensionsUnit
-    appliedDimensionWidth?: number; // RegionAppliedToDimensionsW
-    extensions: {
-        angleInfoRoll?: number; // RegionExtensionsAngleInfoRoll
-        angleInfoYaw?: number; // RegionExtensionsAngleInfoYaw
-        confidenceLevel?: number; // RegionExtensionsConfidenceLevel
-        // id of face on apple device
-        faceID?: number; // RegionExtensionsFaceID
-    };
-    regions?: SingleRegion[];
-}
+// convert the exiftool data to a more usable format
+// convert strings to numbers
+const convertRegionInfo = (regionInfo: RegionInfoExiftool | undefined): RegionInfo => {
+    const regionList = regionInfo?.RegionList?.map(ret => {
+        const area = ret.Area;
 
-export interface SingleRegion {
-    x: number; // RegionAreaX
-    y: number; // RegionAreaY
-    width: number; // RegionAreaW
-    height: number; // RegionAreaH
-    name: string; // RegionName
-    type: string; // RegionType
-    // the metadata gives this in radians, but we convert it to degrees
-    rotation?: number; // RegionRotation
-}
+        const region: Region = {
+            area: {
+                h: ensureNumber(area?.H),
+                w: ensureNumber(area?.W),
+                x: ensureNumber(area?.X),
+                y: ensureNumber(area?.Y)
+            },
+            name: ret.Name,
+            rotation: ret.Rotation,
+            type: ret.Type,
+            extensions: {
+                apple: {
+                    fi: {
+                        angleInfoRoll: ret?.Extensions?.["XMP-apple-fi:AngleInfoRoll"],
+                        angleInfoYaw: ret?.Extensions?.["XMP-apple-fi:AngleInfoYaw"],
+                        confidenceLevel: ret?.Extensions?.["XMP-apple-fi:ConfidenceLevel"],
+                        faceID: ret?.Extensions?.["XMP-apple-fi:FaceID"]
+                    }
+                }
+            }
+        };
+        return region;
+    });
 
-export const getRegionData = (file: FilezFile): RegionData | undefined => {
-    const exifdata = file?.app_data?.metadata?.result?.exifdata;
-    if (!exifdata) return;
-
-    const regions: SingleRegion[] = [];
-
-    if (isArray(exifdata.RegionAreaH)) {
-        for (let i = 0; i < exifdata.RegionAreaH.length; i++) {
-            regions.push({
-                x: exifdata.RegionAreaX?.[i],
-                y: exifdata.RegionAreaY?.[i],
-                width: exifdata.RegionAreaW?.[i],
-                height: exifdata.RegionAreaH?.[i],
-                name: exifdata.RegionName?.[i],
-                type: exifdata.RegionType?.[i],
-                rotation: (exifdata.RegionRotation?.[i] * 180) / Math.PI
-            });
-        }
-    } else if (typeof exifdata.RegionAreaH === "number") {
-        regions.push({
-            x: isArray(exifdata.RegionAreaX) ? exifdata.RegionAreaX?.[0] : exifdata.RegionAreaX,
-            y: isArray(exifdata.RegionAreaY) ? exifdata.RegionAreaY?.[0] : exifdata.RegionAreaY,
-            width: isArray(exifdata.RegionAreaW) ? exifdata.RegionAreaW?.[0] : exifdata.RegionAreaW,
-            height: isArray(exifdata.RegionAreaH)
-                ? exifdata.RegionAreaH?.[0]
-                : exifdata.RegionAreaH,
-            name: isArray(exifdata.RegionName) ? exifdata.RegionName?.[0] : exifdata.RegionName,
-            type: isArray(exifdata.RegionType) ? exifdata.RegionType?.[0] : exifdata.RegionType,
-            rotation:
-                ((isArray(exifdata.RegionRotation)
-                    ? exifdata.RegionRotation?.[0]
-                    : exifdata.RegionRotation) *
-                    180) /
-                Math.PI
-        });
-    } else {
-        return;
-    }
-
-    const region: RegionData = {
-        appliedDimensionHeight: exifdata.RegionAppliedToDimensionsH,
-        appliedDimensionUnit: exifdata.RegionAppliedToDimensionsUnit,
-        appliedDimensionWidth: exifdata.RegionAppliedToDimensionsW,
-        extensions: {
-            angleInfoRoll: exifdata.RegionExtensionsAngleInfoRoll,
-            angleInfoYaw: exifdata.RegionExtensionsAngleInfoYaw,
-            confidenceLevel: exifdata.RegionExtensionsConfidenceLevel,
-            faceID: exifdata.RegionExtensionsFaceID
+    const riatd = regionInfo?.AppliedToDimensions;
+    return {
+        appliedToDimensions: {
+            h: ensureNumber(riatd?.H),
+            w: ensureNumber(riatd?.W),
+            unit: riatd?.Unit
         },
-        regions
+        regionList
     };
-
-    return region;
 };
+
+const ensureNumber = (n: number | string | undefined) => {
+    if (typeof n === "string") {
+        return Number(n);
+    } else if (typeof n === "undefined") {
+        throw new Error("undefined");
+    }
+    return n;
+};
+
+export interface RegionInfo {
+    appliedToDimensions?: AppliedToDimensions;
+    regionList?: Region[];
+}
+
+export interface AppliedToDimensions {
+    h?: number;
+    w?: number;
+    unit?: string;
+}
+
+export interface Region {
+    area?: RegionArea;
+    rotation?: number;
+    type?: string;
+    name?: string;
+    extensions: {
+        apple: {
+            fi: {
+                // face recognition data from apple devices
+                angleInfoRoll?: number;
+                angleInfoYaw?: number;
+                confidenceLevel?: number;
+                faceID?: number;
+            };
+        };
+    };
+}
+
+export interface RegionArea {
+    h: number;
+    w: number;
+    x: number;
+    y: number;
+}
+
+export interface RegionInfoExiftool {
+    AppliedToDimensions?: AppliedToDimensionsExiftool;
+    RegionList?: RegionExiftool[];
+}
+
+export interface AppliedToDimensionsExiftool {
+    H?: number;
+    W?: number;
+    Unit?: string;
+}
+
+export interface RegionExiftool {
+    Area?: RegionAreaExiftool;
+    Rotation?: number;
+    Type?: string;
+    Name?: string;
+    Extensions?: {
+        // face recognition data from apple devices
+        "XMP-apple-fi:AngleInfoRoll"?: number;
+        "XMP-apple-fi:AngleInfoYaw"?: number;
+        "XMP-apple-fi:ConfidenceLevel"?: number;
+        "XMP-apple-fi:FaceID"?: number;
+    };
+}
+
+export interface RegionAreaExiftool {
+    H?: number | string;
+    W?: number | string;
+    X?: number | string;
+    Y?: number | string;
+}

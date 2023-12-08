@@ -45,6 +45,22 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
 
         return (
             <div className="Image" style={{ width: "100%", display: "relative" }}>
+                {processedImage && this.props.viewMode !== FileViewerViewMode.Preview && (
+                    <ReactVirtualizedAutoSizer>
+                        {({ height, width }) => {
+                            return (
+                                <ImageRegions
+                                    itemHeight={processedImage.height}
+                                    itemWidth={processedImage.width}
+                                    viewerWidth={width}
+                                    viewerHeight={height}
+                                    rotation={rotation}
+                                    file={f}
+                                />
+                            );
+                        }}
+                    </ReactVirtualizedAutoSizer>
+                )}
                 {processedImage && !shouldUseOriginal ? (
                     <img
                         style={{ ...rotationStyle }}

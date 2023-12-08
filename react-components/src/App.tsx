@@ -24,7 +24,7 @@ export default class App extends Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            selectedFileId: "NgxX_t0AvTB-3A6T",
+            selectedFileId: "htrnYtRvDfKQlBjT",
             selectedGroupId: "KgmuP8hQvO6gTL0Q_all"
         };
     }
