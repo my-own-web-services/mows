@@ -5,6 +5,7 @@ import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile"
 import FilezFileViewer, { FileViewerViewMode } from "../../viewer/FileViewer";
 import RowContextMenu from "./RowContextMenu";
 import { BsFillGridFill } from "react-icons/bs";
+import { DraggableItem } from "../../dnd/DraggableItem";
 
 interface GridRowState {}
 
@@ -28,9 +29,11 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
             gridColumnCount,
             disableContextMenu,
             handlers,
+            functions,
             menuItems
         } = data;
-        const { onItemClick, updateRenderModalName, getSelectedItems } = handlers;
+        const { onItemClick, updateRenderModalName } = handlers;
+        const { getSelectedItems } = functions;
         const startIndex = index * gridColumnCount;
         const endIndex = startIndex + gridColumnCount;
         const currentItems = items.slice(startIndex, endIndex);
@@ -62,19 +65,29 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                                 padding: "1px"
                             }}
                         >
-                            {(() => {
-                                if (resourceType === "File") {
-                                    return (
-                                        <FilezFileViewer
-                                            width={rowHeight}
-                                            file={item as unknown as FilezFile}
-                                            style={{ width: "100%", height: "100%" }}
-                                            viewMode={FileViewerViewMode.Preview}
-                                            disablePreviewFalback={true}
-                                        />
-                                    );
-                                }
-                            })()}
+                            <DraggableItem
+                                resource={item}
+                                dropHandler={this.props.data.handlers.onDrop}
+                                getSelectedItems={this.props.data.functions.getSelectedItems}
+                                type={resourceType}
+                            >
+                                {(() => {
+                                    if (resourceType === "File") {
+                                        return (
+                                            <FilezFileViewer
+                                                width={rowHeight}
+                                                file={item as unknown as FilezFile}
+                                                style={{
+                                                    width: "100%",
+                                                    height: "100%"
+                                                }}
+                                                viewMode={FileViewerViewMode.Preview}
+                                                disablePreviewFalback={true}
+                                            />
+                                        );
+                                    }
+                                })()}
+                            </DraggableItem>
                             {!disableContextMenu && (
                                 <RowContextMenu
                                     menuItems={menuItems}

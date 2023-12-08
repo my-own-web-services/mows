@@ -44,27 +44,7 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
         const rotation = getRotation(f);
 
         return (
-            <div
-                className="Image"
-                style={{ width: "100%", display: "relative", outline: "1px solid orange" }}
-            >
-                {
-                    <ReactVirtualizedAutoSizer>
-                        {({ height, width }) => {
-                            return (
-                                <ImageRegions
-                                    itemHeight={processedImage.height}
-                                    itemWidth={processedImage.width}
-                                    viewerWidth={width}
-                                    viewerHeight={height}
-                                    rotation={rotation}
-                                    file={f}
-                                />
-                            );
-                        }}
-                    </ReactVirtualizedAutoSizer>
-                }
-
+            <div className="Image" style={{ width: "100%", display: "relative" }}>
                 {processedImage && !shouldUseOriginal ? (
                     <img
                         style={{ ...rotationStyle }}
@@ -86,6 +66,26 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
     };
 }
 
+/*
+                {
+                    <ReactVirtualizedAutoSizer>
+                        {({ height, width }) => {
+                            return (
+                                <ImageRegions
+                                    itemHeight={processedImage.height}
+                                    itemWidth={processedImage.width}
+                                    viewerWidth={width}
+                                    viewerHeight={height}
+                                    rotation={rotation}
+                                    file={f}
+                                />
+                            );
+                        }}
+                    </ReactVirtualizedAutoSizer>
+                }
+
+*/
+
 export enum ImageOrientation {
     "Horizontal (normal)" = 1,
     "Mirror horizontal" = 2,
@@ -97,7 +97,7 @@ export enum ImageOrientation {
     "Rotate 270 CW" = 8
 }
 
-export const getRotation = (filezFile: FilezFile): ImageOrientation | null => {
+export const getRotation = (filezFile: FilezFile): ImageOrientation | undefined => {
     const rotation = filezFile.app_data?.metadata?.result?.exifdata?.Orientation;
     return match(rotation)
         .with("Horizontal (normal)", () => ImageOrientation["Horizontal (normal)"])
@@ -114,7 +114,7 @@ export const getRotation = (filezFile: FilezFile): ImageOrientation | null => {
             () => ImageOrientation["Mirror horizontal and rotate 90 CW"]
         )
         .with("Rotate 270 CW", () => ImageOrientation["Rotate 270 CW"])
-        .otherwise(() => null);
+        .otherwise(() => undefined);
 };
 
 export const getRotationStyle = (filezFile: FilezFile) => {
@@ -131,16 +131,20 @@ export const getRotationStyle = (filezFile: FilezFile) => {
     8 = Rotate 270 CW
     */
 
+    const transform = match(rotation)
+        .with("Mirror horizontal", () => "scaleX(-1)")
+        .with("Rotate 180", () => "rotate(180deg)")
+        .with("Mirror vertical", () => "scaleY(-1)")
+        .with("Mirror horizontal and rotate 270 CW", () => "scaleX(-1) rotate(270deg)")
+        .with("Rotate 90 CW", () => "rotate(90deg)")
+        .with("Mirror horizontal and rotate 90 CW", () => "scaleX(-1) rotate(90deg)")
+        .with("Rotate 270 CW", () => "rotate(270deg)")
+        .otherwise(() => undefined);
+
+    if (!transform) return {};
+
     const style: CSSProperties = {
-        transform: match(rotation)
-            .with("Mirror horizontal", () => "scaleX(-1)")
-            .with("Rotate 180", () => "rotate(180deg)")
-            .with("Mirror vertical", () => "scaleY(-1)")
-            .with("Mirror horizontal and rotate 270 CW", () => "scaleX(-1) rotate(270deg)")
-            .with("Rotate 90 CW", () => "rotate(90deg)")
-            .with("Mirror horizontal and rotate 90 CW", () => "scaleX(-1) rotate(90deg)")
-            .with("Rotate 270 CW", () => "rotate(270deg)")
-            .otherwise(() => "")
+        transform
     };
 
     return style;

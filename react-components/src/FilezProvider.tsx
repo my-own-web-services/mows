@@ -6,6 +6,10 @@ import "./default.scss";
 import { CustomProvider } from "rsuite";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { Preview } from "react-dnd-preview";
+import { generateDndPreview } from "./components/dnd/generatePreview";
 
 export interface FilezContext {
     filezClient: FilezClient;
@@ -15,6 +19,7 @@ export interface FilezContext {
 export const FilezContext = createContext<FilezContext | null>(null);
 
 interface FilezProviderProps {
+    readonly uiConfig?: UiConfig;
     readonly children?: React.ReactNode;
 }
 
@@ -37,7 +42,15 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
     }
 
     componentDidMount = async () => {
-        const uiConfig: UiConfig = await fetch("/config.json").then(res => res.json());
+        const uiConfig: UiConfig = await (async () => {
+            if (!this.props.uiConfig) {
+                const res = await fetch("/config.json");
+                const json = await res.json();
+                return json as UiConfig;
+            } else {
+                return this.props.uiConfig;
+            }
+        })();
 
         const client = new FilezClient(
             uiConfig.filezServerAddress,
@@ -66,14 +79,20 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
             return null;
         }
         return (
-            <FilezContext.Provider
-                value={{
-                    filezClient: this.state.filezClient,
-                    uiConfig: this.state.uiConfig
-                }}
-            >
-                <CustomProvider theme="dark">{this.props.children}</CustomProvider>
-            </FilezContext.Provider>
+            <CustomProvider theme="dark">
+                <DndProvider backend={HTML5Backend}>
+                    <Preview generator={generateDndPreview} />
+
+                    <FilezContext.Provider
+                        value={{
+                            filezClient: this.state.filezClient,
+                            uiConfig: this.state.uiConfig
+                        }}
+                    >
+                        {this.props.children}{" "}
+                    </FilezContext.Provider>
+                </DndProvider>
+            </CustomProvider>
         );
     };
 }

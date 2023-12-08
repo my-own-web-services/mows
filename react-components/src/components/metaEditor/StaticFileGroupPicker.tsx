@@ -65,7 +65,7 @@ export default class StaticFileGroupPicker extends PureComponent<
             }
         })();
 
-        if (!resources) return;
+        if (!resources) throw new Error("No resources provided");
 
         const resourceMap = this.resourcesToSelectedGroups(resources);
         const knownGroups = await this.getStaticFileGroups();

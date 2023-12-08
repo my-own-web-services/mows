@@ -18,33 +18,13 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
 
     componentDidMount = async () => {};
 
-    getIconName = () => {
-        const fileName = this.props.file.name.toLowerCase();
-
-        // TODO this should be based on mime type and not on file extension but the mappings for that would have to be created manually
-
-        // get the icon from the extension
-        const icon = fileIcons.icons.find(
-            icon =>
-                icon.fileExtensions?.some(ext => fileName.endsWith(`.${ext}`)) ||
-                icon.fileNames?.includes(fileName)
-        );
-
-        if (icon) {
-            return icon.name;
-        }
-
-        if (fileName.endsWith(`.xmp`)) return "xml";
-
-        if (rawFileEndings.some(ext => fileName.endsWith(`.${ext}`))) {
-            return "image";
-        }
-
-        return fileIcons.defaultIcon.name;
-    };
-
     getIcon = () => {
-        return <img style={{ height: "100%" }} src={`/file-icons/${this.getIconName()}.svg`}></img>;
+        return (
+            <img
+                style={{ height: "100%" }}
+                src={`/file-icons/${getIconName(this.props.file.name)}.svg`}
+            ></img>
+        );
     };
 
     render = () => {
@@ -55,3 +35,30 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
         );
     };
 }
+
+export const getIconName = (name?: string) => {
+    if (!name) return fileIcons.defaultIcon.name;
+
+    const fileName = name.toLowerCase();
+
+    // TODO this should be based on mime type and not on file extension but the mappings for that would have to be created manually
+
+    // get the icon from the extension
+    const icon = fileIcons.icons.find(
+        icon =>
+            icon.fileExtensions?.some(ext => fileName.endsWith(`.${ext}`)) ||
+            icon.fileNames?.includes(fileName)
+    );
+
+    if (icon) {
+        return icon.name;
+    }
+
+    if (fileName.endsWith(`.xmp`)) return "xml";
+
+    if (rawFileEndings.some(ext => fileName.endsWith(`.${ext}`))) {
+        return "image";
+    }
+
+    return fileIcons.defaultIcon.name;
+};

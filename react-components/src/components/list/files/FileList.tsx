@@ -1,4 +1,4 @@
-import { CSSProperties, PureComponent, createRef, useContext, useEffect, useState } from "react";
+import { CSSProperties, PureComponent, createRef } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import InfiniteLoader from "react-window-infinite-loader";
 import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../../utils";
@@ -6,11 +6,11 @@ import ResourceList, { Column, ColumnDirection, RowHandlers } from "../resource/
 import CreateFile from "./CreateFile";
 import EditFile from "./EditFile";
 import FileIcon from "../../fileIcons/FileIcon";
-import { Tag } from "rsuite";
-import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
+
 import GridRowRenderer from "../resource/GridRowRenderer";
 import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { GroupTags } from "./GroupTags";
 
 const defaultColumns: Column<FilezFile>[] = [
     {
@@ -79,28 +79,6 @@ const defaultColumns: Column<FilezFile>[] = [
         render: (item: FilezFile) => <GroupTags file={item} />
     }
 ];
-
-const GroupTags = ({ file }: { file: FilezFile }) => {
-    const [groups, setGroups] = useState<FilezFileGroup[]>([]);
-    const context = useContext(FilezContext);
-
-    useEffect(() => {
-        context?.filezClient.get_file_groups(file.static_file_group_ids).then(setGroups);
-    }, [file, context]);
-
-    return (
-        <span>
-            {file.static_file_group_ids.map(id => {
-                const group = groups.find(g => g._id === id);
-                return (
-                    <Tag size="xs" key={id}>
-                        {group?.name ?? group?._id}
-                    </Tag>
-                );
-            })}
-        </span>
-    );
-};
 
 interface FileListProps {
     readonly id: string;

@@ -17,6 +17,30 @@
     --contexify-activeArrow-color: #fff;
 }
 
+.cantDrop {
+    opacity: 0.5;
+}
+
+.DragPreviewImage:active {
+    border: 10px solid red;
+}
+
+.dragOverActive {
+    position: relative;
+    &::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0px;
+        left: 0px;
+        right: -2px;
+        bottom: -2px;
+        border: 2px solid var(--accent);
+        border-radius: 4px;
+    }
+}
+
 .fadeIn {
     animation: fadeInAnimation ease 0.5s;
     animation-iteration-count: 1;

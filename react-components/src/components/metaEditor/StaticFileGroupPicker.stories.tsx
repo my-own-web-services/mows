@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import StaticFileGroupPicker from "./StaticFileGroupPicker";
 import { FilezClient } from "@firstdorsal/filez-client";
-const filezClientConfig = {
+import FilezProvider from "../../FilezProvider";
+const filezClientConfigStorybook = {
     interosseaServerAddress: "http://accounts-server.localhost",
     interosseaWebAddress: "http://accounts.localhost",
     filezServerAddress: "http://filez-server.localhost",
@@ -13,7 +14,9 @@ const meta: Meta<typeof StaticFileGroupPicker> = {
     title: "Atoms/StaticFileGroupPicker",
     component: StaticFileGroupPicker,
     render: (args, { loaded: { resources } }) => (
-        <StaticFileGroupPicker {...args} resources={resources} />
+        <FilezProvider uiConfig={filezClientConfigStorybook}>
+            <StaticFileGroupPicker {...args} resources={resources} />
+        </FilezProvider>
     )
 };
 
@@ -27,14 +30,13 @@ export const Primary: Story = {
         async () => ({
             resources: (async () => {
                 const filezClient = new FilezClient(
-                    filezClientConfig.filezServerAddress,
-                    filezClientConfig.interosseaServerAddress,
-                    filezClientConfig.interosseaWebAddress,
-                    filezClientConfig.applicationId,
-                    filezClientConfig.skipInterossea
+                    filezClientConfigStorybook.filezServerAddress,
+                    filezClientConfigStorybook.interosseaServerAddress,
+                    filezClientConfigStorybook.interosseaWebAddress,
+                    filezClientConfigStorybook.applicationId,
+                    filezClientConfigStorybook.skipInterossea
                 );
                 await filezClient.init();
-                console.log("filezClient", filezClient);
 
                 const user = await filezClient.get_own_user();
 

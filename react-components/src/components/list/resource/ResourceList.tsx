@@ -36,7 +36,8 @@ export interface RowHandlers {
     readonly onClick?: (
         e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
         item: BaseResource,
-        rightClick?: boolean
+        rightClick?: boolean,
+        draged?: boolean
     ) => void;
 }
 
@@ -55,8 +56,11 @@ export interface ListData<ResourceType> {
     readonly items: ResourceType[];
     readonly handlers: {
         readonly onItemClick: InstanceType<typeof ResourceList>["onItemClick"];
-        readonly getSelectedItems: InstanceType<typeof ResourceList>["getSelectedItems"];
         readonly updateRenderModalName?: InstanceType<typeof ResourceList>["updateRenderModalName"];
+        readonly onDrop: InstanceType<typeof ResourceList>["onDrop"];
+    };
+    readonly functions: {
+        readonly getSelectedItems: InstanceType<typeof ResourceList>["getSelectedItems"];
     };
     readonly selectedItems: SelectedItems;
     readonly columns?: Column<ResourceType>[];
@@ -349,15 +353,20 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         await this.loadItems();
     };
 
+    onDrop = (targetItemId: string) => {
+        const selectedItems = this.getSelectedItems();
+    };
+
     onItemClick = (
         e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
         item: BaseResource,
-        rightClick?: boolean
+        rightClick?: boolean,
+        draged?: boolean
     ) => {
         // @ts-ignore
         if (e.target?.classList?.contains("clickable")) return;
 
-        this.props.rowHandlers?.onClick?.(e, item, rightClick);
+        this.props.rowHandlers?.onClick?.(e, item, rightClick, draged);
 
         if (e.ctrlKey) {
             this.setState(state => {
@@ -389,6 +398,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                     i._id ===
                                     Object.keys(selectedItems).find(id => selectedItems[id])
                             );
+                            // TODO when selecting all items from top to bottom of a list while scrolling fast over the middle of the list it can happen that the middle items dont get loaded and therefore are not selectable and the component crashes when trying to find the id of the not loaded item
                             const endIndex = items.findIndex(i => i._id === item._id);
                             const minIndex = Math.min(startIndex, endIndex);
                             const maxIndex = Math.max(startIndex, endIndex);
@@ -400,7 +410,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                     }
                 });
             });
-        } else if (rightClick) {
+        } else if (rightClick || draged) {
             const selectedItems = this.getSelectedItems();
             if (selectedItems.length <= 1) {
                 this.setState({
@@ -598,9 +608,12 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                     items: this.state.items,
                                                     handlers: {
                                                         onItemClick: this.onItemClick,
-                                                        getSelectedItems: this.getSelectedItems,
                                                         updateRenderModalName:
-                                                            this.updateRenderModalName
+                                                            this.updateRenderModalName,
+                                                        onDrop: this.onDrop
+                                                    },
+                                                    functions: {
+                                                        getSelectedItems: this.getSelectedItems
                                                     },
                                                     selectedItems: this.state.selectedItems,
 

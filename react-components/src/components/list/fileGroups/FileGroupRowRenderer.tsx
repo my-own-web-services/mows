@@ -8,6 +8,7 @@ import {
 import { FaThList } from "react-icons/fa";
 import RowContextMenu from "../resource/RowContextMenu";
 import { AiOutlineFolder, AiOutlineFolderView } from "react-icons/ai";
+import { DraggableTarget } from "../../dnd/DraggableTarget";
 
 interface FileGroupRowRendererState {}
 
@@ -36,6 +37,12 @@ class FileGroupRowRendererComp<ResourceType extends BaseResource> extends PureCo
         this.contextMenuRef.current?.open(e);
     };
 
+    canDrop = () => {
+        const item = this.getCurentItem();
+        if (item.readonly || item.group_type === "Dynamic") return false;
+        return true;
+    };
+
     render = () => {
         if (!this.props.data) return;
         const item = this.getCurentItem();
@@ -53,7 +60,7 @@ class FileGroupRowRendererComp<ResourceType extends BaseResource> extends PureCo
                 onContextMenu={this.onContextMenu}
                 className={`Row${isSelected ? " selected" : ""}`}
             >
-                {
+                <DraggableTarget acceptType="File" id={item._id} canDrop={this.canDrop}>
                     <div className="Group">
                         <div className="GroupItems">
                             <span>
@@ -67,14 +74,14 @@ class FileGroupRowRendererComp<ResourceType extends BaseResource> extends PureCo
                             <span className="itemCount">{item?.item_count}</span>
                         </div>
                     </div>
-                }
+                </DraggableTarget>
                 {!this.props.data.disableContextMenu && (
                     <RowContextMenu
                         ref={this.contextMenuRef}
                         menuItems={this.props.data.menuItems}
                         updateRenderModalName={this.props.data.handlers.updateRenderModalName}
                         resourceType={this.props.data.resourceType}
-                        getSelectedItems={this.props.data.handlers.getSelectedItems}
+                        getSelectedItems={this.props.data.functions.getSelectedItems}
                         menuId={item._id}
                         currentItem={item}
                     />
@@ -94,7 +101,13 @@ const FileGroupRowRenderer: RowRenderer<BaseResource> = {
     getRowHeight: (_width, _height, _gridColumnCount) => {
         return 20;
     },
-    direction: RowRendererDirection.Vertical
+    direction: RowRendererDirection.Vertical,
+    getItemKey: (_items, index, _gridColumnCount) => {
+        return index;
+    },
+    isItemLoaded: (items, index, _gridColumnCount) => {
+        return items[index] !== undefined;
+    }
 };
 
 export default FileGroupRowRenderer;

@@ -8,7 +8,7 @@
         "build": "tsc && vite build",
         "lint": "eslint src --ext ts,tsx",
         "preview": "vite preview",
-        "storybook": "BROWSER=none storybook dev -p 6006",
+        "storybook": "storybook dev -p 6006",
         "build-storybook": "storybook build"
     },
     "dependencies": {
@@ -20,13 +20,16 @@
         "lodash": "^4.17.21",
         "react": "^18.2.0",
         "react-contexify": "^6.0.0",
+        "react-dnd": "^16.0.1",
+        "react-dnd-html5-backend": "^16.0.1",
+        "react-dnd-preview": "^8.0.3",
         "react-dom": "^18.2.0",
         "react-icons": "^4.10.1",
         "react-split": "^2.0.14",
         "react-virtualized-auto-sizer": "^1.0.20",
         "react-window": "^1.8.9",
         "react-window-infinite-loader": "^1.0.9",
-        "rsuite": "^5.46.0",
+        "rsuite": "^5.47.0",
         "sass": "^1.62.1",
         "ts-pattern": "^5.0.5"
     },

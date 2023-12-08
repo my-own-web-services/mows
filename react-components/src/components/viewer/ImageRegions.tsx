@@ -14,7 +14,7 @@ interface ImageRegionsProps {
     readonly viewerHeight: number;
     readonly itemWidth: number;
     readonly itemHeight: number;
-    readonly rotation: ImageOrientation;
+    readonly rotation?: ImageOrientation;
 }
 
 interface ImageRegionsState {
