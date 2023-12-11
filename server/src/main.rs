@@ -16,7 +16,6 @@ use filez::methods::file_group::get::get_file_groups;
 use filez::methods::file_group::list::get_own_file_groups;
 use filez::methods::file_group::update::update_file_group;
 use filez::methods::get_aggregated_keywords::get_aggregated_keywords;
-
 use filez::methods::permission::delete::delete_permission;
 use filez::methods::permission::list::get_own_permissions;
 use filez::methods::permission::update::update_permission;

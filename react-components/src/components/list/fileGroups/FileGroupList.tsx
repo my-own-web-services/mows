@@ -4,11 +4,12 @@ import ResourceList, { RowHandlers } from "../resource/ResourceList";
 import CreateFileGroup from "./CreateFileGroup";
 import EditFileGroup from "./EditFileGroup";
 import FileGroupRowRenderer from "./FileGroupRowRenderer";
+import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 
 interface FileGroupListProps {
     readonly displayTopBar?: boolean;
     readonly style?: CSSProperties;
-    readonly rowHandlers?: RowHandlers;
+    readonly rowHandlers?: RowHandlers<FilezFileGroup>;
 }
 
 interface FileGroupListState {}

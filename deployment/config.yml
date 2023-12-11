@@ -121,7 +121,7 @@ filez:
           storage: true
           filezAccess: true
           image: firstdorsal/filez-addons-image
-          resetOnRestart: true
+          resetOnRestart: false
           build:
               enabled: true
               path: ../../

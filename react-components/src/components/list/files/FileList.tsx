@@ -86,7 +86,7 @@ interface FileListProps {
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
     readonly initialListType?: string;
-    readonly rowHandlers?: RowHandlers;
+    readonly rowHandlers?: RowHandlers<FilezFile>;
 }
 
 interface FileListState {}
@@ -102,6 +102,11 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         super(props);
         this.state = {};
     }
+
+    onDrop = (targetItemId: string, targetItemType: string, selectedFiles: FilezFile[]) => {
+        if (!this.context) return;
+        //TODO add files to file group
+    };
 
     render = () => {
         if (!this.context) return;
@@ -119,7 +124,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     rowRenderers={[GridRowRenderer, ColumnListRowRenderer]}
                     displaySortingBar={this.props.displaySortingBar}
                     displayTopBar={this.props.displayTopBar}
-                    rowHandlers={this.props.rowHandlers}
+                    rowHandlers={{ onDrop: this.onDrop, ...this.props.rowHandlers }}
                     columns={defaultColumns}
                 />
             </div>

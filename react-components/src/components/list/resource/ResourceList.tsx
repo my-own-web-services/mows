@@ -1,4 +1,3 @@
-import { GetResourceParams } from "@firstdorsal/filez-client";
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
 import { CSSProperties, ComponentType, PureComponent, ReactElement, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
@@ -11,6 +10,8 @@ import { cloneDeep } from "lodash";
 import { FilezContext } from "../../../FilezProvider";
 import "react-contexify/dist/ReactContexify.css";
 import { FilezMenuItems, defaultMenuItems } from "./DefaultMenuItems";
+import { GetItemListRequestBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListRequestBody";
+import { GetItemListResponseBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListResponseBody";
 
 export interface RowRenderer<ResourceType> {
     readonly name: string;
@@ -36,13 +37,19 @@ export interface RowRenderer<ResourceType> {
     ) => { startIndex: number; limit: number };
 }
 
-export interface RowHandlers {
+export interface RowHandlers<ResourceType> {
     readonly onClick?: (
         e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
         item: BaseResource,
         rightClick?: boolean,
         dragged?: boolean
     ) => void;
+    readonly onDrop?: (
+        targetItemId: string,
+        targetItemType: string,
+        selectedFiles: ResourceType[]
+    ) => void;
+    readonly onSelect?: (selectedItems: ResourceType[]) => void;
 }
 
 export enum RowRendererDirection {
@@ -74,7 +81,7 @@ export interface ListData<ResourceType> {
     readonly resourceType: string;
     readonly gridColumnCount: number;
     readonly rowHeight: number;
-    readonly rowHandlers?: RowHandlers;
+    readonly rowHandlers?: RowHandlers<ResourceType>;
 }
 
 export interface Column<ResourceType> {
@@ -116,8 +123,8 @@ interface ResourceListProps<ResourceType> {
      A function that gets the resource in from the server/db and returns it. This has to be implemented in a specific way to support the infinite scrolling.
      */
     readonly get_items_function: (
-        props: GetResourceParams
-    ) => Promise<{ items: ResourceType[]; total_count: number }>;
+        body: GetItemListRequestBody
+    ) => Promise<GetItemListResponseBody<ResourceType>>;
     /**
     If provided renders a button to call it as well as the UI rendered by the function to create the resource.
     */
@@ -131,7 +138,7 @@ interface ResourceListProps<ResourceType> {
     readonly columns?: Column<ResourceType>[];
     readonly disableContextMenu?: boolean;
     readonly initialListType?: string;
-    readonly rowHandlers?: RowHandlers;
+    readonly rowHandlers?: RowHandlers<ResourceType>;
 }
 
 interface ResourceListState<ResourceType> {
@@ -227,9 +234,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
         const { sort_field, sort_order } = this.get_current_column_sorting();
 
-        // this gets the visbile rows
+        // this gets the visible rows
         const cvir = this.getCurrentVisibleItemsRange(newId ? 0 : this.state.scrollOffset);
-        console.log(cvir);
 
         const { startIndex, limit } = currentRowRenderer.getStartIndexAndLimit(
             cvir.startIndex,
@@ -410,8 +416,9 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         await this.loadItems();
     };
 
-    onDrop = (targetItemId: string) => {
+    onDrop = (targetItemId: string, targetItemType: string) => {
         const selectedItems = this.getSelectedItems();
+        this.props.rowHandlers?.onDrop?.(targetItemId, targetItemType, selectedItems);
     };
 
     onItemClick = async (
@@ -425,6 +432,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
         this.props.rowHandlers?.onClick?.(e, item, rightClick, dragged);
 
+        const afterStateUpdate = () => this.props.rowHandlers?.onSelect?.(this.getSelectedItems());
+
         if (e.ctrlKey) {
             this.setState(state => {
                 return {
@@ -433,7 +442,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                         [item._id]: state.selectedItems[item._id] ? false : true
                     }
                 };
-            });
+            }, afterStateUpdate);
         } else if (e.shiftKey) {
             const toBeSet = await (async () => {
                 const state = this.state;
@@ -489,7 +498,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                         $set: toBeSet
                     }
                 });
-            });
+            }, afterStateUpdate);
         } else if (rightClick || dragged) {
             const selectedItems = this.getSelectedItems();
             if (selectedItems.length <= 1) {
@@ -500,11 +509,14 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                 });
             }
         } else {
-            this.setState({
-                selectedItems: {
-                    [item._id]: true
-                }
-            });
+            this.setState(
+                {
+                    selectedItems: {
+                        [item._id]: true
+                    }
+                },
+                afterStateUpdate
+            );
         }
     };
 

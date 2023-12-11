@@ -38,8 +38,11 @@ pub struct GetItemListResponseBody<T> {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct GetItemListRequestBody {
+    #[ts(optional)]
     pub id: Option<String>,
+    #[ts(type = "number")]
     pub from_index: u64,
+    #[ts(type = "number")]
     pub limit: Option<u64>,
     pub sort_field: Option<String>,
     pub sort_order: Option<SortOrder>,

@@ -73,7 +73,9 @@ export default class App extends Component<AppProps, AppState> {
 }
 
 /*
-
+                    <PermissionList style={{ height: "500px" }} />
+                    <UserGroupList style={{ height: "500px" }} />
+                    <UserList style={{ height: "500px" }} />
                     
                     <FileList
                         style={{ height: "500px" }}
