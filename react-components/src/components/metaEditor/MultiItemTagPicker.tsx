@@ -146,14 +146,14 @@ export default class MultiItemTagPicker extends Component<
         this.props.onChange(newResources, this.props.possibleTags);
     };
 
-    onCreate = (_newTag: string, item: any) => {
+    onCreate = (_newTag: string, item: TagData) => {
         const newResources: MultiItemTagPickerResources = cloneDeep(
             this.props.multiItemSelectedTags
         );
         for (const [resourceId, currentTags] of Object.entries(newResources)) {
             newResources[resourceId] = [...currentTags, item?.value];
         }
-        this.props.onChange(newResources, [...this.props.possibleTags, item?.value]);
+        this.props.onChange(newResources, [...this.props.possibleTags, item]);
     };
 
     onTagRemove = (removedTagValue: string) => {
@@ -190,6 +190,7 @@ export default class MultiItemTagPicker extends Component<
                     value={this.state.selectedTags}
                     size={this.props.size}
                     onSelect={this.onSelect}
+                    //@ts-ignore
                     onCreate={this.onCreate}
                     onTagRemove={this.onTagRemove}
                     cleanable={false}

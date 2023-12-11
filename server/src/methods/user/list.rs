@@ -4,7 +4,7 @@ use crate::{
     utils::{get_query_item, get_query_item_number},
 };
 use filez_common::server::{
-    FriendshipStatus, GetItemListResponseBody, ReducedFilezUser, SortOrder,
+    FriendshipStatus, GetItemListRequestBody, GetItemListResponseBody, ReducedFilezUser, SortOrder,
 };
 use hyper::{Body, Request, Response};
 
@@ -16,26 +16,18 @@ pub async fn get_user_list(
 ) -> anyhow::Result<Response<Body>> {
     let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
 
-    let limit = get_query_item_number(&req, "l");
-    let from_index = get_query_item_number(&req, "i").unwrap_or(0);
+    let body = hyper::body::to_bytes(req.into_body()).await?;
 
-    let field = get_query_item(&req, "f");
-    let sort_order = get_query_item(&req, "o").map_or(SortOrder::Ascending, |s| match s.as_str() {
-        "Ascending" => SortOrder::Ascending,
-        "Descending" => SortOrder::Descending,
-        _ => SortOrder::Ascending,
-    });
-
-    let filter = get_query_item(&req, "s");
+    let grrb: GetItemListRequestBody = serde_json::from_slice(&body)?;
 
     let (items, total_count) = db
         .get_user_list(
             &requesting_user,
-            limit,
-            from_index as u64,
-            field,
-            sort_order,
-            filter,
+            grrb.limit,
+            grrb.from_index,
+            grrb.sort_field,
+            grrb.sort_order.unwrap_or(SortOrder::Ascending),
+            grrb.filter,
         )
         .await?;
 

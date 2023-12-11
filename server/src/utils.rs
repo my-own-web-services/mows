@@ -154,9 +154,14 @@ pub fn get_query_item(req: &Request<Body>, item: &str) -> Option<String> {
     }
 }
 
-pub fn get_query_item_number(req: &Request<Body>, item: &str) -> Option<i64> {
+// any number that implemenets from string
+pub fn get_query_item_number<Number>(req: &Request<Body>, item: &str) -> Option<Number>
+where
+    Number: std::str::FromStr,
+    <Number as std::str::FromStr>::Err: std::fmt::Debug,
+{
     match get_query_item(req, item) {
-        Some(l) => match l.parse::<i64>() {
+        Some(l) => match l.parse::<Number>() {
             Ok(l) => Some(l),
             Err(_) => None,
         },

@@ -7,27 +7,28 @@ use filez::methods::file::create::create_file;
 use filez::methods::file::delete::delete_file;
 use filez::methods::file::get::get_file;
 use filez::methods::file::info::get::get_file_infos;
+use filez::methods::file::info::list::get_file_infos_by_group_id;
 use filez::methods::file::info::update::update_file_infos;
 use filez::methods::file::update::update_file;
 use filez::methods::file_group::create::create_file_group;
 use filez::methods::file_group::delete::delete_file_group;
 use filez::methods::file_group::get::get_file_groups;
+use filez::methods::file_group::list::get_own_file_groups;
 use filez::methods::file_group::update::update_file_group;
 use filez::methods::get_aggregated_keywords::get_aggregated_keywords;
-use filez::methods::get_file_infos_by_group_id::get_file_infos_by_group_id;
-use filez::methods::get_own_file_groups::get_own_file_groups;
-use filez::methods::get_own_permissions::get_own_permissions;
-use filez::methods::get_user_group_list::get_user_group_list;
-use filez::methods::get_user_list::get_user_list;
+
 use filez::methods::permission::delete::delete_permission;
+use filez::methods::permission::list::get_own_permissions;
 use filez::methods::permission::update::update_permission;
 use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
 use filez::methods::user::create_own::create_own_user;
 use filez::methods::user::get_own::get_own_user;
+use filez::methods::user::list::get_user_list;
 use filez::methods::user::update_friendship_status::update_friendship_status;
 use filez::methods::user_group::create::create_user_group;
 use filez::methods::user_group::delete::delete_user_group;
+use filez::methods::user_group::list::get_user_group_list;
 use filez::methods::user_group::update::update_user_group;
 use filez::readonly_mount::scan_readonly_mounts;
 use filez::utils::{get_password_from_query, is_allowed_origin, update_default_user_limits};
@@ -214,7 +215,7 @@ async fn handle_inner(
         get_file_infos(req, db, &auth, res).await
     } else if p == "/file/info/update/" && m == Method::POST {
         update_file_infos(req, db, &auth, res).await
-    } else if p.starts_with("/get_file_infos_by_group_id/") && m == Method::GET {
+    } else if p.starts_with("/file/info/list/") && m == Method::POST {
         get_file_infos_by_group_id(req, db, &auth, res).await
     }
     /* file group */
@@ -226,6 +227,8 @@ async fn handle_inner(
         update_file_group(req, db, &auth, res).await
     } else if p == "/file_group/get/" && m == Method::POST {
         get_file_groups(req, db, &auth, res).await
+    } else if p == "/file_group/list/" && m == Method::POST {
+        get_own_file_groups(req, db, &auth, res).await
     }
     /* user group */
     else if p == "/user_group/create/" && m == Method::POST {
@@ -234,12 +237,16 @@ async fn handle_inner(
         delete_user_group(req, db, &auth, res).await
     } else if p == "/user_group/update/" && m == Method::POST {
         update_user_group(req, db, &auth, res).await
+    } else if p == "/user_group/list/" && m == Method::POST {
+        get_user_group_list(req, db, &auth, res).await
     }
     /* permissions */
     else if p == "/permission/update/" && m == Method::POST {
         update_permission(req, db, &auth, res).await
     } else if p == "/permission/delete/" && m == Method::POST {
         delete_permission(req, db, &auth, res).await
+    } else if p == "/permission/list/" && m == Method::POST {
+        get_own_permissions(req, db, &auth, res).await
     }
     /* user */
     else if p.starts_with("/user/get_own/") && m == Method::GET {
@@ -248,18 +255,12 @@ async fn handle_inner(
         create_own_user(req, db, &auth, res).await
     } else if p == "/user/update_friendship_status/" && m == Method::POST {
         update_friendship_status(req, db, &auth, res).await
+    } else if p == "/user/list/" && m == Method::POST {
+        get_user_list(req, db, &auth, res).await
     }
     /* misc */
     else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
         update_permission_ids_on_resource(req, db, &auth, res).await
-    } else if p == "/get_own_permissions/" && m == Method::GET {
-        get_own_permissions(req, db, &auth, res).await
-    } else if p == "/get_own_file_groups/" && m == Method::GET {
-        get_own_file_groups(req, db, &auth, res).await
-    } else if p == "/get_user_list/" && m == Method::GET {
-        get_user_list(req, db, &auth, res).await
-    } else if p == "/get_user_group_list/" && m == Method::GET {
-        get_user_group_list(req, db, &auth, res).await
     } else if p == "/get_aggregated_keywords/" && m == Method::GET {
         get_aggregated_keywords(req, db, &auth, res).await
     } else if p == "/set_app_data/" && m == Method::POST {

@@ -6,7 +6,7 @@ import { BiPlus } from "react-icons/bi";
 import { IoReload } from "react-icons/io5";
 
 interface ListTopBarProps<ResourceType> {
-    readonly updateListType: InstanceType<typeof ResourceList>["updateListType"];
+    readonly updateListType: InstanceType<typeof ResourceList>["updateListViewMode"];
     readonly commitSearch: InstanceType<typeof ResourceList>["commitSearch"];
     readonly updateGridColumnCount: InstanceType<typeof ResourceList>["updateGridColumnCount"];
     readonly gridColumnCount: number;

@@ -9,7 +9,9 @@ import update from "immutability-helper";
 import Keywords from "../../metaEditor/KeywordPicker";
 import StoragePicker from "../../metaEditor/StoragePicker";
 import { AutoSizer } from "rsuite/esm/Windowing";
-import { FixedSizeList } from "react-window";
+import { FixedSizeList, ListProps } from "react-window";
+import { ValueType } from "rsuite/esm/Checkbox";
+import { MultiItemTagPickerResources } from "../../metaEditor/MultiItemTagPicker";
 
 interface UploadFileProps {
     readonly type: "create" | "edit";
@@ -63,6 +65,46 @@ const defaultFile: FilezFile = {
     readonly_path: null
 };
 
+export interface ListItemProps {
+    index: number;
+    style: CSSProperties;
+    data: {
+        items: BrowserFile[];
+        disabled: boolean;
+        handlers: {
+            updateName: InstanceType<typeof UploadFile>["updateName"];
+        };
+    };
+}
+
+const ItemRenderer = (props: ListItemProps) => {
+    const { index, style, data } = props;
+    const file = data.items[index];
+    return (
+        <div style={style}>
+            <Input
+                style={{
+                    display: "block",
+                    width: "50%",
+                    height: "100%",
+                    float: "left"
+                }}
+                data-index={index}
+                placeholder="Name"
+                disabled={data.disabled}
+                size="sm"
+                value={file.name}
+                onChange={data.handlers.updateName}
+            />
+            <Progress.Line
+                style={{ width: "45%", float: "left", overflow: "hidden" }}
+                percent={parseFloat(((file.uploadedSize / file.size) * 100).toFixed(2))}
+                status={file.uploadStatus}
+            />
+        </div>
+    );
+};
+
 export default class UploadFile extends PureComponent<UploadFileProps, UploadFileState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
@@ -107,6 +149,18 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
         // TODO show upload speed
         // TODO this should create the upload group for the files
 
+        const uploadGroupRes = await this.context.filezClient.create_file_group({
+            dynamic_group_rules: null,
+            group_hierarchy_paths: [],
+            group_type: "Static",
+            keywords: this.state.keywords,
+            name: this.state.uploadGroupName,
+            permission_ids: [],
+            mime_types: []
+        });
+
+        const { group_id } = uploadGroupRes;
+
         for (const file of this.state.fileList) {
             if (!file.blobFile) continue;
             const filezFile: FilezFile = cloneDeep(defaultFile);
@@ -117,6 +171,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
             filezFile.permission_ids = [];
             filezFile.size = file.blobFile.size;
             filezFile.modified = file.blobFile.lastModified / 1000;
+            filezFile.static_file_group_ids = [group_id];
             if (useOncePermissionId) {
                 filezFile.permission_ids.push(useOncePermissionId);
             }
@@ -184,40 +239,63 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
         return true;
     };
 
-    itemRenderer = (style: CSSProperties, file: BrowserFile, index: number) => {
-        return (
-            <div style={style}>
-                <Input
-                    style={{
-                        display: "block",
-                        width: "50%",
-                        height: "100%",
-                        float: "left"
-                    }}
-                    placeholder="Name"
-                    disabled={this.state.uploading}
-                    size="sm"
-                    value={file.name}
-                    onChange={value => {
-                        this.setState(() => {
-                            return update(this.state, {
-                                fileList: {
-                                    [index]: {
-                                        name: {
-                                            $set: value
-                                        }
-                                    }
-                                }
-                            });
-                        });
-                    }}
-                />
-                <Progress.Line
-                    style={{ width: "45%", float: "left", overflow: "hidden" }}
-                    percent={parseFloat(((file.uploadedSize / file.size) * 100).toFixed(2))}
-                    status={file.uploadStatus}
-                />
-            </div>
+    updateName = (value: string, event: any) => {
+        const index = parseInt(event.target.dataset.index);
+
+        this.setState(() => {
+            return update(this.state, {
+                fileList: {
+                    [index]: {
+                        name: {
+                            $set: value
+                        }
+                    }
+                }
+            });
+        });
+    };
+
+    updatePickedFiles = (event: any) => {
+        if (!event?.target?.files) return;
+
+        const fileList: BrowserFile[] = [];
+        for (const file of event.target.files) {
+            fileList.push({
+                blobFile: file,
+                type: file.type,
+                name: file.name,
+                originalFileName: file.name,
+                uploadStatus: "active",
+                size: file.size,
+                uploadedSize: 0
+            });
+        }
+        this.setState({ fileList });
+    };
+
+    updateCheckUploadGroup = (
+        value: ValueType | undefined,
+        checked: boolean,
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        this.setState({ addToUploadGroup: checked });
+    };
+
+    updateUploadGroupName = (value: string, event: any) => {
+        this.setState({ uploadGroupName: value });
+    };
+
+    onKeywordsChange = (resources: MultiItemTagPickerResources) => {
+        this.setState({ keywords: resources.default });
+    };
+
+    updateSelectedStorageId = (storage_id: string) => {
+        this.setState(
+            update(this.state, {
+                selectedStorageId: {
+                    $set: storage_id
+                }
+            })
         );
     };
 
@@ -232,23 +310,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                             type="file"
                             id="file-upload"
                             multiple
-                            onChange={event => {
-                                if (!event?.target?.files) return;
-
-                                const fileList: BrowserFile[] = [];
-                                for (const file of event.target.files) {
-                                    fileList.push({
-                                        blobFile: file,
-                                        type: file.type,
-                                        name: file.name,
-                                        originalFileName: file.name,
-                                        uploadStatus: "active",
-                                        size: file.size,
-                                        uploadedSize: 0
-                                    });
-                                }
-                                this.setState({ fileList });
-                            }}
+                            onChange={this.updatePickedFiles}
                         />
                         <br />
                         <br />
@@ -261,12 +323,13 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                                             width={width}
                                             itemSize={30}
                                             itemCount={this.state.fileList.length}
-                                            itemData={this.state.fileList}
-                                        >
-                                            {({ index, style, data }) => {
-                                                const file = data[index];
-                                                return this.itemRenderer(style, file, index);
+                                            itemData={{
+                                                items: this.state.fileList,
+                                                disabled: this.state.uploading,
+                                                handlers: { updateName: this.updateName }
                                             }}
+                                        >
+                                            {ItemRenderer}
                                         </FixedSizeList>
                                     );
                                 }}
@@ -280,42 +343,29 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                             <Checkbox
                                 disabled={this.state.uploading}
                                 checked={this.state.addToUploadGroup}
-                                onChange={(_, checked) => {
-                                    this.setState({ addToUploadGroup: checked });
-                                }}
+                                onChange={this.updateCheckUploadGroup}
                             />
                             <Input
                                 disabled={!this.state.addToUploadGroup || this.state.uploading}
                                 placeholder="Upload Group Name"
                                 value={this.state.uploadGroupName}
-                                onChange={value => {
-                                    this.setState({
-                                        uploadGroupName: value
-                                    });
-                                }}
+                                onChange={this.updateUploadGroupName}
                             />
                         </div>
                         <div>
+                            <label htmlFor="">Keywords</label>
                             <Keywords
                                 disabled={this.state.uploading}
                                 resourceType="File"
-                                onChange={(keywords: string[]) => {
-                                    this.setState({ keywords: keywords });
-                                }}
+                                onChange={this.onKeywordsChange}
+                                serverUpdate={false}
+                                resources={[{ _id: "default", keywords: [] }]}
                             />
                         </div>
                         <div>
                             <StoragePicker
                                 disabled={this.state.uploading}
-                                onChange={storage_id => {
-                                    this.setState(
-                                        update(this.state, {
-                                            selectedStorageId: {
-                                                $set: storage_id
-                                            }
-                                        })
-                                    );
-                                }}
+                                onChange={this.updateSelectedStorageId}
                             />
                         </div>
                     </div>

@@ -37,6 +37,18 @@ pub struct GetItemListResponseBody<T> {
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub struct GetItemListRequestBody {
+    pub id: Option<String>,
+    pub from_index: u64,
+    pub limit: Option<u64>,
+    pub sort_field: Option<String>,
+    pub sort_order: Option<SortOrder>,
+    pub filter: Option<String>,
+}
+
+#[derive(TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub enum SortOrder {
     Ascending,
     Descending,

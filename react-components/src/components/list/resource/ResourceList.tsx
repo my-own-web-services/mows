@@ -29,7 +29,7 @@ export interface RowRenderer<ResourceType> {
         index: number,
         gridColumnCount: number
     ) => number;
-    readonly getStartIndexAndLimit?: (
+    readonly getStartIndexAndLimit: (
         startIndex: number,
         limit: number,
         gridColumnCount: number
@@ -193,12 +193,14 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         _prevState: Readonly<ResourceListState<ResourceType>>
     ) => {
         if (prevProps.id !== this.props.id) {
-            await this.loadItems();
-            //this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
+            await this.loadItems(true);
+            this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
         }
     };
 
-    getCurrentVisibleItemsRange = (): { startIndex: number; endIndex: number } => {
+    getCurrentVisibleItemsRange = (
+        scrollOffset: number
+    ): { startIndex: number; endIndex: number } => {
         const currentRowRenderer = this.props.rowRenderers.find(
             rowRenderer => rowRenderer.name === this.state.listType
         );
@@ -211,36 +213,51 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             height,
             this.state.gridColumnCount
         );
-        const startIndex = Math.floor(this.state.scrollOffset / rowHeight);
-        const endIndex = Math.ceil((this.state.scrollOffset + height) / rowHeight);
+        const startIndex = Math.floor(scrollOffset / rowHeight);
+        const endIndex = Math.ceil((scrollOffset + height) / rowHeight);
 
         return { startIndex, endIndex };
     };
 
-    loadItems = async () => {
+    loadItems = async (newId?: boolean) => {
+        const currentRowRenderer = this.props.rowRenderers.find(
+            rowRenderer => rowRenderer.name === this.state.listType
+        );
+        if (!currentRowRenderer) return;
+
         const { sort_field, sort_order } = this.get_current_column_sorting();
 
-        // get current scroll position
+        // this gets the visbile rows
+        const cvir = this.getCurrentVisibleItemsRange(newId ? 0 : this.state.scrollOffset);
+        console.log(cvir);
 
-        const { startIndex, endIndex } = this.getCurrentVisibleItemsRange();
-        console.log("startIndex", startIndex, "endIndex", endIndex);
+        const { startIndex, limit } = currentRowRenderer.getStartIndexAndLimit(
+            cvir.startIndex,
+            cvir.endIndex - cvir.startIndex + 1,
+            this.state.gridColumnCount
+        );
 
         this.moreItemsLoading = true;
         const { items: newItems, total_count } = await this.props.get_items_function({
             id: this.props.id,
             from_index: startIndex,
-            limit: endIndex - startIndex,
+            limit,
             sort_field,
             sort_order,
             filter: this.state.commitedSearch
         });
         this.moreItemsLoading = false;
 
-        this.setState(({ items }) => {
+        this.setState(({ items, selectedItems, scrollOffset }) => {
             for (let i = 0; i < newItems.length; i++) {
                 items[startIndex + i] = newItems[i];
             }
-            return { items, total_count };
+
+            if (newId) {
+                selectedItems = {};
+                scrollOffset = 0;
+            }
+            return { items, total_count, selectedItems, scrollOffset };
         });
     };
 
@@ -270,17 +287,13 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         );
         if (!currentRowRenderer) return;
 
-        if (currentRowRenderer.getStartIndexAndLimit) {
-            const sial = currentRowRenderer.getStartIndexAndLimit(
-                startIndex,
-                limit,
-                this.state.gridColumnCount
-            );
-            startIndex = sial.startIndex;
-            limit = sial.limit;
-        }
-
-        console.log(startIndex, limit);
+        const sial = currentRowRenderer.getStartIndexAndLimit(
+            startIndex,
+            limit,
+            this.state.gridColumnCount
+        );
+        startIndex = sial.startIndex;
+        limit = sial.limit;
 
         const { items: newItems } = await this.props.get_items_function({
             id: this.props.id,
@@ -381,7 +394,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         );
     };
 
-    updateListType = (listType: string) => {
+    updateListViewMode = (listType: string) => {
         this.setState({ listType });
     };
 
@@ -440,10 +453,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
                 const minIndex = Math.min(startIndex, endIndex);
                 const maxIndex = Math.max(startIndex, endIndex);
-                console.log("minIndex", minIndex, "maxIndex", maxIndex);
 
                 const allToBeSelectedLoaded = this.isItemRangeLoaded(minIndex, maxIndex);
-                console.log("allToBeSelectedLoaded", allToBeSelectedLoaded);
 
                 if (!allToBeSelectedLoaded) {
                     const newItems = await this.loadMoreItems(minIndex, maxIndex - minIndex + 1);
@@ -514,8 +525,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     };
 
     updateColumnVisibility = (columnId: string, visible: boolean) => {
-        console.log("updateColumnVisibility", columnId, visible);
-
         this.setState(state => {
             if (!state.columns) return state;
             return update(state, {
@@ -654,7 +663,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                         refreshList={this.refreshList}
                         resourceType={this.props.resourceType}
                         createResource={this.props.createResource}
-                        updateListType={this.updateListType}
+                        updateListType={this.updateListViewMode}
                         currentListType={this.state.listType}
                         commitSearch={this.commitSearch}
                         updateGridColumnCount={this.updateGridColumnCount}

@@ -2,7 +2,7 @@ import { FilezClient } from "@firstdorsal/filez-client";
 import { ReactElement, cloneElement, createRef } from "react";
 import ResourceList, { BaseResource } from "./ResourceList";
 import { Button, Modal } from "rsuite";
-import { EditResource } from "../../../types";
+import { match } from "ts-pattern";
 
 export interface FilezMenuItems<ResourceType> {
     name: string;
@@ -48,6 +48,33 @@ export const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
             // @ts-ignore
             const name = items?.[0].name ?? items[0]._id;
 
+            const onDeleteClick = async () => {
+                const promises = items.map(item => {
+                    return match(resourceType)
+                        .with("Permission", () => {
+                            return filezClient.delete_permission(item._id);
+                        })
+                        .with("File", () => {
+                            return filezClient.delete_file(item._id);
+                        })
+                        .with("FileGroup", () => {
+                            return filezClient.delete_file_group(item._id);
+                        })
+                        .with("UserGroup", () => {
+                            return filezClient.delete_user_group(item._id);
+                        })
+                        .otherwise(() => {
+                            throw new Error(`Resource type ${resourceType} is not supported`);
+                        });
+                });
+                const res = await Promise.all(promises);
+
+                if (res) {
+                    await refreshList?.();
+                    handleClose();
+                }
+            };
+
             return (
                 <Modal open={true} onClose={handleClose}>
                     <Modal.Header>
@@ -63,34 +90,7 @@ export const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
                             color="red"
                             style={{ marginRight: "10px" }}
                             appearance="primary"
-                            onClick={async () => {
-                                const promises = items.map(item => {
-                                    return match(resourceType)
-                                        .with("Permission", () => {
-                                            return filezClient.delete_permission(item._id);
-                                        })
-                                        .with("File", () => {
-                                            return filezClient.delete_file(item._id);
-                                        })
-                                        .with("FileGroup", () => {
-                                            return filezClient.delete_file_group(item._id);
-                                        })
-                                        .with("UserGroup", () => {
-                                            return filezClient.delete_user_group(item._id);
-                                        })
-                                        .otherwise(() => {
-                                            throw new Error(
-                                                `Resource type ${resourceType} is not supported`
-                                            );
-                                        });
-                                });
-                                const res = await Promise.all(promises);
-
-                                if (res) {
-                                    await refreshList?.();
-                                    handleClose();
-                                }
-                            }}
+                            onClick={onDeleteClick}
                         >
                             Delete
                         </Button>
@@ -112,7 +112,7 @@ export const defaultMenuItems: FilezMenuItems<BaseResource>[] = [
             refreshList
         }: FilezMenuItemsRenderProps<BaseResource>) => {
             if (!editResource) return <></>;
-            const editResourceRef: React.RefObject<EditResource> = createRef();
+            const editResourceRef: React.RefObject<any> = createRef();
             return (
                 <Modal open={true} onClose={handleClose}>
                     <Modal.Header>

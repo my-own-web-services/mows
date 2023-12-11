@@ -107,6 +107,9 @@ const FileGroupRowRenderer: RowRenderer<BaseResource> = {
     },
     isItemLoaded: (items, index, _gridColumnCount) => {
         return items[index] !== undefined;
+    },
+    getStartIndexAndLimit: (startIndex, limit, _gridColumnCount) => {
+        return { startIndex, limit };
     }
 };
 

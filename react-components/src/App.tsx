@@ -56,6 +56,10 @@ export default class App extends Component<AppProps, AppState> {
                         rowHandlers={{ onClick: this.onFileClick }}
                         id={this.state.selectedGroupId}
                     />
+                    <FileGroupList
+                        style={{ height: "500px", width: "500px", float: "left" }}
+                        rowHandlers={{ onClick: this.onGroupClick }}
+                    />
 
                     <FilezFileViewer
                         viewMode={FileViewerViewMode.Full}

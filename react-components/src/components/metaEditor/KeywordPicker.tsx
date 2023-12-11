@@ -48,11 +48,11 @@ interface KeywordPickerProps {
     /**
      * What type of resources are being edited
      */
-    readonly resourceType: "File" | "FileGroup";
+    readonly resourceType: "File" | "FileGroup" | "ToBeUploadedFile";
     /**
      * The resources to edit
      */
-    readonly resources?: FilezFile[] | FilezFileGroup[];
+    readonly resources?: FilezFile[] | FilezFileGroup[] | ToBeUploadedFile[];
     /**
      * Called when the user changes the selection of keywords
      */
@@ -71,6 +71,11 @@ interface KeywordPickerState {
     readonly knownKeywords: TagData[];
     readonly resourceMap: MultiItemTagPickerResources;
     readonly knownKeywordsLoaded: boolean;
+}
+
+export interface ToBeUploadedFile {
+    _id: string;
+    keywords: string[];
 }
 
 export default class KeywordPicker extends PureComponent<KeywordPickerProps, KeywordPickerState> {
@@ -93,6 +98,7 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
     init = async () => {
         const knownKeywordsStrings = await this.get_keywords(this.props.resources);
         const resourceMap = this.resourcesToSelectedTags(this.props.resources);
+
         this.setState({
             knownKeywords: knownKeywordsStrings.map(value => ({ value })),
             resourceMap,
@@ -100,7 +106,9 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
         });
     };
 
-    get_keywords = async (resources?: FilezFile[] | FilezFileGroup[]): Promise<string[]> => {
+    get_keywords = async (
+        resources?: FilezFile[] | FilezFileGroup[] | ToBeUploadedFile[]
+    ): Promise<string[]> => {
         if (!this.context) throw new Error("No filez context set");
         const otherResourcesKeywords = await this.context.filezClient.get_aggregated_keywords();
 
@@ -113,12 +121,30 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
         return distincKeywords;
     };
 
-    resourcesToSelectedTags = (resources?: FilezFile[] | FilezFileGroup[]) => {
+    resourcesToSelectedTags = (resources?: FilezFile[] | FilezFileGroup[] | ToBeUploadedFile[]) => {
         const selectedTagsMap: MultiItemTagPickerResources = {};
         resources?.forEach(resource => {
             selectedTagsMap[resource._id] = resource.keywords;
         });
         return selectedTagsMap;
+    };
+
+    onTagChange = async (resourceMap: MultiItemTagPickerResources, knownKeywords: TagData[]) => {
+        if (this.props.serverUpdate !== false) {
+            this.context?.filezClient.update_file_infos(
+                Object.entries(resourceMap).map(([file_id, keywords]) => {
+                    return {
+                        file_id,
+                        fields: {
+                            keywords
+                        }
+                    };
+                })
+            );
+        }
+        this.setState({ knownKeywords, resourceMap });
+
+        this.props.onChange?.(resourceMap);
     };
 
     render = () => {
@@ -130,22 +156,8 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
                     multiItemSelectedTags={this.state.resourceMap}
                     knownCategories={knownCategories}
                     possibleTags={this.state.knownKeywords}
-                    onChange={(resourceMap, knownKeywords) => {
-                        if (this.props.serverUpdate !== false) {
-                            this.context?.filezClient.update_file_infos(
-                                Object.entries(resourceMap).map(([file_id, keywords]) => {
-                                    return {
-                                        file_id,
-                                        fields: {
-                                            keywords
-                                        }
-                                    };
-                                })
-                            );
-                        }
-
-                        this.setState({ knownKeywords, resourceMap });
-                    }}
+                    onChange={this.onTagChange}
+                    creatable
                 />
             </div>
         );

@@ -42,7 +42,9 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
         return (
             <div className="GridRow" style={{ ...style }}>
                 {currentItems.map((item, i) => {
-                    if (i >= total_count) return;
+                    const actualListIndex = index * gridColumnCount + i;
+
+                    if (actualListIndex >= total_count) return;
                     if (!item) return;
                     const { show } = useContextMenu({
                         id: item._id

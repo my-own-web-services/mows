@@ -352,7 +352,7 @@ impl DB {
     pub async fn get_permissions_by_owner_id_for_virtual_list(
         &self,
         owner_id: &str,
-        limit: Option<i64>,
+        limit: Option<u64>,
         from_index: u64,
         sort_field: Option<String>,
         sort_order: SortOrder,
@@ -369,7 +369,7 @@ impl DB {
                     SortOrder::Descending => -1
                 }
             })
-            .limit(limit)
+            .limit(limit.map(|l| l as i64))
             .skip(from_index)
             .build();
 
@@ -561,7 +561,7 @@ impl DB {
     pub async fn get_file_groups_by_owner_id_for_virtual_list(
         &self,
         owner_id: &str,
-        limit: Option<i64>,
+        limit: Option<u64>,
         from_index: u64,
         sort_field: Option<String>,
         sort_order: SortOrder,
@@ -579,7 +579,7 @@ impl DB {
                     SortOrder::Descending => -1
                 }
             })
-            .limit(limit)
+            .limit(limit.map(|l| l as i64))
             .skip(from_index)
             .build();
 
@@ -1083,7 +1083,7 @@ impl DB {
     pub async fn get_user_group_list(
         &self,
         requesting_user: &FilezUser,
-        limit: Option<i64>,
+        limit: Option<u64>,
         from_index: u64,
         sort_field: Option<String>,
         sort_order: SortOrder,
@@ -1101,7 +1101,7 @@ impl DB {
                     SortOrder::Descending => -1
                 }
             })
-            .limit(limit)
+            .limit(limit.map(|l| l as i64))
             .skip(from_index)
             .build();
 
@@ -1163,7 +1163,7 @@ impl DB {
     pub async fn get_user_list(
         &self,
         requesting_user: &FilezUser,
-        limit: Option<i64>,
+        limit: Option<u64>,
         from_index: u64,
         sort_field: Option<String>,
         sort_order: SortOrder,
@@ -1182,7 +1182,7 @@ impl DB {
                     SortOrder::Descending => -1
                 }
             })
-            .limit(limit)
+            .limit(limit.map(|l| l as i64))
             .skip(from_index)
             .build();
 
@@ -1271,7 +1271,7 @@ impl DB {
     pub async fn get_files_by_group_id(
         &self,
         group_id: &str,
-        limit: Option<i64>,
+        limit: Option<u64>,
         from_index: u64,
         sort_field: Option<String>,
         sort_order: SortOrder,
@@ -1288,7 +1288,7 @@ impl DB {
                     SortOrder::Descending => -1
                 }
             })
-            .limit(limit)
+            .limit(limit.map(|l| l as i64))
             .skip(from_index)
             .build();
 
