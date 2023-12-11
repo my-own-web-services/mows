@@ -18,7 +18,8 @@ interface FilezFileViewerProps {
 
 export enum FileViewerViewMode {
     Preview,
-    Full
+    Full,
+    Zoomable
 }
 
 interface FilezFileViewerState {

@@ -21,6 +21,10 @@
     opacity: 0.5;
 }
 
+#openseadragon:focus-visible {
+    outline: none !important;
+}
+
 .DragPreviewImage:active {
     border: 10px solid red;
 }

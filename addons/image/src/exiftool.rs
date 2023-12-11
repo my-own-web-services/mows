@@ -40,7 +40,7 @@ pub async fn extract_album_art(
 ) -> anyhow::Result<ProcessedImage> {
     let exif_data = get_metadata_exiftool(source_path).await?;
 
-    let (file_extension, mime_type) = match exif_data.get("PictureMIMEType") {
+    let (file_extension, _mime_type) = match exif_data.get("PictureMIMEType") {
         Some(e) => match e.to_string().as_str() {
             "\"image/jpeg\"" => ("jpg", "image/jpeg"),
             "\"image/png\"" => ("png", "image/png"),
@@ -95,5 +95,6 @@ pub async fn extract_album_art(
         width,
         height,
         resolutions,
+        dzi: None,
     })
 }

@@ -15,6 +15,10 @@ tokio = { version = "1.17.0", default-features = false, features = [
     "signal",
     "fs",
 ] }
+thiserror = "1"
+
+ts-rs = "7.0.0"
+
 
 mongodb = { version = "2.3.1", features = ["bson-serde_with"] }
 futures = "0.3"

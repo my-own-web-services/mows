@@ -94,7 +94,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
 
     componentWillUnmount = async () => {
         this.uploadXhrs.forEach(xhr => {
-            xhr.abort();
+            xhr?.abort();
         });
     };
 
@@ -105,6 +105,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
         // TODO calculate remaining time and show it
         // TODO show total progress bar
         // TODO show upload speed
+        // TODO this should create the upload group for the files
 
         for (const file of this.state.fileList) {
             if (!file.blobFile) continue;
@@ -115,7 +116,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
             filezFile.storage_id = this.state.selectedStorageId;
             filezFile.permission_ids = [];
             filezFile.size = file.blobFile.size;
-            filezFile.modified = file.blobFile.lastModified;
+            filezFile.modified = file.blobFile.lastModified / 1000;
             if (useOncePermissionId) {
                 filezFile.permission_ids.push(useOncePermissionId);
             }
@@ -132,36 +133,37 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                 })
             });
 
-            const { success, xhr } = this.context.filezClient.create_file_with_upload_progress(
-                file.blobFile,
-                filezFile,
-                (uploadedBytes: number) => {
-                    this.setState(
-                        update(this.state, {
-                            fileList: {
+            const { success, xhr } =
+                await this.context.filezClient.create_file_with_upload_progress(
+                    file.blobFile,
+                    filezFile,
+                    (uploadedBytes: number) => {
+                        this.setState(
+                            update(this.state, {
+                                fileList: {
+                                    $set: this.state.fileList.map(f => {
+                                        if (f.name === file.name) {
+                                            f.uploadedSize = uploadedBytes;
+                                        }
+                                        return f;
+                                    })
+                                }
+                            })
+                        );
+                    },
+                    err => {
+                        this.setState({
+                            fileList: update(this.state.fileList, {
                                 $set: this.state.fileList.map(f => {
                                     if (f.name === file.name) {
-                                        f.uploadedSize = uploadedBytes;
+                                        f.uploadStatus = "fail";
                                     }
                                     return f;
                                 })
-                            }
-                        })
-                    );
-                },
-                err => {
-                    this.setState({
-                        fileList: update(this.state.fileList, {
-                            $set: this.state.fileList.map(f => {
-                                if (f.name === file.name) {
-                                    f.uploadStatus = "fail";
-                                }
-                                return f;
                             })
-                        })
-                    });
-                }
-            );
+                        });
+                    }
+                );
 
             this.uploadXhrs.push(xhr);
             await success;

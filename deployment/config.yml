@@ -111,7 +111,7 @@ filez:
           storage: true
           filezAccess: true
           image: firstdorsal/filez-addons-video
-          resetOnRestart: true
+          resetOnRestart: false
           build:
               enabled: true
               path: ../../
@@ -131,7 +131,7 @@ filez:
           storage: false
           filezAccess: true
           image: firstdorsal/filez-addons-metadata
-          resetOnRestart: true
+          resetOnRestart: false
           build:
               enabled: true
               path: ../../

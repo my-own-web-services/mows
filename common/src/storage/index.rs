@@ -3,12 +3,13 @@ use crate::server::FilezFile;
 use anyhow::bail;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct StorageLocations {
     pub full_path: PathBuf,
     pub folder_path: PathBuf,
     pub file_name: String,
 }
-
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct AppDataStorageLocation {
     pub file_folder: PathBuf,
 }

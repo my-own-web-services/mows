@@ -30,7 +30,8 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
             disableContextMenu,
             handlers,
             functions,
-            menuItems
+            menuItems,
+            total_count
         } = data;
         const { onItemClick, updateRenderModalName } = handlers;
         const { getSelectedItems } = functions;
@@ -41,6 +42,8 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
         return (
             <div className="GridRow" style={{ ...style }}>
                 {currentItems.map((item, i) => {
+                    if (i >= total_count) return;
+                    if (!item) return;
                     const { show } = useContextMenu({
                         id: item._id
                     });
@@ -53,7 +56,7 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
 
                                 show({ event: e });
                             }}
-                            className={`Row ${isSelected ? " selected" : ""}`}
+                            className={`Row ${isSelected ? " selected" : ""} fadeIn`}
                             key={"GridRowRenderer" + item._id}
                             style={{
                                 height: "100%",

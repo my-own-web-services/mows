@@ -17,6 +17,7 @@ image:
         - 250
         - 500
         - 1000
+    dzi: false
 
 external:
     # posters in omdb are amazon urls

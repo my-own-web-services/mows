@@ -9,3 +9,4 @@ pub mod utils;
 pub mod external {
     pub mod video_poster;
 }
+pub mod dzi;

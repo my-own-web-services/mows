@@ -1,17 +1,24 @@
 use anyhow::bail;
-use image::io::Reader as ImageReader;
+use image::{io::Reader as ImageReader, DynamicImage};
 use std::{
     path::{Path, PathBuf},
     process::Command,
 };
 
-use crate::{image_types::ProcessedImage, utils::get_resolutions};
+use crate::{
+    config::CONFIG,
+    dzi::TileCreator,
+    image_types::{Dzi, ProcessedImage},
+    utils::get_resolutions,
+};
 
 pub async fn convert(
     source_path: &PathBuf,
     target_folder_path: &PathBuf,
 ) -> anyhow::Result<ProcessedImage> {
-    let buffered_reader = match std::fs::File::open(&source_path) {
+    let config = &CONFIG;
+
+    let buffered_reader = match std::fs::File::open(source_path) {
         Ok(file) => std::io::BufReader::new(file),
         Err(e) => {
             bail!("Error opening buffered reader: {}", e);
@@ -34,10 +41,12 @@ pub async fn convert(
 
     let resolutions = get_resolutions(width, height);
 
-    std::fs::create_dir_all(target_folder_path)?;
+    let preview_path = Path::new(target_folder_path).join("previews");
+
+    std::fs::create_dir_all(&preview_path)?;
 
     for resolution in &resolutions {
-        let path = Path::new(target_folder_path).join(format!("{resolution}.avif"));
+        let path = Path::new(&preview_path).join(format!("{resolution}.avif"));
 
         image
             .resize(
@@ -48,10 +57,23 @@ pub async fn convert(
             .save_with_format(path, image::ImageFormat::Avif)?;
     }
 
+    let dzi = if config.image.dzi {
+        match create_deep_zoom_images(image, target_folder_path).await {
+            Ok(dzi) => Some(dzi),
+            Err(e) => {
+                println!("Error creating deep zoom images: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     Ok(ProcessedImage {
         width,
         height,
         resolutions,
+        dzi,
     })
 }
 
@@ -82,4 +104,34 @@ pub async fn convert_raw(
     convert_command.spawn()?.wait()?;
 
     Ok(target_path)
+}
+
+pub async fn create_deep_zoom_images(
+    image: DynamicImage,
+    target_folder_path: &PathBuf,
+) -> anyhow::Result<Dzi> {
+    let dzi = Dzi {
+        format: "avif".to_string(),
+        levels: 15,
+        tile_overlap: 0,
+        tile_size: 256,
+    };
+    let dest_path = Path::new(target_folder_path).join("dzi");
+    std::fs::create_dir_all(&dest_path)?;
+
+    let creator = TileCreator {
+        dest_path,
+        image,
+        tile_size: dzi.tile_size,
+        tile_overlap: dzi.tile_overlap,
+        // TODO this should depend on the size of the original image
+        levels: dzi.levels,
+        format: dzi.format.clone(),
+    };
+
+    if let Err(e) = creator.create_tiles() {
+        bail!(e);
+    }
+
+    Ok(dzi)
 }

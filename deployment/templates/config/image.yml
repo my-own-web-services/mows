@@ -40,6 +40,7 @@ image:
         - 250
         - 500
         - 1000
+    dzi: false
 dev:
     clearOwnAppDataOnStart: $CLEAR_OWN_APP_DATA_ON_START
 

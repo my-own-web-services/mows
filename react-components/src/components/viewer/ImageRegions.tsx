@@ -1,8 +1,9 @@
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import { isArray } from "lodash";
-import { PureComponent } from "react";
+import { CSSProperties, PureComponent } from "react";
 import { ImageOrientation } from "./formats/Image";
 import { match } from "ts-pattern";
+import { Tooltip, Whisper } from "rsuite";
+import { FileViewerViewMode } from "./FileViewer";
 
 // TODO - this is a work in progress, it's not quite right yet
 // exiftool returns unusable data for the regions in its json output
@@ -15,6 +16,7 @@ interface ImageRegionsProps {
     readonly itemWidth: number;
     readonly itemHeight: number;
     readonly rotation?: ImageOrientation;
+    readonly viewMode: FileViewerViewMode;
 }
 
 interface ImageRegionsState {
@@ -81,8 +83,6 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
     };
 
     render = () => {
-        console.log(this.state.regionInfo);
-
         const containedImagePosition = this.getContainedImagePosition(
             this.props.itemWidth,
             this.props.itemHeight,
@@ -90,6 +90,9 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
             this.props.viewerHeight
         );
 
+        // TODO sometimes the tooltips position is wrong because its not updated an takes the position from the last image
+        // most of the time this happens when the same ammount of regions are present in the image
+        // TODO handle the regiondata extraction in the metadata addon and update it this way until it should be written back to the file
         return (
             <div
                 className="ImageRegions"
@@ -107,8 +110,8 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
                         top: containedImagePosition.y,
                         width: containedImagePosition.width,
                         height: containedImagePosition.height,
-                        position: "relative",
-                        outline: "1px solid orange"
+                        position: "relative"
+                        //outline: "1px solid orange"
                     }}
                 >
                     {this.state.regionInfo?.regionList?.map((region, i) => {
@@ -119,28 +122,30 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
 
                         const defaultLeft = (x - w / 2) * 100 + "%";
                         const defaultTop = (y - h / 2) * 100 + "%";
-                        const style = match(this.props.rotation)
+
+                        // TODO this does not work for all possible orientations
+                        const style: CSSProperties = match(this.props.rotation)
                             .with(ImageOrientation["Horizontal (normal)"], () => ({
                                 left: defaultLeft,
                                 top: defaultTop,
                                 width: w * containedImagePosition.width,
                                 height: h * containedImagePosition.height
                             }))
+                            .with(ImageOrientation["Rotate 180"], () => ({
+                                right: defaultLeft,
+                                bottom: defaultTop,
+                                width: w * containedImagePosition.width,
+                                height: h * containedImagePosition.height
+                            }))
                             .with(ImageOrientation["Rotate 90 CW"], () => ({
-                                left: defaultTop,
+                                right: defaultTop,
                                 top: defaultLeft,
                                 width: w * containedImagePosition.height,
                                 height: h * containedImagePosition.width
                             }))
-                            .with(ImageOrientation["Rotate 180"], () => ({
-                                left: defaultLeft,
-                                top: defaultTop,
-                                width: w * containedImagePosition.width,
-                                height: h * containedImagePosition.height
-                            }))
                             .with(ImageOrientation["Rotate 270 CW"], () => ({
                                 left: defaultTop,
-                                top: defaultLeft,
+                                bottom: defaultLeft,
                                 width: w * containedImagePosition.height,
                                 height: h * containedImagePosition.width
                             }))
@@ -150,29 +155,40 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
                                 width: w * containedImagePosition.width,
                                 height: h * containedImagePosition.height
                             }));
-                        return (
+
+                        const name = region.name ?? "Unknown";
+                        const key = `ImageRegions-${this.props.file._id}-${i}-${this.props.viewMode}`;
+                        return this.props.viewMode === FileViewerViewMode.Preview ? (
                             <div
-                                key={"ImageRegions" + i}
-                                title={region.name}
+                                title={name}
+                                key={key}
                                 style={{
                                     position: "absolute",
-
-                                    outline: "1px solid red",
+                                    outline: "1px solid var(--rs-tooltip-bg)",
+                                    border: "1px solid #aaa",
                                     zIndex: 3,
                                     ...style
                                 }}
+                            ></div>
+                        ) : (
+                            <Whisper
+                                key={key}
+                                open={true}
+                                trigger="none"
+                                placement={"top"}
+                                speaker={<Tooltip>{name}</Tooltip>}
                             >
-                                <span
+                                <div
+                                    title={name}
                                     style={{
-                                        fontSize: "8px",
-                                        lineHeight: "8px",
-                                        whiteSpace: "nowrap",
-                                        background: "red"
+                                        position: "absolute",
+                                        outline: "1px solid var(--rs-tooltip-bg)",
+                                        border: "1px solid #aaa",
+                                        zIndex: 3,
+                                        ...style
                                     }}
-                                >
-                                    {region.name}
-                                </span>
-                            </div>
+                                ></div>
+                            </Whisper>
                         );
                     })}
                 </div>
@@ -180,6 +196,16 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
         );
     };
 }
+/*
+ <div
+                                    style={{
+                                        ...style,
+                                        background: "lime",
+                                        width: "2px",
+                                        height: "2px"
+                                    }}
+                                ></div>
+*/
 
 // convert the exiftool data to a more usable format
 // convert strings to numbers

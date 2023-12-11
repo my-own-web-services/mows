@@ -81,9 +81,9 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
                 limits: user_storage_limits
             });
         }
-        if (availableStorages.length === 1) {
-            this.setState({ selectedStorageId: availableStorages[0].storage_id });
-        }
+        // TODO get the default selected storage from the default storage option from the server config
+        this.setState({ selectedStorageId: availableStorages[0].storage_id });
+
         this.setState({ availableStorages });
     };
 
@@ -95,13 +95,19 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
             return;
         }
         this.setState({ updatingStorageLocation: true });
-        const promises = this.state.files.flatMap(file => {
-            if (file.storage_id === value) return [];
-            return [this.context?.filezClient.update_file_infos(file._id, { storage_id: value })];
-        });
-        const responses = await Promise.all(promises);
+
+        const response = await this.context?.filezClient.update_file_infos(
+            this.state.files.map(file => {
+                return {
+                    file_id: file._id,
+                    fields: {
+                        storage_id: value
+                    }
+                };
+            })
+        );
         this.setState({ updatingStorageLocation: false });
-        if (responses.some(response => response?.status !== 200)) {
+        if (response.status !== 200) {
             //TODO: show error
             return;
         }

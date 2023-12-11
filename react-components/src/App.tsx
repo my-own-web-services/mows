@@ -24,7 +24,7 @@ export default class App extends Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            selectedFileId: "htrnYtRvDfKQlBjT",
+            selectedFileId: "kgBRBXqBXrHZBuHF",
             selectedGroupId: "KgmuP8hQvO6gTL0Q_all"
         };
     }
@@ -56,19 +56,12 @@ export default class App extends Component<AppProps, AppState> {
                         rowHandlers={{ onClick: this.onFileClick }}
                         id={this.state.selectedGroupId}
                     />
-                    <FileGroupList
-                        style={{ height: "500px", width: "500px", float: "left" }}
-                        rowHandlers={{ onClick: this.onGroupClick }}
-                    />
+
                     <FilezFileViewer
                         viewMode={FileViewerViewMode.Full}
                         style={{ width: "500px", float: "left", height: "500px" }}
                         fileId={this.state.selectedFileId}
                     />
-
-                    <PermissionList style={{ height: "500px" }} />
-                    <UserGroupList style={{ height: "500px" }} />
-                    <UserList style={{ height: "500px" }} />
                 </FilezProvider>
             </div>
         );
@@ -78,7 +71,23 @@ export default class App extends Component<AppProps, AppState> {
 /*
 
                     
-
+                    <FileList
+                        style={{ height: "500px" }}
+                        rowHandlers={{ onClick: this.onFileClick }}
+                        id={this.state.selectedGroupId}
+                    />
+                    <FileGroupList
+                        style={{ height: "500px", width: "500px", float: "left" }}
+                        rowHandlers={{ onClick: this.onGroupClick }}
+                    />{" "}
+                    <FilezFileViewer
+                        viewMode={FileViewerViewMode.Full}
+                        style={{ width: "500px", float: "left", height: "500px" }}
+                        fileId={this.state.selectedFileId}
+                    />
+                    <PermissionList style={{ height: "500px" }} />
+                    <UserGroupList style={{ height: "500px" }} />
+                    <UserList style={{ height: "500px" }} />
   
 
   <FilezProvider>

@@ -80,4 +80,5 @@ pub struct DbConfig {
 pub struct ImageConfig {
     pub quality: u8,
     pub target_resolutions: Vec<u32>,
+    pub dzi: bool,
 }

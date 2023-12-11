@@ -1,4 +1,3 @@
-import { ProcessedImage } from "@firstdorsal/filez-client";
 import { CSSProperties, PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
@@ -6,6 +5,8 @@ import { FileViewerViewMode } from "../FileViewer";
 import { match } from "ts-pattern";
 import ImageRegions from "../ImageRegions";
 import ReactVirtualizedAutoSizer from "react-virtualized-auto-sizer";
+import ZoomImage from "../ZoomImage";
+import { ProcessedImage } from "@firstdorsal/filez-client/dist/js/apiTypes/ProcessedImage";
 
 interface ImageProps {
     readonly file: FilezFile;
@@ -45,7 +46,7 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
 
         return (
             <div className="Image" style={{ width: "100%", display: "relative" }}>
-                {processedImage && this.props.viewMode !== FileViewerViewMode.Preview && (
+                {processedImage && this.props.viewMode !== FileViewerViewMode.Zoomable && (
                     <ReactVirtualizedAutoSizer>
                         {({ height, width }) => {
                             return (
@@ -55,34 +56,39 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
                                     viewerWidth={width}
                                     viewerHeight={height}
                                     rotation={rotation}
+                                    viewMode={this.props.viewMode}
                                     file={f}
                                 />
                             );
                         }}
                     </ReactVirtualizedAutoSizer>
                 )}
-                {processedImage && !shouldUseOriginal ? (
-                    <img
-                        style={{ ...rotationStyle }}
-                        src={`${uiConfig.filezServerAddress}/api/file/get/${f._id}/image/${previewWidth}.avif?c`}
-                        loading="eager"
-                        width={processedImage.width}
-                        height={processedImage.height}
-                        draggable={false}
-                    />
-                ) : (
-                    <img
-                        src={`${uiConfig.filezServerAddress}/api/file/get/${f._id}?c`}
-                        loading="eager"
-                        draggable={false}
-                    />
-                )}
+                {this.props.viewMode !== FileViewerViewMode.Zoomable &&
+                    (processedImage && !shouldUseOriginal ? (
+                        <img
+                            style={{ ...rotationStyle }}
+                            src={`${uiConfig.filezServerAddress}/api/file/get/${f._id}/image/previews/${previewWidth}.avif?c`}
+                            loading="eager"
+                            width={processedImage.width}
+                            height={processedImage.height}
+                            draggable={false}
+                        />
+                    ) : (
+                        <img
+                            src={`${uiConfig.filezServerAddress}/api/file/get/${f._id}?c`}
+                            loading="eager"
+                            draggable={false}
+                        />
+                    ))}
             </div>
         );
     };
 }
 
 /*
+
+                {this.props.viewMode === FileViewerViewMode.Zoomable && <ZoomImage file={f} />}
+
                 {
                     <ReactVirtualizedAutoSizer>
                         {({ height, width }) => {

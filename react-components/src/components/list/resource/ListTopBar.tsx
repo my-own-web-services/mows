@@ -16,7 +16,7 @@ interface ListTopBarProps<ResourceType> {
     readonly refreshList: () => void;
     readonly rowRenderers: RowRenderer<ResourceType>[];
     readonly selectedItems: SelectedItems;
-    readonly items: ResourceType[];
+    readonly items: (ResourceType | undefined)[];
     readonly total_count: number;
 }
 
@@ -172,7 +172,7 @@ export default class ListTopBar<ResourceType extends BaseResource> extends PureC
                 <div style={{ marginTop: "5px", marginRight: "20px", float: "right" }}>
                     <span style={{ marginRight: "10px" }}>Total: {this.props.total_count}</span>
                     <span style={{ marginRight: "10px" }}>
-                        Loaded: {this.props.items.filter(item => item._id).length}
+                        Loaded: {this.props.items.filter(item => item?._id).length}
                     </span>
                     <span>
                         Selected:{" "}

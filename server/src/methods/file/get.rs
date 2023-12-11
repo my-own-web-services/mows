@@ -59,6 +59,8 @@ pub async fn get_file(
         }
     };
 
+    dbg!(&app_file);
+
     if app_file.is_none() && parts.len() > 1 {
         return Ok(res.status(400).body(Body::from("Invalid Path")).unwrap());
     }
@@ -98,7 +100,8 @@ pub async fn get_file(
     let full_file_path = match &app_file {
         Some((app_id, app_file_path)) => {
             let app_storage_folder = get_app_data_folder_for_file(&config.storage, &file, app_id)?;
-
+            dbg!(&app_storage_folder);
+            dbg!(&app_file_path);
             Path::new(&app_storage_folder.file_folder).join(app_file_path)
         }
         None => {
@@ -143,8 +146,6 @@ pub async fn get_file(
                         "Content-Range",
                         format!("bytes {}-{}/{}", start_byte, file_size - 1, file_size),
                     );
-
-                    // TODO is this off by one?
 
                     res = res.header("Content-Length", file_size - start_byte);
 
