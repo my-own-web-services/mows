@@ -17,6 +17,10 @@
     --contexify-activeArrow-color: #fff;
 }
 
+.rs-tooltip {
+    z-index: 0 !important;
+}
+
 .cantDrop {
     opacity: 0.5;
 }
@@ -134,25 +138,6 @@ button.Filez {
     .react-contextmenu-wrapper {
         width: 100%;
         height: 100%;
-    }
-
-    .Group {
-        width: 100%;
-        height: 100%;
-
-        .GroupItems {
-            padding: 0px 5px;
-            width: 100%;
-            height: 100%;
-            span {
-                display: block;
-                float: left;
-                margin-right: 5px;
-                &.itemCount {
-                    color: #777;
-                }
-            }
-        }
     }
 
     &.ResourceList {

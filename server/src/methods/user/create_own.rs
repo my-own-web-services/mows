@@ -42,7 +42,7 @@ pub async fn create_own_user(
                 true => {
                     db.create_user(Some(ir_user_id.to_string()), None, None, Some(ir_email))
                         .await?;
-                    Ok(res.status(201).body(Body::from("Created User"))?)
+                    Ok(res.status(200).body(Body::from("Created User"))?)
                 }
                 false => Ok(res.status(403).body(Body::from("New users not allowed"))?),
             },

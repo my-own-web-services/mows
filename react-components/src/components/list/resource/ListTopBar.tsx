@@ -12,12 +12,13 @@ interface ListTopBarProps<ResourceType> {
     readonly gridColumnCount: number;
     readonly currentListType: string;
     readonly resourceType: string;
-    readonly createResource?: ReactElement<any, any>;
     readonly refreshList: () => void;
     readonly rowRenderers: RowRenderer<ResourceType>[];
     readonly selectedItems: SelectedItems;
     readonly items: (ResourceType | undefined)[];
     readonly total_count: number;
+    readonly resourceCreatable?: boolean;
+    readonly onAddResourceClick: InstanceType<typeof ResourceList>["onAddResourceClick"];
 }
 
 interface ListTopBarState {
@@ -88,32 +89,14 @@ export default class ListTopBar<ResourceType extends BaseResource> extends PureC
                         <AiOutlineSearch size={21} />
                     </InputGroup.Button>
                 </InputGroup>
-                {this.props.createResource && (
+                {this.props.resourceCreatable !== false && (
                     <span className="Buttons">
                         <IconButton
-                            onClick={this.openModal}
+                            onClick={this.props.onAddResourceClick}
                             title={`Create new ${this.props.resourceType}`}
                             size="xs"
                             icon={<BiPlus size={18} />}
                         />
-                        <Modal onClose={this.closeModal} open={this.state.createModalOpen}>
-                            <Modal.Header>
-                                <Modal.Title>Create {this.props.resourceType}</Modal.Title>
-                            </Modal.Header>
-                            <Modal.Body>
-                                {cloneElement(this.props.createResource, {
-                                    ref: this.createResourceRef
-                                })}
-                            </Modal.Body>
-                            <Modal.Footer>
-                                <Button onClick={this.modalCreateResource} appearance="primary">
-                                    Create
-                                </Button>
-                                <Button onClick={this.closeModal} appearance="subtle">
-                                    Cancel
-                                </Button>
-                            </Modal.Footer>
-                        </Modal>
                     </span>
                 )}
                 <span className="Buttons">

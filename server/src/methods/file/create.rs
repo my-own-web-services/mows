@@ -249,7 +249,7 @@ pub async fn create_file(
         sha256: hash,
     };
     Ok(res
-        .status(201)
+        .status(200)
         .body(Body::from(serde_json::to_string(&cfr)?))?)
 }
 

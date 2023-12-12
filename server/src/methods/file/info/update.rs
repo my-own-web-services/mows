@@ -314,7 +314,7 @@ pub async fn update_file_infos(
         handle_dynamic_group_update(&db, &UpdateType::File(updated_file)).await?;
     }
 
-    Ok(res.status(201).body(Body::from("Ok")).unwrap())
+    Ok(res.status(200).body(Body::from("Ok")).unwrap())
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

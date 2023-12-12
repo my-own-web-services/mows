@@ -74,7 +74,7 @@ pub async fn update_permission(
             let res_body = UpdatePermissionResponseBody { permission_id };
 
             Ok(res
-                .status(201)
+                .status(200)
                 .body(Body::from(serde_json::to_string(&res_body)?))?)
         }
     }

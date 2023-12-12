@@ -83,16 +83,10 @@ export default class StaticFileGroupPicker extends PureComponent<
 
     getStaticFileGroups = async (): Promise<TagData[] | null> => {
         if (!this.context) return null;
-        const res = await this.context.filezClient.get_own_file_groups(
-            {
-                filter: "",
-                from_index: 0,
-                limit: null,
-                sort_field: null,
-                sort_order: null
-            },
-            "Static"
-        );
+        const res = await this.context.filezClient.get_own_file_groups({
+            filter: "",
+            from_index: 0
+        });
         const staticGroups: TagData[] = res.items.map(group => ({
             label: group.name ?? undefined,
             value: group._id,
@@ -102,9 +96,11 @@ export default class StaticFileGroupPicker extends PureComponent<
         return staticGroups;
     };
 
-    onChange = (resourceMap: MultiItemTagPickerResources, knownGroups: TagData[]) => {
+    onChange = async (resourceMap: MultiItemTagPickerResources, knownGroups: TagData[]) => {
+        this.setState({ knownGroups, resourceMap });
+
         if (this.props.serverUpdate !== false) {
-            this.context?.filezClient.update_file_infos(
+            const res = await this.context?.filezClient.update_file_infos(
                 Object.entries(resourceMap).map(([file_id, static_file_group_ids]) => ({
                     file_id,
                     fields: {
@@ -112,9 +108,12 @@ export default class StaticFileGroupPicker extends PureComponent<
                     }
                 }))
             );
+            if (res?.status === 200) {
+                this.props.onChange?.(resourceMap, knownGroups);
+            }
+        } else {
+            this.props.onChange?.(resourceMap, knownGroups);
         }
-        this.props.onChange?.(resourceMap, knownGroups);
-        this.setState({ knownGroups, resourceMap });
     };
 
     render = () => {

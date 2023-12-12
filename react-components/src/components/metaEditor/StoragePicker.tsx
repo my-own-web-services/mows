@@ -9,6 +9,7 @@ interface StoragePickerProps {
     readonly fileIds?: string[];
     readonly onChange?: (storage_id: string) => void;
     readonly disabled?: boolean;
+    readonly serverUpdate?: boolean;
 }
 
 interface StoragePickerState {
@@ -88,30 +89,31 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
     };
 
     onChange = async (value: string) => {
-        if (this.props.onChange) this.props.onChange(value);
         if (!this.context) return;
         if (!this.props.fileIds || !this.state.files) {
             this.setState({ selectedStorageId: value });
             return;
         }
-        this.setState({ updatingStorageLocation: true });
 
-        const response = await this.context?.filezClient.update_file_infos(
-            this.state.files.map(file => {
-                return {
-                    file_id: file._id,
-                    fields: {
-                        storage_id: value
-                    }
-                };
-            })
-        );
-        this.setState({ updatingStorageLocation: false });
-        if (response.status !== 200) {
-            //TODO: show error
-            return;
+        if (this.props.serverUpdate !== false) {
+            this.setState({ updatingStorageLocation: true });
+
+            const response = await this.context?.filezClient.update_file_infos(
+                this.state.files.map(file => {
+                    return {
+                        file_id: file._id,
+                        fields: {
+                            storage_id: value
+                        }
+                    };
+                })
+            );
+            this.setState({ updatingStorageLocation: false });
+            if (response.status === 200) {
+                this.setState({ selectedStorageId: value });
+                this.props.onChange?.(value);
+            }
         }
-        this.setState({ selectedStorageId: value });
     };
 
     render = () => {

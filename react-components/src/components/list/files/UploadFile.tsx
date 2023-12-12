@@ -13,11 +13,7 @@ import { FixedSizeList } from "react-window";
 import { ValueType } from "rsuite/esm/Checkbox";
 import { MultiItemTagPickerResources } from "../../metaEditor/MultiItemTagPicker";
 
-interface UploadFileProps {
-    readonly type: "create" | "edit";
-    readonly files?: FilezFile[];
-    readonly oncePermissionRef?: React.RefObject<Permission>;
-}
+interface UploadFileProps {}
 
 interface UploadFileState {
     readonly availablePermissions?: FilezPermission[];
@@ -150,7 +146,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
         // TODO this should create the upload group for the files
 
         const static_file_group_ids: string[] = [];
-        if (this.state.addToUploadGroup && !this.state.uploadGroupName) {
+        if (this.state.addToUploadGroup && this.state.uploadGroupName) {
             const uploadGroupRes = await this.context.filezClient.create_file_group({
                 dynamic_group_rules: null,
                 group_hierarchy_paths: [],
@@ -173,7 +169,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
             filezFile.storage_id = this.state.selectedStorageId;
             filezFile.permission_ids = [];
             filezFile.size = file.blobFile.size;
-            filezFile.modified = file.blobFile.lastModified / 1000;
+            filezFile.modified = Math.round(file.blobFile.lastModified / 1000);
             filezFile.static_file_group_ids = static_file_group_ids;
             if (useOncePermissionId) {
                 filezFile.permission_ids.push(useOncePermissionId);
@@ -305,76 +301,70 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
     render = () => {
         return (
             <div className="UploadFile">
-                {this.props.type === "create" ? (
-                    <div>
-                        <input
-                            disabled={this.state.uploading}
-                            className={this.state.uploading ? "disabled" : ""}
-                            type="file"
-                            id="file-upload"
-                            multiple
-                            onChange={this.updatePickedFiles}
-                        />
-                        <br />
-                        <br />
-                        <div style={{ width: "100%", height: "200px" }} className="UploadFileList">
-                            <AutoSizer>
-                                {({ height, width }) => {
-                                    return (
-                                        <FixedSizeList
-                                            height={height}
-                                            width={width}
-                                            itemSize={30}
-                                            itemCount={this.state.fileList.length}
-                                            itemData={{
-                                                items: this.state.fileList,
-                                                disabled: this.state.uploading,
-                                                handlers: { updateName: this.updateName }
-                                            }}
-                                        >
-                                            {ItemRenderer}
-                                        </FixedSizeList>
-                                    );
-                                }}
-                            </AutoSizer>
-                        </div>
+                <input
+                    disabled={this.state.uploading}
+                    className={this.state.uploading ? "disabled" : ""}
+                    type="file"
+                    id="file-upload"
+                    multiple
+                    onChange={this.updatePickedFiles}
+                />
+                <br />
+                <br />
+                <div style={{ width: "100%", height: "200px" }} className="UploadFileList">
+                    <AutoSizer>
+                        {({ height, width }) => {
+                            return (
+                                <FixedSizeList
+                                    height={height}
+                                    width={width}
+                                    itemSize={30}
+                                    itemCount={this.state.fileList.length}
+                                    itemData={{
+                                        items: this.state.fileList,
+                                        disabled: this.state.uploading,
+                                        handlers: { updateName: this.updateName }
+                                    }}
+                                >
+                                    {ItemRenderer}
+                                </FixedSizeList>
+                            );
+                        }}
+                    </AutoSizer>
+                </div>
 
-                        <div>
-                            <span className={this.state.uploading ? "disabled" : ""}>
-                                Add to Upload Group
-                            </span>
-                            <Checkbox
-                                disabled={this.state.uploading}
-                                checked={this.state.addToUploadGroup}
-                                onChange={this.updateCheckUploadGroup}
-                            />
-                            <Input
-                                disabled={!this.state.addToUploadGroup || this.state.uploading}
-                                placeholder="Upload Group Name"
-                                value={this.state.uploadGroupName}
-                                onChange={this.updateUploadGroupName}
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="">File Keywords</label>
-                            <Keywords
-                                disabled={this.state.uploading}
-                                resourceType="File"
-                                onChange={this.onKeywordsChange}
-                                serverUpdate={false}
-                                resources={[{ _id: "default", keywords: [] }]}
-                            />
-                        </div>
-                        <div>
-                            <StoragePicker
-                                disabled={this.state.uploading}
-                                onChange={this.updateSelectedStorageId}
-                            />
-                        </div>
-                    </div>
-                ) : (
-                    <div></div>
-                )}
+                <div>
+                    <span className={this.state.uploading ? "disabled" : ""}>
+                        Add to Upload Group
+                    </span>
+                    <Checkbox
+                        disabled={this.state.uploading}
+                        checked={this.state.addToUploadGroup}
+                        onChange={this.updateCheckUploadGroup}
+                    />
+                    <Input
+                        disabled={!this.state.addToUploadGroup || this.state.uploading}
+                        placeholder="Upload Group Name"
+                        value={this.state.uploadGroupName}
+                        onChange={this.updateUploadGroupName}
+                    />
+                </div>
+                <div>
+                    <label htmlFor="">File Keywords</label>
+                    <Keywords
+                        disabled={this.state.uploading}
+                        resourceType="File"
+                        onChange={this.onKeywordsChange}
+                        serverUpdate={false}
+                        resources={[{ _id: "default", keywords: [] }]}
+                    />
+                </div>
+                <div>
+                    <StoragePicker
+                        disabled={this.state.uploading}
+                        onChange={this.updateSelectedStorageId}
+                    />
+                </div>
             </div>
         );
     };

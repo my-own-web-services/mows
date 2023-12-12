@@ -1,5 +1,5 @@
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
-import { CSSProperties, ComponentType, PureComponent, ReactElement, Ref, createRef } from "react";
+import { CSSProperties, ComponentType, PureComponent, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
 import SortingBar from "./SortingBar";
@@ -9,9 +9,10 @@ import ListTopBar from "./ListTopBar";
 import { cloneDeep } from "lodash";
 import { FilezContext } from "../../../FilezProvider";
 import "react-contexify/dist/ReactContexify.css";
-import { FilezMenuItems, defaultMenuItems } from "./DefaultMenuItems";
+import { MenuItems, defaultMenuItems } from "./DefaultMenuItems";
 import { GetItemListRequestBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListRequestBody";
 import { GetItemListResponseBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListResponseBody";
+import { onContextMenuItemClick } from "./RowContextMenu";
 
 enum LoadItemMode {
     Reload,
@@ -42,25 +43,32 @@ export interface RowRenderer<ResourceType> {
     ) => { startIndex: number; limit: number };
 }
 
-export interface RowHandlers<ResourceType> {
+export interface ResourceListRowHandlers<ResourceType> {
     readonly onClick?: (
         e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
-        item: BaseResource,
+        item: ResourceType,
         rightClick?: boolean,
         dragged?: boolean
     ) => void;
     readonly onDrop?: (
         targetItemId: string,
         targetItemType: string,
-        selectedFiles: ResourceType[]
+        selectedItems: ResourceType[]
     ) => void;
     readonly onSelect?: (selectedItems: ResourceType[]) => void;
+    readonly onContextMenuItemClick?: (
+        item: ResourceType,
+        menuItemId?: string,
+        selectedItems?: ResourceType[]
+    ) => void;
+}
 
+export interface ResourceListHandlers<ResourceType> {
     readonly onSearch?: (search: string) => void;
     readonly onRefresh?: () => void;
     readonly onListTypeChange?: (listType: string) => void;
+    readonly onCreateClick: () => void;
 }
-
 export enum RowRendererDirection {
     Horizontal,
     Vertical
@@ -77,8 +85,8 @@ export interface ListData<ResourceType> {
     readonly total_count: number;
     readonly handlers: {
         readonly onItemClick: InstanceType<typeof ResourceList>["onItemClick"];
-        readonly updateRenderModalName?: InstanceType<typeof ResourceList>["updateRenderModalName"];
         readonly onDrop: InstanceType<typeof ResourceList>["onDrop"];
+        readonly onContextMenuItemClick?: onContextMenuItemClick<ResourceType>;
     };
     readonly functions: {
         readonly getSelectedItems: InstanceType<typeof ResourceList>["getSelectedItems"];
@@ -86,14 +94,12 @@ export interface ListData<ResourceType> {
     readonly selectedItems: SelectedItems;
     readonly columns?: Column<ResourceType>[];
     readonly disableContextMenu?: boolean;
-    readonly menuItems: FilezMenuItems<ResourceType>[];
+    readonly menuItems: MenuItems;
     readonly resourceType: string;
     readonly gridColumnCount: number;
     readonly rowHeight: number;
-    readonly rowHandlers?: RowHandlers<ResourceType>;
+    readonly rowHandlers?: ResourceListRowHandlers<ResourceType>;
 }
-
-// TODO old files loading when switching between list types
 
 export interface Column<ResourceType> {
     field: string;
@@ -136,11 +142,7 @@ interface ResourceListProps<ResourceType> {
     readonly get_items_function: (
         body: GetItemListRequestBody
     ) => Promise<GetItemListResponseBody<ResourceType>>;
-    /**
-    If provided renders a button to call it as well as the UI rendered by the function to create the resource.
-    */
-    readonly createResource?: ReactElement<any, any>;
-    readonly editResource?: ReactElement<any, any>;
+
     readonly style?: CSSProperties;
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
@@ -149,7 +151,9 @@ interface ResourceListProps<ResourceType> {
     readonly columns?: Column<ResourceType>[];
     readonly disableContextMenu?: boolean;
     readonly initialListType?: string;
-    readonly rowHandlers?: RowHandlers<ResourceType>;
+    readonly rowHandlers?: ResourceListRowHandlers<ResourceType>;
+    readonly handlers?: ResourceListHandlers<ResourceType>;
+    readonly resourceCreatable?: boolean;
 }
 
 interface ResourceListState<ResourceType> {
@@ -158,9 +162,8 @@ interface ResourceListState<ResourceType> {
     readonly commitedSearch: string;
     readonly columns?: Column<ResourceType>[];
     readonly listType: string;
-    readonly menuItems: FilezMenuItems<ResourceType>[];
+    readonly menuItems: MenuItems;
     readonly selectedItems: SelectedItems;
-    readonly renderModalName: string;
     readonly gridColumnCount: number;
     readonly scrollOffset: number;
     readonly width: number | null;
@@ -193,7 +196,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             listType: this.props.initialListType ?? this.props.rowRenderers[0].name,
             menuItems: cloneDeep(defaultMenuItems),
             selectedItems: {},
-            renderModalName: "",
             gridColumnCount: 10,
             scrollOffset: 0,
             width: null,
@@ -413,8 +415,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                 });
             },
             () => {
-                //this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
-                this.loadItems();
+                this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
+                this.loadItems(LoadItemMode.Reload);
             }
         );
     };
@@ -435,6 +437,11 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         await this.loadItems(LoadItemMode.Reload);
     };
 
+    onContextMenuItemClick = (item: ResourceType, menuItemId?: string) => {
+        const selectedItems = this.getSelectedItems();
+        this.props.rowHandlers?.onContextMenuItemClick?.(item, menuItemId, selectedItems);
+    };
+
     onDrop = (targetItemId: string, targetItemType: string) => {
         const selectedItems = this.getSelectedItems();
         this.props.rowHandlers?.onDrop?.(targetItemId, targetItemType, selectedItems);
@@ -442,7 +449,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
     onItemClick = async (
         e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
-        item: BaseResource,
+        item: ResourceType,
         rightClick?: boolean,
         dragged?: boolean
     ) => {
@@ -574,10 +581,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         });
     };
 
-    updateRenderModalName = (renderModalName: string) => {
-        this.setState({ renderModalName });
-    };
-
     updateGridColumnCount = (columnCount: number) => {
         this.setState({ gridColumnCount: columnCount });
     };
@@ -634,6 +637,10 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         this.setState({ width, height });
     };
 
+    onAddResourceClick = () => {
+        this.props.handlers?.onCreateClick?.();
+    };
+
     render = () => {
         if (!this.context?.filezClient) return;
         const fullListLength = this.state.total_count;
@@ -662,29 +669,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
         return (
             <div className="Filez ResourceList" style={{ ...this.props.style }}>
-                {(() => {
-                    const mi = this.state.menuItems.filter(
-                        menuItem => menuItem.name === this.state.renderModalName
-                    )[0];
-
-                    return (
-                        mi &&
-                        mi.render &&
-                        mi.render({
-                            items: this.state.items.filter(item => {
-                                if (item === undefined) return false;
-                                return this.state.selectedItems[item._id] === true;
-                            }) as ResourceType[],
-                            resourceType: this.props.resourceType,
-                            handleClose: () => {
-                                this.setState({ renderModalName: "" });
-                            },
-                            editResource: this.props.editResource,
-                            filezClient: this.context.filezClient,
-                            refreshList: this.refreshList
-                        })
-                    );
-                })()}
                 {this.props.displayTopBar !== false && (
                     <ListTopBar
                         items={this.state.items}
@@ -693,12 +677,13 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                         rowRenderers={this.props.rowRenderers}
                         refreshList={this.refreshList}
                         resourceType={this.props.resourceType}
-                        createResource={this.props.createResource}
                         updateListType={this.updateListViewMode}
                         currentListType={this.state.listType}
                         commitSearch={this.commitSearch}
                         updateGridColumnCount={this.updateGridColumnCount}
                         gridColumnCount={this.state.gridColumnCount}
+                        resourceCreatable={this.props.resourceCreatable}
+                        onAddResourceClick={this.onAddResourceClick}
                     />
                 )}
                 {this.props.displaySortingBar !== false && this.state.columns && (
@@ -758,10 +743,11 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                     items: this.state.items,
                                                     total_count: this.state.total_count,
                                                     handlers: {
+                                                        //@ts-ignore TODO fix this
                                                         onItemClick: this.onItemClick,
-                                                        updateRenderModalName:
-                                                            this.updateRenderModalName,
-                                                        onDrop: this.onDrop
+                                                        onDrop: this.onDrop,
+                                                        onContextMenuItemClick:
+                                                            this.onContextMenuItemClick
                                                     },
                                                     functions: {
                                                         getSelectedItems: this.getSelectedItems
@@ -773,8 +759,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                     disableContextMenu:
                                                         this.props.disableContextMenu,
                                                     //TODO fix this
-                                                    menuItems: this.state
-                                                        .menuItems as FilezMenuItems<BaseResource>[],
+                                                    menuItems: this.state.menuItems,
                                                     resourceType: this.props.resourceType,
                                                     gridColumnCount: this.state.gridColumnCount,
                                                     rowHeight,

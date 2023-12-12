@@ -11,7 +11,8 @@ use crate::{
 };
 use filez_common::server::{
     AppDataType, FileGroupType, FileResourceType, FilezFile, FilezFileGroup, FilezUser,
-    FilezUserGroup, SortOrder, UploadSpace, UsageLimits, UserRole, UserStatus, Visibility,
+    FilezUserGroup, GetItemListRequestBody, SortOrder, UploadSpace, UsageLimits, UserRole,
+    UserStatus, Visibility,
 };
 
 use anyhow::bail;
@@ -108,7 +109,12 @@ impl DB {
     ) -> anyhow::Result<Option<UploadSpace>> {
         let collection = self.db.collection::<UploadSpace>("upload_spaces");
         let res = collection
-            .find_one(doc! {"_id": upload_space_id}, None)
+            .find_one(
+                doc! {
+                    "_id": upload_space_id
+                },
+                None,
+            )
             .await?;
 
         Ok(res)
@@ -125,8 +131,12 @@ impl DB {
         let collection = self.db.collection::<FilezFileGroup>("file_groups");
         collection
             .update_one(
-                doc! {"_id": file_group.file_group_id.clone()},
-                doc! {"$set": bson::to_bson(file_group)?},
+                doc! {
+                    "_id": file_group.file_group_id.clone()
+                },
+                doc! {
+                    "$set": bson::to_bson(file_group)?
+                },
                 None,
             )
             .await?;
@@ -264,7 +274,12 @@ impl DB {
     pub async fn get_files_by_owner_id(&self, owner_id: &str) -> anyhow::Result<Vec<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
         let res = collection
-            .find(doc! {"owner_id": owner_id}, FindOptions::builder().build())
+            .find(
+                doc! {
+                    "owner_id": owner_id
+                },
+                FindOptions::builder().build(),
+            )
             .await?
             .try_collect::<Vec<_>>()
             .await?;
@@ -316,8 +331,14 @@ impl DB {
 
                 collection
                     .update_one(
-                        doc! {"_id": group.file_group_id},
-                        doc! {"$set": {"permission_ids": upr.permission_ids.clone()}},
+                        doc! {
+                            "_id": group.file_group_id
+                        },
+                        doc! {
+                            "$set": {
+                                "permission_ids": upr.permission_ids.clone()
+                            }
+                        },
                         None,
                     )
                     .await?
@@ -335,8 +356,14 @@ impl DB {
                 // update permissions on the file
                 collection
                     .update_one(
-                        doc! {"_id": file.file_id},
-                        doc! {"$set": {"permission_ids": upr.permission_ids.clone()}},
+                        doc! {
+                            "_id": file.file_id
+                        },
+                        doc! {
+                            "$set": {
+                                "permission_ids": upr.permission_ids.clone()
+                            }
+                        },
                         None,
                     )
                     .await?
@@ -360,8 +387,12 @@ impl DB {
         let collection = self.db.collection::<FilezPermission>("permissions");
         collection
             .update_one(
-                doc! {"_id": permission.permission_id.clone()},
-                doc! {"$set": bson::to_bson(permission)?},
+                doc! {
+                    "_id": permission.permission_id.clone()
+                },
+                doc! {
+                    "$set": bson::to_bson(permission)?
+                },
                 None,
             )
             .await?;
@@ -375,7 +406,12 @@ impl DB {
     ) -> anyhow::Result<Vec<FilezPermission>> {
         let collection = self.db.collection::<FilezPermission>("permissions");
         let permissions = collection
-            .find(doc! {"owner_id": owner_id}, None)
+            .find(
+                doc! {
+                    "owner_id": owner_id
+                },
+                None,
+            )
             .await?
             .try_collect::<Vec<_>>()
             .await?;
@@ -385,28 +421,24 @@ impl DB {
     pub async fn get_permissions_by_owner_id_for_virtual_list(
         &self,
         owner_id: &str,
-        limit: Option<u64>,
-        from_index: u64,
-        sort_field: Option<String>,
-        sort_order: SortOrder,
-        search_filter: Option<String>,
+        gir: &GetItemListRequestBody,
     ) -> anyhow::Result<(Vec<FilezPermission>, u32)> {
         let collection = self.db.collection::<FilezPermission>("permissions");
 
-        let sort_field = sort_field.unwrap_or("_id".to_string());
-
+        let sort_field = gir.sort_field.clone().unwrap_or("_id".to_string());
         let find_options = FindOptions::builder()
             .sort(doc! {
-                sort_field: match sort_order {
-                    SortOrder::Ascending => 1,
-                    SortOrder::Descending => -1
-                }
+                sort_field: match gir.sort_order {
+                    Some(SortOrder::Ascending) => 1,
+                    Some(SortOrder::Descending) => -1,
+                    None => 1
+            }
             })
-            .limit(limit.map(|l| l as i64))
-            .skip(from_index)
+            .limit(gir.limit.map(|l| l as i64))
+            .skip(gir.from_index)
             .build();
 
-        let search_filter = match search_filter {
+        let search_filter = match &gir.filter {
             Some(f) => {
                 if !f.is_empty() {
                     doc! {
@@ -594,29 +626,26 @@ impl DB {
     pub async fn get_file_groups_by_owner_id_for_virtual_list(
         &self,
         owner_id: &str,
-        limit: Option<u64>,
-        from_index: u64,
-        sort_field: Option<String>,
-        sort_order: SortOrder,
-        search_filter: Option<String>,
+        gir: &GetItemListRequestBody,
         group_type: Option<FileGroupType>,
     ) -> anyhow::Result<(Vec<FilezFileGroup>, u32)> {
         let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
-        let sort_field = sort_field.unwrap_or("_id".to_string());
+        let sort_field = gir.sort_field.clone().unwrap_or("_id".to_string());
 
         let find_options = FindOptions::builder()
             .sort(doc! {
-                sort_field: match sort_order {
-                    SortOrder::Ascending => 1,
-                    SortOrder::Descending => -1
+                sort_field: match gir.sort_order {
+                        Some(SortOrder::Ascending) => 1,
+                        Some(SortOrder::Descending) => -1,
+                        None => 1
                 }
             })
-            .limit(limit.map(|l| l as i64))
-            .skip(from_index)
+            .limit(gir.limit.map(|l| l as i64))
+            .skip(gir.from_index)
             .build();
 
-        let search_filter = match search_filter {
+        let search_filter = match &gir.filter {
             Some(f) => {
                 if !f.is_empty() {
                     doc! {
@@ -1116,29 +1145,25 @@ impl DB {
     pub async fn get_user_group_list(
         &self,
         requesting_user: &FilezUser,
-        limit: Option<u64>,
-        from_index: u64,
-        sort_field: Option<String>,
-        sort_order: SortOrder,
-        search_filter: Option<String>,
+        gir: &GetItemListRequestBody,
     ) -> anyhow::Result<(Vec<FilezUserGroup>, u32)> {
         let collection = self.db.collection::<FilezUserGroup>("user_groups");
         let requesting_user_id = &requesting_user.user_id;
         let requesting_user_user_groups = &requesting_user.user_group_ids;
-        let sort_field = sort_field.unwrap_or("_id".to_string());
-
+        let sort_field = gir.sort_field.clone().unwrap_or("_id".to_string());
         let find_options = FindOptions::builder()
             .sort(doc! {
-                sort_field: match sort_order {
-                    SortOrder::Ascending => 1,
-                    SortOrder::Descending => -1
-                }
+                sort_field: match gir.sort_order {
+                    Some(SortOrder::Ascending) => 1,
+                    Some(SortOrder::Descending) => -1,
+                    None => 1
+            }
             })
-            .limit(limit.map(|l| l as i64))
-            .skip(from_index)
+            .limit(gir.limit.map(|l| l as i64))
+            .skip(gir.from_index)
             .build();
 
-        let search_filter = match search_filter {
+        let search_filter = match &gir.filter {
             Some(f) => {
                 if !f.is_empty() {
                     doc! {
@@ -1196,30 +1221,26 @@ impl DB {
     pub async fn get_user_list(
         &self,
         requesting_user: &FilezUser,
-        limit: Option<u64>,
-        from_index: u64,
-        sort_field: Option<String>,
-        sort_order: SortOrder,
-        search_filter: Option<String>,
+        gir: &GetItemListRequestBody,
     ) -> anyhow::Result<(Vec<FilezUser>, u32)> {
         let collection = self.db.collection::<FilezUser>("users");
 
         let requesting_user_id = &requesting_user.user_id;
 
-        let sort_field = sort_field.unwrap_or("_id".to_string());
-
+        let sort_field = gir.sort_field.clone().unwrap_or("_id".to_string());
         let find_options = FindOptions::builder()
             .sort(doc! {
-                sort_field: match sort_order {
-                    SortOrder::Ascending => 1,
-                    SortOrder::Descending => -1
-                }
+                sort_field: match gir.sort_order {
+                    Some(SortOrder::Ascending) => 1,
+                    Some(SortOrder::Descending) => -1,
+                    None => 1
+            }
             })
-            .limit(limit.map(|l| l as i64))
-            .skip(from_index)
+            .limit(gir.limit.map(|l| l as i64))
+            .skip(gir.from_index)
             .build();
 
-        let search_filter = match search_filter {
+        let search_filter = match &gir.filter {
             Some(f) => {
                 if !f.is_empty() {
                     doc! {
@@ -1304,28 +1325,24 @@ impl DB {
     pub async fn get_files_by_group_id(
         &self,
         group_id: &str,
-        limit: Option<u64>,
-        from_index: u64,
-        sort_field: Option<String>,
-        sort_order: SortOrder,
-        filter: Option<String>,
+        gir: &GetItemListRequestBody,
     ) -> anyhow::Result<(Vec<FilezFile>, u32)> {
         let collection = self.db.collection::<FilezFile>("files");
 
-        let sort_field = sort_field.unwrap_or("name".to_string());
-
+        let sort_field = gir.sort_field.clone().unwrap_or("_id".to_string());
         let find_options = FindOptions::builder()
             .sort(doc! {
-                sort_field: match sort_order {
-                    SortOrder::Ascending => 1,
-                    SortOrder::Descending => -1
-                }
+                sort_field: match gir.sort_order {
+                    Some(SortOrder::Ascending) => 1,
+                    Some(SortOrder::Descending) => -1,
+                    None => 1
+            }
             })
-            .limit(limit.map(|l| l as i64))
-            .skip(from_index)
+            .limit(gir.limit.map(|l| l as i64))
+            .skip(gir.from_index)
             .build();
 
-        let search_filter = match filter {
+        let search_filter = match &gir.filter {
             Some(f) => doc! {
                 "$or": [
                     {
@@ -1359,10 +1376,10 @@ impl DB {
                 {
                     "$or": [
                         {
-                            "static_file_group_ids": group_id
+                            "static_file_group_ids": &group_id
                         },
                         {
-                            "dynamic_file_group_ids": group_id
+                            "dynamic_file_group_ids": &group_id
                         }
                     ]
                 },
@@ -1570,7 +1587,13 @@ impl DB {
 
         // delete file
         files_collection
-            .delete_one_with_session(doc! {"_id": file.file_id}, None, &mut session)
+            .delete_one_with_session(
+                doc! {
+                    "_id": file.file_id
+                },
+                None,
+                &mut session,
+            )
             .await?;
 
         // update user

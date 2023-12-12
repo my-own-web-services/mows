@@ -40,12 +40,15 @@ pub struct GetItemListResponseBody<T> {
 pub struct GetItemListRequestBody {
     #[ts(optional)]
     pub id: Option<String>,
-    #[ts(type = "number")]
-    pub from_index: u64,
-    #[ts(type = "number")]
+    #[ts(type = "number", optional)]
+    pub from_index: Option<u64>,
+    #[ts(type = "number", optional)]
     pub limit: Option<u64>,
+    #[ts(optional)]
     pub sort_field: Option<String>,
+    #[ts(optional)]
     pub sort_order: Option<SortOrder>,
+    #[ts(optional)]
     pub filter: Option<String>,
 }
 

@@ -10,28 +10,33 @@ import { FileDownload } from "@rsuite/icons";
 import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import KeywordPicker from "./KeywordPicker";
-import Name from "./Name";
+import Name from "./SingleName";
 import Permission from "../list/permissions/Permission";
 import { isEqual } from "lodash";
 import StoragePicker from "./StoragePicker";
 import StaticFileGroupPicker from "./StaticFileGroupPicker";
 
-interface MetaEditorProps {
+interface FileMetaEditorProps {
     readonly fileIds: string[];
     readonly style?: CSSProperties;
+    readonly onChange?: () => void;
+    readonly serverUpdate?: boolean;
 }
 
-interface MetaEditorState {
+interface FileMetaEditorState {
     readonly files: FilezFile[] | null;
     readonly knownMimeTypes: string[];
     readonly knownOwners: ItemDataType[];
 }
 
-export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEditorState> {
+export default class FileMetaEditor extends PureComponent<
+    FileMetaEditorProps,
+    FileMetaEditorState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
-    constructor(props: MetaEditorProps) {
+    constructor(props: FileMetaEditorProps) {
         super(props);
 
         this.state = {
@@ -45,11 +50,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
         await this.loadFileInfos();
     };
 
-    componentDidUpdate = async (
-        prevProps: Readonly<MetaEditorProps>,
-        _prevState: Readonly<MetaEditorState>,
-        _snapshot?: any
-    ) => {
+    componentDidUpdate = async (prevProps: Readonly<FileMetaEditorProps>) => {
         if (!isEqual(prevProps.fileIds, this.props.fileIds)) {
             await this.loadFileInfos();
         }
@@ -63,6 +64,10 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
         this.setState({
             files
         });
+    };
+
+    onChange = async () => {
+        this.props.onChange?.();
     };
 
     render = () => {
@@ -92,7 +97,12 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                         <div>
                             {singleFile && (
                                 <div className="basicsBox">
-                                    <Name file={singleFile} inputSize={inputSize} />
+                                    <Name
+                                        file={singleFile}
+                                        inputSize={inputSize}
+                                        serverUpdate={this.props.serverUpdate}
+                                        onCommitNameChange={this.onChange}
+                                    />
                                 </div>
                             )}
                             <div className="basicsBox">
@@ -100,6 +110,8 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                 <StaticFileGroupPicker
                                     size={inputSize}
                                     resources={this.state.files}
+                                    serverUpdate={this.props.serverUpdate}
+                                    onChange={this.onChange}
                                 />
                             </div>
                             <div className="basicsBox">
@@ -108,6 +120,7 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                                     resourceType="File"
                                     resources={this.state.files}
                                     inputSize={inputSize}
+                                    onChange={this.onChange}
                                 />
                             </div>
                             {singleFile && (
@@ -211,8 +224,9 @@ export default class MetaEditor extends PureComponent<MetaEditorProps, MetaEdito
                         bordered
                     >
                         <StoragePicker
+                            onChange={this.onChange}
                             fileIds={this.state.files.map(file => file._id)}
-                        ></StoragePicker>
+                        />
                     </Panel>
 
                     <Panel

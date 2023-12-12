@@ -29,12 +29,10 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
             gridColumnCount,
             disableContextMenu,
             handlers,
-            functions,
             menuItems,
             total_count
         } = data;
-        const { onItemClick, updateRenderModalName } = handlers;
-        const { getSelectedItems } = functions;
+        const { onItemClick } = handlers;
         const startIndex = index * gridColumnCount;
         const endIndex = startIndex + gridColumnCount;
         const currentItems = items.slice(startIndex, endIndex);
@@ -50,6 +48,7 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                         id: item._id
                     });
                     const isSelected = this.props.data.selectedItems[item._id];
+                    const key = "GridRowRenderer" + index + i;
                     return (
                         <div
                             onClick={e => onItemClick?.(e, item)}
@@ -59,7 +58,7 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                                 show({ event: e });
                             }}
                             className={`Row ${isSelected ? " selected" : ""} fadeIn`}
-                            key={"GridRowRenderer" + item._id}
+                            key={key}
                             style={{
                                 height: "100%",
                                 width: rowHeight - 15 / currentItems.length,
@@ -96,11 +95,9 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                             {!disableContextMenu && (
                                 <RowContextMenu
                                     menuItems={menuItems}
-                                    updateRenderModalName={updateRenderModalName}
-                                    resourceType={resourceType}
-                                    getSelectedItems={getSelectedItems}
                                     menuId={item._id}
                                     currentItem={item}
+                                    onContextMenuItemClick={handlers.onContextMenuItemClick}
                                 />
                             )}
                         </div>

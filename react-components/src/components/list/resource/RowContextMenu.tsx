@@ -1,15 +1,18 @@
 import { PureComponent } from "react";
 import { Item, ItemParams, Menu, contextMenu } from "react-contexify";
-import ResourceList, { BaseResource } from "./ResourceList";
-import { FilezMenuItems } from "./DefaultMenuItems";
+import { BaseResource } from "./ResourceList";
+import { MenuItems } from "./DefaultMenuItems";
+
+export type onContextMenuItemClick<ResourceType> = (
+    item: ResourceType,
+    menuItemId?: string
+) => void;
 
 interface RowContextMenuProps<ResourceType> {
-    readonly menuItems: FilezMenuItems<ResourceType>[];
-    readonly resourceType: string;
-    readonly getSelectedItems: InstanceType<typeof ResourceList>["getSelectedItems"];
-    readonly updateRenderModalName?: InstanceType<typeof ResourceList>["updateRenderModalName"];
+    readonly menuItems: MenuItems;
     readonly menuId: string;
     readonly currentItem: ResourceType;
+    readonly onContextMenuItemClick?: onContextMenuItemClick<ResourceType>;
 }
 
 interface RowContextMenuState {}
@@ -31,37 +34,22 @@ export default class RowContextMenu<ResourceType extends BaseResource> extends P
     };
 
     onMenuItemClick = (menuItemParams: ItemParams<any, any>) => {
-        // select the current item
-        // TODO this does not work if no item is selected yet
-        const menuItem = menuItemParams.data;
-        if (!menuItem) return;
-        const selected = this.props.getSelectedItems();
-        if (menuItem.onClick) {
-            menuItem.onClick(selected);
-        }
-
-        this.props.updateRenderModalName?.(menuItem.name);
+        this.props.onContextMenuItemClick?.(this.props.currentItem, menuItemParams?.id);
     };
 
     render = () => {
         return (
             <div className="RowContextMenu">
                 <Menu id={this.props.menuId}>
-                    {this.props.menuItems.flatMap(menuItem => {
-                        if (
-                            menuItem.resources &&
-                            !menuItem.resources.includes(this.props.resourceType)
-                        ) {
-                            return [];
-                        }
+                    {Object.entries(this.props.menuItems).flatMap(([itemId, menuItem]) => {
                         return [
                             <Item
-                                key={menuItem.name}
+                                key={itemId}
                                 className="clickable"
                                 onClick={this.onMenuItemClick}
-                                data={menuItem}
+                                id={itemId}
                             >
-                                {menuItem.name}
+                                {menuItem.label}
                             </Item>
                         ];
                     })}

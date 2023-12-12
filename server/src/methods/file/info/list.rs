@@ -1,9 +1,5 @@
-use crate::{
-    db::DB,
-    internal_types::Auth,
-    utils::{get_query_item, get_query_item_number},
-};
-use filez_common::server::{FilezFile, GetItemListRequestBody, GetItemListResponseBody, SortOrder};
+use crate::{db::DB, internal_types::Auth};
+use filez_common::server::{FilezFile, GetItemListRequestBody, GetItemListResponseBody};
 use hyper::{Body, Request, Response};
 
 pub async fn get_file_infos_by_group_id(
@@ -24,11 +20,7 @@ pub async fn get_file_infos_by_group_id(
                 Some(g) => g,
                 None => return Ok(res.status(400).body("No group id provided".into()).unwrap()),
             },
-            grrb.limit,
-            grrb.from_index,
-            grrb.sort_field,
-            grrb.sort_order.unwrap_or(SortOrder::Ascending),
-            grrb.filter,
+            &grrb,
         )
         .await?;
 

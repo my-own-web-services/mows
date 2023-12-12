@@ -62,5 +62,5 @@ pub async fn delete_file(
     let fl = get_storage_location_from_file(&config.storage, &file)?;
     fs::remove_file(fl.full_path).await?;
 
-    Ok(res.status(200).body(Body::from("OK"))?)
+    Ok(res.status(200).body(Body::from("Ok"))?)
 }

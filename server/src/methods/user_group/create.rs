@@ -40,7 +40,7 @@ pub async fn create_user_group(
     let res_body = CreateUserGroupResponseBody { group_id };
 
     Ok(res
-        .status(201)
+        .status(200)
         .body(Body::from(serde_json::to_string(&res_body)?))?)
 }
 

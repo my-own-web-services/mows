@@ -166,7 +166,6 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
                                     position: "absolute",
                                     outline: "1px solid var(--rs-tooltip-bg)",
                                     border: "1px solid #aaa",
-                                    zIndex: 3,
                                     ...style
                                 }}
                             ></div>
@@ -184,7 +183,6 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
                                         position: "absolute",
                                         outline: "1px solid var(--rs-tooltip-bg)",
                                         border: "1px solid #aaa",
-                                        zIndex: 3,
                                         ...style
                                     }}
                                 ></div>

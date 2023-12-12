@@ -1,4 +1,4 @@
-import { CSSProperties, Component, PureComponent } from "react";
+import { CSSProperties, Component, PureComponent, createRef } from "react";
 import FilezProvider from "./FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import UserList from "./components/list/users/UserList";
@@ -21,6 +21,8 @@ interface AppState {
 }
 
 export default class App extends Component<AppProps, AppState> {
+    fileGroupListRef = createRef<FileGroupList>();
+
     constructor(props: AppProps) {
         super(props);
         this.state = {
@@ -47,18 +49,26 @@ export default class App extends Component<AppProps, AppState> {
         this.setState({ selectedFileId: item._id });
     };
 
+    onFileListChange = () => {
+        this.fileGroupListRef.current?.resourceListRef.current?.refreshList();
+    };
+
     render = () => {
         return (
             <div className="App">
                 <FilezProvider>
                     <FileList
                         style={{ height: "500px" }}
-                        rowHandlers={{ onClick: this.onFileClick }}
+                        resourceListRowHandlers={{
+                            onClick: this.onFileClick
+                        }}
+                        handlers={{ onChange: this.onFileListChange }}
                         id={this.state.selectedGroupId}
                     />
                     <FileGroupList
+                        ref={this.fileGroupListRef}
                         style={{ height: "500px", width: "500px", float: "left" }}
-                        rowHandlers={{ onClick: this.onGroupClick }}
+                        resourceListRowHandlers={{ onClick: this.onGroupClick }}
                     />
 
                     <FilezFileViewer

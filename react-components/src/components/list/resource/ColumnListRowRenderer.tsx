@@ -11,12 +11,11 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
     ListRowProps<ResourceType>,
     ListRowState
 > {
-    contextMenuRef: React.RefObject<RowContextMenu<ResourceType>>;
+    contextMenuRef = createRef<RowContextMenu<ResourceType>>();
 
     constructor(props: ListRowProps<ResourceType>) {
         super(props);
         this.state = {};
-        this.contextMenuRef = createRef();
     }
 
     getCurentItem = () => {
@@ -24,15 +23,20 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
     };
 
     onItemClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        this.props.data.handlers.onItemClick?.(e, this.getCurentItem());
+        this.props.data.handlers.onItemClick?.(e, this.getCurentItem() as ResourceType);
     };
 
     onItemDrag = (e: React.DragEvent<HTMLDivElement>) => {
-        this.props.data.handlers.onItemClick?.(e, this.getCurentItem(), false, true);
+        this.props.data.handlers.onItemClick?.(
+            e,
+            this.getCurentItem() as ResourceType,
+            false,
+            true
+        );
     };
 
     onContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        this.props.data.handlers.onItemClick?.(e, this.getCurentItem(), true);
+        this.props.data.handlers.onItemClick?.(e, this.getCurentItem() as ResourceType, true);
         this.contextMenuRef.current?.open(e);
     };
 
@@ -115,13 +119,11 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
                 </DraggableItem>
                 {!this.props.data.disableContextMenu && (
                     <RowContextMenu
-                        ref={this.contextMenuRef}
                         menuItems={this.props.data.menuItems}
-                        updateRenderModalName={this.props.data.handlers.updateRenderModalName}
-                        resourceType={this.props.data.resourceType}
-                        getSelectedItems={this.props.data.functions.getSelectedItems}
                         menuId={item._id}
+                        ref={this.contextMenuRef}
                         currentItem={item}
+                        onContextMenuItemClick={this.props.data.handlers.onContextMenuItemClick}
                     />
                 )}
             </div>

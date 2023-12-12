@@ -77,7 +77,7 @@ pub async fn create_upload_space(
     db.create_upload_space(&upload_space).await?;
 
     Ok(Response::builder()
-        .status(201)
+        .status(200)
         .body(Body::from("Created"))?)
 }
 
