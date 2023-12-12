@@ -1,5 +1,6 @@
 use crate::{
     config::SERVER_CONFIG,
+    dynamic_groups::GroupChange,
     methods::{
         set_app_data::SetAppDataRequest,
         update_permission_ids_on_resource::UpdatePermissionIdsOnResourceRequestBody,
@@ -149,7 +150,7 @@ impl DB {
                     },
                     {
                         "group_type": {
-                            "$eq": "dynamic"
+                            "$eq": "Dynamic"
                         }
                     }
                     ]
@@ -165,7 +166,7 @@ impl DB {
 
     pub async fn update_dynamic_file_groups_on_many_files(
         &self,
-        to_be_updated: &Vec<(String, Vec<String>)>,
+        to_be_updated: &Vec<GroupChange>,
     ) -> anyhow::Result<()> {
         let mut session = self.client.start_session(None).await?;
         session.start_transaction(None).await?;
@@ -173,14 +174,14 @@ impl DB {
         let files_collection = self.db.collection::<FilezFile>("files");
         let file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
 
-        // TODO make this faster by using bulk operations
-        // TODO what happends when file groups get removed instead of added?
-        // FIXME
+        let mut file_count_map: HashMap<String, i64> = HashMap::new();
 
-        let mut file_count_map: HashMap<String, u64> = HashMap::new();
+        for tba in to_be_updated {
+            let file_id = &tba.file_id;
+            let added_groups = &tba.added_groups;
+            let removed_groups = &tba.removed_groups;
 
-        for (file_id, dynamic_file_group_ids) in to_be_updated {
-            for file_group_id in dynamic_file_group_ids {
+            for file_group_id in added_groups {
                 if file_count_map.contains_key(file_group_id) {
                     let count = file_count_map.get(file_group_id).unwrap();
                     file_count_map.insert(file_group_id.clone(), count + 1);
@@ -189,7 +190,7 @@ impl DB {
                 }
             }
 
-            if !dynamic_file_group_ids.is_empty() {
+            if !added_groups.is_empty() {
                 files_collection
                     .update_one_with_session(
                         doc! {
@@ -197,7 +198,37 @@ impl DB {
                         },
                         doc! {
                             "$push": {
-                                "dynamic_file_group_ids": &dynamic_file_group_ids[0]
+                                "dynamic_file_group_ids": {
+                                    "$each": &added_groups
+                                }
+                            }
+                        },
+                        None,
+                        &mut session,
+                    )
+                    .await?;
+            }
+
+            for file_group_id in removed_groups {
+                if file_count_map.contains_key(file_group_id) {
+                    let count = file_count_map.get(file_group_id).unwrap();
+                    file_count_map.insert(file_group_id.clone(), count - 1);
+                } else {
+                    file_count_map.insert(file_group_id.clone(), -1);
+                }
+            }
+
+            if !removed_groups.is_empty() {
+                files_collection
+                    .update_one_with_session(
+                        doc! {
+                            "_id": file_id
+                        },
+                        doc! {
+                            "$pull": {
+                                "dynamic_file_group_ids": {
+                                    "$in": &removed_groups
+                                }
                             }
                         },
                         None,
@@ -207,6 +238,8 @@ impl DB {
             }
         }
 
+        dbg!(&file_count_map);
+
         //set the new file count on the groups
         for (file_group_id, file_count) in file_count_map {
             file_groups_collection
@@ -215,7 +248,7 @@ impl DB {
                         "_id": file_group_id
                     },
                     doc! {
-                        "$set": {
+                        "$inc": {
                             "item_count": bson::to_bson(&file_count)?
                         }
                     },
@@ -776,7 +809,7 @@ impl DB {
         })
     }
 
-    // TODO make this work for all types of resources
+    // TODO make this work for all types of resources that can have keywords
     pub async fn get_aggregated_keywords(&self, owner_id: &str) -> anyhow::Result<Vec<String>> {
         let collection = self.db.collection::<FilezFile>("files");
 
@@ -1325,8 +1358,12 @@ impl DB {
             "$and": [
                 {
                     "$or": [
-                        {"static_file_group_ids": group_id},
-                        {"dynamic_file_group_ids": group_id}
+                        {
+                            "static_file_group_ids": group_id
+                        },
+                        {
+                            "dynamic_file_group_ids": group_id
+                        }
                     ]
                 },
                 search_filter,
@@ -1747,7 +1784,9 @@ impl DB {
 
         Ok(collection
             .update_one(
-                doc! {"_id": other_user_id},
+                doc! {
+                    "_id": other_user_id
+                },
                 doc! {
                     "$push": {
                         "pending_incoming_friend_requests": requesting_user_id
@@ -1770,7 +1809,9 @@ impl DB {
 
         collection
             .update_one_with_session(
-                doc! {"_id": other_user_id},
+                doc! {
+                    "_id": other_user_id
+                },
                 doc! {
                     "$pull": {
                         "friends": requesting_user_id
@@ -1783,7 +1824,9 @@ impl DB {
 
         collection
             .update_one_with_session(
-                doc! {"_id": requesting_user_id},
+                doc! {
+                    "_id": requesting_user_id
+                },
                 doc! {
                     "$pull": {
                         "friends": other_user_id
@@ -1809,7 +1852,9 @@ impl DB {
 
         collection
             .update_one_with_session(
-                doc! {"_id": requesting_user_id},
+                doc! {
+                    "_id": requesting_user_id
+                },
                 doc! {
                     "$pull": {
                         "pending_incoming_friend_requests": other_user_id
@@ -1825,7 +1870,9 @@ impl DB {
 
         collection
             .update_one_with_session(
-                doc! {"_id": other_user_id},
+                doc! {
+                    "_id": other_user_id
+                },
                 doc! {
                     "$push": {
                         "friends": requesting_user_id
@@ -1848,7 +1895,9 @@ impl DB {
 
         Ok(collection
             .update_one(
-                doc! {"_id": requesting_user_id},
+                doc! {
+                    "_id": requesting_user_id
+                },
                 doc! {
                     "$pull": {
                         "pending_incoming_friend_requests": other_user_id

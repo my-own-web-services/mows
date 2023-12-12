@@ -6,11 +6,9 @@ import ResourceList, { Column, ColumnDirection, RowHandlers } from "../resource/
 import CreateFile from "./CreateFile";
 import EditFile from "./EditFile";
 import FileIcon from "../../fileIcons/FileIcon";
-
 import GridRowRenderer from "../resource/GridRowRenderer";
 import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import { GroupTags } from "./GroupTags";
 
 const defaultColumns: Column<FilezFile>[] = [
     {
@@ -68,7 +66,9 @@ const defaultColumns: Column<FilezFile>[] = [
         render: (item: FilezFile) => {
             return <span>{utcTimeStampToTimeAndDate(item.modified)}</span>;
         }
-    },
+    }
+];
+/*
     {
         field: "static_file_group_ids",
         label: "Static Groups",
@@ -78,7 +78,8 @@ const defaultColumns: Column<FilezFile>[] = [
         visible: true,
         render: (item: FilezFile) => <GroupTags file={item} />
     }
-];
+
+*/
 
 interface FileListProps {
     readonly id: string;

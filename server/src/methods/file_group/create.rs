@@ -1,4 +1,9 @@
-use crate::{db::DB, internal_types::Auth, utils::generate_id};
+use crate::{
+    db::DB,
+    dynamic_groups::{handle_dynamic_group_update, UpdateType},
+    internal_types::Auth,
+    utils::generate_id,
+};
 use filez_common::server::{FileGroupType, FilezFileGroup, FilterRule};
 use hyper::{body::Body, Request, Response};
 use serde::{Deserialize, Serialize};
@@ -16,7 +21,8 @@ None
 // this is unpractical for a use case like playlists where you maybe would want to add the same file multiple times
 // its not possible to have a custom sorting of files in the static file group currently
 // maybe also store the files ids on the file group document in an array
-
+// TODO create double links for all resource types
+// TODO extract dynamic and static file groups into separate collections and structs
 pub async fn create_file_group(
     req: Request<Body>,
     db: DB,
@@ -41,13 +47,18 @@ pub async fn create_file_group(
         keywords: cgr.keywords,
         group_hierarchy_paths: cgr.group_hierarchy_paths,
         mime_types: cgr.mime_types,
-        group_type: cgr.group_type,
+        group_type: cgr.group_type.clone(),
         item_count: 0,
         dynamic_group_rules: cgr.dynamic_group_rules,
-        readonly: false,
+        readonly: match cgr.group_type {
+            FileGroupType::Static => false,
+            FileGroupType::Dynamic => true,
+        },
     };
 
     db.create_file_group(&file_group).await?;
+
+    handle_dynamic_group_update(&db, &UpdateType::Group(file_group)).await?;
 
     let res_body = CreateFileGroupResponseBody { group_id };
 

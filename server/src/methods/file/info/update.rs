@@ -1,6 +1,7 @@
 use crate::{
     config::SERVER_CONFIG,
     db::DB,
+    dynamic_groups::{handle_dynamic_group_update, UpdateType},
     internal_types::Auth,
     is_transient_transaction_error,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
@@ -18,7 +19,10 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use ts_rs::TS;
 /**
-# Updates the infos of a file.
+# Updates the infos of given files.
+
+## Atomicity
+No, will be aborted as soon as one file fails to update.
 
 ## Call
 `/api/file/info/update/`
@@ -37,8 +41,6 @@ pub async fn update_file_infos(
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
-
-    // TODO make this work for updating infos on multiple files at once
 
     crate::check_content_type_json!(req, res);
 
@@ -120,7 +122,6 @@ pub async fn update_file_infos(
             db.check_file_group_existence(new_static_file_group_ids)
                 .await?;
 
-            //TODO retry this if it fails
             while let Err(e) = db
                 .update_files_static_file_group_ids(
                     &filez_file.file_id,
@@ -277,7 +278,6 @@ pub async fn update_file_infos(
                 if let Err(e) = fs::remove_file(&old_storage_location.full_path).await {
                     println!("FATAL ERROR: Failed to remove old file: {}", e);
                 };
-                return Ok(res.status(200).body(Body::from("Updated")).unwrap());
             }
         };
 
@@ -294,17 +294,26 @@ pub async fn update_file_infos(
                 return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
             }
             // check if all permissions are owned by the requesting user
-            let permissions = db.get_permissions_by_resource_ids(&permission_ids).await?;
+            let permissions = db.get_permissions_by_resource_ids(permission_ids).await?;
             for permission in permissions {
                 if permission.owner_id != requesting_user.user_id {
                     return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
                 }
             }
 
-            db.update_file_permission_ids(&filez_file.file_id, &permission_ids)
+            db.update_file_permission_ids(&filez_file.file_id, permission_ids)
                 .await?;
         }
+        //OPTIMIZE handle this in one call, and make it atomic
+        let updated_file = some_or_bail!(
+            db.get_file_by_id(&filez_file.file_id).await?,
+            "Could not find just updated file?!"
+        );
+        //dbg!(&updated_file);
+
+        handle_dynamic_group_update(&db, &UpdateType::File(updated_file)).await?;
     }
+
     Ok(res.status(201).body(Body::from("Ok")).unwrap())
 }
 

@@ -358,6 +358,8 @@ pub struct FilterRule {
 pub enum FilterRuleType {
     MatchRegex,
     NotMatchRegex,
+    Contains,
+    NotContains,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

@@ -1,5 +1,5 @@
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
-import { CSSProperties, ComponentType, PureComponent, ReactElement, createRef } from "react";
+import { CSSProperties, ComponentType, PureComponent, ReactElement, Ref, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
 import SortingBar from "./SortingBar";
@@ -12,6 +12,11 @@ import "react-contexify/dist/ReactContexify.css";
 import { FilezMenuItems, defaultMenuItems } from "./DefaultMenuItems";
 import { GetItemListRequestBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListRequestBody";
 import { GetItemListResponseBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListResponseBody";
+
+enum LoadItemMode {
+    Reload,
+    NewId
+}
 
 export interface RowRenderer<ResourceType> {
     readonly name: string;
@@ -50,6 +55,10 @@ export interface RowHandlers<ResourceType> {
         selectedFiles: ResourceType[]
     ) => void;
     readonly onSelect?: (selectedItems: ResourceType[]) => void;
+
+    readonly onSearch?: (search: string) => void;
+    readonly onRefresh?: () => void;
+    readonly onListTypeChange?: (listType: string) => void;
 }
 
 export enum RowRendererDirection {
@@ -83,6 +92,8 @@ export interface ListData<ResourceType> {
     readonly rowHeight: number;
     readonly rowHandlers?: RowHandlers<ResourceType>;
 }
+
+// TODO old files loading when switching between list types
 
 export interface Column<ResourceType> {
     field: string;
@@ -168,7 +179,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     declare context: React.ContextType<typeof FilezContext>;
 
     infiniteLoaderRef = createRef<InfiniteLoader>();
-    listRef = createRef<FixedSizeList>();
     moreItemsLoading = false;
     contextMenuRender: JSX.Element;
 
@@ -200,8 +210,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         _prevState: Readonly<ResourceListState<ResourceType>>
     ) => {
         if (prevProps.id !== this.props.id) {
-            await this.loadItems(true);
-            this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
+            await this.loadItems(LoadItemMode.NewId);
+            //this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
         }
     };
 
@@ -226,7 +236,11 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         return { startIndex, endIndex };
     };
 
-    loadItems = async (newId?: boolean) => {
+    loadItems = async (mode?: LoadItemMode) => {
+        if (mode === LoadItemMode.NewId) {
+            //@ts-ignore
+            this.infiniteLoaderRef.current._listRef.scrollToItem(0);
+        }
         const currentRowRenderer = this.props.rowRenderers.find(
             rowRenderer => rowRenderer.name === this.state.listType
         );
@@ -235,7 +249,9 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         const { sort_field, sort_order } = this.get_current_column_sorting();
 
         // this gets the visible rows
-        const cvir = this.getCurrentVisibleItemsRange(newId ? 0 : this.state.scrollOffset);
+        const cvir = this.getCurrentVisibleItemsRange(
+            mode === LoadItemMode.NewId ? 0 : this.state.scrollOffset
+        );
 
         const { startIndex, limit } = currentRowRenderer.getStartIndexAndLimit(
             cvir.startIndex,
@@ -254,16 +270,19 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         });
         this.moreItemsLoading = false;
 
-        this.setState(({ items, selectedItems, scrollOffset }) => {
+        this.setState(({ items, selectedItems }) => {
+            if (mode === LoadItemMode.NewId || mode === LoadItemMode.Reload) {
+                items = [];
+            }
             for (let i = 0; i < newItems.length; i++) {
                 items[startIndex + i] = newItems[i];
             }
 
-            if (newId) {
+            if (mode === LoadItemMode.NewId) {
                 selectedItems = {};
-                scrollOffset = 0;
             }
-            return { items, total_count, selectedItems, scrollOffset };
+
+            return { items, total_count, selectedItems };
         });
     };
 
@@ -413,7 +432,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
     refreshList = async () => {
         this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
-        await this.loadItems();
+        await this.loadItems(LoadItemMode.Reload);
     };
 
     onDrop = (targetItemId: string, targetItemType: string) => {
@@ -722,6 +741,13 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 height={height}
                                                 onScroll={this.onScroll}
                                                 overscanCount={5}
+                                                itemCount={itemCount}
+                                                width={width}
+                                                onItemsRendered={onItemsRendered}
+                                                ref={ref}
+                                                // without this the context menu cannot be positioned fixed
+                                                // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
+                                                style={{ willChange: "none", overflowY: "scroll" }}
                                                 layout={
                                                     currentRowRenderer.direction ===
                                                     RowRendererDirection.Horizontal
@@ -754,13 +780,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                     rowHeight,
                                                     rowHandlers: this.props.rowHandlers
                                                 }}
-                                                itemCount={itemCount}
-                                                width={width}
-                                                onItemsRendered={onItemsRendered}
-                                                ref={ref}
-                                                // without this the context menu cannot be positioned fixed
-                                                // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
-                                                style={{ willChange: "none", overflowY: "scroll" }}
                                             >
                                                 {currentRowRenderer.component}
                                             </FixedSizeList>

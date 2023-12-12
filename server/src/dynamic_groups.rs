@@ -8,6 +8,13 @@ pub enum UpdateType {
     File(FilezFile),
 }
 
+#[derive(Debug, Clone)]
+pub struct GroupChange {
+    pub file_id: String,
+    pub added_groups: Vec<String>,
+    pub removed_groups: Vec<String>,
+}
+
 pub async fn handle_dynamic_group_update(db: &DB, update_type: &UpdateType) -> anyhow::Result<()> {
     match update_type {
         UpdateType::Group(group) => {
@@ -23,13 +30,15 @@ pub async fn handle_dynamic_group_update(db: &DB, update_type: &UpdateType) -> a
                 .await?;
         }
         UpdateType::File(file) => {
-            let groups = db.get_dynamic_groups_by_owner_id(&file.owner_id).await?;
+            let possible_groups = db.get_dynamic_groups_by_owner_id(&file.owner_id).await?;
+            dbg!(&possible_groups);
 
-            let new_groups = handle_file_change(file, &groups.iter().collect());
+            let group_change = handle_file_change(file, &possible_groups.iter().collect());
 
-            let _files_to_be_updated = vec![(file.file_id.clone(), new_groups)];
+            dbg!(&group_change);
 
-            // TODO update stuff
+            db.update_dynamic_file_groups_on_many_files(&vec![group_change])
+                .await?;
         }
     }
     Ok(())
@@ -45,17 +54,14 @@ so every file needs to be checked against the changed group
 
 */
 
-pub fn handle_group_change(
-    group: &FilezFileGroup,
-    files: &Vec<FilezFile>,
-) -> Vec<(String, Vec<String>)> {
-    let mut files_and_new_groups = vec![];
+pub fn handle_group_change(group: &FilezFileGroup, files: &Vec<FilezFile>) -> Vec<GroupChange> {
+    let mut group_changes = vec![];
 
     for file in files {
-        let res = handle_file_change(file, &vec![group]);
-        files_and_new_groups.push((file.file_id.clone(), res));
+        let group_change = handle_file_change(file, &vec![group]);
+        group_changes.push(group_change);
     }
-    files_and_new_groups
+    group_changes
 }
 
 /*
@@ -74,16 +80,31 @@ returns the groups to be set on the file
 pub fn handle_file_change(
     changed_file: &FilezFile,
     possible_groups: &Vec<&FilezFileGroup>,
-) -> Vec<String> {
-    let mut files_new_groups = vec![];
+) -> GroupChange {
+    let mut added_groups = vec![];
+    let mut removed_groups = vec![];
 
     for group in possible_groups {
         if check_match(changed_file, group) {
-            files_new_groups.push(group.file_group_id.clone());
-        };
+            if !changed_file
+                .dynamic_file_group_ids
+                .contains(&group.file_group_id)
+            {
+                added_groups.push(group.file_group_id.clone());
+            }
+        } else if changed_file
+            .dynamic_file_group_ids
+            .contains(&group.file_group_id)
+        {
+            removed_groups.push(group.file_group_id.clone());
+        }
     }
 
-    files_new_groups
+    GroupChange {
+        file_id: changed_file.file_id.clone(),
+        added_groups,
+        removed_groups,
+    }
 }
 
 pub fn check_match(changed_file: &FilezFile, possible_group: &FilezFileGroup) -> bool {
@@ -99,6 +120,25 @@ pub fn check_match(changed_file: &FilezFile, possible_group: &FilezFileGroup) ->
         FilterRuleType::NotMatchRegex => {
             !check_rule_match_regex(changed_file, &rule.field, &rule.value)
         }
+        FilterRuleType::Contains => check_rule_contains(changed_file, &rule.field, &rule.value),
+        FilterRuleType::NotContains => !check_rule_contains(changed_file, &rule.field, &rule.value),
+    }
+}
+
+pub fn check_rule_contains(changed_file: &FilezFile, field: &str, value: &str) -> bool {
+    let field_value =
+        match get_field_value_by_object_path(&serde_json::to_value(changed_file).unwrap(), field) {
+            Some(v) => v,
+            None => return false,
+        };
+    dbg!(&field_value);
+
+    match field_value {
+        Value::String(s) => s.contains(value),
+        Value::Array(a) => a.contains(&Value::String(value.to_string())),
+        Value::Number(n) => n.to_string().contains(value),
+        Value::Bool(b) => b.to_string().contains(value),
+        _ => false,
     }
 }
 
@@ -136,11 +176,3 @@ pub fn get_field_value_by_object_path(object: &Value, path: &str) -> Option<Valu
 
     Some(current_object.clone())
 }
-/*
-MatchRegex: string, bool, number
-NotMatchRegex: string, bool, number
-Contains: string, array
-NotContains: string, array
-Equals: string, bool, number
-NotEquals: string, bool, number
-*/

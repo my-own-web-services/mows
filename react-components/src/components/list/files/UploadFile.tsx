@@ -9,7 +9,7 @@ import update from "immutability-helper";
 import Keywords from "../../metaEditor/KeywordPicker";
 import StoragePicker from "../../metaEditor/StoragePicker";
 import { AutoSizer } from "rsuite/esm/Windowing";
-import { FixedSizeList, ListProps } from "react-window";
+import { FixedSizeList } from "react-window";
 import { ValueType } from "rsuite/esm/Checkbox";
 import { MultiItemTagPickerResources } from "../../metaEditor/MultiItemTagPicker";
 
@@ -149,17 +149,20 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
         // TODO show upload speed
         // TODO this should create the upload group for the files
 
-        const uploadGroupRes = await this.context.filezClient.create_file_group({
-            dynamic_group_rules: null,
-            group_hierarchy_paths: [],
-            group_type: "Static",
-            keywords: this.state.keywords,
-            name: this.state.uploadGroupName,
-            permission_ids: [],
-            mime_types: []
-        });
+        const static_file_group_ids: string[] = [];
+        if (this.state.addToUploadGroup && !this.state.uploadGroupName) {
+            const uploadGroupRes = await this.context.filezClient.create_file_group({
+                dynamic_group_rules: null,
+                group_hierarchy_paths: [],
+                group_type: "Static",
+                keywords: this.state.keywords,
+                name: this.state.uploadGroupName,
+                permission_ids: [],
+                mime_types: []
+            });
 
-        const { group_id } = uploadGroupRes;
+            static_file_group_ids.push(uploadGroupRes.group_id);
+        }
 
         for (const file of this.state.fileList) {
             if (!file.blobFile) continue;
@@ -171,7 +174,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
             filezFile.permission_ids = [];
             filezFile.size = file.blobFile.size;
             filezFile.modified = file.blobFile.lastModified / 1000;
-            filezFile.static_file_group_ids = [group_id];
+            filezFile.static_file_group_ids = static_file_group_ids;
             if (useOncePermissionId) {
                 filezFile.permission_ids.push(useOncePermissionId);
             }
@@ -353,7 +356,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                             />
                         </div>
                         <div>
-                            <label htmlFor="">Keywords</label>
+                            <label htmlFor="">File Keywords</label>
                             <Keywords
                                 disabled={this.state.uploading}
                                 resourceType="File"

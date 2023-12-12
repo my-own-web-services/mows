@@ -48,6 +48,8 @@ use tikv_jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
+// TODO recalculate dynamic groups on restart to heal eventual inconsistencies caused by crashes
+
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // reference variables declared with lazy_static because they are initialized on first access

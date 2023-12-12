@@ -12,7 +12,12 @@ interface DynamicGroupRulesProps {
 
 interface DynamicGroupRulesState {}
 
-const filterRuleTypes = ["MatchRegex", "NotMatchRegex"];
+const filterRuleTypes: FilterRuleType[] = [
+    "MatchRegex",
+    "NotMatchRegex",
+    "Contains",
+    "NotContains"
+];
 
 export default class DynamicGroupRules extends PureComponent<
     DynamicGroupRulesProps,
