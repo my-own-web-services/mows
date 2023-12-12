@@ -1,7 +1,7 @@
 import type dashjs from "dashjs";
 import type { MediaPlayerClass } from "dashjs";
 import { Component, createRef } from "react";
-import { FilezContext, UiConfig } from "../../../FilezProvider";
+import { FilezContext } from "../../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FileViewerViewMode } from "../FileViewer";
 import Image from "./Image";
@@ -22,7 +22,10 @@ export default class Video extends Component<VideoProps, VideoState> {
     declare context: React.ContextType<typeof FilezContext>;
 
     componentDidUpdate = async (newProps: VideoProps) => {
-        if (this.videoRef.current && this.props.file._id !== newProps.file._id) {
+        if (
+            this.videoRef.current &&
+            this.props.file._id !== newProps.file._id
+        ) {
             if (this.useDash) {
                 await this.importDash();
 
@@ -41,7 +44,8 @@ export default class Video extends Component<VideoProps, VideoState> {
     hasConvertedVersion = () => {
         const f = this.props.file;
         return (
-            f.app_data.video?.status === "finished" && typeof f.app_data.video?.error !== "string"
+            f.app_data.video?.status === "finished" &&
+            typeof f.app_data.video?.error !== "string"
         );
     };
 
@@ -78,7 +82,10 @@ export default class Video extends Component<VideoProps, VideoState> {
             this.player.setXHRWithCredentialsForType("GET", true);
             this.player.setXHRWithCredentialsForType("MPD", true);
             this.player.setXHRWithCredentialsForType("MediaSegment", true);
-            this.player.setXHRWithCredentialsForType("InitializationSegment", true);
+            this.player.setXHRWithCredentialsForType(
+                "InitializationSegment",
+                true
+            );
             this.player.setXHRWithCredentialsForType("IndexSegment", true);
             this.player.setXHRWithCredentialsForType("other", true);
             const uiConfig = this.context?.uiConfig;
@@ -100,9 +107,15 @@ export default class Video extends Component<VideoProps, VideoState> {
         return (
             <div className="Video" style={{ width: "100%" }}>
                 {this.props.viewMode === FileViewerViewMode.Preview ? (
-                    <Image file={this.props.file}></Image>
+                    <Image
+                        viewMode={this.props.viewMode}
+                        file={this.props.file}
+                    />
                 ) : (
-                    <div className="dash-video-player" style={{ width: "100%" }}>
+                    <div
+                        className="dash-video-player"
+                        style={{ width: "100%" }}
+                    >
                         <div
                             className="videoContainer"
                             id="videoContainer"

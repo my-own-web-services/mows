@@ -7,7 +7,9 @@ interface DraggableItemProps<Resource> {
     readonly type: string;
     readonly ids?: string[];
     readonly resource: Resource;
-    readonly getSelectedItems?: InstanceType<typeof ResourceList>["getSelectedItems"];
+    readonly getSelectedItems?: InstanceType<
+        typeof ResourceList
+    >["getSelectedItems"];
     readonly dropHandler?: InstanceType<typeof ResourceList>["onDrop"];
     readonly children?: React.ReactNode;
     readonly style?: React.CSSProperties;
@@ -22,8 +24,11 @@ export interface Item {
     resource: BaseResource;
 }
 
-export const DraggableItem: FC<DraggableItemProps<BaseResource>> = props => {
-    const item: Item = { getSelectedItems: props.getSelectedItems, resource: props.resource };
+export const DraggableItem: FC<DraggableItemProps<BaseResource>> = (props) => {
+    const item: Item = {
+        getSelectedItems: props.getSelectedItems,
+        resource: props.resource
+    };
 
     const [{ isDragging }, drag, preview] = useDrag(() => ({
         type: props.type,
@@ -34,11 +39,11 @@ export const DraggableItem: FC<DraggableItemProps<BaseResource>> = props => {
         end: (item, monitor) => {
             const dropResult = monitor.getDropResult<DropResult>();
             if (item && dropResult) {
-                props.dropHandler?.(dropResult.id);
+                props.dropHandler?.(dropResult.id, props.type);
             }
         },
 
-        collect: monitor => ({
+        collect: (monitor) => ({
             isDragging: monitor.isDragging(),
             handlerId: monitor.getHandlerId()
         })

@@ -1,16 +1,11 @@
-import { CSSProperties, Component, PureComponent, createRef } from "react";
+import { Component, createRef } from "react";
 import FilezProvider from "./FilezProvider";
-import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import UserList from "./components/list/users/UserList";
 import FileList from "./components/list/files/FileList";
-import FileMetaEditor from "./components/metaEditor/FileMetaEditor";
-import FilezFileViewer, { FileViewerViewMode } from "./components/viewer/FileViewer";
-import UserGroupList from "./components/list/userGroups/UserGroupList";
+import FilezFileViewer, {
+    FileViewerViewMode
+} from "./components/viewer/FileViewer";
 import FileGroupList from "./components/list/fileGroups/FileGroupList";
-import PermissionList from "./components/list/permissions/PermissionList";
-import MultiItemTagPicker, {
-    MultiItemTagPickerResources
-} from "./components/metaEditor/MultiItemTagPicker";
+
 import { BaseResource } from "./components/list/resource/ResourceList";
 
 interface AppProps {}
@@ -32,7 +27,9 @@ export default class App extends Component<AppProps, AppState> {
     }
 
     onGroupClick = (
-        e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
+        _e:
+            | React.MouseEvent<HTMLDivElement, MouseEvent>
+            | React.TouchEvent<HTMLDivElement>,
         item: BaseResource,
         rightClick?: boolean | undefined
     ) => {
@@ -41,7 +38,9 @@ export default class App extends Component<AppProps, AppState> {
     };
 
     onFileClick = (
-        e: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>,
+        _e:
+            | React.MouseEvent<HTMLDivElement, MouseEvent>
+            | React.TouchEvent<HTMLDivElement>,
         item: BaseResource,
         rightClick?: boolean | undefined
     ) => {
@@ -67,13 +66,21 @@ export default class App extends Component<AppProps, AppState> {
                     />
                     <FileGroupList
                         ref={this.fileGroupListRef}
-                        style={{ height: "500px", width: "500px", float: "left" }}
+                        style={{
+                            height: "500px",
+                            width: "500px",
+                            float: "left"
+                        }}
                         resourceListRowHandlers={{ onClick: this.onGroupClick }}
                     />
 
                     <FilezFileViewer
                         viewMode={FileViewerViewMode.Full}
-                        style={{ width: "500px", float: "left", height: "500px" }}
+                        style={{
+                            width: "500px",
+                            float: "left",
+                            height: "500px"
+                        }}
                         fileId={this.state.selectedFileId}
                     />
                 </FilezProvider>

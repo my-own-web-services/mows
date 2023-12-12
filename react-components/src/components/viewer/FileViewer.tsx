@@ -45,7 +45,9 @@ export default class FilezFileViewer extends PureComponent<
             const filezClient = this?.context?.filezClient;
 
             if (filezClient) {
-                const files = await filezClient.get_file_infos([this.props.fileId]);
+                const files = await filezClient.get_file_infos([
+                    this.props.fileId
+                ]);
 
                 this.setState({ file: files[0] });
             }
@@ -55,14 +57,17 @@ export default class FilezFileViewer extends PureComponent<
     componentDidUpdate = async (prevProps: Readonly<FilezFileViewerProps>) => {
         if (this.props.file && this.props.file._id !== this.state.file?._id) {
             this.setState({ file: this.props.file });
-        } else if (this.props.fileId && this.props.fileId !== prevProps.fileId) {
+        } else if (
+            this.props.fileId &&
+            this.props.fileId !== prevProps.fileId
+        ) {
             if (this.context !== null) {
                 const filezClient = this?.context?.filezClient;
 
                 if (filezClient) {
-                    const files = await this.context.filezClient.get_file_infos([
-                        this.props.fileId
-                    ]);
+                    const files = await this.context.filezClient.get_file_infos(
+                        [this.props.fileId]
+                    );
                     this.setState({ file: files[0] });
                 }
             }
@@ -78,7 +83,8 @@ export default class FilezFileViewer extends PureComponent<
         }
 
         const disableFallback =
-            this.props.viewMode === FileViewerViewMode.Preview && this.props.disablePreviewFalback;
+            this.props.viewMode === FileViewerViewMode.Preview &&
+            this.props.disablePreviewFalback;
 
         return (
             <div className="Filez FileViewer" style={this.props.style}>
@@ -91,7 +97,7 @@ export default class FilezFileViewer extends PureComponent<
                                 viewMode={this.props.viewMode}
                                 file={this.state.file}
                                 disableFallback={disableFallback}
-                            ></Image>
+                            />
                         );
                     } else if (fileType.startsWith("audio/")) {
                         return (
@@ -99,7 +105,7 @@ export default class FilezFileViewer extends PureComponent<
                                 viewMode={this.props.viewMode}
                                 disableFallback={disableFallback}
                                 file={this.state.file}
-                            ></Audio>
+                            />
                         );
                     } else if (fileType.startsWith("video/")) {
                         return (
@@ -107,7 +113,7 @@ export default class FilezFileViewer extends PureComponent<
                                 viewMode={this.props.viewMode}
                                 disableFallback={disableFallback}
                                 file={this.state.file}
-                            ></Video>
+                            />
                         );
                     } else if (isText(this.state.file)) {
                         return (
@@ -115,10 +121,14 @@ export default class FilezFileViewer extends PureComponent<
                                 viewMode={this.props.viewMode}
                                 disableFallback={disableFallback}
                                 file={this.state.file}
-                            ></Text>
+                            />
                         );
                     } else {
-                        return <div>Can&apos;t display this type of file: {fileType}</div>;
+                        return (
+                            <div>
+                                Can&apos;t display this type of file: {fileType}
+                            </div>
+                        );
                     }
                 })()}
             </div>

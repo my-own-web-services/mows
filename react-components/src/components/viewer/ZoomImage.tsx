@@ -9,7 +9,10 @@ interface ZoomImageProps {
 
 interface ZoomImageState {}
 
-export default class ZoomImage extends PureComponent<ZoomImageProps, ZoomImageState> {
+export default class ZoomImage extends PureComponent<
+    ZoomImageProps,
+    ZoomImageState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
@@ -71,8 +74,14 @@ export default class ZoomImage extends PureComponent<ZoomImageProps, ZoomImageSt
 
     render = () => {
         return (
-            <div className="ZoomImage" style={{ width: "100%", height: "100%" }}>
-                <div id="openseadragon" style={{ width: "100%", height: "100%" }}></div>
+            <div
+                className="ZoomImage"
+                style={{ width: "100%", height: "100%" }}
+            >
+                <div
+                    id="openseadragon"
+                    style={{ width: "100%", height: "100%" }}
+                 />
             </div>
         );
     };

@@ -10,7 +10,10 @@ interface FileIconProps {
 
 interface FileIconState {}
 
-export default class FileIcon extends PureComponent<FileIconProps, FileIconState> {
+export default class FileIcon extends PureComponent<
+    FileIconProps,
+    FileIconState
+> {
     constructor(props: FileIconProps) {
         super(props);
         this.state = {};
@@ -23,7 +26,7 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
             <img
                 style={{ height: "100%" }}
                 src={`/file-icons/${getIconName(this.props.file.name)}.svg`}
-            ></img>
+             />
         );
     };
 
@@ -45,8 +48,8 @@ export const getIconName = (name?: string) => {
 
     // get the icon from the extension
     const icon = fileIcons.icons.find(
-        icon =>
-            icon.fileExtensions?.some(ext => fileName.endsWith(`.${ext}`)) ||
+        (icon) =>
+            icon.fileExtensions?.some((ext) => fileName.endsWith(`.${ext}`)) ||
             icon.fileNames?.includes(fileName)
     );
 
@@ -56,7 +59,7 @@ export const getIconName = (name?: string) => {
 
     if (fileName.endsWith(`.xmp`)) return "xml";
 
-    if (rawFileEndings.some(ext => fileName.endsWith(`.${ext}`))) {
+    if (rawFileEndings.some((ext) => fileName.endsWith(`.${ext}`))) {
         return "image";
     }
 

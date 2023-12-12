@@ -23,7 +23,10 @@ interface ImageRegionsState {
     readonly regionInfo?: RegionInfo;
 }
 
-export default class ImageRegions extends PureComponent<ImageRegionsProps, ImageRegionsState> {
+export default class ImageRegions extends PureComponent<
+    ImageRegionsProps,
+    ImageRegionsState
+> {
     constructor(props: ImageRegionsProps) {
         super(props);
         this.state = {
@@ -33,7 +36,9 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
 
     getRegionInfo = (file: FilezFile) => {
         try {
-            return convertRegionInfo(file.app_data?.metadata?.result?.exifdata.RegionInfo);
+            return convertRegionInfo(
+                file.app_data?.metadata?.result?.exifdata.RegionInfo
+            );
         } catch (error) {
             return undefined;
         }
@@ -125,12 +130,15 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
 
                         // TODO this does not work for all possible orientations
                         const style: CSSProperties = match(this.props.rotation)
-                            .with(ImageOrientation["Horizontal (normal)"], () => ({
-                                left: defaultLeft,
-                                top: defaultTop,
-                                width: w * containedImagePosition.width,
-                                height: h * containedImagePosition.height
-                            }))
+                            .with(
+                                ImageOrientation["Horizontal (normal)"],
+                                () => ({
+                                    left: defaultLeft,
+                                    top: defaultTop,
+                                    width: w * containedImagePosition.width,
+                                    height: h * containedImagePosition.height
+                                })
+                            )
                             .with(ImageOrientation["Rotate 180"], () => ({
                                 right: defaultLeft,
                                 bottom: defaultTop,
@@ -158,7 +166,8 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
 
                         const name = region.name ?? "Unknown";
                         const key = `ImageRegions-${this.props.file._id}-${i}-${this.props.viewMode}`;
-                        return this.props.viewMode === FileViewerViewMode.Preview ? (
+                        return this.props.viewMode ===
+                            FileViewerViewMode.Preview ? (
                             <div
                                 title={name}
                                 key={key}
@@ -168,7 +177,7 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
                                     border: "1px solid #aaa",
                                     ...style
                                 }}
-                            ></div>
+                             />
                         ) : (
                             <Whisper
                                 key={key}
@@ -181,11 +190,12 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
                                     title={name}
                                     style={{
                                         position: "absolute",
-                                        outline: "1px solid var(--rs-tooltip-bg)",
+                                        outline:
+                                            "1px solid var(--rs-tooltip-bg)",
                                         border: "1px solid #aaa",
                                         ...style
                                     }}
-                                ></div>
+                                 />
                             </Whisper>
                         );
                     })}
@@ -207,8 +217,10 @@ export default class ImageRegions extends PureComponent<ImageRegionsProps, Image
 
 // convert the exiftool data to a more usable format
 // convert strings to numbers
-const convertRegionInfo = (regionInfo: RegionInfoExiftool | undefined): RegionInfo => {
-    const regionList = regionInfo?.RegionList?.map(ret => {
+const convertRegionInfo = (
+    regionInfo: RegionInfoExiftool | undefined
+): RegionInfo => {
+    const regionList = regionInfo?.RegionList?.map((ret) => {
         const area = ret.Area;
 
         const region: Region = {
@@ -224,9 +236,12 @@ const convertRegionInfo = (regionInfo: RegionInfoExiftool | undefined): RegionIn
             extensions: {
                 apple: {
                     fi: {
-                        angleInfoRoll: ret?.Extensions?.["XMP-apple-fi:AngleInfoRoll"],
-                        angleInfoYaw: ret?.Extensions?.["XMP-apple-fi:AngleInfoYaw"],
-                        confidenceLevel: ret?.Extensions?.["XMP-apple-fi:ConfidenceLevel"],
+                        angleInfoRoll:
+                            ret?.Extensions?.["XMP-apple-fi:AngleInfoRoll"],
+                        angleInfoYaw:
+                            ret?.Extensions?.["XMP-apple-fi:AngleInfoYaw"],
+                        confidenceLevel:
+                            ret?.Extensions?.["XMP-apple-fi:ConfidenceLevel"],
                         faceID: ret?.Extensions?.["XMP-apple-fi:FaceID"]
                     }
                 }
