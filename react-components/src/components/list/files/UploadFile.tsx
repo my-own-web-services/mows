@@ -1,6 +1,5 @@
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { CSSProperties, PureComponent } from "react";
-import Permission from "../permissions/Permission";
 import { FilezContext } from "../../../FilezProvider";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
 import { cloneDeep } from "lodash";
@@ -94,14 +93,19 @@ const ItemRenderer = (props: ListItemProps) => {
             />
             <Progress.Line
                 style={{ width: "45%", float: "left", overflow: "hidden" }}
-                percent={parseFloat(((file.uploadedSize / file.size) * 100).toFixed(2))}
+                percent={parseFloat(
+                    ((file.uploadedSize / file.size) * 100).toFixed(2)
+                )}
                 status={file.uploadStatus}
             />
         </div>
     );
 };
 
-export default class UploadFile extends PureComponent<UploadFileProps, UploadFileState> {
+export default class UploadFile extends PureComponent<
+    UploadFileProps,
+    UploadFileState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     uploadXhrs: XMLHttpRequest[] = [];
@@ -131,7 +135,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
     componentDidMount = async () => {};
 
     componentWillUnmount = async () => {
-        this.uploadXhrs.forEach(xhr => {
+        this.uploadXhrs.forEach((xhr) => {
             xhr?.abort();
         });
     };
@@ -147,15 +151,16 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
 
         const static_file_group_ids: string[] = [];
         if (this.state.addToUploadGroup && this.state.uploadGroupName) {
-            const uploadGroupRes = await this.context.filezClient.create_file_group({
-                dynamic_group_rules: null,
-                group_hierarchy_paths: [],
-                group_type: "Static",
-                keywords: this.state.keywords,
-                name: this.state.uploadGroupName,
-                permission_ids: [],
-                mime_types: []
-            });
+            const uploadGroupRes =
+                await this.context.filezClient.create_file_group({
+                    dynamic_group_rules: null,
+                    group_hierarchy_paths: [],
+                    group_type: "Static",
+                    keywords: this.state.keywords,
+                    name: this.state.uploadGroupName,
+                    permission_ids: [],
+                    mime_types: []
+                });
 
             static_file_group_ids.push(uploadGroupRes.group_id);
         }
@@ -164,7 +169,8 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
             if (!file.blobFile) continue;
             const filezFile: FilezFile = cloneDeep(defaultFile);
             filezFile.name = file.name ?? "";
-            filezFile.mime_type = file.blobFile?.type ?? "application/octet-stream";
+            filezFile.mime_type =
+                file.blobFile?.type ?? "application/octet-stream";
             filezFile.keywords = this.state.keywords;
             filezFile.storage_id = this.state.selectedStorageId;
             filezFile.permission_ids = [];
@@ -178,7 +184,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
             this.setState({
                 uploading: true,
                 fileList: update(this.state.fileList, {
-                    $set: this.state.fileList.map(f => {
+                    $set: this.state.fileList.map((f) => {
                         if (f.name === file.name) {
                             f.uploadStatus = "active";
                         }
@@ -195,7 +201,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                         this.setState(
                             update(this.state, {
                                 fileList: {
-                                    $set: this.state.fileList.map(f => {
+                                    $set: this.state.fileList.map((f) => {
                                         if (f.name === file.name) {
                                             f.uploadedSize = uploadedBytes;
                                         }
@@ -205,10 +211,10 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                             })
                         );
                     },
-                    err => {
+                    (err) => {
                         this.setState({
                             fileList: update(this.state.fileList, {
-                                $set: this.state.fileList.map(f => {
+                                $set: this.state.fileList.map((f) => {
                                     if (f.name === file.name) {
                                         f.uploadStatus = "fail";
                                     }
@@ -223,7 +229,7 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
             await success;
             this.setState({
                 fileList: update(this.state.fileList, {
-                    $set: this.state.fileList.map(f => {
+                    $set: this.state.fileList.map((f) => {
                         if (f.name === file.name) {
                             f.uploadStatus = "success";
                         }
@@ -311,7 +317,10 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                 />
                 <br />
                 <br />
-                <div style={{ width: "100%", height: "200px" }} className="UploadFileList">
+                <div
+                    style={{ width: "100%", height: "200px" }}
+                    className="UploadFileList"
+                >
                     <AutoSizer>
                         {({ height, width }) => {
                             return (
@@ -323,7 +332,9 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                                     itemData={{
                                         items: this.state.fileList,
                                         disabled: this.state.uploading,
-                                        handlers: { updateName: this.updateName }
+                                        handlers: {
+                                            updateName: this.updateName
+                                        }
                                     }}
                                 >
                                     {ItemRenderer}
@@ -343,7 +354,9 @@ export default class UploadFile extends PureComponent<UploadFileProps, UploadFil
                         onChange={this.updateCheckUploadGroup}
                     />
                     <Input
-                        disabled={!this.state.addToUploadGroup || this.state.uploading}
+                        disabled={
+                            !this.state.addToUploadGroup || this.state.uploading
+                        }
                         placeholder="Upload Group Name"
                         value={this.state.uploadGroupName}
                         onChange={this.updateUploadGroupName}

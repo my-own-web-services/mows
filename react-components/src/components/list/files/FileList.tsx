@@ -1,6 +1,9 @@
 import { CSSProperties, PureComponent, createRef } from "react";
 import { FilezContext } from "../../../FilezProvider";
-import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../../utils";
+import {
+    bytesToHumanReadableSize,
+    utcTimeStampToTimeAndDate
+} from "../../../utils";
 import ResourceList, {
     Column,
     ColumnDirection,
@@ -109,7 +112,10 @@ interface FileListState {
     readonly selectedFiles: FilezFile[];
 }
 
-export default class FileList extends PureComponent<FileListProps, FileListState> {
+export default class FileList extends PureComponent<
+    FileListProps,
+    FileListState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     moreItemsLoading = false;
@@ -127,7 +133,11 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         };
     }
 
-    onDrop = (targetItemId: string, targetItemType: string, selectedFiles: FilezFile[]) => {
+    onDrop = (
+        targetItemId: string,
+        targetItemType: string,
+        selectedFiles: FilezFile[]
+    ) => {
         if (!this.context) return;
         //TODO add files to file group
     };
@@ -163,9 +173,15 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                 console.log(selectedItems);
             }
         } else if (menuItemId === "delete") {
-            this.setState({ deleteModalOpen: true, selectedFiles: selectedItems ?? [] });
+            this.setState({
+                deleteModalOpen: true,
+                selectedFiles: selectedItems ?? []
+            });
         } else if (menuItemId === "edit") {
-            this.setState({ editModalOpen: true, selectedFiles: selectedItems ?? [] });
+            this.setState({
+                editModalOpen: true,
+                selectedFiles: selectedItems ?? []
+            });
         }
     };
 
@@ -202,8 +218,10 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     ref={this.resourceListRef}
                     resourceType="File"
                     defaultSortField="name"
-                    initialListType={"ColumnListRowRenderer"}
-                    get_items_function={this.context.filezClient.get_file_infos_by_group_id}
+                    initialListType={"GridRowRenderer"}
+                    get_items_function={
+                        this.context.filezClient.get_file_infos_by_group_id
+                    }
                     id={this.props.id}
                     //@ts-ignore TODO fix this generic mess
                     rowRenderers={[GridRowRenderer, ColumnListRowRenderer]}
@@ -215,43 +233,65 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                         ...this.props.resourceListRowHandlers
                     }}
                     columns={defaultColumns}
-                    handlers={{ onCreateClick: this.onCreateClick, ...this.props.handlers }}
+                    handlers={{
+                        onCreateClick: this.onCreateClick,
+                        ...this.props.handlers
+                    }}
                 />
 
-                <Modal open={this.state.createModalOpen} onClose={this.closeCreateModal}>
+                <Modal
+                    open={this.state.createModalOpen}
+                    onClose={this.closeCreateModal}
+                >
                     <UploadFile ref={this.uploadFilesRef} />
                     <Modal.Footer>
                         <Button onClick={this.uploadClick} appearance="primary">
                             Upload
                         </Button>
-                        <Button onClick={this.closeCreateModal} appearance="subtle">
+                        <Button
+                            onClick={this.closeCreateModal}
+                            appearance="subtle"
+                        >
                             Cancel
                         </Button>
                     </Modal.Footer>
                 </Modal>
-                <Modal open={this.state.deleteModalOpen} onClose={this.closeDeleteModal}>
+                <Modal
+                    open={this.state.deleteModalOpen}
+                    onClose={this.closeDeleteModal}
+                >
                     <Modal.Header>
                         <Modal.Title>
                             Delete {items?.length} files? This cannot be undone.
                         </Modal.Title>
                     </Modal.Header>
                     <Modal.Footer>
-                        <Button onClick={this.deleteClick} appearance="primary" color="red">
+                        <Button
+                            onClick={this.deleteClick}
+                            appearance="primary"
+                            color="red"
+                        >
                             Delete
                         </Button>
-                        <Button onClick={this.closeDeleteModal} appearance="subtle">
+                        <Button
+                            onClick={this.closeDeleteModal}
+                            appearance="subtle"
+                        >
                             Cancel
                         </Button>
                     </Modal.Footer>
                 </Modal>
-                <Modal open={this.state.editModalOpen} onClose={this.closeEditModal}>
+                <Modal
+                    open={this.state.editModalOpen}
+                    onClose={this.closeEditModal}
+                >
                     <Modal.Header>
                         <Modal.Title>Edit File</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
                         <MetaEditor
                             onChange={this.onEditChange}
-                            fileIds={items.map(it => it._id)}
+                            fileIds={items.map((it) => it._id)}
                         />
                     </Modal.Body>
                 </Modal>

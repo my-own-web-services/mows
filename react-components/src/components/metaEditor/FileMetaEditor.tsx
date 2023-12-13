@@ -1,7 +1,10 @@
 import { CSSProperties, PureComponent } from "react";
 import { IconButton, InputPicker, Panel, PanelGroup } from "rsuite";
 import { ItemDataType } from "rsuite/esm/@types/common";
-import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../utils";
+import {
+    bytesToHumanReadableSize,
+    utcTimeStampToTimeAndDate
+} from "../../utils";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import { BiHistory, BiLink } from "react-icons/bi";
 import { MdStorage } from "react-icons/md";
@@ -59,7 +62,9 @@ export default class FileMetaEditor extends PureComponent<
     loadFileInfos = async () => {
         if (!this.context) return;
 
-        const files = await this.context.filezClient.get_file_infos(this.props.fileIds);
+        const files = await this.context.filezClient.get_file_infos(
+            this.props.fileIds
+        );
 
         this.setState({
             files
@@ -76,10 +81,14 @@ export default class FileMetaEditor extends PureComponent<
         }
         const inputSize = "sm";
 
-        const singleFile = this.state.files.length === 1 ? this.state.files[0] : null;
+        const singleFile =
+            this.state.files.length === 1 ? this.state.files[0] : null;
 
         return (
-            <div style={{ ...this.props.style }} className="Filez FileMetaEditor">
+            <div
+                style={{ ...this.props.style }}
+                className="Filez FileMetaEditor"
+            >
                 <PanelGroup accordion bordered>
                     <Panel
                         className="basicsPanel panel"
@@ -144,10 +153,12 @@ export default class FileMetaEditor extends PureComponent<
                                         virtualized
                                         creatable
                                         value={singleFile.mime_type}
-                                        data={this.state.knownMimeTypes.map(mimeType => ({
-                                            value: mimeType,
-                                            label: mimeType
-                                        }))}
+                                        data={this.state.knownMimeTypes.map(
+                                            (mimeType) => ({
+                                                value: mimeType,
+                                                label: mimeType
+                                            })
+                                        )}
                                     />
                                 </div>
                             )}
@@ -156,13 +167,17 @@ export default class FileMetaEditor extends PureComponent<
                             <div className="basicsBox">
                                 <div className="created">
                                     <label>Created</label>
-                                    {utcTimeStampToTimeAndDate(singleFile.created)}
+                                    {utcTimeStampToTimeAndDate(
+                                        singleFile.created
+                                    )}
                                 </div>
                                 <div className="modified">
                                     <label>Modified</label>
 
                                     {singleFile.modified !== null &&
-                                        utcTimeStampToTimeAndDate(singleFile.modified)}
+                                        utcTimeStampToTimeAndDate(
+                                            singleFile.modified
+                                        )}
                                 </div>
                                 <div className="size">
                                     <label>Size</label>
@@ -225,7 +240,7 @@ export default class FileMetaEditor extends PureComponent<
                     >
                         <StoragePicker
                             onChange={this.onChange}
-                            fileIds={this.state.files.map(file => file._id)}
+                            fileIds={this.state.files.map((file) => file._id)}
                         />
                     </Panel>
 
@@ -237,14 +252,17 @@ export default class FileMetaEditor extends PureComponent<
                                 <span className="icon">
                                     <BiLink
                                         size={18}
-                                        style={{ transform: "translate(0px,2px) scale(1.3)" }}
+                                        style={{
+                                            transform:
+                                                "translate(0px,2px) scale(1.3)"
+                                        }}
                                     />
                                 </span>
                                 <span>Linked Files</span>
                             </div>
                         }
                         bordered
-                    ></Panel>
+                     />
                     <Panel
                         className="panel"
                         collapsible
@@ -253,14 +271,17 @@ export default class FileMetaEditor extends PureComponent<
                                 <span className="icon">
                                     <BiHistory
                                         size={18}
-                                        style={{ transform: "translate(0px,3px) scale(1.1)" }}
+                                        style={{
+                                            transform:
+                                                "translate(0px,3px) scale(1.1)"
+                                        }}
                                     />
                                 </span>
                                 <span>History</span>
                             </div>
                         }
                         bordered
-                    ></Panel>
+                     />
                 </PanelGroup>
             </div>
         );

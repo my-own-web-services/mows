@@ -2,7 +2,7 @@ import { Component, createRef } from "react";
 import Split from "react-split";
 import ResourceList, { Column, ColumnDirection } from "./ResourceList";
 import { Item, Menu, useContextMenu } from "react-contexify";
-import { BiCheck, BiChevronDown, BiChevronUp } from "react-icons/bi";
+import { BiChevronDown, BiChevronUp } from "react-icons/bi";
 import { Checkbox, Input, InputGroup } from "rsuite";
 import { Icon } from "@rsuite/icons";
 import { FaPlus } from "react-icons/fa6";
@@ -13,8 +13,12 @@ interface SortingBarProps<ResourceType> {
     readonly updateSortingColumnWidths: InstanceType<
         typeof ResourceList
     >["updateSortingColumnWidths"];
-    readonly updateColumnDirections: InstanceType<typeof ResourceList>["updateColumnDirections"];
-    readonly updateColumnVisibility: InstanceType<typeof ResourceList>["updateColumnVisibility"];
+    readonly updateColumnDirections: InstanceType<
+        typeof ResourceList
+    >["updateColumnDirections"];
+    readonly updateColumnVisibility: InstanceType<
+        typeof ResourceList
+    >["updateColumnVisibility"];
     readonly createColumn: InstanceType<typeof ResourceList>["createColumn"];
     readonly columns: Column<ResourceType>[];
     readonly resourceListId: string;
@@ -49,8 +53,8 @@ export default class SortingBar<ResourceType> extends Component<
         snapshot?: any
     ): void {
         if (
-            prevProps.columns.filter(c => c.visible).length !==
-            this.props.columns.filter(c => c.visible).length
+            prevProps.columns.filter((c) => c.visible).length !==
+            this.props.columns.filter((c) => c.visible).length
         ) {
             this.setState({ show: false }, () => {
                 setTimeout(() => {
@@ -65,7 +69,7 @@ export default class SortingBar<ResourceType> extends Component<
             id: this.getId()
         });
 
-        const activeColumns = this.props.columns.filter(c => c.visible);
+        const activeColumns = this.props.columns.filter((c) => c.visible);
 
         const styles = {
             border: "1px solid var(--gutters)",
@@ -76,7 +80,7 @@ export default class SortingBar<ResourceType> extends Component<
         return (
             <div
                 className="SortingBar"
-                onContextMenu={e => {
+                onContextMenu={(e) => {
                     e.preventDefault();
                     show({ event: e });
                 }}
@@ -91,8 +95,12 @@ export default class SortingBar<ResourceType> extends Component<
                             verticalAlign: "top",
                             display: "flex"
                         }}
-                        sizes={activeColumns.map(column => column.widthPercent)}
-                        minSize={activeColumns.map(column => column.minWidthPixels)}
+                        sizes={activeColumns.map(
+                            (column) => column.widthPercent
+                        )}
+                        minSize={activeColumns.map(
+                            (column) => column.minWidthPixels
+                        )}
                         direction="horizontal"
                         cursor="col-resize"
                         onDrag={this.props.updateSortingColumnWidths}
@@ -111,9 +119,15 @@ export default class SortingBar<ResourceType> extends Component<
                                         height: "100%",
                                         paddingLeft: "5px"
                                     }}
-                                    onClick={() => this.props.updateColumnDirections(column.field)}
+                                    onClick={() =>
+                                        this.props.updateColumnDirections(
+                                            column.field
+                                        )
+                                    }
                                 >
-                                    <div style={{ float: "left" }}>{column.label}</div>
+                                    <div style={{ float: "left" }}>
+                                        {column.label}
+                                    </div>
                                     <span>
                                         {(() => {
                                             const chevronStyle = {
@@ -122,7 +136,10 @@ export default class SortingBar<ResourceType> extends Component<
                                                 float: "left"
                                             };
                                             const chevronSize = 16;
-                                            if (column.direction === ColumnDirection.ASCENDING) {
+                                            if (
+                                                column.direction ===
+                                                ColumnDirection.ASCENDING
+                                            ) {
                                                 return (
                                                     <BiChevronDown
                                                         size={chevronSize}
@@ -130,7 +147,10 @@ export default class SortingBar<ResourceType> extends Component<
                                                     />
                                                 );
                                             }
-                                            if (column.direction === ColumnDirection.DESCENDING) {
+                                            if (
+                                                column.direction ===
+                                                ColumnDirection.DESCENDING
+                                            ) {
                                                 return (
                                                     <BiChevronUp
                                                         size={chevronSize}
@@ -145,13 +165,17 @@ export default class SortingBar<ResourceType> extends Component<
                         })}
                     </Split>
                 ) : (
-                    <div style={styles}></div>
+                    <div style={styles} />
                 )}
                 <Menu id={this.getId()}>
                     {this.props.columns.map((column, index) => {
                         return (
                             <Item
-                                key={this.props.resourceListId + column.field + "-menu-item"}
+                                key={
+                                    this.props.resourceListId +
+                                    column.field +
+                                    "-menu-item"
+                                }
                                 onClick={() => {
                                     this.props.updateColumnVisibility(
                                         column.field,
@@ -172,7 +196,7 @@ export default class SortingBar<ResourceType> extends Component<
                             <Input
                                 value={this.state.field}
                                 placeholder="Add column"
-                                onChange={value => {
+                                onChange={(value) => {
                                     this.setState({ field: value });
                                 }}
                                 //when enter is pressed
@@ -187,7 +211,10 @@ export default class SortingBar<ResourceType> extends Component<
                                     this.setState({ field: "" });
                                 }}
                             >
-                                <Icon style={{ cursor: "pointer" }} as={FaPlus} />
+                                <Icon
+                                    style={{ cursor: "pointer" }}
+                                    as={FaPlus}
+                                />
                             </InputGroup.Button>
                         </InputGroup>
                     </Item>

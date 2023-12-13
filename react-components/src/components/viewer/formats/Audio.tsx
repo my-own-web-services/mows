@@ -25,7 +25,10 @@ export default class Audio extends Component<AudioProps, AudioState> {
         return (
             <div className="Audio">
                 {this.props.viewMode === FileViewerViewMode.Preview ? (
-                    <Image file={this.props.file} viewMode={this.props.viewMode}></Image>
+                    <Image
+                        file={this.props.file}
+                        viewMode={this.props.viewMode}
+                     />
                 ) : (
                     <audio ref={this.audioRef} controls>
                         <source

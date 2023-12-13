@@ -1,14 +1,28 @@
-import { PureComponent, ReactElement, cloneElement, createRef } from "react";
+import { PureComponent, createRef } from "react";
 import { AiOutlineSearch } from "react-icons/ai";
-import { Button, ButtonGroup, IconButton, Input, InputGroup, Modal, Slider } from "rsuite";
-import ResourceList, { BaseResource, RowRenderer, SelectedItems } from "./ResourceList";
+import {
+    ButtonGroup,
+    IconButton,
+    Input,
+    InputGroup,
+    Slider
+} from "rsuite";
+import ResourceList, {
+    BaseResource,
+    RowRenderer,
+    SelectedItems
+} from "./ResourceList";
 import { BiPlus } from "react-icons/bi";
 import { IoReload } from "react-icons/io5";
 
 interface ListTopBarProps<ResourceType> {
-    readonly updateListType: InstanceType<typeof ResourceList>["updateListViewMode"];
+    readonly updateListType: InstanceType<
+        typeof ResourceList
+    >["updateListViewMode"];
     readonly commitSearch: InstanceType<typeof ResourceList>["commitSearch"];
-    readonly updateGridColumnCount: InstanceType<typeof ResourceList>["updateGridColumnCount"];
+    readonly updateGridColumnCount: InstanceType<
+        typeof ResourceList
+    >["updateGridColumnCount"];
     readonly gridColumnCount: number;
     readonly currentListType: string;
     readonly resourceType: string;
@@ -18,7 +32,9 @@ interface ListTopBarProps<ResourceType> {
     readonly items: (ResourceType | undefined)[];
     readonly total_count: number;
     readonly resourceCreatable?: boolean;
-    readonly onAddResourceClick: InstanceType<typeof ResourceList>["onAddResourceClick"];
+    readonly onAddResourceClick: InstanceType<
+        typeof ResourceList
+    >["onAddResourceClick"];
 }
 
 interface ListTopBarState {
@@ -26,10 +42,9 @@ interface ListTopBarState {
     readonly createModalOpen: boolean;
 }
 
-export default class ListTopBar<ResourceType extends BaseResource> extends PureComponent<
-    ListTopBarProps<ResourceType>,
-    ListTopBarState
-> {
+export default class ListTopBar<
+    ResourceType extends BaseResource
+> extends PureComponent<ListTopBarProps<ResourceType>, ListTopBarState> {
     createResourceRef: React.RefObject<any>;
 
     constructor(props: ListTopBarProps<ResourceType>) {
@@ -67,7 +82,9 @@ export default class ListTopBar<ResourceType extends BaseResource> extends PureC
         }
     };
 
-    updateListType = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    updateListType = (
+        event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+    ) => {
         const target = event.target as HTMLButtonElement;
         const listType = target.dataset.listtype;
 
@@ -77,8 +94,15 @@ export default class ListTopBar<ResourceType extends BaseResource> extends PureC
 
     render = () => {
         return (
-            <div style={{ width: "100%", height: "40px" }} className="ListTopBar">
-                <InputGroup size="sm" inside style={{ width: "200px", float: "left" }}>
+            <div
+                style={{ width: "100%", height: "40px" }}
+                className="ListTopBar"
+            >
+                <InputGroup
+                    size="sm"
+                    inside
+                    style={{ width: "200px", float: "left" }}
+                >
                     <Input
                         value={this.state.search}
                         onChange={this.changeSearch}
@@ -111,12 +135,13 @@ export default class ListTopBar<ResourceType extends BaseResource> extends PureC
                 <span className="Buttons">
                     <ButtonGroup size="xs">
                         {this.props.rowRenderers.length > 1 &&
-                            this.props.rowRenderers.map(rowRenderer => {
+                            this.props.rowRenderers.map((rowRenderer) => {
                                 return (
                                     <IconButton
                                         key={rowRenderer.name}
                                         appearance={
-                                            this.props.currentListType === rowRenderer.name
+                                            this.props.currentListType ===
+                                            rowRenderer.name
                                                 ? "primary"
                                                 : "default"
                                         }
@@ -147,15 +172,30 @@ export default class ListTopBar<ResourceType extends BaseResource> extends PureC
                             step={1}
                             onChange={this.props.updateGridColumnCount}
                         />
-                        <div style={{ marginLeft: "10px", float: "left", paddingTop: "4px" }}>
+                        <div
+                            style={{
+                                marginLeft: "10px",
+                                float: "left",
+                                paddingTop: "4px"
+                            }}
+                        >
                             {this.props.gridColumnCount}
                         </div>
                     </>
                 )}
-                <div style={{ marginTop: "5px", marginRight: "20px", float: "right" }}>
-                    <span style={{ marginRight: "10px" }}>Total: {this.props.total_count}</span>
+                <div
+                    style={{
+                        marginTop: "5px",
+                        marginRight: "20px",
+                        float: "right"
+                    }}
+                >
                     <span style={{ marginRight: "10px" }}>
-                        Loaded: {this.props.items.filter(item => item?._id).length}
+                        Total: {this.props.total_count}
+                    </span>
+                    <span style={{ marginRight: "10px" }}>
+                        Loaded:{" "}
+                        {this.props.items.filter((item) => item?._id).length}
                     </span>
                     <span>
                         Selected:{" "}

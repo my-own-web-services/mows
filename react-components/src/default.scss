@@ -4,6 +4,7 @@
     --fg: #fff;
     --hover: #333;
     --accent: #0099ff55;
+    --lastSelected: #0099ffaa;
     --gutters: #333;
 
     --contexify-menu-bgColor: rgba(40, 40, 40, 0.98);
@@ -21,8 +22,13 @@
     z-index: 0 !important;
 }
 
+.OuterResourceList:focus {
+    outline: none;
+}
+
 .cantDrop {
     opacity: 0.5;
+    cursor:not-allowed !important;
 }
 
 #openseadragon:focus-visible {
@@ -117,6 +123,9 @@ button.Filez {
         }
         &.selected {
             background-color: var(--accent) !important;
+        }
+        &.lastSelected {
+            background-color: var(--lastSelected) !important;
         }
     }
 

@@ -4,8 +4,7 @@ import ResourceList, {
     Column,
     ColumnDirection,
     ResourceListHandlers,
-    ResourceListRowHandlers,
-    RowRenderer
+    ResourceListRowHandlers
 } from "../resource/ResourceList";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import { Button, Modal } from "rsuite";
@@ -22,7 +21,11 @@ const defaultColumns: Column<FilezFileGroup>[] = [
         minWidthPixels: 50,
         visible: true,
         render: (item: FilezFileGroup) => {
-            const style: CSSProperties = { display: "block", float: "left", marginRight: "5px" };
+            const style: CSSProperties = {
+                display: "block",
+                float: "left",
+                marginRight: "5px"
+            };
             return (
                 <span>
                     <span style={style}>
@@ -33,7 +36,9 @@ const defaultColumns: Column<FilezFileGroup>[] = [
                         )}
                     </span>
                     <span style={style}>{item.name}</span>
-                    <span style={{ ...style, opacity: "50%" }}>{item.item_count}</span>
+                    <span style={{ ...style, opacity: "50%" }}>
+                        {item.item_count}
+                    </span>
                 </span>
             );
         }
@@ -59,7 +64,10 @@ interface FileGroupListState {
     readonly selectedFileGroups?: FilezFileGroup[];
 }
 
-export default class FileGroupList extends PureComponent<FileGroupListProps, FileGroupListState> {
+export default class FileGroupList extends PureComponent<
+    FileGroupListProps,
+    FileGroupListState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     resourceListRef = createRef<ResourceList<FilezFileGroup>>();
@@ -120,14 +128,25 @@ export default class FileGroupList extends PureComponent<FileGroupListProps, Fil
                 console.log(selectedItems);
             }
         } else if (menuItemId === "delete") {
-            this.setState({ deleteModalOpen: true, selectedFileGroups: selectedItems ?? [] });
+            this.setState({
+                deleteModalOpen: true,
+                selectedFileGroups: selectedItems ?? []
+            });
         } else if (menuItemId === "edit") {
-            this.setState({ editModalOpen: true, selectedFileGroups: selectedItems ?? [] });
+            this.setState({
+                editModalOpen: true,
+                selectedFileGroups: selectedItems ?? []
+            });
         }
     };
 
     onCreateClick = async () => {
         this.setState({ createModalOpen: true });
+    };
+
+    isDroppable = (item: FilezFileGroup) => {
+        if (item.readonly || item.group_type === "Dynamic") return false;
+        return true;
     };
 
     createGroupClick = async () => {};
@@ -137,44 +156,73 @@ export default class FileGroupList extends PureComponent<FileGroupListProps, Fil
         const items = this.state.selectedFileGroups;
 
         return (
-            <div className="Filez FileGroupList" style={{ ...this.props.style }}>
+            <div
+                className="Filez FileGroupList"
+                style={{ ...this.props.style }}
+            >
                 <ResourceList
                     ref={this.resourceListRef}
                     resourceType="FileGroup"
                     defaultSortField="name"
-                    get_items_function={this.context.filezClient.get_own_file_groups}
+                    get_items_function={
+                        this.context.filezClient.get_own_file_groups
+                    }
                     //@ts-ignore TODO fix this generic mess
                     rowRenderers={[ColumnListRowRenderer]}
                     displayTopBar={this.props.displayTopBar}
                     columns={defaultColumns}
                     rowHandlers={{
                         onContextMenuItemClick: this.onContextMenuItemClick,
+                        isDroppable: this.isDroppable,
                         ...this.props.resourceListRowHandlers
                     }}
-                    handlers={{ onCreateClick: this.onCreateClick, ...this.props.handlers }}
+                    handlers={{
+                        onCreateClick: this.onCreateClick,
+                        ...this.props.handlers
+                    }}
                 />
-                <Modal open={this.state.createModalOpen} onClose={this.closeCreateModal}>
+                <Modal
+                    open={this.state.createModalOpen}
+                    onClose={this.closeCreateModal}
+                >
                     <CreateFileGroup />
                     <Modal.Footer>
-                        <Button onClick={this.createGroupClick} appearance="primary">
+                        <Button
+                            onClick={this.createGroupClick}
+                            appearance="primary"
+                        >
                             Create
                         </Button>
-                        <Button onClick={this.closeCreateModal} appearance="subtle">
+                        <Button
+                            onClick={this.closeCreateModal}
+                            appearance="subtle"
+                        >
                             Cancel
                         </Button>
                     </Modal.Footer>
                 </Modal>
-                <Modal open={this.state.deleteModalOpen} onClose={this.closeDeleteModal}>
+                <Modal
+                    open={this.state.deleteModalOpen}
+                    onClose={this.closeDeleteModal}
+                >
                     <Modal.Header>
                         <Modal.Title>
-                            Delete {items?.length} file groups? This cannot be undone.
+                            Delete {items?.length} file groups? This cannot be
+                            undone.
                         </Modal.Title>
                     </Modal.Header>
                     <Modal.Footer>
-                        <Button onClick={this.deleteClick} appearance="primary" color="red">
+                        <Button
+                            onClick={this.deleteClick}
+                            appearance="primary"
+                            color="red"
+                        >
                             Delete
                         </Button>
-                        <Button onClick={this.closeDeleteModal} appearance="subtle">
+                        <Button
+                            onClick={this.closeDeleteModal}
+                            appearance="subtle"
+                        >
                             Cancel
                         </Button>
                     </Modal.Footer>
