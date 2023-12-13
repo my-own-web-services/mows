@@ -54,14 +54,15 @@ export interface RowRenderer<ResourceType> {
         total_count: number,
         selectedItems: (boolean | undefined)[],
         lastSelectedItemIndex: number | undefined,
+        arrowKeyShiftSelectItemIndex: number | undefined,
         gridColumnCount: number
     ) => SelectedItemsAfterKeypress | undefined;
 }
 
 export interface SelectedItemsAfterKeypress {
-    readonly startIndex: number;
-    readonly endIndex: number;
     readonly scrollToRowIndex: number;
+    readonly nextSelectedItemIndex: number;
+    readonly arrowKeyShiftSelectItemIndex?: number;
 }
 
 export interface ResourceListRowHandlers<ResourceType> {
@@ -194,6 +195,7 @@ interface ResourceListState<ResourceType> {
     readonly menuItems: MenuItems;
     readonly selectedItems: (boolean | undefined)[];
     readonly lastSelectedItemIndex?: number;
+    readonly arrowKeyShiftSelectItemIndex?: number;
     readonly gridColumnCount: number;
     readonly scrollOffset: number;
     readonly width: number | null;
@@ -722,22 +724,39 @@ export default class ResourceList<
                 this.state.total_count,
                 this.state.selectedItems,
                 this.state.lastSelectedItemIndex,
+                this.state.arrowKeyShiftSelectItemIndex,
                 this.state.gridColumnCount
             );
 
         if (selectedItemsAfterKeypress === undefined) return;
 
-        console.log(selectedItemsAfterKeypress);
+        const {
+            scrollToRowIndex,
+            nextSelectedItemIndex,
+            arrowKeyShiftSelectItemIndex
+        } = selectedItemsAfterKeypress;
 
-        const { startIndex, endIndex, scrollToRowIndex } =
-            selectedItemsAfterKeypress;
+        const selectedItems = (() => {
+            const s = [];
+            const startIndex = Math.min(
+                nextSelectedItemIndex,
+                arrowKeyShiftSelectItemIndex ?? nextSelectedItemIndex
+            );
+            const endIndex = Math.max(
+                nextSelectedItemIndex,
+                arrowKeyShiftSelectItemIndex ?? nextSelectedItemIndex
+            );
 
-        const selectedItems = [];
-        selectedItems[startIndex] = true;
+            for (let i = startIndex; i <= endIndex; i++) {
+                s[i] = true;
+            }
+            return s;
+        })();
 
         this.setState({
             selectedItems,
-            lastSelectedItemIndex: startIndex
+            lastSelectedItemIndex: nextSelectedItemIndex,
+            arrowKeyShiftSelectItemIndex
         });
 
         // scroll to the new selected item

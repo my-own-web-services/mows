@@ -2,6 +2,16 @@ import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile"
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
 import { useToaster } from "rsuite";
 
+export const getLastSelectedIndex = (
+    selectedItems: (boolean | undefined)[]
+) => {
+    for (let i = selectedItems.length - 1; i >= 0; i--) {
+        if (selectedItems[i]) {
+            return i;
+        }
+    }
+};
+
 export const utcTimeStampToTimeAndDate = (
     utcTimeStamp: bigint | number,
     seconds = false
@@ -11,7 +21,9 @@ export const utcTimeStampToTimeAndDate = (
     return `${date.toLocaleDateString("de")} ${date.toLocaleTimeString("de")}`;
 };
 
-export const bytesToHumanReadableSize = (maybe_bigint_bytes: bigint | number): string => {
+export const bytesToHumanReadableSize = (
+    maybe_bigint_bytes: bigint | number
+): string => {
     const bytes = Number(maybe_bigint_bytes);
     const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB"];
     if (bytes === 0) {

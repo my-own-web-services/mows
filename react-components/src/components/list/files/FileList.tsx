@@ -218,7 +218,7 @@ export default class FileList extends PureComponent<
                     ref={this.resourceListRef}
                     resourceType="File"
                     defaultSortField="name"
-                    initialListType={"GridRowRenderer"}
+                    initialListType={"ColumnListRowRenderer"}
                     get_items_function={
                         this.context.filezClient.get_file_infos_by_group_id
                     }

@@ -3,7 +3,8 @@ import {
     BaseResource,
     ListRowProps,
     RowRenderer,
-    RowRendererDirection
+    RowRendererDirection,
+    SelectedItemsAfterKeypress
 } from "./ResourceList";
 import { dragHandleWidth } from "./SortingBar";
 import RowContextMenu from "./RowContextMenu";
@@ -207,16 +208,23 @@ const ColumnListRowRenderer: RowRenderer<BaseResource> = {
         total_count,
         selectedItems,
         lastSelectedItemIndex,
+        arrowKeyShiftSelectItemIndex,
         _gridColumnCount
     ) => {
         const keyOptions = ["ArrowUp", "ArrowDown"];
         if (keyOptions.includes(e.key)) {
             // if no item is selected select the first one
+
+            const def: SelectedItemsAfterKeypress = {
+                scrollToRowIndex: 0,
+                nextSelectedItemIndex: 0
+            };
+
             if (Object.keys(selectedItems).length === 0) {
-                return { startIndex: 0, endIndex: 0, scrollToRowIndex: 0 };
+                return def;
             } else {
                 if (lastSelectedItemIndex === undefined) {
-                    return { startIndex: 0, endIndex: 0, scrollToRowIndex: 0 };
+                    return def;
                 }
 
                 let newIndex =
@@ -231,9 +239,18 @@ const ColumnListRowRenderer: RowRenderer<BaseResource> = {
                 }
 
                 return {
-                    startIndex: newIndex,
-                    endIndex: newIndex,
-                    scrollToRowIndex: newIndex
+                    scrollToRowIndex: newIndex,
+                    nextSelectedItemIndex: newIndex,
+                    arrowKeyShiftSelectItemIndex: (() => {
+                        if (e.shiftKey) {
+                            if (arrowKeyShiftSelectItemIndex === undefined) {
+                                return lastSelectedItemIndex;
+                            }
+                            return arrowKeyShiftSelectItemIndex;
+                        } else {
+                            return undefined;
+                        }
+                    })()
                 };
             }
         }

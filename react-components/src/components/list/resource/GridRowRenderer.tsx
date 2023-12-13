@@ -3,7 +3,8 @@ import {
     BaseResource,
     ListRowProps,
     RowRenderer,
-    RowRendererDirection
+    RowRendererDirection,
+    SelectedItemsAfterKeypress
 } from "./ResourceList";
 import { useContextMenu } from "react-contexify";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
@@ -173,16 +174,23 @@ const GridRowRenderer: RowRenderer<BaseResource> = {
         total_count,
         selectedItems,
         lastSelectedItemIndex,
+        arrowKeyShiftSelectItemIndex,
         gridColumnCount
     ) => {
         const keyOptions = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
         if (keyOptions.includes(e.key)) {
             // if no item is selected select the first one
+
+            const def: SelectedItemsAfterKeypress = {
+                scrollToRowIndex: 0,
+                nextSelectedItemIndex: 0
+            };
+
             if (Object.keys(selectedItems).length === 0) {
-                return { startIndex: 0, endIndex: 0, scrollToRowIndex: 0 };
+                return def;
             } else {
                 if (lastSelectedItemIndex === undefined) {
-                    return { startIndex: 0, endIndex: 0, scrollToRowIndex: 0 };
+                    return def;
                 }
 
                 const lastIndex = total_count - 1;
@@ -213,9 +221,18 @@ const GridRowRenderer: RowRenderer<BaseResource> = {
                 })();
 
                 return {
-                    startIndex: newIndex,
-                    endIndex: newIndex,
-                    scrollToRowIndex: Math.floor(newIndex / gridColumnCount)
+                    nextSelectedItemIndex: newIndex,
+                    scrollToRowIndex: Math.floor(newIndex / gridColumnCount),
+                    arrowKeyShiftSelectItemIndex: (() => {
+                        if (e.shiftKey) {
+                            if (arrowKeyShiftSelectItemIndex === undefined) {
+                                return lastSelectedItemIndex;
+                            }
+                            return arrowKeyShiftSelectItemIndex;
+                        } else {
+                            return undefined;
+                        }
+                    })()
                 };
             }
         }
