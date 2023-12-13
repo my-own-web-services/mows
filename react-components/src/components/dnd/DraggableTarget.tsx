@@ -2,19 +2,20 @@ import { CSSProperties, FC } from "react";
 import { useDrop } from "react-dnd";
 
 interface DraggableTargetProps {
-    readonly acceptType: string;
+    readonly acceptTypes: string[];
     readonly style?: CSSProperties;
     readonly children?: React.ReactNode;
     readonly id: string;
+    readonly type: string;
     readonly canDrop?: () => boolean;
 }
 
-export const DraggableTarget: FC<DraggableTargetProps> = props => {
+export const DraggableTarget: FC<DraggableTargetProps> = (props) => {
     const [{ canDrop, isOver, isDragging }, drop] = useDrop(() => ({
-        accept: props.acceptType,
+        accept: props.acceptTypes,
         options: {},
-        drop: () => ({ id: props.id }),
-        collect: monitor => ({
+        drop: () => ({ id: props.id, type: props.type }),
+        collect: (monitor) => ({
             isOver: monitor.isOver(),
             canDrop: monitor.canDrop(),
             isDragging: monitor.getItem() !== null
@@ -30,7 +31,9 @@ export const DraggableTarget: FC<DraggableTargetProps> = props => {
                 opacity: isDragging && !canDrop ? 0.5 : 1,
                 ...props.style
             }}
-            className={`DraggableTarget${canDrop && isOver ? " dragOverActive" : ""}`}
+            className={`DraggableTarget${
+                canDrop && isOver ? " dragOverActive" : ""
+            }`}
             ref={drop}
         >
             {props.children}

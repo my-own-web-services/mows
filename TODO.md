@@ -81,6 +81,9 @@ maybe a field search like `file.keywords: test` to only search for the word "tes
 
 ## Other
 
+-   groups of groups 
+-   get files that are present in multiple selected groups (intersection)
+-   get combined files of groups
 -   hexlerz like blog
 -   upload mini spiel browser mit musik aktiv halten
 -   files should be able to appear multiple times in manual groups (for example for playlists)

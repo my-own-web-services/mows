@@ -6,13 +6,18 @@ import FilezFileViewer, {
 } from "./components/viewer/FileViewer";
 import FileGroupList from "./components/list/fileGroups/FileGroupList";
 
-import { BaseResource } from "./components/list/resource/ResourceList";
+import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
+import {
+    ResourceListHandlersOnSelect,
+    ResourceListRowHandlersOnClick
+} from "./components/list/resource/ResourceListTypes";
 
 interface AppProps {}
 
 interface AppState {
     readonly selectedFileId?: string;
-    readonly selectedGroupId: string;
+    readonly selectedGroupId?: string;
 }
 
 export default class App extends Component<AppProps, AppState> {
@@ -26,26 +31,38 @@ export default class App extends Component<AppProps, AppState> {
         };
     }
 
-    onGroupClick = (
-        _e:
-            | React.MouseEvent<HTMLDivElement, MouseEvent>
-            | React.TouchEvent<HTMLDivElement>,
-        item: BaseResource,
-        rightClick?: boolean | undefined
+    onGroupClick: ResourceListRowHandlersOnClick<FilezFileGroup> = (
+        _e,
+        item,
+        _index,
+        rightClick
     ) => {
         if (rightClick) return;
         this.setState({ selectedGroupId: item._id });
     };
 
-    onFileClick = (
-        _e:
-            | React.MouseEvent<HTMLDivElement, MouseEvent>
-            | React.TouchEvent<HTMLDivElement>,
-        item: BaseResource,
-        rightClick?: boolean | undefined
+    onFileClick: ResourceListRowHandlersOnClick<FilezFile> = (
+        _e,
+        item,
+        _index,
+        rightClick
     ) => {
         if (rightClick) return;
         this.setState({ selectedFileId: item._id });
+    };
+
+    onFileSelect: ResourceListHandlersOnSelect<FilezFile> = (
+        _selectedFiles,
+        lastSelectedItem
+    ) => {
+        this.setState({ selectedFileId: lastSelectedItem?._id });
+    };
+
+    onGroupSelect: ResourceListHandlersOnSelect<FilezFileGroup> = (
+        _selectedGroups,
+        lastSelectedItem
+    ) => {
+        this.setState({ selectedGroupId: lastSelectedItem?._id });
     };
 
     onFileListChange = () => {
@@ -61,7 +78,12 @@ export default class App extends Component<AppProps, AppState> {
                         resourceListRowHandlers={{
                             onClick: this.onFileClick
                         }}
-                        handlers={{ onChange: this.onFileListChange }}
+                        handlers={{
+                            onChange: this.onFileListChange
+                        }}
+                        resourceListHandlers={{
+                            onSelect: this.onFileSelect
+                        }}
                         id={this.state.selectedGroupId}
                     />
                     <FileGroupList
@@ -71,7 +93,12 @@ export default class App extends Component<AppProps, AppState> {
                             width: "500px",
                             float: "left"
                         }}
-                        resourceListRowHandlers={{ onClick: this.onGroupClick }}
+                        resourceListHandlers={{
+                            onSelect: this.onGroupSelect
+                        }}
+                        resourceListRowHandlers={{
+                            onClick: this.onGroupClick
+                        }}
                     />
 
                     <FilezFileViewer

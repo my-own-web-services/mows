@@ -1,11 +1,12 @@
 import { Component, createRef } from "react";
 import Split from "react-split";
-import ResourceList, { Column, ColumnDirection } from "./ResourceList";
+import ResourceList from "./ResourceList";
 import { Item, Menu, useContextMenu } from "react-contexify";
 import { BiChevronDown, BiChevronUp } from "react-icons/bi";
 import { Checkbox, Input, InputGroup } from "rsuite";
 import { Icon } from "@rsuite/icons";
 import { FaPlus } from "react-icons/fa6";
+import { Column, ColumnDirection } from "./ResourceListTypes";
 
 export const dragHandleWidth = 10;
 
@@ -24,14 +25,14 @@ interface SortingBarProps<ResourceType> {
     readonly resourceListId: string;
 }
 
-interface SortingBarState<ResourceType> {
+interface SortingBarState {
     readonly show: boolean;
     readonly field: string;
 }
 
 export default class SortingBar<ResourceType> extends Component<
     SortingBarProps<ResourceType>,
-    SortingBarState<ResourceType>
+    SortingBarState
 > {
     splitRef = createRef<Split>();
 
@@ -48,9 +49,7 @@ export default class SortingBar<ResourceType> extends Component<
     };
 
     componentDidUpdate(
-        prevProps: Readonly<SortingBarProps<ResourceType>>,
-        prevState: Readonly<SortingBarState<ResourceType>>,
-        snapshot?: any
+        prevProps: Readonly<SortingBarProps<ResourceType>>
     ): void {
         if (
             prevProps.columns.filter((c) => c.visible).length !==

@@ -5,7 +5,7 @@ import {
     RowRenderer,
     RowRendererDirection,
     SelectedItemsAfterKeypress
-} from "./ResourceList";
+} from "./ResourceListTypes";
 import { dragHandleWidth } from "./SortingBar";
 import RowContextMenu from "./RowContextMenu";
 import { FaThList } from "react-icons/fa";
@@ -99,8 +99,11 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
                     type={itemType}
                 >
                     <DraggableTarget
-                        acceptType="File"
+                        acceptTypes={
+                            this.props.data.dropTargetAcceptsTypes ?? []
+                        }
                         id={item._id}
+                        type={itemType}
                         canDrop={this.canDrop}
                     >
                         {columns ? (
@@ -169,6 +172,9 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
                         currentItem={item}
                         onContextMenuItemClick={
                             this.props.data.handlers.onContextMenuItemClick
+                        }
+                        getSelectedItems={
+                            this.props.data.functions.getSelectedItems
                         }
                     />
                 )}

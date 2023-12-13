@@ -43,7 +43,10 @@ const defaultDynamicGroupRule: FilterRule = {
     value: ""
 };
 
-export default class FileGroup extends PureComponent<FileGroupProps, FileGroupState> {
+export default class FileGroup extends PureComponent<
+    FileGroupProps,
+    FileGroupState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     constructor(props: FileGroupProps) {
@@ -67,10 +70,10 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
             sort_order: "Ascending"
         });
 
-        items = items?.filter(p => p.content.type === "FileGroup");
+        items = items?.filter((p) => p.content.type === "FileGroup");
 
         if (items) {
-            const useOncePermission = items?.find(p => {
+            const useOncePermission = items?.find((p) => {
                 if (
                     this.state.clientGroup.permission_ids.includes(p._id) &&
                     p.use_type === "Once"
@@ -105,7 +108,7 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                 permission_ids,
                 group_hierarchy_paths: cg.group_hierarchy_paths
             });
-            if (res.status === 201) {
+            if (res.group_id) {
                 this.setState({ serverGroup: cg });
                 return true;
             }
@@ -130,15 +133,24 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
             );
             permission_ids.push(useOncePermissionId);
         } else {
-            const useOncePermission = this.state.availablePermissions?.find(p => {
-                if (cg.permission_ids.includes(p._id) && p.use_type === "Once") {
-                    return p;
+            const useOncePermission = this.state.availablePermissions?.find(
+                (p) => {
+                    if (
+                        cg.permission_ids.includes(p._id) &&
+                        p.use_type === "Once"
+                    ) {
+                        return p;
+                    }
                 }
-            });
+            );
             if (useOncePermission) {
-                permission_ids = permission_ids.filter(id => id !== useOncePermission._id);
+                permission_ids = permission_ids.filter(
+                    (id) => id !== useOncePermission._id
+                );
 
-                this.context.filezClient.delete_permission(useOncePermission?._id);
+                this.context.filezClient.delete_permission(
+                    useOncePermission?._id
+                );
 
                 this.setState(
                     update(this.state, {
@@ -153,17 +165,30 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
         const res = await this.context.filezClient.update_file_group({
             file_group_id: cg._id,
             fields: {
-                dynamic_group_rules: isEqual(cg.dynamic_group_rules, sg.dynamic_group_rules)
+                dynamic_group_rules: isEqual(
+                    cg.dynamic_group_rules,
+                    sg.dynamic_group_rules
+                )
                     ? null
                     : cg.dynamic_group_rules,
-                group_type: cg.group_type === sg.group_type ? null : cg.group_type,
-                keywords: isEqual(cg.keywords, sg.keywords) ? null : cg.keywords,
-                mime_types: isEqual(cg.mime_types, sg.mime_types) ? null : cg.mime_types,
+                group_type:
+                    cg.group_type === sg.group_type ? null : cg.group_type,
+                keywords: isEqual(cg.keywords, sg.keywords)
+                    ? null
+                    : cg.keywords,
+                mime_types: isEqual(cg.mime_types, sg.mime_types)
+                    ? null
+                    : cg.mime_types,
                 name: cg.name === sg.name ? null : cg.name,
-                group_hierarchy_paths: isEqual(cg.group_hierarchy_paths, sg.group_hierarchy_paths)
+                group_hierarchy_paths: isEqual(
+                    cg.group_hierarchy_paths,
+                    sg.group_hierarchy_paths
+                )
                     ? null
                     : cg.group_hierarchy_paths,
-                permission_ids: isEqual(permission_ids, sg.permission_ids) ? null : permission_ids
+                permission_ids: isEqual(permission_ids, sg.permission_ids)
+                    ? null
+                    : permission_ids
             }
         });
         if (res.status === 200) {
@@ -240,21 +265,24 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                 {this.state.clientGroup.group_type === "Dynamic" && (
                     <DynamicGroupRules
                         updateRule={this.updateRule}
-                        rule={this.state.clientGroup.dynamic_group_rules ?? defaultDynamicGroupRule}
+                        rule={
+                            this.state.clientGroup.dynamic_group_rules ??
+                            defaultDynamicGroupRule
+                        }
                     />
                 )}
                 <div>
                     <label htmlFor="">Keywords</label>
                     <br />
                     <TagPicker
-                        data={this.state.clientGroup.keywords.map(keyword => {
+                        data={this.state.clientGroup.keywords.map((keyword) => {
                             return {
                                 label: keyword,
                                 value: keyword
                             };
                         })}
                         creatable
-                        onChange={value => {
+                        onChange={(value) => {
                             this.setState(
                                 update(this.state, {
                                     clientGroup: {
@@ -269,14 +297,20 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                     <label htmlFor="">Permissions</label>
                     <br />
                     <SelectOrCreateUseOncePermission
-                        useOncePermissionEnabled={this.state.useOncePermissionEnabled}
-                        updateOncePermissionUse={enabled => {
-                            this.setState({ useOncePermissionEnabled: enabled });
+                        useOncePermissionEnabled={
+                            this.state.useOncePermissionEnabled
+                        }
+                        updateOncePermissionUse={(enabled) => {
+                            this.setState({
+                                useOncePermissionEnabled: enabled
+                            });
                         }}
                         useOncePermission={
-                            this.state.availablePermissions.find(p => {
+                            this.state.availablePermissions.find((p) => {
                                 if (
-                                    this.state.clientGroup.permission_ids.includes(p._id) &&
+                                    this.state.clientGroup.permission_ids.includes(
+                                        p._id
+                                    ) &&
                                     p.use_type === "Once"
                                 ) {
                                     return p;
@@ -285,18 +319,20 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                         }
                         selectedPermissionIds={
                             this.state.availablePermissions
-                                .filter(p => {
+                                .filter((p) => {
                                     if (
-                                        this.state.clientGroup.permission_ids.includes(p._id) &&
+                                        this.state.clientGroup.permission_ids.includes(
+                                            p._id
+                                        ) &&
                                         p.use_type === "Multiple"
                                     ) {
                                         return p;
                                     }
                                 })
-                                .map(p => p._id) ?? []
+                                .map((p) => p._id) ?? []
                         }
                         oncePermissionRef={this.props.oncePermissionRef}
-                        onSelectUpdate={value => {
+                        onSelectUpdate={(value) => {
                             console.log(value);
 
                             this.setState(
@@ -314,14 +350,16 @@ export default class FileGroup extends PureComponent<FileGroupProps, FileGroupSt
                     <label htmlFor="">Mime Types</label>
                     <br />
                     <TagPicker
-                        data={this.state.clientGroup.mime_types.map(mime_type => {
-                            return {
-                                label: mime_type,
-                                value: mime_type
-                            };
-                        })}
+                        data={this.state.clientGroup.mime_types.map(
+                            (mime_type) => {
+                                return {
+                                    label: mime_type,
+                                    value: mime_type
+                                };
+                            }
+                        )}
                         creatable
-                        onChange={value => {
+                        onChange={(value) => {
                             this.setState(
                                 update(this.state, {
                                     clientGroup: {

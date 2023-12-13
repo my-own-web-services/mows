@@ -4,12 +4,12 @@ import {
     bytesToHumanReadableSize,
     utcTimeStampToTimeAndDate
 } from "../../../utils";
-import ResourceList, {
+import {
     Column,
     ColumnDirection,
     ResourceListHandlers,
     ResourceListRowHandlers
-} from "../resource/ResourceList";
+} from "../resource/ResourceListTypes";
 
 import FileIcon from "../../fileIcons/FileIcon";
 import GridRowRenderer from "../resource/GridRowRenderer";
@@ -18,6 +18,7 @@ import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile"
 import { Button, Modal } from "rsuite";
 import UploadFile from "./UploadFile";
 import MetaEditor from "../../metaEditor/FileMetaEditor";
+import ResourceList from "../resource/ResourceList";
 
 const defaultColumns: Column<FilezFile>[] = [
     {
@@ -91,7 +92,7 @@ const defaultColumns: Column<FilezFile>[] = [
 */
 
 interface FileListProps {
-    readonly id: string;
+    readonly id?: string;
     readonly style?: CSSProperties;
     readonly displayTopBar?: boolean;
     readonly displaySortingBar?: boolean;
@@ -133,14 +134,40 @@ export default class FileList extends PureComponent<
         };
     }
 
-    onDrop = (
+    onDrop = async (
         targetItemId: string,
         targetItemType: string,
         selectedFiles: FilezFile[]
     ) => {
         if (!this.context) return;
-        //TODO add files to file group
+        if (targetItemType === "FileGroup") {
+            console.log(targetItemId);
+
+            const res = await this.context.filezClient.update_file_infos(
+                selectedFiles.flatMap((f) => {
+                    if (f.static_file_group_ids.includes(targetItemId))
+                        return [];
+                    return [
+                        {
+                            file_id: f._id,
+                            fields: {
+                                static_file_group_ids: [
+                                    ...f.static_file_group_ids,
+                                    targetItemId
+                                ]
+                            }
+                        }
+                    ];
+                })
+            );
+
+            if (res.status === 200) {
+                this.resourceListRef.current?.refreshList();
+                this.props.handlers?.onChange?.();
+            }
+        }
     };
+
     onCreateClick = async () => {
         this.setState({ createModalOpen: true });
     };
@@ -222,6 +249,7 @@ export default class FileList extends PureComponent<
                     get_items_function={
                         this.context.filezClient.get_file_infos_by_group_id
                     }
+                    dropTargetAcceptsTypes={["File"]}
                     id={this.props.id}
                     //@ts-ignore TODO fix this generic mess
                     rowRenderers={[GridRowRenderer, ColumnListRowRenderer]}

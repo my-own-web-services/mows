@@ -1,5 +1,5 @@
 import { SortOrder } from "@firstdorsal/filez-client/dist/js/apiTypes/SortOrder";
-import { CSSProperties, ComponentType, PureComponent, createRef } from "react";
+import { CSSProperties, PureComponent, createRef } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import update from "immutability-helper";
 import SortingBar from "./SortingBar";
@@ -12,145 +12,19 @@ import "react-contexify/dist/ReactContexify.css";
 import { MenuItems, defaultMenuItems } from "./DefaultMenuItems";
 import { GetItemListRequestBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListRequestBody";
 import { GetItemListResponseBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListResponseBody";
-import { onContextMenuItemClick } from "./RowContextMenu";
+import {
+    RowRenderer,
+    Column,
+    ResourceListRowHandlers,
+    ResourceListHandlers,
+    BaseResource,
+    ColumnDirection,
+    RowRendererDirection
+} from "./ResourceListTypes";
 
 enum LoadItemMode {
     Reload,
     NewId
-}
-
-export interface RowRenderer<ResourceType> {
-    readonly name: string;
-    readonly icon: JSX.Element;
-    readonly component: ComponentType<ListRowProps<ResourceType>>;
-    readonly getRowHeight: (
-        width: number,
-        height: number,
-        gridColumnCount: number
-    ) => number;
-    readonly getRowCount: (
-        itemCount: number,
-        gridColumnCount: number
-    ) => number;
-    readonly direction: RowRendererDirection;
-    readonly isItemLoaded: (
-        items: (ResourceType | undefined)[],
-        index: number,
-        gridColumnCount: number
-    ) => boolean;
-    readonly getItemKey: (
-        items: (ResourceType | undefined)[],
-        index: number,
-        gridColumnCount: number
-    ) => number;
-    readonly getStartIndexAndLimit: (
-        startIndex: number,
-        limit: number,
-        gridColumnCount: number
-    ) => { startIndex: number; limit: number };
-    readonly getSelectedItemsAfterKeypress: (
-        e: React.KeyboardEvent<HTMLDivElement>,
-        items: (ResourceType | undefined)[],
-        total_count: number,
-        selectedItems: (boolean | undefined)[],
-        lastSelectedItemIndex: number | undefined,
-        arrowKeyShiftSelectItemIndex: number | undefined,
-        gridColumnCount: number
-    ) => SelectedItemsAfterKeypress | undefined;
-}
-
-export interface SelectedItemsAfterKeypress {
-    readonly scrollToRowIndex: number;
-    readonly nextSelectedItemIndex: number;
-    readonly arrowKeyShiftSelectItemIndex?: number;
-}
-
-export interface ResourceListRowHandlers<ResourceType> {
-    readonly onClick?: (
-        e:
-            | React.MouseEvent<HTMLDivElement, MouseEvent>
-            | React.TouchEvent<HTMLDivElement>,
-        item: ResourceType,
-        index: number,
-        rightClick?: boolean,
-        dragged?: boolean
-    ) => void;
-    readonly onDrop?: (
-        targetItemId: string,
-        targetItemType: string,
-        selectedItems: ResourceType[]
-    ) => void;
-    readonly onSelect?: (selectedItems: ResourceType[]) => void;
-    readonly onContextMenuItemClick?: (
-        item: ResourceType,
-        menuItemId?: string,
-        selectedItems?: ResourceType[]
-    ) => void;
-    readonly isDroppable?: (item: ResourceType) => boolean;
-}
-
-export interface ResourceListHandlers<ResourceType> {
-    readonly onSearch?: (search: string) => void;
-    readonly onRefresh?: () => void;
-    readonly onListTypeChange?: (listType: string) => void;
-    readonly onCreateClick: () => void;
-}
-export enum RowRendererDirection {
-    Horizontal,
-    Vertical
-}
-
-export interface ListRowProps<ResourceType> {
-    readonly data: ListData<ResourceType>;
-    readonly style: React.CSSProperties;
-    readonly index: number;
-}
-
-export interface ListData<ResourceType> {
-    readonly items: (ResourceType | undefined)[];
-    readonly total_count: number;
-    readonly handlers: {
-        //@ts-ignore
-        readonly onItemClick: InstanceType<typeof ResourceList>["onItemClick"];
-        readonly onDrop: InstanceType<typeof ResourceList>["onDrop"];
-        readonly onContextMenuItemClick?: onContextMenuItemClick<ResourceType>;
-    };
-    readonly functions: {
-        readonly getSelectedItems: InstanceType<
-            typeof ResourceList
-        >["getSelectedItems"];
-    };
-    readonly selectedItems: (boolean | undefined)[];
-    readonly lastSelectedItemIndex?: number;
-    readonly columns?: Column<ResourceType>[];
-    readonly disableContextMenu?: boolean;
-    readonly menuItems: MenuItems;
-    readonly resourceType: string;
-    readonly gridColumnCount: number;
-    readonly rowHeight: number;
-    readonly rowHandlers?: ResourceListRowHandlers<ResourceType>;
-}
-
-export interface Column<ResourceType> {
-    field: string;
-    alternateField?: string;
-    label: string;
-    direction: ColumnDirection;
-    widthPercent: number;
-    minWidthPixels: number;
-    visible: boolean;
-    render?: (item: ResourceType) => JSX.Element;
-}
-
-export enum ColumnDirection {
-    ASCENDING = 0,
-    DESCENDING = 1,
-    NEUTRAL = 2
-}
-
-export interface BaseResource {
-    _id: string;
-    [key: string]: any;
 }
 
 interface ResourceListProps<ResourceType> {
@@ -184,6 +58,7 @@ interface ResourceListProps<ResourceType> {
     readonly rowHandlers?: ResourceListRowHandlers<ResourceType>;
     readonly handlers?: ResourceListHandlers<ResourceType>;
     readonly resourceCreatable?: boolean;
+    readonly dropTargetAcceptsTypes?: string[];
 }
 
 interface ResourceListState<ResourceType> {
@@ -482,8 +357,11 @@ export default class ResourceList<
         await this.loadItems(LoadItemMode.Reload);
     };
 
-    onContextMenuItemClick = (item: ResourceType, menuItemId?: string) => {
-        const selectedItems = this.getSelectedItems();
+    onContextMenuItemClick = (
+        item: ResourceType,
+        menuItemId: string,
+        selectedItems: ResourceType[]
+    ) => {
         this.props.rowHandlers?.onContextMenuItemClick?.(
             item,
             menuItemId,
@@ -492,8 +370,6 @@ export default class ResourceList<
     };
 
     onDrop = (targetItemId: string, targetItemType: string) => {
-        console.log(targetItemId, targetItemType);
-
         const selectedItems = this.getSelectedItems();
         this.props.rowHandlers?.onDrop?.(
             targetItemId,
@@ -517,7 +393,7 @@ export default class ResourceList<
         this.props.rowHandlers?.onClick?.(e, item, index, rightClick, dragged);
 
         const afterStateUpdate = () =>
-            this.props.rowHandlers?.onSelect?.(this.getSelectedItems());
+            this.props.handlers?.onSelect?.(this.getSelectedItems(), item);
 
         if (e.ctrlKey) {
             const selectedItems = cloneDeep(this.state.selectedItems);
@@ -713,9 +589,34 @@ export default class ResourceList<
         );
     };
 
+    handleCommonHotkeys = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.ctrlKey) {
+            if (e.key === "a") {
+                e.preventDefault();
+                this.setState(
+                    {
+                        selectedItems: new Array(this.state.total_count).fill(
+                            true
+                        )
+                    },
+                    () => {
+                        this.props.handlers?.onSelect?.(
+                            this.getSelectedItems(),
+                            this.state.items[
+                                this.state.lastSelectedItemIndex ?? 0
+                            ]
+                        );
+                    }
+                );
+            }
+        }
+    };
+
     onListKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
         e.preventDefault();
         const currentRowRenderer = this.getCurrentRowRenderer();
+
+        this.handleCommonHotkeys(e);
 
         const selectedItemsAfterKeypress =
             currentRowRenderer?.getSelectedItemsAfterKeypress(
@@ -753,11 +654,19 @@ export default class ResourceList<
             return s;
         })();
 
-        this.setState({
-            selectedItems,
-            lastSelectedItemIndex: nextSelectedItemIndex,
-            arrowKeyShiftSelectItemIndex
-        });
+        this.setState(
+            {
+                selectedItems,
+                lastSelectedItemIndex: nextSelectedItemIndex,
+                arrowKeyShiftSelectItemIndex
+            },
+            () => {
+                this.props.handlers?.onSelect?.(
+                    this.getSelectedItems(),
+                    this.state.items[this.state.lastSelectedItemIndex ?? 0]
+                );
+            }
+        );
 
         // scroll to the new selected item
         // @ts-ignore
@@ -877,6 +786,9 @@ export default class ResourceList<
                                                     items: this.state.items,
                                                     total_count:
                                                         this.state.total_count,
+                                                    dropTargetAcceptsTypes:
+                                                        this.props
+                                                            .dropTargetAcceptsTypes,
                                                     handlers: {
                                                         //@ts-ignore TODO fix this
                                                         onItemClick:

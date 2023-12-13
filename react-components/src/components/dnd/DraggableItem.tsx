@@ -1,31 +1,35 @@
-import { FC, useEffect } from "react";
+import { useEffect } from "react";
 import { useDrag } from "react-dnd";
-import ResourceList, { BaseResource } from "../list/resource/ResourceList";
 import { getEmptyImage } from "react-dnd-html5-backend";
+import {
+    ResourceListGetSelectedItems,
+    ResourceListRowHandlersOnDrop
+} from "../list/resource/ResourceListTypes";
 
-interface DraggableItemProps<Resource> {
+interface DraggableItemProps<FilezResource> {
     readonly type: string;
     readonly ids?: string[];
-    readonly resource: Resource;
-    readonly getSelectedItems?: InstanceType<
-        typeof ResourceList
-    >["getSelectedItems"];
-    readonly dropHandler?: InstanceType<typeof ResourceList>["onDrop"];
+    readonly resource: FilezResource;
+    readonly getSelectedItems: ResourceListGetSelectedItems<FilezResource>;
+    readonly dropHandler?: ResourceListRowHandlersOnDrop<FilezResource>;
     readonly children?: React.ReactNode;
     readonly style?: React.CSSProperties;
 }
 
 interface DropResult {
     readonly id: string;
+    readonly type: string;
 }
 
-export interface Item {
-    getSelectedItems?: InstanceType<typeof ResourceList>["getSelectedItems"];
-    resource: BaseResource;
+export interface Item<FilezResource> {
+    readonly getSelectedItems: ResourceListGetSelectedItems<FilezResource>;
+    readonly resource: FilezResource;
 }
 
-export const DraggableItem: FC<DraggableItemProps<BaseResource>> = (props) => {
-    const item: Item = {
+export const DraggableItem = <FilezResource,>(
+    props: DraggableItemProps<FilezResource>
+) => {
+    const item: Item<FilezResource> = {
         getSelectedItems: props.getSelectedItems,
         resource: props.resource
     };
@@ -38,8 +42,13 @@ export const DraggableItem: FC<DraggableItemProps<BaseResource>> = (props) => {
         item,
         end: (item, monitor) => {
             const dropResult = monitor.getDropResult<DropResult>();
+
             if (item && dropResult) {
-                props.dropHandler?.(dropResult.id, props.type);
+                props.dropHandler?.(
+                    dropResult.id,
+                    dropResult.type,
+                    item.getSelectedItems()
+                );
             }
         },
 

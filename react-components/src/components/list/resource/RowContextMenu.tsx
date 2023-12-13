@@ -1,23 +1,25 @@
 import { PureComponent } from "react";
 import { Item, ItemParams, Menu, contextMenu } from "react-contexify";
-import { BaseResource } from "./ResourceList";
 import { MenuItems } from "./DefaultMenuItems";
-
-export type onContextMenuItemClick<ResourceType> = (
-    item: ResourceType,
-    menuItemId?: string
-) => void;
+import {
+    BaseResource,
+    ResourceListGetSelectedItems,
+    ResourceListRowHandlersOnContextMenuItemClick
+} from "./ResourceListTypes";
 
 interface RowContextMenuProps<ResourceType> {
     readonly menuItems: MenuItems;
     readonly menuId: string;
     readonly currentItem: ResourceType;
-    readonly onContextMenuItemClick?: onContextMenuItemClick<ResourceType>;
+    readonly onContextMenuItemClick?: ResourceListRowHandlersOnContextMenuItemClick<ResourceType>;
+    readonly getSelectedItems: ResourceListGetSelectedItems<ResourceType>;
 }
 
 interface RowContextMenuState {}
 
-export default class RowContextMenu<ResourceType extends BaseResource> extends PureComponent<
+export default class RowContextMenu<
+    ResourceType extends BaseResource
+> extends PureComponent<
     RowContextMenuProps<ResourceType>,
     RowContextMenuState
 > {
@@ -34,25 +36,31 @@ export default class RowContextMenu<ResourceType extends BaseResource> extends P
     };
 
     onMenuItemClick = (menuItemParams: ItemParams<any, any>) => {
-        this.props.onContextMenuItemClick?.(this.props.currentItem, menuItemParams?.id);
+        this.props.onContextMenuItemClick?.(
+            this.props.currentItem,
+            menuItemParams?.id ?? "log",
+            this.props.getSelectedItems()
+        );
     };
 
     render = () => {
         return (
             <div className="RowContextMenu">
                 <Menu id={this.props.menuId}>
-                    {Object.entries(this.props.menuItems).flatMap(([itemId, menuItem]) => {
-                        return [
-                            <Item
-                                key={itemId}
-                                className="clickable"
-                                onClick={this.onMenuItemClick}
-                                id={itemId}
-                            >
-                                {menuItem.label}
-                            </Item>
-                        ];
-                    })}
+                    {Object.entries(this.props.menuItems).flatMap(
+                        ([itemId, menuItem]) => {
+                            return [
+                                <Item
+                                    key={itemId}
+                                    className="clickable"
+                                    onClick={this.onMenuItemClick}
+                                    id={itemId}
+                                >
+                                    {menuItem.label}
+                                </Item>
+                            ];
+                        }
+                    )}
                 </Menu>
             </div>
         );

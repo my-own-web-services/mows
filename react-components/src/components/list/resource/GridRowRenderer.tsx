@@ -5,13 +5,14 @@ import {
     RowRenderer,
     RowRendererDirection,
     SelectedItemsAfterKeypress
-} from "./ResourceList";
+} from "./ResourceListTypes";
 import { useContextMenu } from "react-contexify";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import FilezFileViewer, { FileViewerViewMode } from "../../viewer/FileViewer";
 import RowContextMenu from "./RowContextMenu";
 import { BsFillGridFill } from "react-icons/bs";
 import { DraggableItem } from "../../dnd/DraggableItem";
+import { DraggableTarget } from "../../dnd/DraggableTarget";
 
 interface GridRowState {}
 
@@ -60,6 +61,13 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                         actualListIndex ===
                         this.props.data.lastSelectedItemIndex;
 
+                    const canDrop = () => {
+                        return (
+                            this.props.data.rowHandlers?.isDroppable?.(item) ??
+                            false
+                        );
+                    };
+
                     const key = "GridRowItem" + actualListIndex;
                     return (
                         <div
@@ -93,26 +101,36 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                                 }
                                 type={resourceType}
                             >
-                                {(() => {
-                                    if (resourceType === "File") {
-                                        return (
-                                            <FilezFileViewer
-                                                width={rowHeight}
-                                                file={
-                                                    item as unknown as FilezFile
-                                                }
-                                                style={{
-                                                    width: "100%",
-                                                    height: "100%"
-                                                }}
-                                                viewMode={
-                                                    FileViewerViewMode.Preview
-                                                }
-                                                disablePreviewFalback={true}
-                                            />
-                                        );
+                                <DraggableTarget
+                                    acceptTypes={
+                                        this.props.data
+                                            .dropTargetAcceptsTypes ?? []
                                     }
-                                })()}
+                                    id={item._id}
+                                    type={resourceType}
+                                    canDrop={canDrop}
+                                >
+                                    {(() => {
+                                        if (resourceType === "File") {
+                                            return (
+                                                <FilezFileViewer
+                                                    width={rowHeight}
+                                                    file={
+                                                        item as unknown as FilezFile
+                                                    }
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "100%"
+                                                    }}
+                                                    viewMode={
+                                                        FileViewerViewMode.Preview
+                                                    }
+                                                    disablePreviewFalback={true}
+                                                />
+                                            );
+                                        }
+                                    })()}{" "}
+                                </DraggableTarget>
                             </DraggableItem>
                             {!disableContextMenu && (
                                 <RowContextMenu
@@ -121,6 +139,10 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                                     currentItem={item}
                                     onContextMenuItemClick={
                                         handlers.onContextMenuItemClick
+                                    }
+                                    getSelectedItems={
+                                        this.props.data.functions
+                                            .getSelectedItems
                                     }
                                 />
                             )}

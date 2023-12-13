@@ -1,16 +1,17 @@
 import { CSSProperties, PureComponent, createRef } from "react";
 import { FilezContext } from "../../../FilezProvider";
-import ResourceList, {
+import {
     Column,
     ColumnDirection,
     ResourceListHandlers,
     ResourceListRowHandlers
-} from "../resource/ResourceList";
+} from "../resource/ResourceListTypes";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import { Button, Modal } from "rsuite";
 import CreateFileGroup from "./CreateFileGroup";
 import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
 import { AiOutlineFolder, AiOutlineFolderView } from "react-icons/ai";
+import ResourceList from "../resource/ResourceList";
 
 const defaultColumns: Column<FilezFileGroup>[] = [
     {
@@ -164,6 +165,7 @@ export default class FileGroupList extends PureComponent<
                     ref={this.resourceListRef}
                     resourceType="FileGroup"
                     defaultSortField="name"
+                    dropTargetAcceptsTypes={["File"]}
                     get_items_function={
                         this.context.filezClient.get_own_file_groups
                     }
