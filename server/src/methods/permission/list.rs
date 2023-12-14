@@ -6,6 +6,19 @@ use crate::{
 use filez_common::server::{GetItemListRequestBody, GetItemListResponseBody};
 use hyper::{Body, Request, Response};
 
+/**
+# Gets filez permissions by owner id for virtual scrolling
+
+## Call
+`/api/permission/list/`
+
+## Possible Mutations
+Mutation > None
+
+## Multiple Resources
+Yes
+*/
+
 pub async fn get_own_permissions(
     req: Request<Body>,
     db: &DB,

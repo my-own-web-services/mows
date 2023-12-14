@@ -10,6 +10,9 @@ use hyper::{Body, Request, Response};
 
 ## Possible Mutations
 Mutation > None
+
+## Multiple Resources
+Yes
 */
 pub async fn get_file_infos_by_group_id(
     req: Request<Body>,

@@ -21,6 +21,10 @@ UserGroup > DeleteGroup
 Mutation > FilezUserGroup
 Mutation > FilezUser
 
+## Multiple Resources
+No // TODO
+
+
 */
 pub async fn delete_user_group(
     req: Request<Body>,

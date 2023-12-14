@@ -3,7 +3,18 @@ use filez_common::server::{
     FriendshipStatus, GetItemListRequestBody, GetItemListResponseBody, ReducedFilezUser,
 };
 use hyper::{Body, Request, Response};
+/**
+# Gets filez users by owner id for virtual scrolling
 
+## Call
+`/api/user/list/`
+
+## Possible Mutations
+Mutation > None
+
+## Multiple Resources
+Yes
+*/
 pub async fn get_user_list(
     req: Request<Body>,
     db: &DB,

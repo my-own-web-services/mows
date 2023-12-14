@@ -21,6 +21,10 @@ interface MultiItemTagPickerProps {
         newResources: MultiItemTagPickerResources,
         possibleTags: TagData[]
     ) => void;
+    readonly onCreate: (
+        newResources: MultiItemTagPickerResources,
+        possibleTags: TagData[]
+    ) => void;
     readonly disabled?: boolean;
     readonly knownCategories?: Category[];
     readonly creatable?: boolean;
@@ -175,7 +179,7 @@ export default class MultiItemTagPicker extends Component<
         for (const [resourceId, currentTags] of Object.entries(newResources)) {
             newResources[resourceId] = [...currentTags, item?.value];
         }
-        this.props.onChange(newResources, [...this.props.possibleTags, item]);
+        this.props.onCreate(newResources, [...this.props.possibleTags, item]);
     };
 
     onTagRemove = (removedTagValue: string) => {

@@ -23,6 +23,9 @@ Mutation > FilezFile
 Mutation > FilezFileGroup
 Mutation > FilezUser
 
+## Multiple Resources
+No // TODO
+
 */
 pub async fn delete_file(
     req: Request<Body>,

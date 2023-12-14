@@ -16,6 +16,9 @@ None
 Mutation > FilezUserGroup
 Mutation > FilezUser
 
+## Multiple Resources
+No
+
 */
 pub async fn create_user_group(
     req: Request<Body>,

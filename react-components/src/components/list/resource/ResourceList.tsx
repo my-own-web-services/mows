@@ -24,7 +24,8 @@ import {
 
 enum LoadItemMode {
     Reload,
-    NewId
+    NewId,
+    All
 }
 
 interface ResourceListProps<ResourceType> {
@@ -159,11 +160,16 @@ export default class ResourceList<
             mode === LoadItemMode.NewId ? 0 : this.state.scrollOffset
         );
 
-        const { startIndex, limit } = currentRowRenderer.getStartIndexAndLimit(
+        let { startIndex, limit } = currentRowRenderer.getStartIndexAndLimit(
             cvir.startIndex,
             cvir.endIndex - cvir.startIndex + 1,
             this.state.gridColumnCount
         );
+
+        if (mode === LoadItemMode.All) {
+            startIndex = 0;
+            limit = this.state.total_count;
+        }
 
         this.moreItemsLoading = true;
         const { items: newItems, total_count } =
@@ -605,7 +611,8 @@ export default class ResourceList<
                             true
                         )
                     },
-                    () => {
+                    async () => {
+                        await this.loadItems(LoadItemMode.All);
                         this.props.handlers?.onSelect?.(
                             this.getSelectedItems(),
                             this.state.items[
@@ -621,6 +628,8 @@ export default class ResourceList<
     onListKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
         e.preventDefault();
         const currentRowRenderer = this.getCurrentRowRenderer();
+
+        // TODO use a starting point when shift selecting for mouse selection like right now when selecting with the arrow keys and shift
 
         this.handleCommonHotkeys(e);
 
@@ -859,4 +868,18 @@ export const getSelectedItems = <ResourceType,>(
         }
         return [];
     });
+};
+
+export const getSelectedCount = (
+    selectedItems: (boolean | undefined)[],
+    total_count: number
+) => {
+    let count = 0;
+    for (let i = 0; i < total_count; i++) {
+        if (selectedItems[i] === true) {
+            count++;
+        }
+    }
+
+    return count;
 };

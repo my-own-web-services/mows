@@ -12,6 +12,16 @@ use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+/**
+# Gets infomartion about given file groups
+
+## Call
+`/api/file_group/get/`
+
+## Multiple Resources
+Yes
+*/
+
 pub async fn get_file_groups(
     req: Request<Body>,
     db: &DB,

@@ -17,6 +17,9 @@ None
 Mutation > FilezFileGroup
 Mutation > FilezUser
 
+## Multiple Resources
+No
+
 */
 pub async fn create_own_user(
     mut _req: Request<Body>,

@@ -15,6 +15,9 @@ None
 ## Possible Mutations
 Mutation > FilezUser
 
+## Multiple Resources
+No
+
 */
 pub async fn update_friendship_status(
     req: Request<Body>,

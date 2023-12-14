@@ -5,7 +5,7 @@ import { BaseResource, RowRenderer } from "./ResourceListTypes";
 
 import { BiPlus } from "react-icons/bi";
 import { IoReload } from "react-icons/io5";
-import ResourceList from "./ResourceList";
+import ResourceList, { getSelectedCount } from "./ResourceList";
 
 interface ListTopBarProps<ResourceType> {
     readonly updateListType: InstanceType<
@@ -174,7 +174,13 @@ export default class ListTopBar<
                         Loaded:{" "}
                         {this.props.items.filter((item) => item?._id).length}
                     </span>
-                    <span>Selected: {this.props.selectedItems.length}</span>
+                    <span>
+                        Selected:
+                        {getSelectedCount(
+                            this.props.selectedItems,
+                            this.props.total_count
+                        )}
+                    </span>
                 </div>
             </div>
         );

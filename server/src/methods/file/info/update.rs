@@ -16,6 +16,7 @@ use filez_common::storage::index::{get_future_storage_location, get_storage_loca
 use hyper::{Body, Request, Response};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use simple_server_timing_header::Timer;
 use tokio::fs;
 use ts_rs::TS;
 /**
@@ -38,6 +39,10 @@ File > UpdateFileInfosKeywords
 Mutation > FilezFile
 Mutation > FilezFileGroup
 Mutation > FilezUser
+
+## Multiple Resources
+Yes
+
 */
 pub async fn update_file_infos(
     req: Request<Body>,
@@ -46,10 +51,12 @@ pub async fn update_file_infos(
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
+    let mut timer = Timer::new();
 
     crate::check_content_type_json!(req, res);
 
     let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
+    timer.add("10 get_authenticated_user");
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let ufir: UpdateFileInfosRequestBody = serde_json::from_slice(&body)?;
@@ -160,6 +167,7 @@ pub async fn update_file_infos(
                 }
                 Err(e) => bail!(e),
             }
+            timer.add("20 check_auth");
 
             let new_keywords = new_keywords
                 .iter()
@@ -321,16 +329,29 @@ pub async fn update_file_infos(
                 }
             }
         }
-        //OPTIMIZE handle this in one call, and make it atomic
+
+        timer.add("30 update_file");
+        //TODO OPTIMIZE handle the whole thing in one call, and make it atomic
         let updated_file = some_or_bail!(
             db.get_file_by_id(&filez_file.file_id).await?,
             "Could not find just updated file?!"
         );
 
-        handle_dynamic_group_update(db, &UpdateType::File(updated_file)).await?;
+        timer.add("40 write_updates_to_db");
+        handle_dynamic_group_update(
+            db,
+            &UpdateType::Files(vec![updated_file]),
+            &requesting_user.user_id,
+        )
+        .await?;
+        timer.add("50 handle_dynamic_group_update");
     }
 
-    Ok(res.status(200).body(Body::from("Ok")).unwrap())
+    Ok(res
+        .status(200)
+        .header("Server-Timing", timer.header_value())
+        .body(Body::from("Ok"))
+        .unwrap())
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

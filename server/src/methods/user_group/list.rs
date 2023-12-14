@@ -1,7 +1,18 @@
 use crate::{db::DB, internal_types::Auth};
 use filez_common::server::{FilezUserGroup, GetItemListRequestBody, GetItemListResponseBody};
 use hyper::{Body, Request, Response};
+/**
+# Gets filez user groups by owner id for virtual scrolling
 
+## Call
+`/api/user_group/list/`
+
+## Possible Mutations
+Mutation > None
+
+## Multiple Resources
+Yes
+*/
 pub async fn get_user_group_list(
     req: Request<Body>,
     db: &DB,

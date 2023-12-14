@@ -21,6 +21,10 @@ File > GetFileInfos
 
 ## Possible Mutations
 Mutation > None
+
+## Multiple Resources
+Yes
+
 */
 pub async fn get_file_infos(
     req: Request<Body>,
@@ -48,7 +52,7 @@ pub async fn get_file_infos(
         auth,
         &files,
         &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::GetFileInfos),
-        &db,
+        db,
     )
     .await
     {

@@ -420,6 +420,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2",
+ "simple-server-timing-header",
  "tikv-jemallocator",
  "tokio",
  "ts-rs",
@@ -1656,6 +1657,12 @@ checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "simple-server-timing-header"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16e78919e05c9b8e123d435a4ad104b488ad1585631830e413830985c214086e"
 
 [[package]]
 name = "simple_asn1"

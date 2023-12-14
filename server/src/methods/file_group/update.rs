@@ -9,7 +9,9 @@ use anyhow::bail;
 use filez_common::server::{FileGroupType, FilterRule};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
+use simple_server_timing_header::Timer;
 use ts_rs::TS;
+
 /**
 # Updates a file groups infos.
 
@@ -27,6 +29,9 @@ FileGroup > UpdateGroupInfosGroupHierarchyPaths
 Mutation > FilezFileGroup
 Mutation > FilezFile
 
+## Multiple Resources
+No // TODO
+
 */
 pub async fn update_file_group(
     req: Request<Body>,
@@ -34,7 +39,12 @@ pub async fn update_file_group(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
+    let mut timer = Timer::new();
+
     crate::check_content_type_json!(req, res);
+
+    let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
+    timer.add("1 get_authenticated_user");
 
     let ufgr: UpdateFileGroupRequestBody =
         serde_json::from_slice(&hyper::body::to_bytes(req.into_body()).await?)?;
@@ -48,6 +58,7 @@ pub async fn update_file_group(
                 .unwrap())
         }
     };
+    timer.add("2 get_file_group_by_id");
 
     if let Some(name) = ufgr.fields.name {
         match check_auth(
@@ -197,12 +208,24 @@ pub async fn update_file_group(
 
         group.permission_ids = permission_ids;
     }
+    timer.add("3 check_auth and handle updates");
 
     retry_transient_transaction_error!(db.update_file_group(&group).await);
+    timer.add("4 write updates to db");
 
-    handle_dynamic_group_update(db, &UpdateType::Group(group)).await?;
+    handle_dynamic_group_update(
+        db,
+        &UpdateType::Group(vec![group]),
+        &requesting_user.user_id,
+    )
+    .await?;
+    timer.add("5 handle_dynamic_group_update");
 
-    Ok(res.status(200).body(Body::from("Ok")).unwrap())
+    Ok(res
+        .header("Server-Timing", timer.header_value())
+        .status(200)
+        .body(Body::from("Ok"))
+        .unwrap())
 }
 
 #[derive(TS, Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

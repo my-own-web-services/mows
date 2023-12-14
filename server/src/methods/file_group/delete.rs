@@ -20,6 +20,9 @@ FileGroup > DeleteGroup
 ## Possible Mutations
 Mutation > FilezFileGroup
 Mutation > FilezFile
+
+## Multiple Resources
+No // TODO
 */
 pub async fn delete_file_group(
     req: Request<Body>,

@@ -14,6 +14,9 @@ use ts_rs::TS;
 ## Permissions
 None
 
+## Multiple Resources
+No
+
 */
 pub async fn create_upload_space(
     req: Request<Body>,

@@ -20,6 +20,9 @@ Mutation > FilezFile
 Mutation > FilezFileGroup
 Mutation > FilezUser
 
+## Multiple Resources
+No
+
 */
 pub async fn set_app_data(
     req: Request<Body>,

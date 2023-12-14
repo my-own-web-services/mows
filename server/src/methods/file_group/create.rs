@@ -20,9 +20,11 @@ None
 ## Possible Mutations
 Mutation > FilezFileGroup
 Mutation > FilezFile
+
+## Multiple Resources
+No
 */
 
-// TODO extract dynamic and static file groups into separate collections and structs
 pub async fn create_file_group(
     req: Request<Body>,
     db: &DB,
@@ -58,7 +60,12 @@ pub async fn create_file_group(
 
     retry_transient_transaction_error!(db.create_file_group(&file_group).await);
 
-    handle_dynamic_group_update(db, &UpdateType::Group(file_group)).await?;
+    handle_dynamic_group_update(
+        db,
+        &UpdateType::Group(vec![file_group]),
+        &requesting_user.user_id,
+    )
+    .await?;
 
     let res_body = CreateFileGroupResponseBody { group_id };
 

@@ -181,6 +181,8 @@ impl DB {
         let mut session = self.client.start_session(None).await?;
         session.start_transaction(None).await?;
 
+        dbg!(&to_be_updated);
+
         let files_collection = self.db.collection::<FilezFile>("files");
         let file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
 
@@ -247,8 +249,6 @@ impl DB {
                     .await?;
             }
         }
-
-        dbg!(&file_count_map);
 
         //set the new file count on the groups
         for (file_group_id, file_count) in file_count_map {

@@ -30,6 +30,9 @@ File > UpdateFile
 Mutation > FilezFile
 Mutation > FilezUser
 
+## Multiple Resources
+No
+
 */
 pub async fn update_file(
     mut req: Request<Body>,

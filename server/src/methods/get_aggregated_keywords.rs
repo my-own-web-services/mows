@@ -1,6 +1,19 @@
 use crate::{db::DB, internal_types::Auth};
 use hyper::{Body, Request, Response};
 
+/**
+# Get aggregated keywords.
+
+## Call
+`/api/keyword/get_aggregated/`
+
+## Permissions
+None
+
+## Multiple Resources
+No
+
+*/
 pub async fn get_aggregated_keywords(
     _req: Request<Body>,
     db: &DB,

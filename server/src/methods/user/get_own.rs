@@ -10,7 +10,8 @@ use hyper::{Body, Request, Response};
 ## Permissions
 None
 
-
+## Multiple Resources
+No
 
 */
 pub async fn get_own_user(

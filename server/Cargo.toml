@@ -25,6 +25,7 @@ tokio = { version = "1.17.0", default-features = false, features = [
     "fs",
 ] }
 
+simple-server-timing-header = "0.1.1"
 
 mongodb = { version = "2.3.1", features = ["bson-serde_with"] }
 futures = "0.3"

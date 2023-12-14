@@ -38,6 +38,9 @@ Mutation > FilezFile
 Mutation > FilezFileGroup
 Mutation > FilezUser
 
+## Multiple Resources
+No
+
 */
 pub async fn create_file(
     mut req: Request<Body>,

@@ -25,6 +25,9 @@ Mutation > FilezUserGroup
 Mutation > FilezUser
 Mutation > FilezPermission
 
+## Multiple Resources
+No // TODO
+
 */
 pub async fn update_permission(
     req: Request<Body>,

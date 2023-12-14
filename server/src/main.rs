@@ -308,10 +308,12 @@ async fn handle_inner(
     };
 
     if config.dev.check_database_consistency_on_mutating_requests && data_mutating {
-        match check_database_consistency(&db).await {
-            Ok(_) => println!("Database consistency check passed: Everything is fine!"),
-            Err(e) => println!("Database consistency check failed: {}", e),
-        }
+        tokio::spawn(async move {
+            match check_database_consistency(&db).await {
+                Ok(_) => println!("Database consistency check passed: Everything is fine!"),
+                Err(e) => println!("Database consistency check failed: {}", e),
+            }
+        });
     }
     final_res
 }

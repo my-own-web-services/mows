@@ -1,11 +1,11 @@
-use crate::db::DB;
+use crate::{db::DB, retry_transient_transaction_error};
 use filez_common::server::{FilezFile, FilezFileGroup, FilterRuleType};
 use regex::Regex;
 use serde_json::Value;
 
 pub enum UpdateType {
-    Group(FilezFileGroup),
-    File(FilezFile),
+    Group(Vec<FilezFileGroup>),
+    Files(Vec<FilezFile>),
 }
 
 #[derive(Debug, Clone)]
@@ -15,30 +15,41 @@ pub struct GroupChange {
     pub removed_groups: Vec<String>,
 }
 
-pub async fn handle_dynamic_group_update(db: &DB, update_type: &UpdateType) -> anyhow::Result<()> {
+pub async fn handle_dynamic_group_update(
+    db: &DB,
+    update_type: &UpdateType,
+    requesting_user_id: &str,
+) -> anyhow::Result<()> {
     match update_type {
-        UpdateType::Group(group) => {
-            let current_files = db.get_files_by_owner_id(&group.owner_id).await?;
+        UpdateType::Group(groups) => {
+            let current_files = db.get_files_by_owner_id(requesting_user_id).await?;
 
-            //dbg!(current_files.len());
-
-            let files_to_be_updated = handle_group_change(group, &current_files);
-
-            //dbg!(&files_to_be_updated);
-
-            db.update_dynamic_file_groups_on_many_files(&files_to_be_updated)
-                .await?;
+            let mut changes = vec![];
+            for group in groups {
+                let changess = handle_group_change(group, &current_files);
+                changes.extend(changess);
+            }
+            retry_transient_transaction_error!(
+                db.update_dynamic_file_groups_on_many_files(&changes).await
+            );
         }
-        UpdateType::File(file) => {
-            let possible_groups = db.get_dynamic_groups_by_owner_id(&file.owner_id).await?;
-            //dbg!(&possible_groups);
-
-            let group_change = handle_file_change(file, &possible_groups.iter().collect());
-
-            //dbg!(&group_change);
-
-            db.update_dynamic_file_groups_on_many_files(&vec![group_change])
+        UpdateType::Files(files) => {
+            let possible_groups = db
+                .get_dynamic_groups_by_owner_id(requesting_user_id)
                 .await?;
+
+            let mut changes = vec![];
+            for file in files {
+                if let Some(group_change) =
+                    handle_file_change(file, &possible_groups.iter().collect())
+                {
+                    changes.push(group_change);
+                }
+            }
+
+            retry_transient_transaction_error!(
+                db.update_dynamic_file_groups_on_many_files(&changes).await
+            );
         }
     }
     Ok(())
@@ -58,8 +69,9 @@ pub fn handle_group_change(group: &FilezFileGroup, files: &Vec<FilezFile>) -> Ve
     let mut group_changes = vec![];
 
     for file in files {
-        let group_change = handle_file_change(file, &vec![group]);
-        group_changes.push(group_change);
+        if let Some(group_change) = handle_file_change(file, &vec![group]) {
+            group_changes.push(group_change);
+        }
     }
     group_changes
 }
@@ -80,7 +92,7 @@ returns the groups to be set on the file
 pub fn handle_file_change(
     changed_file: &FilezFile,
     possible_groups: &Vec<&FilezFileGroup>,
-) -> GroupChange {
+) -> Option<GroupChange> {
     let mut added_groups = vec![];
     let mut removed_groups = vec![];
 
@@ -100,11 +112,15 @@ pub fn handle_file_change(
         }
     }
 
-    GroupChange {
+    if added_groups.is_empty() && removed_groups.is_empty() {
+        return None;
+    }
+
+    Some(GroupChange {
         file_id: changed_file.file_id.clone(),
         added_groups,
         removed_groups,
-    }
+    })
 }
 
 pub fn check_match(changed_file: &FilezFile, possible_group: &FilezFileGroup) -> bool {

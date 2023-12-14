@@ -35,13 +35,9 @@ pub async fn check_auth_multiple(
     };
 
     // check if the requesting user is the owner of the resources
-    let is_owner_of_all = auth_resources.iter().all(|auth_resource| {
-        if &requesting_user.user_id == auth_resource.get_owner_id() {
-            return true;
-        };
-
-        false
-    });
+    let is_owner_of_all = auth_resources
+        .iter()
+        .all(|auth_resource| &requesting_user.user_id == auth_resource.get_owner_id());
 
     if is_owner_of_all {
         // user is the owner

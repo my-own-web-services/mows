@@ -27,6 +27,9 @@ The app_file_path is set by the app and should be defined in the specific app's 
 File > GetFile
 File > GetFileDerivatives // TODO: implement
 
+## Multiple Resources
+No
+
 */
 pub async fn get_file(
     req: Request<Body>,
@@ -73,7 +76,7 @@ pub async fn get_file(
     match check_auth(
         auth,
         &AuthResourceToCheck::File((&file, FilezFilePermissionAclWhatOptions::GetFile)),
-        &db,
+        db,
     )
     .await
     {

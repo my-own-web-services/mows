@@ -22,6 +22,9 @@ UserGroup > UpdateGroupInfosVisibility
 ## Possible Mutations
 Mutation > FilezUserGroup
 Mutation > FilezUser
+
+## Multiple Resources
+No // TODO
 */
 pub async fn update_user_group(
     req: Request<Body>,

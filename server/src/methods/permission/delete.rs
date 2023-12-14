@@ -18,6 +18,9 @@ Mutation > FilezFile
 Mutation > FilezUserGroup
 Mutation > FilezUser
 Mutation > FilezPermission
+
+## Multiple Resources
+No // TODO
 */
 pub async fn delete_permission(
     req: Request<Body>,
