@@ -1,4 +1,6 @@
-use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth};
+use crate::{
+    config::SERVER_CONFIG, db::DB, internal_types::Auth, retry_transient_transaction_error,
+};
 use anyhow::bail;
 use hyper::{Body, Request, Response};
 
@@ -7,8 +9,13 @@ use hyper::{Body, Request, Response};
 
 ## Call
 `/api/user/create_own/`
+
 ## Permissions
 None
+
+## Possible Mutations
+Mutation > FilezFileGroup
+Mutation > FilezUser
 
 */
 pub async fn create_own_user(
@@ -40,8 +47,15 @@ pub async fn create_own_user(
             },
             None => match config.users.allow_new {
                 true => {
-                    db.create_user(Some(ir_user_id.to_string()), None, None, Some(ir_email))
-                        .await?;
+                    retry_transient_transaction_error!(
+                        db.create_user(
+                            Some(ir_user_id.to_string()),
+                            None,
+                            None,
+                            Some(ir_email.clone())
+                        )
+                        .await
+                    );
                     Ok(res.status(200).body(Body::from("Created User"))?)
                 }
                 false => Ok(res.status(403).body(Body::from("New users not allowed"))?),

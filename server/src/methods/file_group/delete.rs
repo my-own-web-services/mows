@@ -2,6 +2,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFileGroupPermissionAclWhatOptions},
+    retry_transient_transaction_error,
     utils::get_query_item,
 };
 use anyhow::bail;
@@ -12,8 +13,13 @@ use hyper::{body::Body, Request, Response};
 
 ## Call
 `/api/file_group/delete/?id={group_id}`
+
 ## Permissions
 FileGroup > DeleteGroup
+
+## Possible Mutations
+Mutation > FilezFileGroup
+Mutation > FilezFile
 */
 pub async fn delete_file_group(
     req: Request<Body>,
@@ -37,7 +43,7 @@ pub async fn delete_file_group(
             &file_group,
             FilezFileGroupPermissionAclWhatOptions::DeleteGroup,
         )),
-        &db,
+        db,
     )
     .await
     {
@@ -48,7 +54,7 @@ pub async fn delete_file_group(
         Err(e) => bail!(e),
     }
 
-    db.delete_file_group(&file_group).await?;
+    retry_transient_transaction_error!(db.delete_file_group(&file_group).await);
 
     Ok(res.status(200).body(Body::from("Ok"))?)
 }

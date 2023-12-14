@@ -2,6 +2,7 @@ use crate::{
     db::DB,
     dynamic_groups::{handle_dynamic_group_update, UpdateType},
     internal_types::Auth,
+    retry_transient_transaction_error,
     utils::generate_id,
 };
 use filez_common::server::{FileGroupType, FilezFileGroup, FilterRule};
@@ -15,6 +16,10 @@ use ts_rs::TS;
 `/api/file_group/create/`
 ## Permissions
 None
+
+## Possible Mutations
+Mutation > FilezFileGroup
+Mutation > FilezFile
 */
 
 // TODO extract dynamic and static file groups into separate collections and structs
@@ -51,9 +56,9 @@ pub async fn create_file_group(
         },
     };
 
-    db.create_file_group(&file_group).await?;
+    retry_transient_transaction_error!(db.create_file_group(&file_group).await);
 
-    handle_dynamic_group_update(&db, &UpdateType::Group(file_group)).await?;
+    handle_dynamic_group_update(db, &UpdateType::Group(file_group)).await?;
 
     let res_body = CreateFileGroupResponseBody { group_id };
 

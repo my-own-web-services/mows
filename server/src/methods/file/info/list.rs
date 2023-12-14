@@ -2,6 +2,15 @@ use crate::{db::DB, internal_types::Auth};
 use filez_common::server::{FilezFile, GetItemListRequestBody, GetItemListResponseBody};
 use hyper::{Body, Request, Response};
 
+/**
+# Gets filez files by group id for virtual scrolling
+
+## Call
+`/api/file/info/list/`
+
+## Possible Mutations
+Mutation > None
+*/
 pub async fn get_file_infos_by_group_id(
     req: Request<Body>,
     db: &DB,

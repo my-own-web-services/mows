@@ -1,6 +1,9 @@
 use crate::{config::SERVER_CONFIG, db::DB};
 use anyhow::bail;
-use filez_common::server::{GetItemListRequestBody, UserStatus};
+use filez_common::{
+    server::{GetItemListRequestBody, UserStatus},
+    storage::index::get_storage_location_from_file,
+};
 use serde::{Deserialize, Serialize};
 
 pub async fn dev(db: &DB) -> anyhow::Result<()> {
@@ -14,7 +17,7 @@ pub async fn dev(db: &DB) -> anyhow::Result<()> {
         create_users(db).await?;
     }
 
-    if config.dev.check_database_consistency {
+    if config.dev.check_database_consistency_on_startup {
         match check_database_consistency(db).await {
             Ok(_) => println!("Database consistency check passed: Everything is fine!"),
             Err(e) => println!("Database consistency check failed: {}", e),
@@ -58,6 +61,83 @@ pub async fn create_mock_users(db: &DB) -> anyhow::Result<()> {
 pub async fn check_database_consistency(db: &DB) -> anyhow::Result<()> {
     check_group_file_count_consistency(db).await?;
     check_storage_use_consistency(db).await?;
+    check_database_file_storage_consistency(db).await?;
+
+    Ok(())
+}
+
+pub async fn check_database_file_storage_consistency(db: &DB) -> anyhow::Result<()> {
+    let all_users = db.get_all_users().await?;
+    let config = &SERVER_CONFIG;
+
+    // check that all db FilezFiles that are supposed to have a associated file on the storage actually have one
+    for user in all_users {
+        let user_files = db.get_files_by_owner_id(&user.user_id).await?;
+        for file in user_files {
+            let storage_location = get_storage_location_from_file(&config.storage, &file)?;
+            // check if file at path exists with rust fs
+            if !tokio::fs::metadata(&storage_location.full_path)
+                .await?
+                .is_file()
+            {
+                bail!(
+                    "File {} with id {} has no corresponding file on the storage",
+                    file.name,
+                    file.file_id
+                );
+            }
+        }
+    }
+
+    // check that all files on the storage have a corresponding entry in the db
+    for storage in config.storage.storages.values() {
+        if storage.readonly.is_some() {
+            continue;
+        }
+        let mut storage_file_paths = vec![];
+        get_files_recursively(&storage.path, &mut storage_file_paths)?;
+        for storage_file_path in storage_file_paths {
+            let id = storage_file_path
+                .strip_prefix(&storage.path)?
+                .to_str()
+                .unwrap()
+                .to_string()
+                .replace('/', "");
+            let file = db.get_file_by_id(&id).await?;
+            if file.is_none() {
+                if config.dev.check_database_consistency_remove_orphaned_files {
+                    println!(
+                        "File {} on the storage has no corresponding entry in the db. Remove orphans is set to true. Removing orphaned file.",
+                        storage_file_path.display()
+                    );
+                    tokio::fs::remove_file(&storage_file_path).await?;
+                } else {
+                    bail!(
+                        "File {} on the storage has no corresponding entry in the db",
+                        storage_file_path.display()
+                    );
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub fn get_files_recursively(
+    path: &std::path::Path,
+    files: &mut Vec<std::path::PathBuf>,
+) -> anyhow::Result<()> {
+    let dir = std::fs::read_dir(path)?;
+    for entry in dir {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            get_files_recursively(&path, files)?;
+        } else {
+            files.push(path);
+        }
+    }
 
     Ok(())
 }

@@ -81,7 +81,9 @@ pub struct DevConfig {
     pub disable_complex_access_control: bool,
     pub create_mock_users: bool,
     pub mock_user_path: String,
-    pub check_database_consistency: bool,
+    pub check_database_consistency_on_startup: bool,
+    pub check_database_consistency_on_mutating_requests: bool,
+    pub check_database_consistency_remove_orphaned_files: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

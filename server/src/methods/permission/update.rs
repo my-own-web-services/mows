@@ -2,6 +2,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     permissions::{FilezPermission, FilezPermissionUseType, PermissionResourceType},
+    retry_transient_transaction_error,
     utils::generate_id,
 };
 use hyper::{Body, Request, Response};
@@ -13,8 +14,16 @@ use ts_rs::TS;
 
 ## Call
 `/api/permission/update/`
+
 ## Permissions
 None
+
+## Possible Mutations
+Mutation > FilezFileGroup
+Mutation > FilezFile
+Mutation > FilezUserGroup
+Mutation > FilezUser
+Mutation > FilezPermission
 
 */
 pub async fn update_permission(
@@ -48,7 +57,7 @@ pub async fn update_permission(
                 use_type: cpr.use_type,
             };
 
-            db.update_permission(&permission).await?;
+            retry_transient_transaction_error!(db.update_permission(&permission).await);
 
             let res_body = UpdatePermissionResponseBody {
                 permission_id: permission.permission_id,
@@ -59,6 +68,8 @@ pub async fn update_permission(
                 .body(Body::from(serde_json::to_string(&res_body)?))?)
         }
         None => {
+            // TODO move this to own function for consistency
+
             let permission_id = generate_id(16);
 
             let permission = FilezPermission {
@@ -69,7 +80,7 @@ pub async fn update_permission(
                 use_type: cpr.use_type,
             };
 
-            db.create_permission(&permission).await?;
+            retry_transient_transaction_error!(db.create_permission(&permission).await);
 
             let res_body = UpdatePermissionResponseBody { permission_id };
 

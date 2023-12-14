@@ -158,6 +158,6 @@ pub async fn get_session_cookie(
     Ok(res
         .status(200)
         .header("Set-Cookie", session_cookie.to_string())
-        .body(Body::from("OK"))
+        .body(Body::from("Ok"))
         .unwrap())
 }

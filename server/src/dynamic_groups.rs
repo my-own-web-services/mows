@@ -20,22 +20,22 @@ pub async fn handle_dynamic_group_update(db: &DB, update_type: &UpdateType) -> a
         UpdateType::Group(group) => {
             let current_files = db.get_files_by_owner_id(&group.owner_id).await?;
 
-            dbg!(current_files.len());
+            //dbg!(current_files.len());
 
             let files_to_be_updated = handle_group_change(group, &current_files);
 
-            dbg!(&files_to_be_updated);
+            //dbg!(&files_to_be_updated);
 
             db.update_dynamic_file_groups_on_many_files(&files_to_be_updated)
                 .await?;
         }
         UpdateType::File(file) => {
             let possible_groups = db.get_dynamic_groups_by_owner_id(&file.owner_id).await?;
-            dbg!(&possible_groups);
+            //dbg!(&possible_groups);
 
             let group_change = handle_file_change(file, &possible_groups.iter().collect());
 
-            dbg!(&group_change);
+            //dbg!(&group_change);
 
             db.update_dynamic_file_groups_on_many_files(&vec![group_change])
                 .await?;
@@ -131,7 +131,7 @@ pub fn check_rule_contains(changed_file: &FilezFile, field: &str, value: &str) -
             Some(v) => v,
             None => return false,
         };
-    dbg!(&field_value);
+    //dbg!(&field_value);
 
     match field_value {
         Value::String(s) => s.contains(value),
@@ -148,7 +148,7 @@ pub fn check_rule_match_regex(changed_file: &FilezFile, field: &str, regex: &str
             Some(v) => v,
             None => return false,
         };
-    dbg!(&field_value);
+    //dbg!(&field_value);
     let parsed_regex = match Regex::new(regex) {
         Ok(v) => v,
         Err(e) => {

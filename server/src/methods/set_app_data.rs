@@ -11,8 +11,15 @@ use ts_rs::TS;
 
 ## Call
 `/api/set_app_data/`
+
 ## Permissions
 None, can only be called by the owner of the file or user.
+
+## Possible Mutations
+Mutation > FilezFile
+Mutation > FilezFileGroup
+Mutation > FilezUser
+
 */
 pub async fn set_app_data(
     req: Request<Body>,
@@ -42,7 +49,7 @@ pub async fn set_app_data(
 
     db.set_app_data(sadr).await?;
 
-    Ok(res.status(200).body(Body::from("OK")).unwrap())
+    Ok(res.status(200).body(Body::from("Ok")).unwrap())
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

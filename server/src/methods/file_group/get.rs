@@ -40,7 +40,7 @@ pub async fn get_file_groups(
         auth,
         &file_groups,
         &CommonAclWhatOptions::FileGroup(FilezFileGroupPermissionAclWhatOptions::GetGroupInfos),
-        &db,
+        db,
     )
     .await
     {

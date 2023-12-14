@@ -33,6 +33,11 @@ The options for calling the create file function are:
 the upload space has to be created by an authenticated user and access to it can be shared with a token
 files uploaded will be owned by the owner of the upload space and decrease their quota as normal
 
+## Possible Mutations
+Mutation > FilezFile
+Mutation > FilezFileGroup
+Mutation > FilezUser
+
 */
 pub async fn create_file(
     mut req: Request<Body>,

@@ -15,10 +15,12 @@ use ts_rs::TS;
 
 ## Call
 `/api/file/info/get/`
+
 ## Permissions
 File > GetFileInfos
 
-
+## Possible Mutations
+Mutation > None
 */
 pub async fn get_file_infos(
     req: Request<Body>,

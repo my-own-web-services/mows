@@ -1,4 +1,6 @@
-use crate::{db::DB, internal_types::Auth, utils::get_query_item};
+use crate::{
+    db::DB, internal_types::Auth, retry_transient_transaction_error, utils::get_query_item,
+};
 use hyper::{Body, Request, Response};
 
 /**
@@ -6,9 +8,16 @@ use hyper::{Body, Request, Response};
 
 ## Call
 `/api/permission/delete/?id={permission_id}`
+
 ## Permissions
 None
 
+## Possible Mutations
+Mutation > FilezFileGroup
+Mutation > FilezFile
+Mutation > FilezUserGroup
+Mutation > FilezUser
+Mutation > FilezPermission
 */
 pub async fn delete_permission(
     req: Request<Body>,
@@ -32,7 +41,7 @@ pub async fn delete_permission(
         return Ok(res.status(401).body(Body::from("Unauthorized"))?);
     }
 
-    db.delete_permission(&permission_id).await?;
+    retry_transient_transaction_error!(db.delete_permission(&permission_id).await);
 
     Ok(res.status(200).body(Body::from("Ok"))?)
 }

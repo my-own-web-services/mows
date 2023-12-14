@@ -5,7 +5,7 @@ use crate::{
     internal_types::Auth,
     is_transient_transaction_error,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
-    some_or_bail,
+    retry_transient_transaction_error, some_or_bail,
     utils::{
         check_file_name, check_keywords, check_mime_type, check_owner_id, check_static_file_groups,
         check_storage_id,
@@ -25,14 +25,19 @@ use ts_rs::TS;
 No, will be aborted as soon as one file fails to update.
 
 ## Call
+
 `/api/file/info/update/`
+
 ## Permissions
 File > UpdateFileInfosName
 File > UpdateFileInfosMimeType
 File > UpdateFileInfosStaticFileGroups
 File > UpdateFileInfosKeywords
 
-
+## Possible Mutations
+Mutation > FilezFile
+Mutation > FilezFileGroup
+Mutation > FilezUser
 */
 pub async fn update_file_infos(
     req: Request<Body>,
@@ -65,7 +70,7 @@ pub async fn update_file_infos(
                     &filez_file,
                     FilezFilePermissionAclWhatOptions::UpdateFileInfosMimeType,
                 )),
-                &db,
+                db,
             )
             .await
             {
@@ -75,8 +80,10 @@ pub async fn update_file_infos(
                 }
                 Err(e) => bail!(e),
             }
-            db.update_file_mime_type(&filez_file.file_id, new_mime_type)
-                .await?;
+            retry_transient_transaction_error!(
+                db.update_file_mime_type(&filez_file.file_id, new_mime_type)
+                    .await
+            );
         };
 
         if let Some(new_name) = &fields.name {
@@ -88,7 +95,7 @@ pub async fn update_file_infos(
                     &filez_file,
                     FilezFilePermissionAclWhatOptions::UpdateFileInfosName,
                 )),
-                &db,
+                db,
             )
             .await
             {
@@ -98,7 +105,9 @@ pub async fn update_file_infos(
                 }
                 Err(e) => bail!(e),
             }
-            db.update_file_name(&filez_file.file_id, new_name).await?;
+            retry_transient_transaction_error!(
+                db.update_file_name(&filez_file.file_id, new_name).await
+            );
         };
 
         if let Some(new_static_file_group_ids) = &fields.static_file_group_ids {
@@ -109,7 +118,7 @@ pub async fn update_file_infos(
                     &filez_file,
                     FilezFilePermissionAclWhatOptions::UpdateFileInfosStaticFileGroups,
                 )),
-                &db,
+                db,
             )
             .await
             {
@@ -122,20 +131,14 @@ pub async fn update_file_infos(
             db.check_file_group_existence(new_static_file_group_ids)
                 .await?;
 
-            while let Err(e) = db
-                .update_files_static_file_group_ids(
+            retry_transient_transaction_error!(
+                db.update_files_static_file_group_ids(
                     &filez_file.file_id,
                     &filez_file.static_file_group_ids,
                     new_static_file_group_ids,
                 )
                 .await
-            {
-                if is_transient_transaction_error!(e) {
-                    continue;
-                } else {
-                    bail!(e)
-                }
-            }
+            );
         };
 
         if let Some(new_keywords) = &fields.keywords {
@@ -147,7 +150,7 @@ pub async fn update_file_infos(
                     &filez_file,
                     FilezFilePermissionAclWhatOptions::UpdateFileInfosKeywords,
                 )),
-                &db,
+                db,
             )
             .await
             {
@@ -174,8 +177,10 @@ pub async fn update_file_infos(
                 .filter(|k| !k.is_empty())
                 .unique()
                 .collect::<Vec<String>>();
-            db.update_file_keywords(&filez_file.file_id, &new_keywords)
-                .await?;
+            retry_transient_transaction_error!(
+                db.update_file_keywords(&filez_file.file_id, &new_keywords)
+                    .await
+            );
         };
 
         if let Some(new_owner_id) = &fields.owner_id {
@@ -190,8 +195,10 @@ pub async fn update_file_infos(
                         bail!("New owner does not exist")
                     }
 
-                    db.update_pending_new_owner_id(&filez_file.file_id, new_owner_id)
-                        .await?;
+                    retry_transient_transaction_error!(
+                        db.update_pending_new_owner_id(&filez_file.file_id, new_owner_id)
+                            .await
+                    );
                 }
             }
         };
@@ -251,6 +258,8 @@ pub async fn update_file_infos(
 
                 fs::create_dir_all(&new_storage_location.folder_path).await?;
 
+                // TODO move app data too
+
                 if let Err(e) = fs::copy(
                     &old_storage_location.full_path,
                     &new_storage_location.full_path,
@@ -301,8 +310,16 @@ pub async fn update_file_infos(
                 }
             }
 
-            db.update_file_permission_ids(&filez_file.file_id, permission_ids)
-                .await?;
+            while let Err(e) = db
+                .update_file_permission_ids(&filez_file.file_id, permission_ids)
+                .await
+            {
+                if is_transient_transaction_error!(e) {
+                    continue;
+                } else {
+                    bail!(e)
+                }
+            }
         }
         //OPTIMIZE handle this in one call, and make it atomic
         let updated_file = some_or_bail!(
@@ -310,7 +327,7 @@ pub async fn update_file_infos(
             "Could not find just updated file?!"
         );
 
-        handle_dynamic_group_update(&db, &UpdateType::File(updated_file)).await?;
+        handle_dynamic_group_update(db, &UpdateType::File(updated_file)).await?;
     }
 
     Ok(res.status(200).body(Body::from("Ok")).unwrap())

@@ -1,4 +1,4 @@
-use crate::{db::DB, internal_types::Auth};
+use crate::{db::DB, internal_types::Auth, retry_transient_transaction_error};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -8,8 +8,12 @@ use ts_rs::TS;
 
 ## Call
 `/api/user/update_friendship_status/`
+
 ## Permissions
 None
+
+## Possible Mutations
+Mutation > FilezUser
 
 */
 pub async fn update_friendship_status(
@@ -35,8 +39,10 @@ pub async fn update_friendship_status(
                 true => res.status(409).body(Body::from("Already friends"))?,
                 false => {
                     // append the users requesting users id to the other users pending friend requests
-                    db.send_friend_request(&requesting_user.user_id, &other_user.user_id)
-                        .await?;
+                    retry_transient_transaction_error!(
+                        db.send_friend_request(&requesting_user.user_id, &other_user.user_id)
+                            .await
+                    );
 
                     res.status(200).body(Body::from("Friend request sent"))?
                 }
@@ -45,8 +51,10 @@ pub async fn update_friendship_status(
         UpdateFriendStatus::RemoveFriend => {
             match other_user.friends.contains(&requesting_user.user_id) {
                 true => {
-                    db.remove_friend(&requesting_user.user_id, &other_user.user_id)
-                        .await?;
+                    retry_transient_transaction_error!(
+                        db.remove_friend(&requesting_user.user_id, &other_user.user_id)
+                            .await
+                    );
 
                     res.status(200).body(Body::from("Friend removed"))?
                 }
@@ -58,8 +66,10 @@ pub async fn update_friendship_status(
             .contains(&other_user.user_id)
         {
             true => {
-                db.accept_friend_request(&requesting_user.user_id, &other_user.user_id)
-                    .await?;
+                retry_transient_transaction_error!(
+                    db.accept_friend_request(&requesting_user.user_id, &other_user.user_id)
+                        .await
+                );
 
                 res.status(200)
                     .body(Body::from("Friend request accepted"))?
@@ -73,8 +83,10 @@ pub async fn update_friendship_status(
             .contains(&other_user.user_id)
         {
             true => {
-                db.reject_friend_request(&requesting_user.user_id, &other_user.user_id)
-                    .await?;
+                retry_transient_transaction_error!(
+                    db.reject_friend_request(&requesting_user.user_id, &other_user.user_id)
+                        .await
+                );
 
                 res.status(200)
                     .body(Body::from("Friend request rejected"))?

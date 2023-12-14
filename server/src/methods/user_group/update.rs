@@ -2,6 +2,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezUserGroupPermissionAclWhatOptions},
+    retry_transient_transaction_error,
 };
 use anyhow::bail;
 use filez_common::server::Visibility;
@@ -13,9 +14,14 @@ use ts_rs::TS;
 
 ## Call
 `/api/user_group/update/`
+
 ## Permissions
 UserGroup > UpdateGroupInfosName
 UserGroup > UpdateGroupInfosVisibility
+
+## Possible Mutations
+Mutation > FilezUserGroup
+Mutation > FilezUser
 */
 pub async fn update_user_group(
     req: Request<Body>,
@@ -45,7 +51,7 @@ pub async fn update_user_group(
                 &group,
                 FilezUserGroupPermissionAclWhatOptions::UpdateGroupInfosName,
             )),
-            &db,
+            db,
         )
         .await
         {
@@ -66,7 +72,7 @@ pub async fn update_user_group(
                 &group,
                 FilezUserGroupPermissionAclWhatOptions::UpdateGroupInfosVisibility,
             )),
-            &db,
+            db,
         )
         .await
         {
@@ -103,7 +109,7 @@ pub async fn update_user_group(
         group.permission_ids = permission_ids;
     }
 
-    db.update_user_group(&group).await?;
+    retry_transient_transaction_error!(db.update_user_group(&group).await);
 
     Ok(res.status(200).body(Body::from("Ok")).unwrap())
 }

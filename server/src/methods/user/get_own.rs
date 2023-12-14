@@ -6,8 +6,11 @@ use hyper::{Body, Request, Response};
 
 ## Call
 `/api/user/get_own/`
+
 ## Permissions
 None
+
+
 
 */
 pub async fn get_own_user(

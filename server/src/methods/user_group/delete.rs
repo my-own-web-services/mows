@@ -2,6 +2,7 @@ use crate::{
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezUserGroupPermissionAclWhatOptions},
+    retry_transient_transaction_error,
     utils::get_query_item,
 };
 use anyhow::bail;
@@ -12,8 +13,13 @@ use hyper::{body::Body, Request, Response};
 
 ## Call
 `/api/user_group/delete/?id={user_group_id}`
+
 ## Permissions
 UserGroup > DeleteGroup
+
+## Possible Mutations
+Mutation > FilezUserGroup
+Mutation > FilezUser
 
 */
 pub async fn delete_user_group(
@@ -38,7 +44,7 @@ pub async fn delete_user_group(
             &user_group,
             FilezUserGroupPermissionAclWhatOptions::DeleteGroup,
         )),
-        &db,
+        db,
     )
     .await
     {
@@ -49,7 +55,7 @@ pub async fn delete_user_group(
         Err(e) => bail!(e),
     }
 
-    db.delete_user_group(&user_group).await?;
+    retry_transient_transaction_error!(db.delete_user_group(&user_group).await);
 
-    Ok(res.status(200).body(Body::from("OK"))?)
+    Ok(res.status(200).body(Body::from("Ok"))?)
 }

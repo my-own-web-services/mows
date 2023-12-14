@@ -1,4 +1,4 @@
-use crate::{db::DB, internal_types::Auth, utils::generate_id};
+use crate::{db::DB, internal_types::Auth, retry_transient_transaction_error, utils::generate_id};
 use filez_common::server::{FilezUserGroup, Visibility};
 use hyper::{body::Body, Request, Response};
 use serde::{Deserialize, Serialize};
@@ -8,8 +8,13 @@ use ts_rs::TS;
 
 ## Call
 `/api/user_group/create/`
+
 ## Permissions
 None
+
+## Possible Mutations
+Mutation > FilezUserGroup
+Mutation > FilezUser
 
 */
 pub async fn create_user_group(
@@ -35,7 +40,7 @@ pub async fn create_user_group(
         permission_ids: cgr.permission_ids,
     };
 
-    db.create_user_group(&user_group).await?;
+    retry_transient_transaction_error!(db.create_user_group(&user_group).await);
 
     let res_body = CreateUserGroupResponseBody { group_id };
 

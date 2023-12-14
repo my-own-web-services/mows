@@ -19,6 +19,21 @@ macro_rules! is_transient_transaction_error {
 }
 
 #[macro_export]
+macro_rules! retry_transient_transaction_error {
+    ($command:expr ) => {
+        while let Err(e) = $command {
+            if e.to_string()
+                .contains(mongodb::error::TRANSIENT_TRANSACTION_ERROR)
+            {
+                continue;
+            } else {
+                anyhow::bail!(e)
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! check_content_type_json {
     ($req:expr, $res:expr) => {
         match $req.headers().get("Content-Type") {

@@ -732,6 +732,7 @@ impl DB {
     }
 
     pub async fn delete_permission(&self, permission_id: &str) -> anyhow::Result<DeleteResult> {
+        // TODO must be removed from all resources
         let collection = self.db.collection::<FilezPermission>("permissions");
 
         Ok(collection
@@ -1088,10 +1089,10 @@ impl DB {
         // update storage usage
         let old_storage_id = some_or_bail!(&file.storage_id, "old storage id is none");
         let old_used_storage_key = format!("limits.{}.used_storage", old_storage_id);
-        let old_file_count_key = format!("limits.{}.file_count", old_storage_id);
+        let old_file_count_key = format!("limits.{}.used_files", old_storage_id);
 
         let new_used_storage_key = format!("limits.{}.used_storage", new_storage_id);
-        let new_file_count_key = format!("limits.{}.file_count", new_storage_id);
+        let new_file_count_key = format!("limits.{}.used_files", new_storage_id);
 
         users_collection
             .update_one_with_session(

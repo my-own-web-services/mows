@@ -3,6 +3,7 @@ use crate::{
     dynamic_groups::{handle_dynamic_group_update, UpdateType},
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFileGroupPermissionAclWhatOptions},
+    retry_transient_transaction_error,
 };
 use anyhow::bail;
 use filez_common::server::{FileGroupType, FilterRule};
@@ -21,6 +22,10 @@ FileGroup > UpdateGroupInfosGroupType
 FileGroup > UpdateGroupInfosKeywords
 FileGroup > UpdateGroupInfosMimeTypes
 FileGroup > UpdateGroupInfosGroupHierarchyPaths
+
+## Possible Mutations
+Mutation > FilezFileGroup
+Mutation > FilezFile
 
 */
 pub async fn update_file_group(
@@ -51,7 +56,7 @@ pub async fn update_file_group(
                 &group,
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosName,
             )),
-            &db,
+            db,
         )
         .await
         {
@@ -72,7 +77,7 @@ pub async fn update_file_group(
                 &group,
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosDynamicGroupRules,
             )),
-            &db,
+            db,
         )
         .await
         {
@@ -93,7 +98,7 @@ pub async fn update_file_group(
                 &group,
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupType,
             )),
-            &db,
+            db,
         )
         .await
         {
@@ -114,7 +119,7 @@ pub async fn update_file_group(
                 &group,
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosKeywords,
             )),
-            &db,
+            db,
         )
         .await
         {
@@ -135,7 +140,7 @@ pub async fn update_file_group(
                 &group,
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosMimeTypes,
             )),
-            &db,
+            db,
         )
         .await
         {
@@ -156,7 +161,7 @@ pub async fn update_file_group(
                 &group,
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupHierarchyPaths,
             )),
-            &db,
+            db,
         )
         .await
         {
@@ -193,9 +198,9 @@ pub async fn update_file_group(
         group.permission_ids = permission_ids;
     }
 
-    db.update_file_group(&group).await?;
+    retry_transient_transaction_error!(db.update_file_group(&group).await);
 
-    handle_dynamic_group_update(&db, &UpdateType::Group(group)).await?;
+    handle_dynamic_group_update(db, &UpdateType::Group(group)).await?;
 
     Ok(res.status(200).body(Body::from("Ok")).unwrap())
 }

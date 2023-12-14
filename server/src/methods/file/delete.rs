@@ -3,13 +3,12 @@ use crate::{
     db::DB,
     internal_types::Auth,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
-    some_or_bail,
+    retry_transient_transaction_error, some_or_bail,
     utils::get_query_item,
 };
 use anyhow::bail;
 use filez_common::storage::index::get_storage_location_from_file;
 use hyper::{Body, Request, Response};
-use mongodb::error::TRANSIENT_TRANSACTION_ERROR;
 use tokio::fs;
 /**
 # Deletes a single file by id.
@@ -18,6 +17,12 @@ use tokio::fs;
 `/api/file/delete/?id={file_id}`
 ## Permissions
 File > DeleteFile
+
+## Possible Mutations
+Mutation > FilezFile
+Mutation > FilezFileGroup
+Mutation > FilezUser
+
 */
 pub async fn delete_file(
     req: Request<Body>,
@@ -37,7 +42,7 @@ pub async fn delete_file(
     match check_auth(
         auth,
         &AuthResourceToCheck::File((&file, FilezFilePermissionAclWhatOptions::DeleteFile)),
-        &db,
+        db,
     )
     .await
     {
@@ -48,16 +53,7 @@ pub async fn delete_file(
         Err(e) => bail!(e),
     }
 
-    while let Err(e) = db.delete_file_by_id(&file).await {
-        // TODO clean this up
-        // TODO retry at other locations where this could potentially happen
-        if e.to_string().contains(TRANSIENT_TRANSACTION_ERROR) {
-            println!("TransientTransactionError, retrying commit operation...");
-            continue;
-        } else {
-            bail!(e);
-        }
-    }
+    retry_transient_transaction_error!(db.delete_file_by_id(&file).await);
 
     let fl = get_storage_location_from_file(&config.storage, &file)?;
     fs::remove_file(fl.full_path).await?;

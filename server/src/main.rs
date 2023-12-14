@@ -200,34 +200,41 @@ async fn handle_inner(
         password: get_password_from_query(&req),
         user_assertion,
     };
+
+    let mut data_mutating = false;
+
     //dbg!(p, m, &auth);
     /* file */
-    if p.starts_with("/file/get/") && m == Method::GET {
+    let final_res = if p.starts_with("/file/get/") && m == Method::GET {
         get_file(req, &db, &auth, res).await
     } else if p == "/file/create/" && m == Method::POST {
-        let res = create_file(req, &db, &auth, res).await;
-        let _ = check_database_consistency(&db).await;
-        res
+        data_mutating = true;
+        create_file(req, &db, &auth, res).await
     } else if p == "/file/delete/" && m == Method::POST {
-        let _ = check_database_consistency(&db).await;
+        data_mutating = true;
         delete_file(req, &db, &auth, res).await
     } else if p == "/file/update/" && m == Method::POST {
+        data_mutating = true;
         update_file(req, &db, &auth, res).await
     }
     /* file info */
     else if p.starts_with("/file/info/get/") && m == Method::POST {
         get_file_infos(req, &db, &auth, res).await
     } else if p == "/file/info/update/" && m == Method::POST {
+        data_mutating = true;
         update_file_infos(req, &db, &auth, res).await
     } else if p.starts_with("/file/info/list/") && m == Method::POST {
         get_file_infos_by_group_id(req, &db, &auth, res).await
     }
     /* file group */
     else if p == "/file_group/create/" && m == Method::POST {
+        data_mutating = true;
         create_file_group(req, &db, &auth, res).await
     } else if p == "/file_group/delete/" && m == Method::POST {
+        data_mutating = true;
         delete_file_group(req, &db, &auth, res).await
     } else if p == "/file_group/update/" && m == Method::POST {
+        data_mutating = true;
         update_file_group(req, &db, &auth, res).await
     } else if p == "/file_group/get/" && m == Method::POST {
         get_file_groups(req, &db, &auth, res).await
@@ -236,18 +243,23 @@ async fn handle_inner(
     }
     /* user group */
     else if p == "/user_group/create/" && m == Method::POST {
+        data_mutating = true;
         create_user_group(req, &db, &auth, res).await
     } else if p == "/user_group/delete/" && m == Method::POST {
+        data_mutating = true;
         delete_user_group(req, &db, &auth, res).await
     } else if p == "/user_group/update/" && m == Method::POST {
+        data_mutating = true;
         update_user_group(req, &db, &auth, res).await
     } else if p == "/user_group/list/" && m == Method::POST {
         get_user_group_list(req, &db, &auth, res).await
     }
     /* permissions */
     else if p == "/permission/update/" && m == Method::POST {
+        data_mutating = true;
         update_permission(req, &db, &auth, res).await
     } else if p == "/permission/delete/" && m == Method::POST {
+        data_mutating = true;
         delete_permission(req, &db, &auth, res).await
     } else if p == "/permission/list/" && m == Method::POST {
         get_own_permissions(req, &db, &auth, res).await
@@ -256,18 +268,22 @@ async fn handle_inner(
     else if p.starts_with("/user/get_own/") && m == Method::GET {
         get_own_user(req, &db, &auth, res).await
     } else if p == "/user/create_own/" && m == Method::POST {
+        data_mutating = true;
         create_own_user(req, &db, &auth, res).await
     } else if p == "/user/update_friendship_status/" && m == Method::POST {
+        data_mutating = true;
         update_friendship_status(req, &db, &auth, res).await
     } else if p == "/user/list/" && m == Method::POST {
         get_user_list(req, &db, &auth, res).await
     }
     /* misc */
     else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
+        data_mutating = true;
         update_permission_ids_on_resource(req, &db, &auth, res).await
     } else if p == "/get_aggregated_keywords/" && m == Method::GET {
         get_aggregated_keywords(req, &db, &auth, res).await
     } else if p == "/set_app_data/" && m == Method::POST {
+        data_mutating = true;
         set_app_data(req, &db, &auth, res).await
     }
     /* interossea accounts management */
@@ -289,5 +305,13 @@ async fn handle_inner(
             .status(404)
             .body(Body::from("Method not found"))
             .unwrap())
+    };
+
+    if config.dev.check_database_consistency_on_mutating_requests && data_mutating {
+        match check_database_consistency(&db).await {
+            Ok(_) => println!("Database consistency check passed: Everything is fine!"),
+            Err(e) => println!("Database consistency check failed: {}", e),
+        }
     }
+    final_res
 }

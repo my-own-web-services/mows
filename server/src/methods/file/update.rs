@@ -2,6 +2,7 @@ use crate::{
     config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
+    is_transient_transaction_error,
     permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
     some_or_bail,
 };
@@ -24,6 +25,10 @@ use ts_rs::TS;
 ## Permissions
 File > UpdateFile
 
+
+## Possible Mutations
+Mutation > FilezFile
+Mutation > FilezUser
 
 */
 pub async fn update_file(
@@ -58,7 +63,7 @@ pub async fn update_file(
     match check_auth(
         auth,
         &AuthResourceToCheck::File((&filez_file, FilezFilePermissionAclWhatOptions::UpdateFile)),
-        &db,
+        db,
     )
     .await
     {
@@ -116,7 +121,7 @@ pub async fn update_file(
     let current_time = chrono::offset::Utc::now().timestamp_millis();
 
     // update db
-    let cft = db
+    while let Err(e) = db
         .update_file_with_content_change(
             &filez_file,
             &hash,
@@ -126,18 +131,21 @@ pub async fn update_file(
                 .map(|o| o * 1000)
                 .unwrap_or(current_time),
         )
-        .await;
-
-    if cft.is_err() {
-        fs::remove_file(&new_file_path)?;
-        bail!("Failed to create file in database: {}", cft.err().unwrap());
-    } else {
-        fs::rename(&new_file_path, &file_path.full_path)?;
-        let cfr = UpdateFileResponse { sha256: hash };
-        Ok(res
-            .status(200)
-            .body(Body::from(serde_json::to_string(&cfr)?))?)
+        .await
+    {
+        if is_transient_transaction_error!(e) {
+            continue;
+        } else {
+            fs::remove_file(&new_file_path)?;
+            bail!("Failed to create file in database: {:?}", e);
+        }
     }
+
+    fs::rename(&new_file_path, &file_path.full_path)?;
+    let cfr = UpdateFileResponse { sha256: hash };
+    Ok(res
+        .status(200)
+        .body(Body::from(serde_json::to_string(&cfr)?))?)
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

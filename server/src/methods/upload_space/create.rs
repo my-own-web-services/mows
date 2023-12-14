@@ -10,6 +10,7 @@ use ts_rs::TS;
 
 ## Call
 `/api/upload_space/create/`
+
 ## Permissions
 None
 

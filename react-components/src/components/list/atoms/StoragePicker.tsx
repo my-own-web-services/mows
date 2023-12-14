@@ -127,6 +127,8 @@ export default class StoragePicker extends PureComponent<
             if (response.status === 200) {
                 this.setState({ selectedStorageId: value });
                 this.props.onChange?.(value);
+                await this.getUserStorageLimits();
+                await this.getFiles();
             }
         }
     };
