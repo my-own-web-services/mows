@@ -36,7 +36,7 @@ File > UpdateFileInfosKeywords
 */
 pub async fn update_file_infos(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
@@ -309,7 +309,6 @@ pub async fn update_file_infos(
             db.get_file_by_id(&filez_file.file_id).await?,
             "Could not find just updated file?!"
         );
-        //dbg!(&updated_file);
 
         handle_dynamic_group_update(&db, &UpdateType::File(updated_file)).await?;
     }

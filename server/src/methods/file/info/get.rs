@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 /**
-# Gets infomartion about a single file.
+# Gets infomartion about given files
 
 ## Call
 `/api/file/info/get/`
@@ -22,7 +22,7 @@ File > GetFileInfos
 */
 pub async fn get_file_infos(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

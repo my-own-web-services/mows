@@ -16,7 +16,7 @@ None, can only be called by the owner of the file or user.
 */
 pub async fn set_app_data(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

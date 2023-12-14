@@ -7,7 +7,7 @@ use ts_rs::TS;
 // a user can only update permissions on a resource if they are the owner of the resource and the permission
 pub async fn update_permission_ids_on_resource(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

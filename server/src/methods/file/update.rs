@@ -28,7 +28,7 @@ File > UpdateFile
 */
 pub async fn update_file(
     mut req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
@@ -97,7 +97,6 @@ pub async fn update_file(
     let file_path = get_storage_location_from_file(&config.storage, &filez_file)?;
 
     let new_file_path = format!("{}_update", &file_path.full_path.display());
-    dbg!(&new_file_path);
     let mut file = File::create(&new_file_path)?;
     let mut hasher = Sha256::new();
 

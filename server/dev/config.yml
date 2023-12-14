@@ -29,6 +29,7 @@ dev:
     insecureSkipInterossea: false
     createDevUser: true
     disableComplexAccessControl: true
+    checkDatabaseConsistency: true
 
 constraints:
     maxFileSize: 10000000000 # 10 GB

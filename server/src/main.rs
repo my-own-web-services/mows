@@ -1,6 +1,6 @@
 use filez::config::SERVER_CONFIG;
 use filez::db::DB;
-use filez::dev::dev;
+use filez::dev::{check_database_consistency, dev};
 use filez::internal_types::Auth;
 use filez::interossea::{get_session_cookie, Interossea, UserAssertion, INTEROSSEA};
 use filez::methods::file::create::create_file;
@@ -203,69 +203,72 @@ async fn handle_inner(
     //dbg!(p, m, &auth);
     /* file */
     if p.starts_with("/file/get/") && m == Method::GET {
-        get_file(req, db, &auth, res).await
+        get_file(req, &db, &auth, res).await
     } else if p == "/file/create/" && m == Method::POST {
-        create_file(req, db, &auth, res).await
+        let res = create_file(req, &db, &auth, res).await;
+        let _ = check_database_consistency(&db).await;
+        res
     } else if p == "/file/delete/" && m == Method::POST {
-        delete_file(req, db, &auth, res).await
+        let _ = check_database_consistency(&db).await;
+        delete_file(req, &db, &auth, res).await
     } else if p == "/file/update/" && m == Method::POST {
-        update_file(req, db, &auth, res).await
+        update_file(req, &db, &auth, res).await
     }
     /* file info */
     else if p.starts_with("/file/info/get/") && m == Method::POST {
-        get_file_infos(req, db, &auth, res).await
+        get_file_infos(req, &db, &auth, res).await
     } else if p == "/file/info/update/" && m == Method::POST {
-        update_file_infos(req, db, &auth, res).await
+        update_file_infos(req, &db, &auth, res).await
     } else if p.starts_with("/file/info/list/") && m == Method::POST {
-        get_file_infos_by_group_id(req, db, &auth, res).await
+        get_file_infos_by_group_id(req, &db, &auth, res).await
     }
     /* file group */
     else if p == "/file_group/create/" && m == Method::POST {
-        create_file_group(req, db, &auth, res).await
+        create_file_group(req, &db, &auth, res).await
     } else if p == "/file_group/delete/" && m == Method::POST {
-        delete_file_group(req, db, &auth, res).await
+        delete_file_group(req, &db, &auth, res).await
     } else if p == "/file_group/update/" && m == Method::POST {
-        update_file_group(req, db, &auth, res).await
+        update_file_group(req, &db, &auth, res).await
     } else if p == "/file_group/get/" && m == Method::POST {
-        get_file_groups(req, db, &auth, res).await
+        get_file_groups(req, &db, &auth, res).await
     } else if p == "/file_group/list/" && m == Method::POST {
-        get_own_file_groups(req, db, &auth, res).await
+        get_own_file_groups(req, &db, &auth, res).await
     }
     /* user group */
     else if p == "/user_group/create/" && m == Method::POST {
-        create_user_group(req, db, &auth, res).await
+        create_user_group(req, &db, &auth, res).await
     } else if p == "/user_group/delete/" && m == Method::POST {
-        delete_user_group(req, db, &auth, res).await
+        delete_user_group(req, &db, &auth, res).await
     } else if p == "/user_group/update/" && m == Method::POST {
-        update_user_group(req, db, &auth, res).await
+        update_user_group(req, &db, &auth, res).await
     } else if p == "/user_group/list/" && m == Method::POST {
-        get_user_group_list(req, db, &auth, res).await
+        get_user_group_list(req, &db, &auth, res).await
     }
     /* permissions */
     else if p == "/permission/update/" && m == Method::POST {
-        update_permission(req, db, &auth, res).await
+        update_permission(req, &db, &auth, res).await
     } else if p == "/permission/delete/" && m == Method::POST {
-        delete_permission(req, db, &auth, res).await
+        delete_permission(req, &db, &auth, res).await
     } else if p == "/permission/list/" && m == Method::POST {
-        get_own_permissions(req, db, &auth, res).await
+        get_own_permissions(req, &db, &auth, res).await
     }
     /* user */
     else if p.starts_with("/user/get_own/") && m == Method::GET {
-        get_own_user(req, db, &auth, res).await
+        get_own_user(req, &db, &auth, res).await
     } else if p == "/user/create_own/" && m == Method::POST {
-        create_own_user(req, db, &auth, res).await
+        create_own_user(req, &db, &auth, res).await
     } else if p == "/user/update_friendship_status/" && m == Method::POST {
-        update_friendship_status(req, db, &auth, res).await
+        update_friendship_status(req, &db, &auth, res).await
     } else if p == "/user/list/" && m == Method::POST {
-        get_user_list(req, db, &auth, res).await
+        get_user_list(req, &db, &auth, res).await
     }
     /* misc */
     else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
-        update_permission_ids_on_resource(req, db, &auth, res).await
+        update_permission_ids_on_resource(req, &db, &auth, res).await
     } else if p == "/get_aggregated_keywords/" && m == Method::GET {
-        get_aggregated_keywords(req, db, &auth, res).await
+        get_aggregated_keywords(req, &db, &auth, res).await
     } else if p == "/set_app_data/" && m == Method::POST {
-        set_app_data(req, db, &auth, res).await
+        set_app_data(req, &db, &auth, res).await
     }
     /* interossea accounts management */
     else if p == "/get_assertion_validity_seconds/" && m == Method::GET {

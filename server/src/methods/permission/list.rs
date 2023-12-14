@@ -8,7 +8,7 @@ use hyper::{Body, Request, Response};
 
 pub async fn get_own_permissions(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

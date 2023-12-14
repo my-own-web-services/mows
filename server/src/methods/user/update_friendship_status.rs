@@ -14,7 +14,7 @@ None
 */
 pub async fn update_friendship_status(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

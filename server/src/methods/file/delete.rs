@@ -21,7 +21,7 @@ File > DeleteFile
 */
 pub async fn delete_file(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

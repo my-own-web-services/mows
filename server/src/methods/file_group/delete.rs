@@ -17,7 +17,7 @@ FileGroup > DeleteGroup
 */
 pub async fn delete_file_group(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

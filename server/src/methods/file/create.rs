@@ -36,7 +36,7 @@ files uploaded will be owned by the owner of the upload space and decrease their
 */
 pub async fn create_file(
     mut req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

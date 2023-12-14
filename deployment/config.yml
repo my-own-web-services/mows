@@ -95,6 +95,7 @@ filez:
             insecureSkipInterossea: false
             disableComplexAccessControl: true
             createMockUsers: true
+            checkDatabaseConsistency: true
     web:
         build:
             enabled: true

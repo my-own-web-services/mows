@@ -3,7 +3,7 @@ use hyper::{Body, Request, Response};
 
 pub async fn get_aggregated_keywords(
     _req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

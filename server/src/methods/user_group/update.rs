@@ -19,7 +19,7 @@ UserGroup > UpdateGroupInfosVisibility
 */
 pub async fn update_user_group(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {

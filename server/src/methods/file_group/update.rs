@@ -25,7 +25,7 @@ FileGroup > UpdateGroupInfosGroupHierarchyPaths
 */
 pub async fn update_file_group(
     req: Request<Body>,
-    db: DB,
+    db: &DB,
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
