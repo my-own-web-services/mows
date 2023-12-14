@@ -21,15 +21,21 @@ export default class CreateUserGroup extends PureComponent<
     }
 
     create = async (): Promise<boolean> => {
-        const useOncePermissionId = await this.oncePermissionRef?.current?.saveData();
-        const res = await this.userGroupRef.current?.create(useOncePermissionId);
-        return res ? true : false;
+        const useOncePermissionId =
+            await this.oncePermissionRef?.current?.saveData();
+        const res = await this.userGroupRef.current?.create(
+            useOncePermissionId
+        );
+        return typeof res === "string";
     };
 
     render = () => {
         return (
             <div className="CreateUserGroup">
-                <UserGroup oncePermissionRef={this.oncePermissionRef} ref={this.userGroupRef} />
+                <UserGroup
+                    oncePermissionRef={this.oncePermissionRef}
+                    ref={this.userGroupRef}
+                />
             </div>
         );
     };

@@ -41,27 +41,24 @@ export default class SelectPermissions extends PureComponent<
     loadPermissions = async () => {
         if (!this.context) return;
         const { items } = await this.context.filezClient.get_own_permissions({
-            filter: "",
-            limit: null,
-            from_index: 0,
-            sort_field: "name",
-            sort_order: "Ascending"
+            sort_field: "name"
         });
 
-        const existingPermissions = items.filter(item => {
-            return item.use_type === "Multiple" && item.content.type === this.props.type;
+        const existingPermissions = items.filter((item) => {
+            return (
+                item.use_type === "Multiple" &&
+                item.content.type === this.props.type
+            );
         });
 
-        if (items) {
-            this.setState({ existingPermissions });
-        }
+        this.setState({ existingPermissions });
     };
 
     newPermissionCreated = async (newPermissionId: string) => {
         await this.loadPermissions();
 
         this.setState(
-            state => {
+            (state) => {
                 return update(state, {
                     selectedPermissionIds: {
                         $push: [newPermissionId]
@@ -83,14 +80,14 @@ export default class SelectPermissions extends PureComponent<
             <div className="SelectPermissions">
                 <TagPicker
                     size={this.props.size}
-                    data={this.state.existingPermissions.map(p => {
+                    data={this.state.existingPermissions.map((p) => {
                         return {
                             label: p.name ?? p._id,
                             value: p._id
                         };
                     })}
                     value={this.state.selectedPermissionIds}
-                    onChange={value => {
+                    onChange={(value) => {
                         this.setState({ selectedPermissionIds: value ?? [] });
                         this.props.onUpdate?.(value ?? []);
                     }}

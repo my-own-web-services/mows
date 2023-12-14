@@ -26,18 +26,21 @@ interface FilezProviderProps {
 interface FilezProviderState {
     readonly fileList: FilezFile[];
     readonly groupList: FilezFileGroup[];
-    readonly filezClient: FilezClient;
-    readonly uiConfig: UiConfig;
+    readonly filezClient: FilezClient | null;
+    readonly uiConfig: UiConfig | null;
 }
 
-export default class FilezProvider extends PureComponent<FilezProviderProps, FilezProviderState> {
+export default class FilezProvider extends PureComponent<
+    FilezProviderProps,
+    FilezProviderState
+> {
     constructor(props: FilezProviderProps) {
         super(props);
         this.state = {
             fileList: [],
             groupList: [],
-            filezClient: null as unknown as FilezClient,
-            uiConfig: null as unknown as UiConfig
+            filezClient: null,
+            uiConfig: null
         };
     }
 
@@ -64,7 +67,7 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
         await client.create_own_user();
         //console.log(uiConfig);
 
-        this.setState(state => {
+        this.setState((state) => {
             return update(state, {
                 uiConfig: { $set: uiConfig },
                 filezClient: {
@@ -75,7 +78,7 @@ export default class FilezProvider extends PureComponent<FilezProviderProps, Fil
     };
 
     render = () => {
-        if (!this.state.filezClient) {
+        if (this.state.filezClient === null || this.state.uiConfig === null) {
             return null;
         }
         return (

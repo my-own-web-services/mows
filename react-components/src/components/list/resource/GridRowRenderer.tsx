@@ -27,7 +27,7 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
 
     render = () => {
         const style = this.props.style;
-        if (!this.props.data) return;
+        if (this.props.data === undefined) return;
         const { data, index } = this.props;
         const {
             items,
@@ -50,22 +50,18 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                     const actualListIndex = index * gridColumnCount + i;
 
                     if (actualListIndex >= total_count) return;
-                    if (!item) return;
+                    if (item === undefined) return;
                     const { show } = useContextMenu({
                         id: item._id
                     });
                     const isSelected =
-                        this.props.data.selectedItems[actualListIndex];
+                        data.selectedItems[actualListIndex] === true;
 
                     const isLastSelected =
-                        actualListIndex ===
-                        this.props.data.lastSelectedItemIndex;
+                        actualListIndex === data.lastSelectedItemIndex;
 
                     const canDrop = () => {
-                        return (
-                            this.props.data.rowHandlers?.isDroppable?.(item) ??
-                            false
-                        );
+                        return data.rowHandlers?.isDroppable?.(item) ?? false;
                     };
 
                     const key = "GridRowItem" + actualListIndex;
@@ -95,16 +91,15 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                         >
                             <DraggableItem
                                 resource={item}
-                                dropHandler={this.props.data.handlers.onDrop}
+                                dropHandler={data.handlers.onDrop}
                                 getSelectedItems={
-                                    this.props.data.functions.getSelectedItems
+                                    data.functions.getSelectedItems
                                 }
                                 type={resourceType}
                             >
                                 <DraggableTarget
                                     acceptTypes={
-                                        this.props.data
-                                            .dropTargetAcceptsTypes ?? []
+                                        data.dropTargetAcceptsTypes ?? []
                                     }
                                     id={item._id}
                                     type={resourceType}
@@ -132,7 +127,7 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                                     })()}{" "}
                                 </DraggableTarget>
                             </DraggableItem>
-                            {!disableContextMenu && (
+                            {disableContextMenu !== true && (
                                 <RowContextMenu
                                     menuItems={menuItems}
                                     menuId={item._id}
@@ -141,8 +136,7 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                                         handlers.onContextMenuItemClick
                                     }
                                     getSelectedItems={
-                                        this.props.data.functions
-                                            .getSelectedItems
+                                        data.functions.getSelectedItems
                                     }
                                 />
                             )}

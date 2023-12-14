@@ -20,7 +20,7 @@ export default class CreatePermission extends PureComponent<
 
     create = async (): Promise<boolean> => {
         const res = await this.ref.current?.saveData();
-        return res ? true : false;
+        return typeof res === "string";
     };
 
     render = () => {

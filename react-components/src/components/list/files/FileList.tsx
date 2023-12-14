@@ -215,7 +215,6 @@ export default class FileList extends PureComponent<
     deleteClick = async () => {
         if (!this.context) return;
         const selectedFiles = this.state.selectedFiles;
-        if (!selectedFiles) return;
 
         for (const file of selectedFiles) {
             // TODO check if file can be deleted or if its readonly
@@ -263,7 +262,7 @@ export default class FileList extends PureComponent<
                     columns={defaultColumns}
                     handlers={{
                         onCreateClick: this.onCreateClick,
-                        ...this.props.handlers
+                        ...this.props.resourceListHandlers
                     }}
                 />
 

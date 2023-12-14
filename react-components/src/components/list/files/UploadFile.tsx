@@ -30,7 +30,7 @@ interface BrowserFile {
     name: string;
     size: number;
     readonly originalFileName: string;
-    blobFile: File;
+    blobFile?: File;
     uploadStatus: "success" | "fail" | "active" | undefined;
     uploadedSize: number;
     xhr?: XMLHttpRequest;
@@ -57,7 +57,10 @@ const defaultFile: FilezFile = {
     static_file_group_ids: [],
     storage_id: "",
     time_of_death: 0,
-    readonly_path: null
+    readonly_path: null,
+    linked_files: [],
+    manual_group_sortings: {},
+    sub_type: null
 };
 
 export interface ListItemProps {
@@ -177,7 +180,7 @@ export default class UploadFile extends PureComponent<
             filezFile.size = file.blobFile.size;
             filezFile.modified = Math.round(file.blobFile.lastModified / 1000);
             filezFile.static_file_group_ids = static_file_group_ids;
-            if (useOncePermissionId) {
+            if (typeof useOncePermissionId === "string") {
                 filezFile.permission_ids.push(useOncePermissionId);
             }
 
@@ -261,7 +264,7 @@ export default class UploadFile extends PureComponent<
     };
 
     updatePickedFiles = (event: any) => {
-        if (!event?.target?.files) return;
+        if (event?.target?.files === undefined) return;
 
         const fileList: BrowserFile[] = [];
         for (const file of event.target.files) {

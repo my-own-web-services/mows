@@ -31,14 +31,10 @@ export default class EditPermission extends PureComponent<
         if (!this.context) return;
 
         const { items } = await this.context.filezClient.get_own_permissions({
-            filter: "",
-            from_index: 0,
-            limit: null,
-            sort_field: "name",
-            sort_order: "Ascending"
+            sort_field: "name"
         });
 
-        const permissions = items.filter(item => {
+        const permissions = items.filter((item) => {
             return this.props.resourceIds?.includes(item._id) ?? false;
         });
 
@@ -47,11 +43,11 @@ export default class EditPermission extends PureComponent<
 
     update = async (): Promise<boolean> => {
         const res = await this.ref.current?.saveData();
-        return res ? true : false;
+        return typeof res === "string";
     };
 
     render = () => {
-        if (!this.state.permissions[0]) return null;
+        if (this.state.permissions?.[0] === undefined) return null;
         return (
             <div className="EditPermission">
                 <Permission

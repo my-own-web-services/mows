@@ -12,7 +12,10 @@ interface EditFileGroupState {
     readonly fileGroups: FilezFileGroup[];
 }
 
-export default class EditFileGroup extends PureComponent<EditFileGroupProps, EditFileGroupState> {
+export default class EditFileGroup extends PureComponent<
+    EditFileGroupProps,
+    EditFileGroupState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     fileGroupRef: React.RefObject<FileGroup>;
@@ -31,14 +34,10 @@ export default class EditFileGroup extends PureComponent<EditFileGroupProps, Edi
         if (!this.context) return;
 
         const { items } = await this.context.filezClient.get_own_file_groups({
-            filter: "",
-            from_index: 0,
-            limit: null,
-            sort_field: "name",
-            sort_order: "Ascending"
+            sort_field: "name"
         });
 
-        const fileGroups = items.filter(item => {
+        const fileGroups = items.filter((item) => {
             return this.props.resourceIds?.includes(item._id) ?? false;
         });
 
@@ -46,14 +45,17 @@ export default class EditFileGroup extends PureComponent<EditFileGroupProps, Edi
     };
 
     update = async (): Promise<boolean> => {
-        const useOncePermissionId = await this.oncePermissionRef?.current?.saveData();
+        const useOncePermissionId =
+            await this.oncePermissionRef?.current?.saveData();
 
-        const res = await this.fileGroupRef.current?.update(useOncePermissionId);
-        return res ? true : false;
+        const res = await this.fileGroupRef.current?.update(
+            useOncePermissionId
+        );
+        return typeof res === "string";
     };
 
     render = () => {
-        if (!this.state.fileGroups[0]) return null;
+        if (this.state.fileGroups?.[0] === undefined) return null;
         return (
             <div className="EditFileGroup">
                 <FileGroup

@@ -37,7 +37,7 @@ export default class App extends Component<AppProps, AppState> {
         _index,
         rightClick
     ) => {
-        if (rightClick) return;
+        if (rightClick === true) return;
         this.setState({ selectedGroupId: item._id });
     };
 
@@ -47,7 +47,7 @@ export default class App extends Component<AppProps, AppState> {
         _index,
         rightClick
     ) => {
-        if (rightClick) return;
+        if (rightClick === true) return;
         this.setState({ selectedFileId: item._id });
     };
 

@@ -180,7 +180,7 @@ export default class FileGroupList extends PureComponent<
                     }}
                     handlers={{
                         onCreateClick: this.onCreateClick,
-                        ...this.props.handlers
+                        ...this.props.resourceListHandlers
                     }}
                 />
                 <Modal

@@ -31,7 +31,10 @@ const defaultGroup: FilezUserGroup = {
     visibility: "Private"
 };
 
-export default class UserGroup extends PureComponent<UserGroupProps, UserGroupState> {
+export default class UserGroup extends PureComponent<
+    UserGroupProps,
+    UserGroupState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     constructor(props: UserGroupProps) {
@@ -50,26 +53,22 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
 
     componentDidMount = async () => {
         if (!this.context) return;
-        const userRes = await this.context.filezClient.get_user_list({
-            filter: "",
-            from_index: 0,
-            limit: null,
-            sort_field: null,
-            sort_order: null
-        });
+        const userRes = await this.context.filezClient.get_user_list();
 
-        const permissionRes = await this.context.filezClient.get_own_permissions({
-            filter: "",
-            limit: null,
-            from_index: 0,
-            sort_field: "name",
-            sort_order: "Ascending"
-        });
+        const permissionRes =
+            await this.context.filezClient.get_own_permissions({
+                sort_field: "name"
+            });
 
-        const permissions = permissionRes.items?.filter(p => p.content.type === "UserGroup");
+        const permissions = permissionRes.items?.filter(
+            (p) => p.content.type === "UserGroup"
+        );
 
-        const useOncePermission = permissions?.find(p => {
-            if (this.state.clientGroup.permission_ids.includes(p._id) && p.use_type === "Once") {
+        const useOncePermission = permissions?.find((p) => {
+            if (
+                this.state.clientGroup.permission_ids.includes(p._id) &&
+                p.use_type === "Once"
+            ) {
                 return p;
             }
         });
@@ -85,7 +84,7 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
         if (!this.context) return false;
         const cg = this.state.clientGroup;
         const permission_ids = cloneDeep(cg.permission_ids);
-        if (useOncePermissionId) {
+        if (typeof useOncePermissionId === "string") {
             permission_ids.push(useOncePermissionId);
         }
 
@@ -109,7 +108,7 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
         const sg = this.state.serverGroup;
 
         let permission_ids = cloneDeep(cg.permission_ids);
-        if (useOncePermissionId) {
+        if (typeof useOncePermissionId === "string") {
             this.setState(
                 update(this.state, {
                     clientGroup: {
@@ -119,18 +118,27 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
             );
             permission_ids.push(useOncePermissionId);
         } else {
-            const useOncePermission = this.state.availablePermissions?.find(p => {
-                if (cg.permission_ids.includes(p._id) && p.use_type === "Once") {
-                    return p;
+            const useOncePermission = this.state.availablePermissions?.find(
+                (p) => {
+                    if (
+                        cg.permission_ids.includes(p._id) &&
+                        p.use_type === "Once"
+                    ) {
+                        return p;
+                    }
                 }
-            });
+            );
 
             console.log(useOncePermission);
 
             if (useOncePermission) {
-                permission_ids = permission_ids.filter(id => id !== useOncePermission._id);
+                permission_ids = permission_ids.filter(
+                    (id) => id !== useOncePermission._id
+                );
 
-                this.context.filezClient.delete_permission(useOncePermission?._id);
+                this.context.filezClient.delete_permission(
+                    useOncePermission?._id
+                );
 
                 this.setState(
                     update(this.state, {
@@ -146,8 +154,11 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
             user_group_id: cg._id ?? "",
             fields: {
                 name: cg.name === sg.name ? null : cg.name,
-                visibility: cg.visibility === sg.visibility ? null : cg.visibility,
-                permission_ids: isEqual(permission_ids, sg.permission_ids) ? null : permission_ids
+                visibility:
+                    cg.visibility === sg.visibility ? null : cg.visibility,
+                permission_ids: isEqual(permission_ids, sg.permission_ids)
+                    ? null
+                    : permission_ids
             }
         });
         if (res.status === 200) {
@@ -167,7 +178,7 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
                 <Input
                     placeholder="A-Team"
                     value={cg.name ?? ""}
-                    onChange={value => {
+                    onChange={(value) => {
                         this.setState(
                             update(this.state, {
                                 clientGroup: {
@@ -182,7 +193,7 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
                 <br />
                 <SelectPicker
                     value={cg.visibility}
-                    onChange={value => {
+                    onChange={(value) => {
                         this.setState(
                             update(this.state, {
                                 clientGroup: {
@@ -193,7 +204,7 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
                     }}
                     cleanable={false}
                     searchable={false}
-                    data={["Public", "Private"].map(v => {
+                    data={["Public", "Private"].map((v) => {
                         return { label: v, value: v };
                     })}
                 />
@@ -203,9 +214,11 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
                     <label htmlFor="">Permissions</label>
                     <br />
                     <SelectOrCreateUseOncePermission
-                        useOncePermissionEnabled={this.state.useOncePermissionEnabled}
+                        useOncePermissionEnabled={
+                            this.state.useOncePermissionEnabled
+                        }
                         oncePermissionRef={this.props.oncePermissionRef}
-                        onSelectUpdate={value => {
+                        onSelectUpdate={(value) => {
                             this.setState(
                                 update(this.state, {
                                     clientGroup: {
@@ -214,29 +227,37 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
                                 })
                             );
                         }}
-                        updateOncePermissionUse={enabled => {
-                            this.setState({ useOncePermissionEnabled: enabled });
+                        updateOncePermissionUse={(enabled) => {
+                            this.setState({
+                                useOncePermissionEnabled: enabled
+                            });
                         }}
                         useOncePermission={
-                            this.state.availablePermissions.find(p => {
+                            this.state.availablePermissions.find((p) => {
                                 if (
-                                    this.state.clientGroup.permission_ids.includes(p._id) &&
+                                    this.state.clientGroup.permission_ids.includes(
+                                        p._id
+                                    ) &&
                                     p.use_type === "Once"
                                 ) {
                                     return p;
                                 }
                             }) ?? undefined
                         }
-                        selectedPermissionIds={this.state.availablePermissions.flatMap(p => {
-                            if (
-                                this.state.clientGroup.permission_ids.includes(p._id) &&
-                                p.use_type === "Multiple"
-                            ) {
-                                return [p._id];
-                            } else {
-                                return [];
+                        selectedPermissionIds={this.state.availablePermissions.flatMap(
+                            (p) => {
+                                if (
+                                    this.state.clientGroup.permission_ids.includes(
+                                        p._id
+                                    ) &&
+                                    p.use_type === "Multiple"
+                                ) {
+                                    return [p._id];
+                                } else {
+                                    return [];
+                                }
                             }
-                        })}
+                        )}
                         type="UserGroup"
                     />
                 </div>
@@ -247,10 +268,10 @@ export default class UserGroup extends PureComponent<UserGroupProps, UserGroupSt
                     style={{ width: "300px" }}
                     virtualized
                     value={this.state.selectedUsers}
-                    onChange={value => {
+                    onChange={(value) => {
                         this.setState({ selectedUsers: value });
                     }}
-                    data={this.state.users.map(u => {
+                    data={this.state.users.map((u) => {
                         return { label: u.name, value: u._id };
                     })}
                 />

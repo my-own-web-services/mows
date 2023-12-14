@@ -42,7 +42,10 @@ interface PermissionState {
     readonly permissionId: string | null;
 }
 
-export default class Permission extends PureComponent<PermissionProps, PermissionState> {
+export default class Permission extends PureComponent<
+    PermissionProps,
+    PermissionState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
@@ -58,7 +61,8 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
             name: props.permission?.name ?? "",
             selectedWhat: acl?.what ?? [],
             enabledLink: acl?.who.link ?? false,
-            enabledPassword: maybePw !== null && maybePw !== undefined && maybePw.length > 0,
+            enabledPassword:
+                maybePw !== null && maybePw !== undefined && maybePw.length > 0,
             passwords: acl?.who.passwords ?? [],
             passwordVisible: false,
             selectedUserIds: acl?.who.users?.user_ids ?? [],
@@ -106,7 +110,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                 type: permissionType,
                 acl
             },
-            use_type: this.props.useOnce ? "Once" : "Multiple"
+            use_type: this.props.useOnce === true ? "Once" : "Multiple"
         });
 
         return res.permission_id;
@@ -114,7 +118,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
 
     handleSave = async () => {
         const res = await this.saveData();
-        if (res) {
+        if (typeof res === "string") {
             this.props.onSave?.(res);
         }
     };
@@ -129,12 +133,20 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                         {this.props.hideTypeChanger !== true && (
                             <InputPicker
                                 cleanable={false}
-                                data={["File", "FileGroup", "User", "UserGroup"].map(v => {
+                                data={[
+                                    "File",
+                                    "FileGroup",
+                                    "User",
+                                    "UserGroup"
+                                ].map((v) => {
                                     return { label: v, value: v };
                                 })}
                                 value={this.state.permissionType}
-                                onChange={value => {
-                                    this.setState({ permissionType: value, selectedWhat: [] });
+                                onChange={(value) => {
+                                    this.setState({
+                                        permissionType: value,
+                                        selectedWhat: []
+                                    });
                                 }}
                                 size={this.props.size}
                                 readOnly={
@@ -150,7 +162,7 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                             <label>Name</label>
                             <Input
                                 value={this.state.name}
-                                onChange={value => {
+                                onChange={(value) => {
                                     this.setState({ name: value });
                                 }}
                                 size={this.props.size}
@@ -170,10 +182,17 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                         />
                         <InputGroup
                             size={this.props.size}
-                            style={{ width: inputWidths, display: "inline-block" }}
+                            style={{
+                                width: inputWidths,
+                                display: "inline-block"
+                            }}
                             inside
                         >
-                            <Input readOnly value={link} disabled={!this.state.enabledLink} />
+                            <Input
+                                readOnly
+                                value={link}
+                                disabled={!this.state.enabledLink}
+                            />
                             <InputGroup.Button
                                 disabled={!this.state.enabledLink}
                                 onClick={() => {
@@ -189,31 +208,48 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                         <Checkbox
                             checked={this.state.enabledPassword}
                             onChange={(_value, checked) => {
-                                this.setState({ enabledPassword: checked, enabledLink: checked });
+                                this.setState({
+                                    enabledPassword: checked,
+                                    enabledLink: checked
+                                });
                             }}
                             style={{ display: "inline-block" }}
                         />
 
                         <InputGroup
-                            style={{ width: inputWidths, display: "inline-block" }}
+                            style={{
+                                width: inputWidths,
+                                display: "inline-block"
+                            }}
                             inside
                             size={this.props.size}
                         >
                             <Input
                                 placeholder="Password"
-                                type={this.state.passwordVisible ? "text" : "password"}
+                                type={
+                                    this.state.passwordVisible
+                                        ? "text"
+                                        : "password"
+                                }
                                 value={this.state.passwords[0]}
-                                onChange={value => {
+                                onChange={(value) => {
                                     this.setState({ passwords: [value] });
                                 }}
                                 disabled={!this.state.enabledPassword}
                             />
                             <InputGroup.Button
                                 onClick={() => {
-                                    this.setState({ passwordVisible: !this.state.passwordVisible });
+                                    this.setState({
+                                        passwordVisible:
+                                            !this.state.passwordVisible
+                                    });
                                 }}
                             >
-                                {this.state.passwordVisible ? <EyeIcon /> : <EyeSlashIcon />}
+                                {this.state.passwordVisible ? (
+                                    <EyeIcon />
+                                ) : (
+                                    <EyeSlashIcon />
+                                )}
                             </InputGroup.Button>
                         </InputGroup>
                     </div>
@@ -252,12 +288,16 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                         .with("User", () => userPermissionTreeData)
                         .with("UserGroup", () => userGroupPermissionTreeData)
                         .exhaustive()}
-                    onChange={permissions => {
-                        permissions = permissions.flatMap(p => {
+                    onChange={(permissions) => {
+                        permissions = permissions.flatMap((p) => {
                             return match(this.state.permissionType)
                                 .with("File", () => {
                                     if (p === "Get") {
-                                        return ["GetFile", "GetFileDerivatives", "GetFileInfos"];
+                                        return [
+                                            "GetFile",
+                                            "GetFileDerivatives",
+                                            "GetFileInfos"
+                                        ];
                                     } else if (p === "UpdateMeta") {
                                         return [
                                             "UpdateFileInfosName",
@@ -288,20 +328,23 @@ export default class Permission extends PureComponent<PermissionProps, Permissio
                                 })
                                 .exhaustive();
                         });
-                        this.setState({ selectedWhat: permissions as string[] });
+                        this.setState({
+                            selectedWhat: permissions as string[]
+                        });
                     }}
                 />
-                {this.props.readonly !== true && this.props.disableSaveButton !== true && (
-                    <Button
-                        onClick={this.handleSave}
-                        size={this.props.size}
-                        style={{ marginTop: "10px" }}
-                        appearance="primary"
-                        disabled={this.props.readonly}
-                    >
-                        Save
-                    </Button>
-                )}
+                {this.props.readonly !== true &&
+                    this.props.disableSaveButton !== true && (
+                        <Button
+                            onClick={this.handleSave}
+                            size={this.props.size}
+                            style={{ marginTop: "10px" }}
+                            appearance="primary"
+                            disabled={this.props.readonly}
+                        >
+                            Save
+                        </Button>
+                    )}
             </div>
         );
     };

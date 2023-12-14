@@ -1,21 +1,14 @@
+import { PreviewGenerator } from "react-dnd-preview";
 import { getIconName } from "../fileIcons/FileIcon";
-import { Item } from "./DraggableItem";
 
-export const generateDndPreview = ({
+export const generateDndPreview: PreviewGenerator<any, HTMLDivElement> = ({
     itemType,
     item,
     style,
     ref
-}: {
-    itemType: string;
-    item: Item;
-    style: React.CSSProperties;
-    ref: React.RefObject<HTMLDivElement>;
 }) => {
     const selectedItems = item.getSelectedItems?.();
-    if (!selectedItems) {
-        return null;
-    }
+    //if (selectedItems?.length === 0) selectedItems = [item.resource];
 
     const imagePath = `/file-icons/${getIconName(item?.resource?.name)}.svg`;
 

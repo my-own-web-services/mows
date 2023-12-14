@@ -2,8 +2,9 @@ import { CSSProperties, PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import { ReducedFilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/ReducedFilezUser";
 import ChangeFriendshipStatus from "./ChangeFriendshipStatus";
-import ResourceList, { Column, ColumnDirection } from "../resource/ResourceList";
+import ResourceList from "../resource/ResourceList";
 import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
+import { Column, ColumnDirection } from "../resource/ResourceListTypes";
 
 const defaultColumns: Column<ReducedFilezUser>[] = [
     {
@@ -13,7 +14,7 @@ const defaultColumns: Column<ReducedFilezUser>[] = [
         widthPercent: 30,
         minWidthPixels: 50,
         visible: true,
-        render: item => {
+        render: (item) => {
             return <span style={{ height: "100%" }}>{item.name}</span>;
         }
     },
@@ -24,7 +25,7 @@ const defaultColumns: Column<ReducedFilezUser>[] = [
         widthPercent: 30,
         minWidthPixels: 50,
         visible: true,
-        render: item => {
+        render: (item) => {
             return <span style={{ height: "100%" }}>{item.role}</span>;
         }
     },
@@ -35,7 +36,7 @@ const defaultColumns: Column<ReducedFilezUser>[] = [
         widthPercent: 30,
         minWidthPixels: 50,
         visible: true,
-        render: item => {
+        render: (item) => {
             return (
                 <span style={{ height: "100%" }}>
                     <span>{item.status}</span>
@@ -54,7 +55,10 @@ interface UserListProps {
 
 interface UserListState {}
 
-export default class UserList extends PureComponent<UserListProps, UserListState> {
+export default class UserList extends PureComponent<
+    UserListProps,
+    UserListState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 

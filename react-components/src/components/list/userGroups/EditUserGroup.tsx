@@ -12,7 +12,10 @@ interface EditUserGroupState {
     readonly userGroups: FilezUserGroup[];
 }
 
-export default class EditUserGroup extends PureComponent<EditUserGroupProps, EditUserGroupState> {
+export default class EditUserGroup extends PureComponent<
+    EditUserGroupProps,
+    EditUserGroupState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     userGroupRef: React.RefObject<UserGroup>;
@@ -31,14 +34,10 @@ export default class EditUserGroup extends PureComponent<EditUserGroupProps, Edi
         if (!this.context) return;
 
         const { items } = await this.context.filezClient.get_user_group_list({
-            filter: "",
-            from_index: 0,
-            limit: null,
-            sort_field: "name",
-            sort_order: "Ascending"
+            sort_field: "name"
         });
 
-        const userGroups = items.filter(item => {
+        const userGroups = items.filter((item) => {
             return this.props.resourceIds?.includes(item._id) ?? false;
         });
 
@@ -46,13 +45,16 @@ export default class EditUserGroup extends PureComponent<EditUserGroupProps, Edi
     };
 
     update = async (): Promise<boolean> => {
-        const useOncePermissionId = await this.oncePermissionRef?.current?.saveData();
-        const res = await this.userGroupRef.current?.update(useOncePermissionId);
-        return res ? true : false;
+        const useOncePermissionId =
+            await this.oncePermissionRef?.current?.saveData();
+        const res = await this.userGroupRef.current?.update(
+            useOncePermissionId
+        );
+        return typeof res === "string";
     };
 
     render = () => {
-        if (!this.state.userGroups[0]) return null;
+        if (this.state.userGroups?.[0] === undefined) return null;
         return (
             <div className="EditUserGroup">
                 <UserGroup

@@ -63,16 +63,12 @@ export default class FileGroup extends PureComponent<
     componentDidMount = async () => {
         if (!this.context) return;
         let { items } = await this.context.filezClient.get_own_permissions({
-            filter: "",
-            limit: null,
-            from_index: 0,
-            sort_field: "name",
-            sort_order: "Ascending"
+            sort_field: "name"
         });
 
         items = items?.filter((p) => p.content.type === "FileGroup");
 
-        if (items) {
+        if (items.length > 0) {
             const useOncePermission = items?.find((p) => {
                 if (
                     this.state.clientGroup.permission_ids.includes(p._id) &&
@@ -96,7 +92,7 @@ export default class FileGroup extends PureComponent<
 
         if (cg._id === "") {
             const permission_ids = cloneDeep(cg.permission_ids);
-            if (useOncePermissionId) {
+            if (useOncePermissionId !== undefined) {
                 permission_ids.push(useOncePermissionId);
             }
             const res = await this.context.filezClient.create_file_group({
@@ -123,7 +119,7 @@ export default class FileGroup extends PureComponent<
         const sg = this.state.serverGroup;
 
         let permission_ids = cloneDeep(cg.permission_ids);
-        if (useOncePermissionId) {
+        if (useOncePermissionId !== undefined) {
             this.setState(
                 update(this.state, {
                     clientGroup: {

@@ -2,6 +2,7 @@ import { cloneDeep } from "lodash";
 import { Component } from "react";
 import { Checkbox, TagPicker, Tag } from "rsuite";
 import CheckIcon from "@rsuite/icons/Check";
+import { ItemDataType } from "rsuite/esm/@types/common";
 
 export interface Category {
     name: string;
@@ -16,7 +17,10 @@ interface MultiItemTagPickerProps {
     readonly size?: "lg" | "md" | "sm" | "xs";
     readonly multiItemSelectedTags: MultiItemTagPickerResources;
     readonly possibleTags: TagData[];
-    readonly onChange: (newResources: MultiItemTagPickerResources, possibleTags: TagData[]) => void;
+    readonly onChange: (
+        newResources: MultiItemTagPickerResources,
+        possibleTags: TagData[]
+    ) => void;
     readonly disabled?: boolean;
     readonly knownCategories?: Category[];
     readonly creatable?: boolean;
@@ -69,12 +73,18 @@ export default class MultiItemTagPicker extends Component<
     }
 
     componentDidMount = async () => {
-        this.setState({ ...this.resourcesToData(this.props.multiItemSelectedTags) });
+        this.setState({
+            ...this.resourcesToData(this.props.multiItemSelectedTags)
+        });
     };
 
     componentDidUpdate = async (prevProps: MultiItemTagPickerProps) => {
-        if (prevProps.multiItemSelectedTags !== this.props.multiItemSelectedTags) {
-            this.setState({ ...this.resourcesToData(this.props.multiItemSelectedTags) });
+        if (
+            prevProps.multiItemSelectedTags !== this.props.multiItemSelectedTags
+        ) {
+            this.setState({
+                ...this.resourcesToData(this.props.multiItemSelectedTags)
+            });
         }
     };
 
@@ -86,13 +96,14 @@ export default class MultiItemTagPicker extends Component<
         const resourceArray = Object.entries(resourceMap);
 
         for (const { value, label, readonly } of this.props.possibleTags) {
-            const resourcesWithCurrentTag = resourceArray.filter(([_, resourceTags]) =>
-                resourceTags?.includes(value)
+            const resourcesWithCurrentTag = resourceArray.filter(
+                ([_, resourceTags]) => resourceTags?.includes(value)
             ).length;
 
             const tagState: TagState = (() => {
                 if (resourcesWithCurrentTag === 0) return TagState.None;
-                if (resourcesWithCurrentTag === resourceArray.length) return TagState.All;
+                if (resourcesWithCurrentTag === resourceArray.length)
+                    return TagState.All;
                 return TagState.Some;
             })();
 
@@ -105,9 +116,10 @@ export default class MultiItemTagPicker extends Component<
                     if (value.includes(">")) {
                         const currentCategory = value.split(">")[0];
 
-                        const foundKnownCategory = this.props.knownCategories?.find(
-                            c => c.name === currentCategory
-                        );
+                        const foundKnownCategory =
+                            this.props.knownCategories?.find(
+                                (c) => c.name === currentCategory
+                            );
 
                         if (foundKnownCategory) {
                             return foundKnownCategory.render(value);
@@ -126,20 +138,30 @@ export default class MultiItemTagPicker extends Component<
         return { data, selectedTags, halfCheckedTags };
     };
 
-    onSelect = (_selectedTags: string[], item: any) => {
+    onSelect = (_selectedTags: string[], item: ItemDataType) => {
         //item is InputItemDataType
 
-        const switchedToSelected = !this.state.selectedTags.includes(item?.value);
+        let itemValue;
+
+        if (typeof item.value === "string") {
+            itemValue = item.value;
+        } else if (typeof item.value === "number") {
+            itemValue = item.value.toString();
+        } else {
+            throw new Error("item.value is not string or number");
+        }
+
+        const switchedToSelected = !this.state.selectedTags.includes(itemValue);
 
         const newResources: MultiItemTagPickerResources = cloneDeep(
             this.props.multiItemSelectedTags
         );
         for (const [resourceId, currentTags] of Object.entries(newResources)) {
-            if (switchedToSelected || item?.indeterminate) {
-                newResources[resourceId] = [...currentTags, item?.value];
+            if (switchedToSelected || item?.indeterminate === true) {
+                newResources[resourceId] = [...currentTags, itemValue];
             } else {
                 newResources[resourceId] = newResources[resourceId].filter(
-                    tag => tag !== item?.value
+                    (tag) => tag !== item?.value
                 );
             }
         }
@@ -162,7 +184,7 @@ export default class MultiItemTagPicker extends Component<
         );
         for (const [resourceId, _] of Object.entries(newResources)) {
             newResources[resourceId] = newResources[resourceId].filter(
-                tag => tag !== removedTagValue
+                (tag) => tag !== removedTagValue
             );
         }
         this.props.onChange(newResources, this.props.possibleTags);
@@ -178,6 +200,70 @@ export default class MultiItemTagPicker extends Component<
             }
         }
         this.props.onChange(newResources, this.props.possibleTags);
+    };
+
+    renderMenuItemCheckbox = (checkboxProps: any) => {
+        const { value, checked, children, ...restProps } = checkboxProps;
+
+        const indeterminate = this.state.halfCheckedTags[value];
+
+        const readonly = this.props.possibleTags.find(
+            (tag) => tag.value === value
+        )?.readonly;
+
+        return (
+            <Checkbox
+                readOnly={readonly}
+                disabled={readonly}
+                value={value}
+                checked={checked}
+                {...restProps}
+                indeterminate={indeterminate}
+            >
+                {children}
+                {indeterminate && " *"}
+            </Checkbox>
+        );
+    };
+
+    renderValue = (values: string[], items: InternalTagData[]) => {
+        return values.map((tag, index) => {
+            const indeterminate = this.state.halfCheckedTags[tag];
+
+            const item = items?.find((it: any) => it?.value === tag);
+
+            return (
+                <Tag
+                    key={index}
+                    closable={item?.readonly === true ? false : true}
+                    onClose={(e) => {
+                        e.stopPropagation();
+                        this.onTagRemove(tag);
+                    }}
+                >
+                    {item?.label}
+                    {indeterminate && " *"}
+                    {indeterminate && (
+                        <span
+                            style={{
+                                paddingRight: "3px",
+                                paddingLeft: "5px",
+                                cursor: "pointer"
+                            }}
+                            className="CheckIconButton"
+                        >
+                            <CheckIcon
+                                title="Apply to all"
+                                style={{}}
+                                onClick={() => {
+                                    this.onTagCheck(tag);
+                                }}
+                            />
+                        </span>
+                    )}
+                </Tag>
+            );
+        });
     };
 
     render = () => {
@@ -199,68 +285,9 @@ export default class MultiItemTagPicker extends Component<
                     creatable={this.props.creatable ?? false}
                     virtualized
                     block
-                    renderMenuItemCheckbox={(checkboxProps: any) => {
-                        const { value, checked, children, ...restProps } = checkboxProps;
-
-                        const indeterminate = this.state.halfCheckedTags[value];
-
-                        const readonly = this.props.possibleTags.find(
-                            tag => tag.value === value
-                        )?.readonly;
-
-                        return (
-                            <Checkbox
-                                readOnly={readonly}
-                                disabled={readonly}
-                                value={value}
-                                checked={checked}
-                                {...restProps}
-                                indeterminate={indeterminate}
-                            >
-                                {children}
-                                {indeterminate && " *"}
-                            </Checkbox>
-                        );
-                    }}
-                    renderValue={(values: string[], items: InternalTagData[]) => {
-                        return values.map((tag, index) => {
-                            const indeterminate = this.state.halfCheckedTags[tag];
-
-                            const item = items?.find((item: any) => item?.value === tag);
-
-                            return (
-                                <Tag
-                                    key={index}
-                                    closable={item?.readonly === true ? false : true}
-                                    onClose={e => {
-                                        e.stopPropagation();
-                                        this.onTagRemove(tag);
-                                    }}
-                                >
-                                    {item?.label}
-                                    {indeterminate && " *"}
-                                    {indeterminate && (
-                                        <span
-                                            style={{
-                                                paddingRight: "3px",
-                                                paddingLeft: "5px",
-                                                cursor: "pointer"
-                                            }}
-                                            className="CheckIconButton"
-                                        >
-                                            <CheckIcon
-                                                title="Apply to all"
-                                                style={{}}
-                                                onClick={() => {
-                                                    this.onTagCheck(tag);
-                                                }}
-                                            />
-                                        </span>
-                                    )}
-                                </Tag>
-                            );
-                        });
-                    }}
+                    renderMenuItemCheckbox={this.renderMenuItemCheckbox}
+                    //@ts-ignore
+                    renderValue={this.renderValue}
                 />
             </div>
         );

@@ -15,7 +15,7 @@ interface VideoState {}
 
 export default class Video extends Component<VideoProps, VideoState> {
     private videoRef = createRef<HTMLVideoElement>();
-    private player!: MediaPlayerClass;
+    private player: MediaPlayerClass | undefined;
     useDash = false;
 
     static contextType = FilezContext;
@@ -33,6 +33,12 @@ export default class Video extends Component<VideoProps, VideoState> {
 
                 const uiConfig = this.context?.uiConfig;
                 if (!uiConfig) return;
+
+                if (this.player === undefined) {
+                    throw new Error(
+                        "Player is undefined but should have been initialized"
+                    );
+                }
 
                 this.player.attachSource(
                     `${uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`
@@ -68,7 +74,7 @@ export default class Video extends Component<VideoProps, VideoState> {
 
     importDash = async () => {
         // @ts-ignore
-        if (!window.dashjs) {
+        if (window.dashjs === undefined) {
             // @ts-ignore
             await import("/node_modules/dashjs/dist/dash.mediaplayer.debug.js");
         }

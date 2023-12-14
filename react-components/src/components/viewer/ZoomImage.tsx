@@ -39,10 +39,12 @@ export default class ZoomImage extends PureComponent<
 
     createSeadragon = () => {
         const serverUrl = this.context?.uiConfig?.filezServerAddress;
-        if (!serverUrl) return;
+        if (serverUrl === undefined) return;
         const f = this.props.file;
-        const processedImage = f.app_data?.image?.result as ProcessedImage;
-        if (!processedImage) return;
+        const processedImage = f.app_data?.image?.result as
+            | ProcessedImage
+            | undefined;
+        if (processedImage === undefined) return;
 
         const dzi = processedImage?.dzi;
         if (!dzi) return;
@@ -81,7 +83,7 @@ export default class ZoomImage extends PureComponent<
                 <div
                     id="openseadragon"
                     style={{ width: "100%", height: "100%" }}
-                 />
+                />
             </div>
         );
     };

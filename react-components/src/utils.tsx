@@ -6,7 +6,7 @@ export const getLastSelectedIndex = (
     selectedItems: (boolean | undefined)[]
 ) => {
     for (let i = selectedItems.length - 1; i >= 0; i--) {
-        if (selectedItems[i]) {
+        if (selectedItems[i] === true) {
             return i;
         }
     }

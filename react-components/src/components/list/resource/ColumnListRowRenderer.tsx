@@ -30,7 +30,7 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
     };
 
     onItemClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        this.props.data.handlers.onItemClick?.(
+        this.props.data?.handlers.onItemClick?.(
             e,
             this.getCurentItem() as ResourceType,
             this.props.index
@@ -38,7 +38,7 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
     };
 
     onItemDrag = (e: React.DragEvent<HTMLDivElement>) => {
-        this.props.data.handlers.onItemClick?.(
+        this.props.data?.handlers.onItemClick?.(
             e,
             this.getCurentItem() as ResourceType,
             this.props.index,
@@ -48,7 +48,7 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
     };
 
     onContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        this.props.data.handlers.onItemClick?.(
+        this.props.data?.handlers.onItemClick?.(
             e,
             this.getCurentItem() as ResourceType,
             this.props.index,
@@ -59,18 +59,19 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
 
     canDrop = () => {
         return (
-            this.props.data.rowHandlers?.isDroppable?.(
+            this.props.data?.rowHandlers?.isDroppable?.(
                 this.getCurentItem() as ResourceType
             ) ?? false
         );
     };
 
     render = () => {
-        if (!this.props.data) return;
+        if (this.props.data === undefined) return;
         const item = this.getCurentItem();
         if (!item) return;
         const columns = this.props.data.columns;
-        const isSelected = this.props.data.selectedItems[this.props.index];
+        const isSelected =
+            this.props.data.selectedItems[this.props.index] === true;
         const style = this.props.style;
         const itemType = this.props.data.resourceType;
         const isLastSelected =
@@ -113,12 +114,10 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
                                 );
 
                                 return activeColumns.map((column, index) => {
-                                    /*@ts-ignore*/
-                                    const field = item[column.field]
-                                        ? /*@ts-ignore*/
-                                          item[column.field]
-                                        : /*@ts-ignore*/
-                                          item[column.alternateField];
+                                    const field =
+                                        item[column.field] !== undefined
+                                            ? item[column.field]
+                                            : item[column.alternateField ?? ""];
 
                                     const width = (() => {
                                         if (
@@ -154,7 +153,7 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
                                             {column.render
                                                 ? column.render(item)
                                                 : field ??
-                                                  `Field '${column.field}' does not exist on this ${this.props.data.resourceType}`}
+                                                  `Field '${column.field}' does not exist on this ${this.props.data?.resourceType}`}
                                         </span>
                                     );
                                 });
@@ -164,7 +163,7 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
                         )}
                     </DraggableTarget>
                 </DraggableItem>
-                {!this.props.data.disableContextMenu && (
+                {this.props.data.disableContextMenu !== true && (
                     <RowContextMenu
                         menuItems={this.props.data.menuItems}
                         menuId={item._id}

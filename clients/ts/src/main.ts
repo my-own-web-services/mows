@@ -196,13 +196,13 @@ export class FilezClient {
         return json.file_groups;
     };
 
-    get_file_infos_by_group_id = async (body: GetItemListRequestBody) => {
+    get_file_infos_by_group_id = async (body?: GetItemListRequestBody) => {
         if (!this.initialized) await this.init();
 
         const res = await fetch(`${this.filezEndpoint}/api/file/info/list/`, {
             credentials: "include",
             method: "POST",
-            body: JSON.stringify(body),
+            body: JSON.stringify(body??{}),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -230,13 +230,13 @@ export class FilezClient {
         return res;
     };
 
-    get_own_file_groups = async (body: GetItemListRequestBody) => {
+    get_own_file_groups = async (body?: GetItemListRequestBody,group_type?:FileGroupType) => {
         if (!this.initialized) await this.init();
 
-        const res = await fetch(`${this.filezEndpoint}/api/file_group/list/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/file_group/list/${group_type!==undefined?`?t=${group_type}`:``}`, {
             credentials: "include",
             method: "POST",
-            body: JSON.stringify(body),
+            body: JSON.stringify(body??{}),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -246,13 +246,13 @@ export class FilezClient {
         return json;
     };
 
-    get_own_permissions = async (body: GetItemListRequestBody) => {
+    get_own_permissions = async (body?: GetItemListRequestBody) => {
         if (!this.initialized) await this.init();
 
         const res = await fetch(`${this.filezEndpoint}/api/permission/list/`, {
             credentials: "include",
             method: "POST",
-            body: JSON.stringify(body),
+            body: JSON.stringify(body??{}),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -271,13 +271,13 @@ export class FilezClient {
         return (await res.json()) as FilezUser;
     };
 
-    get_user_list = async (body: GetItemListRequestBody) => {
+    get_user_list = async (body?: GetItemListRequestBody) => {
         if (!this.initialized) await this.init();
 
         const res = await fetch(`${this.filezEndpoint}/api/user/list/`, {
             credentials: "include",
             method: "POST",
-            body: JSON.stringify(body),
+            body: JSON.stringify(body??{}),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -304,13 +304,13 @@ export class FilezClient {
         return res;
     };
 
-    get_user_group_list = async (body: GetItemListRequestBody) => {
+    get_user_group_list = async (body?: GetItemListRequestBody) => {
         if (!this.initialized) await this.init();
 
         const res = await fetch(`${this.filezEndpoint}/api/user_group/list/`, {
             credentials: "include",
             method: "POST",
-            body: JSON.stringify(body),
+            body: JSON.stringify(body??{}),
             headers: {
                 "Content-Type": "application/json"
             }

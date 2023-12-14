@@ -40,14 +40,23 @@ export const DraggableItem = <FilezResource,>(
             dropEffect: "copy"
         },
         item,
-        end: (item, monitor) => {
+        end: (it, monitor) => {
             const dropResult = monitor.getDropResult<DropResult>();
 
-            if (item && dropResult) {
+            if (dropResult) {
+                const selectedItems = item.getSelectedItems();
+                console.log(selectedItems);
+
+                if (selectedItems.length === 0) {
+                    console.log(item.resource);
+
+                    selectedItems.push(item.resource);
+                }
+
                 props.dropHandler?.(
                     dropResult.id,
                     dropResult.type,
-                    item.getSelectedItems()
+                    selectedItems
                 );
             }
         },

@@ -1,19 +1,11 @@
-import { PureComponent, createRef } from "react";
+import { PureComponent } from "react";
 import { AiOutlineSearch } from "react-icons/ai";
-import {
-    ButtonGroup,
-    IconButton,
-    Input,
-    InputGroup,
-    Slider
-} from "rsuite";
-import ResourceList, {
-    BaseResource,
-    RowRenderer,
-    SelectedItems
-} from "./ResourceList";
+import { ButtonGroup, IconButton, Input, InputGroup, Slider } from "rsuite";
+import { BaseResource, RowRenderer } from "./ResourceListTypes";
+
 import { BiPlus } from "react-icons/bi";
 import { IoReload } from "react-icons/io5";
+import ResourceList from "./ResourceList";
 
 interface ListTopBarProps<ResourceType> {
     readonly updateListType: InstanceType<
@@ -28,7 +20,7 @@ interface ListTopBarProps<ResourceType> {
     readonly resourceType: string;
     readonly refreshList: () => void;
     readonly rowRenderers: RowRenderer<ResourceType>[];
-    readonly selectedItems: SelectedItems;
+    readonly selectedItems: (boolean | undefined)[];
     readonly items: (ResourceType | undefined)[];
     readonly total_count: number;
     readonly resourceCreatable?: boolean;
@@ -45,15 +37,12 @@ interface ListTopBarState {
 export default class ListTopBar<
     ResourceType extends BaseResource
 > extends PureComponent<ListTopBarProps<ResourceType>, ListTopBarState> {
-    createResourceRef: React.RefObject<any>;
-
     constructor(props: ListTopBarProps<ResourceType>) {
         super(props);
         this.state = {
             search: "",
             createModalOpen: false
         };
-        this.createResourceRef = createRef();
     }
 
     commitSearch = () => {
@@ -70,25 +59,13 @@ export default class ListTopBar<
         }
     };
 
-    openModal = () => this.setState({ createModalOpen: true });
-
-    closeModal = () => this.setState({ createModalOpen: false });
-
-    modalCreateResource = async () => {
-        const res = await this.createResourceRef.current.create();
-        if (res) {
-            this.setState({ createModalOpen: false });
-            this.props.refreshList();
-        }
-    };
-
     updateListType = (
         event: React.MouseEvent<HTMLButtonElement, MouseEvent>
     ) => {
         const target = event.target as HTMLButtonElement;
         const listType = target.dataset.listtype;
 
-        if (!listType) return;
+        if (listType === undefined) return;
         this.props.updateListType(listType);
     };
 
@@ -197,14 +174,7 @@ export default class ListTopBar<
                         Loaded:{" "}
                         {this.props.items.filter((item) => item?._id).length}
                     </span>
-                    <span>
-                        Selected:{" "}
-                        {this.props.selectedItems
-                            ? Object.entries(this.props.selectedItems).filter(
-                                  ([id, selected]) => selected
-                              ).length
-                            : 0}
-                    </span>
+                    <span>Selected: {this.props.selectedItems.length}</span>
                 </div>
             </div>
         );

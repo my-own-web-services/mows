@@ -130,7 +130,7 @@ export default class ResourceList<
         const currentRowRenderer = this.getCurrentRowRenderer();
 
         const { width, height } = this.state;
-        if (!currentRowRenderer || !width || !height)
+        if (!currentRowRenderer || width === null || height === null)
             return { startIndex: 0, endIndex: 30 };
 
         const rowHeight = currentRowRenderer.getRowHeight(
@@ -388,7 +388,8 @@ export default class ResourceList<
         dragged?: boolean
     ) => {
         // @ts-ignore
-        if (e.target?.classList?.contains("clickable")) return;
+        if (e.target?.classList?.contains("clickable")) return; // eslint-disable-line
+        console.log("onItemClick", e, item, index, rightClick, dragged);
 
         this.props.rowHandlers?.onClick?.(e, item, index, rightClick, dragged);
 
@@ -397,12 +398,17 @@ export default class ResourceList<
 
         if (e.ctrlKey) {
             const selectedItems = cloneDeep(this.state.selectedItems);
-            selectedItems[index] = !this.state.selectedItems[index];
+            const currentSelectionState =
+                this.state.selectedItems[index] === undefined ||
+                this.state.selectedItems[index] === false
+                    ? false
+                    : true;
+            selectedItems[index] = !currentSelectionState;
 
             const lastSelectedItemIndex = (() => {
                 if (
                     index === this.state.lastSelectedItemIndex ||
-                    this.state.selectedItems[index]
+                    currentSelectionState
                 ) {
                     return undefined;
                 }
@@ -467,18 +473,19 @@ export default class ResourceList<
                     }
                 });
             }, afterStateUpdate);
-        } else if (rightClick || dragged) {
+        } else if (rightClick === true || dragged === true) {
             const selectedItems = this.getSelectedItems();
-            if (selectedItems.length <= 1) {
+            const currentItemInSelectedItems =
+                selectedItems.find(
+                    (selectedItem) => selectedItem._id === item._id
+                ) !== undefined;
+
+            if (!currentItemInSelectedItems) {
+                const newSelectedItems = [];
+                newSelectedItems[index] = true;
                 this.setState({
-                    selectedItems: update(this.state.selectedItems, {
-                        $set: this.state.selectedItems.map((selected, i) => {
-                            if (i === index) {
-                                return true;
-                            }
-                            return false;
-                        })
-                    })
+                    selectedItems: newSelectedItems,
+                    lastSelectedItemIndex: index
                 });
             }
         } else {
@@ -486,9 +493,7 @@ export default class ResourceList<
             selectedItems[index] = true;
             this.setState(
                 {
-                    selectedItems: update(this.state.selectedItems, {
-                        $set: selectedItems
-                    }),
+                    selectedItems,
                     lastSelectedItemIndex: index
                 },
                 afterStateUpdate
@@ -828,6 +833,7 @@ export default class ResourceList<
                                                         this.props.rowHandlers
                                                 }}
                                             >
+                                                {/*@ts-ignore*/}
                                                 {currentRowRenderer.component}
                                             </FixedSizeList>
                                         );

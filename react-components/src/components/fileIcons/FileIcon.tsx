@@ -26,7 +26,7 @@ export default class FileIcon extends PureComponent<
             <img
                 style={{ height: "100%" }}
                 src={`/file-icons/${getIconName(this.props.file.name)}.svg`}
-             />
+            />
         );
     };
 
@@ -40,7 +40,7 @@ export default class FileIcon extends PureComponent<
 }
 
 export const getIconName = (name?: string) => {
-    if (!name) return fileIcons.defaultIcon.name;
+    if (name === undefined) return fileIcons.defaultIcon.name;
 
     const fileName = name.toLowerCase();
 
@@ -48,9 +48,9 @@ export const getIconName = (name?: string) => {
 
     // get the icon from the extension
     const icon = fileIcons.icons.find(
-        (icon) =>
-            icon.fileExtensions?.some((ext) => fileName.endsWith(`.${ext}`)) ||
-            icon.fileNames?.includes(fileName)
+        (ic) =>
+            ic.fileExtensions?.some((ext) => fileName.endsWith(`.${ext}`)) ===
+                true || ic.fileNames?.includes(fileName)
     );
 
     if (icon) {

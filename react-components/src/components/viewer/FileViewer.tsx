@@ -58,18 +58,14 @@ export default class FilezFileViewer extends PureComponent<
         if (this.props.file && this.props.file._id !== this.state.file?._id) {
             this.setState({ file: this.props.file });
         } else if (
-            this.props.fileId &&
+            typeof this.props.fileId === "string" &&
             this.props.fileId !== prevProps.fileId
         ) {
             if (this.context !== null) {
-                const filezClient = this?.context?.filezClient;
-
-                if (filezClient) {
-                    const files = await this.context.filezClient.get_file_infos(
-                        [this.props.fileId]
-                    );
-                    this.setState({ file: files[0] });
-                }
+                const files = await this.context.filezClient.get_file_infos([
+                    this.props.fileId
+                ]);
+                this.setState({ file: files[0] });
             }
         }
     };

@@ -26,7 +26,10 @@ interface StorageOptions {
     limits: UsageLimits;
 }
 
-export default class StoragePicker extends PureComponent<StoragePickerProps, StoragePickerState> {
+export default class StoragePicker extends PureComponent<
+    StoragePickerProps,
+    StoragePickerState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
     constructor(props: StoragePickerProps) {
@@ -49,11 +52,13 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
     getFiles = async () => {
         if (!this.context) return;
         if (!this.props.fileIds) return;
-        const files = await this.context.filezClient.get_file_infos(this.props.fileIds);
+        const files = await this.context.filezClient.get_file_infos(
+            this.props.fileIds
+        );
 
-        const storage_ids = files.map(file => file.storage_id);
+        const storage_ids = files.map((file) => file.storage_id);
         const unique_storage_ids = [...new Set(storage_ids)];
-        const someFilesReadonly = files.some(file => file.readonly);
+        const someFilesReadonly = files.some((file) => file.readonly);
 
         if (unique_storage_ids.length === 1) {
             this.setState({
@@ -62,7 +67,11 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
                 mixedStorages: false
             });
         } else {
-            this.setState({ selectedStorageId: null, someFilesReadonly, mixedStorages: true });
+            this.setState({
+                selectedStorageId: null,
+                someFilesReadonly,
+                mixedStorages: true
+            });
         }
 
         this.setState({ files });
@@ -71,12 +80,18 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
     getUserStorageLimits = async () => {
         if (!this.context) return;
         const own_user = await this.context.filezClient.get_own_user();
-        if (!own_user.limits) return;
+        if (own_user.limits === null) return;
 
         const availableStorages: StorageOptions[] = [];
-        for (const [storage_id, user_storage_limits] of Object.entries(own_user.limits)) {
+        for (const [storage_id, user_storage_limits] of Object.entries(
+            own_user.limits
+        )) {
             if (!user_storage_limits) continue;
-            if (user_storage_limits.used_storage >= user_storage_limits.max_storage) continue;
+            if (
+                user_storage_limits.used_storage >=
+                user_storage_limits.max_storage
+            )
+                continue;
             availableStorages.push({
                 storage_id,
                 limits: user_storage_limits
@@ -99,7 +114,7 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
             this.setState({ updatingStorageLocation: true });
 
             const response = await this.context?.filezClient.update_file_infos(
-                this.state.files.map(file => {
+                this.state.files.map((file) => {
                     return {
                         file_id: file._id,
                         fields: {
@@ -122,7 +137,11 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
 
         return (
             <div className="StoragePicker">
-                <label className={this.props.disabled ? "disabled" : ""}>Storage</label>
+                <label
+                    className={this.props.disabled === true ? "disabled" : ""}
+                >
+                    Storage
+                </label>
                 <br />
                 <InputPicker
                     disabled={
@@ -131,14 +150,19 @@ export default class StoragePicker extends PureComponent<StoragePickerProps, Sto
                         this.state.updatingStorageLocation
                     }
                     placeholder={(() => {
-                        if (this.state.someFilesReadonly) return "Storage is readonly";
+                        if (this.state.someFilesReadonly)
+                            return "Storage is readonly";
                         if (this.state.mixedStorages) return "Mixed storages";
                         return "Select storage";
                     })()}
-                    data={this.state.availableStorages.map(storageOption => {
-                        const label = `${storageOption.storage_id} (${bytesToHumanReadableSize(
+                    data={this.state.availableStorages.map((storageOption) => {
+                        const label = `${
+                            storageOption.storage_id
+                        } (${bytesToHumanReadableSize(
                             storageOption.limits.used_storage
-                        )} / ${bytesToHumanReadableSize(storageOption.limits.max_storage)} used)`;
+                        )} / ${bytesToHumanReadableSize(
+                            storageOption.limits.max_storage
+                        )} used)`;
                         return { label, value: storageOption.storage_id };
                     })}
                     value={this.state.selectedStorageId}

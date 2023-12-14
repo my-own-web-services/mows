@@ -108,7 +108,7 @@ export enum RowRendererDirection {
 }
 
 export interface ListRowProps<FilezResource> {
-    readonly data: ListData<FilezResource>;
+    readonly data?: ListData<FilezResource>;
     readonly style: React.CSSProperties;
     readonly index: number;
 }
