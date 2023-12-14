@@ -1,7 +1,7 @@
 import { PureComponent } from "react";
 import { BsPeople } from "react-icons/bs";
 import { FaMapLocationDot } from "react-icons/fa6";
-import { FilezContext } from "../../FilezProvider";
+import { FilezContext } from "../../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import MultiItemTagPicker, {
@@ -17,7 +17,10 @@ const knownCategories: Category[] = [
             return (
                 <>
                     <div style={{ float: "left", marginRight: "4px" }}>
-                        <BsPeople size={12} style={{ transform: "translate(0px,2px)" }} />
+                        <BsPeople
+                            size={12}
+                            style={{ transform: "translate(0px,2px)" }}
+                        />
                     </div>
                     <div style={{ float: "left" }}>{keyword.split(">")[1]}</div>
                 </>
@@ -30,7 +33,10 @@ const knownCategories: Category[] = [
             return (
                 <>
                     <div style={{ float: "left", marginRight: "4px" }}>
-                        <FaMapLocationDot size={12} style={{ transform: "translate(0px,1.5px)" }} />
+                        <FaMapLocationDot
+                            size={12}
+                            style={{ transform: "translate(0px,1.5px)" }}
+                        />
                     </div>
                     <div style={{ float: "left" }}>{keyword.split(">")[1]}</div>
                 </>
@@ -78,7 +84,10 @@ export interface ToBeUploadedFile {
     keywords: string[];
 }
 
-export default class KeywordPicker extends PureComponent<KeywordPickerProps, KeywordPickerState> {
+export default class KeywordPicker extends PureComponent<
+    KeywordPickerProps,
+    KeywordPickerState
+> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
@@ -96,11 +105,13 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
     };
 
     init = async () => {
-        const knownKeywordsStrings = await this.get_keywords(this.props.resources);
+        const knownKeywordsStrings = await this.get_keywords(
+            this.props.resources
+        );
         const resourceMap = this.resourcesToSelectedTags(this.props.resources);
 
         this.setState({
-            knownKeywords: knownKeywordsStrings.map(value => ({ value })),
+            knownKeywords: knownKeywordsStrings.map((value) => ({ value })),
             resourceMap,
             knownKeywordsLoaded: true
         });
@@ -110,9 +121,11 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
         resources?: FilezFile[] | FilezFileGroup[] | ToBeUploadedFile[]
     ): Promise<string[]> => {
         if (!this.context) throw new Error("No filez context set");
-        const otherResourcesKeywords = await this.context.filezClient.get_aggregated_keywords();
+        const otherResourcesKeywords =
+            await this.context.filezClient.get_aggregated_keywords();
 
-        const currenResourceKeywords = resources?.flatMap(resource => resource.keywords) ?? [];
+        const currenResourceKeywords =
+            resources?.flatMap((resource) => resource.keywords) ?? [];
 
         const distincKeywords: string[] = [
             ...new Set([...currenResourceKeywords, ...otherResourcesKeywords])
@@ -121,15 +134,20 @@ export default class KeywordPicker extends PureComponent<KeywordPickerProps, Key
         return distincKeywords;
     };
 
-    resourcesToSelectedTags = (resources?: FilezFile[] | FilezFileGroup[] | ToBeUploadedFile[]) => {
+    resourcesToSelectedTags = (
+        resources?: FilezFile[] | FilezFileGroup[] | ToBeUploadedFile[]
+    ) => {
         const selectedTagsMap: MultiItemTagPickerResources = {};
-        resources?.forEach(resource => {
+        resources?.forEach((resource) => {
             selectedTagsMap[resource._id] = resource.keywords;
         });
         return selectedTagsMap;
     };
 
-    onTagChange = async (resourceMap: MultiItemTagPickerResources, knownKeywords: TagData[]) => {
+    onTagChange = async (
+        resourceMap: MultiItemTagPickerResources,
+        knownKeywords: TagData[]
+    ) => {
         if (this.props.serverUpdate !== false) {
             this.context?.filezClient.update_file_infos(
                 Object.entries(resourceMap).map(([file_id, keywords]) => {

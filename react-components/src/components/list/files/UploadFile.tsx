@@ -5,12 +5,12 @@ import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/File
 import { cloneDeep } from "lodash";
 import { Checkbox, Input, Progress } from "rsuite";
 import update from "immutability-helper";
-import Keywords from "../../metaEditor/KeywordPicker";
-import StoragePicker from "../../metaEditor/StoragePicker";
+import Keywords from "../atoms/KeywordPicker";
+import StoragePicker from "../atoms/StoragePicker";
 import { AutoSizer } from "rsuite/esm/Windowing";
 import { FixedSizeList } from "react-window";
 import { ValueType } from "rsuite/esm/Checkbox";
-import { MultiItemTagPickerResources } from "../../metaEditor/MultiItemTagPicker";
+import { MultiItemTagPickerResources } from "../atoms/MultiItemTagPicker";
 
 interface UploadFileProps {}
 

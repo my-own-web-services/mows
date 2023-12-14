@@ -4,7 +4,7 @@ import { Visibility } from "@firstdorsal/filez-client/dist/js/apiTypes/Visibilit
 import { PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import { Input, SelectPicker, TagPicker } from "rsuite";
-import SelectOrCreateUseOncePermission from "../../utils/SelectOrCreateUseOncePermission";
+import SelectOrCreateUseOncePermission from "../atoms/SelectOrCreateUseOncePermission";
 import Permission from "../permissions/Permission";
 import { cloneDeep, isEqual } from "lodash";
 import update from "immutability-helper";
@@ -55,16 +55,14 @@ export default class UserGroup extends PureComponent<
         if (!this.context) return;
         const userRes = await this.context.filezClient.get_user_list();
 
-        const permissionRes =
-            await this.context.filezClient.get_own_permissions({
+        const { items } = await this.context.filezClient.get_own_permissions(
+            {
                 sort_field: "name"
-            });
-
-        const permissions = permissionRes.items?.filter(
-            (p) => p.content.type === "UserGroup"
+            },
+            "UserGroup"
         );
 
-        const useOncePermission = permissions?.find((p) => {
+        const useOncePermission = items?.find((p) => {
             if (
                 this.state.clientGroup.permission_ids.includes(p._id) &&
                 p.use_type === "Once"
@@ -75,7 +73,7 @@ export default class UserGroup extends PureComponent<
 
         this.setState({
             users: userRes.items,
-            availablePermissions: permissions,
+            availablePermissions: items,
             useOncePermissionEnabled: useOncePermission !== undefined
         });
     };

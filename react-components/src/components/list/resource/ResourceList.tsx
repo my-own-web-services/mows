@@ -365,7 +365,9 @@ export default class ResourceList<
         this.props.rowHandlers?.onContextMenuItemClick?.(
             item,
             menuItemId,
-            selectedItems
+            selectedItems,
+            // @ts-ignore
+            this.state.items[this.state.lastSelectedItemIndex ?? 0]
         );
     };
 
@@ -389,7 +391,6 @@ export default class ResourceList<
     ) => {
         // @ts-ignore
         if (e.target?.classList?.contains("clickable")) return; // eslint-disable-line
-        console.log("onItemClick", e, item, index, rightClick, dragged);
 
         this.props.rowHandlers?.onClick?.(e, item, index, rightClick, dragged);
 

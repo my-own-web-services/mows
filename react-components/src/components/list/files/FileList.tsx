@@ -17,7 +17,7 @@ import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { Button, Modal } from "rsuite";
 import UploadFile from "./UploadFile";
-import MetaEditor from "../../metaEditor/FileMetaEditor";
+import MetaEditor from "./FileMetaEditor";
 import ResourceList from "../resource/ResourceList";
 
 const defaultColumns: Column<FilezFile>[] = [

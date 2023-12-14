@@ -4,20 +4,20 @@ import { ItemDataType } from "rsuite/esm/@types/common";
 import {
     bytesToHumanReadableSize,
     utcTimeStampToTimeAndDate
-} from "../../utils";
+} from "../../../utils";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import { BiHistory, BiLink } from "react-icons/bi";
 import { MdStorage } from "react-icons/md";
 import { FaPeopleArrows } from "react-icons/fa";
 import { FileDownload } from "@rsuite/icons";
-import { FilezContext } from "../../FilezProvider";
+import { FilezContext } from "../../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import KeywordPicker from "./KeywordPicker";
-import Name from "./SingleName";
-import Permission from "../list/permissions/Permission";
+import KeywordPicker from "../atoms/KeywordPicker";
+import Name from "../atoms/SingleName";
+import Permission from "../permissions/Permission";
 import { isEqual } from "lodash";
-import StoragePicker from "./StoragePicker";
-import StaticFileGroupPicker from "./StaticFileGroupPicker";
+import StoragePicker from "../atoms/StoragePicker";
+import StaticFileGroupPicker from "../atoms/StaticFileGroupPicker";
 
 interface FileMetaEditorProps {
     readonly fileIds: string[];
@@ -262,7 +262,7 @@ export default class FileMetaEditor extends PureComponent<
                             </div>
                         }
                         bordered
-                     />
+                    />
                     <Panel
                         className="panel"
                         collapsible
@@ -281,7 +281,7 @@ export default class FileMetaEditor extends PureComponent<
                             </div>
                         }
                         bordered
-                     />
+                    />
                 </PanelGroup>
             </div>
         );

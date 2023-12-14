@@ -1,6 +1,6 @@
 import { PureComponent } from "react";
 import { Input, InputGroup } from "rsuite";
-import { FilezContext } from "../../FilezProvider";
+import { FilezContext } from "../../../FilezProvider";
 import update from "immutability-helper";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { BiUndo } from "react-icons/bi";
@@ -59,7 +59,7 @@ export default class Name extends PureComponent<NameProps, NameState> {
     };
 
     onUpdateNameCancel = () => {
-        this.setState(state =>
+        this.setState((state) =>
             update(state, {
                 localName: { $set: state.serverName }
             })
@@ -102,7 +102,10 @@ export default class Name extends PureComponent<NameProps, NameState> {
                     />
                     {this.state.localName !== this.state.serverName && (
                         <>
-                            <InputGroup.Button onClick={this.onUpdateNameCancel} title="Cancel">
+                            <InputGroup.Button
+                                onClick={this.onUpdateNameCancel}
+                                title="Cancel"
+                            >
                                 <BiUndo />
                             </InputGroup.Button>
                             <InputGroup.Button

@@ -1,10 +1,10 @@
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
-import { cloneDeep, isEqual } from "lodash";
+import { cloneDeep } from "lodash";
 import { PureComponent } from "react";
 import { Input, InputPicker, TagPicker } from "rsuite";
 import update from "immutability-helper";
 import { FilezContext } from "../../../FilezProvider";
-import SelectOrCreateUseOncePermission from "../../utils/SelectOrCreateUseOncePermission";
+import SelectOrCreateUseOncePermission from "../atoms/SelectOrCreateUseOncePermission";
 import Permission from "../permissions/Permission";
 import DynamicGroupRules from "./DynamicGroupRules";
 import { FilterRule } from "@firstdorsal/filez-client/dist/js/apiTypes/FilterRule";
@@ -12,8 +12,10 @@ import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/File
 import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
 
 interface FileGroupProps {
-    readonly group?: FilezFileGroup;
+    readonly groups?: FilezFileGroup[];
     readonly oncePermissionRef?: React.RefObject<Permission>;
+    readonly serverUpdate?: boolean;
+    readonly onChange?: (group: FilezFileGroup) => void;
 }
 
 interface FileGroupState {
@@ -52,147 +54,40 @@ export default class FileGroup extends PureComponent<
     constructor(props: FileGroupProps) {
         super(props);
 
-        const group = props.group ?? defaultGroup;
+        const group = props.groups ?? [defaultGroup];
         this.state = {
-            clientGroup: cloneDeep(group),
-            serverGroup: cloneDeep(group),
+            clientGroup: cloneDeep(group[0]),
+            serverGroup: cloneDeep(group[0]),
             useOncePermissionEnabled: false
         };
     }
 
     componentDidMount = async () => {
         if (!this.context) return;
-        let { items } = await this.context.filezClient.get_own_permissions({
-            sort_field: "name"
-        });
+        const { items } = await this.context.filezClient.get_own_permissions(
+            {
+                sort_field: "name"
+            },
+            "FileGroup"
+        );
 
-        items = items?.filter((p) => p.content.type === "FileGroup");
-
-        if (items.length > 0) {
-            const useOncePermission = items?.find((p) => {
-                if (
-                    this.state.clientGroup.permission_ids.includes(p._id) &&
-                    p.use_type === "Once"
-                ) {
-                    return p;
-                }
-            });
-
-            this.setState({
-                availablePermissions: items,
-                useOncePermissionEnabled: useOncePermission !== undefined
-            });
-        }
-    };
-
-    create = async (useOncePermissionId?: string) => {
-        if (!this.context) return false;
-
-        const cg = this.state.clientGroup;
-
-        if (cg._id === "") {
-            const permission_ids = cloneDeep(cg.permission_ids);
-            if (useOncePermissionId !== undefined) {
-                permission_ids.push(useOncePermissionId);
-            }
-            const res = await this.context.filezClient.create_file_group({
-                dynamic_group_rules: cg.dynamic_group_rules,
-                group_type: cg.group_type,
-                keywords: cg.keywords,
-                mime_types: cg.mime_types,
-                name: cg.name,
-                permission_ids,
-                group_hierarchy_paths: cg.group_hierarchy_paths
-            });
-            if (res.group_id) {
-                this.setState({ serverGroup: cg });
-                return true;
-            }
-        }
-
-        return false;
-    };
-
-    update = async (useOncePermissionId?: string) => {
-        if (!this.context) return false;
-        const cg = this.state.clientGroup;
-        const sg = this.state.serverGroup;
-
-        let permission_ids = cloneDeep(cg.permission_ids);
-        if (useOncePermissionId !== undefined) {
-            this.setState(
-                update(this.state, {
-                    clientGroup: {
-                        permission_ids: { $push: [useOncePermissionId] }
-                    }
-                })
-            );
-            permission_ids.push(useOncePermissionId);
-        } else {
-            const useOncePermission = this.state.availablePermissions?.find(
-                (p) => {
-                    if (
-                        cg.permission_ids.includes(p._id) &&
-                        p.use_type === "Once"
-                    ) {
-                        return p;
-                    }
-                }
-            );
-            if (useOncePermission) {
-                permission_ids = permission_ids.filter(
-                    (id) => id !== useOncePermission._id
-                );
-
-                this.context.filezClient.delete_permission(
-                    useOncePermission?._id
-                );
-
-                this.setState(
-                    update(this.state, {
-                        clientGroup: {
-                            permission_ids: { $set: permission_ids }
-                        }
-                    })
-                );
-            }
-        }
-
-        const res = await this.context.filezClient.update_file_group({
-            file_group_id: cg._id,
-            fields: {
-                dynamic_group_rules: isEqual(
-                    cg.dynamic_group_rules,
-                    sg.dynamic_group_rules
-                )
-                    ? null
-                    : cg.dynamic_group_rules,
-                group_type:
-                    cg.group_type === sg.group_type ? null : cg.group_type,
-                keywords: isEqual(cg.keywords, sg.keywords)
-                    ? null
-                    : cg.keywords,
-                mime_types: isEqual(cg.mime_types, sg.mime_types)
-                    ? null
-                    : cg.mime_types,
-                name: cg.name === sg.name ? null : cg.name,
-                group_hierarchy_paths: isEqual(
-                    cg.group_hierarchy_paths,
-                    sg.group_hierarchy_paths
-                )
-                    ? null
-                    : cg.group_hierarchy_paths,
-                permission_ids: isEqual(permission_ids, sg.permission_ids)
-                    ? null
-                    : permission_ids
+        const useOncePermission = items?.find((p) => {
+            if (
+                this.state.clientGroup.permission_ids.includes(p._id) &&
+                p.use_type === "Once"
+            ) {
+                return p;
             }
         });
-        if (res.status === 200) {
-            this.setState({ serverGroup: cloneDeep(this.state.clientGroup) });
-            return true;
-        }
 
-        return false;
+        this.setState({
+            availablePermissions: items,
+            useOncePermissionEnabled: useOncePermission !== undefined
+        });
+    };
+
+    onChange = () => {
+        this.props.onChange?.(this.state.clientGroup);
     };
 
     updateRule = (rule: FilterRule) => {
@@ -201,7 +96,8 @@ export default class FileGroup extends PureComponent<
                 clientGroup: {
                     dynamic_group_rules: { $set: rule }
                 }
-            })
+            }),
+            this.onChange
         );
     };
 
@@ -211,7 +107,8 @@ export default class FileGroup extends PureComponent<
                 clientGroup: {
                     name: { $set: value }
                 }
-            })
+            }),
+            this.onChange
         );
     };
 
@@ -221,7 +118,8 @@ export default class FileGroup extends PureComponent<
                 clientGroup: {
                     group_type: { $set: value as FileGroupType }
                 }
-            })
+            }),
+            this.onChange
         );
     };
 

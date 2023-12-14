@@ -72,7 +72,8 @@ export type ResourceListRowHandlersIsDroppable<FilezResource> = (
 export type ResourceListRowHandlersOnContextMenuItemClick<FilezResource> = (
     item: FilezResource,
     menuItemId: string,
-    selectedItems: FilezResource[]
+    selectedItems: FilezResource[],
+    lastSelectedItem: FilezResource
 ) => void;
 
 export interface ResourceListRowHandlers<FilezResource> {

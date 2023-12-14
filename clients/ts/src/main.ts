@@ -26,6 +26,7 @@ import { UpdateFileInfosRequestBodySingle } from "./apiTypes/UpdateFileInfosRequ
 import { UpdateFileInfosRequestBody } from "./apiTypes/UpdateFileInfosRequestBody.js";
 import { CreateFileGroupResponseBody } from "./apiTypes/CreateFileGroupResponseBody.js";
 import { GetItemListRequestBody } from "./apiTypes/GetItemListRequestBody.js";
+import { PermissionResourceSelectType } from "./apiTypes/PermissionResourceSelectType.js";
 
 export * from "./types.js";
 
@@ -246,10 +247,10 @@ export class FilezClient {
         return json;
     };
 
-    get_own_permissions = async (body?: GetItemListRequestBody) => {
+    get_own_permissions = async (body?: GetItemListRequestBody,resource_type?:PermissionResourceSelectType) => {
         if (!this.initialized) await this.init();
 
-        const res = await fetch(`${this.filezEndpoint}/api/permission/list/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/permission/list/${resource_type!==undefined?`?t=${resource_type}`:``}`, {
             credentials: "include",
             method: "POST",
             body: JSON.stringify(body??{}),

@@ -1,7 +1,7 @@
 import { PureComponent } from "react";
 import SelectPermissions from "./SelectPermissions";
 import { Toggle } from "rsuite";
-import Permission from "../list/permissions/Permission";
+import Permission from "../permissions/Permission";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
 
 interface SelectOrCreateUseOncePermissionProps {
@@ -32,14 +32,18 @@ export default class SelectOrCreateUseOncePermission extends PureComponent<
                 <SelectPermissions
                     size={this.props.size}
                     type={this.props.type}
-                    onUpdate={permissionIds => this.props.onSelectUpdate?.(permissionIds)}
+                    onUpdate={(permissionIds) =>
+                        this.props.onSelectUpdate?.(permissionIds)
+                    }
                     selectedPermissionIds={this.props.selectedPermissionIds}
                 />
                 <label htmlFor="">Use Once Permission</label>
                 <Toggle
                     size={this.props.size}
                     checked={this.props.useOncePermissionEnabled}
-                    onChange={checked => this.props.updateOncePermissionUse(checked)}
+                    onChange={(checked) =>
+                        this.props.updateOncePermissionUse(checked)
+                    }
                 />
                 {this.props.useOncePermissionEnabled && (
                     <Permission

@@ -1,5 +1,5 @@
 import { PureComponent } from "react";
-import { FilezContext } from "../../FilezProvider";
+import { FilezContext } from "../../../FilezProvider";
 import MultiItemTagPicker, {
     MultiItemTagPickerResources,
     TagData
@@ -93,10 +93,10 @@ export default class StaticFileGroupPicker extends PureComponent<
 
     getStaticFileGroups = async (): Promise<TagData[] | null> => {
         if (!this.context) return null;
-        const res = await this.context.filezClient.get_own_file_groups({
-            filter: "",
-            from_index: 0
-        });
+        const res = await this.context.filezClient.get_own_file_groups(
+            {},
+            "Static"
+        );
         const staticGroups: TagData[] = res.items.map((group) => ({
             label: group.name ?? undefined,
             value: group._id,

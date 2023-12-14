@@ -80,7 +80,7 @@ maybe a field search like `file.keywords: test` to only search for the word "tes
 # Features
 
 ## Other
-
+-   duplicate finder/ checkbox to check for duplicates on server and don't upload then
 -   groups of groups 
 -   get files that are present in multiple selected groups (intersection)
 -   get combined files of groups

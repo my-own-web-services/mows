@@ -2,7 +2,7 @@ import { PureComponent, createRef } from "react";
 import FileComp from "./UploadFile";
 import Permission from "../permissions/Permission";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import MetaEditor from "../../metaEditor/FileMetaEditor";
+import MetaEditor from "./FileMetaEditor";
 
 interface EditFileProps {
     readonly resourceIds?: string[];
@@ -12,7 +12,10 @@ interface EditFileState {
     readonly files: FilezFile[];
 }
 
-export default class EditFile extends PureComponent<EditFileProps, EditFileState> {
+export default class EditFile extends PureComponent<
+    EditFileProps,
+    EditFileState
+> {
     fileCompRef: React.RefObject<FileComp>;
     oncePermissionRef: React.RefObject<Permission>;
 
@@ -34,7 +37,8 @@ export default class EditFile extends PureComponent<EditFileProps, EditFileState
     };
 
     render = () => {
-        if (!this.props.resourceIds || this.props.resourceIds.length === 0) return null;
+        if (!this.props.resourceIds || this.props.resourceIds.length === 0)
+            return null;
         return (
             <div className="EditFile">
                 <MetaEditor fileIds={this.props.resourceIds} />

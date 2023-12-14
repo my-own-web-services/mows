@@ -8,10 +8,10 @@ import {
 } from "../resource/ResourceListTypes";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import { Button, Modal } from "rsuite";
-import CreateFileGroup from "./CreateFileGroup";
 import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
 import { AiOutlineFolder, AiOutlineFolderView } from "react-icons/ai";
 import ResourceList from "../resource/ResourceList";
+import FileGroup from "./FileGroup";
 
 const defaultColumns: Column<FilezFileGroup>[] = [
     {
@@ -63,6 +63,8 @@ interface FileGroupListState {
     readonly editModalOpen: boolean;
     readonly createModalOpen: boolean;
     readonly selectedFileGroups?: FilezFileGroup[];
+    readonly newFileGroup?: FilezFileGroup;
+    readonly groupsToEdit?: FilezFileGroup[];
 }
 
 export default class FileGroupList extends PureComponent<
@@ -119,8 +121,9 @@ export default class FileGroupList extends PureComponent<
 
     onContextMenuItemClick = (
         item: FilezFileGroup,
-        menuItemId?: string,
-        selectedItems?: FilezFileGroup[]
+        menuItemId: string,
+        selectedItems: FilezFileGroup[],
+        lastSelectedItem: FilezFileGroup
     ) => {
         if (menuItemId === "log") {
             if (selectedItems?.length === 1) {
@@ -136,7 +139,8 @@ export default class FileGroupList extends PureComponent<
         } else if (menuItemId === "edit") {
             this.setState({
                 editModalOpen: true,
-                selectedFileGroups: selectedItems ?? []
+                selectedFileGroups: selectedItems ?? [],
+                groupsToEdit: [lastSelectedItem]
             });
         }
     };
@@ -150,7 +154,56 @@ export default class FileGroupList extends PureComponent<
         return true;
     };
 
-    createGroupClick = async () => {};
+    createGroupClick = async () => {
+        if (!this.context) return false;
+
+        const cg = this.state.newFileGroup;
+        if (!cg) return false;
+
+        const res = await this.context.filezClient.create_file_group({
+            dynamic_group_rules: cg.dynamic_group_rules,
+            group_type: cg.group_type,
+            keywords: cg.keywords,
+            mime_types: cg.mime_types,
+            name: cg.name,
+            permission_ids: [],
+            group_hierarchy_paths: cg.group_hierarchy_paths
+        });
+        if (res.group_id) {
+            this.props.handlers?.onChange?.();
+            this.resourceListRef.current?.refreshList();
+            this.closeCreateModal();
+        }
+    };
+
+    newFileGroupChange = (fileGroup: FilezFileGroup) => {
+        this.setState({ newFileGroup: fileGroup });
+    };
+
+    saveEditClick = async () => {
+        if (!this.context) return false;
+
+        const cg = this.state.newFileGroup;
+        if (!cg) return false;
+
+        const res = await this.context.filezClient.update_file_group({
+            file_group_id: cg._id,
+            fields: {
+                dynamic_group_rules: cg.dynamic_group_rules,
+                group_type: cg.group_type,
+                keywords: cg.keywords,
+                mime_types: cg.mime_types,
+                name: cg.name,
+                permission_ids: cg.permission_ids,
+                group_hierarchy_paths: cg.group_hierarchy_paths
+            }
+        });
+        if (res.status === 200) {
+            this.props.handlers?.onChange?.();
+            this.resourceListRef.current?.refreshList();
+            this.closeEditModal();
+        }
+    };
 
     render = () => {
         if (!this.context) return null;
@@ -187,7 +240,16 @@ export default class FileGroupList extends PureComponent<
                     open={this.state.createModalOpen}
                     onClose={this.closeCreateModal}
                 >
-                    <CreateFileGroup />
+                    <Modal.Header>
+                        <Modal.Title>Create File Group</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <FileGroup
+                            onChange={this.newFileGroupChange}
+                            serverUpdate={false}
+                        />
+                    </Modal.Body>
+
                     <Modal.Footer>
                         <Button
                             onClick={this.createGroupClick}
@@ -197,6 +259,35 @@ export default class FileGroupList extends PureComponent<
                         </Button>
                         <Button
                             onClick={this.closeCreateModal}
+                            appearance="subtle"
+                        >
+                            Cancel
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+                <Modal
+                    open={this.state.editModalOpen}
+                    onClose={this.closeEditModal}
+                >
+                    <Modal.Header>
+                        <Modal.Title>Edit File Group</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <FileGroup
+                            groups={this.state.groupsToEdit}
+                            onChange={this.newFileGroupChange}
+                        />
+                    </Modal.Body>
+
+                    <Modal.Footer>
+                        <Button
+                            onClick={this.saveEditClick}
+                            appearance="primary"
+                        >
+                            Save
+                        </Button>
+                        <Button
+                            onClick={this.closeEditModal}
                             appearance="subtle"
                         >
                             Cancel

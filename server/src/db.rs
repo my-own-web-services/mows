@@ -5,7 +5,7 @@ use crate::{
         set_app_data::SetAppDataRequest,
         update_permission_ids_on_resource::UpdatePermissionIdsOnResourceRequestBody,
     },
-    permissions::FilezPermission,
+    permissions::{FilezPermission, PermissionResourceSelectType},
     some_or_bail,
     utils::generate_id,
 };
@@ -422,6 +422,7 @@ impl DB {
         &self,
         owner_id: &str,
         gir: &GetItemListRequestBody,
+        permission_type: Option<PermissionResourceSelectType>,
     ) -> anyhow::Result<(Vec<FilezPermission>, u32)> {
         let collection = self.db.collection::<FilezPermission>("permissions");
 
@@ -460,12 +461,25 @@ impl DB {
             None => doc! {},
         };
 
+        let permission_resource_type_filter = match permission_type {
+            Some(pt) => doc! {
+                "resource_type": match pt {
+                    PermissionResourceSelectType::File => "File",
+                    PermissionResourceSelectType::FileGroup => "FileGroup",
+                    PermissionResourceSelectType::User => "User",
+                    PermissionResourceSelectType::UserGroup => "UserGroup",
+                }
+            },
+            None => doc! {},
+        };
+
         let db_filter = doc! {
             "$and": [
                 search_filter,
                 {
                     "owner_id": owner_id
-                }
+                },
+                permission_resource_type_filter
             ]
         };
 

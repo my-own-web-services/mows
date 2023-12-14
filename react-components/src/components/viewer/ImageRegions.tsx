@@ -120,7 +120,7 @@ export default class ImageRegions extends PureComponent<
                     }}
                 >
                     {this.state.regionInfo?.regionList?.map((region, i) => {
-                        if (!region.area) {
+                        if (region.area === undefined) {
                             return null;
                         }
                         const { w, h, x, y } = region.area;
@@ -177,7 +177,7 @@ export default class ImageRegions extends PureComponent<
                                     border: "1px solid #aaa",
                                     ...style
                                 }}
-                             />
+                            />
                         ) : (
                             <Whisper
                                 key={key}
@@ -195,7 +195,7 @@ export default class ImageRegions extends PureComponent<
                                         border: "1px solid #aaa",
                                         ...style
                                     }}
-                                 />
+                                />
                             </Whisper>
                         );
                     })}

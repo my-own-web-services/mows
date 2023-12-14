@@ -1,8 +1,8 @@
 import { PureComponent } from "react";
-import { FilezContext } from "../../FilezProvider";
+import { FilezContext } from "../../../FilezProvider";
 import { InputPicker, Loader } from "rsuite";
 import { UsageLimits } from "@firstdorsal/filez-client/dist/js/apiTypes/UsageLimits";
-import { bytesToHumanReadableSize } from "../../utils";
+import { bytesToHumanReadableSize } from "../../../utils";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
 interface StoragePickerProps {
