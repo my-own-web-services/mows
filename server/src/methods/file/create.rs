@@ -231,6 +231,9 @@ pub async fn create_file(
         keywords: vec![],
         readonly: false,
         readonly_path: None,
+        linked_files: vec![],
+        manual_group_sortings: HashMap::new(),
+        sub_type: None,
     };
 
     // update db in this "create file transaction"

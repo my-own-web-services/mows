@@ -175,6 +175,9 @@ pub async fn import_readonly_file(
             keywords: vec![],
             readonly: true,
             readonly_path: Some(path_str.to_string()),
+            linked_files: vec![],
+            manual_group_sortings: HashMap::new(),
+            sub_type: None,
         },
         true,
     )

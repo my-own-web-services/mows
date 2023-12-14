@@ -111,7 +111,6 @@ pub struct JobStage {
     pub end_time_millis: Option<i64>,
     pub title: String,
     pub description: String,
-    pub error: Option<String>,
 }
 
 #[derive(TS)]
@@ -121,7 +120,7 @@ pub enum JobStatus {
     Pending,
     Running,
     Done,
-    Error,
+    Error(String),
     Rejected,
 }
 
@@ -152,7 +151,33 @@ pub enum AppDataType {
     User,
 }
 
-// Database specifics
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub enum FileType {
+    /**
+     Files that share the same underlying data but have different metadata
+    */
+    Copy,
+    /**
+     Files that have no underlying data but are just placeholders for missing files/ are there for their metadata
+    */
+    Placeholder,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct LinkedFile {
+    pub file_id: String,
+    pub link_type: FileLinkType,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub enum FileLinkType {
+    Child,
+    Parent,
+    Sibling,
+}
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
@@ -201,23 +226,27 @@ pub struct FilezFile {
     #[ts(type = "number")]
     pub modified: Option<i64>,
     /**
-      the last time the file was accessed
+    The last time the file was accessed
     */
     #[ts(type = "number")]
     pub accessed: Option<i64>,
     /**
-      how many times the file was accessed
+    How many times the file was accessed
     */
     #[ts(type = "number")]
     pub accessed_count: u64,
     /**
-      can be updated with update_file_infos
+    The manually assigned FileGroups. Can be updated with update_file_infos
     */
     pub static_file_group_ids: Vec<String>,
     /**
-    can't be updated manually but will update on file or group changes
+    Can't be updated manually but will update on file or group changes
     */
     pub dynamic_file_group_ids: Vec<String>,
+    /**
+    A map of the groups the file is in and its position in the group
+    */
+    pub manual_group_sortings: HashMap<String, u64>,
     /**
         UTC timecode after which the file should be deleted
     */
@@ -243,6 +272,9 @@ pub struct FilezFile {
     */
     pub readonly: bool,
     pub readonly_path: Option<String>,
+
+    pub linked_files: Vec<LinkedFile>,
+    pub sub_type: Option<FileType>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
