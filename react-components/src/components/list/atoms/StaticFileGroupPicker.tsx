@@ -113,16 +113,16 @@ export default class StaticFileGroupPicker extends PureComponent<
         this.setState({ knownGroups, resourceMap });
 
         if (this.props.serverUpdate !== false) {
-            const res = await this.context?.filezClient.update_file_infos(
-                Object.entries(resourceMap).map(
-                    ([file_id, static_file_group_ids]) => ({
-                        file_id,
-                        fields: {
-                            static_file_group_ids
-                        }
-                    })
-                )
-            );
+            const res = await this.context?.filezClient.update_file_infos({
+                data: {
+                    StaticFileGroupsIds: Object.entries(resourceMap).map(
+                        ([file_id, static_file_group_ids]) => ({
+                            file_id,
+                            field: static_file_group_ids
+                        })
+                    )
+                }
+            });
             if (res?.status === 200) {
                 this.props.onChange?.(resourceMap, knownGroups);
             }

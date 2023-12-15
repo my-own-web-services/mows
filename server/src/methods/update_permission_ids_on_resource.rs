@@ -20,7 +20,7 @@ pub async fn update_permission_ids_on_resource(
     db.update_permission_ids_on_resource(&upr, &requesting_user.user_id)
         .await?;
 
-    Ok(res.status(200).body(Body::from("OK"))?)
+    Ok(res.status(200).body(Body::from("Ok"))?)
 }
 
 #[derive(TS)]

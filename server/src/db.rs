@@ -28,13 +28,21 @@ use std::{collections::HashMap, vec};
 pub struct DB {
     pub client: Client,
     pub db: Database,
+    pub parallel_queries: u32,
 }
 
 impl DB {
-    pub async fn new(client_options: ClientOptions) -> anyhow::Result<Self> {
+    pub async fn new(
+        client_options: ClientOptions,
+        parallel_queries: Option<u32>,
+    ) -> anyhow::Result<Self> {
         let client = Client::with_options(client_options)?;
         let db = client.database("filez");
-        Ok(Self { client, db })
+        Ok(Self {
+            client,
+            db,
+            parallel_queries: parallel_queries.unwrap_or(100),
+        })
     }
 
     pub async fn create_collections(&self) -> anyhow::Result<()> {
@@ -931,46 +939,97 @@ impl DB {
         Ok(())
     }
 
-    pub async fn update_file_name(
+    pub async fn update_files_names(
         &self,
-        file_id: &str,
-        new_name: &str,
-    ) -> anyhow::Result<UpdateResult> {
+        file_ids_by_names: &HashMap<String, Vec<String>>,
+    ) -> anyhow::Result<()> {
         let collection = self.db.collection::<FilezFile>("files");
-        Ok(collection
-            .update_one(
-                doc! {
-                    "_id":file_id
-                },
-                doc! {
-                    "$set": {
-                        "name": new_name
-                    }
-                },
-                None,
-            )
-            .await?)
+
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
+
+        for (name, file_ids) in file_ids_by_names {
+            collection
+                .update_many_with_session(
+                    doc! {
+                        "_id": {
+                            "$in": file_ids
+                        }
+                    },
+                    doc! {
+                        "$set": {
+                            "name": name
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
+
+        Ok(session.commit_transaction().await?)
     }
 
-    pub async fn update_file_mime_type(
+    pub async fn update_files_mime_types(
         &self,
-        file_id: &str,
-        new_mime_type: &str,
-    ) -> anyhow::Result<UpdateResult> {
+        file_ids_by_mime_type: &HashMap<String, Vec<String>>,
+    ) -> anyhow::Result<()> {
         let collection = self.db.collection::<FilezFile>("files");
-        Ok(collection
-            .update_one(
-                doc! {
-                    "_id": file_id
-                },
-                doc! {
-                    "$set": {
-                        "mime_type": new_mime_type
-                    }
-                },
-                None,
-            )
-            .await?)
+
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
+
+        for (mime_type, file_ids) in file_ids_by_mime_type {
+            collection
+                .update_many_with_session(
+                    doc! {
+                        "_id": {
+                            "$in": file_ids
+                        }
+                    },
+                    doc! {
+                        "$set": {
+                            "mime_type": mime_type
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
+
+        Ok(session.commit_transaction().await?)
+    }
+
+    pub async fn update_files_pending_owner(
+        &self,
+        file_ids_by_new_owner: &HashMap<String, Vec<String>>,
+    ) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezFile>("files");
+
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
+
+        for (new_owner_id, file_ids) in file_ids_by_new_owner {
+            collection
+                .update_many_with_session(
+                    doc! {
+                        "_id": {
+                            "$in": file_ids
+                        }
+                    },
+                    doc! {
+                        "$set": {
+                            "pending_new_owner_id": new_owner_id
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
+
+        Ok(session.commit_transaction().await?)
     }
 
     pub async fn update_files_static_file_group_ids(
@@ -1460,6 +1519,7 @@ impl DB {
 
     pub async fn get_files_by_ids(&self, file_ids: &Vec<String>) -> anyhow::Result<Vec<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
+
         let mut cursor = collection
             .find(
                 doc! {
@@ -1544,6 +1604,27 @@ impl DB {
 
         if cursor.count().await != static_file_group_ids.len() {
             bail!("Some file groups do not exist");
+        }
+
+        Ok(())
+    }
+
+    pub async fn check_users_exist(&self, user_ids: &Vec<String>) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezUser>("users");
+
+        let cursor = collection
+            .find(
+                doc! {
+                    "_id": {
+                        "$in": user_ids.clone()
+                    }
+                },
+                None,
+            )
+            .await?;
+
+        if cursor.count().await != user_ids.len() {
+            bail!("Some user_ids do not exist");
         }
 
         Ok(())

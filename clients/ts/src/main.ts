@@ -335,9 +335,8 @@ export class FilezClient {
         if (!this.initialized) await this.init();
     };
 
-    update_file_infos = async (files: UpdateFileInfosRequestBodySingle[]) => {
+    update_file_infos = async (body: UpdateFileInfosRequestBody) => {
         if (!this.initialized) await this.init();
-        const body: UpdateFileInfosRequestBody = { files };
         const res = await fetch(`${this.filezEndpoint}/api/file/info/update/`, {
             method: "POST",
             credentials: "include",

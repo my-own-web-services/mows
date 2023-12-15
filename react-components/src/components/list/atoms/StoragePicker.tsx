@@ -113,16 +113,16 @@ export default class StoragePicker extends PureComponent<
         if (this.props.serverUpdate !== false) {
             this.setState({ updatingStorageLocation: true });
 
-            const response = await this.context?.filezClient.update_file_infos(
-                this.state.files.map((file) => {
-                    return {
-                        file_id: file._id,
-                        fields: {
-                            storage_id: value
-                        }
-                    };
-                })
-            );
+            const response = await this.context?.filezClient.update_file_infos({
+                data: {
+                    StorageId: this.state.files.map((file) => {
+                        return {
+                            file_id: file._id,
+                            field: value
+                        };
+                    })
+                }
+            });
             this.setState({ updatingStorageLocation: false });
             if (response.status === 200) {
                 this.setState({ selectedStorageId: value });

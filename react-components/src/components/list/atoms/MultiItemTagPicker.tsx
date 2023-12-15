@@ -17,11 +17,11 @@ interface MultiItemTagPickerProps {
     readonly size?: "lg" | "md" | "sm" | "xs";
     readonly multiItemSelectedTags: MultiItemTagPickerResources;
     readonly possibleTags: TagData[];
-    readonly onChange: (
+    readonly onChange?: (
         newResources: MultiItemTagPickerResources,
         possibleTags: TagData[]
     ) => void;
-    readonly onCreate: (
+    readonly onCreate?: (
         newResources: MultiItemTagPickerResources,
         possibleTags: TagData[]
     ) => void;
@@ -169,7 +169,7 @@ export default class MultiItemTagPicker extends Component<
                 );
             }
         }
-        this.props.onChange(newResources, this.props.possibleTags);
+        this.props.onChange?.(newResources, this.props.possibleTags);
     };
 
     onCreate = (_newTag: string, item: TagData) => {
@@ -179,7 +179,7 @@ export default class MultiItemTagPicker extends Component<
         for (const [resourceId, currentTags] of Object.entries(newResources)) {
             newResources[resourceId] = [...currentTags, item?.value];
         }
-        this.props.onCreate(newResources, [...this.props.possibleTags, item]);
+        this.props.onCreate?.(newResources, [...this.props.possibleTags, item]);
     };
 
     onTagRemove = (removedTagValue: string) => {
@@ -191,7 +191,7 @@ export default class MultiItemTagPicker extends Component<
                 (tag) => tag !== removedTagValue
             );
         }
-        this.props.onChange(newResources, this.props.possibleTags);
+        this.props.onChange?.(newResources, this.props.possibleTags);
     };
 
     onTagCheck = (checkedTagValue: string) => {
@@ -203,7 +203,7 @@ export default class MultiItemTagPicker extends Component<
                 newResources[resourceId] = [...currentTags, checkedTagValue];
             }
         }
-        this.props.onChange(newResources, this.props.possibleTags);
+        this.props.onChange?.(newResources, this.props.possibleTags);
     };
 
     renderMenuItemCheckbox = (checkboxProps: any) => {

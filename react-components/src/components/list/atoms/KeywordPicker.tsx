@@ -157,14 +157,16 @@ export default class KeywordPicker extends PureComponent<
     ) => {
         if (this.props.serverUpdate !== false) {
             await this.context?.filezClient.update_file_infos(
-                Object.entries(resourceMap).map(([file_id, keywords]) => {
-                    return {
-                        file_id,
-                        fields: {
-                            keywords
-                        }
-                    };
-                })
+                {
+                    data:{
+                        Keywords: Object.entries(resourceMap).map(([file_id, keywords]) => {
+                            return {
+                                file_id,
+                                field: keywords
+                            };
+                        })
+                    }
+                }
             );
         }
         this.setState({ resourceMap });

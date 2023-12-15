@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use crate::{
     config::SERVER_CONFIG,
     db::DB,
     dynamic_groups::{handle_dynamic_group_update, UpdateType},
     internal_types::Auth,
     is_transient_transaction_error,
-    permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
+    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
     retry_transient_transaction_error, some_or_bail,
     utils::{
         check_file_name, check_keywords, check_mime_type, check_owner_id, check_static_file_groups,
@@ -12,7 +14,10 @@ use crate::{
     },
 };
 use anyhow::bail;
-use filez_common::storage::index::{get_future_storage_location, get_storage_location_from_file};
+use filez_common::{
+    server::{FilezFile, PermissiveResource},
+    storage::index::{get_future_storage_location, get_storage_location_from_file},
+};
 use hyper::{Body, Request, Response};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -44,6 +49,9 @@ Mutation > FilezUser
 Yes
 
 */
+
+// TODO enable only one of the fields at a time; most of the time this will be the case anyway and it makes everything easier
+
 pub async fn update_file_infos(
     req: Request<Body>,
     db: &DB,
@@ -56,188 +64,255 @@ pub async fn update_file_infos(
     crate::check_content_type_json!(req, res);
 
     let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
-    timer.add("10 get_authenticated_user");
+    timer.add("10 Get Authenticated User");
 
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let ufir: UpdateFileInfosRequestBody = serde_json::from_slice(&body)?;
 
-    for file_to_update in &ufir.files {
-        let filez_file = match db.get_file_by_id(&file_to_update.file_id).await {
-            Ok(file) => some_or_bail!(file, "File not found"),
-            Err(_) => bail!("File not found"),
-        };
-        let fields = &file_to_update.fields;
-
-        if let Some(new_mime_type) = &fields.mime_type {
-            check_mime_type(new_mime_type)?;
-
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::File((
-                    &filez_file,
-                    FilezFilePermissionAclWhatOptions::UpdateFileInfosMimeType,
-                )),
-                db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
+    // check phase
+    let updated_file_ids: Vec<String> = match ufir.data {
+        UpdateFileInfosRequestField::MimeType(fstu) => {
+            for ftu in fstu.iter() {
+                check_mime_type(&ftu.field)?;
             }
+            crate::check_auth_multiple!(
+                db,
+                auth,
+                res,
+                fstu,
+                FilezFilePermissionAclWhatOptions::UpdateFileInfosMimeType
+            );
+
+            // sort the files in the distinct mime types they are going to be moved to
+            let mut file_ids_by_mime_type: HashMap<String, Vec<String>> = HashMap::new();
+
+            for ftu in fstu.iter() {
+                let new_mime_type = ftu.field.clone();
+                // add the mime type to the hashmap if it doesn't exist yet
+                if !file_ids_by_mime_type.contains_key(&new_mime_type) {
+                    file_ids_by_mime_type.insert(new_mime_type.clone(), Vec::new());
+                }
+                // add the file to the hashmap
+                file_ids_by_mime_type
+                    .get_mut(&new_mime_type)
+                    .unwrap()
+                    .push(ftu.file_id.clone());
+            }
+
             retry_transient_transaction_error!(
-                db.update_file_mime_type(&filez_file.file_id, new_mime_type)
+                db.update_files_mime_types(&file_ids_by_mime_type).await
+            );
+            fstu.iter().map(|f| f.file_id.clone()).collect()
+        }
+        UpdateFileInfosRequestField::Name(fstu) => {
+            for ftu in fstu.iter() {
+                check_file_name(&ftu.field)?;
+            }
+            crate::check_auth_multiple!(
+                db,
+                auth,
+                res,
+                fstu,
+                FilezFilePermissionAclWhatOptions::UpdateFileInfosName
+            );
+
+            // sort the files in the distinct names they are going to be moved to
+            let mut file_ids_by_name: HashMap<String, Vec<String>> = HashMap::new();
+
+            for ftu in fstu.iter() {
+                let new_name = ftu.field.clone();
+                // add the name to the hashmap if it doesn't exist yet
+                if !file_ids_by_name.contains_key(&new_name) {
+                    file_ids_by_name.insert(new_name.clone(), Vec::new());
+                }
+                // add the file to the hashmap
+                file_ids_by_name
+                    .get_mut(&new_name)
+                    .unwrap()
+                    .push(ftu.file_id.clone());
+            }
+
+            retry_transient_transaction_error!(db.update_files_names(&file_ids_by_name).await);
+            fstu.iter().map(|f| f.file_id.clone()).collect()
+        }
+        UpdateFileInfosRequestField::StaticFileGroupsIds(fstu) => {
+            // TODO optimize make atomic this needs to be fast
+            for ftu in fstu.iter() {
+                check_static_file_groups(&ftu.field)?;
+            }
+
+            let all_static_fgi = fstu.iter().flat_map(|f| f.field.clone()).unique().collect();
+
+            db.check_file_group_existence(&all_static_fgi).await?;
+
+            let files = crate::check_auth_multiple!(
+                db,
+                auth,
+                res,
+                fstu,
+                FilezFilePermissionAclWhatOptions::UpdateFileInfosStaticFileGroups
+            );
+
+            for ftu in fstu.iter() {
+                // find the corresponding file in the db
+                let filez_file = some_or_bail!(
+                    files.iter().find(|f| f.file_id == ftu.file_id),
+                    "Could not find file in db"
+                );
+
+                if ftu.file_id != filez_file.file_id {
+                    bail!("File ids don't match this should never happen")
+                }
+                retry_transient_transaction_error!(
+                    db.update_files_static_file_group_ids(
+                        &filez_file.file_id,
+                        &filez_file.static_file_group_ids,
+                        &ftu.field,
+                    )
                     .await
-            );
-        };
-
-        if let Some(new_name) = &fields.name {
-            check_file_name(new_name)?;
-
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::File((
-                    &filez_file,
-                    FilezFilePermissionAclWhatOptions::UpdateFileInfosName,
-                )),
-                db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
+                );
             }
-            retry_transient_transaction_error!(
-                db.update_file_name(&filez_file.file_id, new_name).await
-            );
-        };
-
-        if let Some(new_static_file_group_ids) = &fields.static_file_group_ids {
-            check_static_file_groups(new_static_file_group_ids)?;
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::File((
-                    &filez_file,
-                    FilezFilePermissionAclWhatOptions::UpdateFileInfosStaticFileGroups,
-                )),
-                db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
+            fstu.iter().map(|f| f.file_id.clone()).collect()
+        }
+        UpdateFileInfosRequestField::Keywords(fstu) => {
+            for ftu in fstu.iter() {
+                check_keywords(&ftu.field)?;
             }
-            db.check_file_group_existence(new_static_file_group_ids)
-                .await?;
-
-            retry_transient_transaction_error!(
-                db.update_files_static_file_group_ids(
-                    &filez_file.file_id,
-                    &filez_file.static_file_group_ids,
-                    new_static_file_group_ids,
-                )
-                .await
-            );
-        };
-
-        if let Some(new_keywords) = &fields.keywords {
-            check_keywords(new_keywords)?;
-
-            match check_auth(
-                auth,
-                &AuthResourceToCheck::File((
-                    &filez_file,
-                    FilezFilePermissionAclWhatOptions::UpdateFileInfosKeywords,
-                )),
+            crate::check_auth_multiple!(
                 db,
-            )
-            .await
-            {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-                }
-                Err(e) => bail!(e),
-            }
-            timer.add("20 check_auth");
+                auth,
+                res,
+                fstu,
+                FilezFilePermissionAclWhatOptions::UpdateFileInfosKeywords
+            );
 
-            let new_keywords = new_keywords
+            for ftu in fstu.iter() {
+                // TODO OPTIMIZE make atomic this needs to be fast
+                // if the present keywords are the same as the new keywords, skip the update
+                // if the changed keywords are all the same we can call updateMany with either push or pull for added or removed keywords
+                // this can probably per parallelized too
+
+                let file_id = &ftu.file_id;
+                let new_keywords = &ftu.field;
+
+                let new_keywords = new_keywords
+                    .iter()
+                    .map(|k| {
+                        if k.contains('>') {
+                            // trim whitespace in front and after the > character
+                            k.split('>')
+                                .map(|s| s.trim())
+                                .collect::<Vec<&str>>()
+                                .join(">")
+                        } else {
+                            k.trim().to_string()
+                        }
+                    })
+                    .filter(|k| !k.is_empty())
+                    .unique()
+                    .collect::<Vec<String>>();
+                retry_transient_transaction_error!(
+                    db.update_file_keywords(file_id, &new_keywords).await
+                );
+            }
+            fstu.iter().map(|f| f.file_id.clone()).collect()
+        }
+        UpdateFileInfosRequestField::OwnerId(fstu) => {
+            for ftu in fstu.iter() {
+                check_owner_id(&ftu.field)?;
+            }
+
+            let all_owner_ids = fstu.iter().map(|f| f.field.clone()).unique().collect();
+
+            db.check_users_exist(&all_owner_ids).await?;
+
+            let file_ids = fstu
                 .iter()
-                .map(|k| {
-                    if k.contains('>') {
-                        // trim whitespace in front and after the > character
-                        k.split('>')
-                            .map(|s| s.trim())
-                            .collect::<Vec<&str>>()
-                            .join(">")
-                    } else {
-                        k.trim().to_string()
-                    }
-                })
-                .filter(|k| !k.is_empty())
-                .unique()
+                .map(|f| f.file_id.clone())
                 .collect::<Vec<String>>();
-            retry_transient_transaction_error!(
-                db.update_file_keywords(&filez_file.file_id, &new_keywords)
-                    .await
-            );
-        };
+            let files = db.get_files_by_ids(&file_ids).await?;
 
-        if let Some(new_owner_id) = &fields.owner_id {
-            // check if the file is owned by the user
-            if let Some(requesting_user_id) = &auth.authenticated_ir_user_id {
-                if requesting_user_id == &filez_file.owner_id {
-                    // mark the file as in transfer
-                    // the new owner has to accept the transfer
-                    check_owner_id(new_owner_id)?;
-
-                    if db.get_user_by_id(new_owner_id).await?.is_none() {
-                        bail!("New owner does not exist")
-                    }
-
-                    retry_transient_transaction_error!(
-                        db.update_pending_new_owner_id(&filez_file.file_id, new_owner_id)
-                            .await
-                    );
-                }
+            let all_owned_by_requestor = files.iter().all(|f| f.file_id == requesting_user.user_id);
+            if !all_owned_by_requestor {
+                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
             }
-        };
 
-        if let Some(new_storage_id) = &fields.storage_id {
-            if requesting_user.user_id == filez_file.owner_id {
-                // check if storage id is valid
-                check_storage_id(new_storage_id)?;
+            // group the files by the new owner id
+            let mut files_by_owner_id: HashMap<String, Vec<String>> = HashMap::new();
 
-                // check if storage ids are the same
-                if let Some(current_storage_id) = &filez_file.storage_id {
-                    if current_storage_id == new_storage_id {
-                        bail!("Storage ids are the same")
-                    }
+            for ftu in fstu.iter() {
+                let new_owner_id = ftu.field.clone();
+                // add the owner id to the hashmap if it doesn't exist yet
+                if !files_by_owner_id.contains_key(&new_owner_id) {
+                    files_by_owner_id.insert(new_owner_id.clone(), Vec::new());
+                }
+                // add the file to the hashmap
+                files_by_owner_id
+                    .get_mut(&new_owner_id)
+                    .unwrap()
+                    .push(ftu.file_id.clone());
+            }
+
+            retry_transient_transaction_error!(
+                db.update_files_pending_owner(&files_by_owner_id).await
+            );
+            fstu.iter().map(|f| f.file_id.clone()).collect()
+        }
+        UpdateFileInfosRequestField::StorageId(fstu) => {
+            for ftu in fstu.iter() {
+                check_storage_id(&ftu.field)?;
+            }
+
+            let file_ids = fstu
+                .iter()
+                .map(|f| f.file_id.clone())
+                .collect::<Vec<String>>();
+            let files = db.get_files_by_ids(&file_ids).await?;
+
+            let mut files_by_storage_id: HashMap<String, Vec<FilezFile>> = HashMap::new();
+
+            // check if all files have a different storage id than the new one
+            for file in files.iter() {
+                if requesting_user.user_id != file.owner_id {
+                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+                }
+                if file.readonly {
+                    bail!("One of the files to update is readonly")
                 }
 
-                if filez_file.readonly {
-                    bail!("File is readonly")
+                // find by file id
+                let new_storage_id = &some_or_bail!(
+                    fstu.iter().find(|f| f.file_id == file.file_id),
+                    "File not found in array"
+                )
+                .field;
+
+                if file.storage_id == Some(new_storage_id.to_string()) {
+                    bail!("One of the files to update already has the new storage id")
                 }
 
-                // check if storage path exists
                 some_or_bail!(
-                    config.storage.storages.get(new_storage_id),
+                    config.storage.storages.get(&new_storage_id.to_string()),
                     format!(
                         "Storage name: '{}' is missing in the config file",
                         new_storage_id
                     )
                 );
 
-                // check if the user has access to the storage and their limits wouldn't be exceeded if the file was moved
+                // add the storage id to the hashmap if it doesn't exist yet
+                if !files_by_storage_id.contains_key(&new_storage_id.to_string()) {
+                    files_by_storage_id.insert(new_storage_id.clone(), Vec::new());
+                }
+                // add the file to the hashmap
+                files_by_storage_id
+                    .get_mut(&new_storage_id.to_string())
+                    .unwrap()
+                    .push(file.clone());
+            }
+            // sort the files in the distinct storage ids they are going to be moved to
 
+            // check if the user has access to the storage and their limits wouldn't be exceeded if the files were moved
+            for (new_storage_id, files_per_storage_id) in files_by_storage_id.iter() {
                 let user_storage_limits = match &requesting_user.limits.get(new_storage_id) {
                     Some(Some(ul)) => ul,
                     _ => bail!(
@@ -245,107 +320,77 @@ pub async fn update_file_infos(
                         new_storage_id
                     ),
                 };
-                if user_storage_limits.max_files <= user_storage_limits.used_files {
+                if user_storage_limits.max_files
+                    <= user_storage_limits.used_files + files_per_storage_id.len() as u64
+                {
                     bail!("User has reached the maximum number of files for this storage")
                 }
                 if user_storage_limits.max_storage
-                    <= user_storage_limits.used_storage + filez_file.size
+                    <= user_storage_limits.used_storage
+                        + files_per_storage_id.iter().map(|f| f.size).sum::<u64>()
                 {
                     bail!("User has reached the maximum size for this storage")
                 }
 
-                // move the file
-                let new_storage_location = get_future_storage_location(
-                    &config.storage,
-                    &filez_file.file_id,
-                    Some(new_storage_id),
-                )?;
+                for filez_file in files_per_storage_id {
+                    // move the file
+                    let new_storage_location = get_future_storage_location(
+                        &config.storage,
+                        &filez_file.file_id,
+                        Some(new_storage_id),
+                    )?;
 
-                let old_storage_location =
-                    get_storage_location_from_file(&config.storage, &filez_file)?;
+                    let old_storage_location =
+                        get_storage_location_from_file(&config.storage, filez_file)?;
 
-                fs::create_dir_all(&new_storage_location.folder_path).await?;
+                    fs::create_dir_all(&new_storage_location.folder_path).await?;
 
-                // TODO move app data too
+                    // TODO move app data too
 
-                if let Err(e) = fs::copy(
-                    &old_storage_location.full_path,
-                    &new_storage_location.full_path,
-                )
-                .await
-                {
-                    println!("FATAL ERROR: Failed to move file: {}", e);
-                    bail!("Failed to move file")
-                };
-
-                while let Err(e) = db
-                    .update_file_storage_id(&filez_file, new_storage_id, &requesting_user)
+                    if fs::copy(
+                        &old_storage_location.full_path,
+                        &new_storage_location.full_path,
+                    )
                     .await
-                {
-                    if is_transient_transaction_error!(e) {
-                        continue;
-                    } else {
-                        if let Err(e) = fs::remove_file(&new_storage_location.full_path).await {
-                            println!("FATAL ERROR: Failed to remove new file: {}", e);
-                        };
+                    .is_err()
+                    {
+                        bail!("Failed to move file")
+                    };
 
-                        bail!("Failed to update storage id: {e}")
+                    while let Err(e) = db
+                        .update_file_storage_id(filez_file, new_storage_id, &requesting_user)
+                        .await
+                    {
+                        if is_transient_transaction_error!(e) {
+                            continue;
+                        } else {
+                            if let Err(e) = fs::remove_file(&new_storage_location.full_path).await {
+                                println!("FATAL ERROR: Failed to remove new file after database update failed: {}", e);
+                            };
+
+                            bail!("Failed to update storage id: {e}")
+                        }
                     }
-                }
-                if let Err(e) = fs::remove_file(&old_storage_location.full_path).await {
-                    println!("FATAL ERROR: Failed to remove old file: {}", e);
-                };
-            }
-        };
-
-        if let Some(permission_ids) = &fields.permission_ids {
-            let requesting_user = match &auth.authenticated_ir_user_id {
-            Some(ir_user_id) => match db.get_user_by_ir_id(ir_user_id).await? {
-                Some(u) => u,
-                None => bail!("User has not been created on the filez server, although it is present on the IR server. Run create_own first."),
-            },
-            None =>  return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap()),
-        };
-
-            if requesting_user.user_id != filez_file.owner_id {
-                return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
-            }
-            // check if all permissions are owned by the requesting user
-            let permissions = db.get_permissions_by_resource_ids(permission_ids).await?;
-            for permission in permissions {
-                if permission.owner_id != requesting_user.user_id {
-                    return Ok(res.status(401).body(Body::from("Unauthorized")).unwrap());
+                    if let Err(e) = fs::remove_file(&old_storage_location.full_path).await {
+                        println!("FATAL ERROR: Failed to remove old file after database insertion success: {}", e);
+                    };
                 }
             }
-
-            while let Err(e) = db
-                .update_file_permission_ids(&filez_file.file_id, permission_ids)
-                .await
-            {
-                if is_transient_transaction_error!(e) {
-                    continue;
-                } else {
-                    bail!(e)
-                }
-            }
+            fstu.iter().map(|f| f.file_id.clone()).collect()
         }
+    };
 
-        timer.add("30 update_file");
-        //TODO OPTIMIZE handle the whole thing in one call, and make it atomic
-        let updated_file = some_or_bail!(
-            db.get_file_by_id(&filez_file.file_id).await?,
-            "Could not find just updated file?!"
-        );
+    timer.add("20 Update files");
 
-        timer.add("40 write_updates_to_db");
-        handle_dynamic_group_update(
-            db,
-            &UpdateType::Files(vec![updated_file]),
-            &requesting_user.user_id,
-        )
-        .await?;
-        timer.add("50 handle_dynamic_group_update");
-    }
+    let updated_files = db.get_files_by_ids(&updated_file_ids).await?;
+
+    handle_dynamic_group_update(
+        db,
+        &UpdateType::Files(updated_files),
+        &requesting_user.user_id,
+    )
+    .await?;
+    timer.add("30 Dynamic Group Updates");
 
     Ok(res
         .status(200)
@@ -357,31 +402,55 @@ pub async fn update_file_infos(
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct UpdateFileInfosRequestBody {
-    pub files: Vec<UpdateFileInfosRequestBodySingle>,
+    pub data: UpdateFileInfosRequestField,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub struct UpdateFileInfosRequestBodySingle {
+pub enum UpdateFileInfosRequestField {
+    MimeType(Vec<UpdateFileInfosRequestBodySingle<String>>),
+    Name(Vec<UpdateFileInfosRequestBodySingle<String>>),
+    StaticFileGroupsIds(Vec<UpdateFileInfosRequestBodySingle<Vec<String>>>),
+    Keywords(Vec<UpdateFileInfosRequestBodySingle<Vec<String>>>),
+    OwnerId(Vec<UpdateFileInfosRequestBodySingle<String>>),
+    StorageId(Vec<UpdateFileInfosRequestBodySingle<String>>),
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct UpdateFileInfosRequestBodySingle<T> {
     pub file_id: String,
-    pub fields: UpdateFileInfosRequestField,
+    pub field: T,
 }
 
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub struct UpdateFileInfosRequestField {
-    #[ts(optional)]
-    pub mime_type: Option<String>,
-    #[ts(optional)]
-    pub name: Option<String>,
-    #[ts(optional)]
-    pub static_file_group_ids: Option<Vec<String>>,
-    #[ts(optional)]
-    pub keywords: Option<Vec<String>>,
-    #[ts(optional)]
-    pub owner_id: Option<String>,
-    #[ts(optional)]
-    pub storage_id: Option<String>,
-    #[ts(optional)]
-    pub permission_ids: Option<Vec<String>>,
+#[macro_export]
+macro_rules! check_auth_multiple {
+    ($db:expr, $auth:expr, $res:expr, $files_to_update:expr, $acl_what_options:expr) => {{
+        let file_ids = $files_to_update
+            .iter()
+            .map(|f| f.file_id.clone())
+            .collect::<Vec<String>>();
+
+        let files = $db.get_files_by_ids(&file_ids).await?;
+        let files_auth = files
+            .clone()
+            .iter()
+            .map(|file| Box::new((*file).clone()) as Box<dyn PermissiveResource>)
+            .collect();
+        match check_auth_multiple(
+            $auth,
+            &files_auth,
+            &CommonAclWhatOptions::File($acl_what_options),
+            $db,
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return Ok($res.status(401).body(Body::from("Unauthorized")).unwrap());
+            }
+            Err(e) => bail!(e),
+        }
+        files
+    }};
 }
