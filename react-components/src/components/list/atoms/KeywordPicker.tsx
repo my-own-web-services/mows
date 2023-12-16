@@ -156,18 +156,18 @@ export default class KeywordPicker extends PureComponent<
         knownKeywords: TagData[]
     ) => {
         if (this.props.serverUpdate !== false) {
-            await this.context?.filezClient.update_file_infos(
-                {
-                    data:{
-                        Keywords: Object.entries(resourceMap).map(([file_id, keywords]) => {
+            await this.context?.filezClient.update_file_infos({
+                data: {
+                    Keywords: Object.entries(resourceMap).map(
+                        ([file_id, keywords]) => {
                             return {
                                 file_id,
                                 field: keywords
                             };
-                        })
-                    }
+                        }
+                    )
                 }
-            );
+            });
         }
         this.setState({ resourceMap });
 
@@ -180,6 +180,7 @@ export default class KeywordPicker extends PureComponent<
         return (
             <div className="Keywords">
                 <MultiItemTagPicker
+                    disabled={this.props.disabled}
                     multiItemSelectedTags={this.state.resourceMap}
                     knownCategories={knownCategories}
                     possibleTags={this.state.knownKeywords}

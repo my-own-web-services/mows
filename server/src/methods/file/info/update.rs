@@ -10,12 +10,12 @@ use crate::{
     retry_transient_transaction_error, some_or_bail,
     utils::{
         check_file_name, check_keywords, check_mime_type, check_owner_id, check_static_file_groups,
-        check_storage_id,
+        check_storage_id, fix_hierarchic_keywords,
     },
 };
 use anyhow::bail;
 use filez_common::{
-    server::{FilezFile, PermissiveResource},
+    server::{FileGroupType, FilezFile, PermissiveResource},
     storage::index::{get_future_storage_location, get_storage_location_from_file},
 };
 use hyper::{Body, Request, Response};
@@ -28,7 +28,7 @@ use ts_rs::TS;
 # Updates the infos of given files.
 
 ## Atomicity
-No, will be aborted as soon as one file fails to update.
+Yes, for all but the storageId update.
 
 ## Call
 
@@ -50,8 +50,6 @@ Yes
 
 */
 
-// TODO enable only one of the fields at a time; most of the time this will be the case anyway and it makes everything easier
-
 pub async fn update_file_infos(
     req: Request<Body>,
     db: &DB,
@@ -70,7 +68,7 @@ pub async fn update_file_infos(
     let ufir: UpdateFileInfosRequestBody = serde_json::from_slice(&body)?;
 
     // check phase
-    let updated_file_ids: Vec<String> = match ufir.data {
+    let (updated_file_ids, changed_field): (Vec<String>, String) = match ufir.data {
         UpdateFileInfosRequestField::MimeType(fstu) => {
             for ftu in fstu.iter() {
                 check_mime_type(&ftu.field)?;
@@ -102,7 +100,10 @@ pub async fn update_file_infos(
             retry_transient_transaction_error!(
                 db.update_files_mime_types(&file_ids_by_mime_type).await
             );
-            fstu.iter().map(|f| f.file_id.clone()).collect()
+            (
+                fstu.iter().map(|f| f.file_id.clone()).collect(),
+                "mime_type".to_string(),
+            )
         }
         UpdateFileInfosRequestField::Name(fstu) => {
             for ftu in fstu.iter() {
@@ -133,10 +134,12 @@ pub async fn update_file_infos(
             }
 
             retry_transient_transaction_error!(db.update_files_names(&file_ids_by_name).await);
-            fstu.iter().map(|f| f.file_id.clone()).collect()
+            (
+                fstu.iter().map(|f| f.file_id.clone()).collect(),
+                "name".to_string(),
+            )
         }
         UpdateFileInfosRequestField::StaticFileGroupsIds(fstu) => {
-            // TODO optimize make atomic this needs to be fast
             for ftu in fstu.iter() {
                 check_static_file_groups(&ftu.field)?;
             }
@@ -153,32 +156,88 @@ pub async fn update_file_infos(
                 FilezFilePermissionAclWhatOptions::UpdateFileInfosStaticFileGroups
             );
 
+            // basically the same as the keywords update
+
+            let mut file_ids_by_single_static_file_groups_to_be_added: HashMap<
+                String,
+                Vec<String>,
+            > = HashMap::new();
+            let mut file_ids_by_single_static_file_groups_to_be_removed: HashMap<
+                String,
+                Vec<String>,
+            > = HashMap::new();
             for ftu in fstu.iter() {
-                // find the corresponding file in the db
                 let filez_file = some_or_bail!(
                     files.iter().find(|f| f.file_id == ftu.file_id),
                     "Could not find file in db"
                 );
+                // get the added and removed static file groups
+                let added_static_file_groups = ftu
+                    .field
+                    .iter()
+                    .filter(|k| !filez_file.static_file_group_ids.contains(k))
+                    .collect::<Vec<&String>>();
 
-                if ftu.file_id != filez_file.file_id {
-                    bail!("File ids don't match this should never happen")
+                let removed_static_file_groups = filez_file
+                    .static_file_group_ids
+                    .iter()
+                    .filter(|k| !ftu.field.contains(k))
+                    .collect::<Vec<&String>>();
+
+                // add the static file groups to the hashmap if they don't exist yet
+                for static_file_group in added_static_file_groups.iter() {
+                    if !file_ids_by_single_static_file_groups_to_be_added
+                        .contains_key(*static_file_group)
+                    {
+                        file_ids_by_single_static_file_groups_to_be_added
+                            .insert((*static_file_group).clone(), Vec::new());
+                    }
                 }
-                retry_transient_transaction_error!(
-                    db.update_files_static_file_group_ids(
-                        &filez_file.file_id,
-                        &filez_file.static_file_group_ids,
-                        &ftu.field,
-                    )
-                    .await
-                );
+
+                for static_file_group in removed_static_file_groups.iter() {
+                    if !file_ids_by_single_static_file_groups_to_be_removed
+                        .contains_key(*static_file_group)
+                    {
+                        file_ids_by_single_static_file_groups_to_be_removed
+                            .insert((*static_file_group).clone(), Vec::new());
+                    }
+                }
+
+                // add the file to the hashmap
+                for static_file_group in added_static_file_groups.iter() {
+                    file_ids_by_single_static_file_groups_to_be_added
+                        .get_mut(*static_file_group)
+                        .unwrap()
+                        .push(ftu.file_id.clone());
+                }
+
+                for static_file_group in removed_static_file_groups.iter() {
+                    file_ids_by_single_static_file_groups_to_be_removed
+                        .get_mut(*static_file_group)
+                        .unwrap()
+                        .push(ftu.file_id.clone());
+                }
             }
-            fstu.iter().map(|f| f.file_id.clone()).collect()
+
+            retry_transient_transaction_error!(
+                db.update_files_and_file_groups(
+                    &file_ids_by_single_static_file_groups_to_be_added,
+                    &file_ids_by_single_static_file_groups_to_be_removed,
+                    FileGroupType::Static
+                )
+                .await
+            );
+
+            (
+                fstu.iter().map(|f| f.file_id.clone()).collect(),
+                "static_file_group_ids".to_string(),
+            )
         }
         UpdateFileInfosRequestField::Keywords(fstu) => {
             for ftu in fstu.iter() {
                 check_keywords(&ftu.field)?;
             }
-            crate::check_auth_multiple!(
+            let files = crate::check_auth_multiple!(
                 db,
                 auth,
                 res,
@@ -186,36 +245,70 @@ pub async fn update_file_infos(
                 FilezFilePermissionAclWhatOptions::UpdateFileInfosKeywords
             );
 
+            let mut file_ids_by_single_keywords_to_be_added: HashMap<String, Vec<String>> =
+                HashMap::new();
+            let mut file_ids_by_single_keywords_to_be_removed: HashMap<String, Vec<String>> =
+                HashMap::new();
             for ftu in fstu.iter() {
-                // TODO OPTIMIZE make atomic this needs to be fast
-                // if the present keywords are the same as the new keywords, skip the update
-                // if the changed keywords are all the same we can call updateMany with either push or pull for added or removed keywords
-                // this can probably per parallelized too
-
-                let file_id = &ftu.file_id;
-                let new_keywords = &ftu.field;
-
-                let new_keywords = new_keywords
-                    .iter()
-                    .map(|k| {
-                        if k.contains('>') {
-                            // trim whitespace in front and after the > character
-                            k.split('>')
-                                .map(|s| s.trim())
-                                .collect::<Vec<&str>>()
-                                .join(">")
-                        } else {
-                            k.trim().to_string()
-                        }
-                    })
-                    .filter(|k| !k.is_empty())
-                    .unique()
-                    .collect::<Vec<String>>();
-                retry_transient_transaction_error!(
-                    db.update_file_keywords(file_id, &new_keywords).await
+                let keywords_to_be_set = fix_hierarchic_keywords(ftu.field.clone());
+                let filez_file = some_or_bail!(
+                    files.iter().find(|f| f.file_id == ftu.file_id),
+                    "Could not find file in db"
                 );
+                // get the added and removed keywords
+                let added_keywords = keywords_to_be_set
+                    .iter()
+                    .filter(|k| !filez_file.keywords.contains(k))
+                    .collect::<Vec<&String>>();
+                let removed_keywords = filez_file
+                    .keywords
+                    .iter()
+                    .filter(|k| !keywords_to_be_set.contains(k))
+                    .collect::<Vec<&String>>();
+
+                // add the keywords to the hashmap if they don't exist yet
+                for keyword in added_keywords.iter() {
+                    if !file_ids_by_single_keywords_to_be_added.contains_key(*keyword) {
+                        file_ids_by_single_keywords_to_be_added
+                            .insert((*keyword).clone(), Vec::new());
+                    }
+                }
+
+                for keyword in removed_keywords.iter() {
+                    if !file_ids_by_single_keywords_to_be_removed.contains_key(*keyword) {
+                        file_ids_by_single_keywords_to_be_removed
+                            .insert((*keyword).clone(), Vec::new());
+                    }
+                }
+
+                // add the file to the hashmap
+                for keyword in added_keywords.iter() {
+                    file_ids_by_single_keywords_to_be_added
+                        .get_mut(*keyword)
+                        .unwrap()
+                        .push(ftu.file_id.clone());
+                }
+
+                for keyword in removed_keywords.iter() {
+                    file_ids_by_single_keywords_to_be_removed
+                        .get_mut(*keyword)
+                        .unwrap()
+                        .push(ftu.file_id.clone());
+                }
             }
-            fstu.iter().map(|f| f.file_id.clone()).collect()
+
+            retry_transient_transaction_error!(
+                db.update_file_keywords(
+                    &file_ids_by_single_keywords_to_be_added,
+                    &file_ids_by_single_keywords_to_be_removed
+                )
+                .await
+            );
+
+            (
+                fstu.iter().map(|f| f.file_id.clone()).collect(),
+                "keywords".to_string(),
+            )
         }
         UpdateFileInfosRequestField::OwnerId(fstu) => {
             for ftu in fstu.iter() {
@@ -256,7 +349,10 @@ pub async fn update_file_infos(
             retry_transient_transaction_error!(
                 db.update_files_pending_owner(&files_by_owner_id).await
             );
-            fstu.iter().map(|f| f.file_id.clone()).collect()
+            (
+                fstu.iter().map(|f| f.file_id.clone()).collect(),
+                "owner_id".to_string(),
+            )
         }
         UpdateFileInfosRequestField::StorageId(fstu) => {
             for ftu in fstu.iter() {
@@ -376,21 +472,24 @@ pub async fn update_file_infos(
                     };
                 }
             }
-            fstu.iter().map(|f| f.file_id.clone()).collect()
+            (
+                fstu.iter().map(|f| f.file_id.clone()).collect(),
+                "storage_id".to_string(),
+            )
         }
     };
 
-    timer.add("20 Update files");
+    timer.add("20 Update Files");
 
     let updated_files = db.get_files_by_ids(&updated_file_ids).await?;
-
     handle_dynamic_group_update(
         db,
-        &UpdateType::Files(updated_files),
+        &UpdateType::Files((updated_files, Some(changed_field))),
         &requesting_user.user_id,
     )
     .await?;
-    timer.add("30 Dynamic Group Updates");
+
+    timer.add("30 Update Dynamic Groups");
 
     Ok(res
         .status(200)

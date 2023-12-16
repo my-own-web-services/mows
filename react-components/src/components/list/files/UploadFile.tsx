@@ -159,7 +159,7 @@ export default class UploadFile extends PureComponent<
                     dynamic_group_rules: null,
                     group_hierarchy_paths: [],
                     group_type: "Static",
-                    keywords: this.state.keywords,
+                    keywords: [],
                     name: this.state.uploadGroupName,
                     permission_ids: [],
                     mime_types: []
@@ -172,8 +172,9 @@ export default class UploadFile extends PureComponent<
             if (!file.blobFile) continue;
             const filezFile: FilezFile = cloneDeep(defaultFile);
             filezFile.name = file.name ?? "";
-            filezFile.mime_type =
-                file.blobFile?.type ?? "application/octet-stream";
+            filezFile.mime_type = file.blobFile?.type.length
+                ? file.blobFile?.type
+                : "application/octet-stream";
             filezFile.keywords = this.state.keywords;
             filezFile.storage_id = this.state.selectedStorageId;
             filezFile.permission_ids = [];
@@ -294,10 +295,14 @@ export default class UploadFile extends PureComponent<
     };
 
     onKeywordsChange = (resources: MultiItemTagPickerResources) => {
+        console.log(resources.default);
+
         this.setState({ keywords: resources.default });
     };
 
     updateSelectedStorageId = (storage_id: string) => {
+        console.log(storage_id);
+
         this.setState(
             update(this.state, {
                 selectedStorageId: {
@@ -377,6 +382,7 @@ export default class UploadFile extends PureComponent<
                 </div>
                 <div>
                     <StoragePicker
+                        serverUpdate={false}
                         disabled={this.state.uploading}
                         onChange={this.updateSelectedStorageId}
                     />

@@ -1,10 +1,11 @@
-use crate::{config::SERVER_CONFIG, db::DB};
+use crate::{config::SERVER_CONFIG, db::DB, some_or_bail, utils::generate_id};
 use anyhow::bail;
 use filez_common::{
-    server::{GetItemListRequestBody, UserStatus},
-    storage::index::get_storage_location_from_file,
+    server::{FileGroupType, FilezFile, FilezFileGroup, GetItemListRequestBody, UserStatus},
+    storage::index::{get_future_storage_location, get_storage_location_from_file},
 };
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs};
 
 pub async fn dev(db: &DB) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
@@ -17,12 +18,111 @@ pub async fn dev(db: &DB) -> anyhow::Result<()> {
         create_users(db).await?;
     }
 
+    if let Some(create_mock_files_limit) = &config.dev.create_mock_file_entries_until_reached_limit
+    {
+        println!("Creating mock files");
+        create_mock_file_entries(db, *create_mock_files_limit).await?;
+    }
+
     if config.dev.check_database_consistency_on_startup {
         match check_database_consistency(db).await {
             Ok(_) => println!("Database consistency check passed: Everything is fine!"),
             Err(e) => println!("Database consistency check failed: {}", e),
         }
     }
+
+    Ok(())
+}
+
+pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> anyhow::Result<()> {
+    let config = &SERVER_CONFIG;
+
+    let current_files = db.get_total_ammount_of_files().await? as u32;
+
+    let email = some_or_bail!(
+        &config.dev.mock_files_owner_email,
+        "No mock files owner email set"
+    );
+
+    let owner = some_or_bail!(
+        db.get_user_by_email(email).await?,
+        "No user found with email"
+    );
+
+    let mut files = vec![];
+
+    let storage_id: String = config.storage.default_storage.clone();
+
+    let files_to_create = create_mock_files_limit - current_files;
+    println!(
+        "Creating {} mock files for user with id: {}",
+        files_to_create, owner.user_id
+    );
+
+    let now = chrono::Utc::now().timestamp_millis();
+
+    let group_id = generate_id(16);
+    db.create_file_group(&FilezFileGroup {
+        owner_id: owner.user_id.to_string(),
+        name: Some("mock_files".to_string()),
+        file_group_id: group_id.clone(),
+        permission_ids: vec![],
+        keywords: vec![],
+        group_hierarchy_paths: vec![],
+        mime_types: vec![],
+        group_type: FileGroupType::Static,
+        item_count: 0,
+        dynamic_group_rules: None,
+        readonly: true,
+    })
+    .await?;
+
+    let static_file_group_ids = vec![group_id, format!("{}_all", owner.user_id)];
+
+    for i in 0..files_to_create {
+        let file_id = generate_id(16);
+
+        let size = rand::random::<u8>();
+
+        let file = FilezFile {
+            file_id: file_id.clone(),
+            mime_type: "application/octet-stream".to_string(),
+            name: generate_id(16),
+            owner_id: owner.user_id.clone(),
+            pending_new_owner_id: None,
+            sha256: None,
+            storage_id: Some(storage_id.clone()),
+            size: size.into(),
+            server_created: now,
+            created: now,
+            modified: None,
+            accessed: None,
+            accessed_count: 0,
+            static_file_group_ids: static_file_group_ids.clone(),
+            dynamic_file_group_ids: vec![],
+            manual_group_sortings: HashMap::new(),
+            time_of_death: None,
+            app_data: HashMap::new(),
+            permission_ids: vec![],
+            keywords: vec![],
+            readonly: true,
+            readonly_path: None,
+            linked_files: vec![],
+            sub_type: None,
+        };
+
+        let future_storage_location =
+            get_future_storage_location(&config.storage, &file_id, Some(&storage_id))?;
+
+        fs::create_dir_all(&future_storage_location.folder_path)?;
+
+        fs::write(&future_storage_location.full_path, generate_id(size.into()))?;
+
+        files.push(file);
+    }
+
+    db.create_many_mock_files(files, static_file_group_ids)
+        .await?;
 
     Ok(())
 }

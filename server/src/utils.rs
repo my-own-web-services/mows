@@ -2,6 +2,7 @@ use crate::{config::SERVER_CONFIG, db::DB, some_or_bail};
 use anyhow::bail;
 use filez_common::server::{FilezFile, UsageLimits};
 use hyper::{Body, Request};
+use itertools::Itertools;
 use qstring::QString;
 use serde_json::Value;
 use std::{collections::HashMap, num::ParseIntError};
@@ -271,4 +272,23 @@ pub fn filter_files_by_owner_id(files: &Vec<FilezFile>, owner_id: &str) -> Vec<F
         }
     }
     filtered_files
+}
+
+pub fn fix_hierarchic_keywords(new_keywords: Vec<String>) -> Vec<String> {
+    new_keywords
+        .iter()
+        .map(|k| {
+            if k.contains('>') {
+                // trim whitespace in front and after the > character
+                k.split('>')
+                    .map(|s| s.trim())
+                    .collect::<Vec<&str>>()
+                    .join(">")
+            } else {
+                k.trim().to_string()
+            }
+        })
+        .filter(|k| !k.is_empty())
+        .unique()
+        .collect::<Vec<String>>()
 }

@@ -143,23 +143,24 @@ export default class FileList extends PureComponent<
         if (targetItemType === "FileGroup") {
             console.log(targetItemId);
 
-            const res = await this.context.filezClient.update_file_infos(
-                selectedFiles.flatMap((f) => {
-                    if (f.static_file_group_ids.includes(targetItemId))
-                        return [];
-                    return [
-                        {
-                            file_id: f._id,
-                            fields: {
-                                static_file_group_ids: [
+            const res = await this.context.filezClient.update_file_infos({
+                data: {
+                    StaticFileGroupsIds: selectedFiles.flatMap((f) => {
+                        if (f.static_file_group_ids.includes(targetItemId)) {
+                            return [];
+                        }
+                        return [
+                            {
+                                file_id: f._id,
+                                field: [
                                     ...f.static_file_group_ids,
                                     targetItemId
                                 ]
                             }
-                        }
-                    ];
-                })
-            );
+                        ];
+                    })
+                }
+            });
 
             if (res.status === 200) {
                 this.resourceListRef.current?.refreshList();

@@ -96,8 +96,10 @@ filez:
             disableComplexAccessControl: true
             createMockUsers: true
             checkDatabaseConsistencyOnStartup: true
-            checkDatabaseConsistencyOnMutatingRequests: true
+            checkDatabaseConsistencyOnMutatingRequests: false
             checkDatabaseConsistencyRemoveOrphanedFiles: false
+            createMockFileEntriesUntilReachedLimit: 1000000
+            mockFilesOwnerEmail: test@vindelicum.eu
     web:
         build:
             enabled: true

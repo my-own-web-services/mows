@@ -84,6 +84,8 @@ pub struct DevConfig {
     pub check_database_consistency_on_startup: bool,
     pub check_database_consistency_on_mutating_requests: bool,
     pub check_database_consistency_remove_orphaned_files: bool,
+    pub create_mock_file_entries_until_reached_limit: Option<u32>,
+    pub mock_files_owner_email: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -111,4 +113,5 @@ pub struct HttpConfig {
 #[serde(rename_all = "camelCase")]
 pub struct DbConfig {
     pub url: String,
+    pub parallel_queries: u32,
 }

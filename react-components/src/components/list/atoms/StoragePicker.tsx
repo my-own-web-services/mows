@@ -98,7 +98,7 @@ export default class StoragePicker extends PureComponent<
             });
         }
         // TODO get the default selected storage from the default storage option from the server config
-        this.setState({ selectedStorageId: availableStorages[0].storage_id });
+        //this.setState({ selectedStorageId: availableStorages[0].storage_id });
 
         this.setState({ availableStorages });
     };
@@ -107,6 +107,7 @@ export default class StoragePicker extends PureComponent<
         if (!this.context) return;
         if (!this.props.fileIds || !this.state.files) {
             this.setState({ selectedStorageId: value });
+            this.props.onChange?.(value);
             return;
         }
 

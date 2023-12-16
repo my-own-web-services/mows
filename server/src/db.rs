@@ -1,6 +1,5 @@
 use crate::{
     config::SERVER_CONFIG,
-    dynamic_groups::GroupChange,
     methods::{
         set_app_data::SetAppDataRequest,
         update_permission_ids_on_resource::UpdatePermissionIdsOnResourceRequestBody,
@@ -32,16 +31,14 @@ pub struct DB {
 }
 
 impl DB {
-    pub async fn new(
-        client_options: ClientOptions,
-        parallel_queries: Option<u32>,
-    ) -> anyhow::Result<Self> {
+    pub async fn new(client_options: ClientOptions) -> anyhow::Result<Self> {
         let client = Client::with_options(client_options)?;
         let db = client.database("filez");
+        let config = &SERVER_CONFIG;
         Ok(Self {
             client,
             db,
-            parallel_queries: parallel_queries.unwrap_or(100),
+            parallel_queries: config.db.parallel_queries,
         })
     }
 
@@ -82,7 +79,16 @@ impl DB {
             };
         }
         {
-            let index = IndexModel::builder().keys(doc! {"keywords": 1}).build();
+            let index = IndexModel::builder()
+                .keys(doc! {"static_file_group_ids": 1})
+                .build();
+            match files_collection.create_index(index, None).await {
+                Ok(_) => {}
+                Err(e) => println!("Error creating index on files collection: {:?}", e),
+            };
+        }
+        {
+            let index = IndexModel::builder().keys(doc! {"name": 1}).build();
             match files_collection.create_index(index, None).await {
                 Ok(_) => {}
                 Err(e) => println!("Error creating index on files collection: {:?}", e),
@@ -180,103 +186,6 @@ impl DB {
             .await?;
 
         Ok(res)
-    }
-
-    pub async fn update_dynamic_file_groups_on_many_files(
-        &self,
-        to_be_updated: &Vec<GroupChange>,
-    ) -> anyhow::Result<()> {
-        let mut session = self.client.start_session(None).await?;
-        session.start_transaction(None).await?;
-
-        dbg!(&to_be_updated);
-
-        let files_collection = self.db.collection::<FilezFile>("files");
-        let file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
-
-        let mut file_count_map: HashMap<String, i64> = HashMap::new();
-
-        for tba in to_be_updated {
-            let file_id = &tba.file_id;
-            let added_groups = &tba.added_groups;
-            let removed_groups = &tba.removed_groups;
-
-            for file_group_id in added_groups {
-                if file_count_map.contains_key(file_group_id) {
-                    let count = file_count_map.get(file_group_id).unwrap();
-                    file_count_map.insert(file_group_id.clone(), count + 1);
-                } else {
-                    file_count_map.insert(file_group_id.clone(), 1);
-                }
-            }
-
-            if !added_groups.is_empty() {
-                files_collection
-                    .update_one_with_session(
-                        doc! {
-                            "_id": file_id
-                        },
-                        doc! {
-                            "$push": {
-                                "dynamic_file_group_ids": {
-                                    "$each": &added_groups
-                                }
-                            }
-                        },
-                        None,
-                        &mut session,
-                    )
-                    .await?;
-            }
-
-            for file_group_id in removed_groups {
-                if file_count_map.contains_key(file_group_id) {
-                    let count = file_count_map.get(file_group_id).unwrap();
-                    file_count_map.insert(file_group_id.clone(), count - 1);
-                } else {
-                    file_count_map.insert(file_group_id.clone(), -1);
-                }
-            }
-
-            if !removed_groups.is_empty() {
-                files_collection
-                    .update_one_with_session(
-                        doc! {
-                            "_id": file_id
-                        },
-                        doc! {
-                            "$pull": {
-                                "dynamic_file_group_ids": {
-                                    "$in": &removed_groups
-                                }
-                            }
-                        },
-                        None,
-                        &mut session,
-                    )
-                    .await?;
-            }
-        }
-
-        //set the new file count on the groups
-        for (file_group_id, file_count) in file_count_map {
-            file_groups_collection
-                .update_one_with_session(
-                    doc! {
-                        "_id": file_group_id
-                    },
-                    doc! {
-                        "$inc": {
-                            "item_count": bson::to_bson(&file_count)?
-                        }
-                    },
-                    None,
-                    &mut session,
-                )
-                .await?;
-        }
-
-        Ok(session.commit_transaction().await?)
     }
 
     pub async fn get_files_by_owner_id(&self, owner_id: &str) -> anyhow::Result<Vec<FilezFile>> {
@@ -1032,89 +941,147 @@ impl DB {
         Ok(session.commit_transaction().await?)
     }
 
-    pub async fn update_files_static_file_group_ids(
+    pub async fn update_files_and_file_groups(
         &self,
-        file_id: &str,
-        old_static_file_group_ids: &Vec<String>,
-        new_static_file_group_ids: &Vec<String>,
+        file_ids_by_single_group_to_be_added: &HashMap<String, Vec<String>>,
+        file_ids_by_single_group_to_be_removed: &HashMap<String, Vec<String>>,
+        group_type: FileGroupType,
     ) -> anyhow::Result<()> {
         let files_collection = self.db.collection::<FilezFile>("files");
-        let static_file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
+        let file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         let mut session = self.client.start_session(None).await?;
         session.start_transaction(None).await?;
 
-        files_collection
-            .update_one_with_session(
-                doc! {
-                    "_id": file_id
-                },
-                doc! {
-                    "$set": {
-                        "static_file_group_ids": new_static_file_group_ids
-                    }
-                },
-                None,
-                &mut session,
-            )
-            .await?;
+        let field = match group_type {
+            FileGroupType::Static => "static_file_group_ids",
+            FileGroupType::Dynamic => "dynamic_file_group_ids",
+        };
 
-        static_file_groups_collection
-            .update_many_with_session(
-                doc! {
-                    "_id": {
-                        "$in": old_static_file_group_ids
-                    }
-                },
-                doc! {
-                    "$inc": {
-                        "item_count": -1
-                    }
-                },
-                None,
-                &mut session,
-            )
-            .await?;
+        for (file_group_id, file_ids) in file_ids_by_single_group_to_be_added {
+            files_collection
+                .update_many_with_session(
+                    doc! {
+                        "_id": {
+                            "$in": file_ids
+                        }
+                    },
+                    doc! {
+                        "$push": {
+                            field: file_group_id
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
 
-        static_file_groups_collection
-            .update_many_with_session(
-                doc! {
-                    "_id": {
-                        "$in": new_static_file_group_ids
-                    }
-                },
-                doc! {
-                    "$inc": {
-                        "item_count": 1
-                    }
-                },
-                None,
-                &mut session,
-            )
-            .await?;
+        for (file_group_id, file_ids) in file_ids_by_single_group_to_be_removed {
+            files_collection
+                .update_many_with_session(
+                    doc! {
+                        "_id": {
+                            "$in": file_ids
+                        }
+                    },
+                    doc! {
+                        "$pull": {
+                            field: file_group_id
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
+
+        for (file_group_id, file_ids) in file_ids_by_single_group_to_be_added {
+            file_groups_collection
+                .update_many_with_session(
+                    doc! {
+                        "_id": file_group_id
+                    },
+                    doc! {
+                        "$inc": {
+                            "item_count": file_ids.len() as i64
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
+
+        for (file_group_id, file_ids) in file_ids_by_single_group_to_be_removed {
+            file_groups_collection
+                .update_many_with_session(
+                    doc! {
+                        "_id": file_group_id
+                    },
+                    doc! {
+                        "$inc": {
+                            "item_count": -(file_ids.len() as i64)
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
 
         Ok(session.commit_transaction().await?)
     }
 
     pub async fn update_file_keywords(
         &self,
-        file_id: &str,
-        new_keywords: &Vec<String>,
-    ) -> anyhow::Result<UpdateResult> {
+        file_ids_by_single_keyword_to_be_added: &HashMap<String, Vec<String>>,
+        file_ids_by_single_keyword_to_be_removed: &HashMap<String, Vec<String>>,
+    ) -> anyhow::Result<()> {
         let collection = self.db.collection::<FilezFile>("files");
-        Ok(collection
-            .update_one(
-                doc! {
-                    "_id": file_id
-                },
-                doc! {
-                    "$set": {
-                        "keywords": new_keywords
-                    }
-                },
-                None,
-            )
-            .await?)
+
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
+
+        for (keyword, file_ids) in file_ids_by_single_keyword_to_be_added {
+            collection
+                .update_many_with_session(
+                    doc! {
+                        "_id": {
+                            "$in": file_ids
+                        }
+                    },
+                    doc! {
+                        "$push": {
+                            "keywords": keyword
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
+
+        for (keyword, file_ids) in file_ids_by_single_keyword_to_be_removed {
+            collection
+                .update_many_with_session(
+                    doc! {
+                        "_id": {
+                            "$in": file_ids
+                        }
+                    },
+                    doc! {
+                        "$pull": {
+                            "keywords": keyword
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
+
+        Ok(session.commit_transaction().await?)
     }
 
     pub async fn update_file_storage_id(
@@ -1417,31 +1384,37 @@ impl DB {
             .build();
 
         let search_filter = match &gir.filter {
-            Some(f) => doc! {
-                "$or": [
-                    {
-                        "name": {
-                            "$regex": &f
-                        }
-                    },
-                    {
-                        "_id": &f
-                    },
-                    {
-                        "owner_id": &f
-                    },
-                    {
-                        "keywords": {
-                            "$regex": &f
-                        }
-                    },
-                    {
-                        "mime_type": {
-                            "$regex": &f
-                        }
+            Some(f) => {
+                if !f.is_empty() {
+                    doc! {
+                        "$or": [
+                            {
+                                "name": {
+                                    "$regex": &f
+                                }
+                            },
+                            {
+                                "_id": &f
+                            },
+                            {
+                                "owner_id": &f
+                            },
+                            {
+                                "keywords": {
+                                    "$regex": &f
+                                }
+                            },
+                            {
+                                "mime_type": {
+                                    "$regex": &f
+                                }
+                            }
+                        ]
                     }
-                ]
-            },
+                } else {
+                    doc! {}
+                }
+            }
             None => doc! {},
         };
 
@@ -1474,7 +1447,14 @@ impl DB {
 
     pub async fn get_user_by_id(&self, user_id: &str) -> anyhow::Result<Option<FilezUser>> {
         let collection = self.db.collection::<FilezUser>("users");
-        let user = collection.find_one(doc! {"_id": user_id}, None).await?;
+        let user = collection
+            .find_one(
+                doc! {
+                    "_id": user_id
+                },
+                None,
+            )
+            .await?;
         Ok(user)
     }
 
@@ -1487,11 +1467,18 @@ impl DB {
 
         let collection = self.db.collection::<OnlyId>("users");
         let find_options = FindOneOptions::builder()
-            .projection(doc! {"_id": 1})
+            .projection(doc! {
+                "_id": 1
+            })
             .build();
 
         let user = collection
-            .find_one(doc! {"ir_user_id": ir_user_id}, find_options)
+            .find_one(
+                doc! {
+                    "ir_user_id": ir_user_id
+                },
+                find_options,
+            )
             .await?;
 
         Ok(user.map(|u| u._id))
@@ -1500,20 +1487,39 @@ impl DB {
     pub async fn get_user_by_ir_id(&self, ir_user_id: &str) -> anyhow::Result<Option<FilezUser>> {
         let collection = self.db.collection::<FilezUser>("users");
         let user = collection
-            .find_one(doc! {"ir_user_id": ir_user_id}, None)
+            .find_one(
+                doc! {
+                    "ir_user_id": ir_user_id
+                },
+                None,
+            )
             .await?;
         Ok(user)
     }
 
     pub async fn get_user_by_email(&self, email: &str) -> anyhow::Result<Option<FilezUser>> {
         let collection = self.db.collection::<FilezUser>("users");
-        let user = collection.find_one(doc! {"email": email}, None).await?;
+        let user = collection
+            .find_one(
+                doc! {
+                    "email": email
+                },
+                None,
+            )
+            .await?;
         Ok(user)
     }
 
     pub async fn get_file_by_id(&self, file_id: &str) -> anyhow::Result<Option<FilezFile>> {
         let collection = self.db.collection::<FilezFile>("files");
-        let file = collection.find_one(doc! {"_id": file_id}, None).await?;
+        let file = collection
+            .find_one(
+                doc! {
+                    "_id": file_id
+                },
+                None,
+            )
+            .await?;
         Ok(file)
     }
 
@@ -1814,6 +1820,53 @@ impl DB {
         Ok(session.commit_transaction().await?)
     }
 
+    pub async fn get_total_ammount_of_files(&self) -> anyhow::Result<u64> {
+        let collection = self.db.collection::<FilezFile>("files");
+
+        let total_count = collection.count_documents(doc! {}, None).await?;
+
+        Ok(total_count)
+    }
+
+    pub async fn create_many_mock_files(
+        &self,
+        files: Vec<FilezFile>,
+        static_file_group_ids: Vec<String>,
+    ) -> anyhow::Result<()> {
+        let mut session = self.client.start_session(None).await?;
+
+        session.start_transaction(None).await?;
+
+        let files_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
+        let files_collection = self.db.collection::<FilezFile>("files");
+
+        // update user
+
+        for group_id in &static_file_group_ids {
+            files_groups_collection
+                .update_one_with_session(
+                    doc! {
+                        "_id": group_id
+                    },
+                    doc! {
+                        "$inc": {
+                            "item_count": files.len() as i64
+                        }
+                    },
+                    None,
+                    &mut session,
+                )
+                .await?;
+        }
+
+        // create file
+        files_collection
+            .insert_many_with_session(files, None, &mut session)
+            .await?;
+
+        Ok(session.commit_transaction().await?)
+    }
+
     pub async fn create_file(
         &self,
         file: FilezFile,
@@ -1868,24 +1921,7 @@ impl DB {
                 )
                 .await?;
         }
-        /*
-                for group_id in &file.dynamic_file_group_ids {
-                    files_groups_collection
-                        .update_one_with_session(
-                            doc! {
-                                "_id": group_id
-                            },
-                            doc! {
-                                "$inc": {
-                                    "item_count": 1
-                                }
-                            },
-                            None,
-                            &mut session,
-                        )
-                        .await?;
-                }
-        */
+
         // create file
         files_collection
             .insert_one_with_session(file, None, &mut session)

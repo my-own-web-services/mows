@@ -1,11 +1,14 @@
-use crate::{db::DB, retry_transient_transaction_error};
-use filez_common::server::{FilezFile, FilezFileGroup, FilterRuleType};
+use std::collections::HashMap;
+
+use crate::{config::SERVER_CONFIG, db::DB, retry_transient_transaction_error};
+use filez_common::server::{FileGroupType, FilezFile, FilezFileGroup, FilezUser, FilterRuleType};
+use mongodb::options::ClientOptions;
 use regex::Regex;
 use serde_json::Value;
 
 pub enum UpdateType {
     Group(Vec<FilezFileGroup>),
-    Files(Vec<FilezFile>),
+    Files((Vec<FilezFile>, Option<String>)),
 }
 
 #[derive(Debug, Clone)]
@@ -20,39 +23,70 @@ pub async fn handle_dynamic_group_update(
     update_type: &UpdateType,
     requesting_user_id: &str,
 ) -> anyhow::Result<()> {
+    let mut file_ids_by_single_group_to_be_added: HashMap<String, Vec<String>> = HashMap::new();
+    let mut file_ids_by_single_group_to_be_removed: HashMap<String, Vec<String>> = HashMap::new();
+
     match update_type {
         UpdateType::Group(groups) => {
+            // a dynamic group was changed: this might affect any file by the same owner
             let current_files = db.get_files_by_owner_id(requesting_user_id).await?;
 
-            let mut changes = vec![];
             for group in groups {
-                let changess = handle_group_change(group, &current_files);
-                changes.extend(changess);
+                for file in &current_files {
+                    handle_file_change(
+                        file,
+                        &vec![group.clone()],
+                        &mut file_ids_by_single_group_to_be_added,
+                        &mut file_ids_by_single_group_to_be_removed,
+                    );
+                }
             }
-            retry_transient_transaction_error!(
-                db.update_dynamic_file_groups_on_many_files(&changes).await
-            );
         }
-        UpdateType::Files(files) => {
+        UpdateType::Files((files, changed_field)) => {
+            // files changed that might be affected by dynamic groups
             let possible_groups = db
                 .get_dynamic_groups_by_owner_id(requesting_user_id)
                 .await?;
 
-            let mut changes = vec![];
-            for file in files {
-                if let Some(group_change) =
-                    handle_file_change(file, &possible_groups.iter().collect())
-                {
-                    changes.push(group_change);
-                }
-            }
+            let possible_groups = if let Some(changed_field) = changed_field {
+                possible_groups
+                    .into_iter()
+                    .filter(|g| check_group_rule_includes_changed_field(g, changed_field))
+                    .collect::<Vec<_>>()
+            } else {
+                possible_groups
+            };
 
-            retry_transient_transaction_error!(
-                db.update_dynamic_file_groups_on_many_files(&changes).await
-            );
+            // TODO OPTIMIZE: filter out groups that have a rule that can't ever match the file because of the changed field
+            // not that important as this only skips the fast checks done by rust, but not the slow db update
+
+            for file in files {
+                handle_file_change(
+                    file,
+                    &possible_groups,
+                    &mut file_ids_by_single_group_to_be_added,
+                    &mut file_ids_by_single_group_to_be_removed,
+                );
+            }
         }
     }
+
+    retry_transient_transaction_error!(
+        db.update_files_and_file_groups(
+            &file_ids_by_single_group_to_be_added,
+            &file_ids_by_single_group_to_be_removed,
+            FileGroupType::Dynamic
+        )
+        .await
+    );
     Ok(())
+}
+
+fn check_group_rule_includes_changed_field(group: &FilezFileGroup, changed_field: &str) -> bool {
+    match &group.dynamic_group_rules {
+        Some(rule) => rule.field == changed_field,
+        None => false,
+    }
 }
 
 /*
@@ -64,17 +98,6 @@ so every file needs to be checked against the changed group
     handle_file_change(file, group)
 
 */
-
-pub fn handle_group_change(group: &FilezFileGroup, files: &Vec<FilezFile>) -> Vec<GroupChange> {
-    let mut group_changes = vec![];
-
-    for file in files {
-        if let Some(group_change) = handle_file_change(file, &vec![group]) {
-            group_changes.push(group_change);
-        }
-    }
-    group_changes
-}
 
 /*
 a files database data was changed: this might change its group membership
@@ -91,36 +114,33 @@ returns the groups to be set on the file
 */
 pub fn handle_file_change(
     changed_file: &FilezFile,
-    possible_groups: &Vec<&FilezFileGroup>,
-) -> Option<GroupChange> {
-    let mut added_groups = vec![];
-    let mut removed_groups = vec![];
-
+    possible_groups: &Vec<FilezFileGroup>,
+    file_ids_by_single_group_to_be_added: &mut HashMap<String, Vec<String>>,
+    file_ids_by_single_group_to_be_removed: &mut HashMap<String, Vec<String>>,
+) {
     for group in possible_groups {
         if check_match(changed_file, group) {
-            if !changed_file
+            let already_in_group = changed_file
                 .dynamic_file_group_ids
-                .contains(&group.file_group_id)
-            {
-                added_groups.push(group.file_group_id.clone());
+                .contains(&group.file_group_id);
+            if !already_in_group {
+                file_ids_by_single_group_to_be_added
+                    .entry(group.file_group_id.clone())
+                    .or_insert_with(Vec::new)
+                    .push(changed_file.file_id.clone());
             }
-        } else if changed_file
-            .dynamic_file_group_ids
-            .contains(&group.file_group_id)
-        {
-            removed_groups.push(group.file_group_id.clone());
+        } else {
+            let currently_in_group = changed_file
+                .dynamic_file_group_ids
+                .contains(&group.file_group_id);
+            if currently_in_group {
+                file_ids_by_single_group_to_be_removed
+                    .entry(group.file_group_id.clone())
+                    .or_insert_with(Vec::new)
+                    .push(changed_file.file_id.clone());
+            }
         }
     }
-
-    if added_groups.is_empty() && removed_groups.is_empty() {
-        return None;
-    }
-
-    Some(GroupChange {
-        file_id: changed_file.file_id.clone(),
-        added_groups,
-        removed_groups,
-    })
 }
 
 pub fn check_match(changed_file: &FilezFile, possible_group: &FilezFileGroup) -> bool {

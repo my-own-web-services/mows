@@ -90,6 +90,7 @@ export default class ResourceList<
     infiniteLoaderRef = createRef<InfiniteLoader>();
     listOuterRef = createRef<HTMLDivElement>();
     moreItemsLoading = false;
+    lastStartIndex = 0;
     contextMenuRender: JSX.Element;
 
     constructor(props: ResourceListProps<ResourceType>) {
@@ -227,8 +228,9 @@ export default class ResourceList<
         };
     };
 
-    loadMoreItems = async (startIndex: number, limit: number) => {
-        if (this.moreItemsLoading) return;
+    loadMoreItems = async (startIndex: number, endIndex: number) => {
+        let limit = endIndex - startIndex + 1;
+        //if (this.moreItemsLoading) return;
         const { sort_field, sort_order } = this.get_current_column_sorting();
 
         const currentRowRenderer = this.getCurrentRowRenderer();
@@ -242,6 +244,10 @@ export default class ResourceList<
         startIndex = sial.startIndex;
         limit = sial.limit;
 
+        //if (startIndex === this.lastStartIndex) return;
+
+        //this.moreItemsLoading = true;
+        //this.lastStartIndex = startIndex;
         const { items: newItems } = await this.props.get_items_function({
             id: this.props.id,
             from_index: startIndex,
@@ -250,6 +256,7 @@ export default class ResourceList<
             sort_order,
             filter: this.state.commitedSearch
         });
+        //this.moreItemsLoading = false;
 
         const updatedItems = update(this.state.items, {
             $apply: (currentItems: (ResourceType | undefined)[]) => {
@@ -460,7 +467,7 @@ export default class ResourceList<
                 );
 
                 if (!allToBeSelectedLoaded) {
-                    await this.loadMoreItems(minIndex, maxIndex - minIndex + 1);
+                    await this.loadMoreItems(minIndex, maxIndex);
                 }
 
                 for (let i = minIndex; i <= maxIndex; i++) {
@@ -712,6 +719,13 @@ export default class ResourceList<
             this.state.gridColumnCount
         );
 
+        // TODO this should be adjusted depending on the row renderer
+        const minimumBatchSize = Math.max(
+            Math.min(20, this.state.total_count / 1000),
+            1000
+        );
+        const loadMoreItemsThreshold = minimumBatchSize / 2;
+
         return (
             <div className="Filez ResourceList" style={{ ...this.props.style }}>
                 {this.props.displayTopBar !== false && (
@@ -762,6 +776,8 @@ export default class ResourceList<
                                     //@ts-ignore
                                     loadMoreItems={this.loadMoreItems}
                                     ref={this.infiniteLoaderRef}
+                                    minimumBatchSize={minimumBatchSize}
+                                    threshold={loadMoreItemsThreshold}
                                 >
                                     {({ onItemsRendered, ref }) => {
                                         const rowHeight =

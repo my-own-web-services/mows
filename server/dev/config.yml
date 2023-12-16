@@ -20,6 +20,7 @@ http:
 
 db:
     url: mongodb://root:root@localhost:27017
+    parallelQueries: 100
 
 interossea:
     url: http://localhost:8081

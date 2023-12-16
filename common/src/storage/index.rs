@@ -1,5 +1,5 @@
 use super::types::StorageConfig;
-use crate::server::FilezFile;
+use crate::{server::FilezFile, some_or_bail};
 use anyhow::bail;
 use std::path::{Path, PathBuf};
 
@@ -29,12 +29,15 @@ pub fn get_storage_location_from_file(
     };
 
     match &file.readonly {
-        true => Ok(StorageLocations {
-            full_path: Path::new(&file.readonly_path.clone().unwrap()).to_path_buf(),
-            folder_path: Path::new(&file.readonly_path.clone().unwrap().replace(&file.name, ""))
-                .to_path_buf(),
-            file_name: file.name.clone(),
-        }),
+        true => {
+            let readonly_path = some_or_bail!(&file.readonly_path, "Readonly path was none");
+
+            Ok(StorageLocations {
+                full_path: Path::new(&readonly_path).to_path_buf(),
+                folder_path: Path::new(&readonly_path.replace(&file.name, "")).to_path_buf(),
+                file_name: file.name.clone(),
+            })
+        }
         false => {
             let (folder_path, file_name) = get_folder_and_file_path(&file.file_id, &storage.path);
             let full_path = Path::new(&folder_path).join(&file_name);

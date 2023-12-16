@@ -1,9 +1,10 @@
 use crate::{
     config::SERVER_CONFIG,
     db::DB,
+    dynamic_groups::{handle_dynamic_group_update, UpdateType},
     internal_types::Auth,
     is_transient_transaction_error, some_or_bail,
-    utils::{check_file_name, check_mime_type, generate_id},
+    utils::{check_file_name, check_keywords, check_mime_type, generate_id},
 };
 use anyhow::bail;
 use filez_common::{server::FilezFile, storage::index::get_future_storage_location};
@@ -11,6 +12,7 @@ use hyper::{body::HttpBody, Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use simple_server_timing_header::Timer;
 use std::{
     collections::HashMap,
     fs::{self, File},
@@ -42,6 +44,10 @@ Mutation > FilezUser
 No
 
 */
+
+// TODO add upload space support
+// TODO add multi file support: this isn't a concern for large files as the speed is probably not bound by the db but by the network, for huge quantities of small files this is a problem as there is a huge waiting time for the db to finish the transaction compared to the transfer time because its limited by the transaction speed of the db even concurrent requests are limited by the transaction speed of the db
+
 pub async fn create_file(
     mut req: Request<Body>,
     db: &DB,
@@ -49,28 +55,12 @@ pub async fn create_file(
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
     let config = &SERVER_CONFIG;
+    let mut timer = Timer::new();
 
-    let (user_id, upload_space) = match &auth.authenticated_ir_user_id {
-        Some(ir_user_id) => match db.get_user_id_by_ir_id(ir_user_id).await? {
-            Some(u) => (u, None),
-            None => return Ok(res.status(412).body(Body::from("User has not been created on the filez server, although it is present on the IR server. Run create_own first."))?),
-        },
-        None => match &auth.password {
-            Some(token) => {
-                if config.dev.disable_complex_access_control {
-                    return Ok(res
-                        .status(401)
-                        .body(Body::from("Complex access control has been disabled"))?);
-                }
-                let upload_space = some_or_bail!(
-                    db.get_upload_space_by_token(token).await?,
-                    "No upload space with this token found"
-                );
-                (upload_space.owner_id.clone(), Some(upload_space))
-            }
-            None => return Ok(res.status(401).body(Body::from("Unauthorized"))?),
-        },
-    };
+    let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
+    timer.add("10 Get Authenticated User");
+
+    let user_id = requesting_user.user_id.clone();
 
     let request_header =
         some_or_bail!(req.headers().get("request"), "Missing request header").to_str()?;
@@ -113,7 +103,7 @@ pub async fn create_file(
     }
 
     // check for upload space limits
-
+    /*
     if let Some(upload_space) = &upload_space {
         let upload_space_limits = some_or_bail!(
             upload_space.limits.get(&storage_name),
@@ -133,6 +123,7 @@ pub async fn create_file(
             bail!("UploadSpace file limit exceeded");
         }
     }
+    */
 
     let file_id = generate_id(16);
     let future_storage_location =
@@ -161,20 +152,21 @@ pub async fn create_file(
             bail!("User storage limit exceeded");
         }
 
-        // check if file size limit is exceeded for the upload space if present
-        if let Some(upload_space) = &upload_space {
-            let upload_space_limits = some_or_bail!(
-                upload_space.limits.get(&storage_name),
-                format!("Invalid storage name: {}", storage_name)
-            );
-            let bytes_left_upload_space =
-                upload_space_limits.max_storage - upload_space_limits.used_storage;
-            if bytes_written > bytes_left_upload_space {
-                fs::remove_file(&file_path)?;
-                bail!("UploadSpace storage limit exceeded");
-            }
-        }
-
+        /*
+                // check if file size limit is exceeded for the upload space if present
+                if let Some(upload_space) = &upload_space {
+                    let upload_space_limits = some_or_bail!(
+                        upload_space.limits.get(&storage_name),
+                        format!("Invalid storage name: {}", storage_name)
+                    );
+                    let bytes_left_upload_space =
+                        upload_space_limits.max_storage - upload_space_limits.used_storage;
+                    if bytes_written > bytes_left_upload_space {
+                        fs::remove_file(&file_path)?;
+                        bail!("UploadSpace storage limit exceeded");
+                    }
+                }
+        */
         hasher.write_all(&chunk)?;
         file.write_all(&chunk)?;
     }
@@ -187,11 +179,11 @@ pub async fn create_file(
     if let Some(mut cr_groups) = create_request.static_file_group_ids.clone() {
         file_manual_group_ids.append(&mut cr_groups);
     }
-
-    if let Some(upload_space) = &upload_space {
-        file_manual_group_ids.push(upload_space.file_group_id.clone());
-    }
-
+    /*
+        if let Some(upload_space) = &upload_space {
+            file_manual_group_ids.push(upload_space.file_group_id.clone());
+        }
+    */
     //check if file group ids exist and if they are owned by the files owner
     let user_owned_file_groups = db
         .get_file_groups_by_owner_id(&user_id)
@@ -213,6 +205,10 @@ pub async fn create_file(
     file_manual_group_ids.push(format!("{}_all", user_id));
 
     let app_data: HashMap<String, Value> = HashMap::new();
+
+    if let Some(keywords) = &create_request.keywords {
+        check_keywords(keywords)?;
+    };
 
     let new_filez_file = FilezFile {
         file_id: file_id.clone(),
@@ -236,13 +232,14 @@ pub async fn create_file(
             .map(|o| o * 1000)
             .unwrap_or(current_time),
         permission_ids: vec![],
-        keywords: vec![],
+        keywords: create_request.keywords.unwrap_or(vec![]),
         readonly: false,
         readonly_path: None,
         linked_files: vec![],
         manual_group_sortings: HashMap::new(),
         sub_type: None,
     };
+    timer.add("20 Check Limits and Create File");
 
     // update db in this "create file transaction"
     while let Err(e) = db.create_file(new_filez_file.clone(), false).await {
@@ -253,6 +250,14 @@ pub async fn create_file(
             bail!("Failed to create file in database: {}", e);
         }
     }
+    timer.add("30 Create File in DB");
+
+    handle_dynamic_group_update(
+        db,
+        &UpdateType::Files((vec![new_filez_file], None)),
+        &requesting_user.user_id,
+    )
+    .await?;
 
     let cfr = CreateFileResponse {
         file_id,
@@ -261,6 +266,7 @@ pub async fn create_file(
     };
     Ok(res
         .status(200)
+        .header("Server-Timing", timer.header_value())
         .body(Body::from(serde_json::to_string(&cfr)?))?)
 }
 
@@ -275,6 +281,7 @@ pub struct CreateFileRequest {
     pub created: Option<i64>,
     #[ts(type = "number")]
     pub modified: Option<i64>,
+    pub keywords: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
