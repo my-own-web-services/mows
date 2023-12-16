@@ -244,6 +244,7 @@ export default class ResourceList<
         startIndex = sial.startIndex;
         limit = sial.limit;
 
+        // TODO this is triggering a lot of unnecessary requests when dragging down the scrollbar
         //if (startIndex === this.lastStartIndex) return;
 
         //this.moreItemsLoading = true;

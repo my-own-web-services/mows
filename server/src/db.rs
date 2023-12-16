@@ -22,7 +22,7 @@ use mongodb::{
     results::{DeleteResult, InsertOneResult, UpdateResult},
 };
 use mongodb::{options::ClientOptions, Client, Database, IndexModel};
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, time::Instant, vec};
 
 pub struct DB {
     pub client: Client,
@@ -79,9 +79,7 @@ impl DB {
             };
         }
         {
-            let index = IndexModel::builder()
-                .keys(doc! {"static_file_group_ids": 1})
-                .build();
+            let index = IndexModel::builder().keys(doc! {"keywords": 1}).build();
             match files_collection.create_index(index, None).await {
                 Ok(_) => {}
                 Err(e) => println!("Error creating index on files collection: {:?}", e),
@@ -1369,6 +1367,7 @@ impl DB {
         gir: &GetItemListRequestBody,
     ) -> anyhow::Result<(Vec<FilezFile>, u32)> {
         let collection = self.db.collection::<FilezFile>("files");
+        let group_collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         let sort_field = gir.sort_field.clone().unwrap_or("_id".to_string());
         let find_options = FindOptions::builder()
@@ -1417,7 +1416,9 @@ impl DB {
             }
             None => doc! {},
         };
+        // TODO decide beforehand if it is a dynamic or static group because we already know that
 
+        //TODO dont use count documents at other places
         let db_filter = doc! {
             "$and": [
                 {
@@ -1434,15 +1435,30 @@ impl DB {
             ]
         };
 
-        let (items, total_count) = (
-            collection
-                .find(db_filter.clone(), find_options)
-                .await?
-                .try_collect::<Vec<_>>()
+        let time = Instant::now();
+
+        let items = collection
+            .find(db_filter.clone(), find_options)
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let group = some_or_bail!(
+            group_collection
+                .find_one(
+                    doc! {
+                        "_id": group_id
+                    },
+                    None,
+                )
                 .await?,
-            collection.count_documents(db_filter, None).await?,
+            "Could not find group"
         );
-        Ok((items, total_count as u32))
+
+        //let total_count = collection.count_documents(db_filter.clone(), None).await?;
+        // for some reason collection.count is very slow; it is much faster in compass
+        dbg!(time.elapsed());
+        Ok((items, group.item_count as u32))
     }
 
     pub async fn get_user_by_id(&self, user_id: &str) -> anyhow::Result<Option<FilezUser>> {
