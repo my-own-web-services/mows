@@ -62,36 +62,28 @@ impl DB {
 
         {
             let index = IndexModel::builder()
-                .keys(doc! {"static_file_group_ids": 1})
+                .keys(doc! {
+                 "static_file_group_ids": 1, "name": 1, "keywords": 1
+                })
                 .build();
             match files_collection.create_index(index, None).await {
                 Ok(_) => {}
                 Err(e) => println!("Error creating index on files collection: {:?}", e),
             };
         }
+
         {
             let index = IndexModel::builder()
-                .keys(doc! {"dynamic_file_group_ids": 1})
+                .keys(doc! {
+                    "dynamic_file_group_ids": 1,"name": 1, "keywords": 1
+                })
                 .build();
             match files_collection.create_index(index, None).await {
                 Ok(_) => {}
                 Err(e) => println!("Error creating index on files collection: {:?}", e),
             };
         }
-        {
-            let index = IndexModel::builder().keys(doc! {"keywords": 1}).build();
-            match files_collection.create_index(index, None).await {
-                Ok(_) => {}
-                Err(e) => println!("Error creating index on files collection: {:?}", e),
-            };
-        }
-        {
-            let index = IndexModel::builder().keys(doc! {"name": 1}).build();
-            match files_collection.create_index(index, None).await {
-                Ok(_) => {}
-                Err(e) => println!("Error creating index on files collection: {:?}", e),
-            };
-        }
+
         {
             let index = IndexModel::builder().keys(doc! {"owner_id": 1}).build();
             match files_collection.create_index(index, None).await {
@@ -1416,26 +1408,34 @@ impl DB {
             }
             None => doc! {},
         };
-        // TODO decide beforehand if it is a dynamic or static group because we already know that
 
         //TODO dont use count documents at other places
+
+        let group_type_filter = match &gir.sub_resource_type {
+            Some(v) => match v.as_str() {
+                "static_file_group_ids" => doc! {"static_file_group_ids": &group_id},
+                "dynamic_file_group_ids" => doc! {"dynamic_file_group_ids": &group_id},
+                _ => bail!("invalid sub resource type"),
+            },
+
+            None => doc! {
+                "$or":[
+                    {
+                        "static_file_group_ids": &group_id
+                    },
+                    {
+                        "dynamic_file_group_ids": &group_id
+                    }
+                ]
+            },
+        };
+
         let db_filter = doc! {
             "$and": [
-                {
-                    "$or": [
-                        {
-                            "static_file_group_ids": &group_id
-                        },
-                        {
-                            "dynamic_file_group_ids": &group_id
-                        }
-                    ]
-                },
+                group_type_filter,
                 search_filter,
             ]
         };
-
-        let time = Instant::now();
 
         let items = collection
             .find(db_filter.clone(), find_options)
@@ -1443,22 +1443,33 @@ impl DB {
             .try_collect::<Vec<_>>()
             .await?;
 
-        let group = some_or_bail!(
-            group_collection
-                .find_one(
-                    doc! {
-                        "_id": group_id
-                    },
-                    None,
+        // this of course does not work when filtering items out
+        let item_count = match gir.filter {
+            Some(_) => {
+                let c = collection.count_documents(db_filter.clone(), None).await?;
+                c as u32
+            }
+            None => {
+                // for some reason collection.count is very slow; it is much faster in compass
+                // this is why we just skip it if there is no filter
+                some_or_bail!(
+                    group_collection
+                        .find_one(
+                            doc! {
+                                "_id": group_id
+                            },
+                            None,
+                        )
+                        .await?,
+                    "Could not find group"
                 )
-                .await?,
-            "Could not find group"
-        );
+                .item_count
+            }
+        };
 
-        //let total_count = collection.count_documents(db_filter.clone(), None).await?;
+        //let total_count =
         // for some reason collection.count is very slow; it is much faster in compass
-        dbg!(time.elapsed());
-        Ok((items, group.item_count as u32))
+        Ok((items, item_count as u32))
     }
 
     pub async fn get_user_by_id(&self, user_id: &str) -> anyhow::Result<Option<FilezUser>> {
@@ -1680,10 +1691,10 @@ impl DB {
         Ok(permissions)
     }
 
-    pub async fn delete_file_by_id(&self, file: &FilezFile) -> anyhow::Result<()> {
-        if file.readonly {
-            bail!("file is readonly");
-        }
+    pub async fn delete_files_by_ids(
+        &self,
+        files_to_delete: &Vec<FilezFile>,
+    ) -> anyhow::Result<()> {
         let mut session = self.client.start_session(None).await?;
         session.start_transaction(None).await?;
 
@@ -1691,46 +1702,12 @@ impl DB {
         let files_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
         let users_collection = self.db.collection::<FilezUser>("users");
 
-        let file = some_or_bail!(
-            files_collection
-                .find_one(
-                    doc! {
-                        "_id": file.file_id.clone()
-                    },
-                    None
-                )
-                .await?,
-            "file not found"
-        );
-
         // delete file
         files_collection
-            .delete_one_with_session(
+            .delete_many_with_session(
                 doc! {
-                    "_id": file.file_id
-                },
-                None,
-                &mut session,
-            )
-            .await?;
-
-        // update user
-        let fsid = some_or_bail!(
-            file.storage_id,
-            "The to be deleted file has no associated storage id"
-        );
-        let user_key_used_storage = format!("limits.{}.used_storage", fsid);
-        let user_key_used_files = format!("limits.{}.used_files", fsid);
-
-        users_collection
-            .update_one_with_session(
-                doc! {
-                    "_id": file.owner_id
-                },
-                doc! {
-                    "$inc": {
-                        user_key_used_storage: -(file.size as i64),
-                        user_key_used_files: -1
+                    "_id": {
+                        "$in": files_to_delete.iter().map(|f| f.file_id.clone()).collect::<Vec<_>>()
                     }
                 },
                 None,
@@ -1738,34 +1715,82 @@ impl DB {
             )
             .await?;
 
-        // update file groups
-        // decrease item count for all groups that are assigned to the file
-        for group in file.static_file_group_ids {
-            files_groups_collection
-                .update_one_with_session(
-                    doc! {
-                        "_id": group
-                    },
-                    doc! {
-                        "$inc": {
-                            "item_count": -1
-                        }
-                    },
-                    None,
-                    &mut session,
-                )
-                .await?;
+        // sort the files by owner id
+        let mut files_by_owner_id: HashMap<String, Vec<FilezFile>> = HashMap::new();
+
+        for file in files_to_delete {
+            let owner_id = file.owner_id.clone();
+
+            let files = files_by_owner_id.entry(owner_id).or_insert(vec![]);
+            files.push(file.clone());
         }
 
-        for group in file.dynamic_file_group_ids {
+        for (owner_id, files_of_owner) in files_by_owner_id {
+            let mut files_by_storage_id: HashMap<String, Vec<FilezFile>> = HashMap::new();
+            for file in files_of_owner {
+                let storage_id = some_or_bail!(
+                    file.storage_id.clone(),
+                    "The to be deleted file has no associated storage id"
+                );
+
+                let f = files_by_storage_id.entry(storage_id).or_insert(vec![]);
+                f.push(file);
+            }
+
+            for (storage_id, files_of_storage) in files_by_storage_id {
+                // update user
+
+                let user_key_used_storage = format!("limits.{}.used_storage", storage_id);
+                let user_key_used_files = format!("limits.{}.used_files", storage_id);
+
+                let ammount = files_of_storage.len() as i64;
+                let size = files_of_storage.iter().map(|f| f.size as i64).sum::<i64>();
+                users_collection
+                    .update_one_with_session(
+                        doc! {
+                            "_id": owner_id.clone()
+                        },
+                        doc! {
+                            "$inc": {
+                                user_key_used_storage: -size,
+                                user_key_used_files: -ammount
+                            }
+                        },
+                        None,
+                        &mut session,
+                    )
+                    .await?;
+            }
+        }
+
+        let mut file_count_by_file_group_id: HashMap<String, u32> = HashMap::new();
+
+        for file in files_to_delete {
+            let all_group_ids = &file
+                .static_file_group_ids
+                .iter()
+                .chain(&file.dynamic_file_group_ids)
+                .collect::<Vec<_>>();
+
+            for group_id in all_group_ids {
+                let count = file_count_by_file_group_id
+                    .entry(group_id.to_string())
+                    .or_insert(0);
+                *count += 1;
+            }
+        }
+
+        // update file groups
+        // decrease item count for all groups that are assigned to the file
+        for (group_id, file_count) in file_count_by_file_group_id {
             files_groups_collection
                 .update_one_with_session(
                     doc! {
-                        "_id": group
+                        "_id": group_id
                     },
                     doc! {
                         "$inc": {
-                            "item_count": -1
+                            "item_count": -(file_count as i64)
                         }
                     },
                     None,
@@ -1848,6 +1873,8 @@ impl DB {
         &self,
         files: Vec<FilezFile>,
         static_file_group_ids: Vec<String>,
+        owner_id: &str,
+        storage_id: &str,
     ) -> anyhow::Result<()> {
         let mut session = self.client.start_session(None).await?;
 
@@ -1855,6 +1882,7 @@ impl DB {
 
         let files_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
         let files_collection = self.db.collection::<FilezFile>("files");
+        let users_collection = self.db.collection::<FilezUser>("users");
 
         // update user
 
@@ -1875,9 +1903,31 @@ impl DB {
                 .await?;
         }
 
-        // create file
+        let user_key_used_storage = format!("limits.{}.used_storage", storage_id);
+        let user_key_used_files = format!("limits.{}.used_files", storage_id);
+
+        let size = files.iter().map(|f| f.size as i64).sum::<i64>();
+        let count = files.len() as i64;
+
+        // create files
         files_collection
             .insert_many_with_session(files, None, &mut session)
+            .await?;
+
+        users_collection
+            .update_one_with_session(
+                doc! {
+                    "_id": owner_id
+                },
+                doc! {
+                    "$inc": {
+                        user_key_used_storage: size,
+                        user_key_used_files: count
+                    }
+                },
+                None,
+                &mut session,
+            )
             .await?;
 
         Ok(session.commit_transaction().await?)

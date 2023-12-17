@@ -37,7 +37,7 @@ filez:
             readonly: false
             defaultUserLimits:
                 maxStorage: 10000000000 # 10GB
-                maxFiles: 100000
+                maxFiles: 2000000
                 maxBandwidth: 0
             appStorage:
                 image:
@@ -90,14 +90,13 @@ filez:
             makeAdmin: [test@vindelicum.eu]
             create: [test@vindelicum.eu]
             allowNew: false
-
         dev:
             insecureSkipInterossea: false
             disableComplexAccessControl: true
             createMockUsers: true
             checkDatabaseConsistencyOnStartup: true
-            checkDatabaseConsistencyOnMutatingRequests: false
-            checkDatabaseConsistencyRemoveOrphanedFiles: false
+            checkDatabaseConsistencyOnMutatingRequests: true
+            checkDatabaseConsistencyRemoveOrphanedFiles: true
             createMockFileEntriesUntilReachedLimit: 1000000
             mockFilesOwnerEmail: test@vindelicum.eu
     web:

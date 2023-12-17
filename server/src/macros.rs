@@ -10,6 +10,16 @@ macro_rules! some_or_bail {
 }
 
 #[macro_export]
+macro_rules! into_permissive_resource {
+    ($resource:expr) => {{
+        $resource
+            .iter()
+            .map(|r| Box::new((*r).clone()) as Box<dyn filez_common::server::PermissiveResource>)
+            .collect()
+    }};
+}
+
+#[macro_export]
 macro_rules! is_transient_transaction_error {
     ($error:expr ) => {
         $error

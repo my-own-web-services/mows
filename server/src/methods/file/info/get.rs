@@ -1,6 +1,7 @@
 use crate::{
     db::DB,
     internal_types::Auth,
+    into_permissive_resource,
     permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
     some_or_bail,
 };
@@ -41,12 +42,7 @@ pub async fn get_file_infos(
         "Invalid request body"
     );
 
-    let files = db
-        .get_files_by_ids(&file_ids)
-        .await?
-        .iter()
-        .map(|file| Box::new((*file).clone()) as Box<dyn PermissiveResource>)
-        .collect();
+    let files = into_permissive_resource!(db.get_files_by_ids(&file_ids).await?);
 
     match check_auth_multiple(
         auth,

@@ -61,21 +61,33 @@ pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> 
 
     let now = chrono::Utc::now().timestamp_millis();
 
-    let group_id = generate_id(16);
-    db.create_file_group(&FilezFileGroup {
-        owner_id: owner.user_id.to_string(),
-        name: Some("mock_files".to_string()),
-        file_group_id: group_id.clone(),
-        permission_ids: vec![],
-        keywords: vec![],
-        group_hierarchy_paths: vec![],
-        mime_types: vec![],
-        group_type: FileGroupType::Static,
-        item_count: 0,
-        dynamic_group_rules: None,
-        readonly: true,
-    })
-    .await?;
+    let group_id = {
+        let groups = db
+            .get_file_groups_by_name("mock_files", &owner.user_id)
+            .await?;
+
+        match groups.first() {
+            Some(g) => g.file_group_id.clone(),
+            None => {
+                let group_id = generate_id(16);
+                db.create_file_group(&FilezFileGroup {
+                    owner_id: owner.user_id.to_string(),
+                    name: Some("mock_files".to_string()),
+                    file_group_id: group_id.clone(),
+                    permission_ids: vec![],
+                    keywords: vec![],
+                    group_hierarchy_paths: vec![],
+                    mime_types: vec![],
+                    group_type: FileGroupType::Static,
+                    item_count: 0,
+                    dynamic_group_rules: None,
+                    readonly: true,
+                })
+                .await?;
+                group_id
+            }
+        }
+    };
 
     let static_file_group_ids = vec![group_id, format!("{}_all", owner.user_id)];
 
@@ -86,7 +98,7 @@ pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> 
 
         let file = FilezFile {
             file_id: file_id.clone(),
-            mime_type: "application/octet-stream".to_string(),
+            mime_type: "text/plain".to_string(),
             name: generate_id(16),
             owner_id: owner.user_id.clone(),
             pending_new_owner_id: None,
@@ -105,24 +117,43 @@ pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> 
             app_data: HashMap::new(),
             permission_ids: vec![],
             keywords: vec![],
-            readonly: true,
+            readonly: false,
             readonly_path: None,
             linked_files: vec![],
             sub_type: None,
         };
 
-        let future_storage_location =
-            get_future_storage_location(&config.storage, &file_id, Some(&storage_id))?;
-
-        fs::create_dir_all(&future_storage_location.folder_path)?;
-
-        fs::write(&future_storage_location.full_path, generate_id(size.into()))?;
-
         files.push(file);
     }
 
-    db.create_many_mock_files(files, static_file_group_ids)
+    if files.is_empty() {
+        return Ok(());
+    }
+
+    let chunk_limit = 10000;
+
+    for (index, chunk) in files.chunks(chunk_limit).enumerate() {
+        println!("Creating chunk {}/{}", index, files.len() / chunk_limit);
+        db.create_many_mock_files(
+            chunk.to_vec(),
+            static_file_group_ids.clone(),
+            &owner.user_id,
+            &storage_id,
+        )
         .await?;
+        for file in chunk {
+            let file_id = &file.file_id;
+            let future_storage_location =
+                get_future_storage_location(&config.storage, file_id, Some(&storage_id))?;
+
+            fs::create_dir_all(&future_storage_location.folder_path)?;
+
+            fs::write(
+                &future_storage_location.full_path,
+                generate_id(file.size.try_into().unwrap()),
+            )?;
+        }
+    }
 
     Ok(())
 }
@@ -159,8 +190,11 @@ pub async fn create_mock_users(db: &DB) -> anyhow::Result<()> {
 }
 
 pub async fn check_database_consistency(db: &DB) -> anyhow::Result<()> {
+    println!("Checking group file count consistency");
     check_group_file_count_consistency(db).await?;
+    println!("Checking storage use consistency");
     check_storage_use_consistency(db).await?;
+    println!("Checking database file storage consistency");
     check_database_file_storage_consistency(db).await?;
 
     Ok(())
@@ -299,6 +333,7 @@ pub async fn check_group_file_count_consistency(db: &DB) -> anyhow::Result<()> {
                         sort_field: None,
                         sort_order: None,
                         filter: None,
+                        sub_resource_type: None,
                     },
                 )
                 .await?;

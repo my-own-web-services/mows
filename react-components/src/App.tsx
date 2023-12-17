@@ -12,12 +12,14 @@ import {
     ResourceListHandlersOnSelect,
     ResourceListRowHandlersOnClick
 } from "./components/list/resource/ResourceListTypes";
+import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
 
 interface AppProps {}
 
 interface AppState {
     readonly selectedFileId?: string;
     readonly selectedGroupId?: string;
+    readonly selectedGroupListSubType?: FileGroupType;
 }
 
 export default class App extends Component<AppProps, AppState> {
@@ -27,7 +29,8 @@ export default class App extends Component<AppProps, AppState> {
         super(props);
         this.state = {
             selectedFileId: "kgBRBXqBXrHZBuHF",
-            selectedGroupId: "KgmuP8hQvO6gTL0Q_all"
+            selectedGroupId: "KgmuP8hQvO6gTL0Q_all",
+            selectedGroupListSubType: "Static"
         };
     }
 
@@ -62,7 +65,10 @@ export default class App extends Component<AppProps, AppState> {
         _selectedGroups,
         lastSelectedItem
     ) => {
-        this.setState({ selectedGroupId: lastSelectedItem?._id });
+        this.setState({
+            selectedGroupId: lastSelectedItem?._id,
+            selectedGroupListSubType: lastSelectedItem?.group_type
+        });
     };
 
     onFileListChange = () => {
@@ -85,6 +91,7 @@ export default class App extends Component<AppProps, AppState> {
                             onSelect: this.onFileSelect
                         }}
                         id={this.state.selectedGroupId}
+                        listSubType={this.state.selectedGroupListSubType}
                     />
                     <FileGroupList
                         ref={this.fileGroupListRef}

@@ -3,7 +3,6 @@ import { FilezFile } from "./apiTypes/FilezFile.js";
 import { CreateFileRequest } from "./apiTypes/CreateFileRequest.js";
 import { FilezFileGroup } from "./apiTypes/FilezFileGroup.js";
 import { FilezUser } from "./apiTypes/FilezUser.js";
-import { UpdateFileInfosRequestField } from "./apiTypes/UpdateFileInfosRequestField.js";
 import { UpdateFileGroupRequestBody } from "./apiTypes/UpdateFileGroupRequestBody.js";
 import { FilezPermission } from "./apiTypes/FilezPermission.js";
 import { UpdateFriendshipStatusRequestBody } from "./apiTypes/UpdateFriendshipStatusRequestBody.js";
@@ -22,11 +21,11 @@ import { GetFileInfosResponseBody } from "./apiTypes/GetFileInfosResponseBody.js
 import { GetFileGroupsRequestBody } from "./apiTypes/GetFileGroupsRequestBody.js";
 import { GetFileInfosRequestBody } from "./apiTypes/GetFileInfosRequestBody.js";
 import { GetFileGroupsResponseBody } from "./apiTypes/GetFileGroupsResponseBody.js";
-import { UpdateFileInfosRequestBodySingle } from "./apiTypes/UpdateFileInfosRequestBodySingle.js";
 import { UpdateFileInfosRequestBody } from "./apiTypes/UpdateFileInfosRequestBody.js";
 import { CreateFileGroupResponseBody } from "./apiTypes/CreateFileGroupResponseBody.js";
 import { GetItemListRequestBody } from "./apiTypes/GetItemListRequestBody.js";
 import { PermissionResourceSelectType } from "./apiTypes/PermissionResourceSelectType.js";
+import { DeleteFileRequestBody } from "./apiTypes/DeleteFileRequestBody.js";
 
 export * from "./types.js";
 
@@ -143,11 +142,13 @@ export class FilezClient {
         return res;
     };
 
-    delete_file = async (file_id: string) => {
+    delete_files = async (file_ids: string[]) => {
         if (!this.initialized) await this.init();
-        const res = await fetch(`${this.filezEndpoint}/api/file/delete/?id=${file_id}`, {
+        const body: DeleteFileRequestBody = { file_ids };
+        const res = await fetch(`${this.filezEndpoint}/api/file/delete/`, {
             method: "POST",
-            credentials: "include"
+            credentials: "include",
+            body: JSON.stringify(body),
         });
         return res;
     };
@@ -197,7 +198,7 @@ export class FilezClient {
         return json.file_groups;
     };
 
-    get_file_infos_by_group_id = async (body?: GetItemListRequestBody) => {
+    list_file_infos_by_group_id = async (body?: GetItemListRequestBody) => {
         if (!this.initialized) await this.init();
 
         const res = await fetch(`${this.filezEndpoint}/api/file/info/list/`, {

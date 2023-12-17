@@ -19,6 +19,8 @@ import { Button, Modal } from "rsuite";
 import UploadFile from "./UploadFile";
 import MetaEditor from "./FileMetaEditor";
 import ResourceList from "../resource/ResourceList";
+import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
+import { match } from "ts-pattern";
 
 const defaultColumns: Column<FilezFile>[] = [
     {
@@ -100,6 +102,7 @@ interface FileListProps {
     readonly resourceListRowHandlers?: ResourceListRowHandlers<FilezFile>;
     readonly resourceListHandlers?: ResourceListHandlers<FilezFile>;
     readonly handlers?: FileListHandlers;
+    readonly listSubType?: FileGroupType;
 }
 
 export interface FileListHandlers {
@@ -216,11 +219,15 @@ export default class FileList extends PureComponent<
     deleteClick = async () => {
         if (!this.context) return;
         const selectedFiles = this.state.selectedFiles;
-
         for (const file of selectedFiles) {
-            // TODO check if file can be deleted or if its readonly
-            await this.context.filezClient.delete_file(file._id);
+            if (file.readonly || typeof file.storage_id !== "string") {
+                //return false;
+            }
         }
+
+        await this.context.filezClient.delete_files(
+            selectedFiles.map((f) => f._id)
+        );
 
         this.closeDeleteModal();
         this.resourceListRef.current?.refreshList();
@@ -247,9 +254,13 @@ export default class FileList extends PureComponent<
                     defaultSortField="name"
                     initialListType={"ColumnListRowRenderer"}
                     get_items_function={
-                        this.context.filezClient.get_file_infos_by_group_id
+                        this.context.filezClient.list_file_infos_by_group_id
                     }
                     dropTargetAcceptsTypes={["File"]}
+                    subResourceType={match(this.props.listSubType)
+                        .with("Static", () => "static_file_group_ids")
+                        .with("Dynamic", () => "dynamic_file_group_ids")
+                        .otherwise(() => undefined)}
                     id={this.props.id}
                     //@ts-ignore TODO fix this generic mess
                     rowRenderers={[GridRowRenderer, ColumnListRowRenderer]}

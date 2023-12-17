@@ -40,7 +40,7 @@ export const Primary: Story = {
 
                 const user = await filezClient.get_own_user();
 
-                const files = await filezClient.get_file_infos_by_group_id({
+                const files = await filezClient.list_file_infos_by_group_id({
                     id: user._id + "_all"
                 });
                 // select 5 files at random

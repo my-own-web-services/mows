@@ -21,6 +21,7 @@ import {
     ColumnDirection,
     RowRendererDirection
 } from "./ResourceListTypes";
+import { GetFileListRequestBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetFileListRequestBody";
 
 enum LoadItemMode {
     Reload,
@@ -45,7 +46,7 @@ interface ResourceListProps<ResourceType> {
      A function that gets the resource in from the server/db and returns it. This has to be implemented in a specific way to support the infinite scrolling.
      */
     readonly get_items_function: (
-        body: GetItemListRequestBody
+        body: GetItemListRequestBody | GetFileListRequestBody
     ) => Promise<GetItemListResponseBody<ResourceType>>;
 
     readonly style?: CSSProperties;
@@ -53,6 +54,7 @@ interface ResourceListProps<ResourceType> {
     readonly displaySortingBar?: boolean;
     readonly topBar?: JSX.Element;
     readonly id?: string;
+    readonly subResourceType?: string;
     readonly columns?: Column<ResourceType>[];
     readonly disableContextMenu?: boolean;
     readonly initialListType?: string;
@@ -180,7 +182,10 @@ export default class ResourceList<
                 limit,
                 sort_field,
                 sort_order,
-                filter: this.state.commitedSearch
+                filter: this.state.commitedSearch,
+                ...(this.props.subResourceType !== undefined && {
+                    sub_resource_type: this.props.subResourceType
+                })
             });
         this.moreItemsLoading = false;
 
@@ -255,7 +260,10 @@ export default class ResourceList<
             limit,
             sort_field,
             sort_order,
-            filter: this.state.commitedSearch
+            filter: this.state.commitedSearch,
+            ...(this.props.subResourceType !== undefined && {
+                sub_resource_type: this.props.subResourceType
+            })
         });
         //this.moreItemsLoading = false;
 

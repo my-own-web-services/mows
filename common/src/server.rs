@@ -50,6 +50,8 @@ pub struct GetItemListRequestBody {
     pub sort_order: Option<SortOrder>,
     #[ts(optional)]
     pub filter: Option<String>,
+    #[ts(optional)]
+    pub sub_resource_type: Option<String>,
 }
 
 #[derive(TS)]

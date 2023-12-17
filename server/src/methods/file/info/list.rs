@@ -1,7 +1,11 @@
 use crate::{db::DB, internal_types::Auth};
-use filez_common::server::{FilezFile, GetItemListRequestBody, GetItemListResponseBody};
+use filez_common::server::{
+    FileGroupType, FilezFile, GetItemListRequestBody, GetItemListResponseBody, SortOrder,
+};
 use hyper::{Body, Request, Response};
+use serde::{Deserialize, Serialize};
 use simple_server_timing_header::Timer;
+use ts_rs::TS;
 
 /**
 # Gets filez files by group id for virtual scrolling
