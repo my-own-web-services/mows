@@ -2,8 +2,8 @@ use crate::{
     config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
-    is_transient_transaction_error,
-    permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
+    into_permissive_resource, is_transient_transaction_error,
+    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
     some_or_bail,
 };
 use anyhow::bail;
@@ -62,10 +62,10 @@ pub async fn update_file(
         Ok(user) => some_or_bail!(user, "User/Owner not found"),
         Err(_) => bail!("User not found"),
     };
-
-    match check_auth(
+    match check_auth_multiple(
         auth,
-        &AuthResourceToCheck::File((&filez_file, FilezFilePermissionAclWhatOptions::UpdateFile)),
+        &into_permissive_resource!(&vec![filez_file.clone()]),
+        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::UpdateFile),
         db,
     )
     .await

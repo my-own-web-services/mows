@@ -22,7 +22,7 @@ use mongodb::{
     results::{DeleteResult, InsertOneResult, UpdateResult},
 };
 use mongodb::{options::ClientOptions, Client, Database, IndexModel};
-use std::{collections::HashMap, time::Instant, vec};
+use std::{collections::HashMap, vec};
 
 pub struct DB {
     pub client: Client,
@@ -620,22 +620,26 @@ impl DB {
         Ok((items, total_count as u32))
     }
 
-    pub async fn get_user_group_by_id(
+    pub async fn get_user_groups_by_id(
         &self,
-        user_group_id: &str,
-    ) -> anyhow::Result<Option<FilezUserGroup>> {
+        user_group_ids: &Vec<String>,
+    ) -> anyhow::Result<Vec<FilezUserGroup>> {
         let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
-        let res = collection
-            .find_one(
+        let user_groups = collection
+            .find(
                 doc! {
-                    "_id": user_group_id
+                    "_id": {
+                        "$in": user_group_ids
+                    }
                 },
                 None,
             )
+            .await?
+            .try_collect::<Vec<_>>()
             .await?;
 
-        Ok(res)
+        Ok(user_groups)
     }
 
     pub async fn delete_permission(&self, permission_id: &str) -> anyhow::Result<DeleteResult> {
@@ -2129,24 +2133,55 @@ impl DB {
             .await?)
     }
 
-    pub async fn delete_file_group(&self, file_group: &FilezFileGroup) -> anyhow::Result<()> {
-        let mut session = self.client.start_session(None).await?;
-
-        session.start_transaction(None).await?;
-
+    pub async fn get_file_groups_by_ids(
+        &self,
+        file_group_ids: &Vec<String>,
+    ) -> anyhow::Result<Vec<FilezFileGroup>> {
         let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
-        collection
-            .delete_one_with_session(
+        let mut cursor = collection
+            .find(
                 doc! {
-                    "_id": file_group.file_group_id.clone()
+                    "_id": {
+                        "$in": file_group_ids
+                    }
+                },
+                None,
+            )
+            .await?;
+
+        let mut file_groups = vec![];
+
+        while let Some(file_group) = cursor.try_next().await? {
+            file_groups.push(file_group);
+        }
+
+        Ok(file_groups)
+    }
+
+    pub async fn delete_file_groups(&self, file_group: &[FilezFileGroup]) -> anyhow::Result<()> {
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
+        let files_collection = self.db.collection::<FilezFile>("files");
+
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
+
+        let file_groups_ids = file_group
+            .iter()
+            .map(|f| f.file_group_id.clone())
+            .collect::<Vec<_>>();
+
+        collection
+            .delete_many_with_session(
+                doc! {
+                    "_id": {
+                        "$in": file_groups_ids.clone()
+                    }
                 },
                 None,
                 &mut session,
             )
             .await?;
-
-        let files_collection = self.db.collection::<FilezFile>("files");
 
         // remove the group from all files
         files_collection
@@ -2154,17 +2189,17 @@ impl DB {
                 doc! {
                     "$or": [
                         {
-                            "static_file_group_ids": file_group.file_group_id.clone()
+                            "static_file_group_ids": file_groups_ids.clone()
                         },
                         {
-                            "dynamic_file_group_ids": file_group.file_group_id.clone()
+                            "dynamic_file_group_ids": file_groups_ids.clone()
                         }
                     ]
                 },
                 doc! {
-                    "$pull": {
-                        "static_file_group_ids": file_group.file_group_id.clone(),
-                        "dynamic_file_group_ids": file_group.file_group_id.clone()
+                    "$pullAll": {
+                        "static_file_group_ids": file_groups_ids.clone(),
+                        "dynamic_file_group_ids": file_groups_ids.clone()
                     }
                 },
                 None,
@@ -2175,17 +2210,23 @@ impl DB {
         Ok(session.commit_transaction().await?)
     }
 
-    pub async fn delete_user_group(&self, user_group: &FilezUserGroup) -> anyhow::Result<()> {
+    pub async fn delete_user_groups(&self, user_groups: &[FilezUserGroup]) -> anyhow::Result<()> {
         let mut session = self.client.start_session(None).await?;
-
         session.start_transaction(None).await?;
 
         let collection = self.db.collection::<FilezUserGroup>("user_groups");
 
+        let user_group_ids = user_groups
+            .iter()
+            .map(|f| f.user_group_id.clone())
+            .collect::<Vec<_>>();
+
         collection
-            .delete_one_with_session(
+            .delete_many_with_session(
                 doc! {
-                    "_id": user_group.user_group_id.clone()
+                    "_id": {
+                        "$in": user_group_ids.clone()
+                    }
                 },
                 None,
                 &mut session,
@@ -2200,13 +2241,13 @@ impl DB {
                 doc! {
                     "$or": [
                         {
-                            "user_group_ids": user_group.user_group_id.clone()
+                            "user_group_ids": user_group_ids.clone()
                         }
                     ]
                 },
                 doc! {
-                    "$pull": {
-                        "user_group_ids": user_group.user_group_id.clone(),
+                    "$pullAll": {
+                        "user_group_ids": user_group_ids,
                     }
                 },
                 None,

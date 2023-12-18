@@ -1,7 +1,10 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    permissions::{check_auth, AuthResourceToCheck, FilezUserGroupPermissionAclWhatOptions},
+    into_permissive_resource,
+    permissions::{
+        check_auth_multiple, CommonAclWhatOptions, FilezUserGroupPermissionAclWhatOptions,
+    },
     retry_transient_transaction_error,
 };
 use anyhow::bail;
@@ -37,8 +40,12 @@ pub async fn update_user_group(
     let uugr: UpdateUserGroupRequestBody =
         serde_json::from_slice(&hyper::body::to_bytes(req.into_body()).await?)?;
 
-    let mut group = match db.get_user_group_by_id(&uugr.user_group_id).await? {
-        Some(g) => g,
+    let mut group = match db
+        .get_user_groups_by_id(&vec![uugr.user_group_id])
+        .await?
+        .first()
+    {
+        Some(g) => g.clone(),
         None => {
             return Ok(res
                 .status(404)
@@ -48,12 +55,12 @@ pub async fn update_user_group(
     };
 
     if let Some(name) = uugr.fields.name {
-        match check_auth(
+        match check_auth_multiple(
             auth,
-            &AuthResourceToCheck::UserGroup((
-                &group,
+            &into_permissive_resource!(&vec![group.clone()]),
+            &CommonAclWhatOptions::UserGroup(
                 FilezUserGroupPermissionAclWhatOptions::UpdateGroupInfosName,
-            )),
+            ),
             db,
         )
         .await
@@ -69,12 +76,12 @@ pub async fn update_user_group(
     }
 
     if let Some(visibility) = uugr.fields.visibility {
-        match check_auth(
+        match check_auth_multiple(
             auth,
-            &AuthResourceToCheck::UserGroup((
-                &group,
+            &into_permissive_resource!(&vec![group.clone()]),
+            &CommonAclWhatOptions::UserGroup(
                 FilezUserGroupPermissionAclWhatOptions::UpdateGroupInfosVisibility,
-            )),
+            ),
             db,
         )
         .await

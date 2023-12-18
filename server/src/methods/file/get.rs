@@ -2,7 +2,8 @@ use crate::{
     config::SERVER_CONFIG,
     db::DB,
     internal_types::Auth,
-    permissions::{check_auth, AuthResourceToCheck, FilezFilePermissionAclWhatOptions},
+    into_permissive_resource,
+    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
     some_or_bail,
     utils::{get_query_item, get_range},
 };
@@ -73,9 +74,10 @@ pub async fn get_file(
         }
     };
 
-    match check_auth(
+    match check_auth_multiple(
         auth,
-        &AuthResourceToCheck::File((&file, FilezFilePermissionAclWhatOptions::GetFile)),
+        &into_permissive_resource!(vec![file.clone()]),
+        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::GetFile),
         db,
     )
     .await

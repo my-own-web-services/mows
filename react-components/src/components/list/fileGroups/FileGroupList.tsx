@@ -112,9 +112,10 @@ export default class FileGroupList extends PureComponent<
         if (!this.context) return;
         const items = this.resourceListRef.current?.getSelectedItems();
         if (!items) return;
-        for (const item of items) {
-            await this.context.filezClient.delete_file_group(item._id);
-        }
+        await this.context.filezClient.delete_file_groups(
+            items.map((i) => i._id)
+        );
+
         this.resourceListRef.current?.refreshList();
         this.closeDeleteModal();
     };

@@ -3,12 +3,8 @@ use crate::{
     db::DB,
     internal_types::Auth,
     into_permissive_resource,
-    permissions::{
-        check_auth, check_auth_multiple, AuthResourceToCheck, CommonAclWhatOptions,
-        FilezFilePermissionAclWhatOptions,
-    },
-    retry_transient_transaction_error, some_or_bail,
-    utils::get_query_item,
+    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
+    retry_transient_transaction_error,
 };
 use anyhow::bail;
 use filez_common::storage::index::get_storage_location_from_file;
@@ -30,7 +26,7 @@ Mutation > FilezFileGroup
 Mutation > FilezUser
 
 ## Multiple Resources
-No // TODO
+Yes
 
 */
 pub async fn delete_file(

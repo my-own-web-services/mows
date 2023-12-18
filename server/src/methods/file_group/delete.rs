@@ -1,18 +1,19 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    permissions::{check_auth, AuthResourceToCheck, FilezFileGroupPermissionAclWhatOptions},
+    into_permissive_resource,
+    permissions::{check_auth_multiple, FilezFileGroupPermissionAclWhatOptions},
     retry_transient_transaction_error,
-    utils::get_query_item,
 };
 use anyhow::bail;
 use hyper::{body::Body, Request, Response};
-
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 /**
 # Deletes a file group.
 
 ## Call
-`/api/file_group/delete/?id={group_id}`
+`/api/file_group/delete/`
 
 ## Permissions
 FileGroup > DeleteGroup
@@ -22,7 +23,7 @@ Mutation > FilezFileGroup
 Mutation > FilezFile
 
 ## Multiple Resources
-No // TODO
+Yes
 */
 pub async fn delete_file_group(
     req: Request<Body>,
@@ -30,22 +31,17 @@ pub async fn delete_file_group(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let file_group_id = match get_query_item(&req, "id") {
-        Some(v) => v,
-        None => return Ok(res.status(400).body(Body::from("Missing id"))?),
-    };
+    let body = hyper::body::to_bytes(req.into_body()).await?;
+    let dfgrb = serde_json::from_slice::<DeleteFileGroupRequestBody>(&body)?;
 
-    let file_group = match db.get_file_group_by_id(&file_group_id).await? {
-        Some(fg) => fg,
-        None => return Ok(res.status(404).body(Body::from("File group not found"))?),
-    };
+    let file_groups = db.get_file_groups_by_ids(&dfgrb.group_ids).await?;
 
-    match check_auth(
+    match check_auth_multiple(
         auth,
-        &AuthResourceToCheck::FileGroup((
-            &file_group,
+        &into_permissive_resource!(file_groups),
+        &crate::permissions::CommonAclWhatOptions::FileGroup(
             FilezFileGroupPermissionAclWhatOptions::DeleteGroup,
-        )),
+        ),
         db,
     )
     .await
@@ -57,7 +53,13 @@ pub async fn delete_file_group(
         Err(e) => bail!(e),
     }
 
-    retry_transient_transaction_error!(db.delete_file_group(&file_group).await);
+    retry_transient_transaction_error!(db.delete_file_groups(&file_groups).await);
 
     Ok(res.status(200).body(Body::from("Ok"))?)
+}
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct DeleteFileGroupRequestBody {
+    pub group_ids: Vec<String>,
 }

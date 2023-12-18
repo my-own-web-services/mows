@@ -2,7 +2,10 @@ use crate::{
     db::DB,
     dynamic_groups::{handle_dynamic_group_update, UpdateType},
     internal_types::Auth,
-    permissions::{check_auth, AuthResourceToCheck, FilezFileGroupPermissionAclWhatOptions},
+    into_permissive_resource,
+    permissions::{
+        check_auth_multiple, CommonAclWhatOptions, FilezFileGroupPermissionAclWhatOptions,
+    },
     retry_transient_transaction_error,
 };
 use anyhow::bail;
@@ -61,12 +64,12 @@ pub async fn update_file_group(
     timer.add("2 get_file_group_by_id");
 
     if let Some(name) = ufgr.fields.name {
-        match check_auth(
+        match check_auth_multiple(
             auth,
-            &AuthResourceToCheck::FileGroup((
-                &group,
+            &into_permissive_resource!(vec![group.clone()]),
+            &CommonAclWhatOptions::FileGroup(
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosName,
-            )),
+            ),
             db,
         )
         .await
@@ -82,12 +85,12 @@ pub async fn update_file_group(
     };
 
     if let Some(dynamic_group_rules) = ufgr.fields.dynamic_group_rules {
-        match check_auth(
+        match check_auth_multiple(
             auth,
-            &AuthResourceToCheck::FileGroup((
-                &group,
+            &into_permissive_resource!(vec![group.clone()]),
+            &CommonAclWhatOptions::FileGroup(
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosDynamicGroupRules,
-            )),
+            ),
             db,
         )
         .await
@@ -103,12 +106,12 @@ pub async fn update_file_group(
     };
 
     if let Some(group_type) = ufgr.fields.group_type {
-        match check_auth(
+        match check_auth_multiple(
             auth,
-            &AuthResourceToCheck::FileGroup((
-                &group,
+            &into_permissive_resource!(vec![group.clone()]),
+            &CommonAclWhatOptions::FileGroup(
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupType,
-            )),
+            ),
             db,
         )
         .await
@@ -124,12 +127,12 @@ pub async fn update_file_group(
     };
 
     if let Some(keywords) = ufgr.fields.keywords {
-        match check_auth(
+        match check_auth_multiple(
             auth,
-            &AuthResourceToCheck::FileGroup((
-                &group,
+            &into_permissive_resource!(vec![group.clone()]),
+            &CommonAclWhatOptions::FileGroup(
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosKeywords,
-            )),
+            ),
             db,
         )
         .await
@@ -145,12 +148,12 @@ pub async fn update_file_group(
     };
 
     if let Some(mime_types) = ufgr.fields.mime_types {
-        match check_auth(
+        match check_auth_multiple(
             auth,
-            &AuthResourceToCheck::FileGroup((
-                &group,
+            &into_permissive_resource!(vec![group.clone()]),
+            &CommonAclWhatOptions::FileGroup(
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosMimeTypes,
-            )),
+            ),
             db,
         )
         .await
@@ -166,12 +169,12 @@ pub async fn update_file_group(
     };
 
     if let Some(group_hierarchy_paths) = ufgr.fields.group_hierarchy_paths {
-        match check_auth(
+        match check_auth_multiple(
             auth,
-            &AuthResourceToCheck::FileGroup((
-                &group,
+            &into_permissive_resource!(vec![group.clone()]),
+            &CommonAclWhatOptions::FileGroup(
                 FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupHierarchyPaths,
-            )),
+            ),
             db,
         )
         .await
@@ -208,7 +211,7 @@ pub async fn update_file_group(
 
         group.permission_ids = permission_ids;
     }
-    timer.add("3 check_auth and handle updates");
+    timer.add("3 check_auth_multiple and handle updates");
 
     retry_transient_transaction_error!(db.update_file_group(&group).await);
     timer.add("4 write updates to db");

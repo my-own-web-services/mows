@@ -26,6 +26,7 @@ import { CreateFileGroupResponseBody } from "./apiTypes/CreateFileGroupResponseB
 import { GetItemListRequestBody } from "./apiTypes/GetItemListRequestBody.js";
 import { PermissionResourceSelectType } from "./apiTypes/PermissionResourceSelectType.js";
 import { DeleteFileRequestBody } from "./apiTypes/DeleteFileRequestBody.js";
+import { DeleteFileGroupRequestBody } from "./apiTypes/DeleteFileGroupRequestBody.js";
 
 export * from "./types.js";
 
@@ -422,12 +423,15 @@ export class FilezClient {
         return res;
     };
 
-    delete_file_group = async (group_id: string) => {
+    delete_file_groups = async (group_ids: string[]) => {
         if (!this.initialized) await this.init();
-        const res = await fetch(`${this.filezEndpoint}/api/file_group/delete/?id=${group_id}`, {
+        const body: DeleteFileGroupRequestBody = {group_ids}
+        const res = await fetch(`${this.filezEndpoint}/api/file_group/delete/`, {
             method: "POST",
-            credentials: "include"
+            credentials: "include",
+            body: JSON.stringify(body),
         });
+        
         return res;
     };
 

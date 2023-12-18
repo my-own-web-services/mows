@@ -1,13 +1,16 @@
 use crate::{
     db::DB,
     internal_types::Auth,
-    permissions::{check_auth, AuthResourceToCheck, FilezUserGroupPermissionAclWhatOptions},
+    into_permissive_resource,
+    permissions::{
+        check_auth_multiple, CommonAclWhatOptions, FilezUserGroupPermissionAclWhatOptions,
+    },
     retry_transient_transaction_error,
-    utils::get_query_item,
 };
 use anyhow::bail;
 use hyper::{body::Body, Request, Response};
-
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 /**
 # Delete a user group.
 
@@ -22,9 +25,7 @@ Mutation > FilezUserGroup
 Mutation > FilezUser
 
 ## Multiple Resources
-No // TODO
-
-
+Yes
 */
 pub async fn delete_user_group(
     req: Request<Body>,
@@ -32,22 +33,16 @@ pub async fn delete_user_group(
     auth: &Auth,
     res: hyper::http::response::Builder,
 ) -> anyhow::Result<Response<Body>> {
-    let user_group_id = match get_query_item(&req, "id") {
-        Some(v) => v,
-        None => return Ok(res.status(400).body(Body::from("Missing id"))?),
-    };
+    let body = hyper::body::to_bytes(req.into_body()).await?;
 
-    let user_group = match db.get_user_group_by_id(&user_group_id).await? {
-        Some(ug) => ug,
-        None => return Ok(res.status(404).body(Body::from("User group not found"))?),
-    };
+    let dugrb = serde_json::from_slice::<DeleteUserGroupRequestBody>(&body)?;
 
-    match check_auth(
+    let user_groups = db.get_user_groups_by_id(&dugrb.group_ids).await?;
+
+    match check_auth_multiple(
         auth,
-        &AuthResourceToCheck::UserGroup((
-            &user_group,
-            FilezUserGroupPermissionAclWhatOptions::DeleteGroup,
-        )),
+        &into_permissive_resource!(user_groups),
+        &CommonAclWhatOptions::UserGroup(FilezUserGroupPermissionAclWhatOptions::DeleteGroup),
         db,
     )
     .await
@@ -59,7 +54,13 @@ pub async fn delete_user_group(
         Err(e) => bail!(e),
     }
 
-    retry_transient_transaction_error!(db.delete_user_group(&user_group).await);
+    retry_transient_transaction_error!(db.delete_user_groups(&user_groups).await);
 
     Ok(res.status(200).body(Body::from("Ok"))?)
+}
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct DeleteUserGroupRequestBody {
+    pub group_ids: Vec<String>,
 }

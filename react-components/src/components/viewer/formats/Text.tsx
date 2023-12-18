@@ -25,8 +25,20 @@ export default class Text extends PureComponent<TextProps, TextState> {
     }
 
     componentDidMount = async () => {
+        await this.init();
+    };
+
+    componentDidUpdate = async (prevProps: TextProps) => {
+        if (prevProps.file._id !== this.props.file._id) {
+            await this.init();
+        }
+    };
+
+    init = async () => {
         if (this.context === null) {
-            throw new Error("FileList must be used inside Filez to provide the FilezContext");
+            throw new Error(
+                "FileList must be used inside Filez to provide the FilezContext"
+            );
         } else {
             // 10 MB
             const fileSizeLimit = 10 * 1024 * 1024;
@@ -61,7 +73,10 @@ export default class Text extends PureComponent<TextProps, TextState> {
             <div
                 className="Text"
                 style={{
-                    overflow: this.props.viewMode === FileViewerViewMode.Preview ? "hidden" : "auto"
+                    overflow:
+                        this.props.viewMode === FileViewerViewMode.Preview
+                            ? "hidden"
+                            : "auto"
                 }}
             >
                 <pre>{this.state.textContent}</pre>
