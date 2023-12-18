@@ -2,7 +2,7 @@ import { PureComponent } from "react";
 import { FilezContext } from "../../FilezProvider";
 import { Button, Modal, TagPicker } from "rsuite";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
-import Permission from "../list/permissions/Permission";
+import Permission from "../resources/Permission";
 import update from "immutability-helper";
 import { match } from "ts-pattern";
 

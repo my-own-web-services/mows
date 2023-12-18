@@ -37,7 +37,7 @@ pub async fn dev(db: &DB) -> anyhow::Result<()> {
 pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
 
-    let current_files = db.get_total_ammount_of_files().await? as u32;
+    let current_files = db.get_total_ammount_of_files().await? as i64;
 
     let email = some_or_bail!(
         &config.dev.mock_files_owner_email,
@@ -53,7 +53,10 @@ pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> 
 
     let storage_id: String = config.storage.default_storage.clone();
 
-    let files_to_create = create_mock_files_limit - current_files;
+    let files_to_create: i64 = (create_mock_files_limit as i64) - current_files;
+    if files_to_create <= 0 {
+        return Ok(());
+    }
     println!(
         "Creating {} mock files for user with id: {}",
         files_to_create, owner.user_id
@@ -190,11 +193,11 @@ pub async fn create_mock_users(db: &DB) -> anyhow::Result<()> {
 }
 
 pub async fn check_database_consistency(db: &DB) -> anyhow::Result<()> {
-    println!("Checking group file count consistency");
+    println!("Checking group file count vs actual file count consistency");
     check_group_file_count_consistency(db).await?;
-    println!("Checking storage use consistency");
+    println!("Checking user storage use vs actual storage use consistency");
     check_storage_use_consistency(db).await?;
-    println!("Checking database file storage consistency");
+    println!("Checking database file existence vs actual file existence");
     check_database_file_storage_consistency(db).await?;
 
     Ok(())
@@ -332,7 +335,7 @@ pub async fn check_group_file_count_consistency(db: &DB) -> anyhow::Result<()> {
                         limit: None,
                         sort_field: None,
                         sort_order: None,
-                        filter: None,
+                        filter: Some("".to_string()),
                         sub_resource_type: None,
                     },
                 )

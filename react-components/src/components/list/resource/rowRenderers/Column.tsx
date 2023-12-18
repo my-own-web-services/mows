@@ -5,12 +5,12 @@ import {
     RowRenderer,
     RowRendererDirection,
     SelectedItemsAfterKeypress
-} from "./ResourceListTypes";
-import { dragHandleWidth } from "./SortingBar";
-import RowContextMenu from "./RowContextMenu";
+} from "../ResourceListTypes";
+import { dragHandleWidth } from "../SortingBar";
+import RowContextMenu from "../RowContextMenu";
 import { FaThList } from "react-icons/fa";
-import { DraggableItem } from "../../dnd/DraggableItem";
-import { DraggableTarget } from "../../dnd/DraggableTarget";
+import { DraggableItem } from "../../../dnd/DraggableItem";
+import { DraggableTarget } from "../../../dnd/DraggableTarget";
 
 interface ListRowState {}
 

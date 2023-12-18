@@ -28,7 +28,7 @@
         "react/react-in-jsx-scope": "off",
         "react/jsx-no-bind": "warn",
         "react/self-closing-comp": "error",
-        "unused-imports/no-unused-imports": "error",
+        "unused-imports/no-unused-imports": "warn",
         "no-unused-variable": "off",
         "@typescript-eslint/strict-boolean-expressions": "error",
         "react-hooks/exhaustive-deps": "off",

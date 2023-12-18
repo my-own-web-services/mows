@@ -1,17 +1,17 @@
 import { CSSProperties, PureComponent, createRef } from "react";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import {
     Column,
     ColumnDirection,
     ResourceListHandlers,
     ResourceListRowHandlers
-} from "../resource/ResourceListTypes";
+} from "./resource/ResourceListTypes";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import { Button, Modal } from "rsuite";
-import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
+import ColumnListRowRenderer from "./resource/rowRenderers/Column";
 import { AiOutlineFolder, AiOutlineFolderView } from "react-icons/ai";
-import ResourceList from "../resource/ResourceList";
-import FileGroup from "./FileGroup";
+import ResourceList from "./resource/ResourceList";
+import FileGroup from "../resources/FileGroup";
 
 const defaultColumns: Column<FilezFileGroup>[] = [
     {

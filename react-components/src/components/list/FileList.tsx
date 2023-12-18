@@ -1,24 +1,24 @@
 import { CSSProperties, PureComponent, createRef } from "react";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import {
     bytesToHumanReadableSize,
     utcTimeStampToTimeAndDate
-} from "../../../utils";
+} from "../../utils";
 import {
     Column,
     ColumnDirection,
     ResourceListHandlers,
     ResourceListRowHandlers
-} from "../resource/ResourceListTypes";
+} from "./resource/ResourceListTypes";
 
-import FileIcon from "../../fileIcons/FileIcon";
-import GridRowRenderer from "../resource/GridRowRenderer";
-import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
+import FileIcon from "../fileIcons/FileIcon";
+import GridRowRenderer from "./resource/rowRenderers/Grid";
+import ColumnListRowRenderer from "./resource/rowRenderers/Column";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { Button, Modal } from "rsuite";
-import UploadFile from "./UploadFile";
-import MetaEditor from "./FileMetaEditor";
-import ResourceList from "../resource/ResourceList";
+import UploadFile from "../resources/UploadFile";
+import MetaEditor from "../resources/FileMetaEditor";
+import ResourceList from "./resource/ResourceList";
 import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
 import { match } from "ts-pattern";
 

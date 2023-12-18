@@ -1,5 +1,5 @@
 import { ComponentType } from "react";
-import { MenuItems } from "./DefaultMenuItems";
+import { MenuItems } from "./DefaultContextMenuItems";
 
 export interface RowRenderer<FilezResource> {
     readonly name: string;

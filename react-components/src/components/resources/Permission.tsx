@@ -8,7 +8,7 @@ import {
     InputGroup,
     InputPicker
 } from "rsuite";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import EyeIcon from "@rsuite/icons/legacy/Eye";
 import EyeSlashIcon from "@rsuite/icons/legacy/EyeSlash";
 import { BiCopy } from "react-icons/bi";

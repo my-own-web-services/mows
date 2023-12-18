@@ -1,10 +1,10 @@
 import { PureComponent } from "react";
-import { Column, ColumnDirection } from "../resource/ResourceListTypes";
-import { FilezContext } from "../../../FilezProvider";
+import { Column, ColumnDirection } from "./resource/ResourceListTypes";
+import { FilezContext } from "../../FilezProvider";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
 
-import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
-import ResourceList from "../resource/ResourceList";
+import ColumnListRowRenderer from "./resource/rowRenderers/Column";
+import ResourceList from "./resource/ResourceList";
 
 const defaultColumns: Column<FilezPermission>[] = [
     {
@@ -73,8 +73,7 @@ export default class PermissionList extends PureComponent<
                         this.context.filezClient.list_permissions
                     }
                     displayTopBar={this.props.displayTopBar}
-                    //@ts-ignore
-                    rowRenderers={[ColumnListRowRenderer]}
+                    rowRenderers={[ColumnListRowRenderer<FilezPermission>()]}
                     columns={defaultColumns}
                 />
             </div>

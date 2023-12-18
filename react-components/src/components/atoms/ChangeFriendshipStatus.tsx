@@ -1,5 +1,5 @@
 import { PureComponent } from "react";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import {
     BiUserVoice,
     BiUserMinus,
@@ -10,7 +10,7 @@ import {
 import { Button, ButtonGroup, Message, useToaster } from "rsuite";
 import { match } from "ts-pattern";
 import { ReducedFilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/ReducedFilezUser";
-import { withToasterHook } from "../../../utils";
+import { withToasterHook } from "../../utils";
 import { UpdateFriendStatus } from "@firstdorsal/filez-client/dist/js/apiTypes/UpdateFriendStatus";
 import { FriendshipStatus } from "@firstdorsal/filez-client/dist/js/apiTypes/FriendshipStatus";
 

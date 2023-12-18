@@ -2,10 +2,10 @@ import { FilezUserGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/Filez
 import { ReducedFilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/ReducedFilezUser";
 import { Visibility } from "@firstdorsal/filez-client/dist/js/apiTypes/Visibility";
 import { PureComponent } from "react";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import { Input, SelectPicker, TagPicker } from "rsuite";
-import SelectOrCreateUseOncePermission from "../../atoms/SelectOrCreateUseOncePermission";
-import Permission from "../permissions/Permission";
+import SelectOrCreateUseOncePermission from "../atoms/SelectOrCreateUseOncePermission";
+import Permission from "./Permission";
 import { cloneDeep, isEqual } from "lodash";
 import update from "immutability-helper";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";

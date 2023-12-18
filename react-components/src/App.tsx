@@ -1,10 +1,10 @@
 import { Component, createRef } from "react";
 import FilezProvider from "./FilezProvider";
-import FileList from "./components/list/files/FileList";
+import FileList from "./components/list/FileList";
 import FilezFileViewer, {
     FileViewerViewMode
 } from "./components/viewer/FileViewer";
-import FileGroupList from "./components/list/fileGroups/FileGroupList";
+import FileGroupList from "./components/list/FileGroupList";
 
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
@@ -13,6 +13,9 @@ import {
     ResourceListRowHandlersOnClick
 } from "./components/list/resource/ResourceListTypes";
 import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
+import PermissionList from "./components/list/PermissionList";
+import UserGroupList from "./components/list/UserGroupList";
+import UserList from "./components/list/UserList";
 
 interface AppProps {}
 
@@ -93,30 +96,38 @@ export default class App extends Component<AppProps, AppState> {
                         id={this.state.selectedGroupId}
                         listSubType={this.state.selectedGroupListSubType}
                     />
-                    <FileGroupList
-                        ref={this.fileGroupListRef}
-                        style={{
-                            height: "500px",
-                            width: "500px",
-                            float: "left"
-                        }}
-                        resourceListHandlers={{
-                            onSelect: this.onGroupSelect
-                        }}
-                        resourceListRowHandlers={{
-                            onClick: this.onGroupClick
-                        }}
-                    />
+                    <div>
+                        <FileGroupList
+                            ref={this.fileGroupListRef}
+                            style={{
+                                height: "500px",
+                                width: "500px",
+                                display: "inline-block"
+                            }}
+                            resourceListHandlers={{
+                                onSelect: this.onGroupSelect
+                            }}
+                            resourceListRowHandlers={{
+                                onClick: this.onGroupClick
+                            }}
+                        />
 
-                    <FilezFileViewer
-                        viewMode={FileViewerViewMode.Full}
-                        style={{
-                            width: "500px",
-                            float: "left",
-                            height: "500px"
-                        }}
-                        fileId={this.state.selectedFileId}
+                        <FilezFileViewer
+                            viewMode={FileViewerViewMode.Full}
+                            style={{
+                                width: "500px",
+                                height: "500px",
+                                display: "inline-block"
+                            }}
+                            fileId={this.state.selectedFileId}
+                        />
+                    </div>
+
+                    <PermissionList
+                        style={{ height: "500px", width: "100%" }}
                     />
+                    <UserGroupList style={{ height: "500px", width: "100%" }} />
+                    <UserList style={{ height: "500px" }} />
                 </FilezProvider>
             </div>
         );
@@ -124,6 +135,7 @@ export default class App extends Component<AppProps, AppState> {
 }
 
 /*
+
                     <PermissionList style={{ height: "500px" }} />
                     <UserGroupList style={{ height: "500px" }} />
                     <UserList style={{ height: "500px" }} />

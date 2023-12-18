@@ -20,7 +20,7 @@ use futures::{stream::TryStreamExt, StreamExt};
 use mongodb::{
     bson::doc,
     options::{FindOneOptions, FindOptions},
-    results::{DeleteResult, InsertOneResult, UpdateResult},
+    results::{InsertOneResult, UpdateResult},
 };
 use mongodb::{options::ClientOptions, Client, Database, IndexModel};
 use std::{collections::HashMap, vec};
@@ -64,7 +64,7 @@ impl DB {
         {
             let index = IndexModel::builder()
                 .keys(doc! {
-                 "static_file_group_ids": 1, "name": 1, "keywords": 1
+                 "static_file_group_ids": 1, "name": 1,"owner_id": 1,
                 })
                 .build();
             match files_collection.create_index(index, None).await {
@@ -76,7 +76,7 @@ impl DB {
         {
             let index = IndexModel::builder()
                 .keys(doc! {
-                    "dynamic_file_group_ids": 1,"name": 1, "keywords": 1
+                    "dynamic_file_group_ids": 1,"name": 1,"owner_id": 1,
                 })
                 .build();
             match files_collection.create_index(index, None).await {

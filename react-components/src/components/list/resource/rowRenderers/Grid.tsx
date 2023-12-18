@@ -5,14 +5,16 @@ import {
     RowRenderer,
     RowRendererDirection,
     SelectedItemsAfterKeypress
-} from "./ResourceListTypes";
+} from "../ResourceListTypes";
 import { useContextMenu } from "react-contexify";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import FilezFileViewer, { FileViewerViewMode } from "../../viewer/FileViewer";
-import RowContextMenu from "./RowContextMenu";
+import FilezFileViewer, {
+    FileViewerViewMode
+} from "../../../viewer/FileViewer";
+import RowContextMenu from "../RowContextMenu";
 import { BsFillGridFill } from "react-icons/bs";
-import { DraggableItem } from "../../dnd/DraggableItem";
-import { DraggableTarget } from "../../dnd/DraggableTarget";
+import { DraggableItem } from "../../../dnd/DraggableItem";
+import { DraggableTarget } from "../../../dnd/DraggableTarget";
 
 interface GridRowState {}
 

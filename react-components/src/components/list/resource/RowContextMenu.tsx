@@ -1,6 +1,6 @@
 import { PureComponent } from "react";
 import { Item, ItemParams, Menu, contextMenu } from "react-contexify";
-import { MenuItems } from "./DefaultMenuItems";
+import { MenuItems } from "./DefaultContextMenuItems";
 import {
     BaseResource,
     ResourceListGetLastSelectedItem,

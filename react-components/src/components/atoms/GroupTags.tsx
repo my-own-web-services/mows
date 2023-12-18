@@ -1,7 +1,7 @@
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import { useContext, useEffect, useState } from "react";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import { Tag } from "rsuite";
 
 export const GroupTags = ({ file }: { file: FilezFile }) => {

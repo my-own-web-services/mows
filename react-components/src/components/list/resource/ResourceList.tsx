@@ -9,7 +9,7 @@ import ListTopBar from "./ListTopBar";
 import { cloneDeep } from "lodash";
 import { FilezContext } from "../../../FilezProvider";
 import "react-contexify/dist/ReactContexify.css";
-import { MenuItems, defaultMenuItems } from "./DefaultMenuItems";
+import { MenuItems, defaultMenuItems } from "./DefaultContextMenuItems";
 import { GetItemListRequestBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListRequestBody";
 import { GetItemListResponseBody } from "@firstdorsal/filez-client/dist/js/apiTypes/GetItemListResponseBody";
 import {
@@ -118,11 +118,17 @@ export default class ResourceList<
         await this.loadItems();
     };
 
+    // TODO create deselect all function to call for higher order components to call when a resource was deleted for example
+
     componentDidUpdate = async (
         prevProps: Readonly<ResourceListProps<ResourceType>>,
         _prevState: Readonly<ResourceListState<ResourceType>>
     ) => {
-        if (prevProps.id !== this.props.id) {
+        if (
+            prevProps.id !== this.props.id ||
+            prevProps.resourceType !== this.props.resourceType ||
+            prevProps.subResourceType !== this.props.subResourceType
+        ) {
             await this.loadItems(LoadItemMode.NewId);
             //this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
         }

@@ -1,10 +1,10 @@
 import { CSSProperties, PureComponent } from "react";
-import { FilezContext } from "../../../FilezProvider";
-import ResourceList from "../resource/ResourceList";
+import { FilezContext } from "../../FilezProvider";
+import ResourceList from "./resource/ResourceList";
 
 import { FilezUserGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezUserGroup";
-import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
-import { Column, ColumnDirection } from "../resource/ResourceListTypes";
+import ColumnListRowRenderer from "./resource/rowRenderers/Column";
+import { Column, ColumnDirection } from "./resource/ResourceListTypes";
 
 const defaultColumns: Column<FilezUserGroup>[] = [
     {
@@ -64,8 +64,7 @@ export default class UserGroupList extends PureComponent<
                         this.context.filezClient.list_user_groups
                     }
                     displayTopBar={this.props.displayTopBar}
-                    //@ts-ignore
-                    rowRenderers={[ColumnListRowRenderer]}
+                    rowRenderers={[ColumnListRowRenderer<FilezUserGroup>()]}
                 />
             </div>
         );

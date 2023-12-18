@@ -1,16 +1,16 @@
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { CSSProperties, PureComponent } from "react";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
 import { cloneDeep } from "lodash";
 import { Checkbox, Input, Progress } from "rsuite";
 import update from "immutability-helper";
-import Keywords from "../../atoms/KeywordPicker";
-import StoragePicker from "../../atoms/StoragePicker";
+import Keywords from "../atoms/KeywordPicker";
+import StoragePicker from "../atoms/StoragePicker";
 import { AutoSizer } from "rsuite/esm/Windowing";
 import { FixedSizeList } from "react-window";
 import { ValueType } from "rsuite/esm/Checkbox";
-import { MultiItemTagPickerResources } from "../../atoms/MultiItemTagPicker";
+import { MultiItemTagPickerResources } from "../atoms/MultiItemTagPicker";
 
 interface UploadFileProps {}
 
