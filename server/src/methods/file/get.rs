@@ -42,18 +42,15 @@ pub async fn get_file(
     let path = req.uri().path().replacen("/api/file/get/", "", 1);
 
     let parts = path.split('/').collect::<Vec<_>>();
-    let file_id = if !parts.is_empty() {
-        parts[0].to_string()
-    } else {
-        bail!("No file id")
-    };
+    let file_id = some_or_bail!(parts.first(), "No file id").to_string();
 
     let app_file = {
         if parts.len() < 2 {
             None
         } else {
-            let maybe_app_id = parts[1].to_string();
-            let maybe_app_file_path = parts[2..].join("/");
+            let maybe_app_id = some_or_bail!(parts.get(1), "Invalid App ID").to_string();
+            let maybe_app_file_path =
+                some_or_bail!(parts.get(2..), "Invalid App file path").join("/");
 
             if !maybe_app_id.is_empty() && !maybe_app_file_path.is_empty() {
                 Some((maybe_app_id, maybe_app_file_path))
@@ -126,7 +123,11 @@ pub async fn get_file(
                 Ok(end_byte) => {
                     // end requested
 
-                    let length = end_byte - start_byte + 1;
+                    let length = some_or_bail!(
+                        end_byte
+                            .checked_sub(some_or_bail!(start_byte.checked_add(1), "Invalid Range")),
+                        "Invalid range"
+                    );
 
                     res = res.header(
                         "Content-Range",

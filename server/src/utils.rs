@@ -92,7 +92,7 @@ pub fn generate_id(length: usize) -> String {
     (0..length)
         .map(|_| {
             let idx = rng.gen_range(0..CHARSET.len());
-            CHARSET[idx] as char
+            *CHARSET.get(idx).unwrap() as char
         })
         .collect()
 }
@@ -122,9 +122,9 @@ pub fn get_range(req: &Request<Body>) -> anyhow::Result<(u64, Result<u64, ParseI
             if parts.len() != 2 {
                 bail!("Invalid range");
             }
-            let range_type = parts[0];
-            let range = parts[1];
-            if range_type != "bytes" {
+            let range_type = some_or_bail!(parts.first(), "No range type");
+            let range = some_or_bail!(parts.get(1), "No range");
+            if range_type != &"bytes" {
                 bail!("Invalid range type");
             }
             let range_parts = range.split('-').collect::<Vec<_>>();
@@ -132,8 +132,9 @@ pub fn get_range(req: &Request<Body>) -> anyhow::Result<(u64, Result<u64, ParseI
             if range_parts.len() != 2 {
                 bail!("Invalid range");
             }
-            let start = range_parts[0].parse::<u64>()?;
-            let end = range_parts[1].parse::<u64>();
+            let start =
+                some_or_bail!(range_parts.first(), "Invalid range byte start").parse::<u64>()?;
+            let end = some_or_bail!(range_parts.get(1), "Invalid range byte end").parse::<u64>();
             Ok((start, end))
         }
         None => bail!("No range"),

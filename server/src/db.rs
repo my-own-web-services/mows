@@ -345,6 +345,7 @@ impl DB {
         let collection = self.db.collection::<FilezPermission>("permissions");
 
         let sort_field = gir.sort_field.clone().unwrap_or("_id".to_string());
+
         let find_options = FindOptions::builder()
             .sort(doc! {
                 sort_field: match gir.sort_order {
@@ -353,7 +354,7 @@ impl DB {
                     None => 1
             }
             })
-            .limit(gir.limit.map(|l| l as i64))
+            .limit(gir.limit.map(|l| l.try_into().unwrap_or(0)))
             .skip(gir.from_index)
             .build();
 
@@ -410,7 +411,7 @@ impl DB {
             collection.count_documents(db_filter, None).await?,
         );
 
-        Ok((items, total_count as u32))
+        Ok((items, total_count.try_into()?))
     }
 
     pub async fn get_file_group_by_id(
@@ -573,7 +574,7 @@ impl DB {
                         None => 1
                 }
             })
-            .limit(gir.limit.map(|l| l as i64))
+            .limit(gir.limit.map(|l| l.try_into().unwrap_or(0)))
             .skip(gir.from_index)
             .build();
 
@@ -628,7 +629,7 @@ impl DB {
             collection.count_documents(db_filter, None).await?,
         );
 
-        Ok((items, total_count as u32))
+        Ok((items, total_count.try_into()?))
     }
 
     pub async fn get_user_groups_by_id(
@@ -1047,6 +1048,8 @@ impl DB {
         }
 
         for (file_group_id, file_ids) in file_ids_by_single_group_to_be_added {
+            let ic: u32 = file_ids.len().try_into()?;
+
             file_groups_collection
                 .update_many_with_session(
                     doc! {
@@ -1054,7 +1057,7 @@ impl DB {
                     },
                     doc! {
                         "$inc": {
-                            "item_count": file_ids.len() as i64
+                            "item_count": ic
                         }
                     },
                     None,
@@ -1064,6 +1067,7 @@ impl DB {
         }
 
         for (file_group_id, file_ids) in file_ids_by_single_group_to_be_removed {
+            let ic: i32 = file_ids.len().try_into()?;
             file_groups_collection
                 .update_many_with_session(
                     doc! {
@@ -1071,7 +1075,7 @@ impl DB {
                     },
                     doc! {
                         "$inc": {
-                            "item_count": -(file_ids.len() as i64)
+                            "item_count": -ic
                         }
                     },
                     None,
@@ -1170,6 +1174,8 @@ impl DB {
         let new_used_storage_key = format!("limits.{}.used_storage", new_storage_id);
         let new_file_count_key = format!("limits.{}.used_files", new_storage_id);
 
+        let file_size: i64 = file.size.try_into()?;
+
         users_collection
             .update_one_with_session(
                 doc! {
@@ -1177,8 +1183,8 @@ impl DB {
                 },
                 doc! {
                     "$inc": {
-                        old_used_storage_key: -(file.size as i64),
-                        new_used_storage_key: file.size as i64,
+                        old_used_storage_key: -file_size,
+                        new_used_storage_key: file_size,
                         old_file_count_key: -1,
                         new_file_count_key: 1,
                     }
@@ -1250,7 +1256,7 @@ impl DB {
                     None => 1
             }
             })
-            .limit(gir.limit.map(|l| l as i64))
+            .limit(gir.limit.map(|l| l.try_into().unwrap_or(0)))
             .skip(gir.from_index)
             .build();
 
@@ -1306,7 +1312,7 @@ impl DB {
             collection.count_documents(db_filter, None).await?,
         );
 
-        Ok((user_groups, total_count as u32))
+        Ok((user_groups, total_count.try_into()?))
     }
 
     pub async fn get_user_list(
@@ -1327,7 +1333,7 @@ impl DB {
                     None => 1
             }
             })
-            .limit(gir.limit.map(|l| l as i64))
+            .limit(gir.limit.map(|l| l.try_into().unwrap_or(0)))
             .skip(gir.from_index)
             .build();
 
@@ -1410,7 +1416,7 @@ impl DB {
             collection.count_documents(db_filter, None).await?,
         );
 
-        Ok((users, total_count as u32))
+        Ok((users, total_count.try_into()?))
     }
 
     pub async fn get_files_by_group_id(
@@ -1430,7 +1436,7 @@ impl DB {
                     None => 1
             }
             })
-            .limit(gir.limit.map(|l| l as i64))
+            .limit(gir.limit.map(|l| l.try_into().unwrap_or(0)))
             .skip(gir.from_index)
             .build();
 
@@ -1505,10 +1511,10 @@ impl DB {
 
         // this of course does not work when filtering items out
         let item_count = match gir.filter {
-            Some(_) => {
-                let c = collection.count_documents(db_filter.clone(), None).await?;
-                c as u32
-            }
+            Some(_) => collection
+                .count_documents(db_filter.clone(), None)
+                .await?
+                .try_into()?,
             None => {
                 // for some reason collection.count is very slow; it is much faster in compass
                 // this is why we just skip it if there is no filter
@@ -1774,7 +1780,7 @@ impl DB {
         for file in files_to_delete {
             let owner_id = file.owner_id.clone();
 
-            let files = files_by_owner_id.entry(owner_id).or_insert(vec![]);
+            let files = files_by_owner_id.entry(owner_id).or_default();
             files.push(file.clone());
         }
 
@@ -1786,7 +1792,7 @@ impl DB {
                     "The to be deleted file has no associated storage id"
                 );
 
-                let f = files_by_storage_id.entry(storage_id).or_insert(vec![]);
+                let f = files_by_storage_id.entry(storage_id).or_default();
                 f.push(file);
             }
 
@@ -1796,8 +1802,12 @@ impl DB {
                 let user_key_used_storage = format!("limits.{}.used_storage", storage_id);
                 let user_key_used_files = format!("limits.{}.used_files", storage_id);
 
-                let ammount = files_of_storage.len() as i64;
-                let size = files_of_storage.iter().map(|f| f.size as i64).sum::<i64>();
+                let ammount: i64 = files_of_storage.len().try_into()?;
+                let size: i64 = files_of_storage
+                    .iter()
+                    .map(|f| f.size)
+                    .sum::<u64>()
+                    .try_into()?;
                 users_collection
                     .update_one_with_session(
                         doc! {
@@ -1836,6 +1846,7 @@ impl DB {
         // update file groups
         // decrease item count for all groups that are assigned to the file
         for (group_id, file_count) in file_count_by_file_group_id {
+            let fc: i64 = file_count.try_into()?;
             files_groups_collection
                 .update_one_with_session(
                     doc! {
@@ -1843,7 +1854,7 @@ impl DB {
                     },
                     doc! {
                         "$inc": {
-                            "item_count": -(file_count as i64)
+                            "item_count": -fc
                         }
                     },
                     None,
@@ -1876,7 +1887,9 @@ impl DB {
         );
         let user_key_used_storage = format!("limits.{}.used_storage", fsid);
 
-        let inc_value = new_size as i64 - old_file.size as i64;
+        let new_size: i64 = new_size.try_into()?;
+        let old_size: i64 = old_file.size.try_into()?;
+        let inc_value = some_or_bail!(new_size.checked_sub(old_size), "file size did overflow");
 
         users_collection
             .update_one_with_session(
@@ -1902,7 +1915,7 @@ impl DB {
                 doc! {
                     "$set": {
                         "sha256": new_sha256,
-                        "size": new_size as i64,
+                        "size": new_size,
                         "modified": new_modified
                     }
                 },
@@ -1940,6 +1953,7 @@ impl DB {
         // update user
 
         for group_id in &static_file_group_ids {
+            let file_len: i64 = files.len().try_into()?;
             files_groups_collection
                 .update_one_with_session(
                     doc! {
@@ -1947,7 +1961,7 @@ impl DB {
                     },
                     doc! {
                         "$inc": {
-                            "item_count": files.len() as i64
+                            "item_count":file_len
                         }
                     },
                     None,
@@ -1959,8 +1973,8 @@ impl DB {
         let user_key_used_storage = format!("limits.{}.used_storage", storage_id);
         let user_key_used_files = format!("limits.{}.used_files", storage_id);
 
-        let size = files.iter().map(|f| f.size as i64).sum::<i64>();
-        let count = files.len() as i64;
+        let size: i64 = files.iter().map(|f| f.size).sum::<u64>().try_into()?;
+        let count: i64 = files.len().try_into()?;
 
         // create files
         files_collection
@@ -2008,6 +2022,8 @@ impl DB {
             );
             let user_key_used_storage = format!("limits.{}.used_storage", fsid);
             let user_key_used_files = format!("limits.{}.used_files", fsid);
+            let file_size: i64 = file.size.try_into()?;
+
             users_collection
                 .update_one_with_session(
                     doc! {
@@ -2015,7 +2031,7 @@ impl DB {
                     },
                     doc! {
                         "$inc": {
-                            user_key_used_storage: file.size as i64,
+                            user_key_used_storage: file_size,
                             user_key_used_files: 1
                         }
                     },

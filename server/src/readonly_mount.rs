@@ -83,7 +83,9 @@ pub async fn scan_readonly_mount(
     let group_id = if file_groups.len() > 1 {
         bail!("More than one file group with the same name exists");
     } else if file_groups.len() == 1 {
-        file_groups[0].file_group_id.clone()
+        some_or_bail!(file_groups.get(0), "what the...")
+            .file_group_id
+            .clone()
     } else {
         // create group
         let group_id = generate_id(16);
@@ -160,7 +162,7 @@ pub async fn import_readonly_file(
             storage_id: Some(mount_name.to_string()),
             size: file_size,
             server_created: current_time,
-            modified: get_modified_time_secs(&metadata).map(|o| o * 1000),
+            modified: Some(get_modified_time_secs(&metadata) * 1000),
             static_file_group_ids: vec![group_id.to_string(), format!("{}_all", owner_id)],
             dynamic_file_group_ids: vec![],
             app_data,
@@ -186,27 +188,12 @@ pub async fn import_readonly_file(
     Ok(())
 }
 
-pub fn get_modified_time_secs(metadata: &Metadata) -> Option<i64> {
-    // TODO: this will fail for files older than 1970
-    match metadata.modified() {
-        Ok(sytem_time) => match sytem_time.duration_since(std::time::UNIX_EPOCH) {
-            Ok(duration) => Some(duration.as_secs() as i64),
-            Err(_) => None,
-        },
-        Err(_) => None,
-    }
+pub fn get_modified_time_secs(metadata: &Metadata) -> i64 {
+    filetime::FileTime::from_last_modification_time(metadata).unix_seconds()
 }
 
 pub fn get_created_time_secs(metadata: &Metadata) -> Option<i64> {
-    // TODO: this will fail for files older than 1970
-
-    match metadata.modified() {
-        Ok(sytem_time) => match sytem_time.duration_since(std::time::UNIX_EPOCH) {
-            Ok(duration) => Some(duration.as_secs() as i64),
-            Err(_) => None,
-        },
-        Err(_) => None,
-    }
+    filetime::FileTime::from_creation_time(metadata).map(|o| o.unix_seconds())
 }
 
 pub fn get_file_hash(path: &Path) -> anyhow::Result<String> {

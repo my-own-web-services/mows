@@ -38,7 +38,7 @@ impl Interossea {
         Ok(Interossea {
             interossea_addr: interossea_config.url.to_string(),
             decoding_key: get_decoding_key(&interossea_config.url).await?,
-            assertion_validity_seconds: interossea_config.assertion_validity_seconds as i64,
+            assertion_validity_seconds: interossea_config.assertion_validity_seconds.try_into()?,
         })
     }
 
@@ -149,7 +149,10 @@ pub async fn get_session_cookie(
         .path("/")
         .secure(true)
         .max_age(cookie::time::Duration::seconds(
-            SERVER_CONFIG.interossea.assertion_validity_seconds as i64,
+            SERVER_CONFIG
+                .interossea
+                .assertion_validity_seconds
+                .try_into()?,
         ))
         .http_only(true)
         .same_site(cookie::SameSite::None)

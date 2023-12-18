@@ -140,7 +140,7 @@ async fn handle_inner(
 
     let mut p = req.uri().path();
     if p.starts_with("/api") {
-        p = &p[4..];
+        p = &p.get(4..).unwrap();
     } else {
         return Ok(Response::builder()
             .status(404)

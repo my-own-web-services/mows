@@ -37,7 +37,7 @@ pub async fn dev(db: &DB) -> anyhow::Result<()> {
 pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
 
-    let current_files = db.get_total_ammount_of_files().await? as i64;
+    let current_files = db.get_total_ammount_of_files().await?;
 
     let email = some_or_bail!(
         &config.dev.mock_files_owner_email,
@@ -53,10 +53,11 @@ pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> 
 
     let storage_id: String = config.storage.default_storage.clone();
 
-    let files_to_create: i64 = (create_mock_files_limit as i64) - current_files;
-    if files_to_create <= 0 {
-        return Ok(());
-    }
+    let files_to_create = some_or_bail!(
+        create_mock_files_limit.checked_sub(current_files.try_into()?),
+        "No files to create"
+    );
+
     println!(
         "Creating {} mock files for user with id: {}",
         files_to_create, owner.user_id
