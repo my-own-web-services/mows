@@ -26,6 +26,7 @@ use ts_rs::TS;
 
 ## Call
 `/api/file/create/`
+
 ## Permissions
 None
 The options for calling the create file function are:

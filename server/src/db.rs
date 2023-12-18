@@ -1,5 +1,6 @@
 use crate::{
     config::SERVER_CONFIG,
+    delete_permissions,
     methods::{
         set_app_data::SetAppDataRequest,
         update_permission_ids_on_resource::UpdatePermissionIdsOnResourceRequestBody,
@@ -278,16 +279,26 @@ impl DB {
         })
     }
 
-    pub async fn get_permission_by_id(
+    pub async fn get_permissions_by_id(
         &self,
-        permission_id: &str,
-    ) -> anyhow::Result<Option<FilezPermission>> {
+        permission_ids: &Vec<String>,
+    ) -> anyhow::Result<Vec<FilezPermission>> {
         let collection = self.db.collection::<FilezPermission>("permissions");
-        let res = collection
-            .find_one(doc! {"_id": permission_id}, None)
+
+        let permissions = collection
+            .find(
+                doc! {
+                    "_id": {
+                        "$in": permission_ids
+                    }
+                },
+                None,
+            )
+            .await?
+            .try_collect::<Vec<_>>()
             .await?;
 
-        Ok(res)
+        Ok(permissions)
     }
 
     pub async fn update_permission(&self, permission: &FilezPermission) -> anyhow::Result<()> {
@@ -642,18 +653,63 @@ impl DB {
         Ok(user_groups)
     }
 
-    pub async fn delete_permission(&self, permission_id: &str) -> anyhow::Result<DeleteResult> {
-        // TODO must be removed from all resources
-        let collection = self.db.collection::<FilezPermission>("permissions");
+    pub async fn delete_permissions(
+        &self,
+        permissions: &Vec<FilezPermission>,
+    ) -> anyhow::Result<()> {
+        let mut session = self.client.start_session(None).await?;
+        session.start_transaction(None).await?;
 
-        Ok(collection
-            .delete_one(
-                doc! {
-                    "_id": permission_id,
-                },
-                None,
-            )
-            .await?)
+        let mut permission_ids_by_resource_type: HashMap<String, Vec<String>> = HashMap::new();
+
+        for permission in permissions {
+            let permission_ids = permission_ids_by_resource_type
+                .entry(
+                    match permission.content {
+                        crate::permissions::PermissionResourceType::File(_) => "file",
+                        crate::permissions::PermissionResourceType::FileGroup(_) => "file_groups",
+                        crate::permissions::PermissionResourceType::UserGroup(_) => "user_groups",
+                        crate::permissions::PermissionResourceType::User(_) => "users",
+                    }
+                    .to_string(),
+                )
+                .or_insert_with(Vec::new);
+            permission_ids.push(permission.permission_id.clone());
+        }
+
+        delete_permissions!(
+            self,
+            session,
+            permission_ids_by_resource_type,
+            FilezFile,
+            "files"
+        );
+
+        delete_permissions!(
+            self,
+            session,
+            permission_ids_by_resource_type,
+            FilezFileGroup,
+            "file_groups"
+        );
+
+        delete_permissions!(
+            self,
+            session,
+            permission_ids_by_resource_type,
+            FilezUserGroup,
+            "user_groups"
+        );
+
+        delete_permissions!(
+            self,
+            session,
+            permission_ids_by_resource_type,
+            FilezUser,
+            "users"
+        );
+
+        Ok(session.commit_transaction().await?)
     }
 
     pub async fn create_permission(
@@ -1590,7 +1646,7 @@ impl DB {
         Ok(file)
     }
 
-    pub async fn get_static_file_groups_by_ids(
+    pub async fn get_file_groups_by_ids(
         &self,
         file_group_ids: &Vec<String>,
     ) -> anyhow::Result<Vec<FilezFileGroup>> {
@@ -1598,16 +1654,9 @@ impl DB {
         let mut cursor = collection
             .find(
                 doc! {
-                    "$and":[
-                        {
-                            "_id": {
-                                "$in": file_group_ids
-                            }
-                        },
-                        {
-                            "group_type": "Static"
-                        }
-                    ]
+                    "_id": {
+                        "$in": file_group_ids
+                    }
                 },
                 None,
             )
@@ -2131,32 +2180,6 @@ impl DB {
                 None,
             )
             .await?)
-    }
-
-    pub async fn get_file_groups_by_ids(
-        &self,
-        file_group_ids: &Vec<String>,
-    ) -> anyhow::Result<Vec<FilezFileGroup>> {
-        let collection = self.db.collection::<FilezFileGroup>("file_groups");
-
-        let mut cursor = collection
-            .find(
-                doc! {
-                    "_id": {
-                        "$in": file_group_ids
-                    }
-                },
-                None,
-            )
-            .await?;
-
-        let mut file_groups = vec![];
-
-        while let Some(file_group) = cursor.try_next().await? {
-            file_groups.push(file_group);
-        }
-
-        Ok(file_groups)
     }
 
     pub async fn delete_file_groups(&self, file_group: &[FilezFileGroup]) -> anyhow::Result<()> {

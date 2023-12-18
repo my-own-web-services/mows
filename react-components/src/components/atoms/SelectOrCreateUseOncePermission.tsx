@@ -1,7 +1,7 @@
 import { PureComponent } from "react";
 import SelectPermissions from "./SelectPermissions";
 import { Toggle } from "rsuite";
-import Permission from "../permissions/Permission";
+import Permission from "../list/permissions/Permission";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
 
 interface SelectOrCreateUseOncePermissionProps {

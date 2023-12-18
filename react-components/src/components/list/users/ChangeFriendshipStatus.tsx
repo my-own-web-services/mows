@@ -1,6 +1,12 @@
 import { PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
-import { BiUserVoice, BiUserMinus, BiUserPlus, BiUserCheck, BiUserX } from "react-icons/bi";
+import {
+    BiUserVoice,
+    BiUserMinus,
+    BiUserPlus,
+    BiUserCheck,
+    BiUserX
+} from "react-icons/bi";
 import { Button, ButtonGroup, Message, useToaster } from "rsuite";
 import { match } from "ts-pattern";
 import { ReducedFilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/ReducedFilezUser";
@@ -35,23 +41,39 @@ class ChangeFriendshipStatus extends PureComponent<
         if (!this.context) return;
         const user = this.props.user;
 
-        const res = await this.context.filezClient.update_friendship_status(user._id, status);
+        const res = await this.context.filezClient.update_friendship_status(
+            user._id,
+            status
+        );
 
         const text = await res.text();
 
         if (res.status === 200) {
             const newStatus: FriendshipStatus = match(status)
-                .with("AcceptFriendRequest", () => "Friends" as FriendshipStatus)
-                .with("RejectFriendRequest", () => "NotFriends" as FriendshipStatus)
+                .with(
+                    "AcceptFriendRequest",
+                    () => "Friends" as FriendshipStatus
+                )
+                .with(
+                    "RejectFriendRequest",
+                    () => "NotFriends" as FriendshipStatus
+                )
                 .with("RemoveFriend", () => "NotFriends" as FriendshipStatus)
-                .with("SendFriendRequest", () => "AwaitingTheirConfirmation" as FriendshipStatus)
+                .with(
+                    "SendFriendRequest",
+                    () => "AwaitingTheirConfirmation" as FriendshipStatus
+                )
                 .exhaustive();
 
             this.setState({ status: newStatus });
         }
 
         this.props.toaster.push(
-            <Message showIcon type={res.status === 200 ? "success" : "error"} closable>
+            <Message
+                showIcon
+                type={res.status === 200 ? "success" : "error"}
+                closable
+            >
                 {text}
             </Message>,
             {
@@ -84,7 +106,9 @@ class ChangeFriendshipStatus extends PureComponent<
                                 appearance="primary"
                                 color="green"
                                 onClick={async () => {
-                                    await this.updateStatus("AcceptFriendRequest");
+                                    await this.updateStatus(
+                                        "AcceptFriendRequest"
+                                    );
                                 }}
                             >
                                 <BiUserCheck />
@@ -95,7 +119,9 @@ class ChangeFriendshipStatus extends PureComponent<
                                 appearance="primary"
                                 color="red"
                                 onClick={async () => {
-                                    await this.updateStatus("RejectFriendRequest");
+                                    await this.updateStatus(
+                                        "RejectFriendRequest"
+                                    );
                                 }}
                             >
                                 <BiUserX />
@@ -134,5 +160,7 @@ class ChangeFriendshipStatus extends PureComponent<
     };
 }
 
-const ChangeFriendshipStatusWithToaster = withToasterHook(ChangeFriendshipStatus);
+const ChangeFriendshipStatusWithToaster = withToasterHook(
+    ChangeFriendshipStatus
+);
 export default ChangeFriendshipStatusWithToaster;

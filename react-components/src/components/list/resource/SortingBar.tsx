@@ -104,7 +104,7 @@ export default class SortingBar<ResourceType> extends Component<
                         cursor="col-resize"
                         onDrag={this.props.updateSortingColumnWidths}
                     >
-                        {activeColumns.map((column, index) => {
+                        {activeColumns.map((column, _index) => {
                             return (
                                 <button
                                     className="Filez"
@@ -167,7 +167,7 @@ export default class SortingBar<ResourceType> extends Component<
                     <div style={styles} />
                 )}
                 <Menu id={this.getId()}>
-                    {this.props.columns.map((column, index) => {
+                    {this.props.columns.map((column, _index) => {
                         return (
                             <Item
                                 key={

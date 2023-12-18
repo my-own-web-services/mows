@@ -78,7 +78,8 @@ export default class UserList extends PureComponent<
                 <ResourceList
                     resourceType="User"
                     defaultSortField="name"
-                    get_items_function={this.context.filezClient.get_user_list}
+                    get_items_function={this.context.filezClient.list_users}
+                    //@ts-ignore
                     rowRenderers={[ColumnListRowRenderer]}
                     columns={defaultColumns}
                     displayTopBar={this.props.displayTopBar}

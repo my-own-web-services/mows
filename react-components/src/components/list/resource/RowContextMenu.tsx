@@ -3,6 +3,7 @@ import { Item, ItemParams, Menu, contextMenu } from "react-contexify";
 import { MenuItems } from "./DefaultMenuItems";
 import {
     BaseResource,
+    ResourceListGetLastSelectedItem,
     ResourceListGetSelectedItems,
     ResourceListRowHandlersOnContextMenuItemClick
 } from "./ResourceListTypes";
@@ -13,6 +14,7 @@ interface RowContextMenuProps<ResourceType> {
     readonly currentItem: ResourceType;
     readonly onContextMenuItemClick?: ResourceListRowHandlersOnContextMenuItemClick<ResourceType>;
     readonly getSelectedItems: ResourceListGetSelectedItems<ResourceType>;
+    readonly getLastSelectedItem: ResourceListGetLastSelectedItem<ResourceType>;
 }
 
 interface RowContextMenuState {}
@@ -39,7 +41,8 @@ export default class RowContextMenu<
         this.props.onContextMenuItemClick?.(
             this.props.currentItem,
             menuItemParams?.id ?? "log",
-            this.props.getSelectedItems()
+            this.props.getSelectedItems(),
+            this.props.getLastSelectedItem()
         );
     };
 

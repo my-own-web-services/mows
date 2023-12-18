@@ -19,7 +19,7 @@ Mutation > None
 Yes
 */
 
-pub async fn get_own_permissions(
+pub async fn list_permissions(
     req: Request<Body>,
     db: &DB,
     auth: &Auth,
@@ -27,7 +27,11 @@ pub async fn get_own_permissions(
 ) -> anyhow::Result<Response<Body>> {
     let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
 
-    let permission_type = match crate::utils::get_query_item(&req, "t") {
+    let body = hyper::body::to_bytes(req.into_body()).await?;
+
+    let grrb: GetItemListRequestBody = serde_json::from_slice(&body)?;
+
+    let permission_type = match &grrb.sub_resource_type {
         Some(v) => match v.as_str() {
             "File" => Some(PermissionResourceSelectType::File),
             "FileGroup" => Some(PermissionResourceSelectType::FileGroup),
@@ -37,10 +41,6 @@ pub async fn get_own_permissions(
         },
         None => None,
     };
-
-    let body = hyper::body::to_bytes(req.into_body()).await?;
-
-    let grrb: GetItemListRequestBody = serde_json::from_slice(&body)?;
 
     let (items, total_count) = db
         .get_permissions_by_owner_id_for_virtual_list(

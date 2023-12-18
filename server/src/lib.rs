@@ -23,13 +23,12 @@ pub mod methods {
     }
 
     pub mod permission {
+        pub mod create;
         pub mod delete;
         pub mod list;
         pub mod update;
     }
-    pub mod upload_space {
-        pub mod create;
-    }
+
     pub mod user {
         pub mod create_own;
         pub mod get_own;

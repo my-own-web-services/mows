@@ -1,8 +1,7 @@
 import { CSSProperties, PureComponent } from "react";
 import { FilezContext } from "../../../FilezProvider";
 import ResourceList from "../resource/ResourceList";
-import CreateUserGroup from "./CreateUserGroup";
-import EditUserGroup from "./EditUserGroup";
+
 import { FilezUserGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezUserGroup";
 import ColumnListRowRenderer from "../resource/ColumnListRowRenderer";
 import { Column, ColumnDirection } from "../resource/ResourceListTypes";
@@ -58,15 +57,14 @@ export default class UserGroupList extends PureComponent<
                 style={{ ...this.props.style }}
             >
                 <ResourceList
-                    createResource={<CreateUserGroup />}
-                    editResource={<EditUserGroup />}
                     columns={defaultColumns}
                     resourceType="UserGroup"
                     defaultSortField="name"
                     get_items_function={
-                        this.context.filezClient.get_user_group_list
+                        this.context.filezClient.list_user_groups
                     }
                     displayTopBar={this.props.displayTopBar}
+                    //@ts-ignore
                     rowRenderers={[ColumnListRowRenderer]}
                 />
             </div>

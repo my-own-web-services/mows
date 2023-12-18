@@ -5,12 +5,12 @@ import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/File
 import { cloneDeep } from "lodash";
 import { Checkbox, Input, Progress } from "rsuite";
 import update from "immutability-helper";
-import Keywords from "../atoms/KeywordPicker";
-import StoragePicker from "../atoms/StoragePicker";
+import Keywords from "../../atoms/KeywordPicker";
+import StoragePicker from "../../atoms/StoragePicker";
 import { AutoSizer } from "rsuite/esm/Windowing";
 import { FixedSizeList } from "react-window";
 import { ValueType } from "rsuite/esm/Checkbox";
-import { MultiItemTagPickerResources } from "../atoms/MultiItemTagPicker";
+import { MultiItemTagPickerResources } from "../../atoms/MultiItemTagPicker";
 
 interface UploadFileProps {}
 
@@ -283,14 +283,14 @@ export default class UploadFile extends PureComponent<
     };
 
     updateCheckUploadGroup = (
-        value: ValueType | undefined,
+        _value: ValueType | undefined,
         checked: boolean,
-        event: React.ChangeEvent<HTMLInputElement>
+        _event: React.ChangeEvent<HTMLInputElement>
     ) => {
         this.setState({ addToUploadGroup: checked });
     };
 
-    updateUploadGroupName = (value: string, event: any) => {
+    updateUploadGroupName = (value: string, _event: any) => {
         this.setState({ uploadGroupName: value });
     };
 

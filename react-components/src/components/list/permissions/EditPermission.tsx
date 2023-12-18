@@ -30,7 +30,7 @@ export default class EditPermission extends PureComponent<
     componentDidMount = async () => {
         if (!this.context) return;
 
-        const { items } = await this.context.filezClient.get_own_permissions({
+        const { items } = await this.context.filezClient.list_permissions({
             sort_field: "name"
         });
 

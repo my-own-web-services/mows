@@ -175,6 +175,9 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
                         getSelectedItems={
                             this.props.data.functions.getSelectedItems
                         }
+                        getLastSelectedItem={
+                            this.props.data.functions.getLastSelectedItem
+                        }
                     />
                 )}
             </div>
@@ -182,7 +185,9 @@ class ListRowComp<ResourceType extends BaseResource> extends PureComponent<
     };
 }
 
-const ColumnListRowRenderer: RowRenderer<BaseResource> = {
+const ColumnListRowRenderer = <
+    ResourceType extends BaseResource
+>(): RowRenderer<ResourceType> => ({
     name: "ColumnListRowRenderer",
     icon: (
         <FaThList
@@ -260,6 +265,6 @@ const ColumnListRowRenderer: RowRenderer<BaseResource> = {
             }
         }
     }
-};
+});
 
 export default ColumnListRowRenderer;

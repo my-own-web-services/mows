@@ -49,6 +49,10 @@ export interface SelectedItemsAfterKeypress {
 
 export type ResourceListGetSelectedItems<FilezResource> = () => FilezResource[];
 
+export type ResourceListGetLastSelectedItem<FilezResource> = () =>
+    | FilezResource
+    | undefined;
+
 export type ResourceListRowHandlersOnClick<FilezResource> = (
     e:
         | React.MouseEvent<HTMLDivElement, MouseEvent>
@@ -73,7 +77,7 @@ export type ResourceListRowHandlersOnContextMenuItemClick<FilezResource> = (
     item: FilezResource,
     menuItemId: string,
     selectedItems: FilezResource[],
-    lastSelectedItem: FilezResource
+    lastSelectedItem?: FilezResource
 ) => void;
 
 export interface ResourceListRowHandlers<FilezResource> {
@@ -124,6 +128,7 @@ export interface ListData<FilezResource> {
     };
     readonly functions: {
         readonly getSelectedItems: ResourceListGetSelectedItems<FilezResource>;
+        readonly getLastSelectedItem: ResourceListGetLastSelectedItem<FilezResource>;
     };
     readonly selectedItems: (boolean | undefined)[];
     readonly dropTargetAcceptsTypes?: string[];

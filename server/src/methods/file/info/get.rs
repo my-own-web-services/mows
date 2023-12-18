@@ -26,6 +26,7 @@ Mutation > None
 ## Multiple Resources
 Yes
 
+
 */
 pub async fn get_file_infos(
     req: Request<Body>,

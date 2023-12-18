@@ -9,14 +9,17 @@ export const GroupTags = ({ file }: { file: FilezFile }) => {
     const context = useContext(FilezContext);
 
     useEffect(() => {
-        context?.filezClient.get_file_groups(file.static_file_group_ids).then(setGroups);
+        context?.filezClient
+            .get_file_groups(file.static_file_group_ids)
+            .then(setGroups);
     }, [file]); // passing the context here would re render every time the context changes
 
     return (
         <span>
-            {file.static_file_group_ids.map(id => {
-                const group = groups.find(g => g._id === id);
+            {file.static_file_group_ids.map((id) => {
+                const group = groups.find((g) => g._id === id);
                 return (
+                    //@ts-ignore
                     <Tag size="xs" key={id}>
                         {group?.name ?? group?._id}
                     </Tag>

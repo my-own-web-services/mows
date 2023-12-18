@@ -29,6 +29,7 @@
         "react/jsx-no-bind": "warn",
         "react/self-closing-comp": "error",
         "unused-imports/no-unused-imports": "error",
+        "no-unused-variable": "off",
         "@typescript-eslint/strict-boolean-expressions": "error",
         "react-hooks/exhaustive-deps": "off",
         "no-shadow": "off",

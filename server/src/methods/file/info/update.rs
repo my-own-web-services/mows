@@ -27,8 +27,7 @@ use ts_rs::TS;
 /**
 # Updates the infos of given files.
 
-## Atomicity
-Yes, for all but the storageId update.
+
 
 ## Call
 
@@ -47,6 +46,9 @@ Mutation > FilezUser
 
 ## Multiple Resources
 Yes
+
+## Atomicity
+Yes, for all but the storageId update.
 
 */
 

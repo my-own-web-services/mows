@@ -124,8 +124,9 @@ export default class FileGroupList extends PureComponent<
         item: FilezFileGroup,
         menuItemId: string,
         selectedItems: FilezFileGroup[],
-        lastSelectedItem: FilezFileGroup
+        lastSelectedItem?: FilezFileGroup
     ) => {
+        if (!lastSelectedItem) return;
         if (menuItemId === "log") {
             if (selectedItems?.length === 1) {
                 console.log(item);
@@ -221,10 +222,9 @@ export default class FileGroupList extends PureComponent<
                     defaultSortField="name"
                     dropTargetAcceptsTypes={["File"]}
                     get_items_function={
-                        this.context.filezClient.get_own_file_groups
+                        this.context.filezClient.list_file_groups
                     }
-                    //@ts-ignore TODO fix this generic mess
-                    rowRenderers={[ColumnListRowRenderer]}
+                    rowRenderers={[ColumnListRowRenderer<FilezFileGroup>()]}
                     displayTopBar={this.props.displayTopBar}
                     columns={defaultColumns}
                     rowHandlers={{

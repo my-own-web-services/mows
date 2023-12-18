@@ -33,7 +33,7 @@ export default class EditUserGroup extends PureComponent<
     componentDidMount = async () => {
         if (!this.context) return;
 
-        const { items } = await this.context.filezClient.get_user_group_list({
+        const { items } = await this.context.filezClient.list_user_groups({
             sort_field: "name"
         });
 

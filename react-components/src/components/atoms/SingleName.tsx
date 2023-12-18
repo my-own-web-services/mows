@@ -1,6 +1,6 @@
 import { PureComponent } from "react";
 import { Input, InputGroup } from "rsuite";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import update from "immutability-helper";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { BiUndo } from "react-icons/bi";
@@ -69,14 +69,16 @@ export default class Name extends PureComponent<NameProps, NameState> {
     updateServerName = async () => {
         if (this.props.serverUpdate !== false) {
             if (!this.context) return;
-            const res = await this.context.filezClient?.update_file_infos([
-                {
-                    fields: {
-                        name: this.state.localName
-                    },
-                    file_id: this.props.file._id
+            const res = await this.context.filezClient?.update_file_infos({
+                data: {
+                    Name: [
+                        {
+                            field: this.state.localName,
+                            file_id: this.props.file._id
+                        }
+                    ]
                 }
-            ]);
+            });
             if (res.status === 200) {
                 this.setState({ serverName: this.state.localName });
                 this.props.onCommitNameChange?.(this.state.localName);

@@ -1,8 +1,8 @@
 import { PureComponent } from "react";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import { Button, Modal, TagPicker } from "rsuite";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
-import Permission from "../permissions/Permission";
+import Permission from "../list/permissions/Permission";
 import update from "immutability-helper";
 import { match } from "ts-pattern";
 
@@ -40,7 +40,7 @@ export default class SelectPermissions extends PureComponent<
 
     loadPermissions = async () => {
         if (!this.context) return;
-        const { items } = await this.context.filezClient.get_own_permissions({
+        const { items } = await this.context.filezClient.list_permissions({
             sort_field: "name"
         });
 

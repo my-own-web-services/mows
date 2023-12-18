@@ -4,7 +4,7 @@ import { PureComponent } from "react";
 import { Input, InputPicker, TagPicker } from "rsuite";
 import update from "immutability-helper";
 import { FilezContext } from "../../../FilezProvider";
-import SelectOrCreateUseOncePermission from "../atoms/SelectOrCreateUseOncePermission";
+import SelectOrCreateUseOncePermission from "../../atoms/SelectOrCreateUseOncePermission";
 import Permission from "../permissions/Permission";
 import DynamicGroupRules from "./DynamicGroupRules";
 import { FilterRule } from "@firstdorsal/filez-client/dist/js/apiTypes/FilterRule";
@@ -64,12 +64,10 @@ export default class FileGroup extends PureComponent<
 
     componentDidMount = async () => {
         if (!this.context) return;
-        const { items } = await this.context.filezClient.get_own_permissions(
-            {
-                sort_field: "name"
-            },
-            "FileGroup"
-        );
+        const { items } = await this.context.filezClient.list_permissions({
+            sort_field: "name",
+            sub_resource_type: "FileGroup"
+        });
 
         const useOncePermission = items?.find((p) => {
             if (

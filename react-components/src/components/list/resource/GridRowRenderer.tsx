@@ -138,6 +138,9 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
                                     getSelectedItems={
                                         data.functions.getSelectedItems
                                     }
+                                    getLastSelectedItem={
+                                        data.functions.getLastSelectedItem
+                                    }
                                 />
                             )}
                         </div>
@@ -148,7 +151,9 @@ class GridRowComp<ResourceType extends BaseResource> extends PureComponent<
     };
 }
 
-const GridRowRenderer: RowRenderer<BaseResource> = {
+const GridRowRenderer = <
+    ResourceType extends BaseResource
+>(): RowRenderer<ResourceType> => ({
     name: "GridRowRenderer",
     icon: (
         <BsFillGridFill
@@ -186,7 +191,7 @@ const GridRowRenderer: RowRenderer<BaseResource> = {
     },
     getSelectedItemsAfterKeypress: (
         e,
-        items,
+        _items,
         total_count,
         selectedItems,
         lastSelectedItemIndex,
@@ -253,6 +258,6 @@ const GridRowRenderer: RowRenderer<BaseResource> = {
             }
         }
     }
-};
+});
 
 export default GridRowRenderer;

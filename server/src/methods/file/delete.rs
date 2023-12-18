@@ -13,10 +13,10 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use ts_rs::TS;
 /**
-# Deletes a single file by id.
+# Deletes the given files by id
 
 ## Call
-`/api/file/delete/?id={file_id}`
+`/api/file/delete/`
 ## Permissions
 File > DeleteFile
 
@@ -26,6 +26,9 @@ Mutation > FilezFileGroup
 Mutation > FilezUser
 
 ## Multiple Resources
+Yes
+
+## Atomicity
 Yes
 
 */

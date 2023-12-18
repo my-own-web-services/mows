@@ -17,7 +17,7 @@ use filez::methods::file_group::list::get_own_file_groups;
 use filez::methods::file_group::update::update_file_group;
 use filez::methods::get_aggregated_keywords::get_aggregated_keywords;
 use filez::methods::permission::delete::delete_permission;
-use filez::methods::permission::list::get_own_permissions;
+use filez::methods::permission::list::list_permissions;
 use filez::methods::permission::update::update_permission;
 use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
@@ -262,7 +262,7 @@ async fn handle_inner(
         data_mutating = true;
         delete_permission(req, &db, &auth, res).await
     } else if p == "/permission/list/" && m == Method::POST {
-        get_own_permissions(req, &db, &auth, res).await
+        list_permissions(req, &db, &auth, res).await
     }
     /* user */
     else if p.starts_with("/user/get_own/") && m == Method::GET {

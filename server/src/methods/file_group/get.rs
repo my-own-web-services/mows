@@ -30,8 +30,6 @@ pub async fn get_file_groups(
 ) -> anyhow::Result<Response<Body>> {
     let body = hyper::body::to_bytes(req.into_body()).await?;
 
-    // TODO make this work for dynamic and static file groups, currently it is only static
-
     let file_group_ids = some_or_bail!(
         serde_json::from_slice::<GetFileGroupsRequestBody>(&body)
             .map(|x| x.file_group_ids)
@@ -40,7 +38,7 @@ pub async fn get_file_groups(
     );
 
     let file_groups = db
-        .get_static_file_groups_by_ids(&file_group_ids)
+        .get_file_groups_by_ids(&file_group_ids)
         .await?
         .iter()
         .map(|file_group| Box::new((*file_group).clone()) as Box<dyn PermissiveResource>)

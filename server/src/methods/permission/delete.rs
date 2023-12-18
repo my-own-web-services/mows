@@ -1,8 +1,7 @@
-use crate::{
-    db::DB, internal_types::Auth, retry_transient_transaction_error, utils::get_query_item,
-};
+use crate::{db::DB, internal_types::Auth, retry_transient_transaction_error};
 use hyper::{Body, Request, Response};
-
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 /**
 # Deletes a permission.
 
@@ -20,7 +19,11 @@ Mutation > FilezUser
 Mutation > FilezPermission
 
 ## Multiple Resources
-No // TODO
+Yes
+
+## Atomicity
+Yes
+
 */
 pub async fn delete_permission(
     req: Request<Body>,
@@ -30,21 +33,26 @@ pub async fn delete_permission(
 ) -> anyhow::Result<Response<Body>> {
     let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
 
-    let permission_id = match get_query_item(&req, "id") {
-        Some(v) => v,
-        None => return Ok(res.status(400).body(Body::from("Missing id"))?),
-    };
+    let body = hyper::body::to_bytes(req.into_body()).await?;
 
-    let permission = match db.get_permission_by_id(&permission_id).await? {
-        Some(p) => p,
-        None => return Ok(res.status(404).body(Body::from("Permission not found"))?),
-    };
+    let dprb = serde_json::from_slice::<DeletePermissionRequestBody>(&body)?;
 
-    if permission.owner_id != requesting_user.user_id {
+    let permissions = db.get_permissions_by_id(&dprb.permission_ids).await?;
+
+    if permissions
+        .iter()
+        .all(|p| p.owner_id == requesting_user.user_id)
+    {
         return Ok(res.status(401).body(Body::from("Unauthorized"))?);
     }
 
-    retry_transient_transaction_error!(db.delete_permission(&permission_id).await);
+    retry_transient_transaction_error!(db.delete_permissions(&permissions).await);
 
     Ok(res.status(200).body(Body::from("Ok"))?)
+}
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
+pub struct DeletePermissionRequestBody {
+    pub permission_ids: Vec<String>,
 }

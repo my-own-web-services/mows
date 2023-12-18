@@ -1,7 +1,7 @@
 import { PureComponent } from "react";
 import { BsPeople } from "react-icons/bs";
 import { FaMapLocationDot } from "react-icons/fa6";
-import { FilezContext } from "../../../FilezProvider";
+import { FilezContext } from "../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import MultiItemTagPicker, {
@@ -153,7 +153,7 @@ export default class KeywordPicker extends PureComponent<
 
     onTagChange = async (
         resourceMap: MultiItemTagPickerResources,
-        knownKeywords: TagData[]
+        _knownKeywords: TagData[]
     ) => {
         if (this.props.serverUpdate !== false) {
             await this.context?.filezClient.update_file_infos({

@@ -617,6 +617,12 @@ export default class ResourceList<
         );
     };
 
+    getLastSelectedItem = () => {
+        const index = this.state.lastSelectedItemIndex;
+        if (index === undefined) return undefined;
+        return this.state.items[index];
+    };
+
     handleCommonHotkeys = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.ctrlKey) {
             if (e.key === "a") {
@@ -841,7 +847,10 @@ export default class ResourceList<
                                                     functions: {
                                                         getSelectedItems:
                                                             this
-                                                                .getSelectedItems
+                                                                .getSelectedItems,
+                                                        getLastSelectedItem:
+                                                            this
+                                                                .getLastSelectedItem
                                                     },
                                                     selectedItems:
                                                         this.state

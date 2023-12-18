@@ -262,8 +262,10 @@ export default class FileList extends PureComponent<
                         .with("Dynamic", () => "dynamic_file_group_ids")
                         .otherwise(() => undefined)}
                     id={this.props.id}
-                    //@ts-ignore TODO fix this generic mess
-                    rowRenderers={[GridRowRenderer, ColumnListRowRenderer]}
+                    rowRenderers={[
+                        GridRowRenderer<FilezFile>(),
+                        ColumnListRowRenderer<FilezFile>()
+                    ]}
                     displaySortingBar={this.props.displaySortingBar}
                     displayTopBar={this.props.displayTopBar}
                     rowHandlers={{

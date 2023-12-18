@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import StaticFileGroupPicker from "./StaticFileGroupPicker";
 import { FilezClient } from "@firstdorsal/filez-client";
-import FilezProvider from "../../../FilezProvider";
+import FilezProvider from "../../FilezProvider";
 const filezClientConfigStorybook = {
     interosseaServerAddress: "http://accounts-server.localhost",
     interosseaWebAddress: "http://accounts.localhost",
