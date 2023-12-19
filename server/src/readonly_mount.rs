@@ -1,7 +1,7 @@
 use crate::{config::SERVER_CONFIG, db::DB, some_or_bail, utils::generate_id};
 use anyhow::bail;
 use filez_common::{
-    server::{FileGroupType, FilezFile, FilezFileGroup, UserStatus},
+    server::{FileGroupType, FilezFile, FilezFileGroup, FilezUser},
     storage::types::ReadonlyConfig,
 };
 use indicatif::ProgressBar;
@@ -38,6 +38,7 @@ pub async fn scan_readonly_mount(
     storage_path: &PathBuf,
     mount: &ReadonlyConfig,
 ) -> anyhow::Result<()> {
+    let config = &SERVER_CONFIG;
     print!("Scanning {}: ", mount_name);
 
     let path = Path::new(storage_path);
@@ -58,15 +59,17 @@ pub async fn scan_readonly_mount(
         None => {
             println!("User does not exist: {}", mount.owner_email);
             println!("Creating Disabled user");
-            let new_user_id = db
-                .create_user(
-                    None,
-                    Some(UserStatus::Disabled),
-                    None,
-                    Some(mount.owner_email.to_string()),
-                )
-                .await?;
-            match db.get_user_by_id(&new_user_id).await? {
+
+            let user = FilezUser::new(
+                &config.storage,
+                None,
+                Some(mount.owner_email.to_string()),
+                None,
+            );
+
+            db.create_users(&vec![user.clone()]).await?;
+
+            match db.get_user_by_id(&user.user_id).await? {
                 Some(v) => v,
                 None => {
                     bail!("User does not exist after creation");
@@ -88,22 +91,15 @@ pub async fn scan_readonly_mount(
             .clone()
     } else {
         // create group
-        let group_id = generate_id(16);
-        db.create_file_group(&FilezFileGroup {
-            owner_id: user.user_id.to_string(),
-            name: Some(mount_name.to_string()),
-            file_group_id: group_id.clone(),
-            permission_ids: vec![],
-            keywords: vec![],
-            group_hierarchy_paths: vec![],
-            mime_types: vec![],
-            group_type: FileGroupType::Static,
-            item_count: 0,
-            dynamic_group_rules: None,
-            readonly: true,
-        })
-        .await?;
-        group_id
+        let mut file_group =
+            FilezFileGroup::new(&user, FileGroupType::Static, Some(mount_name.to_string()));
+
+        file_group.make_readonly();
+        file_group.make_undeleatable();
+
+        db.create_file_group(&file_group).await?;
+
+        file_group.file_group_id.clone()
     };
 
     let file_bar = ProgressBar::new(file_list.len() as u64);
@@ -151,6 +147,8 @@ pub async fn import_readonly_file(
     let app_data: HashMap<String, Value> = HashMap::new();
     let current_time = chrono::offset::Utc::now().timestamp_millis();
 
+    let all_group = db.get_users_all_file_group(owner_id).await?;
+
     db.create_file(
         FilezFile {
             file_id: file_id.clone(),
@@ -163,16 +161,15 @@ pub async fn import_readonly_file(
             size: file_size,
             server_created: current_time,
             modified: Some(get_modified_time_secs(&metadata) * 1000),
-            static_file_group_ids: vec![group_id.to_string(), format!("{}_all", owner_id)],
+            static_file_group_ids: vec![group_id.to_string(), all_group.file_group_id.clone()],
             dynamic_file_group_ids: vec![],
             app_data,
             accessed: None,
             accessed_count: 0,
             time_of_death: None,
-            created: some_or_bail!(
-                get_created_time_secs(&metadata).map(|o| o * 1000),
-                "File has no created time"
-            ),
+            created: get_created_time_secs(&metadata)
+                .map(|o| o * 1000)
+                .unwrap_or(current_time),
             permission_ids: vec![],
             keywords: vec![],
             readonly: true,

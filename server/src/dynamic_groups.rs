@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-
-use crate::{config::SERVER_CONFIG, db::DB, retry_transient_transaction_error};
-use filez_common::server::{FileGroupType, FilezFile, FilezFileGroup, FilezUser, FilterRuleType};
-use mongodb::options::ClientOptions;
+use crate::{db::DB, retry_transient_transaction_error};
+use filez_common::server::{FileGroupType, FilezFile, FilezFileGroup, FilterRuleType};
 use regex::Regex;
 use serde_json::Value;
+use std::collections::HashMap;
 
 pub enum UpdateType {
     Group(Vec<FilezFileGroup>),
@@ -126,7 +124,7 @@ pub fn handle_file_change(
             if !already_in_group {
                 file_ids_by_single_group_to_be_added
                     .entry(group.file_group_id.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(changed_file.file_id.clone());
             }
         } else {
@@ -136,7 +134,7 @@ pub fn handle_file_change(
             if currently_in_group {
                 file_ids_by_single_group_to_be_removed
                     .entry(group.file_group_id.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(changed_file.file_id.clone());
             }
         }

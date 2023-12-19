@@ -1,7 +1,5 @@
 use crate::{
-    db::DB,
-    internal_types::Auth,
-    permissions::{FilezPermission, FilezPermissionUseType, PermissionResourceType},
+    db::DB, internal_types::Auth, permissions::PermissionResourceType,
     retry_transient_transaction_error,
 };
 use hyper::{Body, Request, Response};
@@ -40,7 +38,7 @@ pub async fn update_permission(
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let cpr: UpdatePermissionRequestBody = serde_json::from_slice(&body)?;
 
-    let permission = match db
+    let mut permission = match db
         .get_permissions_by_id(&vec![cpr.permission_id])
         .await?
         .first()
@@ -53,13 +51,30 @@ pub async fn update_permission(
         return Ok(res.status(401).body(Body::from("Unauthorized"))?);
     }
 
-    let permission = FilezPermission {
-        owner_id: requesting_user.user_id.to_string(),
-        name: cpr.name.or(permission.name),
-        permission_id: permission.permission_id,
-        content: cpr.content,
-        use_type: cpr.use_type,
+    // reject the request if the resource type was changed
+
+    let old_type = match permission.content {
+        PermissionResourceType::File(_) => "File",
+        PermissionResourceType::FileGroup(_) => "FileGroup",
+        PermissionResourceType::UserGroup(_) => "UserGroup",
+        PermissionResourceType::User(_) => "User",
     };
+
+    let new_type = match cpr.content {
+        PermissionResourceType::File(_) => "File",
+        PermissionResourceType::FileGroup(_) => "FileGroup",
+        PermissionResourceType::UserGroup(_) => "UserGroup",
+        PermissionResourceType::User(_) => "User",
+    };
+
+    if old_type != new_type {
+        return Ok(res
+            .status(400)
+            .body(Body::from("Resource type cannot be changed"))?);
+    }
+
+    permission.content = cpr.content;
+    permission.name = cpr.name.or(permission.name);
 
     retry_transient_transaction_error!(db.update_permission(&permission).await);
 
@@ -81,7 +96,6 @@ pub struct UpdatePermissionRequestBody {
     pub permission_id: String,
     pub name: Option<String>,
     pub content: PermissionResourceType,
-    pub use_type: FilezPermissionUseType,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

@@ -2,4 +2,4 @@
 import type { FileGroupType } from "./FileGroupType";
 import type { FilterRule } from "./FilterRule";
 
-export interface FilezFileGroup { _id: string, name: string | null, owner_id: string, permission_ids: Array<string>, keywords: Array<string>, mime_types: Array<string>, group_hierarchy_paths: Array<string>, group_type: FileGroupType, dynamic_group_rules: FilterRule | null, item_count: number, readonly: boolean, }
+export interface FilezFileGroup { _id: string, name: string | null, owner_id: string, permission_ids: Array<string>, keywords: Array<string>, mime_types: Array<string>, group_hierarchy_paths: Array<string>, group_type: FileGroupType, dynamic_group_rules: FilterRule | null, item_count: number, deletable: boolean, readonly: boolean, all: boolean, }

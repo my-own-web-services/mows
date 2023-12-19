@@ -52,10 +52,9 @@ pub async fn create_file_group(
         group_type: cgr.group_type.clone(),
         item_count: 0,
         dynamic_group_rules: cgr.dynamic_group_rules,
-        readonly: match cgr.group_type {
-            FileGroupType::Static => false,
-            FileGroupType::Dynamic => true,
-        },
+        all: false,
+        deletable: true,
+        readonly: false,
     };
 
     retry_transient_transaction_error!(db.create_file_group(&file_group).await);

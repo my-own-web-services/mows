@@ -1,11 +1,13 @@
 use crate::{config::SERVER_CONFIG, db::DB, some_or_bail, utils::generate_id};
 use anyhow::bail;
 use filez_common::{
-    server::{FileGroupType, FilezFile, FilezFileGroup, GetItemListRequestBody, UserStatus},
+    server::{
+        FileGroupType, FilezFile, FilezFileGroup, FilezUser, GetItemListRequestBody, UserStatus,
+    },
     storage::index::{get_future_storage_location, get_storage_location_from_file},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, vec};
 
 pub async fn dev(db: &DB) -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
@@ -49,6 +51,8 @@ pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> 
         "No user found with email"
     );
 
+    let all_group = db.get_users_all_file_group(&owner.user_id).await?;
+
     let mut files = vec![];
 
     let storage_id: String = config.storage.default_storage.clone();
@@ -73,29 +77,21 @@ pub async fn create_mock_file_entries(db: &DB, create_mock_files_limit: u32) -> 
         match groups.first() {
             Some(g) => g.file_group_id.clone(),
             None => {
-                let group_id = generate_id(16);
-                db.create_file_group(&FilezFileGroup {
-                    owner_id: owner.user_id.to_string(),
-                    name: Some("mock_files".to_string()),
-                    file_group_id: group_id.clone(),
-                    permission_ids: vec![],
-                    keywords: vec![],
-                    group_hierarchy_paths: vec![],
-                    mime_types: vec![],
-                    group_type: FileGroupType::Static,
-                    item_count: 0,
-                    dynamic_group_rules: None,
-                    readonly: true,
-                })
-                .await?;
-                group_id
+                let mut fg = FilezFileGroup::new(
+                    &owner,
+                    FileGroupType::Static,
+                    Some("mock_files".to_string()),
+                );
+                fg.make_readonly();
+                db.create_file_group(&fg).await?;
+                fg.file_group_id
             }
         }
     };
 
-    let static_file_group_ids = vec![group_id, format!("{}_all", owner.user_id)];
+    let static_file_group_ids = vec![group_id, all_group.file_group_id.clone()];
 
-    for i in 0..files_to_create {
+    for _ in 0..files_to_create {
         let file_id = generate_id(16);
 
         let size = rand::random::<u8>();
@@ -172,22 +168,21 @@ pub async fn create_mock_users(db: &DB) -> anyhow::Result<()> {
     };
     let mock_users: Vec<MockUser> = serde_yaml::from_str(&mock_users_string)?;
 
-    dbg!(&mock_users);
-
+    let mut new_users = vec![];
     for mock_user in mock_users {
         if db.get_user_by_email(&mock_user.email).await?.is_none() {
-            let res = db
-                .create_user(
-                    None,
-                    Some(mock_user.status),
-                    Some(mock_user.name),
-                    Some(mock_user.email),
-                )
-                .await;
-            if res.is_err() {
-                println!("Error creating mock user: {:#?}", res);
-            }
+            new_users.push(FilezUser::new(
+                &config.storage,
+                Some(mock_user.name),
+                Some(mock_user.email.clone()),
+                None,
+            ))
         }
+    }
+
+    let res = db.create_users(&new_users).await;
+    if res.is_err() {
+        println!("Error creating mock user: {:#?}", res);
     }
 
     Ok(())
@@ -201,6 +196,22 @@ pub async fn check_database_consistency(db: &DB) -> anyhow::Result<()> {
     println!("Checking database file existence vs actual file existence");
     check_database_file_storage_consistency(db).await?;
 
+    Ok(())
+}
+
+pub async fn check_dangling_references(db: &DB) -> anyhow::Result<()> {
+    println!("Checking dangling file group references");
+    check_dangling_file_group_references(db).await?;
+    println!("Checking dangling permission references");
+    check_dangling_permission_references(db).await?;
+    Ok(())
+}
+
+pub async fn check_dangling_file_group_references(db: &DB) -> anyhow::Result<()> {
+    Ok(())
+}
+
+pub async fn check_dangling_permission_references(db: &DB) -> anyhow::Result<()> {
     Ok(())
 }
 
@@ -360,15 +371,18 @@ pub async fn create_users(db: &DB) -> anyhow::Result<()> {
 
     let users_to_create = config.users.create.clone();
 
-    for user in users_to_create {
-        if db.get_user_by_email(&user).await?.is_none() {
-            let res = db
-                .create_user(None, Some(UserStatus::Active), None, Some(user))
-                .await;
-            if res.is_err() {
-                println!("Error creating mock user: {:?}", res);
-            }
+    let mut new_users = vec![];
+    for email in users_to_create {
+        if db.get_user_by_email(&email).await?.is_none() {
+            let mut user = FilezUser::new(&config.storage, None, Some(email), None);
+            user.update_status(UserStatus::Invited);
+            new_users.push(user);
         }
+    }
+
+    let res = db.create_users(&new_users).await;
+    if res.is_err() {
+        println!("Error creating mock user: {:?}", res);
     }
 
     Ok(())

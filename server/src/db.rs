@@ -7,12 +7,10 @@ use crate::{
     },
     permissions::{FilezPermission, PermissionResourceSelectType},
     some_or_bail,
-    utils::generate_id,
 };
 use filez_common::server::{
     AppDataType, FileGroupType, FileResourceType, FilezFile, FilezFileGroup, FilezUser,
     FilezUserGroup, GetItemListRequestBody, SortOrder, UploadSpace, UsageLimits, UserRole,
-    UserStatus, Visibility,
 };
 
 use anyhow::bail;
@@ -301,6 +299,25 @@ impl DB {
         Ok(permissions)
     }
 
+    pub async fn get_users_by_id(&self, user_ids: &Vec<String>) -> anyhow::Result<Vec<FilezUser>> {
+        let collection = self.db.collection::<FilezUser>("users");
+
+        let users = collection
+            .find(
+                doc! {
+                    "_id": {
+                        "$in": user_ids
+                    }
+                },
+                None,
+            )
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        Ok(users)
+    }
+
     pub async fn update_permission(&self, permission: &FilezPermission) -> anyhow::Result<()> {
         let collection = self.db.collection::<FilezPermission>("permissions");
         collection
@@ -450,90 +467,44 @@ impl DB {
             .await?)
     }
 
-    pub async fn create_user(
-        &self,
-        ir_user_id: Option<String>,
-        user_status: Option<UserStatus>,
-        user_name: Option<String>,
-        email: Option<String>,
-    ) -> anyhow::Result<String> {
+    pub async fn create_users(&self, users: &Vec<FilezUser>) -> anyhow::Result<()> {
         let mut session = self.client.start_session(None).await?;
         session.start_transaction(None).await?;
 
         let users_collection = self.db.collection::<FilezUser>("users");
-        let config = &SERVER_CONFIG;
-
-        let mut limits: HashMap<String, Option<UsageLimits>> = HashMap::new();
-
-        for (storage_name, storage_config) in &config.storage.storages {
-            let l = storage_config
-                .default_user_limits
-                .as_ref()
-                .map(|dul| UsageLimits {
-                    max_storage: dul.max_storage,
-                    used_storage: 0,
-                    max_files: dul.max_files,
-                    used_files: 0,
-                    max_bandwidth: dul.max_bandwidth,
-                    used_bandwidth: 0,
-                });
-            limits.insert(storage_name.to_string(), l);
-        }
-
-        let user_id = generate_id(16);
-
-        let make_admin = match &email {
-            Some(m) => config.users.make_admin.contains(m),
-            None => false,
-        };
-
-        let user = FilezUser {
-            user_id: user_id.clone(),
-            ir_user_id,
-            app_data: HashMap::new(),
-            limits,
-            user_group_ids: vec![],
-            friends: vec![],
-            name: user_name,
-            pending_incoming_friend_requests: vec![],
-            status: user_status.unwrap_or(UserStatus::Active),
-            visibility: Visibility::Public,
-            email,
-            role: match make_admin {
-                true => UserRole::Admin,
-                false => UserRole::User,
-            },
-            permission_ids: vec![],
-        };
-
-        users_collection
-            .insert_one_with_session(&user, None, &mut session)
-            .await?;
-
         let file_groups_collection = self.db.collection::<FilezFileGroup>("file_groups");
 
+        let mut file_groups: Vec<FilezFileGroup> = vec![];
+
+        for user in users {
+            file_groups.push(user.create_all_group());
+        }
+
+        users_collection
+            .insert_many_with_session(users, None, &mut session)
+            .await?;
+
         file_groups_collection
-            .insert_one_with_session(
-                &FilezFileGroup {
-                    file_group_id: format!("{}_all", &user_id),
-                    owner_id: user_id.to_string(),
-                    name: Some("All".to_string()),
-                    permission_ids: vec![],
-                    keywords: vec![],
-                    mime_types: vec![],
-                    group_hierarchy_paths: vec![],
-                    group_type: FileGroupType::Static,
-                    dynamic_group_rules: None,
-                    item_count: 0,
-                    readonly: true,
+            .insert_many_with_session(file_groups, None, &mut session)
+            .await?;
+
+        Ok(session.commit_transaction().await?)
+    }
+
+    pub async fn get_users_all_file_group(&self, user_id: &str) -> anyhow::Result<FilezFileGroup> {
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
+
+        let res = collection
+            .find_one(
+                doc! {
+                    "owner_id": user_id,
+                    "all": true
                 },
                 None,
-                &mut session,
             )
             .await?;
-        session.commit_transaction().await?;
 
-        Ok(user_id.clone())
+        Ok(some_or_bail!(res, "Could not find all file group"))
     }
 
     pub async fn get_file_groups_by_owner_id(
@@ -664,19 +635,21 @@ impl DB {
         let mut permission_ids_by_resource_type: HashMap<String, Vec<String>> = HashMap::new();
 
         for permission in permissions {
-            let permission_ids = permission_ids_by_resource_type
+            permission_ids_by_resource_type
                 .entry(
                     match permission.content {
-                        crate::permissions::PermissionResourceType::File(_) => "file",
+                        crate::permissions::PermissionResourceType::File(_) => "files",
                         crate::permissions::PermissionResourceType::FileGroup(_) => "file_groups",
                         crate::permissions::PermissionResourceType::UserGroup(_) => "user_groups",
                         crate::permissions::PermissionResourceType::User(_) => "users",
                     }
                     .to_string(),
                 )
-                .or_insert_with(Vec::new);
-            permission_ids.push(permission.permission_id.clone());
+                .or_default()
+                .push(permission.permission_id.clone());
         }
+
+        dbg!(&permission_ids_by_resource_type);
 
         delete_permissions!(
             self,

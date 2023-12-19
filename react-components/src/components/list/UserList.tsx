@@ -1,11 +1,10 @@
-import { CSSProperties, PureComponent } from "react";
+import { CSSProperties, PureComponent, createRef } from "react";
 import { FilezContext } from "../../FilezProvider";
 import { ReducedFilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/ReducedFilezUser";
 import ChangeFriendshipStatus from "../atoms/ChangeFriendshipStatus";
 import ResourceList from "./resource/ResourceList";
 import ColumnListRowRenderer from "./resource/rowRenderers/Column";
 import { Column, ColumnDirection } from "./resource/ResourceListTypes";
-import { FilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezUser";
 
 const defaultColumns: Column<ReducedFilezUser>[] = [
     {
@@ -40,8 +39,8 @@ const defaultColumns: Column<ReducedFilezUser>[] = [
         render: (item) => {
             return (
                 <span style={{ height: "100%" }}>
-                    <span>{item.status}</span>
-                    <ChangeFriendshipStatus size="sm" user={item} />
+                    <span style={{ marginRight: "5px" }}>{item.status}</span>
+                    <ChangeFriendshipStatus size="xs" user={item} />
                 </span>
             );
         }
@@ -63,6 +62,8 @@ export default class UserList extends PureComponent<
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
+    resourceListRef = createRef<ResourceList<ReducedFilezUser>>();
+
     constructor(props: UserListProps) {
         super(props);
         this.state = {
@@ -77,6 +78,7 @@ export default class UserList extends PureComponent<
         return (
             <div className="Filez UserList" style={{ ...this.props.style }}>
                 <ResourceList
+                    ref={this.resourceListRef}
                     resourceType="User"
                     defaultSortField="name"
                     get_items_function={this.context.filezClient.list_users}

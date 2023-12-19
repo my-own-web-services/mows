@@ -53,6 +53,13 @@ pub async fn delete_file_group(
         Err(e) => bail!(e),
     }
 
+    if !file_groups.iter().all(|f| f.deletable) {
+        return Ok(res
+            .status(403)
+            .body(Body::from("Some groups are not deletable"))
+            .unwrap());
+    };
+
     retry_transient_transaction_error!(db.delete_file_groups(&file_groups).await);
 
     Ok(res.status(200).body(Body::from("Ok"))?)

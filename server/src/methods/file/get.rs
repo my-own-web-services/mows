@@ -114,26 +114,35 @@ pub async fn get_file(
 
     let body = match get_range(&req) {
         Ok((start_byte, maybe_end_byte)) => {
-            res = res.header("Connection", "Keep-Alive");
-            res = res.header("Keep-Alive", "timeout=5, max=100");
-            res = res.status(206);
-            res = res.header("Accept-Ranges", "bytes");
+            res = res
+                .header("Connection", "Keep-Alive")
+                .header("Keep-Alive", "timeout=5, max=100")
+                .status(206)
+                .header("Accept-Ranges", "bytes");
+
+            if start_byte >= file_size {
+                bail!("Start byte is after file size");
+            }
 
             match maybe_end_byte {
                 Ok(end_byte) => {
                     // end requested
+                    if end_byte < start_byte {
+                        bail!("End byte is before start byte");
+                    }
+                    if end_byte >= file_size {
+                        bail!("End byte is after file size");
+                    }
 
-                    let length = some_or_bail!(
-                        end_byte
-                            .checked_sub(some_or_bail!(start_byte.checked_add(1), "Invalid Range")),
-                        "Invalid range"
-                    );
+                    let length =
+                        some_or_bail!(end_byte.checked_sub(start_byte), "Invalid range") + 1;
 
-                    res = res.header(
-                        "Content-Range",
-                        format!("bytes {}-{}/{}", start_byte, end_byte, file_size),
-                    );
-                    res = res.header("Content-Length", length);
+                    res = res
+                        .header(
+                            "Content-Range",
+                            format!("bytes {}-{}/{}", start_byte, end_byte, file_size),
+                        )
+                        .header("Content-Length", length);
 
                     Body::wrap_stream(FileBytesStreamRange::new(
                         file_handle,
@@ -145,12 +154,12 @@ pub async fn get_file(
                 }
                 Err(_) => {
                     // no end requested so we just return the rest of the file
-                    res = res.header(
-                        "Content-Range",
-                        format!("bytes {}-{}/{}", start_byte, file_size - 1, file_size),
-                    );
-
-                    res = res.header("Content-Length", file_size - start_byte);
+                    res = res
+                        .header(
+                            "Content-Range",
+                            format!("bytes {}-{}/{}", start_byte, file_size - 1, file_size),
+                        )
+                        .header("Content-Length", file_size - start_byte);
 
                     Body::wrap_stream(FileBytesStreamRange::new(
                         file_handle,

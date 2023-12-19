@@ -15,6 +15,7 @@
         "@firstdorsal/filez-client": "^1.0.2",
         "dashjs": "^4.7.1",
         "file-icons": "https://github.com/PKief/vscode-material-icon-theme",
+        "ical.js": "^1.5.0",
         "immutability-helper": "^3.1.1",
         "less": "^4.2.0",
         "lodash": "^4.17.21",
@@ -32,6 +33,7 @@
         "react-window-infinite-loader": "^1.0.9",
         "rsuite": "^5.47.0",
         "sass": "^1.62.1",
+        "shaka-player": "^4.7.1",
         "ts-pattern": "^5.0.5"
     },
     "resolutions": {

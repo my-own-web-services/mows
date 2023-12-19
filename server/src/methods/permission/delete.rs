@@ -39,7 +39,7 @@ pub async fn delete_permission(
 
     let permissions = db.get_permissions_by_id(&dprb.permission_ids).await?;
 
-    if permissions
+    if !permissions
         .iter()
         .all(|p| p.owner_id == requesting_user.user_id)
     {

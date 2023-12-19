@@ -122,7 +122,6 @@ export default class FileList extends PureComponent<
 > {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
-    moreItemsLoading = false;
 
     resourceListRef = createRef<ResourceList<FilezFile>>();
     uploadFilesRef = createRef<UploadFile>();
@@ -221,7 +220,7 @@ export default class FileList extends PureComponent<
         const selectedFiles = this.state.selectedFiles;
         for (const file of selectedFiles) {
             if (file.readonly || typeof file.storage_id !== "string") {
-                //return false;
+                return false;
             }
         }
 

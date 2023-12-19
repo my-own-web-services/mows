@@ -2,7 +2,6 @@ import { InterosseaClient } from "@firstdorsal/interossea-client";
 import type { FilezFile } from "./apiTypes/FilezFile.js";
 import type { CreateFileRequest } from "./apiTypes/CreateFileRequest.js";
 import type { FilezFileGroup } from "./apiTypes/FilezFileGroup.js";
-import type { FilezUser } from "./apiTypes/FilezUser.js";
 import type { UpdateFileGroupRequestBody } from "./apiTypes/UpdateFileGroupRequestBody.js";
 import type { FilezPermission } from "./apiTypes/FilezPermission.js";
 import type { UpdateFriendshipStatusRequestBody } from "./apiTypes/UpdateFriendshipStatusRequestBody.js";
@@ -30,8 +29,13 @@ import type { DeleteUserGroupRequestBody } from "./apiTypes/DeleteUserGroupReque
 import type { DeletePermissionRequestBody } from "./apiTypes/DeletePermissionRequestBody.js";
 import type { CreatePermissionRequestBody } from "./apiTypes/CreatePermissionRequestBody.js";
 import type { CreatePermissionResponseBody } from "./apiTypes/CreatePermissionResponseBody.js";
+import type { GetUserRequestBody } from "./apiTypes/GetUserRequestBody.js";
+import type { GetUserResponseBody } from "./apiTypes/GetUserResponseBody.js";
+import type { CreateUserRequestBody } from "./apiTypes/CreateUserRequestBody.js";
+import type { UserToBeCreated } from "./apiTypes/UserToBeCreated.js";
 
 export * from "./types.js";
+
 
 export class FilezClient {
     interosseaClient: InterosseaClient;
@@ -89,13 +93,25 @@ export class FilezClient {
         return json;
     }
 
+    create_users = async (users?:UserToBeCreated[]) => {
+        if (!this.initialized) await this.init();
+
+        const body:CreateUserRequestBody= {users:users??[]} 
+        const res = await fetch(`${this.filezEndpoint}/api/user/create/`, {
+            method: "POST",
+            credentials: "include",
+            body: JSON.stringify(body),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+
+        return res;
+    };
+
     create_own_user = async () => {
         if (!this.initialized) await this.init();
-        const res = await fetch(`${this.filezEndpoint}/api/user/create_own/`, {
-            method: "POST",
-            credentials: "include"
-        });
-        return res;
+        return await this.create_users();
     };
 
     create_file = async (body: any, metadata: CreateFileRequest) => {
@@ -268,12 +284,20 @@ export class FilezClient {
         return json;
     };
 
-    get_own_user = async () => {
+    get_users = async (user_ids?:string[]) => {
         if (!this.initialized) await this.init();
-        const res = await fetch(`${this.filezEndpoint}/api/user/get_own/`, {
-            credentials: "include"
+
+        const body:GetUserRequestBody={user_ids:user_ids??[]};
+        const res = await fetch(`${this.filezEndpoint}/api/user/`, {
+            method: "POST",
+            credentials: "include",
+
+            headers: {
+                "Content-Type": "application/json"
+            }
         });
-        return (await res.json()) as FilezUser;
+        const json: GetUserResponseBody = await res.json();
+        return json;
     };
 
     list_users = async (body?: GetItemListRequestBody) => {

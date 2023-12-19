@@ -6,12 +6,14 @@ import { FilezContext } from "../../FilezProvider";
 import { Input, SelectPicker, TagPicker } from "rsuite";
 import SelectOrCreateUseOncePermission from "../atoms/SelectOrCreateUseOncePermission";
 import Permission from "./Permission";
-import { cloneDeep, isEqual } from "lodash";
+import { cloneDeep } from "lodash";
 import update from "immutability-helper";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
+
 interface UserGroupProps {
-    readonly group?: FilezUserGroup;
+    readonly userGroup?: FilezUserGroup;
     readonly oncePermissionRef?: React.RefObject<Permission>;
+    readonly onChange?: (group: FilezUserGroup, invitedUsers: string[]) => void;
 }
 
 interface UserGroupState {
@@ -40,7 +42,7 @@ export default class UserGroup extends PureComponent<
     constructor(props: UserGroupProps) {
         super(props);
 
-        const group = props.group ?? defaultGroup;
+        const group = props.userGroup ?? defaultGroup;
 
         this.state = {
             users: [],
@@ -75,94 +77,50 @@ export default class UserGroup extends PureComponent<
             useOncePermissionEnabled: useOncePermission !== undefined
         });
     };
-
-    create = async (useOncePermissionId?: string): Promise<boolean> => {
-        if (!this.context) return false;
-        const cg = this.state.clientGroup;
-        const permission_ids = cloneDeep(cg.permission_ids);
-        if (typeof useOncePermissionId === "string") {
-            permission_ids.push(useOncePermissionId);
-        }
-
-        const res = await this.context.filezClient.create_user_group({
-            name: cg.name,
-            visibility: cg.visibility,
-            permission_ids
-        });
-        if (res.status === 201) {
-            this.setState({ serverGroup: cg });
-
-            return true;
-        } else {
-            return false;
-        }
+    onNameChange = (value: string) => {
+        this.setState(
+            update(this.state, {
+                clientGroup: {
+                    name: { $set: value }
+                }
+            }),
+            this.onChange
+        );
     };
 
-    update = async (useOncePermissionId?: string): Promise<boolean> => {
-        if (!this.context) return false;
-        const cg = this.state.clientGroup;
-        const sg = this.state.serverGroup;
-
-        let permission_ids = cloneDeep(cg.permission_ids);
-        if (typeof useOncePermissionId === "string") {
-            this.setState(
-                update(this.state, {
-                    clientGroup: {
-                        permission_ids: { $push: [useOncePermissionId] }
-                    }
-                })
-            );
-            permission_ids.push(useOncePermissionId);
-        } else {
-            const useOncePermission = this.state.availablePermissions?.find(
-                (p) => {
-                    if (
-                        cg.permission_ids.includes(p._id) &&
-                        p.use_type === "Once"
-                    ) {
-                        return p;
-                    }
+    updateVisibility = (value: string | null) => {
+        if (value === null) return;
+        this.setState(
+            update(this.state, {
+                clientGroup: {
+                    visibility: { $set: value as Visibility }
                 }
-            );
+            }),
+            this.onChange
+        );
+    };
 
-            console.log(useOncePermission);
+    permissionSelectUpdate = (value: string[]) => {
+        this.setState(
+            update(this.state, {
+                clientGroup: {
+                    permission_ids: { $set: value }
+                }
+            }),
+            this.onChange
+        );
+    };
 
-            if (useOncePermission) {
-                permission_ids = permission_ids.filter(
-                    (id) => id !== useOncePermission._id
-                );
+    updateOncePermissionUse = (value: boolean) => {
+        this.setState({ useOncePermissionEnabled: value }, this.onChange);
+    };
 
-                this.context.filezClient.delete_permissions([
-                    useOncePermission?._id
-                ]);
+    updateSelectedUsers = (value: string[]) => {
+        this.setState({ selectedUsers: value }, this.onChange);
+    };
 
-                this.setState(
-                    update(this.state, {
-                        clientGroup: {
-                            permission_ids: { $set: permission_ids }
-                        }
-                    })
-                );
-            }
-        }
-
-        const res = await this.context.filezClient.update_user_group({
-            user_group_id: cg._id ?? "",
-            fields: {
-                name: cg.name === sg.name ? null : cg.name,
-                visibility:
-                    cg.visibility === sg.visibility ? null : cg.visibility,
-                permission_ids: isEqual(permission_ids, sg.permission_ids)
-                    ? null
-                    : permission_ids
-            }
-        });
-        if (res.status === 200) {
-            this.setState({ serverGroup: cloneDeep(this.state.clientGroup) });
-            return true;
-        } else {
-            return false;
-        }
+    onChange = () => {
+        this.props.onChange?.(this.state.clientGroup, this.state.selectedUsers);
     };
 
     render = () => {
@@ -174,30 +132,14 @@ export default class UserGroup extends PureComponent<
                 <Input
                     placeholder="A-Team"
                     value={cg.name ?? ""}
-                    onChange={(value) => {
-                        this.setState(
-                            update(this.state, {
-                                clientGroup: {
-                                    name: { $set: value }
-                                }
-                            })
-                        );
-                    }}
+                    onChange={this.onNameChange}
                 />
                 <br />
                 <label>Visibility</label>
                 <br />
                 <SelectPicker
                     value={cg.visibility}
-                    onChange={(value) => {
-                        this.setState(
-                            update(this.state, {
-                                clientGroup: {
-                                    visibility: { $set: value as Visibility }
-                                }
-                            })
-                        );
-                    }}
+                    onChange={this.updateVisibility}
                     cleanable={false}
                     searchable={false}
                     data={["Public", "Private"].map((v) => {
@@ -214,20 +156,8 @@ export default class UserGroup extends PureComponent<
                             this.state.useOncePermissionEnabled
                         }
                         oncePermissionRef={this.props.oncePermissionRef}
-                        onSelectUpdate={(value) => {
-                            this.setState(
-                                update(this.state, {
-                                    clientGroup: {
-                                        permission_ids: { $set: value }
-                                    }
-                                })
-                            );
-                        }}
-                        updateOncePermissionUse={(enabled) => {
-                            this.setState({
-                                useOncePermissionEnabled: enabled
-                            });
-                        }}
+                        onSelectUpdate={this.permissionSelectUpdate}
+                        updateOncePermissionUse={this.updateOncePermissionUse}
                         useOncePermission={
                             this.state.availablePermissions.find((p) => {
                                 if (
@@ -257,16 +187,14 @@ export default class UserGroup extends PureComponent<
                         type="UserGroup"
                     />
                 </div>
-                <label> Members</label>
+                <label>Members</label>
                 <br />
 
                 <TagPicker
                     style={{ width: "300px" }}
                     virtualized
                     value={this.state.selectedUsers}
-                    onChange={(value) => {
-                        this.setState({ selectedUsers: value });
-                    }}
+                    onChange={this.updateSelectedUsers}
                     data={this.state.users.map((u) => {
                         return { label: u.name, value: u._id };
                     })}

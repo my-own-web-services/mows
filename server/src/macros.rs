@@ -73,7 +73,7 @@ macro_rules! get_authenticated_user {
 #[macro_export]
 macro_rules! delete_permissions {
     ($self:expr,$session:expr, $permission_ids_by_resource_type:expr, $resource_type:ident, $resource_selector: expr) => {{
-        while let Some(permission_ids) = $permission_ids_by_resource_type.get($resource_selector) {
+        if let Some(permission_ids) = $permission_ids_by_resource_type.get($resource_selector) {
             let resource_collection = $self.db.collection::<$resource_type>($resource_selector);
             resource_collection
                 .update_many_with_session(

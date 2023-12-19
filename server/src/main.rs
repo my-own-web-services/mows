@@ -16,13 +16,14 @@ use filez::methods::file_group::get::get_file_groups;
 use filez::methods::file_group::list::get_own_file_groups;
 use filez::methods::file_group::update::update_file_group;
 use filez::methods::get_aggregated_keywords::get_aggregated_keywords;
+use filez::methods::permission::create::create_permission;
 use filez::methods::permission::delete::delete_permission;
 use filez::methods::permission::list::list_permissions;
 use filez::methods::permission::update::update_permission;
 use filez::methods::set_app_data::set_app_data;
 use filez::methods::update_permission_ids_on_resource::update_permission_ids_on_resource;
-use filez::methods::user::create_own::create_own_user;
-use filez::methods::user::get_own::get_own_user;
+use filez::methods::user::create::create_user;
+use filez::methods::user::get::get_user;
 use filez::methods::user::list::get_user_list;
 use filez::methods::user::update_friendship_status::update_friendship_status;
 use filez::methods::user_group::create::create_user_group;
@@ -68,7 +69,22 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let internal_http_addr: SocketAddr = SERVER_CONFIG.http.internal_address.parse().unwrap();
 
-    let db = DB::new(ClientOptions::parse(&config.db.url).await?).await?;
+    let mut db: Option<DB> = None;
+
+    loop {
+        match DB::new(ClientOptions::parse(&config.db.url).await?).await {
+            Ok(db_instance) => {
+                db = Some(db_instance);
+                break;
+            }
+            Err(err) => {
+                eprintln!("Failed to create DB instance: {}", err);
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+        }
+    }
+
+    let db = db.expect("Failed to create DB instance");
 
     db.create_collections().await?;
 
@@ -218,12 +234,12 @@ async fn handle_inner(
         update_file(req, &db, &auth, res).await
     }
     /* file info */
-    else if p.starts_with("/file/info/get/") && m == Method::POST {
+    else if p == "/file/info/get/" && m == Method::POST {
         get_file_infos(req, &db, &auth, res).await
     } else if p == "/file/info/update/" && m == Method::POST {
         data_mutating = true;
         update_file_infos(req, &db, &auth, res).await
-    } else if p.starts_with("/file/info/list/") && m == Method::POST {
+    } else if p == "/file/info/list/" && m == Method::POST {
         get_file_infos_by_group_id(req, &db, &auth, res).await
     }
     /* file group */
@@ -258,6 +274,9 @@ async fn handle_inner(
     else if p == "/permission/update/" && m == Method::POST {
         data_mutating = true;
         update_permission(req, &db, &auth, res).await
+    } else if p == "/permission/create/" && m == Method::POST {
+        data_mutating = true;
+        create_permission(req, &db, &auth, res).await
     } else if p == "/permission/delete/" && m == Method::POST {
         data_mutating = true;
         delete_permission(req, &db, &auth, res).await
@@ -265,11 +284,11 @@ async fn handle_inner(
         list_permissions(req, &db, &auth, res).await
     }
     /* user */
-    else if p.starts_with("/user/get_own/") && m == Method::GET {
-        get_own_user(req, &db, &auth, res).await
-    } else if p == "/user/create_own/" && m == Method::POST {
+    else if p == "/user/get/" && m == Method::POST {
+        get_user(req, &db, &auth, res).await
+    } else if p == "/user/create/" && m == Method::POST {
         data_mutating = true;
-        create_own_user(req, &db, &auth, res).await
+        create_user(req, &db, &auth, res).await
     } else if p == "/user/update_friendship_status/" && m == Method::POST {
         data_mutating = true;
         update_friendship_status(req, &db, &auth, res).await
@@ -280,7 +299,7 @@ async fn handle_inner(
     else if p == "/update_permission_ids_on_resource/" && m == Method::POST {
         data_mutating = true;
         update_permission_ids_on_resource(req, &db, &auth, res).await
-    } else if p == "/get_aggregated_keywords/" && m == Method::GET {
+    } else if p == "/get_aggregated_keywords/" && m == Method::POST {
         get_aggregated_keywords(req, &db, &auth, res).await
     } else if p == "/set_app_data/" && m == Method::POST {
         data_mutating = true;

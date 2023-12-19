@@ -1,148 +1,141 @@
-import type dashjs from "dashjs";
-import type { MediaPlayerClass } from "dashjs";
-import { Component, createRef } from "react";
-import { FilezContext } from "../../../FilezProvider";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { PureComponent, createRef } from "react";
+
 import { FileViewerViewMode } from "../FileViewer";
-import Image from "./Image";
+import { FilezContext } from "../../../FilezProvider";
+//@ts-ignore
+import shaka from "shaka-player/dist/shaka-player.ui";
+import "../../utils/controls.css";
 
 interface VideoProps {
     readonly file: FilezFile;
     readonly viewMode?: FileViewerViewMode;
     readonly disableFallback?: boolean;
 }
+
 interface VideoState {}
 
-export default class Video extends Component<VideoProps, VideoState> {
-    private videoRef = createRef<HTMLVideoElement>();
-    private player: MediaPlayerClass | undefined;
-    useDash = false;
-
+export default class Video extends PureComponent<VideoProps, VideoState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
+    private videoRef: React.RefObject<HTMLVideoElement>;
+    private uiContainerRef: React.RefObject<HTMLDivElement>;
+
+    player?: shaka.Player;
+
+    constructor(props: VideoProps) {
+        super(props);
+        this.state = {};
+        this.videoRef = createRef<HTMLVideoElement>();
+        this.uiContainerRef = createRef<HTMLDivElement>();
+    }
+
+    componentDidMount = async () => {
+        await this.init();
+        await this.updateSource();
+    };
+
     componentDidUpdate = async (newProps: VideoProps) => {
-        if (
-            this.videoRef.current &&
-            this.props.file._id !== newProps.file._id
-        ) {
-            if (this.useDash) {
-                await this.importDash();
-
-                this.videoRef.current.load();
-
-                const uiConfig = this.context?.uiConfig;
-                if (!uiConfig) return;
-
-                if (this.player === undefined) {
-                    throw new Error(
-                        "Player is undefined but should have been initialized"
-                    );
-                }
-
-                this.player.attachSource(
-                    `${uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`
-                );
-            }
+        if (this.props.file._id !== newProps.file._id) {
+            await this.updateSource();
         }
     };
 
-    hasConvertedVersion = () => {
-        const f = this.props.file;
+    init = async () => {
+        if (this.videoRef.current === null) return;
+        if (this.player !== undefined) return;
+        this.player = new shaka.Player();
+        const ui = new shaka.ui.Overlay(
+            this.player,
+            this.uiContainerRef.current,
+            this.videoRef.current
+        );
+
+        const playerUiConfig = {
+            controlPanelElements: [
+                "play_pause",
+                "time_and_duration",
+                "spacer",
+                "mute",
+                "volume",
+                "fullscreen",
+                "overflow_menu"
+            ],
+            overflowMenuButtons: [
+                "captions",
+                "quality",
+                "picture_in_picture",
+                "cast",
+                "playback_rate",
+                "statistics",
+                "loop",
+                "remote",
+                "language"
+            ]
+        };
+
+        ui.configure(playerUiConfig);
+
+        ui.getControls();
+
+        this.player
+            .getNetworkingEngine()
+            .registerRequestFilter(function (request_type: any, request: any) {
+                request.allowCrossSiteCredentials = true;
+            });
+        await this.player.attach(this.videoRef.current);
+    };
+
+    updateSource = async () => {
+        const filezUiConfig = this.context?.uiConfig;
+
+        if (filezUiConfig === undefined) return;
+
+        const hasConvertedVersion = this.hasConvertedVersion(this.props.file);
+
+        const [url, mimeType] = hasConvertedVersion
+            ? [
+                  `${filezUiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`,
+                  "application/dash+xml"
+              ]
+            : [
+                  `${filezUiConfig.filezServerAddress}/api/file/get/${this.props.file._id}`,
+                  this.shakaMimeTypeFix(this.props.file.mime_type)
+              ];
+
+        const startTime = 0;
+        this.player.load(url, startTime, mimeType);
+        this.player.resetConfiguration();
+    };
+
+    shakaMimeTypeFix = (mimeType: string) => {
+        if (mimeType === "video/quicktime") return "video/mp4";
+        return mimeType;
+    };
+
+    hasConvertedVersion = (file: FilezFile) => {
         return (
-            f.app_data.video?.status === "finished" &&
-            typeof f.app_data.video?.error !== "string"
+            file.app_data.video?.status === "finished" &&
+            typeof file.app_data.video?.error !== "string"
         );
     };
 
-    componentDidMount = async () => {
-        const hasConvertedVersion = this.hasConvertedVersion();
-
-        if (hasConvertedVersion) {
-            this.useDash = true;
-        } else {
-            this.useDash = false;
-        }
-
-        if (this.useDash) {
-            this.importDash();
-            if (this.videoRef.current) {
-                this.initDashPlayer();
-            }
-        }
-    };
-
-    importDash = async () => {
-        // @ts-ignore
-        if (window.dashjs === undefined) {
-            // @ts-ignore
-            await import("/node_modules/dashjs/dist/dash.mediaplayer.debug.js");
-        }
-    };
-
-    initDashPlayer = async () => {
-        await this.importDash();
-        if (!this.player && this.videoRef.current) {
-            // @ts-ignore
-            this.player = dashjs.MediaPlayer().create();
-            this.player.setXHRWithCredentialsForType("GET", true);
-            this.player.setXHRWithCredentialsForType("MPD", true);
-            this.player.setXHRWithCredentialsForType("MediaSegment", true);
-            this.player.setXHRWithCredentialsForType(
-                "InitializationSegment",
-                true
-            );
-            this.player.setXHRWithCredentialsForType("IndexSegment", true);
-            this.player.setXHRWithCredentialsForType("other", true);
-            const uiConfig = this.context?.uiConfig;
-            if (!uiConfig) return;
-            this.player.initialize(
-                this.videoRef.current,
-                `${uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}/video/manifest.mpd?c`,
-                false
-            );
-        }
+    componentWillUnmount = () => {
+        this.player?.destroy();
+        this.player = undefined;
     };
 
     render = () => {
-        const f = this.props.file;
-        const hasConvertedVersion = this.hasConvertedVersion();
-        const uiConfig = this.context?.uiConfig;
-        if (!uiConfig) return;
-
         return (
-            <div className="Video" style={{ width: "100%" }}>
-                {this.props.viewMode === FileViewerViewMode.Preview ? (
-                    <Image
-                        viewMode={this.props.viewMode}
-                        file={this.props.file}
-                    />
-                ) : (
-                    <div
-                        className="dash-video-player"
-                        style={{ width: "100%" }}
-                    >
-                        <div
-                            className="videoContainer"
-                            id="videoContainer"
-                            style={{ width: "100%" }}
-                        >
-                            <video
-                                data-dashjs-player
-                                ref={this.videoRef}
-                                controls
-                                style={{ width: "100%" }}
-                            >
-                                {!hasConvertedVersion && (
-                                    <source
-                                        src={`${uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}`}
-                                        type={f.mime_type}
-                                    />
-                                )}
-                            </video>
-                        </div>
-                    </div>
-                )}
+            <div
+                style={{ width: "100%", height: "100%" }}
+                ref={this.uiContainerRef}
+            >
+                <video
+                    style={{ width: "100%", height: "100%" }}
+                    ref={this.videoRef}
+                />
             </div>
         );
     };

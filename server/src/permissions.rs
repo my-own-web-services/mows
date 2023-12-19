@@ -1,8 +1,6 @@
 use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth, utils::merge_values};
 use anyhow::bail;
-use filez_common::server::{
-    FilezFile, FilezFileGroup, FilezUser, FilezUserGroup, PermissiveResource,
-};
+use filez_common::server::PermissiveResource;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -195,6 +193,10 @@ pub struct FilezPermission {
     pub content: PermissionResourceType,
 }
 
+// TODO add a field for a list of origins/applications that are allowed to use the resource that the permission applies to
+// this makes it possible to only give an app minimal access to the resources it needs
+// per default only the management app is allowed to use the resource regardless of the set origins
+
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[serde(tag = "type")]
@@ -302,4 +304,5 @@ pub enum FilezUserGroupPermissionAclWhatOptions {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub enum FilezUserPermissionAclWhatOptions {
     GetUser,
+    DeleteUser,
 }

@@ -30,8 +30,8 @@ pub mod methods {
     }
 
     pub mod user {
-        pub mod create_own;
-        pub mod get_own;
+        pub mod create;
+        pub mod get;
         pub mod list;
         pub mod update_friendship_status;
     }

@@ -7,9 +7,6 @@ name = "filez"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-
 [lints.rust]
 unsafe_code = "forbid"
 
@@ -22,7 +19,6 @@ cast_lossless = "deny"
 indexing_slicing = "deny"
 
 [dependencies]
-
 hyper = { version = "0.14", default-features = false, features = [
     "server",
     "http1",
@@ -37,8 +33,8 @@ tokio = { version = "1.17.0", default-features = false, features = [
     "fs",
 ] }
 
-
 filetime = "0.2"
+
 simple-server-timing-header = "0.1.1"
 
 mongodb = { version = "2.3.1", features = ["bson-serde_with"] }
@@ -51,6 +47,7 @@ serde = { version = "1.0", features = [
 ], default-features = false }
 serde_yaml = { version = "0.9.13" }
 serde_json = { version = "1" }
+
 anyhow = "1"
 lazy_static = "1.3.0"
 sha2 = { version = "0.10.6" }

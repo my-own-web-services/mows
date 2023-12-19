@@ -3,6 +3,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 use ts_rs::TS;
 
+use crate::{storage::types::StorageConfig, utils::generate_id};
+
 #[derive(TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -302,6 +304,9 @@ pub struct FilezUser {
     List of group ids that the user is a member of
     */
     pub user_group_ids: Vec<String>,
+    /**
+    Permissions attached to the user
+    */
     pub permission_ids: Vec<String>,
 }
 
@@ -315,9 +320,18 @@ pub enum UserRole {
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub enum UserStatus {
-    Active,
+    /** The user has not been invited yet and is just a placeholder to attach other resources to */
+    Placeholder,
+    /** The user has never logged in, another user requested to invite them to the server.
+     The String is the id of the user that requested the invitation
+    */
+    InvitationRequested,
+    /** The user has never logged in but a invitation to join the server has been sent, this can only be set by the admin or with appropriate permissions */
     Invited,
-    Disabled,
+    /** The user can login and manage their visibility, request to join public groups etc. */
+    Active,
+    /** The user has been removed from the server either because they were banned or wanted to be removed */
+    Removed,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
@@ -379,7 +393,9 @@ pub struct FilezFileGroup {
     pub group_type: FileGroupType,
     pub dynamic_group_rules: Option<FilterRule>,
     pub item_count: u32,
+    pub deletable: bool,
     pub readonly: bool,
+    pub all: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
@@ -460,5 +476,114 @@ impl PermissiveResource for FilezUser {
 
     fn get_owner_id(&self) -> &String {
         &self.user_id
+    }
+}
+
+impl FilezUser {
+    pub fn new(
+        storage_config: &StorageConfig,
+        name: Option<String>,
+        email: Option<String>,
+        ir_user_id: Option<String>,
+    ) -> Self {
+        let mut limits: HashMap<String, Option<UsageLimits>> = HashMap::new();
+
+        for (storage_name, storage_config) in &storage_config.storages {
+            let l = storage_config
+                .default_user_limits
+                .as_ref()
+                .map(|dul| UsageLimits {
+                    max_storage: dul.max_storage,
+                    used_storage: 0,
+                    max_files: dul.max_files,
+                    used_files: 0,
+                    max_bandwidth: dul.max_bandwidth,
+                    used_bandwidth: 0,
+                });
+            limits.insert(storage_name.to_string(), l);
+        }
+
+        let user_id = generate_id(16);
+
+        Self {
+            user_id,
+            ir_user_id,
+            name,
+            email,
+            role: UserRole::User,
+            visibility: Visibility::Private,
+            friends: vec![],
+            pending_incoming_friend_requests: vec![],
+            status: UserStatus::Placeholder,
+            app_data: HashMap::new(),
+            limits,
+            user_group_ids: vec![],
+            permission_ids: vec![],
+        }
+    }
+
+    pub fn make_admin(&mut self) {
+        self.role = UserRole::Admin;
+    }
+
+    pub fn update_status(&mut self, new_status: UserStatus) {
+        self.status = new_status;
+    }
+
+    pub fn create_all_group(&self) -> FilezFileGroup {
+        FilezFileGroup::new_all_group(self)
+    }
+}
+
+impl FilezFileGroup {
+    pub fn new(owner: &FilezUser, group_type: FileGroupType, name: Option<String>) -> Self {
+        let file_group_id = generate_id(16);
+
+        Self {
+            file_group_id,
+            name,
+            owner_id: owner.user_id.clone(),
+            permission_ids: vec![],
+            keywords: vec![],
+            mime_types: vec![],
+            group_hierarchy_paths: vec![],
+            group_type,
+            dynamic_group_rules: None,
+            item_count: 0,
+            deletable: true,
+            readonly: false,
+            all: false,
+        }
+    }
+    pub fn new_all_group(owner: &FilezUser) -> Self {
+        let file_group_id = generate_id(16);
+
+        Self {
+            file_group_id,
+            name: Some("All".to_string()),
+            owner_id: owner.user_id.clone(),
+            permission_ids: vec![],
+            keywords: vec![],
+            mime_types: vec![],
+            group_hierarchy_paths: vec![],
+            group_type: FileGroupType::Static,
+            dynamic_group_rules: None,
+            item_count: 0,
+            deletable: false,
+            readonly: true,
+            all: true,
+        }
+    }
+
+    pub fn make_undeleatable(&mut self) {
+        self.deletable = false;
+    }
+
+    pub fn make_all_group(&mut self) {
+        self.all = true;
+    }
+
+    pub fn make_readonly(&mut self) {
+        self.readonly = true;
     }
 }

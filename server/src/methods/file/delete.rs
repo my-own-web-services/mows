@@ -8,7 +8,7 @@ use crate::{
 };
 use anyhow::bail;
 use filez_common::storage::index::get_storage_location_from_file;
-use futures::{future::join_all, Future};
+use futures::future::join_all;
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use simple_server_timing_header::Timer;

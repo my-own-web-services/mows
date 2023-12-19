@@ -32,8 +32,8 @@ export default class App extends Component<AppProps, AppState> {
         super(props);
         this.state = {
             selectedFileId: "kgBRBXqBXrHZBuHF",
-            selectedGroupId: "KgmuP8hQvO6gTL0Q_all",
-            selectedGroupListSubType: "Static"
+            selectedGroupId: "fLeNadOnoAFs3wBr",
+            selectedGroupListSubType: "Dynamic"
         };
     }
 
@@ -82,6 +82,11 @@ export default class App extends Component<AppProps, AppState> {
         return (
             <div className="App">
                 <FilezProvider>
+                    <PermissionList
+                        style={{ height: "500px", width: "100%" }}
+                    />
+                    <UserGroupList style={{ height: "500px", width: "100%" }} />
+                    <UserList style={{ height: "500px" }} />
                     <FileList
                         style={{ height: "500px" }}
                         resourceListRowHandlers={{
@@ -122,12 +127,6 @@ export default class App extends Component<AppProps, AppState> {
                             fileId={this.state.selectedFileId}
                         />
                     </div>
-
-                    <PermissionList
-                        style={{ height: "500px", width: "100%" }}
-                    />
-                    <UserGroupList style={{ height: "500px", width: "100%" }} />
-                    <UserList style={{ height: "500px" }} />
                 </FilezProvider>
             </div>
         );

@@ -57,7 +57,7 @@ pub async fn update_user_group(
     if let Some(name) = uugr.fields.name {
         match check_auth_multiple(
             auth,
-            &into_permissive_resource!(&vec![group.clone()]),
+            &into_permissive_resource!(&[group.clone()]),
             &CommonAclWhatOptions::UserGroup(
                 FilezUserGroupPermissionAclWhatOptions::UpdateGroupInfosName,
             ),
@@ -78,7 +78,7 @@ pub async fn update_user_group(
     if let Some(visibility) = uugr.fields.visibility {
         match check_auth_multiple(
             auth,
-            &into_permissive_resource!(&vec![group.clone()]),
+            &into_permissive_resource!(&[group.clone()]),
             &CommonAclWhatOptions::UserGroup(
                 FilezUserGroupPermissionAclWhatOptions::UpdateGroupInfosVisibility,
             ),
