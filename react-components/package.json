@@ -13,9 +13,7 @@
     },
     "dependencies": {
         "@firstdorsal/filez-client": "^1.0.2",
-        "dashjs": "^4.7.1",
         "file-icons": "https://github.com/PKief/vscode-material-icon-theme",
-        "ical.js": "^1.5.0",
         "immutability-helper": "^3.1.1",
         "less": "^4.2.0",
         "lodash": "^4.17.21",

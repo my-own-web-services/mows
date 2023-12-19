@@ -5,6 +5,7 @@ import ChangeFriendshipStatus from "../atoms/ChangeFriendshipStatus";
 import ResourceList from "./resource/ResourceList";
 import ColumnListRowRenderer from "./resource/rowRenderers/Column";
 import { Column, ColumnDirection } from "./resource/ResourceListTypes";
+import User from "../resources/User";
 
 const defaultColumns: Column<ReducedFilezUser>[] = [
     {
@@ -86,6 +87,7 @@ export default class UserList extends PureComponent<
                     columns={defaultColumns}
                     displayTopBar={this.props.displayTopBar}
                 />
+                <User />
             </div>
         );
     };

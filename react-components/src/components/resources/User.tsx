@@ -43,6 +43,8 @@ export default class User extends PureComponent<UserProps, UserState> {
         }
     };
 
+    importFromVcard = async (vcard: string) => {};
+
     render = () => {
         return <div className="User" />;
     };
