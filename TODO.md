@@ -26,40 +26,18 @@ maybe a field search like `file.keywords: test` to only search for the word "tes
 
 ## 1. Aktuell
 
--   background job visibility and management
+---
 
--   Schnellere Suche
--   React Components
-    -   Group List
-    -   New Group
-    -   File List
-        -   Sorting
-        -   Selecting
-        -   Drag and Drop
-        -   Different Views
-        -   Searching
-    -   File Viewer
-    -   Metadaten Bearbeitung
-    -   Access Control / Sharing
-    -   Upload
--   Dateien teilen
-    -   An Nutzer
-    -   Mit Passwort/Link
-        -   Zunächst readonly get
+20 dez 203
 
-## 2.
+-   nutzer hinzufügen
+-   sharing ausprobieren und auf probleme testen
+-   testing testing testing und edge cases fixen
+-   server testen -> der server ist sicherheitskritisch und lässt sich im container einfach isoliert testen und zurücksetzen
+-   background jobs
+-   app permission system
 
--   Dateien teilen mit verschiedenen permissions read/write/update etc.
-
-## 3.
-
-# Concerns
-
--   Scalability
-    -   Slow speed when dealing with larger ammounts of files
-        -> creating large ammounts of fake files to test this
-        -   Search
-        -   Dynamic Groups
+---
 
 # interossea
 
@@ -80,8 +58,9 @@ maybe a field search like `file.keywords: test` to only search for the word "tes
 # Features
 
 ## Other
+
 -   duplicate finder/ checkbox to check for duplicates on server and don't upload then
--   groups of groups 
+-   groups of groups
 -   get files that are present in multiple selected groups (intersection)
 -   get combined files of groups
 -   hexlerz like blog

@@ -172,8 +172,12 @@ impl FilezUser {
         self.role = UserRole::Admin;
     }
 
-    pub fn update_status(&mut self, new_status: UserStatus) {
+    pub fn set_status(&mut self, new_status: UserStatus) {
         self.status = new_status;
+    }
+
+    pub fn set_visibility(&mut self, new_visibility: UserVisibility) {
+        self.visibility = new_visibility;
     }
 
     pub fn get_all_group(&self) -> FilezFileGroup {

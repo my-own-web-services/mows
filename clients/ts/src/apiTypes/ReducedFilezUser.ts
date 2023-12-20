@@ -2,6 +2,6 @@
 import type { FriendshipStatus } from "./FriendshipStatus";
 import type { UserRole } from "./UserRole";
 import type { UserStatus } from "./UserStatus";
-import type { Visibility } from "./Visibility";
+import type { UserVisibility } from "./UserVisibility";
 
-export interface ReducedFilezUser { _id: string, name: string | null, friendship_status: FriendshipStatus, status: UserStatus, visibility: Visibility, role: UserRole, shared_user_groups: Array<string>, }
+export interface ReducedFilezUser { _id: string, name: string | null, friendship_status: FriendshipStatus, status: UserStatus, visibility: UserVisibility, role: UserRole, shared_user_groups: Array<string>, }

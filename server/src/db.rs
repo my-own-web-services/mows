@@ -377,7 +377,7 @@ impl DB {
 
         let permission_resource_type_filter = match permission_type {
             Some(pt) => doc! {
-                "resource_type": match pt {
+                "content.type": match pt {
                     PermissionResourceSelectType::File => "File",
                     PermissionResourceSelectType::FileGroup => "FileGroup",
                     PermissionResourceSelectType::User => "User",

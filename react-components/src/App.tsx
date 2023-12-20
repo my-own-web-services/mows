@@ -5,7 +5,6 @@ import FilezFileViewer, {
     FileViewerViewMode
 } from "./components/viewer/FileViewer";
 import FileGroupList from "./components/list/FileGroupList";
-
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import {
@@ -32,8 +31,8 @@ export default class App extends Component<AppProps, AppState> {
         super(props);
         this.state = {
             selectedFileId: "kgBRBXqBXrHZBuHF",
-            selectedGroupId: "fLeNadOnoAFs3wBr",
-            selectedGroupListSubType: "Dynamic"
+            selectedGroupId: "RbvVv5bY-Crg0NGi",
+            selectedGroupListSubType: "Static"
         };
     }
 
@@ -82,11 +81,12 @@ export default class App extends Component<AppProps, AppState> {
         return (
             <div className="App">
                 <FilezProvider>
+                    <UserList style={{ height: "500px" }} />
                     <PermissionList
                         style={{ height: "500px", width: "100%" }}
                     />
                     <UserGroupList style={{ height: "500px", width: "100%" }} />
-                    <UserList style={{ height: "500px" }} />
+
                     <FileList
                         style={{ height: "500px" }}
                         resourceListRowHandlers={{

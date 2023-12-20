@@ -7,7 +7,7 @@ use filez_common::{
     server::{
         file::FilezFile,
         file_group::{FileGroupType, FilezFileGroup},
-        user::{FilezUser, UserStatus},
+        user::{FilezUser, UserStatus, UserVisibility},
     },
     storage::index::{get_future_storage_location, get_storage_location_from_file},
 };
@@ -176,13 +176,19 @@ pub async fn create_mock_users(db: &DB) -> anyhow::Result<()> {
     let mut new_users = vec![];
     for mock_user in mock_users {
         if db.get_user_by_email(&mock_user.email).await?.is_none() {
-            new_users.push(FilezUser::new(
+            let mut user = FilezUser::new(
                 &config.storage,
                 Some(mock_user.name),
                 Some(mock_user.email.clone()),
                 None,
-            ))
+            );
+            user.set_visibility(UserVisibility::Public);
+            user.set_status(mock_user.status);
+            new_users.push(user)
         }
+    }
+    if new_users.is_empty() {
+        return Ok(());
     }
 
     let res = db.create_users(&new_users).await;
@@ -379,8 +385,12 @@ pub async fn create_users(db: &DB) -> anyhow::Result<()> {
     let mut new_users = vec![];
     for email in users_to_create {
         if db.get_user_by_email(&email).await?.is_none() {
-            let mut user = FilezUser::new(&config.storage, None, Some(email), None);
-            user.update_status(UserStatus::Invited);
+            let mut user = FilezUser::new(&config.storage, None, Some(email.clone()), None);
+            user.set_status(UserStatus::Invited);
+            if config.users.make_admin.contains(&email) {
+                user.make_admin();
+                user.set_visibility(UserVisibility::Public);
+            }
             new_users.push(user);
         }
     }

@@ -1,7 +1,7 @@
 import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFileGroup";
 import { cloneDeep } from "lodash";
 import { PureComponent } from "react";
-import { Input, InputPicker, TagPicker } from "rsuite";
+import { Button, Input, InputPicker, Modal, TagPicker } from "rsuite";
 import update from "immutability-helper";
 import { FilezContext } from "../../FilezProvider";
 import SelectOrCreateUseOncePermission from "../atoms/SelectOrCreateUseOncePermission";
@@ -10,12 +10,19 @@ import DynamicGroupRules from "../atoms/DynamicGroupRules";
 import { FilterRule } from "@firstdorsal/filez-client/dist/js/apiTypes/FilterRule";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
 import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
+import { RsuiteComponentSize } from "../../types";
 
 interface FileGroupProps {
+    readonly size?: RsuiteComponentSize;
+    readonly creatable?: boolean;
+    readonly style?: React.CSSProperties;
+    readonly readonly?: boolean;
     readonly groups?: FilezFileGroup[];
     readonly oncePermissionRef?: React.RefObject<Permission>;
     readonly serverUpdate?: boolean;
     readonly onChange?: (group: FilezFileGroup) => void;
+    readonly onCreateResourceSuccess?: (id: string) => void;
+    readonly onCreateResourceAbort?: () => void;
 }
 
 interface FileGroupState {
@@ -36,7 +43,9 @@ const defaultGroup: FilezFileGroup = {
     mime_types: [],
     owner_id: "",
     permission_ids: [],
-    readonly: false
+    readonly: false,
+    all: false,
+    deletable: false
 };
 
 const defaultDynamicGroupRule: FilterRule = {
@@ -119,6 +128,18 @@ export default class FileGroup extends PureComponent<
             }),
             this.onChange
         );
+    };
+
+    handleSave = async () => {
+        if (!this.context) return;
+        const cfgrb = await this.context.filezClient.create_file_group(
+            this.state.clientGroup
+        );
+        this.props.onCreateResourceSuccess?.(cfgrb.group_id);
+    };
+
+    createResourceAbort = () => {
+        this.props.onCreateResourceAbort?.();
     };
 
     render = () => {
@@ -262,6 +283,22 @@ export default class FileGroup extends PureComponent<
                         }}
                     />
                 </div>
+                {this.props.readonly !== true &&
+                    this.props.creatable === true && (
+                        <Modal.Footer className="creatableButtons">
+                            <Button
+                                onClick={this.handleSave}
+                                size={this.props.size}
+                                appearance="primary"
+                                disabled={this.props.readonly}
+                            >
+                                Create
+                            </Button>
+                            <Button onClick={this.createResourceAbort}>
+                                Cancel
+                            </Button>
+                        </Modal.Footer>
+                    )}
             </div>
         );
     };

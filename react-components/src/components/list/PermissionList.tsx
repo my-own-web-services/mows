@@ -161,7 +161,6 @@ export default class PermissionList extends PureComponent<
         await this.context.filezClient.update_permission({
             content: editPermission.content,
             permission_id: editPermission._id,
-            use_type: editPermission.use_type,
             name: editPermission.name
         });
         this.resourceListRef.current?.refreshList();
@@ -272,6 +271,7 @@ export default class PermissionList extends PureComponent<
                             permission={this.state.editPermission}
                             onChange={this.onEditPermissionChange}
                             hideTypeChanger={true}
+                            disableSaveButton={true}
                         />
                     </Modal.Body>
                     <Button onClick={this.editSaveClick} appearance="primary">

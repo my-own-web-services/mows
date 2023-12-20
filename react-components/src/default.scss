@@ -18,7 +18,16 @@
     --contexify-activeArrow-color: #fff;
 }
 
-.vjs-text-track-display{
+.rs-modal-footer {
+    text-align: left;
+}
+
+.creatableButtons {
+    margin-top: 10px;
+    margin-bottom: -15px;
+}
+
+.vjs-text-track-display {
     display: none !important;
 }
 
@@ -32,7 +41,7 @@
 
 .cantDrop {
     opacity: 0.5;
-    cursor:not-allowed !important;
+    cursor: not-allowed !important;
 }
 
 #openseadragon:focus-visible {

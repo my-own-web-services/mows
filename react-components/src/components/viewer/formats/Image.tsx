@@ -27,9 +27,8 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
 
     render = () => {
         const f = this.props.file;
-        const processedImage = f.app_data?.image?.result as
-            | ProcessedImage
-            | undefined;
+        const processedImage = f.app_data?.image
+            ?.result as ProcessedImage | null;
         const [previewWidth, shouldUseOriginal] = getImagePreviewWidth(
             f,
             this.props.itemWidth ?? 500
@@ -50,7 +49,7 @@ export default class Image extends PureComponent<ImageProps, ImageState> {
                 className="Image"
                 style={{ width: "100%", display: "relative" }}
             >
-                {processedImage !== undefined &&
+                {processedImage !== null &&
                     this.props.viewMode !== FileViewerViewMode.Zoomable && (
                         <ReactVirtualizedAutoSizer>
                             {({ height, width }) => {

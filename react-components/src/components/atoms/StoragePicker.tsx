@@ -80,14 +80,14 @@ export default class StoragePicker extends PureComponent<
     getUserStorageLimits = async () => {
         if (!this.context) return;
         const res = await this.context.filezClient.get_users();
-        const own_user = res.users[0];
-        if (own_user.limits === null) return;
+        const own_user = res.full_users?.[0];
+        if (own_user === undefined || own_user.limits === null) return;
 
         const availableStorages: StorageOptions[] = [];
         for (const [storage_id, user_storage_limits] of Object.entries(
             own_user.limits
         )) {
-            if (!user_storage_limits) continue;
+            if (user_storage_limits === null) continue;
             if (
                 user_storage_limits.used_storage >=
                 user_storage_limits.max_storage
@@ -117,11 +117,14 @@ export default class StoragePicker extends PureComponent<
 
             const response = await this.context?.filezClient.update_file_infos({
                 data: {
-                    StorageId: this.state.files.map((file) => {
-                        return {
-                            file_id: file._id,
-                            field: value
-                        };
+                    StorageId: this.state.files.flatMap((file) => {
+                        if (file.storage_id === value) return [];
+                        return [
+                            {
+                                file_id: file._id,
+                                field: value
+                            }
+                        ];
                     })
                 }
             });

@@ -11,6 +11,5 @@ cd ./addons/image/ && cargo test && cd ../..
 
 printf '\nimport { FilezFileGroup } from "./FilezFileGroup";' >> ${basePath}GetFileGroupsResponseBody.ts
 printf '\nimport { FilezFile } from "./FilezFile";' >> ${basePath}GetFileInfosResponseBody.ts
-printf '\nimport { FilezUser } from "./FilezUser";' >> ${basePath}GetUserResponseBody.ts
 
 cd ./clients/ts/ && yarn build && cd ../..

@@ -1,12 +1,12 @@
 import { ChangeEvent, PureComponent, SyntheticEvent } from "react";
 import {
     Button,
-    CheckPicker,
     CheckTreePicker,
     Checkbox,
     Input,
     InputGroup,
-    InputPicker
+    InputPicker,
+    Modal
 } from "rsuite";
 import { FilezContext } from "../../FilezProvider";
 import EyeIcon from "@rsuite/icons/legacy/Eye";
@@ -16,21 +16,27 @@ import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/File
 import { match } from "ts-pattern";
 import { ValueType } from "rsuite/esm/Checkbox";
 import { FilezPermissionAcl } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermissionAcl";
+import ResourcePicker from "../atoms/ResourcePicker";
+import { TagData } from "../atoms/MultiItemTagPicker";
+import { RsuiteComponentSize } from "../../types";
+import UserGroup from "./UserGroup";
+import User from "./User";
 
 type PermissionResourceType = "File" | "FileGroup" | "User" | "UserGroup";
 
 interface PermissionProps {
     readonly readonly?: boolean;
     readonly itemId?: string;
-    readonly size?: "lg" | "md" | "sm" | "xs";
+    readonly size?: RsuiteComponentSize;
     readonly permission?: FilezPermission;
     readonly permissionType?: PermissionResourceType;
     readonly disableTypeChange?: boolean;
     readonly hideTypeChanger?: boolean;
     readonly useOnce?: boolean;
     readonly onChange?: (permission: FilezPermission) => void;
-    readonly onSave?: (permissionId: string) => void;
-    readonly disableSaveButton?: boolean;
+    readonly onCreateResourceSuccess?: (id: string) => void;
+    readonly onCreateResourceAbort?: () => void;
+    readonly creatable?: boolean;
 }
 
 interface PermissionState {
@@ -208,7 +214,7 @@ export default class Permission extends PureComponent<
         );
     };
 
-    saveData = async () => {
+    createPermission = async () => {
         if (!this.context) return;
         const {
             selectedWhat,
@@ -218,8 +224,7 @@ export default class Permission extends PureComponent<
             permissionType,
             selectedUserIds,
             selectedUserGroupIds,
-            name,
-            permissionId
+            name
         } = this.state;
 
         const acl: FilezPermissionAcl<any> = {
@@ -234,9 +239,8 @@ export default class Permission extends PureComponent<
             }
         };
 
-        const res = await this.context.filezClient.update_permission({
+        const res = await this.context.filezClient.create_permission({
             name,
-            _id: permissionId,
             //@ts-ignore
             content: {
                 type: permissionType,
@@ -249,10 +253,46 @@ export default class Permission extends PureComponent<
     };
 
     handleSave = async () => {
-        const res = await this.saveData();
+        const res = await this.createPermission();
         if (typeof res === "string") {
-            this.props.onSave?.(res);
+            this.props.onCreateResourceSuccess?.(res);
         }
+    };
+
+    onUserChange = (userIds: string[]) => {
+        this.setState({ selectedUserIds: userIds }, this.onChange);
+    };
+
+    onUserGroupsChange = (userGroupIds: string[]) => {
+        this.setState({ selectedUserGroupIds: userGroupIds }, this.onChange);
+    };
+
+    createResourceAbort = () => {
+        this.props.onCreateResourceAbort?.();
+    };
+
+    getKnownUsers = async () => {
+        if (!this.context) return [];
+        const itemsRes = await this.context.filezClient.list_users();
+        const knownItems: TagData[] = itemsRes.items.map((user) => {
+            return {
+                label: user.name ?? undefined,
+                value: user._id
+            };
+        });
+        return knownItems;
+    };
+
+    getKnownUserGroups = async () => {
+        if (!this.context) return [];
+        const itemsRes = await this.context.filezClient.list_user_groups();
+        const knownItems: TagData[] = itemsRes.items.map((it) => {
+            return {
+                label: it.name ?? undefined,
+                value: it._id
+            };
+        });
+        return knownItems;
     };
 
     render = () => {
@@ -302,7 +342,7 @@ export default class Permission extends PureComponent<
                         </div>
                     )}
                     <div style={{ display: "inline-block", width: "50%" }}>
-                        <label>Everyone with the Link</label>
+                        <label>Everyone with the Link/ID</label>
                         <Checkbox
                             checked={this.state.enabledLink}
                             style={{ display: "inline-block" }}
@@ -370,22 +410,28 @@ export default class Permission extends PureComponent<
                 </div>
                 <div>
                     <label>and the following users</label>
-                    <CheckPicker
-                        placeholder="nobody"
-                        groupBy="type"
+                    <ResourcePicker
+                        mode="multi"
+                        onMultiChange={this.onUserChange}
                         size={this.props.size}
-                        block
-                        virtualized
-                        data={[]}
+                        getKnownTagsFunction={this.getKnownUsers}
+                        initialMultiSelectedValues={
+                            this.state.selectedUserIds ?? []
+                        }
+                        resourceType="User"
+                        createResourceComponent={User}
                     />
                     <label>and user groups</label>
-                    <CheckPicker
-                        placeholder="nobody"
-                        groupBy="type"
+                    <ResourcePicker
+                        mode="multi"
+                        onMultiChange={this.onUserGroupsChange}
                         size={this.props.size}
-                        block
-                        virtualized
-                        data={[]}
+                        getKnownTagsFunction={this.getKnownUserGroups}
+                        initialMultiSelectedValues={
+                            this.state.selectedUserGroupIds ?? []
+                        }
+                        resourceType="UserGroup"
+                        createResourceComponent={UserGroup}
                     />
                 </div>
 
@@ -406,16 +452,20 @@ export default class Permission extends PureComponent<
                     onChange={this.onWhatChange}
                 />
                 {this.props.readonly !== true &&
-                    this.props.disableSaveButton !== true && (
-                        <Button
-                            onClick={this.handleSave}
-                            size={this.props.size}
-                            style={{ marginTop: "10px" }}
-                            appearance="primary"
-                            disabled={this.props.readonly}
-                        >
-                            Save
-                        </Button>
+                    this.props.creatable === true && (
+                        <Modal.Footer className="creatableButtons">
+                            <Button
+                                onClick={this.handleSave}
+                                size={this.props.size}
+                                appearance="primary"
+                                disabled={this.props.readonly}
+                            >
+                                Create
+                            </Button>
+                            <Button onClick={this.createResourceAbort}>
+                                Cancel
+                            </Button>
+                        </Modal.Footer>
                     )}
             </div>
         );

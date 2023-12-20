@@ -7,7 +7,8 @@ import { FilezFileGroup } from "@firstdorsal/filez-client/dist/js/apiTypes/Filez
 import MultiItemTagPicker, {
     Category,
     MultiItemTagPickerResources,
-    TagData
+    TagData,
+    resourcesToSelectionMap
 } from "./MultiItemTagPicker";
 
 const knownCategories: Category[] = [
@@ -58,7 +59,7 @@ interface KeywordPickerProps {
     /**
      * The resources to edit
      */
-    readonly resources?: FilezFile[] | FilezFileGroup[] | ToBeUploadedFile[];
+    readonly resources: FilezFile[] | FilezFileGroup[] | ToBeUploadedFile[];
     /**
      * Called when the user changes the selection of keywords
      */
@@ -108,7 +109,10 @@ export default class KeywordPicker extends PureComponent<
         const knownKeywordsStrings = await this.get_keywords(
             this.props.resources
         );
-        const resourceMap = this.resourcesToSelectedTags(this.props.resources);
+        const resourceMap = resourcesToSelectionMap(
+            this.props.resources,
+            "keywords"
+        );
 
         this.setState({
             knownKeywords: knownKeywordsStrings.map((value) => ({ value })),
@@ -132,16 +136,6 @@ export default class KeywordPicker extends PureComponent<
         ];
 
         return distincKeywords;
-    };
-
-    resourcesToSelectedTags = (
-        resources?: FilezFile[] | FilezFileGroup[] | ToBeUploadedFile[]
-    ) => {
-        const selectedTagsMap: MultiItemTagPickerResources = {};
-        resources?.forEach((resource) => {
-            selectedTagsMap[resource._id] = resource.keywords;
-        });
-        return selectedTagsMap;
     };
 
     onCreate = async (

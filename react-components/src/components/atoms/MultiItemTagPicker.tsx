@@ -15,6 +15,7 @@ interface MultiItemTagPickerProps {
      * The Size of the input
      */
     readonly size?: "lg" | "md" | "sm" | "xs";
+    readonly style?: React.CSSProperties;
     readonly multiItemSelectedTags: MultiItemTagPickerResources;
     readonly possibleTags: TagData[];
     readonly onChange?: (
@@ -273,27 +274,38 @@ export default class MultiItemTagPicker extends Component<
     render = () => {
         // TODO when Comma is used as trigger and a tag is selected, the tag is removed
         return (
-            <div className="MultiItemTagPicker">
-                <TagPicker
-                    trigger={["Enter"]}
-                    data={this.state.data}
-                    value={this.state.selectedTags}
-                    size={this.props.size}
-                    onSelect={this.onSelect}
-                    //@ts-ignore
-                    onCreate={this.onCreate}
-                    onTagRemove={this.onTagRemove}
-                    cleanable={false}
-                    disabled={this.props.disabled}
-                    groupBy={this.props.knownCategories && "category"}
-                    creatable={this.props.creatable ?? false}
-                    virtualized
-                    block
-                    renderMenuItemCheckbox={this.renderMenuItemCheckbox}
-                    //@ts-ignore
-                    renderValue={this.renderValue}
-                />
-            </div>
+            <TagPicker
+                style={this.props.style}
+                trigger={["Enter"]}
+                data={this.state.data}
+                value={this.state.selectedTags}
+                size={this.props.size}
+                onSelect={this.onSelect}
+                //@ts-ignore
+                onCreate={this.onCreate}
+                onTagRemove={this.onTagRemove}
+                cleanable={false}
+                disabled={this.props.disabled}
+                groupBy={this.props.knownCategories && "category"}
+                creatable={this.props.creatable ?? false}
+                virtualized
+                block
+                renderMenuItemCheckbox={this.renderMenuItemCheckbox}
+                //@ts-ignore
+                renderValue={this.renderValue}
+            />
         );
     };
 }
+
+export const resourcesToSelectionMap = <Resource,>(
+    resources: Resource[],
+    field_id: string
+) => {
+    const selectedGroupsMap: MultiItemTagPickerResources = {};
+    resources?.forEach((resource) => {
+        // @ts-ignore
+        selectedGroupsMap[resource._id] = resource[field_id];
+    });
+    return selectedGroupsMap;
+};

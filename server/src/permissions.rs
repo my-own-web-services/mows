@@ -209,15 +209,6 @@ pub enum PermissionResourceType {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub enum PermissionResourceTypeSelector {
-    File,
-    FileGroup,
-    UserGroup,
-    User,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub enum PermissionResourceSelectType {
     File,
     FileGroup,

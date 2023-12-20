@@ -16,8 +16,16 @@ import KeywordPicker from "../atoms/KeywordPicker";
 import Name from "../atoms/SingleName";
 import Permission from "./Permission";
 import { isEqual } from "lodash";
-import StoragePicker from "../atoms/StoragePicker";
 import StaticFileGroupPicker from "../atoms/StaticFileGroupPicker";
+import ResourcePicker from "../atoms/ResourcePicker";
+import { TagData } from "../atoms/MultiItemTagPicker";
+import { UsageLimits } from "@firstdorsal/filez-client/dist/js/apiTypes/UsageLimits";
+import StoragePicker from "../atoms/StoragePicker";
+
+interface StorageOptions {
+    storage_id: string;
+    limits: UsageLimits;
+}
 
 interface FileMetaEditorProps {
     readonly fileIds: string[];
@@ -73,6 +81,39 @@ export default class FileMetaEditor extends PureComponent<
 
     onChange = async () => {
         this.props.onChange?.();
+    };
+
+    getKnownStorageOptions = async () => {
+        if (!this.context) return [];
+        const res = await this.context.filezClient.get_users();
+        const own_user = res.full_users?.[0];
+        if (own_user === undefined || own_user.limits === null) return [];
+
+        const availableStorages: StorageOptions[] = [];
+        for (const [storage_id, user_storage_limits] of Object.entries(
+            own_user.limits
+        )) {
+            if (user_storage_limits === null) continue;
+            if (
+                user_storage_limits.used_storage >=
+                user_storage_limits.max_storage
+            )
+                continue;
+            availableStorages.push({
+                storage_id,
+                limits: user_storage_limits
+            });
+        }
+        const options: TagData[] = availableStorages.map((storageOption) => ({
+            value: storageOption.storage_id,
+            label: `${storageOption.storage_id} (${bytesToHumanReadableSize(
+                storageOption.limits.used_storage
+            )} / ${bytesToHumanReadableSize(
+                storageOption.limits.max_storage
+            )} used)`
+        }));
+
+        return options;
     };
 
     render = () => {
@@ -240,7 +281,7 @@ export default class FileMetaEditor extends PureComponent<
                     >
                         <StoragePicker
                             onChange={this.onChange}
-                            fileIds={this.state.files.map((file) => file._id)}
+                            fileIds={this.props.fileIds}
                         />
                     </Panel>
 

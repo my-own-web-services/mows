@@ -3,17 +3,24 @@ import { ReducedFilezUser } from "@firstdorsal/filez-client/dist/js/apiTypes/Red
 import { Visibility } from "@firstdorsal/filez-client/dist/js/apiTypes/Visibility";
 import { PureComponent } from "react";
 import { FilezContext } from "../../FilezProvider";
-import { Input, SelectPicker, TagPicker } from "rsuite";
+import { Button, Input, Modal, SelectPicker, TagPicker } from "rsuite";
 import SelectOrCreateUseOncePermission from "../atoms/SelectOrCreateUseOncePermission";
 import Permission from "./Permission";
 import { cloneDeep } from "lodash";
 import update from "immutability-helper";
 import { FilezPermission } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezPermission";
+import { RsuiteComponentSize } from "../../types";
 
 interface UserGroupProps {
+    readonly size?: RsuiteComponentSize;
+    readonly enableSaveButton?: boolean;
+    readonly readonly?: boolean;
     readonly userGroup?: FilezUserGroup;
     readonly oncePermissionRef?: React.RefObject<Permission>;
     readonly onChange?: (group: FilezUserGroup, invitedUsers: string[]) => void;
+    readonly onCreateResourceSuccess?: (id: string) => void;
+    readonly onCreateResourceAbort?: () => void;
+    readonly creatable?: boolean;
 }
 
 interface UserGroupState {
@@ -123,6 +130,23 @@ export default class UserGroup extends PureComponent<
         this.props.onChange?.(this.state.clientGroup, this.state.selectedUsers);
     };
 
+    createResourceAbort = () => {
+        this.props.onCreateResourceAbort?.();
+    };
+
+    handleSave = async () => {
+        if (!this.context) return;
+        const group = this.state.clientGroup;
+        const res = await this.context.filezClient.create_user_group({
+            name: group.name,
+            visibility: group.visibility,
+            permission_ids: group.permission_ids
+        });
+
+        this.setState({ serverGroup: cloneDeep(this.state.clientGroup) });
+        this.props.onCreateResourceSuccess?.(res.group_id);
+    };
+
     render = () => {
         if (this.state.availablePermissions === undefined) return null;
         const cg = this.state.clientGroup;
@@ -199,6 +223,25 @@ export default class UserGroup extends PureComponent<
                         return { label: u.name, value: u._id };
                     })}
                 />
+                {this.props.readonly !== true &&
+                    this.props.creatable === true && (
+                        <Modal.Footer className="creatableButtons">
+                            <Button
+                                onClick={this.handleSave}
+                                size={this.props.size}
+                                appearance="primary"
+                                disabled={this.props.readonly}
+                            >
+                                Create
+                            </Button>
+                            <Button
+                                appearance="subtle"
+                                onClick={this.createResourceAbort}
+                            >
+                                Cancel
+                            </Button>
+                        </Modal.Footer>
+                    )}
             </div>
         );
     };

@@ -12,9 +12,9 @@ RUN cargo build-deps --release
 RUN rm -f target/x86_64-unknown-linux-musl/release/deps/filez-server*
 # build
 COPY --chown=root:root ./server/src src
-RUN cargo build --dev --bin main
-#RUN strip target/x86_64-unknown-linux-musl/release/main
-#RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
+RUN cargo build --bin main
+#RUN strip target/x86_64-unknown-linux-musl/debug/main
+#RUN upx --best --lzma target/x86_64-unknown-linux-musl/debug/main
 RUN useradd -u 50001 -N filez-server
 RUN groupadd -g 50001 filez-server
 
@@ -23,9 +23,9 @@ RUN mkdir /.dev
 RUN chown filez-server:filez-server /.dev
 
 # 1. APP STAGE
-FROM scratch
+FROM alpine
 WORKDIR /app
-COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-server
+COPY --from=build /volume/target/x86_64-unknown-linux-musl/debug/main ./filez-server
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 COPY --from=build --chown=filez-server:filez-server /.dev /.dev

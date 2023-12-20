@@ -1,3 +1,4 @@
+use super::list::user_to_reduced_user;
 use crate::{
     db::DB,
     internal_types::Auth,
@@ -5,10 +6,11 @@ use crate::{
     permissions::{check_auth_multiple, CommonAclWhatOptions, FilezUserPermissionAclWhatOptions},
 };
 use anyhow::bail;
-use filez_common::server::permission::PermissiveResource;
+use filez_common::server::user::{FilezUser, ReducedFilezUser};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
+
 /**
 # Get own user infos.
 
@@ -40,18 +42,19 @@ pub async fn get_user(
             .header("Content-Type", "application/json")
             .body(
                 serde_json::to_string(&GetUserResponseBody {
-                    users: vec![Box::new(requesting_user)],
+                    full_users: Some(vec![requesting_user.clone()]),
+                    reduced_users: None,
                 })?
                 .into(),
             )
             .unwrap());
     }
 
-    let users = into_permissive_resource!(db.get_users_by_id(&gurb.user_ids).await?);
+    let users = db.get_users_by_id(&gurb.user_ids).await?;
 
     match check_auth_multiple(
         auth,
-        &users,
+        &into_permissive_resource!(users.clone()),
         &CommonAclWhatOptions::User(FilezUserPermissionAclWhatOptions::GetUser),
         db,
     )
@@ -64,10 +67,26 @@ pub async fn get_user(
         Err(e) => bail!(e),
     };
 
+    let res_body = match requesting_user.role {
+        filez_common::server::user::UserRole::Admin => GetUserResponseBody {
+            full_users: Some(users),
+            reduced_users: None,
+        },
+        filez_common::server::user::UserRole::User => GetUserResponseBody {
+            reduced_users: Some(
+                users
+                    .into_iter()
+                    .map(|u| user_to_reduced_user(u, &requesting_user))
+                    .collect::<Vec<ReducedFilezUser>>(),
+            ),
+            full_users: None,
+        },
+    };
+
     Ok(res
         .status(200)
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&GetUserResponseBody { users })?.into())
+        .body(serde_json::to_string(&res_body)?.into())
         .unwrap())
 }
 
@@ -80,6 +99,6 @@ pub struct GetUserRequestBody {
 #[derive(Deserialize, Serialize, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct GetUserResponseBody {
-    #[ts(type = "FilezUser[]")]
-    pub users: Vec<Box<dyn PermissiveResource>>,
+    pub reduced_users: Option<Vec<ReducedFilezUser>>,
+    pub full_users: Option<Vec<FilezUser>>,
 }

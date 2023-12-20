@@ -288,10 +288,10 @@ export class FilezClient {
         if (!this.initialized) await this.init();
 
         const body:GetUserRequestBody={user_ids:user_ids??[]};
-        const res = await fetch(`${this.filezEndpoint}/api/user/`, {
+        const res = await fetch(`${this.filezEndpoint}/api/user/get/`, {
             method: "POST",
             credentials: "include",
-
+            body: JSON.stringify(body),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -353,7 +353,8 @@ export class FilezClient {
     get_aggregated_keywords = async () => {
         if (!this.initialized) await this.init();
         const res = await fetch(`${this.filezEndpoint}/api/get_aggregated_keywords/`, {
-            credentials: "include"
+            credentials: "include",
+            method: "POST"
         });
         const json: string[] = await res.json();
         return json;
@@ -437,7 +438,8 @@ export class FilezClient {
                 "Content-Type": "application/json"
             }
         });
-        return res;
+        const json: CreateFileGroupResponseBody = await res.json();
+        return json;
     };
 
     delete_file_groups = async (group_ids: string[]) => {

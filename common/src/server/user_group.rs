@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::collections::HashMap;
+
 use ts_rs::TS;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

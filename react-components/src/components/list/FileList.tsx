@@ -17,7 +17,7 @@ import ColumnListRowRenderer from "./resource/rowRenderers/Column";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 import { Button, Modal } from "rsuite";
 import UploadFile from "../resources/UploadFile";
-import MetaEditor from "../resources/FileMetaEditor";
+import MetaEditor from "../resources/FileInfos";
 import ResourceList from "./resource/ResourceList";
 import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
 import { match } from "ts-pattern";
@@ -283,7 +283,13 @@ export default class FileList extends PureComponent<
                     open={this.state.createModalOpen}
                     onClose={this.closeCreateModal}
                 >
-                    <UploadFile ref={this.uploadFilesRef} />
+                    <Modal.Header>
+                        <Modal.Title>Upload File</Modal.Title>
+                    </Modal.Header>
+
+                    <Modal.Body>
+                        <UploadFile ref={this.uploadFilesRef} />
+                    </Modal.Body>
                     <Modal.Footer>
                         <Button onClick={this.uploadClick} appearance="primary">
                             Upload

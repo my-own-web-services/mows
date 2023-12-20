@@ -2,7 +2,8 @@ import { PureComponent } from "react";
 import { FilezContext } from "../../FilezProvider";
 import MultiItemTagPicker, {
     MultiItemTagPickerResources,
-    TagData
+    TagData,
+    resourcesToSelectionMap
 } from "./MultiItemTagPicker";
 import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
 
@@ -73,7 +74,10 @@ export default class StaticFileGroupPicker extends PureComponent<
         if (resources === false || resources === undefined)
             throw new Error("No resources provided");
 
-        const resourceMap = this.resourcesToSelectedGroups(resources);
+        const resourceMap = resourcesToSelectionMap(
+            resources,
+            "static_file_group_ids"
+        );
         const knownGroups = await this.getStaticFileGroups();
 
         this.setState({
@@ -81,14 +85,6 @@ export default class StaticFileGroupPicker extends PureComponent<
             knownGroups: knownGroups ?? [],
             knownGroupsLoaded: true
         });
-    };
-
-    resourcesToSelectedGroups = (resources?: FilezFile[]) => {
-        const selectedGroupsMap: MultiItemTagPickerResources = {};
-        resources?.forEach((resource) => {
-            selectedGroupsMap[resource._id] = resource.static_file_group_ids;
-        });
-        return selectedGroupsMap;
     };
 
     getStaticFileGroups = async (): Promise<TagData[] | null> => {
