@@ -1,6 +1,6 @@
 use anyhow::bail;
 use filez_common::{
-    server::FilezFile,
+    server::file::FilezFile,
     storage::index::{get_app_data_folder_for_file, get_storage_location_from_file},
 };
 use imageprocessing::{
@@ -11,7 +11,7 @@ use imageprocessing::{
     external::video_poster::get_video_poster_amazon,
     image_types::ProcessedImage,
     metadata_types::Metadata,
-    utils::{get_resolutions, is_raw},
+    utils::is_raw,
 };
 use mongodb::options::ClientOptions;
 use std::path::PathBuf;

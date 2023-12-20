@@ -1,6 +1,7 @@
 use crate::{
     config::SERVER_CONFIG,
     delete_permissions,
+    internal_types::{AppDataType, FileResourceType, GetItemListRequestBody, SortOrder},
     methods::{
         set_app_data::SetAppDataRequest,
         update_permission_ids_on_resource::UpdatePermissionIdsOnResourceRequestBody,
@@ -8,12 +9,13 @@ use crate::{
     permissions::{FilezPermission, PermissionResourceSelectType},
     some_or_bail,
 };
-use filez_common::server::{
-    AppDataType, FileGroupType, FileResourceType, FilezFile, FilezFileGroup, FilezUser,
-    FilezUserGroup, GetItemListRequestBody, SortOrder, UploadSpace, UsageLimits, UserRole,
-};
-
 use anyhow::bail;
+use filez_common::server::{
+    file::FilezFile,
+    file_group::{FileGroupType, FilezFileGroup},
+    user::{FilezUser, UsageLimits, UserRole},
+    user_group::FilezUserGroup,
+};
 use futures::{stream::TryStreamExt, StreamExt};
 use mongodb::{
     bson::doc,
@@ -102,30 +104,6 @@ impl DB {
                 Err(e) => println!("Error creating index on users collection: {:?}", e),
             };
         }
-
-        Ok(())
-    }
-
-    pub async fn get_upload_space_by_token(
-        &self,
-        upload_space_id: &str,
-    ) -> anyhow::Result<Option<UploadSpace>> {
-        let collection = self.db.collection::<UploadSpace>("upload_spaces");
-        let res = collection
-            .find_one(
-                doc! {
-                    "_id": upload_space_id
-                },
-                None,
-            )
-            .await?;
-
-        Ok(res)
-    }
-
-    pub async fn create_upload_space(&self, upload_space: &UploadSpace) -> anyhow::Result<()> {
-        let collection = self.db.collection::<UploadSpace>("upload_spaces");
-        collection.insert_one(upload_space, None).await?;
 
         Ok(())
     }
@@ -477,7 +455,7 @@ impl DB {
         let mut file_groups: Vec<FilezFileGroup> = vec![];
 
         for user in users {
-            file_groups.push(user.create_all_group());
+            file_groups.push(user.get_all_group());
         }
 
         users_collection

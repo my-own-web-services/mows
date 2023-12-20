@@ -7,7 +7,7 @@ use crate::{
     utils::{check_file_name, check_keywords, check_mime_type, generate_id},
 };
 use anyhow::bail;
-use filez_common::{server::FilezFile, storage::index::get_future_storage_location};
+use filez_common::{server::file::FilezFile, storage::index::get_future_storage_location};
 use hyper::{body::HttpBody, Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

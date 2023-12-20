@@ -1,5 +1,5 @@
 use crate::{db::DB, internal_types::Auth, retry_transient_transaction_error, utils::generate_id};
-use filez_common::server::{FilezUserGroup, Visibility};
+use filez_common::server::user_group::{FilezUserGroup, UserGroupVisibility};
 use hyper::{body::Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -56,7 +56,7 @@ pub async fn create_user_group(
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct CreateUserGroupRequestBody {
     pub name: Option<String>,
-    pub visibility: Visibility,
+    pub visibility: UserGroupVisibility,
     pub permission_ids: Vec<String>,
 }
 

@@ -1,7 +1,9 @@
-use crate::{db::DB, internal_types::Auth};
-use filez_common::server::{
-    FriendshipStatus, GetItemListRequestBody, GetItemListResponseBody, ReducedFilezUser,
+use crate::{
+    db::DB,
+    internal_types::{Auth, GetItemListRequestBody, GetItemListResponseBody},
 };
+
+use filez_common::server::user::{FriendshipStatus, ReducedFilezUser};
 use hyper::{Body, Request, Response};
 /**
 # Gets filez users by owner id for virtual scrolling

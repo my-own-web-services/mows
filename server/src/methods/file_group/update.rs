@@ -9,7 +9,7 @@ use crate::{
     retry_transient_transaction_error,
 };
 use anyhow::bail;
-use filez_common::server::{FileGroupType, FilterRule};
+use filez_common::server::file_group::{FileGroupType, FilterRule};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use simple_server_timing_header::Timer;

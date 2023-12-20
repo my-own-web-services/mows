@@ -1,7 +1,11 @@
 use crate::{config::SERVER_CONFIG, db::DB, some_or_bail, utils::generate_id};
 use anyhow::bail;
 use filez_common::{
-    server::{FileGroupType, FilezFile, FilezFileGroup, FilezUser},
+    server::{
+        file::FilezFile,
+        file_group::{FileGroupType, FilezFileGroup},
+        user::FilezUser,
+    },
     storage::types::ReadonlyConfig,
 };
 use indicatif::ProgressBar;

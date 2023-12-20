@@ -8,7 +8,7 @@ use crate::{
     retry_transient_transaction_error,
 };
 use anyhow::bail;
-use filez_common::server::Visibility;
+use filez_common::server::user_group::UserGroupVisibility;
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -135,6 +135,6 @@ pub struct UpdateUserGroupRequestBody {
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub struct UpdateUserGroupInfosRequestField {
     pub name: Option<String>,
-    pub visibility: Option<Visibility>,
+    pub visibility: Option<UserGroupVisibility>,
     pub permission_ids: Option<Vec<String>>,
 }

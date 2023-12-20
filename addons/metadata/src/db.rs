@@ -1,5 +1,5 @@
 use crate::{metadata_types::MetadataResult, utils::has_poster};
-use filez_common::server::FilezFile;
+use filez_common::server::file::FilezFile;
 use mongodb::{bson::doc, options::ClientOptions, results::UpdateResult, Client, Database};
 
 pub struct DB {

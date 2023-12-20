@@ -1,6 +1,6 @@
 use crate::{config::SERVER_CONFIG, db::DB, some_or_bail};
 use anyhow::bail;
-use filez_common::server::{FilezFile, UsageLimits};
+use filez_common::server::{file::FilezFile, user::UsageLimits};
 use hyper::{Body, Request};
 use itertools::Itertools;
 use qstring::QString;

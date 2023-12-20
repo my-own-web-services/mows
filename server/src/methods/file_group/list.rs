@@ -1,5 +1,8 @@
-use crate::{db::DB, internal_types::Auth};
-use filez_common::server::{FilezFileGroup, GetItemListRequestBody, GetItemListResponseBody};
+use crate::{
+    db::DB,
+    internal_types::{Auth, GetItemListRequestBody, GetItemListResponseBody},
+};
+use filez_common::server::file_group::{FileGroupType, FilezFileGroup};
 use hyper::{Body, Request, Response};
 
 /**
@@ -25,8 +28,8 @@ pub async fn get_own_file_groups(
 
     let group_type = match crate::utils::get_query_item(&req, "t") {
         Some(v) => match v.as_str() {
-            "Static" => Some(filez_common::server::FileGroupType::Static),
-            "Dynamic" => Some(filez_common::server::FileGroupType::Dynamic),
+            "Static" => Some(FileGroupType::Static),
+            "Dynamic" => Some(FileGroupType::Dynamic),
             _ => None,
         },
         None => None,

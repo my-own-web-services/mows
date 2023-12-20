@@ -85,6 +85,10 @@ mime_guess = { git = "https://github.com/hfiguiere/mime_guess", branch = "dcraw-
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"
 
+
+[profile.dev]
+
+
 [profile.release]
 codegen-units = 1
 debug = false

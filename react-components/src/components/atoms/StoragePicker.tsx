@@ -79,7 +79,8 @@ export default class StoragePicker extends PureComponent<
 
     getUserStorageLimits = async () => {
         if (!this.context) return;
-        const own_user = await this.context.filezClient.get_own_user();
+        const res = await this.context.filezClient.get_users();
+        const own_user = res.users[0];
         if (own_user.limits === null) return;
 
         const availableStorages: StorageOptions[] = [];

@@ -15,7 +15,7 @@ use crate::{
 };
 use anyhow::bail;
 use filez_common::{
-    server::{FileGroupType, FilezFile, PermissiveResource},
+    server::{file::FilezFile, file_group::FileGroupType, permission::PermissiveResource},
     storage::index::{get_future_storage_location, get_storage_location_from_file},
 };
 use hyper::{Body, Request, Response};

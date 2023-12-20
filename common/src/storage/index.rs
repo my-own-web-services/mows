@@ -1,5 +1,5 @@
 use super::types::StorageConfig;
-use crate::{server::FilezFile, some_or_bail};
+use crate::{server::file::FilezFile, some_or_bail};
 use anyhow::bail;
 use std::path::{Path, PathBuf};
 

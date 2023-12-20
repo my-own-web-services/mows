@@ -1,10 +1,9 @@
-use crate::{config::CONFIG, metadata_types::OcrResult};
-use filez_common::{server::FilezFile, storage::index::get_storage_location_from_file};
+use crate::metadata_types::OcrResult;
+use filez_common::server::file::FilezFile;
 use rusty_tesseract::{Args, Image};
 use std::{collections::HashMap, path::PathBuf};
 
 pub async fn get_ocr(file: &FilezFile, file_source_path: &PathBuf) -> Option<OcrResult> {
-    let config = &CONFIG;
     // is file a pdf that has ocr emebeded? -> extract ocr
     // is file a pdf that does not have ocr emebeded? -> run ocr
     // is file a image -> run ocr

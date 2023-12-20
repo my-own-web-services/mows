@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use filez_common::server::FilezFile;
+use filez_common::server::file::FilezFile;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::Value;

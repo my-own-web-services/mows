@@ -1,4 +1,4 @@
-use filez_common::server::FilezFile;
+use filez_common::server::file::FilezFile;
 
 use crate::config::CONFIG;
 

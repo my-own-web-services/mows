@@ -79,7 +79,7 @@ filez:
         build:
             enabled: true
             path: ../../
-            dockerfile: server/Dockerfile
+            dockerfile: server/dev.Dockerfile
         publicHostname:
             domain: vindelicum.eu
             subdomain: filez-server

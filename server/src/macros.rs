@@ -14,7 +14,10 @@ macro_rules! into_permissive_resource {
     ($resource:expr) => {{
         $resource
             .iter()
-            .map(|r| Box::new((*r).clone()) as Box<dyn filez_common::server::PermissiveResource>)
+            .map(|r| {
+                Box::new((*r).clone())
+                    as Box<dyn filez_common::server::permission::PermissiveResource>
+            })
             .collect()
     }};
 }
@@ -59,7 +62,7 @@ macro_rules! check_content_type_json {
 
 #[macro_export]
 macro_rules! get_authenticated_user {
-    ($req:expr,$res:expr,$auth:expr,$db:expr) => {
+    ($req:expr, $res:expr, $auth:expr, $db:expr) => {
         match &$auth.authenticated_ir_user_id {
             Some(ir_user_id) => match $db.get_user_by_ir_id(ir_user_id).await? {
                 Some(u) => u,

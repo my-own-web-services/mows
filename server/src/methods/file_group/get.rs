@@ -7,7 +7,7 @@ use crate::{
     some_or_bail,
 };
 use anyhow::bail;
-use filez_common::server::PermissiveResource;
+use filez_common::server::permission::PermissiveResource;
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

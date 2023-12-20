@@ -5,7 +5,7 @@ use crate::{
     retry_transient_transaction_error,
     utils::generate_id,
 };
-use filez_common::server::{FileGroupType, FilezFileGroup, FilterRule};
+use filez_common::server::file_group::{FileGroupType, FilezFileGroup, FilterRule};
 use hyper::{body::Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

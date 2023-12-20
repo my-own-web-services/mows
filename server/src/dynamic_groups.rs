@@ -1,5 +1,8 @@
 use crate::{db::DB, retry_transient_transaction_error};
-use filez_common::server::{FileGroupType, FilezFile, FilezFileGroup, FilterRuleType};
+use filez_common::server::{
+    file::FilezFile,
+    file_group::{FileGroupType, FilezFileGroup, FilterRuleType},
+};
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;

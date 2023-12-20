@@ -1,5 +1,8 @@
-use crate::{db::DB, internal_types::Auth};
-use filez_common::server::{FilezFile, GetItemListRequestBody, GetItemListResponseBody};
+use crate::{
+    db::DB,
+    internal_types::{Auth, GetItemListRequestBody, GetItemListResponseBody},
+};
+use filez_common::server::file::FilezFile;
 use hyper::{Body, Request, Response};
 use simple_server_timing_header::Timer;
 

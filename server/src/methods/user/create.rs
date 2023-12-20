@@ -2,7 +2,7 @@ use crate::{
     config::SERVER_CONFIG, db::DB, internal_types::Auth, retry_transient_transaction_error,
 };
 use anyhow::bail;
-use filez_common::server::{FilezUser, UserStatus};
+use filez_common::server::user::{FilezUser, UserStatus};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -84,15 +84,18 @@ pub async fn create_user(
             },
         }
     } else {
+        let requesting_user = crate::get_authenticated_user!(req, res, auth, db);
         let mut new_users: Vec<FilezUser> = vec![];
 
         for user_to_be_created in curb.users {
-            new_users.push(FilezUser::new(
+            let mut u = FilezUser::new(
                 &config.storage,
                 user_to_be_created.name,
                 user_to_be_created.email,
                 None,
-            ));
+            );
+            u.apply_creator_id(requesting_user.user_id.clone());
+            new_users.push(u);
         }
         retry_transient_transaction_error!(db.create_users(&new_users).await);
 

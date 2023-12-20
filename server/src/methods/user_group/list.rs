@@ -1,5 +1,8 @@
-use crate::{db::DB, internal_types::Auth};
-use filez_common::server::{FilezUserGroup, GetItemListRequestBody, GetItemListResponseBody};
+use crate::{
+    db::DB,
+    internal_types::{Auth, GetItemListRequestBody, GetItemListResponseBody},
+};
+use filez_common::server::user_group::FilezUserGroup;
 use hyper::{Body, Request, Response};
 /**
 # Gets filez user groups by owner id for virtual scrolling

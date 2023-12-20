@@ -1,6 +1,6 @@
 use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth, utils::merge_values};
 use anyhow::bail;
-use filez_common::server::PermissiveResource;
+use filez_common::server::permission::PermissiveResource;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
