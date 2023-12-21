@@ -78,7 +78,10 @@ filter all files that either have one of the permissions or where the user is th
 option 2 is the more logical consistent one but when deleting the file group the permission of the files that is related to the file group needs to be pulled too and this relation needs to be accounted for, because expected behaviour would be that when deleting a shared file group that the access to its files is now also denied
 
 with option 2 it would also be possible to create a shared filegroup where every file gets attached its permission and then the permission gets removed from one file but the file stays in the shared group leading to an non requestable file that is still in the shared group
-also when the file group is a dynamic file group on every update of the files in it the file permissions of the filegroup would need to be attached to the changed files further complicating this process. this is why option 1 might be better
+also when the file group is a dynamic file group on every update of the files in it the file permissions of the filegroup would need to be attached to the changed files further complicating this process.
+this could be solved through marking the permission as beeing related to another resource an as long as the other exists it cannot be removed
+
+this is why option 1 might be better
 
 option 1 does not integrate well with the current auth function
 either make this work or use option 2
