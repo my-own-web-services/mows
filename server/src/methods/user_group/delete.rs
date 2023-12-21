@@ -42,7 +42,7 @@ pub async fn delete_user_group(
     match check_auth_multiple(
         auth,
         &into_permissive_resource!(user_groups),
-        &CommonAclWhatOptions::UserGroup(FilezUserGroupPermissionAclWhatOptions::DeleteGroup),
+        &CommonAclWhatOptions::UserGroup(FilezUserGroupPermissionAclWhatOptions::UserGroupDelete),
         db,
     )
     .await

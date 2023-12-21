@@ -55,7 +55,7 @@ pub async fn get_user(
     match check_auth_multiple(
         auth,
         &into_permissive_resource!(users.clone()),
-        &CommonAclWhatOptions::User(FilezUserPermissionAclWhatOptions::GetUser),
+        &CommonAclWhatOptions::User(FilezUserPermissionAclWhatOptions::UserGet),
         db,
     )
     .await

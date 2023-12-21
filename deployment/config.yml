@@ -92,7 +92,7 @@ filez:
             allowNew: false
         dev:
             insecureSkipInterossea: false
-            disableComplexAccessControl: true
+            disableComplexAccessControl: false
             createMockUsers: true
             checkDatabaseConsistencyOnStartup: true
             checkDatabaseConsistencyOnMutatingRequests: false

@@ -80,7 +80,7 @@ pub async fn update_file_infos(
                 auth,
                 res,
                 fstu,
-                FilezFilePermissionAclWhatOptions::UpdateFileInfosMimeType
+                FilezFilePermissionAclWhatOptions::FileUpdateInfosMimeType
             );
 
             // sort the files in the distinct mime types they are going to be moved to
@@ -116,7 +116,7 @@ pub async fn update_file_infos(
                 auth,
                 res,
                 fstu,
-                FilezFilePermissionAclWhatOptions::UpdateFileInfosName
+                FilezFilePermissionAclWhatOptions::FileUpdateInfosName
             );
 
             // sort the files in the distinct names they are going to be moved to
@@ -155,7 +155,7 @@ pub async fn update_file_infos(
                 auth,
                 res,
                 fstu,
-                FilezFilePermissionAclWhatOptions::UpdateFileInfosStaticFileGroups
+                FilezFilePermissionAclWhatOptions::FileUpdateInfosStaticFileGroups
             );
 
             // basically the same as the keywords update
@@ -244,7 +244,7 @@ pub async fn update_file_infos(
                 auth,
                 res,
                 fstu,
-                FilezFilePermissionAclWhatOptions::UpdateFileInfosKeywords
+                FilezFilePermissionAclWhatOptions::FileUpdateInfosKeywords
             );
 
             let mut file_ids_by_single_keywords_to_be_added: HashMap<String, Vec<String>> =

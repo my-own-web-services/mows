@@ -14,8 +14,6 @@ pub enum CommonAclWhatOptions {
     User(FilezUserPermissionAclWhatOptions),
 }
 
-// TODO make all methods use this and accept multiple resources at once
-
 pub async fn check_auth_multiple(
     auth: &Auth,
     auth_resources: &Vec<Box<dyn PermissiveResource>>,
@@ -46,12 +44,50 @@ pub async fn check_auth_multiple(
         bail!("Complex access control has been disabled");
     };
 
-    // get the permission ids of all resources and deupe them
+    // get the permission ids of all resources and dedupe them
     let permission_ids = auth_resources
         .iter()
         .flat_map(|auth_resource| auth_resource.get_permission_ids().clone())
         .unique()
         .collect::<Vec<_>>();
+
+    /*
+    if let CommonAclWhatOptions::File(f) = acl_what_options {
+        let field = match f {
+            FilezFilePermissionAclWhatOptions::FileList => "FileList",
+            FilezFilePermissionAclWhatOptions::FileGet => "FileGet",
+            FilezFilePermissionAclWhatOptions::FileGetDerivatives => "FileGetDerivatives",
+            FilezFilePermissionAclWhatOptions::FileGetInfos => "FileGetInfos",
+            FilezFilePermissionAclWhatOptions::FileDelete => "FileDelete",
+            FilezFilePermissionAclWhatOptions::FileUpdateInfosName => "FileUpdateInfosName",
+            FilezFilePermissionAclWhatOptions::FileUpdateInfosMimeType => "FileUpdateInfosMimeType",
+            FilezFilePermissionAclWhatOptions::FileUpdateInfosKeywords => "FileUpdateInfosKeywords",
+            FilezFilePermissionAclWhatOptions::FileUpdateInfosStaticFileGroups => {
+                "FileUpdateInfosStaticFileGroups"
+            }
+            FilezFilePermissionAclWhatOptions::FileUpdate => "FileUpdate",
+        };
+
+        let file_group_permissions = db
+            .get_relevant_permissions_for_user_and_action(
+                &requesting_user,
+                field,
+                Some(PermissionResourceSelectType::FileGroup),
+            )
+            .await?;
+        // get all file groups that have one of the permissions
+        let file_groups = db
+            .get_file_groups_by_permission_ids(
+                &file_group_permissions
+                    .iter()
+                    .map(|p| p.permission_id.clone())
+                    .collect::<Vec<_>>(),
+            )
+            .await?;
+        // the
+    }
+    this does not work as the permissive resource does not contain the file group ids
+    */
 
     // get all permissions that are relevant to this request at once
     let permissions = db.get_permissions_by_resource_ids(&permission_ids).await?;
@@ -119,43 +155,34 @@ pub async fn check_auth_multiple(
             _ => bail!("Permission type does not match resource type"),
         };
 
-        match maybe_acl_who {
-            Some(acl_who) => {
-                if let Some(link) = acl_who.link {
-                    if link {
-                        return Ok(true);
-                    }
+        if let Some(acl_who) = maybe_acl_who {
+            if let Some(link) = acl_who.link {
+                if link {
+                    continue;
                 }
-                if let Some(policy_passwords) = acl_who.passwords {
-                    if let Some(auth_password) = &auth.password {
-                        if policy_passwords.contains(auth_password) {
-                            return Ok(true);
-                        }
-                    }
-                }
-                if let Some(policy_users) = acl_who.users {
-                    if policy_users.user_ids.contains(&requesting_user.user_id) {
-                        return Ok(true);
-                    }
-
-                    // check if both arrays share at least one element
-
-                    if requesting_user
-                        .user_group_ids
-                        .iter()
-                        .any(|user_group_id| policy_users.user_group_ids.contains(user_group_id))
-                    {
-                        return Ok(true);
+            }
+            if let Some(policy_passwords) = acl_who.passwords {
+                if let Some(auth_password) = &auth.password {
+                    if policy_passwords.contains(auth_password) {
+                        continue;
                     }
                 }
             }
-            None => {
-                // check ribston
+            if acl_who.user_ids.contains(&requesting_user.user_id) {
+                continue;
             }
-        };
+            if requesting_user
+                .user_group_ids
+                .iter()
+                .any(|user_group_id| acl_who.user_group_ids.contains(user_group_id))
+            {
+                continue;
+            }
+        }
+        return Ok(false);
     }
 
-    Ok(false)
+    Ok(true)
 }
 
 pub fn merge_permission_content(
@@ -242,58 +269,63 @@ pub struct FilezPermissionAcl<T> {
 pub struct FilezPermissionAclWho {
     pub link: Option<bool>,
     pub passwords: Option<Vec<String>>,
-    pub users: Option<FilezPermissionAclUsers>,
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
-#[ts(export, export_to = "../clients/ts/src/apiTypes/")]
-pub struct FilezPermissionAclUsers {
-    /** List of users that have access to the parent resource */
     pub user_ids: Vec<String>,
-    /** List of user groups that have access to the parent resource */
     pub user_group_ids: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub enum FilezFilePermissionAclWhatOptions {
-    GetFile,
-    GetFileDerivatives,
-    GetFileInfos,
-    DeleteFile,
-    UpdateFileInfosName,
-    UpdateFileInfosMimeType,
-    UpdateFileInfosKeywords,
-    UpdateFileInfosStaticFileGroups,
-    UpdateFile,
+    FileList,
+    FileGet,
+    FileGetDerivatives,
+    FileGetInfos,
+    FileDelete,
+    FileUpdateInfosName,
+    FileUpdateInfosMimeType,
+    FileUpdateInfosKeywords,
+    FileUpdateInfosStaticFileGroups,
+    FileUpdate,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub enum FilezFileGroupPermissionAclWhatOptions {
-    ListFiles,
-    GetGroupInfos,
-    DeleteGroup,
-    UpdateGroupInfosName,
-    UpdateGroupInfosKeywords,
-    UpdateGroupInfosDynamicGroupRules,
-    UpdateGroupInfosGroupType,
-    UpdateGroupInfosMimeTypes,
-    UpdateGroupInfosGroupHierarchyPaths,
+    // File
+    FileList,
+    FileGet,
+    FileGetDerivatives,
+    FileGetInfos,
+    FileDelete,
+    FileUpdateInfosName,
+    FileUpdateInfosMimeType,
+    FileUpdateInfosKeywords,
+    FileUpdateInfosStaticFileGroups,
+    FileUpdate,
+    // FileGroup
+    FileGroupList,
+    FileGroupGetInfos,
+    FileGroupDelete,
+    FileGroupUpdateInfosName,
+    FileGroupUpdateInfosKeywords,
+    FileGroupUpdateInfosDynamicGroupRules,
+    FileGroupUpdateInfosGroupType,
+    FileGroupUpdateInfosMimeTypes,
+    FileGroupUpdateInfosGroupHierarchyPaths,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub enum FilezUserGroupPermissionAclWhatOptions {
-    GetGroupInfos,
-    DeleteGroup,
-    UpdateGroupInfosName,
-    UpdateGroupInfosVisibility,
+    UserGroupGetInfos,
+    UserGroupDelete,
+    UserGroupUpdateInfosName,
+    UserGroupUpdateInfosVisibility,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]
 #[ts(export, export_to = "../clients/ts/src/apiTypes/")]
 pub enum FilezUserPermissionAclWhatOptions {
-    GetUser,
-    DeleteUser,
+    UserGet,
+    UserDelete,
 }

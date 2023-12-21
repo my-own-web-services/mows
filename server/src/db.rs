@@ -485,6 +485,59 @@ impl DB {
         Ok(some_or_bail!(res, "Could not find all file group"))
     }
 
+    pub async fn get_relevant_permissions_for_user_and_action(
+        &self,
+        user: &FilezUser,
+        acl_what_action: &str,
+        resource_type: Option<PermissionResourceSelectType>,
+    ) -> anyhow::Result<Vec<FilezPermission>> {
+        let collection = self.db.collection::<FilezPermission>("permissions");
+
+        let resource_type_filter = match resource_type {
+            Some(rt) => doc! {
+                "content.type": match rt {
+                    PermissionResourceSelectType::File => "File",
+                    PermissionResourceSelectType::FileGroup => "FileGroup",
+                    PermissionResourceSelectType::User => "User",
+                    PermissionResourceSelectType::UserGroup => "UserGroup",
+                }
+            },
+            None => doc! {},
+        };
+
+        // get all documents where the acl_what_action is in the content.acl_what array and then return all permissions that match the query
+        let permissions = collection
+            .find(
+                doc! {
+                    "$and": [
+                        {
+                            "content.acl.what": acl_what_action
+                        },
+                        resource_type_filter,
+                        {
+                            "$or":[
+                                {
+                                    "content.acl.who.user_ids": user.user_id.clone()
+                                },
+                                {
+                                    "content.acl.who.user_group_ids": {
+                                        "$in": user.user_group_ids.clone()
+                                    }
+                                },
+
+                            ]
+                        }
+                    ]
+                },
+                None,
+            )
+            .await?
+            .try_collect::<Vec<FilezPermission>>()
+            .await?;
+
+        Ok(permissions)
+    }
+
     pub async fn get_file_groups_by_owner_id(
         &self,
         owner_id: &str,
@@ -507,10 +560,12 @@ impl DB {
 
     pub async fn get_file_groups_by_owner_id_for_virtual_list(
         &self,
-        owner_id: &str,
+        requesting_user_id: &str,
         gir: &GetItemListRequestBody,
         group_type: Option<FileGroupType>,
+        permissions: Vec<String>,
     ) -> anyhow::Result<(Vec<FilezFileGroup>, u32)> {
+        let config = &SERVER_CONFIG;
         let collection = self.db.collection::<FilezFileGroup>("file_groups");
 
         let sort_field = gir.sort_field.clone().unwrap_or("_id".to_string());
@@ -559,11 +614,29 @@ impl DB {
             None => doc! {},
         };
 
+        let permission_filter = match config.dev.disable_complex_access_control {
+            true => {
+                doc! {}
+            }
+            false => {
+                doc! {
+                    "permission_ids": {
+                        "$in": permissions
+                    }
+                }
+            }
+        };
+
         let db_filter = doc! {
-            "$and":[
+            "$and": [
                 search_filter,
                 {
-                    "owner_id": owner_id
+                   "$or": [
+                        {
+                            "owner_id": requesting_user_id
+                        },
+                        permission_filter
+                    ]
                 },
                 group_type_filter
             ]
@@ -1372,11 +1445,29 @@ impl DB {
 
     pub async fn get_files_by_group_id(
         &self,
-        group_id: &str,
+        requesting_user_id: &str,
         gir: &GetItemListRequestBody,
+        group_id: &str,
+        permissions: Vec<FilezPermission>,
+        file_group: Option<FilezFileGroup>,
     ) -> anyhow::Result<(Vec<FilezFile>, u32)> {
+        let config = &SERVER_CONFIG;
         let collection = self.db.collection::<FilezFile>("files");
-        let group_collection = self.db.collection::<FilezFileGroup>("file_groups");
+
+        let mut group_permissions = vec![];
+        let mut file_permissions = vec![];
+
+        for permission in permissions {
+            match permission.content {
+                crate::permissions::PermissionResourceType::File(_) => {
+                    file_permissions.push(permission.permission_id.clone())
+                }
+                crate::permissions::PermissionResourceType::FileGroup(_) => {
+                    group_permissions.push(permission.permission_id.clone())
+                }
+                _ => bail!("invalid permission type this should not happen"),
+            }
+        }
 
         let sort_field = gir.sort_field.clone().unwrap_or("_id".to_string());
         let find_options = FindOptions::builder()
@@ -1426,8 +1517,6 @@ impl DB {
             None => doc! {},
         };
 
-        //TODO dont use count documents at other places
-
         let group_type_filter = match &gir.sub_resource_type {
             Some(v) => match v.as_str() {
                 "static_file_group_ids" => doc! {"static_file_group_ids": &group_id},
@@ -1447,9 +1536,41 @@ impl DB {
             },
         };
 
+        dbg!(&group_permissions);
+
+        let mut group_has_permission = false;
+        if let Some(fg) = &file_group {
+            for permission_id in &fg.permission_ids {
+                for group_permission in &group_permissions {
+                    if permission_id == group_permission {
+                        group_has_permission = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        let permission_filter = if group_has_permission {
+            doc! {}
+        } else {
+            doc! {
+               "$or": [
+                    {
+                        "owner_id": requesting_user_id
+                    },
+                    {
+                        "permission_ids": {
+                            "$in": file_permissions
+                        }
+                    }
+                ]
+            }
+        };
+
         let db_filter = doc! {
             "$and": [
                 group_type_filter,
+                permission_filter,
                 search_filter,
             ]
         };
@@ -1460,33 +1581,13 @@ impl DB {
             .try_collect::<Vec<_>>()
             .await?;
 
-        // this of course does not work when filtering items out
-        let item_count = match gir.filter {
-            Some(_) => collection
-                .count_documents(db_filter.clone(), None)
-                .await?
-                .try_into()?,
-            None => {
-                // for some reason collection.count is very slow; it is much faster in compass
-                // this is why we just skip it if there is no filter
-                some_or_bail!(
-                    group_collection
-                        .find_one(
-                            doc! {
-                                "_id": group_id
-                            },
-                            None,
-                        )
-                        .await?,
-                    "Could not find group"
-                )
-                .item_count
-            }
-        };
-
-        //let total_count =
         // for some reason collection.count is very slow; it is much faster in compass
-        Ok((items, item_count as u32))
+        let item_count: u32 = collection
+            .count_documents(db_filter.clone(), None)
+            .await?
+            .try_into()?;
+
+        Ok((items, item_count))
     }
 
     pub async fn get_user_by_id(&self, user_id: &str) -> anyhow::Result<Option<FilezUser>> {
@@ -1526,6 +1627,28 @@ impl DB {
             .await?;
 
         Ok(user.map(|u| u._id))
+    }
+
+    pub async fn get_file_groups_by_permission_ids(
+        &self,
+        permission_ids: &Vec<String>,
+    ) -> anyhow::Result<Vec<FilezFileGroup>> {
+        let collection = self.db.collection::<FilezFileGroup>("file_groups");
+
+        let file_groups = collection
+            .find(
+                doc! {
+                    "permission_ids": {
+                        "$in": permission_ids
+                    }
+                },
+                None,
+            )
+            .await?
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        Ok(file_groups)
     }
 
     pub async fn get_user_by_ir_id(&self, ir_user_id: &str) -> anyhow::Result<Option<FilezUser>> {

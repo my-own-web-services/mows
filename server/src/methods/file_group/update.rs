@@ -68,7 +68,7 @@ pub async fn update_file_group(
             auth,
             &into_permissive_resource!(vec![group.clone()]),
             &CommonAclWhatOptions::FileGroup(
-                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosName,
+                FilezFileGroupPermissionAclWhatOptions::FileGroupUpdateInfosName,
             ),
             db,
         )
@@ -89,7 +89,7 @@ pub async fn update_file_group(
             auth,
             &into_permissive_resource!(vec![group.clone()]),
             &CommonAclWhatOptions::FileGroup(
-                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosDynamicGroupRules,
+                FilezFileGroupPermissionAclWhatOptions::FileGroupUpdateInfosDynamicGroupRules,
             ),
             db,
         )
@@ -110,7 +110,7 @@ pub async fn update_file_group(
             auth,
             &into_permissive_resource!(vec![group.clone()]),
             &CommonAclWhatOptions::FileGroup(
-                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupType,
+                FilezFileGroupPermissionAclWhatOptions::FileGroupUpdateInfosGroupType,
             ),
             db,
         )
@@ -131,7 +131,7 @@ pub async fn update_file_group(
             auth,
             &into_permissive_resource!(vec![group.clone()]),
             &CommonAclWhatOptions::FileGroup(
-                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosKeywords,
+                FilezFileGroupPermissionAclWhatOptions::FileGroupUpdateInfosKeywords,
             ),
             db,
         )
@@ -152,7 +152,7 @@ pub async fn update_file_group(
             auth,
             &into_permissive_resource!(vec![group.clone()]),
             &CommonAclWhatOptions::FileGroup(
-                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosMimeTypes,
+                FilezFileGroupPermissionAclWhatOptions::FileGroupUpdateInfosMimeTypes,
             ),
             db,
         )
@@ -173,7 +173,7 @@ pub async fn update_file_group(
             auth,
             &into_permissive_resource!(vec![group.clone()]),
             &CommonAclWhatOptions::FileGroup(
-                FilezFileGroupPermissionAclWhatOptions::UpdateGroupInfosGroupHierarchyPaths,
+                FilezFileGroupPermissionAclWhatOptions::FileGroupUpdateInfosGroupHierarchyPaths,
             ),
             db,
         )

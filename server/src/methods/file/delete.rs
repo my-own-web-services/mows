@@ -58,7 +58,7 @@ pub async fn delete_file(
     match check_auth_multiple(
         auth,
         &into_permissive_resource!(files),
-        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::DeleteFile),
+        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::FileDelete),
         db,
     )
     .await

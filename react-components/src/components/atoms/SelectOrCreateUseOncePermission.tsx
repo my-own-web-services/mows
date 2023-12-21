@@ -9,7 +9,7 @@ import { TagData } from "./MultiItemTagPicker";
 interface SelectOrCreateUseOncePermissionProps {
     readonly size?: "lg" | "md" | "sm" | "xs";
     readonly type: "File" | "User" | "UserGroup" | "FileGroup";
-    readonly onSelectUpdate?: (permissionIds: string[]) => void;
+    readonly onSelectChange?: (permissionIds: string[]) => void;
     readonly selectedPermissionIds?: string[];
     readonly oncePermissionRef?: React.RefObject<Permission>;
     readonly updateOncePermissionUse: (enabled: boolean) => void;
@@ -48,7 +48,7 @@ export default class SelectOrCreateUseOncePermission extends PureComponent<
                 <ResourcePicker
                     size={this.props.size}
                     mode="multi"
-                    onMultiChange={this.props.onSelectUpdate}
+                    onMultiChange={this.props.onSelectChange}
                     getKnownTagsFunction={this.getKnownPermissions}
                     initialMultiSelectedValues={
                         this.props.selectedPermissionIds
@@ -71,7 +71,6 @@ export default class SelectOrCreateUseOncePermission extends PureComponent<
                         permission={this.props.useOncePermission}
                         ref={this.props.oncePermissionRef}
                         permissionType={this.props.type}
-                        disableSaveButton
                         disableTypeChange
                         hideTypeChanger
                         useOnce

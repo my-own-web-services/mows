@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-
 use ts_rs::TS;
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

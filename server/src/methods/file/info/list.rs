@@ -18,7 +18,7 @@ Mutation > None
 ## Multiple Resources
 Yes
 */
-pub async fn get_file_infos_by_group_id(
+pub async fn list_file_infos_by_group_id(
     req: Request<Body>,
     db: &DB,
     auth: &Auth,
@@ -32,22 +32,29 @@ pub async fn get_file_infos_by_group_id(
 
     let grrb: GetItemListRequestBody = serde_json::from_slice(&body)?;
 
+    let file_group = if let Some(file_group_id) = &grrb.id {
+        db.get_file_group_by_id(file_group_id).await?
+    } else {
+        None
+    };
+
+    let permissions = db
+        .get_relevant_permissions_for_user_and_action(&requesting_user, "FileList", None)
+        .await?;
+
     let (items, total_count) = db
         .get_files_by_group_id(
+            &requesting_user.user_id,
+            &grrb,
             match &grrb.id {
                 Some(g) => g,
                 None => return Ok(res.status(400).body("No group id provided".into()).unwrap()),
             },
-            &grrb,
+            permissions,
+            file_group,
         )
         .await?;
     timer.add("20 Get files from db");
-
-    let items = items
-        .into_iter()
-        .filter(|f| f.owner_id == requesting_user.user_id)
-        .collect::<Vec<FilezFile>>();
-    timer.add("20 Filter files by owner");
 
     let res_body = GetItemListResponseBody::<FilezFile> { items, total_count };
 

@@ -48,7 +48,7 @@ pub async fn get_file_infos(
     match check_auth_multiple(
         auth,
         &files,
-        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::GetFileInfos),
+        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::FileGetInfos),
         db,
     )
     .await

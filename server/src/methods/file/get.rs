@@ -74,7 +74,7 @@ pub async fn get_file(
     match check_auth_multiple(
         auth,
         &into_permissive_resource!(vec![file.clone()]),
-        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::GetFile),
+        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::FileGet),
         db,
     )
     .await

@@ -21,6 +21,7 @@ import { TagData } from "../atoms/MultiItemTagPicker";
 import { RsuiteComponentSize } from "../../types";
 import UserGroup from "./UserGroup";
 import User from "./User";
+import { cloneDeep } from "lodash";
 
 type PermissionResourceType = "File" | "FileGroup" | "User" | "UserGroup";
 
@@ -75,8 +76,8 @@ export default class Permission extends PureComponent<
                 maybePw !== null && maybePw !== undefined && maybePw.length > 0,
             passwords: acl?.who.passwords ?? [],
             passwordVisible: false,
-            selectedUserIds: acl?.who.users?.user_ids ?? [],
-            selectedUserGroupIds: acl?.who.users?.user_group_ids ?? [],
+            selectedUserIds: acl?.who?.user_ids ?? [],
+            selectedUserGroupIds: acl?.who?.user_group_ids ?? [],
             permissionType: type ?? props.permissionType ?? "File",
             permissionId: props.permission?._id ?? null
         };
@@ -93,10 +94,8 @@ export default class Permission extends PureComponent<
                     who: {
                         link: this.state.enabledLink,
                         passwords: this.state.passwords,
-                        users: {
-                            user_ids: this.state.selectedUserIds,
-                            user_group_ids: this.state.selectedUserGroupIds
-                        }
+                        user_ids: this.state.selectedUserIds,
+                        user_group_ids: this.state.selectedUserGroupIds
                     },
                     //@ts-ignore
                     what: this.state.selectedWhat
@@ -170,29 +169,42 @@ export default class Permission extends PureComponent<
         permissions = permissions.flatMap((p) => {
             return match(this.state.permissionType)
                 .with("File", () => {
-                    if (p === "Get") {
+                    if (p === "FileGe") {
                         return [
-                            "GetFile",
-                            "GetFileDerivatives",
-                            "GetFileInfos"
+                            "FileGet",
+                            "FileGetDerivatives",
+                            "FileGetInfos"
                         ];
-                    } else if (p === "UpdateMeta") {
+                    } else if (p === "FileUpdateInfos") {
                         return [
-                            "UpdateFileInfosName",
-                            "UpdateFileInfosMimeType",
-                            "UpdateFileInfosKeywords",
-                            "UpdateFileInfosStaticFileGroups"
+                            "FileUpdateInfosName",
+                            "FileUpdateInfosMimeType",
+                            "FileUpdateInfosKeywords",
+                            "FileUpdateInfosStaticFileGroups"
                         ];
                     } else {
                         return p;
                     }
                 })
                 .with("FileGroup", () => {
-                    if (p === "UpdateGroupInfos") {
+                    if (p === "FileGroupUpdateInfos") {
                         return [
-                            "UpdateGroupInfosName",
-                            "UpdateGroupInfosKeywords",
-                            "UpdateGroupInfosDynamicGroupRules"
+                            "FileGroupUpdateInfosName",
+                            "FileGroupUpdateInfosKeywords",
+                            "FileGroupUpdateInfosDynamicGroupRules"
+                        ];
+                    } else if (p === "FileGe") {
+                        return [
+                            "FileGet",
+                            "FileGetDerivatives",
+                            "FileGetInfos"
+                        ];
+                    } else if (p === "FileUpdateInfos") {
+                        return [
+                            "FileUpdateInfosName",
+                            "FileUpdateInfosMimeType",
+                            "FileUpdateInfosKeywords",
+                            "FileUpdateInfosStaticFileGroups"
                         ];
                     } else {
                         return p;
@@ -232,10 +244,8 @@ export default class Permission extends PureComponent<
             who: {
                 link: enabledLink,
                 passwords: enabledPassword ? passwords : null,
-                users: {
-                    user_ids: selectedUserIds,
-                    user_group_ids: selectedUserGroupIds
-                }
+                user_ids: selectedUserIds,
+                user_group_ids: selectedUserGroupIds
             }
         };
 
@@ -481,108 +491,120 @@ const userPermissionTreeData = [
 const userGroupPermissionTreeData = [
     {
         label: "Get Infos",
-        value: "GetGroupInfos"
+        value: "UserGroupGetInfos"
     },
     {
         label: "Update Infos",
-        value: "UpdateGroupInfos",
+        value: "UserGroupUpdateInfos",
         children: [
             {
                 label: "Name",
-                value: "UpdateGroupInfosName"
+                value: "UserGroupUpdateInfosName"
             },
             {
                 label: "Visibility",
-                value: "UpdateGroupInfosVisibility"
+                value: "UserGroupUpdateInfosVisibility"
             }
         ]
     },
     {
         label: "Delete",
-        value: "DeleteGroup"
-    }
-];
-
-const fileGroupPermissionTreeData = [
-    {
-        label: "List Files",
-        value: "ListFiles"
-    },
-    {
-        label: "Get Infos",
-        value: "GetGroupInfos"
-    },
-    {
-        label: "Update Infos",
-        value: "UpdateGroupInfos",
-        children: [
-            {
-                label: "Name",
-                value: "UpdateGroupInfosName"
-            },
-            {
-                label: "Keywords",
-                value: "UpdateGroupInfosKeywords"
-            },
-            {
-                label: "Dynamic Group Rules",
-                value: "UpdateGroupInfosDynamicGroupRules"
-            }
-        ]
-    },
-    {
-        label: "Delete",
-        value: "DeleteGroup"
+        value: "UserGroupDelete"
     }
 ];
 
 const filePermissionTreeData = [
     {
-        label: "Read",
-        value: "Get",
+        label: "Get File",
+        // this is correct: if the value is the same as the childrens we get an endless loop
+        value: "FileGe",
         children: [
             {
-                label: "File",
-                value: "GetFile"
+                label: "Get Raw File",
+                value: "FileGet"
             },
             {
-                label: "File Derivatives",
-                value: "GetFileDerivatives"
+                label: "Get File Derivatives",
+                value: "FileGetDerivatives"
             },
             {
-                label: "File Metadata",
-                value: "GetFileInfos"
+                label: "Get File Metadata",
+                value: "FileGetInfos"
             }
         ]
     },
     {
-        label: "Delete File",
-        value: "DeleteFile"
+        label: "List File",
+        value: "FileList"
     },
     {
-        label: "Update Metadata",
-        value: "UpdateMeta",
+        label: "Delete File",
+        value: "FileDelete"
+    },
+    {
+        label: "Update Files Metadata",
+        value: "FileUpdateInfos",
         children: [
             {
-                label: "Filename",
-                value: "UpdateFileInfosName"
+                label: "Update File Name",
+                value: "FileUpdateInfosName"
             },
             {
-                label: "File Mime Type",
-                value: "UpdateFileInfosMimeType"
+                label: "Update File Mime Type",
+                value: "FileUpdateInfosMimeType"
             },
             {
-                label: "File Keywords",
-                value: "UpdateFileInfosKeywords"
+                label: "Update File Keywords",
+                value: "FileUpdateInfosKeywords"
             },
             {
-                label: "Static Filegroups",
-                value: "UpdateFileInfosStaticFileGroups"
+                label: "Update File StaticFileGroups",
+                value: "FileUpdateInfosStaticFileGroups"
             }
         ]
     },
     {
         label: "Update File",
         value: "UpdateFile"
+    }
+];
+
+const fileGroupPermissionTreeData = [
+    {
+        label: "FileGroup",
+        value: "FileGroup",
+        children: [
+            {
+                label: "List FileGroup",
+                value: "FileGroupList"
+            },
+            {
+                label: "Get FileGroup Infos",
+                value: "FileGroupGetInfos"
+            },
+            {
+                label: "Update FileGroup Infos",
+                value: "FileGroupUpdateInfos",
+                children: [
+                    {
+                        label: "Update FileGroup Name",
+                        value: "FileGroupUpdateInfosName"
+                    },
+                    {
+                        label: "Update FileGroup Keywords",
+                        value: "FileGroupUpdateInfosKeywords"
+                    }
+                ]
+            },
+            {
+                label: "Delete FileGroup",
+                value: "FileGroupDelete"
+            }
+        ]
+    },
+    {
+        label: "File",
+        value: "File",
+        children: cloneDeep(filePermissionTreeData)
     }
 ];

@@ -47,7 +47,7 @@ pub async fn get_file_groups(
     match check_auth_multiple(
         auth,
         &file_groups,
-        &CommonAclWhatOptions::FileGroup(FilezFileGroupPermissionAclWhatOptions::GetGroupInfos),
+        &CommonAclWhatOptions::FileGroup(FilezFileGroupPermissionAclWhatOptions::FileGroupGetInfos),
         db,
     )
     .await

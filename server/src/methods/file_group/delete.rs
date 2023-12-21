@@ -40,7 +40,7 @@ pub async fn delete_file_group(
         auth,
         &into_permissive_resource!(file_groups),
         &crate::permissions::CommonAclWhatOptions::FileGroup(
-            FilezFileGroupPermissionAclWhatOptions::DeleteGroup,
+            FilezFileGroupPermissionAclWhatOptions::FileGroupDelete,
         ),
         db,
     )

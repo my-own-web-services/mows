@@ -7,13 +7,13 @@ use filez::methods::file::create::create_file;
 use filez::methods::file::delete::delete_file;
 use filez::methods::file::get::get_file;
 use filez::methods::file::info::get::get_file_infos;
-use filez::methods::file::info::list::get_file_infos_by_group_id;
+use filez::methods::file::info::list::list_file_infos_by_group_id;
 use filez::methods::file::info::update::update_file_infos;
 use filez::methods::file::update::update_file;
 use filez::methods::file_group::create::create_file_group;
 use filez::methods::file_group::delete::delete_file_group;
 use filez::methods::file_group::get::get_file_groups;
-use filez::methods::file_group::list::get_own_file_groups;
+use filez::methods::file_group::list::list_file_groups;
 use filez::methods::file_group::update::update_file_group;
 use filez::methods::get_aggregated_keywords::get_aggregated_keywords;
 use filez::methods::permission::create::create_permission;
@@ -240,7 +240,7 @@ async fn handle_inner(
         data_mutating = true;
         update_file_infos(req, &db, &auth, res).await
     } else if p == "/file/info/list/" && m == Method::POST {
-        get_file_infos_by_group_id(req, &db, &auth, res).await
+        list_file_infos_by_group_id(req, &db, &auth, res).await
     }
     /* file group */
     else if p == "/file_group/create/" && m == Method::POST {
@@ -255,7 +255,7 @@ async fn handle_inner(
     } else if p == "/file_group/get/" && m == Method::POST {
         get_file_groups(req, &db, &auth, res).await
     } else if p == "/file_group/list/" && m == Method::POST {
-        get_own_file_groups(req, &db, &auth, res).await
+        list_file_groups(req, &db, &auth, res).await
     }
     /* user group */
     else if p == "/user_group/create/" && m == Method::POST {

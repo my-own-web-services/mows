@@ -180,7 +180,7 @@ export default class UserGroup extends PureComponent<
                             this.state.useOncePermissionEnabled
                         }
                         oncePermissionRef={this.props.oncePermissionRef}
-                        onSelectUpdate={this.permissionSelectUpdate}
+                        onSelectChange={this.permissionSelectUpdate}
                         updateOncePermissionUse={this.updateOncePermissionUse}
                         useOncePermission={
                             this.state.availablePermissions.find((p) => {

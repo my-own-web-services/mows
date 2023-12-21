@@ -65,7 +65,7 @@ pub async fn update_file(
     match check_auth_multiple(
         auth,
         &into_permissive_resource!(&vec![filez_file.clone()]),
-        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::UpdateFile),
+        &CommonAclWhatOptions::File(FilezFilePermissionAclWhatOptions::FileUpdate),
         db,
     )
     .await

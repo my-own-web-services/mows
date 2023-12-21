@@ -142,6 +142,26 @@ export default class FileGroup extends PureComponent<
         this.props.onCreateResourceAbort?.();
     };
 
+    updateOncePermissionUse = (enabled: boolean) => {
+        this.setState(
+            {
+                useOncePermissionEnabled: enabled
+            },
+            this.onChange
+        );
+    };
+
+    onSelectPermissionChange = (permissionIds: string[]) => {
+        this.setState(
+            update(this.state, {
+                clientGroup: {
+                    permission_ids: { $set: permissionIds }
+                }
+            }),
+            this.onChange
+        );
+    };
+
     render = () => {
         if (this.state.availablePermissions === undefined) return null;
         return (
@@ -187,24 +207,7 @@ export default class FileGroup extends PureComponent<
                 <div>
                     <label htmlFor="">Keywords</label>
                     <br />
-                    <TagPicker
-                        data={this.state.clientGroup.keywords.map((keyword) => {
-                            return {
-                                label: keyword,
-                                value: keyword
-                            };
-                        })}
-                        creatable
-                        onChange={(value) => {
-                            this.setState(
-                                update(this.state, {
-                                    clientGroup: {
-                                        keywords: { $set: value }
-                                    }
-                                })
-                            );
-                        }}
-                    />
+                    TODO
                 </div>
                 <div>
                     <label htmlFor="">Permissions</label>
@@ -213,11 +216,7 @@ export default class FileGroup extends PureComponent<
                         useOncePermissionEnabled={
                             this.state.useOncePermissionEnabled
                         }
-                        updateOncePermissionUse={(enabled) => {
-                            this.setState({
-                                useOncePermissionEnabled: enabled
-                            });
-                        }}
+                        updateOncePermissionUse={this.updateOncePermissionUse}
                         useOncePermission={
                             this.state.availablePermissions.find((p) => {
                                 if (
@@ -231,57 +230,27 @@ export default class FileGroup extends PureComponent<
                             }) ?? undefined
                         }
                         selectedPermissionIds={
-                            this.state.availablePermissions
-                                .filter((p) => {
-                                    if (
-                                        this.state.clientGroup.permission_ids.includes(
-                                            p._id
-                                        ) &&
-                                        p.use_type === "Multiple"
-                                    ) {
-                                        return p;
-                                    }
-                                })
-                                .map((p) => p._id) ?? []
+                            this.state.availablePermissions.flatMap((p) => {
+                                if (
+                                    this.state.clientGroup.permission_ids.includes(
+                                        p._id
+                                    ) &&
+                                    p.use_type === "Multiple"
+                                ) {
+                                    return [p._id];
+                                }
+                                return [];
+                            }) ?? []
                         }
                         oncePermissionRef={this.props.oncePermissionRef}
-                        onSelectUpdate={(value) => {
-                            console.log(value);
-
-                            this.setState(
-                                update(this.state, {
-                                    clientGroup: {
-                                        permission_ids: { $set: value }
-                                    }
-                                })
-                            );
-                        }}
+                        onSelectChange={this.onSelectPermissionChange}
                         type="FileGroup"
                     />
                 </div>
                 <div>
                     <label htmlFor="">Mime Types</label>
                     <br />
-                    <TagPicker
-                        data={this.state.clientGroup.mime_types.map(
-                            (mime_type) => {
-                                return {
-                                    label: mime_type,
-                                    value: mime_type
-                                };
-                            }
-                        )}
-                        creatable
-                        onChange={(value) => {
-                            this.setState(
-                                update(this.state, {
-                                    clientGroup: {
-                                        mime_types: { $set: value }
-                                    }
-                                })
-                            );
-                        }}
-                    />
+                    TODO
                 </div>
                 {this.props.readonly !== true &&
                     this.props.creatable === true && (

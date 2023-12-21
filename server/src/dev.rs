@@ -351,7 +351,7 @@ pub async fn check_group_file_count_consistency(db: &DB) -> anyhow::Result<()> {
         for file_group in user_file_groups {
             let (_, total_files) = db
                 .get_files_by_group_id(
-                    &file_group.file_group_id,
+                    &user.user_id,
                     &GetItemListRequestBody {
                         id: None,
                         from_index: None,
@@ -361,6 +361,9 @@ pub async fn check_group_file_count_consistency(db: &DB) -> anyhow::Result<()> {
                         filter: Some("".to_string()),
                         sub_resource_type: None,
                     },
+                    &file_group.file_group_id,
+                    vec![],
+                    None,
                 )
                 .await?;
             if total_files != file_group.item_count {

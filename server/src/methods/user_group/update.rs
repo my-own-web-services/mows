@@ -59,7 +59,7 @@ pub async fn update_user_group(
             auth,
             &into_permissive_resource!(&[group.clone()]),
             &CommonAclWhatOptions::UserGroup(
-                FilezUserGroupPermissionAclWhatOptions::UpdateGroupInfosName,
+                FilezUserGroupPermissionAclWhatOptions::UserGroupUpdateInfosName,
             ),
             db,
         )
@@ -80,7 +80,7 @@ pub async fn update_user_group(
             auth,
             &into_permissive_resource!(&[group.clone()]),
             &CommonAclWhatOptions::UserGroup(
-                FilezUserGroupPermissionAclWhatOptions::UpdateGroupInfosVisibility,
+                FilezUserGroupPermissionAclWhatOptions::UserGroupUpdateInfosVisibility,
             ),
             db,
         )
