@@ -1,7 +1,8 @@
 use crate::{config::SERVER_CONFIG, db::DB, internal_types::Auth, utils::merge_values};
 use anyhow::bail;
 use filez_common::server::permission::{
-    CommonAclWhatOptions, FilezPermission, PermissionResourceType, PermissiveResource,
+    CommonAclWhatOptions, FilezFilePermissionAclWhatOptions, FilezPermission,
+    PermissionResourceSelectType, PermissionResourceType, PermissiveResource,
 };
 use itertools::Itertools;
 use serde_json::Value;
@@ -43,7 +44,6 @@ pub async fn check_auth_multiple(
         .unique()
         .collect::<Vec<_>>();
 
-    /*
     if let CommonAclWhatOptions::File(f) = acl_what_options {
         let field = match f {
             FilezFilePermissionAclWhatOptions::FileList => "FileList",
@@ -67,6 +67,7 @@ pub async fn check_auth_multiple(
                 Some(PermissionResourceSelectType::FileGroup),
             )
             .await?;
+
         // get all file groups that have one of the permissions
         let file_groups = db
             .get_file_groups_by_permission_ids(
@@ -76,10 +77,20 @@ pub async fn check_auth_multiple(
                     .collect::<Vec<_>>(),
             )
             .await?;
-        // the
+
+        for resource in auth_resources {
+            if let Some(file_group_ids) = resource.get_file_group_ids() {
+                if file_groups
+                    .iter()
+                    .any(|fg| file_group_ids.contains(&fg.file_group_id))
+                {
+                    continue;
+                }
+            }
+            return Ok(false);
+        }
+        return Ok(true);
     }
-    this does not work as the permissive resource does not contain the file group ids
-    */
 
     // get all permissions that are relevant to this request at once
     let permissions = db.get_permissions_by_resource_ids(&permission_ids).await?;

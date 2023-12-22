@@ -139,6 +139,9 @@ pub enum FilezUserPermissionAclWhatOptions {
 pub trait PermissiveResource: Send + Sync {
     fn get_permission_ids(&self) -> &Vec<String>;
     fn get_owner_id(&self) -> &String;
+    fn get_static_file_group_ids(&self) -> Option<Vec<String>>;
+    fn get_dynamic_file_group_ids(&self) -> Option<Vec<String>>;
+    fn get_file_group_ids(&self) -> Option<Vec<String>>;
 }
 
 #[typetag::serde]
@@ -150,6 +153,20 @@ impl PermissiveResource for FilezFile {
     fn get_owner_id(&self) -> &String {
         &self.owner_id
     }
+
+    fn get_static_file_group_ids(&self) -> Option<Vec<String>> {
+        Some(self.static_file_group_ids.clone())
+    }
+
+    fn get_dynamic_file_group_ids(&self) -> Option<Vec<String>> {
+        Some(self.dynamic_file_group_ids.clone())
+    }
+
+    fn get_file_group_ids(&self) -> Option<Vec<String>> {
+        let mut file_group_ids = self.static_file_group_ids.clone();
+        file_group_ids.append(&mut self.dynamic_file_group_ids.clone());
+        Some(file_group_ids)
+    }
 }
 #[typetag::serde]
 impl PermissiveResource for FilezFileGroup {
@@ -159,6 +176,18 @@ impl PermissiveResource for FilezFileGroup {
 
     fn get_owner_id(&self) -> &String {
         &self.owner_id
+    }
+
+    fn get_static_file_group_ids(&self) -> Option<Vec<String>> {
+        None
+    }
+
+    fn get_dynamic_file_group_ids(&self) -> Option<Vec<String>> {
+        None
+    }
+
+    fn get_file_group_ids(&self) -> Option<Vec<String>> {
+        None
     }
 }
 #[typetag::serde]
@@ -170,6 +199,17 @@ impl PermissiveResource for FilezUserGroup {
     fn get_owner_id(&self) -> &String {
         &self.owner_id
     }
+
+    fn get_static_file_group_ids(&self) -> Option<Vec<String>> {
+        None
+    }
+
+    fn get_dynamic_file_group_ids(&self) -> Option<Vec<String>> {
+        None
+    }
+    fn get_file_group_ids(&self) -> Option<Vec<String>> {
+        None
+    }
 }
 #[typetag::serde]
 impl PermissiveResource for FilezUser {
@@ -179,5 +219,16 @@ impl PermissiveResource for FilezUser {
 
     fn get_owner_id(&self) -> &String {
         &self.user_id
+    }
+
+    fn get_static_file_group_ids(&self) -> Option<Vec<String>> {
+        None
+    }
+
+    fn get_dynamic_file_group_ids(&self) -> Option<Vec<String>> {
+        None
+    }
+    fn get_file_group_ids(&self) -> Option<Vec<String>> {
+        None
     }
 }

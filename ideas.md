@@ -132,17 +132,121 @@ user:
 
 ```yaml
 file:
-    owner_id: wdadjufioherwonf
+    owner_id: paul
     permissions:
         list:
-            users: []
+            users: ["hubert"]
             userGroups: []
+            appIds: ["exampleApp"]
         get:
 ```
 
+use objectId instead of custom id this will make everything a lot faster
+
 for listing (the primary problem)
 to list the documents a user has access to we only need the user with their \_id and membership in usergroups
-now we can filter for the documents for (permissions.list.users OR permissions.list.userGroups OR owner_id) AND the file group id
-the filegroup should also be stored in a single
+now we can filter for the documents for (permissions.list.users OR permissions.list.userGroups OR owner_id) AND the fileGroupId (AND if the appId is different than the default origin it must be in appIds) we could spare one or when including the owner_id in all users fields
 
-use objectId instead of custom id this will make everything a lot faster
+adding app_ids likes this would make it impossible to give different users the ability to use the permission in different apps like this:
+The owner wants to be able to list the file in exampleApp and as always possible in the default file manager
+the owner wants to be able to restrict huberts access to only list the file in the default file manager but not exampleApp
+
+this would make this possible but could result in a lot of duplication when the same users have access to the same action for different apps
+this also would be difficult to index for all the different fields
+
+when listing and also for other actions we know the following:
+appId, userId, userGroupIds, permissionKind,
+
+maybe easier to check the permission beforehand and then filter just for the permissionIds like we do now...
+
+```yaml
+file:
+    owner_id: paul
+    permissions:
+        list:
+            default:
+                users: ["hubert"]
+                userGroups: []
+            exampleApp:
+                users: ["hubert"]
+                userGroups: []
+        get:
+```
+
+file group should contain
+file members
+
+```yaml
+permission:
+    owner_id: paul
+    actions:
+        list:
+            exampleApp:
+                users: ["hubert"]
+                userGroups: []
+        get:
+```
+
+permissions looking like these and a 1:1 permission:file relation
+this way we can search the small space of permissions for the ones matching the request and then filter for all files containing this permission
+inherited permissions from groups when filtering could then also save the extra permissionId lookup on the file because we filter for the groupId most of the time. finally including the owner id in the permission could save OR lookup between permission id and owner_id
+this is only efficient if we assume that there are not that many different permissions for the files (at worst there is one different permission for each file). i also think it would be difficult to update the permissions without just creating new ones each time (then ending up with one distinct permission per file)
+
+the example below would require less different indexes
+
+```yaml
+file:
+    owner_id: paul
+    permission:
+        list:
+            users: ["hubert:exampleApp"]
+            userGroups: []
+
+        get:
+```
+
+when the share receiver wanted to open the file in a different app not accounted for by the shareGiver they would need to ask the shareGiver to change the files permissions for them for each app they want to use the file in.
+
+we could create a "new" file with the same underlying physical data owned by the share receiver then we would bypass permissions completely and could just filter for the owner id to list all files owned by the user, like stated somewhere above the cloning of the fileDocument would be necessary anyway when editing metadata.
+this whole thing ends up in a mathematical problem as everything does eventually
+how could the requirements be modelled to get to a solution?
+
+```yaml
+file:
+    owner_id: paul
+    permissions:
+        list:
+            users: ["hubert"]
+            userGroups: []
+            apps: ["main"]
+        get:
+```
+
+```yaml
+fileGroup:
+    owner_id: paul
+    permissions:
+        fileList:
+            users: ["hubert"]
+            userGroups: []
+            apps: ["main"]
+        get:
+```
+
+list files request: fileGroupId -> db:fileGroup -> check if matches permission for request -> list files
+
+get files request: fileId -> db:file -> check if permissions match for request -> if yes return files if not -> get files groups -> check if their permissions match -> return files
+
+update file group permission: just update it
+
+now for the tricky part:
+update file permission to share it: add it to a all shared files filegroup of every party it is shared with
+or dont even make it possible to share a file at its own but just in a filegroup
+for sharing with other users this shouldnt be a problem having a file group with all shared files with that user
+for "sharing" with an application this shouldnt be a problem either: one general file group per application
+this also helps with visibility what is shared with whom
+
+clone files when a share recipient wants to update their metadata?
+dynamic groups prevent the updating of metadata from other parties because of security/unwanted behaviour concerns
+so either disable dynamic groups completely or have non updateable metadata with a possible proposed metadata changes field
+or check for every metadata change if it affects any dynamic groups of the share giver and disallow it as well as for every change to the dynamic group rules of a dynamic group notify the filegroup owner that this could include files because of metdata changes they havent even seen

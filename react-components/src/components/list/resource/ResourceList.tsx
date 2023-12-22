@@ -376,7 +376,7 @@ export default class ResourceList<
     commitSearch = (search: string) => {
         this.setState({ commitedSearch: search }, () => {
             this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
-            this.loadItems();
+            this.loadItems(LoadItemMode.NewId);
         });
     };
 
