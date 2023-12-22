@@ -1,13 +1,8 @@
-use crate::{
-    db::DB,
-    internal_types::Auth,
-    permissions::{
-        check_auth_multiple, CommonAclWhatOptions, FilezFileGroupPermissionAclWhatOptions,
-    },
-    some_or_bail,
-};
+use crate::{db::DB, internal_types::Auth, permissions::check_auth_multiple, some_or_bail};
 use anyhow::bail;
-use filez_common::server::permission::PermissiveResource;
+use filez_common::server::permission::{
+    CommonAclWhatOptions, FilezFileGroupPermissionAclWhatOptions, PermissiveResource,
+};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

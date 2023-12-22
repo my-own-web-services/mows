@@ -1,13 +1,12 @@
 use crate::{
-    config::SERVER_CONFIG,
-    db::DB,
-    internal_types::Auth,
-    into_permissive_resource, is_transient_transaction_error,
-    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
-    some_or_bail,
+    config::SERVER_CONFIG, db::DB, internal_types::Auth, into_permissive_resource,
+    is_transient_transaction_error, permissions::check_auth_multiple, some_or_bail,
 };
 use anyhow::bail;
-use filez_common::storage::index::get_storage_location_from_file;
+use filez_common::{
+    server::permission::{CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
+    storage::index::get_storage_location_from_file,
+};
 use hyper::{body::HttpBody, Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

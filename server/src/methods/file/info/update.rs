@@ -6,7 +6,7 @@ use crate::{
     dynamic_groups::{handle_dynamic_group_update, UpdateType},
     internal_types::Auth,
     is_transient_transaction_error,
-    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
+    permissions::check_auth_multiple,
     retry_transient_transaction_error, some_or_bail,
     utils::{
         check_file_name, check_keywords, check_mime_type, check_owner_id, check_static_file_groups,
@@ -15,7 +15,11 @@ use crate::{
 };
 use anyhow::bail;
 use filez_common::{
-    server::{file::FilezFile, file_group::FileGroupType, permission::PermissiveResource},
+    server::{
+        file::FilezFile,
+        file_group::FileGroupType,
+        permission::{CommonAclWhatOptions, FilezFilePermissionAclWhatOptions, PermissiveResource},
+    },
     storage::index::{get_future_storage_location, get_storage_location_from_file},
 };
 use hyper::{Body, Request, Response};

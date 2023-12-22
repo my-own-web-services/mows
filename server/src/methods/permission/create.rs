@@ -1,9 +1,6 @@
-use crate::{
-    db::DB,
-    internal_types::Auth,
-    permissions::{FilezPermission, FilezPermissionUseType, PermissionResourceType},
-    retry_transient_transaction_error,
-    utils::generate_id,
+use crate::{db::DB, internal_types::Auth, retry_transient_transaction_error, utils::generate_id};
+use filez_common::server::permission::{
+    FilezPermission, FilezPermissionUseType, PermissionResourceType,
 };
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};

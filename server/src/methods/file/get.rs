@@ -3,12 +3,15 @@ use crate::{
     db::DB,
     internal_types::Auth,
     into_permissive_resource,
-    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
+    permissions::check_auth_multiple,
     some_or_bail,
     utils::{get_query_item, get_range},
 };
 use anyhow::bail;
-use filez_common::storage::index::{get_app_data_folder_for_file, get_storage_location_from_file};
+use filez_common::{
+    server::permission::{CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
+    storage::index::{get_app_data_folder_for_file, get_storage_location_from_file},
+};
 use http_range::HttpRange;
 use hyper::{Body, Request, Response};
 use hyper_staticfile::util::FileBytesStreamRange;

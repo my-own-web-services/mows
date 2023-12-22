@@ -3,13 +3,14 @@ use crate::{
     dynamic_groups::{handle_dynamic_group_update, UpdateType},
     internal_types::Auth,
     into_permissive_resource,
-    permissions::{
-        check_auth_multiple, CommonAclWhatOptions, FilezFileGroupPermissionAclWhatOptions,
-    },
+    permissions::check_auth_multiple,
     retry_transient_transaction_error,
 };
 use anyhow::bail;
-use filez_common::server::file_group::{FileGroupType, FilterRule};
+use filez_common::server::{
+    file_group::{FileGroupType, FilterRule},
+    permission::{CommonAclWhatOptions, FilezFileGroupPermissionAclWhatOptions},
+};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use simple_server_timing_header::Timer;

@@ -1,12 +1,8 @@
 use crate::{
     db::DB,
     internal_types::{Auth, GetItemListRequestBody, GetItemListResponseBody},
-    permissions::FilezFileGroupPermissionAclWhatOptions,
 };
-use filez_common::server::{
-    file_group::{FileGroupType, FilezFileGroup},
-    permission,
-};
+use filez_common::server::file_group::{FileGroupType, FilezFileGroup};
 use hyper::{Body, Request, Response};
 
 /**

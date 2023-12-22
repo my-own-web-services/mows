@@ -1,13 +1,11 @@
 use crate::{
-    db::DB,
-    internal_types::Auth,
-    into_permissive_resource,
-    permissions::{
-        check_auth_multiple, CommonAclWhatOptions, FilezUserGroupPermissionAclWhatOptions,
-    },
+    db::DB, internal_types::Auth, into_permissive_resource, permissions::check_auth_multiple,
     retry_transient_transaction_error,
 };
 use anyhow::bail;
+use filez_common::server::permission::{
+    CommonAclWhatOptions, FilezUserGroupPermissionAclWhatOptions,
+};
 use hyper::{body::Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

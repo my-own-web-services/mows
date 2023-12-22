@@ -1,12 +1,12 @@
 use super::list::user_to_reduced_user;
 use crate::{
-    db::DB,
-    internal_types::Auth,
-    into_permissive_resource,
-    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezUserPermissionAclWhatOptions},
+    db::DB, internal_types::Auth, into_permissive_resource, permissions::check_auth_multiple,
 };
 use anyhow::bail;
-use filez_common::server::user::{FilezUser, ReducedFilezUser};
+use filez_common::server::{
+    permission::{CommonAclWhatOptions, FilezUserPermissionAclWhatOptions},
+    user::{FilezUser, ReducedFilezUser},
+};
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

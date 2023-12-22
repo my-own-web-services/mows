@@ -1,11 +1,11 @@
 use crate::{
-    db::DB,
-    internal_types::Auth,
-    into_permissive_resource,
-    permissions::{check_auth_multiple, FilezFileGroupPermissionAclWhatOptions},
+    db::DB, internal_types::Auth, into_permissive_resource, permissions::check_auth_multiple,
     retry_transient_transaction_error,
 };
 use anyhow::bail;
+use filez_common::server::permission::{
+    CommonAclWhatOptions, FilezFileGroupPermissionAclWhatOptions,
+};
 use hyper::{body::Body, Request, Response};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -39,9 +39,7 @@ pub async fn delete_file_group(
     match check_auth_multiple(
         auth,
         &into_permissive_resource!(file_groups),
-        &crate::permissions::CommonAclWhatOptions::FileGroup(
-            FilezFileGroupPermissionAclWhatOptions::FileGroupDelete,
-        ),
+        &CommonAclWhatOptions::FileGroup(FilezFileGroupPermissionAclWhatOptions::FileGroupDelete),
         db,
     )
     .await

@@ -1,10 +1,7 @@
-use serde::{Deserialize, Serialize};
-
-use ts_rs::TS;
-
-use crate::utils::generate_id;
-
 use super::user::FilezUser;
+use crate::utils::generate_id;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 // file groups are just selectors for files
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone, TS)]

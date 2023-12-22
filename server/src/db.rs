@@ -6,13 +6,13 @@ use crate::{
         set_app_data::SetAppDataRequest,
         update_permission_ids_on_resource::UpdatePermissionIdsOnResourceRequestBody,
     },
-    permissions::{FilezPermission, PermissionResourceSelectType},
     some_or_bail,
 };
 use anyhow::bail;
 use filez_common::server::{
     file::FilezFile,
     file_group::{FileGroupType, FilezFileGroup},
+    permission::{FilezPermission, PermissionResourceSelectType, PermissionResourceType},
     user::{FilezUser, UsageLimits, UserRole},
     user_group::FilezUserGroup,
 };
@@ -689,10 +689,10 @@ impl DB {
             permission_ids_by_resource_type
                 .entry(
                     match permission.content {
-                        crate::permissions::PermissionResourceType::File(_) => "files",
-                        crate::permissions::PermissionResourceType::FileGroup(_) => "file_groups",
-                        crate::permissions::PermissionResourceType::UserGroup(_) => "user_groups",
-                        crate::permissions::PermissionResourceType::User(_) => "users",
+                        PermissionResourceType::File(_) => "files",
+                        PermissionResourceType::FileGroup(_) => "file_groups",
+                        PermissionResourceType::UserGroup(_) => "user_groups",
+                        PermissionResourceType::User(_) => "users",
                     }
                     .to_string(),
                 )
@@ -1451,7 +1451,6 @@ impl DB {
         permissions: Vec<FilezPermission>,
         file_group: Option<FilezFileGroup>,
     ) -> anyhow::Result<(Vec<FilezFile>, u32)> {
-        let config = &SERVER_CONFIG;
         let collection = self.db.collection::<FilezFile>("files");
 
         let mut group_permissions = vec![];
@@ -1459,10 +1458,10 @@ impl DB {
 
         for permission in permissions {
             match permission.content {
-                crate::permissions::PermissionResourceType::File(_) => {
+                PermissionResourceType::File(_) => {
                     file_permissions.push(permission.permission_id.clone())
                 }
-                crate::permissions::PermissionResourceType::FileGroup(_) => {
+                PermissionResourceType::FileGroup(_) => {
                     group_permissions.push(permission.permission_id.clone())
                 }
                 _ => bail!("invalid permission type this should not happen"),
@@ -1519,11 +1518,14 @@ impl DB {
 
         let group_type_filter = match &gir.sub_resource_type {
             Some(v) => match v.as_str() {
-                "static_file_group_ids" => doc! {"static_file_group_ids": &group_id},
-                "dynamic_file_group_ids" => doc! {"dynamic_file_group_ids": &group_id},
+                "static_file_group_ids" => doc! {
+                    "static_file_group_ids": &group_id
+                },
+                "dynamic_file_group_ids" => doc! {
+                    "dynamic_file_group_ids": &group_id
+                },
                 _ => bail!("invalid sub resource type"),
             },
-
             None => doc! {
                 "$or":[
                     {

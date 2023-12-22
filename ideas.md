@@ -85,3 +85,64 @@ this is why option 1 might be better
 
 option 1 does not integrate well with the current auth function
 either make this work or use option 2
+
+option 1 does also not require another and or branch filter like this when listing files
+
+```rs
+doc! {
+    "$or": [
+        {
+            "owner_id": requesting_user_id
+        },
+        {
+            "permission_ids": {
+                "$in": file_permissions
+            }
+        }
+    ]
+}
+```
+
+as we check the group before to check that it has the correct permissions we can just filter for the groupId as we do anyway when listing all files of a certain groupId, this will probably much faster
+
+we could also attach the permission to both resources!
+this would be faster in the file group list situation and would not mess up the rest of the auth checking, but we would have the other downsides of both methods 1: its a bit messy, 2: we need to update a whole lot more
+
+as i want to have great performance when listing files even for very large lists it would probably be good to do both
+
+Application workload:
+
+```yaml
+files:
+    methods:
+        list: 10/10
+        get: 2/10
+        getDerivates: 10/10
+        getInfos: 10/10
+        updateMetadata: 5/10
+        updatePermissions: 1/10
+fileGroups:
+    methods:
+        list: 10/10
+        getInfos: 10/10
+user:
+    methods:
+        get: 10/10
+```
+
+```yaml
+file:
+    owner_id: wdadjufioherwonf
+    permissions:
+        list:
+            users: []
+            userGroups: []
+        get:
+```
+
+for listing (the primary problem)
+to list the documents a user has access to we only need the user with their \_id and membership in usergroups
+now we can filter for the documents for (permissions.list.users OR permissions.list.userGroups OR owner_id) AND the file group id
+the filegroup should also be stored in a single
+
+use objectId instead of custom id this will make everything a lot faster

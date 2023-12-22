@@ -1,13 +1,12 @@
 use crate::{
-    config::SERVER_CONFIG,
-    db::DB,
-    internal_types::Auth,
-    into_permissive_resource,
-    permissions::{check_auth_multiple, CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
-    retry_transient_transaction_error,
+    config::SERVER_CONFIG, db::DB, internal_types::Auth, into_permissive_resource,
+    permissions::check_auth_multiple, retry_transient_transaction_error,
 };
 use anyhow::bail;
-use filez_common::storage::index::get_storage_location_from_file;
+use filez_common::{
+    server::permission::{CommonAclWhatOptions, FilezFilePermissionAclWhatOptions},
+    storage::index::get_storage_location_from_file,
+};
 use futures::future::join_all;
 use hyper::{Body, Request, Response};
 use serde::{Deserialize, Serialize};
