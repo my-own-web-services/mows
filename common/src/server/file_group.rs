@@ -13,8 +13,8 @@ pub struct FilezFileGroup {
     /** Id of the User owning the file group*/
     pub owner_id: String,
     /**
-     *  List of permission ids for this file group
-     *  The Permissions will be merged and then evaluated
+    List of permission ids for this file group
+    The Permissions will be merged and then evaluated
      */
     pub permission_ids: Vec<String>,
     pub keywords: Vec<String>,
