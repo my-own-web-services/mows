@@ -1,0 +1,69 @@
+[package]
+name = "manager"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+cast_sign_loss = "deny"
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_lossless = "deny"
+indexing_slicing = "deny"
+
+[dependencies]
+serde = { version = "1.0", features = [
+    "derive",
+    "std",
+], default-features = false }
+serde_yaml = { version = "0.9.13" }
+serde_json = { version = "1" }
+
+
+anyhow = "1"
+lazy_static = "1.3.0"
+
+rand = "0.8.5"
+
+axum = "0.7.4"
+tokio = { version = "1.17.0", default-features = false, features = [
+    "rt-multi-thread",
+    "macros",
+    "signal",
+    "fs",
+] }
+utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
+utoipa = { version = "4", features = ["axum_extras"] }
+tower = { version = "0.4", features = ["util", "timeout"] }
+tower-http = { version = "0.5.0", features = [
+    "fs",
+    "cors",
+    "add-extension",
+    "trace",
+] }
+
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+wait-timeout = "0.2.0"
+
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.5"
+
+[profile.dev]
+
+[profile.release]
+codegen-units = 1
+debug = false
+debug-assertions = false
+lto = true
+opt-level = 3
+rpath = false

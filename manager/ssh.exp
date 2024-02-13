@@ -1,0 +1,49 @@
+#!/usr/bin/expect
+
+# Usage: ./ssh.expect.sh <password_path> <ssh_command> <remote_command>
+
+set timeout 5
+
+log_user 0
+
+set f [open [lindex $argv 0] r]
+set password [read $f]
+
+set command [lindex $argv 2]
+
+
+spawn {*}[lindex $argv 1]
+
+
+set terminator abcawdfawdf
+
+expect {
+    "yes/no" {
+        send "yes\r" 
+        exp_continue 
+    }
+    "*?assword:" {
+        send "$password\r"
+        exp_continue 
+    }
+    "Enter passphrase for key" {
+        send "\r"
+        exp_continue 
+    }
+    ">" {
+        send "$command ; echo $terminator \r"
+    }
+}
+
+
+log_user 1
+expect -re "(?n)^$terminator" { send "exit\r" }
+
+
+
+
+
+
+
+
+

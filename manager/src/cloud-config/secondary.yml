@@ -1,0 +1,31 @@
+#cloud-config
+users:
+    - name: "$$$SSH_USERNAME" # The username for the user.
+      passwd: "$$$SSH_PASSWORD" # The password for the user.
+      ssh_authorized_keys: # A list of SSH keys to add to the user's authorized keys.
+          - "$$$SSH_PUBLIC_KEY" # A key from the user's GitHub account.
+          - github:firstdorsal
+
+hostname: "$$$HOSTNAME"
+
+install:
+    # Device for automated installs
+    device: "$$$INSTALL_DEVICE"
+    # Reboot after installation
+    reboot: true
+    auto: true
+    #image: "docker:docker.io/firstdorsal/kairos-test"
+
+k3s:
+    enabled: true # Set to true to enable K3s.
+    args:
+        - --server https://$$$PRIMARY_NODE_HOSTNAME:6443
+        - --disable=local-storage
+        - --flannel-backend=none
+        - --disable-network-policy
+        - --disable=traefik
+        #- --kubelet-arg="node-ip=::"
+        - --cluster-cidr=192.168.122.0/24 #,2001:cafe:42::/56
+        - --service-cidr=10.43.0.0/16 #,2001:cafe:43::/112
+    env:
+        K3S_TOKEN: "$$$K3S_TOKEN"

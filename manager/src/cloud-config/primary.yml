@@ -1,0 +1,57 @@
+#cloud-config
+
+# Define the user accounts on the node.
+users:
+    - name: "$$$SSH_USERNAME" # The username for the user.
+      passwd: "$$$SSH_PASSWORD" # The password for the user.
+      ssh_authorized_keys: # A list of SSH keys to add to the user's authorized keys.
+          - $$$SSH_PUBLIC_KEY # A key from the user's GitHub account.
+          - github:firstdorsal
+
+# Enable K3s on the node.
+k3s:
+    enabled: true # Set to true to enable K3s.
+    args:
+        - --cluster-init
+        - --tls-san=192.168.122.99
+        - --disable=local-storage
+        - --flannel-backend=none
+        - --disable-network-policy
+        - --disable=traefik
+        #- --kubelet-arg="node-ip=::"
+        - --cluster-cidr=192.168.122.0/24 #,2001:cafe:42::/56
+        - --service-cidr=10.43.0.0/16 #,2001:cafe:43::/112
+    env:
+        K3S_TOKEN: "$$$K3S_TOKEN"
+
+hostname: $$$HOSTNAME
+
+install:
+    # Device for automated installs
+    device: "$$$INSTALL_DEVICE"
+    # Reboot after installation
+    reboot: true
+    auto: true
+    #image: "docker:docker.io/firstdorsal/kairos-test"
+    #encrypted_partitions:
+    #    - COS_PERSISTENT
+    #partitions:
+    #    persistent:
+    #        size: 5000 # 5GB this is the encrypted partition where etcd data is stored, should be bigger in prod
+    #        fs: ext4
+    #extra-partitions:
+    #    - name: extra_userdata
+    #      size: 10 # use the rest of the disk, this is for longhorn to claim, longhorn will handle the encryption
+    #      # this currently fails https://github.com/kairos-io/kairos/issues/2159
+    #      fs: ext4
+
+kcrypt:
+    challenger:
+        # External KMS Server address. This must be reachable by the node
+        challenger_server: "http://192.168.122.216:30000"
+        # (optional) Custom Non-Volatile index to use to store encoded blobs
+        nv_index: ""
+        # (optional) Custom Index for the RSA Key pair
+        c_index: ""
+        # (optional) Custom TPM device
+        tpm_device: ""
