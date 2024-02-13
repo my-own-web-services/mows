@@ -89,6 +89,7 @@ pub struct SshAccess {
     pub ssh_username: String,
     pub ssh_private_key: String,
     pub ssh_public_key: String,
+    pub ssh_passphrase: String,
     pub ssh_password: String,
     pub remote_fingerprint: Option<String>,
 }

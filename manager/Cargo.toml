@@ -55,6 +55,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 wait-timeout = "0.2.0"
 
 
+ssh2 = "0.9.4"
+
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"
 

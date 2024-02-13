@@ -192,7 +192,7 @@ impl Pxe {
 
             let mut temp_config = template.to_string();
             for (key, value) in replacements.iter() {
-                temp_config = temp_config.replace(key, value);
+                temp_config = temp_config.replace(&format!("{replacement_prefix}{key}"), value);
             }
 
             temp_config

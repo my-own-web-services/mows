@@ -1,4 +1,7 @@
 #cloud-config
+
+debug: true
+
 users:
     - name: "$$$SSH_USERNAME" # The username for the user.
       passwd: "$$$SSH_PASSWORD" # The password for the user.

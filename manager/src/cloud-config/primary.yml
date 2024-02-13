@@ -1,5 +1,9 @@
 #cloud-config
 
+# variables https://github.com/zcalusic/sysinfo#sample-output
+
+debug: true
+
 # Define the user accounts on the node.
 users:
     - name: "$$$SSH_USERNAME" # The username for the user.

@@ -1,12 +1,15 @@
 use std::{
     fs,
     io::Read,
-    process::{Child, Command, Stdio},
+    path::Path,
+    process::{Command, Stdio},
     time::Duration,
 };
 
+use ssh2::Session;
+use std::net::TcpStream;
+
 use anyhow::bail;
-use wait_timeout::ChildExt;
 
 use crate::{
     config::{Machine, SshAccess},
@@ -21,28 +24,30 @@ struct SshPubAndPrivKey {
 
 impl SshAccess {
     pub fn new() -> anyhow::Result<Self> {
-        let ssh_username = generate_id(20);
+        let ssh_username = "kairos".to_string();
         let ssh_password = generate_id(100);
+        let ssh_passphrase = generate_id(100);
 
-        let ssh_keys = Self::generate_ssh_key()?;
+        let ssh_keys = Self::generate_ssh_key(&ssh_passphrase)?;
 
         Ok(Self {
             ssh_username,
             ssh_private_key: ssh_keys.priv_key,
             ssh_public_key: ssh_keys.pub_key,
+            ssh_passphrase,
             ssh_password,
             remote_fingerprint: None,
         })
     }
 
-    fn generate_ssh_key() -> anyhow::Result<SshPubAndPrivKey> {
+    fn generate_ssh_key(ssh_passphrase: &str) -> anyhow::Result<SshPubAndPrivKey> {
         Command::new("ssh-keygen")
-            .args(["-t", "ed25519", "-q", "-N", "''", "-f", "/id"])
+            .args(["-t", "ed25519", "-q", "-N", ssh_passphrase, "-f", "/id"])
             .spawn()?
             .wait()?;
 
         let keys = SshPubAndPrivKey {
-            pub_key: std::fs::read_to_string("/id.pub")?,
+            pub_key: std::fs::read_to_string("/id.pub")?.trim().to_string(),
             priv_key: std::fs::read_to_string("/id")?,
         };
 
@@ -56,7 +61,7 @@ impl SshAccess {
         &mut self,
         machine: &Machine,
         command: &str,
-        timeout_seconds: u64,
+        timeout_seconds: u32,
     ) -> anyhow::Result<String> {
         let ip = Self::get_current_ip_from_mac(some_or_bail!(
             machine.mac.clone(),
@@ -66,85 +71,32 @@ impl SshAccess {
 
         println!("Executing command on ip: {}", ip);
 
-        let private_key_path = format!("/root/.ssh/{}{}", machine.name, generate_id(20));
-        std::fs::write(&private_key_path, &self.ssh_private_key)?;
+        let tcp = TcpStream::connect(format!("{ip}:22"))?;
 
-        Command::new("chmod")
-            .args(["600", &private_key_path])
-            .spawn()?
-            .wait()?;
+        std::fs::write("/root/.ssh/id", &self.ssh_private_key)?;
+        dbg!(&self.ssh_passphrase);
 
-        let password_path = format!("/root/.ssh/{}{}", machine.name, generate_id(20));
-        std::fs::write(&password_path, &self.ssh_password)?;
+        let mut sess = Session::new()?;
+        sess.set_tcp_stream(tcp);
+        sess.handshake()?;
 
-        let target = format!("{}@{}", self.ssh_username, ip);
-        let real_command = format!("\"{}\"", command);
-        let mut args = vec![
-            "-f",
-            &password_path,
-            "ssh",
-            "-o",
-            "ConnectTimeout=5",
-            "-o",
-            "BatchMode=yes",
-            "-o",
-            "ServerAliveInterval=1",
-            "-o",
-            "HashKnownHosts=no",
-        ];
+        sess.userauth_pubkey_memory(
+            &self.ssh_username,
+            Some(&self.ssh_public_key),
+            &self.ssh_private_key,
+            Some(&self.ssh_passphrase),
+        )?;
 
-        args.extend([
-            "-o",
-            "StrictHostKeyChecking=no",
-            "-o",
-            "UserKnownHostsFile=/dev/null
-        ",
-        ]);
+        sess.set_timeout(timeout_seconds * 1000);
 
-        match &self.remote_fingerprint {
-            Some(remote_fingerprint) => {
-                std::fs::write("/root/.ssh/known_hosts", remote_fingerprint)?;
-            }
-            None => {
-                //let _ = &self.try_to_add_known_hosts();
-            }
-        };
+        let mut channel = sess.channel_session()?;
+        channel.exec(command)?;
 
-        args.extend(["-i", &private_key_path, &target, &real_command]);
+        let mut s = String::new();
+        channel.read_to_string(&mut s)?;
+        channel.wait_close()?;
 
-        let mut child = Command::new("sshpass")
-            .args(args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
-
-        //fs::remove_file(&private_key_path)?;
-        //fs::remove_file(&password_path)?;
-
-        let code = some_or_bail!(
-            match child.wait_timeout(Duration::from_secs(timeout_seconds))? {
-                Some(v) => v.code(),
-                None => {
-                    child.kill()?;
-                    child.wait()?.code()
-                }
-            },
-            "could not get code for ssh child"
-        );
-
-        let mut stdout = String::new();
-        some_or_bail!(child.stdout, "Could not get stdout for ssh child")
-            .read_to_string(&mut stdout)?;
-
-        let mut stderr = String::new();
-        some_or_bail!(child.stderr, "Could not get stderr for ssh child")
-            .read_to_string(&mut stderr)?;
-
-        if code == 0 {
-            Ok(stdout)
-        } else {
-            bail!(stderr)
-        }
+        Ok(s)
     }
 
     pub fn try_to_add_known_hosts(&mut self) -> anyhow::Result<()> {
