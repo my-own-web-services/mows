@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+    mows-manager:
+        image: mows-manager
+        container_name: mows-manager
+        build:
+            context: .
+            dockerfile: no-ui.Dockerfile
+
+        networks:
+            mows-manager-bridge:
+            mows-manager-direct-attach:
+                ipv4_address: "192.168.111.3"
+            mows-manager-qemu:
+        ports:
+            - "127.0.0.1:3000:3000"
+        volumes:
+            - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock
+            - ./temp-pxe-files:/pxe_files/
+    dnsmasq:
+        build:
+            context: .
+            dockerfile: dnsmasq.Dockerfile
+        container_name: dnsmasq
+        cap_add:
+            - "NET_ADMIN"
+        entrypoint: dnsmasq -a 192.168.111.2 -p 0 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.111.4,192.168.111.30,12h
+        networks:
+            mows-manager-direct-attach:
+                ipv4_address: "192.168.111.2"
+networks:
+    mows-manager-bridge:
+        driver: bridge
+    mows-manager-direct-attach:
+        driver: macvlan
+        driver_opts:
+            parent: enp3s0f0u2u4
+        ipam:
+            config:
+                - subnet: 192.168.111.0/24
+                  gateway: "192.168.111.1"
+    mows-manager-qemu:
+        driver: macvlan
+        driver_opts:
+            parent: virbr0
+        ipam:
+            config:
+                - subnet: 192.168.122.0/24
+                  gateway: "192.168.122.1"

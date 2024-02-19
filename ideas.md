@@ -81,3 +81,26 @@ Setup a new node?
 # serial
 
 `sudo putty /dev/ttyUSB0 -serial -sercfg 115200,8,n,1,N`
+
+# add ip to interface
+
+`sudo ip addr add 192.168.1.2/24 dev enp3s0f0u2u4`
+
+# update submodule git
+
+`git submodule update --init`
+
+`docker run --net=host --cap-add=NET_ADMIN -e DHCP_RANGE_START=192.168.1.3 samdbmg/dhcp-netboot.xyz`
+
+the fix is to use the home network dhcp server or create a basic one ourselfs in the container listening on another ip addr
+
+the first variant might not always work but provides the "working" network config out of the box, its traffic would not be secure as it could be intercepted at any point in the network
+
+the second option requires the direct connection but will always work and be encrypted, when then switchting to the real network the config will be wrong and we will need to find out the new ip address of each node, this shouldnt be a problem though
+
+option 16 will also probably work as it is netboot over http (wireshark knows this) but it was hard to find elsewhere what option 16 meant
+
+the whole reason is that pixiecore has no real dhcp server but only a proxy one to use with another dhcp server
+this is why it worked so flawless with qemu which has a dhcp server built in
+
+RTFM xD but also there where multiple issues making this difficult to figure out

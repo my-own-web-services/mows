@@ -46,8 +46,6 @@ COPY --from=build --chown=mows-manager:mows-manager /volume/target/x86_64-unknow
 COPY --from=ui-build /app/dist/ ./ui
 RUN useradd -u 50001 -N mows-manager
 RUN groupadd -g 50001 mows-manager
-COPY ./ssh.exp /ssh.exp
-
 
 
 USER root

@@ -4,6 +4,6 @@ pub mod config;
 pub mod discovery;
 pub mod machines;
 pub mod macros;
-pub mod pxe;
+pub mod pixiecore;
 pub mod ssh;
 pub mod utils;

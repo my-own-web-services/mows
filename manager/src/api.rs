@@ -1,13 +1,17 @@
+use anyhow::bail;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use axum::{extract::State, Json};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
     cluster::ClusterCreationConfig,
-    config::{Cluster, Config, Machine},
+    config::{Cluster, Config, InstallState, Machine, PixiecoreBootConfig},
     machines::MachineCreationConfig,
     utils::AppError,
 };
@@ -46,9 +50,7 @@ pub async fn update_config(
     )
 )]
 pub async fn get_config(State(config): State<Arc<Mutex<Config>>>) -> Json<Config> {
-    let config = config.lock().await.clone();
-
-    Json(config)
+    Json(config.lock().await.clone())
 }
 
 #[utoipa::path(
@@ -66,14 +68,31 @@ pub async fn create_machines(
 ) -> Result<Json<Success>, AppError> {
     for _ in 0..3 {
         let machine = Machine::new(&machine_creation_config)?;
-        let mut config = config.lock().await;
-        config
-            .unassigned_machines
-            .insert(machine.name.clone(), machine);
+        let mut config_locked = config.lock().await;
+        config_locked.machines.insert(machine.name.clone(), machine);
     }
 
     Ok(Json(Success {
         message: "Machines created".to_string(),
+    }))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/machines/deleteall",
+    responses(
+        (status = 200, description = "Deleted machines", body = [Success]),
+        (status = 500, description = "Failed to create machines", body = [String])
+    )
+)]
+pub async fn delete_all_machines(
+    State(config): State<Arc<Mutex<Config>>>,
+    Json(machine_creation_config): Json<MachineCreationConfig>,
+) -> Result<Json<Success>, AppError> {
+    Machine::delete_all_mows_machines().unwrap();
+
+    Ok(Json(Success {
+        message: "Machines deleted".to_string(),
     }))
 }
 
@@ -90,13 +109,49 @@ pub async fn create_cluster(
     State(config): State<Arc<Mutex<Config>>>,
     Json(cluster_creation_config): Json<ClusterCreationConfig>,
 ) -> Result<Json<Success>, AppError> {
-    let mut config = config.lock().await;
-
-    let cluster = Cluster::new(&config.unassigned_machines).await?;
-
-    config.clusters.insert("default".to_string(), cluster);
+    Cluster::new(config).await?;
 
     Ok(Json(Success {
         message: "Cluster created".to_string(),
     }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/v1/boot/{mac_addr}",
+    params(
+        ("mac_addr" = String, Path, description = "Mac address of the machine to get boot config for")
+    ),
+    responses(
+        (status = 200, description = "Sending boot config to pixieboot server", body = [Success]),
+        (status = 500, description = "Failed to get config for mac address", body = [PixiecoreBootConfig])
+    )
+)]
+pub async fn get_boot_config_by_mac(
+    State(config): State<Arc<Mutex<Config>>>,
+    Path(mac_addr): Path<String>,
+) -> Result<Json<PixiecoreBootConfig>, AppError> {
+    Ok(Json(get_boot_config(mac_addr, config).await?))
+}
+
+pub async fn get_boot_config(
+    mac_addr: String,
+    config: Arc<Mutex<Config>>,
+) -> Result<PixiecoreBootConfig, anyhow::Error> {
+    let mut config = config.lock().await;
+
+    for machine in config.machines.values_mut() {
+        if let Some(mac) = &machine.mac {
+            if mac == &mac_addr {
+                if let Some(install) = &mut machine.install {
+                    install.state = Some(InstallState::Requested);
+                    if let Some(boot_config) = &install.boot_config {
+                        return Ok(boot_config.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    bail!("No machine found with mac address: {}", mac_addr)
 }

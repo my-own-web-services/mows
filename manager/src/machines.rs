@@ -1,10 +1,14 @@
-use std::process::Command;
+use std::{collections::HashMap, process::Command};
 
+use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    config::{Machine, MachineType},
+    config::{
+        BackupNode, Cluster, ClusterNode, InstallState, Machine, MachineInstall, MachineType,
+        PixiecoreBootConfig, SshAccess,
+    },
     some_or_bail,
     utils::generate_id,
 };
@@ -64,6 +68,7 @@ impl Machine {
                     name: machine_name.clone(),
                     mac: Some(mac),
                     machine_type: MachineType::LocalQemu,
+                    install: None,
                 };
 
                 machine.destroy()?;
@@ -155,12 +160,82 @@ impl Machine {
                     name: name.to_string(),
                     mac: None,
                     machine_type: MachineType::LocalQemu,
+                    install: None,
                 };
                 machine.delete()?;
             }
         }
 
         Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn configure_install(
+        &mut self,
+        kairos_version: &str,
+        k3s_version: &str,
+        os: &str,
+        k3s_token: &str,
+        hostname: &str,
+        ssh_config: &SshAccess,
+        primary_node: bool,
+    ) -> anyhow::Result<()> {
+        let boot_config = PixiecoreBootConfig::new(
+            kairos_version,
+            k3s_version,
+            os,
+            k3s_token,
+            hostname,
+            ssh_config,
+            primary_node,
+        )?;
+
+        self.install = Some(MachineInstall {
+            state: Some(InstallState::Configured),
+            boot_config: Some(boot_config),
+        });
+
+        Ok(())
+    }
+
+    pub fn get_attached_cluster_node(
+        &self,
+        clusters: &HashMap<String, Cluster>,
+    ) -> anyhow::Result<ClusterNode> {
+        for (_, cluster) in clusters.iter() {
+            for (_, node) in cluster.cluster_nodes.iter() {
+                if node.machine_name == self.name {
+                    return Ok(node.clone());
+                }
+            }
+        }
+        bail!("No node found")
+    }
+
+    pub fn get_attached_backup_node(
+        &self,
+        clusters: &HashMap<String, Cluster>,
+    ) -> anyhow::Result<BackupNode> {
+        for (_, cluster) in clusters.iter() {
+            for (_, node) in cluster.backup_nodes.iter() {
+                if node.machine_name == self.name {
+                    return Ok(node.clone());
+                }
+            }
+        }
+        bail!("No node found")
+    }
+
+    pub async fn poll_install_state(
+        &self,
+        clusters: &HashMap<String, Cluster>,
+    ) -> anyhow::Result<()> {
+        if self.install.is_some() {
+            let node_ssh_access = &self.get_attached_cluster_node(clusters)?.ssh_access;
+            node_ssh_access.exec(self, "kubectl get nodes", 5).await?;
+            return Ok(());
+        };
+        bail!("No install found")
     }
 }
 
@@ -197,4 +272,31 @@ pub struct LocalQemuConfig {
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct ExternalHetznerConfig {
     pub server_type: String,
+}
+
+pub struct Arp {
+    pub ip: String,
+    pub hwtype: String,
+    pub mac: String,
+}
+
+pub async fn get_connected_machines() -> anyhow::Result<Vec<Arp>> {
+    let output = Command::new("arp").output()?;
+    let output = String::from_utf8(output.stdout)?;
+
+    let lines: Vec<&str> = output.lines().skip(1).collect();
+
+    let mut arp_lines = vec![];
+
+    for line in lines {
+        let arp_line: Vec<&str> = line.split_whitespace().collect();
+
+        arp_lines.push(Arp {
+            ip: some_or_bail!(arp_line.first(), "Could not get ip from arp").to_string(),
+            hwtype: some_or_bail!(arp_line.get(1), "Could not get hwtype from arp").to_string(),
+            mac: some_or_bail!(arp_line.get(2), "Could not get mac from arp").to_string(),
+        });
+    }
+
+    Ok(arp_lines)
 }

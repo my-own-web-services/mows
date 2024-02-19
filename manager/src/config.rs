@@ -7,14 +7,14 @@ use utoipa::ToSchema;
 pub struct Config {
     pub clusters: HashMap<String, Cluster>,
     pub external_providers: ExternalProviders,
-    pub unassigned_machines: HashMap<String, Machine>,
+    pub machines: HashMap<String, Machine>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
 pub struct Cluster {
     pub cluster_nodes: HashMap<String, ClusterNode>,
     pub kubeconfig: Option<String>,
-    pub k3s_token: Option<String>,
+    pub k3s_token: String,
     pub encryption_key: Option<String>,
     pub backup_nodes: HashMap<String, BackupNode>,
     pub public_ip_config: Option<PublicIpConfig>,
@@ -26,6 +26,26 @@ pub struct Machine {
     pub machine_type: MachineType,
     pub mac: Option<String>,
     pub name: String,
+    pub install: Option<MachineInstall>,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
+pub struct MachineInstall {
+    pub state: Option<InstallState>,
+    pub boot_config: Option<PixiecoreBootConfig>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub enum InstallState {
+    Configured,
+    Requested,
+    Installed,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
+pub struct PixiecoreBootConfig {
+    pub kernel: String,
+    pub initrd: Vec<String>,
+    pub cmdline: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
@@ -38,13 +58,14 @@ pub enum MachineType {
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct ClusterNode {
-    pub machine: Machine,
+    pub machine_name: String,
     pub hostname: String,
     pub ssh_access: SshAccess,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct BackupNode {
+    pub machine_name: String,
     pub hostname: String,
     pub mac: String,
     pub ssh_access: SshAccess,

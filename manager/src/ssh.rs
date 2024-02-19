@@ -1,18 +1,11 @@
-use std::{
-    fs,
-    io::Read,
-    path::Path,
-    process::{Command, Stdio},
-    time::Duration,
-};
+use std::{fs, io::Read, process::Command};
 
 use ssh2::Session;
 use std::net::TcpStream;
 
-use anyhow::bail;
-
 use crate::{
     config::{Machine, SshAccess},
+    machines::get_connected_machines,
     some_or_bail,
     utils::generate_id,
 };
@@ -58,7 +51,7 @@ impl SshAccess {
     }
 
     pub async fn exec(
-        &mut self,
+        &self,
         machine: &Machine,
         command: &str,
         timeout_seconds: u32,
@@ -72,6 +65,8 @@ impl SshAccess {
         println!("Executing command on ip: {}", ip);
 
         let tcp = TcpStream::connect(format!("{ip}:22"))?;
+
+        // TODO add known hosts!
 
         std::fs::write("/root/.ssh/id", &self.ssh_private_key)?;
         dbg!(&self.ssh_passphrase);
@@ -99,14 +94,8 @@ impl SshAccess {
         Ok(s)
     }
 
-    pub fn try_to_add_known_hosts(&mut self) -> anyhow::Result<()> {
-        let remote_fingerprint = fs::read_to_string("/root/.ssh/known_hosts")?;
-        self.remote_fingerprint = Some(remote_fingerprint);
-        Ok(())
-    }
-
     pub async fn get_current_ip_from_mac(mac: String) -> anyhow::Result<String> {
-        let online_machines = Self::get_connected_machines().await?;
+        let online_machines = get_connected_machines().await?;
 
         let arp_machine = some_or_bail!(
             online_machines.into_iter().find(|arp| arp.mac == mac),
@@ -115,31 +104,4 @@ impl SshAccess {
 
         Ok(arp_machine.ip)
     }
-
-    pub async fn get_connected_machines() -> anyhow::Result<Vec<Arp>> {
-        let output = Command::new("arp").output()?;
-        let output = String::from_utf8(output.stdout)?;
-
-        let lines: Vec<&str> = output.lines().skip(1).collect();
-
-        let mut arp_lines = vec![];
-
-        for line in lines {
-            let arp_line: Vec<&str> = line.split_whitespace().collect();
-
-            arp_lines.push(Arp {
-                ip: some_or_bail!(arp_line.first(), "Could not get ip from arp").to_string(),
-                hwtype: some_or_bail!(arp_line.get(1), "Could not get hwtype from arp").to_string(),
-                mac: some_or_bail!(arp_line.get(2), "Could not get mac from arp").to_string(),
-            });
-        }
-
-        Ok(arp_lines)
-    }
-}
-
-pub struct Arp {
-    pub ip: String,
-    pub hwtype: String,
-    pub mac: String,
 }
