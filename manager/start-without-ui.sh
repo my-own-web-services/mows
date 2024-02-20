@@ -7,7 +7,7 @@ docker build -t mows-manager . -f no-ui.Dockerfile
 docker network create -d macvlan \
     --subnet=192.168.122.0/24 \
     --gateway=192.168.122.1 \
-    -o parent=virbr0 qemu_network || true
+    -o parent=virbr0 mows-manager-qemu || true
 
 docker network create -d bridge mows-manager-bridge || true
 
@@ -20,16 +20,16 @@ docker network create -d macvlan \
     -o parent=${DEV_NAME} mows-manager-dhcp || true
 
 
-#docker run \
-#    --cap-add NET_ADMIN \
-#    --net mows-manager-bridge \
-#    --net mows-manager-dhcp \
-#    -p 3000:3000 \
-#    -p 6669:6669 \
-#    --rm \
-#    -v /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock #\
-#    -v ./temp-pxe-files:/pxe_files/ \
-#    --name mows-manager mows-manager
+docker run \
+    --cap-add NET_ADMIN \
+    --net mows-manager-bridge \
+    --net mows-manager-qemu \
+    -p 3000:3000 \
+    -p 6669:6669 \
+    --rm \
+    -v /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock \
+    -v ./temp-pxe-files:/pxe_files/ \
+    --name mows-manager mows-manager
 
 
 

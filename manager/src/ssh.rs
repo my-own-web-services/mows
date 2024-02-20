@@ -85,6 +85,7 @@ impl SshAccess {
         sess.set_timeout(timeout_seconds * 1000);
 
         let mut channel = sess.channel_session()?;
+
         channel.exec(command)?;
 
         let mut s = String::new();

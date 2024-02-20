@@ -13,15 +13,16 @@ export interface BackupNode {
   backup_wg_private_key?: string | null;
   hostname: string;
   mac: string;
+  machine_name: string;
   ssh_access: SshAccess;
 }
 
 export interface Cluster {
-  backup_nodes: BackupNode[];
+  backup_nodes: Record<string, BackupNode>;
   cluster_backup_wg_private_key?: string | null;
-  cluster_nodes: ClusterNode[];
+  cluster_nodes: Record<string, ClusterNode>;
   encryption_key?: string | null;
-  k3s_token?: string | null;
+  k3s_token: string;
   kubeconfig?: string | null;
   public_ip_config?: PublicIpConfig | null;
 }
@@ -30,14 +31,14 @@ export type ClusterCreationConfig = object;
 
 export interface ClusterNode {
   hostname: string;
-  machine: Machine;
-  ssh_access?: SshAccess | null;
+  machine_name: string;
+  ssh_access: SshAccess;
 }
 
 export interface Config {
   clusters: Record<string, Cluster>;
   external_providers: ExternalProviders;
-  unassigned_machines: Record<string, Machine>;
+  machines: Record<string, Machine>;
 }
 
 export interface ExternalHetznerConfig {
@@ -63,6 +64,12 @@ export interface ExternalProvidersHetzner {
   api_token: string;
 }
 
+export enum InstallState {
+  Configured = "Configured",
+  Requested = "Requested",
+  Installed = "Installed",
+}
+
 export interface LocalQemuConfig {
   /**
    * @format int32
@@ -78,6 +85,7 @@ export interface LocalQemuConfig {
 }
 
 export interface Machine {
+  install?: null;
   mac?: string | null;
   machine_type: MachineType;
   name: string;
@@ -100,6 +108,12 @@ export enum MachineType {
   ExternalHetzner = "ExternalHetzner",
 }
 
+export interface PixiecoreBootConfig {
+  cmdline: string;
+  initrd: string[];
+  kernel: string;
+}
+
 export interface PublicIpConfig {
   ips: Record<string, PublicIpConfigSingleIp>;
 }
@@ -110,6 +124,8 @@ export interface PublicIpConfigSingleIp {
 }
 
 export interface SshAccess {
+  remote_fingerprint?: string | null;
+  ssh_passphrase: string;
   ssh_password: string;
   ssh_private_key: string;
   ssh_public_key: string;
@@ -399,6 +415,37 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags api
+     * @name DeleteAllMachines
+     * @request DELETE:/api/machines/deleteall
+     */
+    deleteAllMachines: (params: RequestParams = {}) =>
+      this.request<Success[], string[]>({
+        path: `/api/machines/deleteall`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+  };
+  v1 = {
+    /**
+     * No description
+     *
+     * @tags api
+     * @name GetBootConfigByMac
+     * @request GET:/v1/boot/{mac_addr}
+     */
+    getBootConfigByMac: (macAddr: string, params: RequestParams = {}) =>
+      this.request<Success[], PixiecoreBootConfig[]>({
+        path: `/v1/boot/${macAddr}`,
+        method: "GET",
         format: "json",
         ...params,
       }),

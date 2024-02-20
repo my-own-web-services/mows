@@ -1,7 +1,8 @@
-use std::{collections::HashMap, process::Command};
+use std::collections::HashMap;
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
+use tokio::process::Command;
 use utoipa::ToSchema;
 
 use crate::{
@@ -14,7 +15,7 @@ use crate::{
 };
 
 impl Machine {
-    pub fn new(machine_creation_config: &MachineCreationConfig) -> anyhow::Result<Self> {
+    pub async fn new(machine_creation_config: &MachineCreationConfig) -> anyhow::Result<Self> {
         Ok(match machine_creation_config {
             MachineCreationConfig::LocalQemu(cc) => {
                 let machine_name: String = format!("mows-{}", generate_id(8));
@@ -60,18 +61,19 @@ impl Machine {
                         ),
                     ])
                     .spawn()?
-                    .wait()?;
+                    .wait()
+                    .await?;
 
-                let mac = qemu_get_mac_address(&machine_name)?;
+                let mac = qemu_get_mac_address(&machine_name).await?;
 
                 let machine = Machine {
-                    name: machine_name.clone(),
+                    id: machine_name.clone(),
                     mac: Some(mac),
                     machine_type: MachineType::LocalQemu,
                     install: None,
                 };
 
-                machine.destroy()?;
+                machine.destroy().await?;
                 machine
             }
             MachineCreationConfig::Local(_) => todo!(),
@@ -79,36 +81,41 @@ impl Machine {
         })
     }
 
-    pub fn delete(&self) -> anyhow::Result<()> {
+    pub async fn delete(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => {
                 Command::new("virsh")
-                    .args(["destroy", &self.name])
-                    .spawn()?;
-                Command::new("virsh")
-                    .args(["undefine", &self.name])
+                    .args(["destroy", &self.id])
                     .spawn()?
-                    .wait()?;
+                    .wait()
+                    .await?;
+                Command::new("virsh")
+                    .args(["undefine", &self.id])
+                    .spawn()?
+                    .wait()
+                    .await?;
 
                 Command::new("virsh")
                     .args([
                         "vol-delete",
                         "--pool",
                         "default",
-                        &format!("{}-primary.qcow2", &self.name),
+                        &format!("{}-primary.qcow2", &self.id),
                     ])
                     .spawn()?
-                    .wait()?;
+                    .wait()
+                    .await?;
 
                 Command::new("virsh")
                     .args([
                         "vol-delete",
                         "--pool",
                         "default",
-                        &format!("{}-secondary.qcow2", &self.name),
+                        &format!("{}-secondary.qcow2", &self.id),
                     ])
                     .spawn()?
-                    .wait()?;
+                    .wait()
+                    .await?;
 
                 Ok(())
             }
@@ -117,13 +124,14 @@ impl Machine {
         }
     }
 
-    pub fn destroy(&self) -> anyhow::Result<()> {
+    pub async fn destroy(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => {
                 Command::new("virsh")
-                    .args(["destroy", &self.name])
+                    .args(["destroy", &self.id])
                     .spawn()?
-                    .wait()?;
+                    .wait()
+                    .await?;
 
                 Ok(())
             }
@@ -132,13 +140,14 @@ impl Machine {
         }
     }
 
-    pub fn start(&self) -> anyhow::Result<()> {
+    pub async fn start(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => {
                 Command::new("virsh")
-                    .args(["start", &self.name])
+                    .args(["start", &self.id])
                     .spawn()?
-                    .wait()?;
+                    .wait()
+                    .await?;
 
                 Ok(())
             }
@@ -147,8 +156,11 @@ impl Machine {
         }
     }
 
-    pub fn delete_all_mows_machines() -> anyhow::Result<()> {
-        let output = Command::new("virsh").args(["list", "--all"]).output()?;
+    pub async fn delete_all_mows_machines() -> anyhow::Result<()> {
+        let output = Command::new("virsh")
+            .args(["list", "--all"])
+            .output()
+            .await?;
         let output = String::from_utf8(output.stdout)?;
 
         let lines: Vec<&str> = output.lines().collect();
@@ -157,12 +169,12 @@ impl Machine {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 let name = some_or_bail!(parts.get(1), "No name found: name");
                 let machine = Machine {
-                    name: name.to_string(),
+                    id: name.to_string(),
                     mac: None,
                     machine_type: MachineType::LocalQemu,
                     install: None,
                 };
-                machine.delete()?;
+                machine.delete().await?;
             }
         }
 
@@ -170,7 +182,7 @@ impl Machine {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn configure_install(
+    pub async fn configure_install(
         &mut self,
         kairos_version: &str,
         k3s_version: &str,
@@ -188,7 +200,8 @@ impl Machine {
             hostname,
             ssh_config,
             primary_node,
-        )?;
+        )
+        .await?;
 
         self.install = Some(MachineInstall {
             state: Some(InstallState::Configured),
@@ -204,7 +217,7 @@ impl Machine {
     ) -> anyhow::Result<ClusterNode> {
         for (_, cluster) in clusters.iter() {
             for (_, node) in cluster.cluster_nodes.iter() {
-                if node.machine_name == self.name {
+                if node.machine_id == self.id {
                     return Ok(node.clone());
                 }
             }
@@ -218,7 +231,7 @@ impl Machine {
     ) -> anyhow::Result<BackupNode> {
         for (_, cluster) in clusters.iter() {
             for (_, node) in cluster.backup_nodes.iter() {
-                if node.machine_name == self.name {
+                if node.machine_id == self.id {
                     return Ok(node.clone());
                 }
             }
@@ -239,10 +252,11 @@ impl Machine {
     }
 }
 
-fn qemu_get_mac_address(node_name: &str) -> anyhow::Result<String> {
+async fn qemu_get_mac_address(node_name: &str) -> anyhow::Result<String> {
     let output = Command::new("virsh")
         .args(["domiflist", node_name])
-        .output()?;
+        .output()
+        .await?;
     let output = String::from_utf8(output.stdout)?;
 
     let lines: Vec<&str> = output.lines().collect();
@@ -281,7 +295,7 @@ pub struct Arp {
 }
 
 pub async fn get_connected_machines() -> anyhow::Result<Vec<Arp>> {
-    let output = Command::new("arp").output()?;
+    let output = Command::new("arp").output().await?;
     let output = String::from_utf8(output.stdout)?;
 
     let lines: Vec<&str> = output.lines().skip(1).collect();

@@ -7,10 +7,11 @@ use axum::{routing::post, Router};
 use manager::api;
 use manager::api::*;
 use manager::config::*;
+use manager::utils::{update_cluster_config, update_machine_install_state};
+use tokio::process::Command;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use std::io::Error;
-use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::signal;
@@ -34,6 +35,8 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+
+
     #[derive(OpenApi)]
     #[openapi(
         paths(
@@ -76,45 +79,40 @@ async fn main() -> Result<(), Error> {
     )]
     struct ApiDoc;
 
-    console_subscriber::init();
 
-/*
+    let console_layer=    console_subscriber::ConsoleLayer::builder()
+    .server_addr(([0, 0, 0, 0], 6669))
+    .spawn();
+
+
     tracing_subscriber::registry()
+    .with(console_layer)
     .with(
         tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
             // axum logs rejections from built-in extractors with the `axum::rejection`
             // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
-            "manager=debug,tower_http=debug,axum::rejection=trace".into()
+            "manager=trace,tower_http=debug,axum::rejection=trace,tokio=trace".into()
         }),
     )
     .with(tracing_subscriber::fmt::layer())
     .init();
-*/
+
 
     let config = Arc::new(Mutex::new(Config::default()));
 
-    /*
+    
     let config_handle = config.clone();
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
-            let config_locked1 = config_handle.lock().await;
-            let cfg1= config_locked1.clone();
-            drop(config_locked1);
+            let _ = update_machine_install_state(&config_handle).await;
+            let _ = update_cluster_config(&config_handle).await;
 
-            for machine in cfg1.machines.values() {
-                if machine.poll_install_state(&cfg1.clusters).await.is_ok(){
-                    let mut config_locked2 = config_handle.lock().await;
-                    let machine = config_locked2.machines.get_mut(&machine.name).unwrap();
-                    machine.install.as_mut().unwrap().state = Some(InstallState::Installed);
-                    drop(config_locked2);
-
-                }
-            }
+            
         }
     });
 
-*/
+
 
     //Machine::delete_all_mows_machines().unwrap();
 
@@ -131,6 +129,8 @@ async fn main() -> Result<(), Error> {
 
 
     Command::new("pixiecore").args(["api",api_url,"-l","192.168.111.3"]).spawn()?;
+    Command::new("pixiecore").args(["api",api_url,"-l","192.168.122.2"]).spawn()?;
+
 
 
     let app = Router::new()
@@ -144,7 +144,7 @@ async fn main() -> Result<(), Error> {
         .nest_service("/", serve_dir)
         .layer(CorsLayer::new()
         .allow_origin(origins)
-        .allow_methods([Method::GET,Method::POST,Method::PUT]).allow_headers([CONTENT_TYPE]))
+        .allow_methods([Method::GET,Method::POST,Method::PUT,Method::DELETE]).allow_headers([CONTENT_TYPE]))
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(|error: BoxError| async move {

@@ -37,6 +37,10 @@ export default class App extends PureComponent<AppProps, AppState> {
         await this.client.api.updateConfig(JSON.parse(this.state.config)).catch(console.error);
     };
 
+    deleteAllMowsMachines = async () => {
+        await this.client.api.deleteAllMachines().catch(console.error);
+    };
+
     render = () => {
         return (
             <div className="App">
@@ -46,6 +50,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                     onChange={e => this.setState({ config: e.target.value })}
                 ></textarea>
                 <br />
+                <button onClick={this.deleteAllMowsMachines}>Delete all MOWS machines</button>
                 <button onClick={this.updateConfig}>Update config</button>
                 <button onClick={this.createMachines}>Create machines</button>
                 <button onClick={this.createCluster}>Create cluster</button>

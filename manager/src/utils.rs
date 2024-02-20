@@ -1,6 +1,14 @@
+use std::sync::Arc;
+
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
+};
+use tokio::sync::Mutex;
+
+use crate::{
+    config::{Config, InstallState},
+    some_or_bail,
 };
 
 pub fn generate_id(length: usize) -> String {
@@ -38,4 +46,44 @@ where
     fn from(err: E) -> Self {
         Self(err.into())
     }
+}
+
+pub async fn update_machine_install_state(
+    config_handle: &Arc<Mutex<Config>>,
+) -> anyhow::Result<()> {
+    let config_locked1 = config_handle.lock().await;
+    let cfg1 = config_locked1.clone();
+    drop(config_locked1);
+
+    for machine in cfg1.machines.values() {
+        if machine.poll_install_state(&cfg1.clusters).await.is_ok() {
+            let mut config_locked2 = config_handle.lock().await;
+            let machine = some_or_bail!(
+                config_locked2.machines.get_mut(&machine.id),
+                "Machine not found"
+            );
+            machine.install.as_mut().unwrap().state = Some(InstallState::Installed);
+            drop(config_locked2);
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn update_cluster_config(config_handle: &Arc<Mutex<Config>>) -> anyhow::Result<()> {
+    let config_locked1 = config_handle.lock().await;
+    let cfg1 = config_locked1.clone();
+    drop(config_locked1);
+
+    for cluster in cfg1.clusters.values() {
+        let kubeconfig = cluster.get_kubeconfig(&cfg1).await?;
+        let mut config_locked2 = config_handle.lock().await;
+        let cluster = some_or_bail!(
+            config_locked2.clusters.get_mut(&cluster.id),
+            "Cluster not found"
+        );
+        cluster.kubeconfig = Some(kubeconfig);
+    }
+
+    Ok(())
 }

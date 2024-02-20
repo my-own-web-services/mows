@@ -7,12 +7,12 @@ services:
         build:
             context: .
             dockerfile: no-ui.Dockerfile
-
         networks:
             mows-manager-bridge:
             mows-manager-direct-attach:
                 ipv4_address: "192.168.111.3"
             mows-manager-qemu:
+                ipv4_address: "192.168.122.2"
         ports:
             - "127.0.0.1:3000:3000"
         volumes:

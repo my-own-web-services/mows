@@ -1,4 +1,6 @@
-use std::{path::Path, process::Command};
+use std::path::Path;
+
+use tokio::process::Command;
 
 use crate::{
     config::{PixiecoreBootConfig, SshAccess},
@@ -9,7 +11,7 @@ use crate::{
 const DOWNLOAD_DIRECTORY: &str = "/pxe_files";
 
 impl PixiecoreBootConfig {
-    pub fn new(
+    pub async fn new(
         kairos_version: &str,
         k3s_version: &str,
         os: &str,
@@ -26,7 +28,7 @@ impl PixiecoreBootConfig {
             "Failed to convert cloud init path to string"
         ))?;
 
-        Self::download_os_images(kairos_version, k3s_version, os)?;
+        Self::download_os_images(kairos_version, k3s_version, os).await?;
         Self::generate_cloud_init(
             hostname,
             ssh_config,
@@ -59,7 +61,11 @@ impl PixiecoreBootConfig {
         Ok(format!("rd.neednet=1 rd.live.overlay.overlayfs=1 ip=dhcp rd.cos.disable root=live:{{{{ URL \"file://{squashfs_path}\" }}}} netboot nodepair.enable config_url={{{{ URL \"file://{cloud_init_path}\" }}}} console=tty1 console=ttyS0 console=tty0"))
     }
 
-    fn download_os_images(kairos_version: &str, k3s_version: &str, os: &str) -> anyhow::Result<()> {
+    async fn download_os_images(
+        kairos_version: &str,
+        k3s_version: &str,
+        os: &str,
+    ) -> anyhow::Result<()> {
         std::fs::create_dir_all(DOWNLOAD_DIRECTORY)?;
 
         let kernel_path = Self::get_artifact_path("-kernel", kairos_version, k3s_version, os)?;
@@ -73,15 +79,18 @@ impl PixiecoreBootConfig {
         Command::new("wget")
             .args(["-nc", &kernel_url, "-O", &kernel_path])
             .spawn()?
-            .wait()?;
+            .wait()
+            .await?;
         Command::new("wget")
             .args(["-nc", &initrd_url, "-O", &initrd_path])
             .spawn()?
-            .wait()?;
+            .wait()
+            .await?;
         Command::new("wget")
             .args(["-nc", &squashfs_url, "-O", &squashfs_path])
             .spawn()?
-            .wait()?;
+            .wait()
+            .await?;
 
         Ok(())
     }

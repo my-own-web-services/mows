@@ -38,6 +38,8 @@ tokio = { version = "1.17.0", default-features = false, features = [
     "macros",
     "signal",
     "fs",
+    "tracing",
+    "full",
 ] }
 utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
 utoipa = { version = "4", features = ["axum_extras"] }
