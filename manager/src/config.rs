@@ -11,18 +11,18 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn get_node_by_name(&self, node_name: &str) -> Option<ClusterNode> {
+    pub fn get_node_by_machine_id(&self, machine_id: &str) -> Option<ClusterNode> {
         for cluster in self.clusters.values() {
-            if let Some(node) = cluster.cluster_nodes.get(node_name) {
+            if let Some(node) = cluster.cluster_nodes.get(machine_id) {
                 return Some(node.clone());
             }
         }
         None
     }
 
-    pub fn get_machine_by_name(&self, machine_name: &str) -> Option<Machine> {
+    pub fn get_machine_by_id(&self, machine_id: &str) -> Option<Machine> {
         for machine in self.machines.values() {
-            if machine.id == machine_name {
+            if machine.id == machine_id {
                 return Some(machine.clone());
             }
         }
@@ -44,18 +44,20 @@ pub struct Cluster {
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
 pub struct Machine {
+    pub id: String,
     pub machine_type: MachineType,
     pub mac: Option<String>,
-    pub id: String,
+    pub last_ip: Option<IpAddr>,
     pub install: Option<MachineInstall>,
 }
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
 pub struct MachineInstall {
     pub state: Option<InstallState>,
+    pub primary: bool,
     pub boot_config: Option<PixiecoreBootConfig>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Eq, PartialEq, Hash)]
 pub enum InstallState {
     Configured,
     Requested,

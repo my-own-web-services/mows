@@ -1,11 +1,6 @@
 use anyhow::bail;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
-use axum::{
-    extract::{Path, State},
-    Json,
-};
+use axum::{extract::Path, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -13,7 +8,7 @@ use crate::{
     cluster::ClusterCreationConfig,
     config::{Cluster, Config, InstallState, Machine, PixiecoreBootConfig},
     machines::MachineCreationConfig,
-    utils::AppError,
+    utils::{AppError, CONFIG},
 };
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
@@ -29,11 +24,8 @@ pub struct Success {
         (status = 200, description = "Updates the config", body = [Success])
     )
 )]
-pub async fn update_config(
-    State(config): State<Arc<Mutex<Config>>>,
-    Json(posted_config): Json<Config>,
-) -> Json<Success> {
-    let mut config = config.lock().await;
+pub async fn update_config(Json(posted_config): Json<Config>) -> Json<Success> {
+    let mut config = CONFIG.write().await;
 
     *config = posted_config;
 
@@ -49,8 +41,8 @@ pub async fn update_config(
         (status = 200, description = "Gets the config", body = [Config])
     )
 )]
-pub async fn get_config(State(config): State<Arc<Mutex<Config>>>) -> Json<Config> {
-    Json(config.lock().await.clone())
+pub async fn get_config() -> Json<Config> {
+    Json(CONFIG.read().await.clone())
 }
 
 #[utoipa::path(
@@ -63,12 +55,11 @@ pub async fn get_config(State(config): State<Arc<Mutex<Config>>>) -> Json<Config
     )
 )]
 pub async fn create_machines(
-    State(config): State<Arc<Mutex<Config>>>,
     Json(machine_creation_config): Json<MachineCreationConfig>,
 ) -> Result<Json<Success>, AppError> {
     for _ in 0..3 {
         let machine = Machine::new(&machine_creation_config).await?;
-        let mut config_locked = config.lock().await;
+        let mut config_locked = CONFIG.write().await;
         config_locked.machines.insert(machine.id.clone(), machine);
     }
 
@@ -103,10 +94,9 @@ pub async fn delete_all_machines() -> Result<Json<Success>, AppError> {
     )
 )]
 pub async fn create_cluster(
-    State(config): State<Arc<Mutex<Config>>>,
     Json(cluster_creation_config): Json<ClusterCreationConfig>,
 ) -> Result<Json<Success>, AppError> {
-    Cluster::new(config).await?;
+    Cluster::new().await?;
 
     Ok(Json(Success {
         message: "Cluster created".to_string(),
@@ -125,17 +115,13 @@ pub async fn create_cluster(
     )
 )]
 pub async fn get_boot_config_by_mac(
-    State(config): State<Arc<Mutex<Config>>>,
     Path(mac_addr): Path<String>,
 ) -> Result<Json<PixiecoreBootConfig>, AppError> {
-    Ok(Json(get_boot_config(mac_addr, config).await?))
+    Ok(Json(get_boot_config(mac_addr).await?))
 }
 
-pub async fn get_boot_config(
-    mac_addr: String,
-    config: Arc<Mutex<Config>>,
-) -> Result<PixiecoreBootConfig, anyhow::Error> {
-    let mut config = config.lock().await;
+pub async fn get_boot_config(mac_addr: String) -> Result<PixiecoreBootConfig, anyhow::Error> {
+    let mut config = CONFIG.write().await;
 
     for machine in config.machines.values_mut() {
         if let Some(mac) = &machine.mac {

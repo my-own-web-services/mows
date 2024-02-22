@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::IpAddr};
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use crate::{
         PixiecoreBootConfig, SshAccess,
     },
     some_or_bail,
-    utils::generate_id,
+    utils::{generate_id, get_current_ip_from_mac, CONFIG},
 };
 
 impl Machine {
@@ -69,6 +69,7 @@ impl Machine {
                 let machine = Machine {
                     id: machine_name.clone(),
                     mac: Some(mac),
+                    last_ip: None,
                     machine_type: MachineType::LocalQemu,
                     install: None,
                 };
@@ -171,6 +172,7 @@ impl Machine {
                 let machine = Machine {
                     id: name.to_string(),
                     mac: None,
+                    last_ip: None,
                     machine_type: MachineType::LocalQemu,
                     install: None,
                 };
@@ -183,14 +185,14 @@ impl Machine {
 
     #[allow(clippy::too_many_arguments)]
     pub async fn configure_install(
-        &mut self,
+        &self,
         kairos_version: &str,
         k3s_version: &str,
         os: &str,
         k3s_token: &str,
         hostname: &str,
         ssh_config: &SshAccess,
-        primary_node: bool,
+        primary_node: &Option<String>,
     ) -> anyhow::Result<()> {
         let boot_config = PixiecoreBootConfig::new(
             kairos_version,
@@ -203,9 +205,17 @@ impl Machine {
         )
         .await?;
 
-        self.install = Some(MachineInstall {
-            state: Some(InstallState::Configured),
+        let mut config_lock = CONFIG.write().await;
+
+        let current_machine = some_or_bail!(
+            config_lock.machines.get_mut(&self.id),
+            "Machine not found: current_machine"
+        );
+
+        current_machine.install = Some(MachineInstall {
+            state: Some(InstallState::Requested),
             boot_config: Some(boot_config),
+            primary: primary_node.is_none(),
         });
 
         Ok(())
@@ -243,12 +253,50 @@ impl Machine {
         &self,
         clusters: &HashMap<String, Cluster>,
     ) -> anyhow::Result<()> {
-        if self.install.is_some() {
-            let node_ssh_access = &self.get_attached_cluster_node(clusters)?.ssh_access;
-            node_ssh_access.exec(self, "kubectl get nodes", 5).await?;
-            return Ok(());
+        if let Some(install) = &self.install {
+            if install.state == Some(InstallState::Requested) {
+                let node = &self.get_attached_cluster_node(clusters)?;
+
+                let output = node
+                    .ssh_access
+                    .exec(self, &format!("kubectl get node {}", node.machine_id), 5)
+                    .await?;
+
+                dbg!(&output);
+                if output.contains("NotReady") {
+                    bail!("Node not ready")
+                }
+                return Ok(());
+            }
         };
-        bail!("No install found")
+        bail!("No requested install found")
+    }
+
+    pub async fn get_current_ip(&self) -> anyhow::Result<IpAddr> {
+        let mut ip: Option<IpAddr> = None;
+
+        if let Some(mac) = &self.mac {
+            if let Ok(ip_from_mac) = get_current_ip_from_mac(mac).await {
+                if let Ok(ip_from_mac_parsed) = ip_from_mac.parse() {
+                    let mut config_lock = CONFIG.write().await;
+                    let current_machine =
+                        some_or_bail!(config_lock.machines.get_mut(&self.id), "Machine not found");
+                    current_machine.last_ip = Some(ip_from_mac_parsed);
+                    drop(config_lock);
+                    ip = Some(ip_from_mac_parsed);
+                }
+            }
+        };
+
+        if let Some(last_ip) = self.last_ip {
+            ip = Some(last_ip);
+        };
+
+        if let Some(ip) = ip {
+            Ok(ip)
+        } else {
+            bail!("No IP found")
+        }
     }
 }
 
@@ -286,31 +334,4 @@ pub struct LocalQemuConfig {
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct ExternalHetznerConfig {
     pub server_type: String,
-}
-
-pub struct Arp {
-    pub ip: String,
-    pub hwtype: String,
-    pub mac: String,
-}
-
-pub async fn get_connected_machines() -> anyhow::Result<Vec<Arp>> {
-    let output = Command::new("arp").output().await?;
-    let output = String::from_utf8(output.stdout)?;
-
-    let lines: Vec<&str> = output.lines().skip(1).collect();
-
-    let mut arp_lines = vec![];
-
-    for line in lines {
-        let arp_line: Vec<&str> = line.split_whitespace().collect();
-
-        arp_lines.push(Arp {
-            ip: some_or_bail!(arp_line.first(), "Could not get ip from arp").to_string(),
-            hwtype: some_or_bail!(arp_line.get(1), "Could not get hwtype from arp").to_string(),
-            mac: some_or_bail!(arp_line.get(2), "Could not get mac from arp").to_string(),
-        });
-    }
-
-    Ok(arp_lines)
 }

@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use anyhow::bail;
 use tokio::process::Command;
 
 use crate::{
@@ -18,7 +19,7 @@ impl PixiecoreBootConfig {
         k3s_token: &str,
         hostname: &str,
         ssh_config: &SshAccess,
-        primary_node: bool,
+        primary_node: &Option<String>,
     ) -> anyhow::Result<Self> {
         let file_name = format!("cloud-init-{}.yml", generate_id(50));
 
@@ -98,7 +99,7 @@ impl PixiecoreBootConfig {
     fn generate_cloud_init(
         hostname: &str,
         ssh_config: &SshAccess,
-        primary_node: bool,
+        primary_node: &Option<String>,
         k3s_token: &str,
         cloud_init_path: &str,
     ) -> anyhow::Result<()> {
@@ -113,32 +114,32 @@ impl PixiecoreBootConfig {
             ("INSTALL_DEVICE", "/dev/vda".to_string()),
         ];
 
-        if primary_node {
+        let (template, local_replacements) = if primary_node.is_none() {
             let template = include_str!("./cloud-config/primary.yml");
 
             let local_replacements: Vec<(&str, String)> = vec![];
 
-            replacements.extend(local_replacements);
-
-            let mut temp_config = template.to_string();
-            for (key, value) in replacements.iter() {
-                temp_config = temp_config.replace(&format!("{replacement_prefix}{key}"), value);
-            }
-
-            std::fs::write(cloud_init_path, temp_config)?;
+            (template, local_replacements)
         } else {
             let template = include_str!("./cloud-config/secondary.yml");
-            let local_replacements: Vec<(&str, String)> = vec![];
+            let local_replacements: Vec<(&str, String)> =
+                vec![("PRIMARY_NODE_HOSTNAME", primary_node.clone().unwrap())];
 
-            replacements.extend(local_replacements);
-
-            let mut temp_config = template.to_string();
-            for (key, value) in replacements.iter() {
-                temp_config = temp_config.replace(&format!("{replacement_prefix}{key}"), value);
-            }
-
-            std::fs::write(cloud_init_path, temp_config)?;
+            (template, local_replacements)
         };
+
+        replacements.extend(local_replacements);
+
+        let mut temp_config = template.to_string();
+        for (key, value) in replacements.iter() {
+            temp_config = temp_config.replace(&format!("{replacement_prefix}{key}"), value);
+        }
+
+        if temp_config.contains(replacement_prefix) {
+            bail!("Failed to replace all replacements in cloud-init")
+        }
+
+        std::fs::write(cloud_init_path, temp_config)?;
 
         Ok(())
     }

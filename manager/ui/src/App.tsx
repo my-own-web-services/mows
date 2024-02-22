@@ -19,6 +19,10 @@ export default class App extends PureComponent<AppProps, AppState> {
     }
 
     componentDidMount = async () => {
+        await this.loadConfig();
+    };
+
+    loadConfig = async () => {
         const config = (await this.client.api.getConfig()).data;
         this.setState({ config: JSON.stringify(config) });
     };
@@ -27,10 +31,12 @@ export default class App extends PureComponent<AppProps, AppState> {
         await this.client.api
             .createMachines({ LocalQemu: { memory: 4, cpus: 2 } })
             .catch(console.error);
+        await this.loadConfig();
     };
 
     createCluster = async () => {
         await this.client.api.createCluster({}).catch(console.error);
+        await this.loadConfig();
     };
 
     updateConfig = async () => {
@@ -39,6 +45,7 @@ export default class App extends PureComponent<AppProps, AppState> {
 
     deleteAllMowsMachines = async () => {
         await this.client.api.deleteAllMachines().catch(console.error);
+        await this.loadConfig();
     };
 
     render = () => {

@@ -7,15 +7,13 @@ use axum::{routing::post, Router};
 use manager::api;
 use manager::api::*;
 use manager::config::*;
-use manager::utils::{update_cluster_config, update_machine_install_state};
+use manager::utils::{get_cluster_config, install_cluster_basics, update_machine_install_state, CONFIG};
 use tokio::process::Command;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use std::io::Error;
-use std::sync::Arc;
 use std::time::Duration;
 use tokio::signal;
-use tokio::sync::Mutex;
 use tower_http::services::{ServeDir, ServeFile};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -32,6 +30,8 @@ use tikv_jemallocator::Jemalloc;
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
+
+
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -78,37 +78,64 @@ async fn main() -> Result<(), Error> {
         )
     )]
     struct ApiDoc;
+    {
+        let _ = CONFIG.read().await;
+    }
 
-
-    let console_layer=    console_subscriber::ConsoleLayer::builder()
-    .server_addr(([0, 0, 0, 0], 6669))
-    .spawn();
+    let console_layer = console_subscriber::ConsoleLayer::builder()
+        .server_addr(([0, 0, 0, 0], 6669))
+        .spawn();
 
 
     tracing_subscriber::registry()
-    .with(console_layer)
-    .with(
-        tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            // axum logs rejections from built-in extractors with the `axum::rejection`
-            // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
-            "manager=trace,tower_http=debug,axum::rejection=trace,tokio=trace".into()
-        }),
-    )
-    .with(tracing_subscriber::fmt::layer())
-    .init();
+        .with(console_layer)
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                // axum logs rejections from built-in extractors with the `axum::rejection`
+                // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
+                "manager=debug,tower_http=debug,axum::rejection=trace,tokio=debug".into()
+            }),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
 
-    let config = Arc::new(Mutex::new(Config::default()));
 
     
-    let config_handle = config.clone();
-    tokio::spawn(async move {
+    tokio::spawn(async {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
-            let _ = update_machine_install_state(&config_handle).await;
-            let _ = update_cluster_config(&config_handle).await;
+            match update_machine_install_state().await{
+                Ok(_) => {},
+                Err(e) => {
+                    println!("Error updating machine install state: {:?}",e);
+                }
+            };
 
-            
+        }
+    });
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+
+            match get_cluster_config().await{
+                Ok(_) => {},
+                Err(e) => {
+                    println!("Error getting cluster config: {:?}",e);
+                }
+            };
+        }
+    });
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+
+            match install_cluster_basics().await{
+                Ok(_) => {},
+                Err(e) => {
+                    println!("Error installing cluster basics: {:?}",e);
+                }
+            };
         }
     });
 
@@ -160,8 +187,7 @@ async fn main() -> Result<(), Error> {
                 .timeout(Duration::from_secs(2000))
                 .layer(TraceLayer::new_for_http())
                 .into_inner(),
-        )
-        .with_state(config);
+        );
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 

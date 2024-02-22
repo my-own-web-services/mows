@@ -760,6 +760,8 @@ dependencies = [
  "axum 0.7.4",
  "console-subscriber",
  "lazy_static",
+ "once_cell",
+ "parking_lot 0.12.1",
  "rand",
  "serde",
  "serde_json",

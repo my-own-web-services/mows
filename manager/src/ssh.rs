@@ -1,12 +1,10 @@
-use std::{fs, io::Read, process::Command};
+use std::{io::Read, process::Command};
 
 use ssh2::Session;
 use std::net::TcpStream;
 
 use crate::{
     config::{Machine, SshAccess},
-    machines::get_connected_machines,
-    some_or_bail,
     utils::generate_id,
 };
 
@@ -50,26 +48,22 @@ impl SshAccess {
         Ok(keys)
     }
 
+    pub async fn prepare_manual_access() -> anyhow::Result<()> {
+        todo!()
+        //fs::write("~./ssh/id", contents)
+    }
+
     pub async fn exec(
         &self,
         machine: &Machine,
         command: &str,
         timeout_seconds: u32,
     ) -> anyhow::Result<String> {
-        let ip = Self::get_current_ip_from_mac(some_or_bail!(
-            machine.mac.clone(),
-            "Using something else than mac to get ip of machine is not implemented"
-        ))
-        .await?;
-
-        println!("Executing command on ip: {}", ip);
+        let ip = machine.get_current_ip().await?;
 
         let tcp = TcpStream::connect(format!("{ip}:22"))?;
 
         // TODO add known hosts!
-
-        std::fs::write("/root/.ssh/id", &self.ssh_private_key)?;
-        dbg!(&self.ssh_passphrase);
 
         let mut sess = Session::new()?;
         sess.set_tcp_stream(tcp);
@@ -93,16 +87,5 @@ impl SshAccess {
         channel.wait_close()?;
 
         Ok(s)
-    }
-
-    pub async fn get_current_ip_from_mac(mac: String) -> anyhow::Result<String> {
-        let online_machines = get_connected_machines().await?;
-
-        let arp_machine = some_or_bail!(
-            online_machines.into_iter().find(|arp| arp.mac == mac),
-            "Machine not found"
-        );
-
-        Ok(arp_machine.ip)
     }
 }
