@@ -12,9 +12,9 @@ macro_rules! some_or_bail {
 #[macro_export]
 macro_rules! get_current_config_cloned {
     () => {{
-        let config_locked = CONFIG.read().await;
-        let cfg = config_locked.clone();
-        drop(config_locked);
-        cfg
+        let config_locked_abc = CONFIG.read().await;
+        let cfg_abc = config_locked_abc.clone();
+        drop(config_locked_abc);
+        cfg_abc
     }};
 }

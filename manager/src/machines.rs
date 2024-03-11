@@ -41,6 +41,8 @@ impl Machine {
                         "q35",
                         "--network",
                         "default,model=virtio",
+                        //"--network",
+                        //"bridge=br0,model=virtio",
                         "--boot",
                         "hd,network,menu=on",
                         "--pxe",
@@ -80,6 +82,10 @@ impl Machine {
             MachineCreationConfig::Local(_) => todo!(),
             MachineCreationConfig::ExternalHetzner(_) => todo!(),
         })
+    }
+
+    pub async fn create_direct_attach_network() -> anyhow::Result<()> {
+        todo!()
     }
 
     pub async fn delete(&self) -> anyhow::Result<()> {

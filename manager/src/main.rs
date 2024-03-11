@@ -114,6 +114,7 @@ async fn main() -> Result<(), Error> {
 
         }
     });
+
     tokio::spawn(async {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
@@ -126,6 +127,7 @@ async fn main() -> Result<(), Error> {
             };
         }
     });
+    
     tokio::spawn(async {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;

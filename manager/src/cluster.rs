@@ -78,11 +78,7 @@ impl Cluster {
             config.clusters.insert(cluster_id, cluster.clone());
         }
 
-        let cfg2 = CONFIG.read().await;
-
-        let config = cfg2.clone();
-
-        drop(cfg2);
+        let config = get_current_config_cloned!();
 
         cluster.start_machines(&config).await?;
 
@@ -118,8 +114,6 @@ impl Cluster {
 
         bail!("No reachable node found")
     }
-
-    // TODO clear /var/lib/libvirt/images
 
     pub async fn get_kubeconfig(&self) -> anyhow::Result<String> {
         let config = get_current_config_cloned!();

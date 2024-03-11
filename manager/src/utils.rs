@@ -9,7 +9,7 @@ use tokio::{process::Command, sync::RwLock};
 
 use crate::{
     config::{Config, InstallState, MachineInstall},
-    some_or_bail,
+    get_current_config_cloned, some_or_bail,
 };
 
 pub static CONFIG: Lazy<Arc<RwLock<Config>>> =
@@ -53,9 +53,7 @@ where
 }
 
 pub async fn update_machine_install_state() -> anyhow::Result<()> {
-    let config_locked1 = CONFIG.read().await;
-    let cfg1 = config_locked1.clone();
-    drop(config_locked1);
+    let cfg1 = get_current_config_cloned!();
 
     for machine in cfg1.machines.values() {
         if machine.poll_install_state(&cfg1.clusters).await.is_ok() {
@@ -77,9 +75,7 @@ pub async fn update_machine_install_state() -> anyhow::Result<()> {
 }
 
 pub async fn get_cluster_config() -> anyhow::Result<()> {
-    let config_locked1 = CONFIG.read().await;
-    let cfg1 = config_locked1.clone();
-    drop(config_locked1);
+    let cfg1 = get_current_config_cloned!();
 
     for cluster in cfg1.clusters.values() {
         if cluster.kubeconfig.is_none() {
@@ -98,9 +94,7 @@ pub async fn get_cluster_config() -> anyhow::Result<()> {
 }
 
 pub async fn install_cluster_basics() -> anyhow::Result<()> {
-    let config_locked1 = CONFIG.read().await;
-    let cfg1 = config_locked1.clone();
-    drop(config_locked1);
+    let cfg1 = get_current_config_cloned!();
 
     for cluster in cfg1.clusters.values() {
         if cluster.kubeconfig.is_some() {

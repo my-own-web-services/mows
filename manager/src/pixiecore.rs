@@ -21,7 +21,7 @@ impl PixiecoreBootConfig {
         ssh_config: &SshAccess,
         primary_node: &Option<String>,
     ) -> anyhow::Result<Self> {
-        let file_name = format!("cloud-init-{}.yml", generate_id(50));
+        let file_name = format!("cloud-init-{}.yml", generate_id(20));
 
         let cloud_init_path = Path::new("/").join(file_name.clone());
 

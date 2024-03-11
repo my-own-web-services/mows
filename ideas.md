@@ -104,3 +104,5 @@ the whole reason is that pixiecore has no real dhcp server but only a proxy one 
 this is why it worked so flawless with qemu which has a dhcp server built in
 
 RTFM xD but also there where multiple issues making this difficult to figure out
+
+`sudo journalctl -u k3s.service`

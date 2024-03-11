@@ -19,6 +19,8 @@ docker network create -d macvlan \
     --gateway=192.168.111.1  \
     -o parent=${DEV_NAME} mows-manager-dhcp || true
 
+#sudo brctl addbr br0 || true
+
 
 docker run \
     --cap-add NET_ADMIN \

@@ -1,5 +1,11 @@
 import { PureComponent } from "react";
 import { Api } from "./api-client";
+import Dev from "./components/Dev";
+import { CustomProvider } from "rsuite";
+import { BrowserRouter, Route, Switch } from "react-router-dom";
+import "rsuite/dist/rsuite.min.css";
+import "./index.scss";
+import Navbar from "./components/Navbar";
 
 interface AppProps {}
 
@@ -22,45 +28,35 @@ export default class App extends PureComponent<AppProps, AppState> {
         await this.loadConfig();
     };
 
+    updateConfig = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        this.setState({ config: e.target.value });
+    };
+
     loadConfig = async () => {
         const config = (await this.client.api.getConfig()).data;
         this.setState({ config: JSON.stringify(config) });
     };
 
-    createMachines = async () => {
-        await this.client.api
-            .createMachines({ LocalQemu: { memory: 4, cpus: 2 } })
-            .catch(console.error);
-        await this.loadConfig();
-    };
-
-    createCluster = async () => {
-        await this.client.api.createCluster({}).catch(console.error);
-        await this.loadConfig();
-    };
-
-    updateConfig = async () => {
-        await this.client.api.updateConfig(JSON.parse(this.state.config)).catch(console.error);
-    };
-
-    deleteAllMowsMachines = async () => {
-        await this.client.api.deleteAllMachines().catch(console.error);
-        await this.loadConfig();
-    };
-
     render = () => {
         return (
             <div className="App">
-                <textarea
-                    style={{ width: "500px", height: "500px" }}
-                    value={this.state.config}
-                    onChange={e => this.setState({ config: e.target.value })}
-                ></textarea>
-                <br />
-                <button onClick={this.deleteAllMowsMachines}>Delete all MOWS machines</button>
-                <button onClick={this.updateConfig}>Update config</button>
-                <button onClick={this.createMachines}>Create machines</button>
-                <button onClick={this.createCluster}>Create cluster</button>
+                <CustomProvider theme={"dark"}>
+                    <BrowserRouter>
+                        <Navbar />
+                        <span className="Page">
+                            <Switch>
+                                <Route path="/dev/">
+                                    <Dev
+                                        client={this.client}
+                                        config={this.state.config}
+                                        loadConfig={this.loadConfig}
+                                        updateConfig={this.updateConfig}
+                                    ></Dev>
+                                </Route>
+                            </Switch>
+                        </span>
+                    </BrowserRouter>
+                </CustomProvider>
             </div>
         );
     };
