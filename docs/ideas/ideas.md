@@ -15,7 +15,7 @@ with engine v2 longhorn is pretty fast and provides the easiest interface and ux
 # workload
 
 -   container
--   kata container
+-   Kata container
 -   confidential container
 -   vm
 
@@ -66,7 +66,7 @@ Setup a new node?
 -   handle the addition and removal of hard drives, shutting down the node and adding new drives to longhorn
 -   run self checks, auto detect and fix issues that may arise
 -   update nodes (one after another)
--   shutdown nodes for maintance to run memchecks
+-   shutdown nodes for maintenance to run memchecks
 -   simulate and test new cluster after update before actually updating
 -   run backups
 -   automatic backup testing in vm
@@ -92,11 +92,11 @@ Setup a new node?
 
 `docker run --net=host --cap-add=NET_ADMIN -e DHCP_RANGE_START=192.168.1.3 samdbmg/dhcp-netboot.xyz`
 
-the fix is to use the home network dhcp server or create a basic one ourselfs in the container listening on another ip addr
+the fix is to use the home network dhcp server or create a basic one ourself in the container listening on another ip addr
 
 the first variant might not always work but provides the "working" network config out of the box, its traffic would not be secure as it could be intercepted at any point in the network
 
-the second option requires the direct connection but will always work and be encrypted, when then switchting to the real network the config will be wrong and we will need to find out the new ip address of each node, this shouldnt be a problem though
+the second option requires the direct connection but will always work and be encrypted, when then switching to the real network the config will be wrong and we will need to find out the new ip address of each node, this should not be a problem though
 
 option 16 will also probably work as it is netboot over http (wireshark knows this) but it was hard to find elsewhere what option 16 meant
 
@@ -106,3 +106,13 @@ this is why it worked so flawless with qemu which has a dhcp server built in
 RTFM xD but also there where multiple issues making this difficult to figure out
 
 `sudo journalctl -u k3s.service`
+
+# parts
+
+hardware setup
+
+operating system platform
+
+apis
+
+applications
