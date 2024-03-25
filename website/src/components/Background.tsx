@@ -6,8 +6,8 @@ interface BackgroundProps {}
 interface BackgroundState {}
 
 const hWidth = 100;
-const hHeight = 85;
-const maxWidth = 1400;
+const hHeight = 87.5;
+const maxWidth = 1200;
 
 export default class Background extends Component<BackgroundProps, BackgroundState> {
     render = () => {
@@ -17,28 +17,31 @@ export default class Background extends Component<BackgroundProps, BackgroundSta
                     <AutoSizer>
                         {({ width }) => {
                             const hexes = [];
-                            for (let y = 0; y < 15; y++) {
+                            const hexCountX = Math.ceil(width / hWidth);
+                            for (let y = 0; y < 100; y++) {
                                 const evenRow = y % 2 === 0;
 
-                                for (let x = 0; x < 20; x++) {
-                                    hexes.push(
-                                        <img
-                                            draggable={false}
-                                            style={{
-                                                position: "absolute",
-                                                left:
-                                                    (evenRow
-                                                        ? x * hWidth
-                                                        : x * hWidth + hWidth / 2) -
-                                                    hWidth / 2,
-                                                top: y * hHeight - hHeight / 2,
-                                                contentVisibility: "auto",
-                                                opacity: Math.round(Math.random() + 0.25) + "%"
-                                            }}
-                                            src={Hex}
-                                            alt="background"
-                                        />
-                                    );
+                                for (let x = 0; x < hexCountX; x++) {
+                                    if (Math.random() < 0.1) {
+                                        hexes.push(
+                                            <img
+                                                draggable={false}
+                                                style={{
+                                                    position: "absolute",
+                                                    left:
+                                                        (evenRow
+                                                            ? x * hWidth
+                                                            : x * hWidth + hWidth / 2) -
+                                                        hWidth / 2,
+                                                    top: y * hHeight - hHeight / 2,
+                                                    contentVisibility: "auto",
+                                                    opacity: Math.round(Math.random() * 10) + "%"
+                                                }}
+                                                src={Hex}
+                                                alt="background"
+                                            />
+                                        );
+                                    }
                                 }
                             }
                             return <div style={{ width }}>{hexes}</div>;
