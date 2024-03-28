@@ -199,48 +199,39 @@ div.Background {
         }
         &.Basics {
             .comparison {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                justify-content: flex-start;
-
+                margin-top: 40px;
                 .picker {
-                    display: flex;
-                    width: 250px;
-                    height: 600px;
-                    > div {
-                        //align vertical center in the parent box
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                    }
+                    width: 100%;
+                    height: 50px;
+
                     button {
                         font-weight: 600;
                         font-size: 16px;
                         padding: 10px 20px;
                         cursor: pointer;
-                        width: 100%;
                         text-align: left;
                         border: none;
                         background: none;
+                        display: inline;
                         span {
                             border-bottom: 3px solid transparent;
                         }
                     }
                 }
-                .architectureDisplay {
-                    width: 600px;
-                    height: 600px;
-                }
-                .writtenProblems {
-                    height: 600px;
-                    font-size: 14px;
-                    > div {
-                        height: 100%;
-                    }
+                .architectureDisplayViewer {
+                    height: 700px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
 
-                    li {
-                        list-style: none;
+                    .architectureDisplay {
+                        width: 600px;
+                        height: 600px;
+                    }
+                    .writtenProblems {
+                        li {
+                            list-style: none;
+                        }
                     }
                 }
             }

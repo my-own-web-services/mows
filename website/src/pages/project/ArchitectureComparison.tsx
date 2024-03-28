@@ -75,7 +75,7 @@ const concepts: Concept[] = [
             {
                 group: 0,
                 description:
-                    "You have to manage each system and it's data manually, data is not synchronized between devices"
+                    "You have to manage each system and it's data manually, data is not synchronized between devices."
             },
             {
                 group: 2,
@@ -174,41 +174,36 @@ export default class ArchitectureComparison extends Component<
         return (
             <div className="ArchitectureComparison">
                 <div className={"comparison"}>
-                    <div>
-                        <div className={"picker"}>
-                            <div>
-                                {concepts.map((p, index) => {
-                                    return (
-                                        <button onClick={() => this.selectConcept(index)}>
-                                            <span
-                                                style={{
-                                                    borderBottom:
-                                                        index === this.state.selectedConcept
-                                                            ? "3px solid var(--c-hl1)"
-                                                            : "3px solid transparent"
-                                                }}
-                                            >
-                                                {p.name}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                    <div className={"picker"}>
+                        {concepts.map((p, index) => {
+                            return (
+                                <button onClick={() => this.selectConcept(index)}>
+                                    <span
+                                        style={{
+                                            borderBottom:
+                                                index === this.state.selectedConcept
+                                                    ? "3px solid var(--c-hl1)"
+                                                    : "3px solid transparent"
+                                        }}
+                                    >
+                                        {p.name}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className={"architectureDisplayViewer"}>
+                        <div className={"architectureDisplay"}>
+                            <img
+                                src={`/assets/architecture-problems/concept_${
+                                    this.state.selectedConcept + 1
+                                }.svg`}
+                                width={600}
+                                height={600}
+                                alt=""
+                            />
                         </div>
-                    </div>
-
-                    <div className={"architectureDisplay"}>
-                        <img
-                            src={`/assets/architecture-problems/concept_${
-                                this.state.selectedConcept + 1
-                            }.svg`}
-                            width={600}
-                            height={600}
-                            alt=""
-                        />
-                    </div>
-                    <div className={"writtenProblems"}>
-                        <div>
+                        <div className={"writtenProblems"}>
                             {concepts[this.state.selectedConcept].cons
                                 .sort((a, b) => a.group - b.group)
                                 .map(c => {
