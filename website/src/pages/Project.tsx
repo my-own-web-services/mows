@@ -7,6 +7,7 @@ import ManagerSVG from "../assets/manager.svg";
 import OperatorSVG from "../assets/operator.svg";
 import ManifestExampleImage from "../assets/manifest_example.jpg";
 import ClusterFailure from "../components/animations/ClusterNodeFailure";
+import ArchitectureComparison from "./project/ArchitectureComparison";
 
 interface ProjectProps {}
 interface ProjectState {}
@@ -53,6 +54,12 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                             offers an open solution but still has you covered on all operational
                             basics, to let you focus on what truly matters.
                         </p>
+                    </div>
+                    <div>
+                        <HashNavLink className={"BasicsComparison"}>
+                            <h2>Problems with current architectures</h2>
+                        </HashNavLink>
+                        <ArchitectureComparison />
                     </div>
                     <div>
                         <HashNavLink className={"BasicsDifferent"}>

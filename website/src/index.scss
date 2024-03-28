@@ -62,6 +62,11 @@ h3 {
     margin: 0px 0px;
 }
 
+h4 {
+    font-size: 18px;
+    margin: 0px 0px;
+}
+
 .largeText {
     font-size: var(--fs-large-text);
     color: var(--c-text-dim);
@@ -193,6 +198,52 @@ div.Background {
             }
         }
         &.Basics {
+            .comparison {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                justify-content: flex-start;
+
+                .picker {
+                    display: flex;
+                    width: 250px;
+                    height: 600px;
+                    > div {
+                        //align vertical center in the parent box
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                    }
+                    button {
+                        font-weight: 600;
+                        font-size: 16px;
+                        padding: 10px 20px;
+                        cursor: pointer;
+                        width: 100%;
+                        text-align: left;
+                        border: none;
+                        background: none;
+                        span {
+                            border-bottom: 3px solid transparent;
+                        }
+                    }
+                }
+                .architectureDisplay {
+                    width: 600px;
+                    height: 600px;
+                }
+                .writtenProblems {
+                    height: 600px;
+                    font-size: 14px;
+                    > div {
+                        height: 100%;
+                    }
+
+                    li {
+                        list-style: none;
+                    }
+                }
+            }
             .basicsLine {
                 /*
                 margin: 131px -2px;*/
