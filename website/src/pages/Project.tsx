@@ -7,7 +7,7 @@ import ManagerSVG from "../assets/manager.svg";
 import OperatorSVG from "../assets/operator.svg";
 import ManifestExampleImage from "../assets/manifest_example.jpg";
 import ClusterFailure from "../components/animations/ClusterNodeFailure";
-import ArchitectureComparison from "./project/ArchitectureComparison";
+import ArchitectureProblems from "./project/ArchitectureProblems";
 
 interface ProjectProps {}
 interface ProjectState {}
@@ -43,7 +43,7 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                 </section>
                 <section className={"Basics"}>
                     <div className={"basicsTop"}>
-                        <HashNavLink className={"Basics"}>
+                        <HashNavLink className={"MOWS"}>
                             <h1>My Own Web Services</h1>
                         </HashNavLink>
                         <h2 className={"hl1"}>The cloud OS with batteries included</h2>
@@ -56,22 +56,21 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                         </p>
                     </div>
                     <div>
-                        <HashNavLink className={"BasicsComparison"}>
-                            <h2>Problems with current architectures</h2>
+                        <HashNavLink className={"Why"}>
+                            <h1>Why?</h1>
                         </HashNavLink>
-                        <ArchitectureComparison />
                     </div>
                     <div>
-                        <HashNavLink className={"BasicsDifferent"}>
+                        <HashNavLink className={"WhyProblems"}>
+                            <h2>Problems with current cloud architectures</h2>
+                        </HashNavLink>
+
+                        <ArchitectureProblems />
+                    </div>
+                    <div>
+                        <HashNavLink className={"WhyDifferent"}>
                             <h2>
-                                What makes{" "}
-                                <span
-                                    className={"hl1"}
-                                    style={{ borderBottom: "3px solid var(--c-hl1)" }}
-                                >
-                                    MOWS
-                                </span>{" "}
-                                different?
+                                What makes <span className={"hl1"}>MOWS</span> different?
                             </h2>
                         </HashNavLink>
                         <div className={"basicsLine"}>

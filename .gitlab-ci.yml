@@ -1,0 +1,24 @@
+image: docker:latest
+
+stages:
+    - docker-build
+
+docker-build-web:
+    stage: docker-build
+    image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+    script:
+        - export CI_PUBLIC_REGISTRY=index.docker.io
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
+        - export IMAGE_NAME=firstdorsal/mows-website
+        - export DOCKER_PATH=/website/
+        - mkdir -p /kaniko/.docker
+        - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+        - >-
+            nice -n 19 /kaniko/executor
+            --cache=true
+            --context="${CI_PROJECT_DIR}${DOCKER_PATH}"
+            --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
+            --dockerfile="Dockerfile"
+            --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"

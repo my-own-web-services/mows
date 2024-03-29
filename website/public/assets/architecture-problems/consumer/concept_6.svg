@@ -13,22 +13,6 @@
      id="defs1">
     <marker
        style="overflow:visible"
-       id="Triangle-1-3-3-2-8"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1.001"
-       markerHeight="1.001"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path135-9-2-0-5-6" />
-    </marker>
-    <marker
-       style="overflow:visible"
        id="Triangle-1-3-3-2-8_F-ffffff_S-00ff20"
        refX="0"
        refY="0"
@@ -41,7 +25,7 @@
          transform="scale(0.5)"
          style="fill:#00ff20;fill-rule:evenodd;stroke:#00ff20;stroke-width:1pt"
          d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path1" />
+         id="path31" />
     </marker>
     <marker
        style="overflow:visible"
@@ -54,30 +38,14 @@
        viewBox="0 0 1 1"
        preserveAspectRatio="xMidYMid">
       <g
-         transform="rotate(180,0,0)"
-         id="g7">
+         transform="scale(-1)"
+         id="g44">
         <path
            transform="scale(0.5)"
            style="fill:#00ff20;fill-rule:evenodd;stroke:#00ff20;stroke-width:1pt"
            d="M 5.77,0 -2.88,5 V -5 Z"
-           id="path7" />
+           id="path44" />
       </g>
-    </marker>
-    <marker
-       style="overflow:visible"
-       id="Triangle-9-5-2-8-4-6"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1.001"
-       markerHeight="1.001"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path135-7-6-6-9-9-7" />
     </marker>
     <marker
        style="overflow:visible"
@@ -93,7 +61,7 @@
          transform="scale(0.5)"
          style="fill:#00ff20;fill-rule:evenodd;stroke:#00ff20;stroke-width:1pt"
          d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path2" />
+         id="path32" />
     </marker>
     <marker
        style="overflow:visible"
@@ -106,30 +74,14 @@
        viewBox="0 0 1 1"
        preserveAspectRatio="xMidYMid">
       <g
-         transform="rotate(180,0,0)"
-         id="g8">
+         transform="scale(-1)"
+         id="g45">
         <path
            transform="scale(0.5)"
            style="fill:#00ff20;fill-rule:evenodd;stroke:#00ff20;stroke-width:1pt"
            d="M 5.77,0 -2.88,5 V -5 Z"
-           id="path8" />
+           id="path45" />
       </g>
-    </marker>
-    <marker
-       style="overflow:visible"
-       id="Triangle-94-9-7-5-2-9"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1.001"
-       markerHeight="1.001"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path135-78-8-9-4-0-7" />
     </marker>
     <marker
        style="overflow:visible"
@@ -145,7 +97,7 @@
          transform="scale(0.5)"
          style="fill:#00ff20;fill-rule:evenodd;stroke:#00ff20;stroke-width:1pt"
          d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path3" />
+         id="path33" />
     </marker>
     <marker
        style="overflow:visible"
@@ -158,30 +110,14 @@
        viewBox="0 0 1 1"
        preserveAspectRatio="xMidYMid">
       <g
-         transform="rotate(180,0,0)"
-         id="g9">
+         transform="scale(-1)"
+         id="g46">
         <path
            transform="scale(0.5)"
            style="fill:#00ff20;fill-rule:evenodd;stroke:#00ff20;stroke-width:1pt"
            d="M 5.77,0 -2.88,5 V -5 Z"
-           id="path9" />
+           id="path46" />
       </g>
-    </marker>
-    <marker
-       style="overflow:visible"
-       id="Triangle-0-7-6-9-1-5"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1.001"
-       markerHeight="1.001"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path135-6-2-0-2-9-9" />
     </marker>
     <marker
        style="overflow:visible"
@@ -197,7 +133,7 @@
          transform="scale(0.5)"
          style="fill:#00ff20;fill-rule:evenodd;stroke:#00ff20;stroke-width:1pt"
          d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path4" />
+         id="path34" />
     </marker>
     <marker
        style="overflow:visible"
@@ -210,30 +146,14 @@
        viewBox="0 0 1 1"
        preserveAspectRatio="xMidYMid">
       <g
-         transform="rotate(180,0,0)"
-         id="g10">
+         transform="scale(-1)"
+         id="g47">
         <path
            transform="scale(0.5)"
            style="fill:#00ff20;fill-rule:evenodd;stroke:#00ff20;stroke-width:1pt"
            d="M 5.77,0 -2.88,5 V -5 Z"
-           id="path10" />
+           id="path47" />
       </g>
-    </marker>
-    <marker
-       style="overflow:visible"
-       id="Triangle-9-5-2-8-4-6-8"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1.001"
-       markerHeight="1.001"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path135-7-6-6-9-9-7-0" />
     </marker>
     <marker
        style="overflow:visible"
@@ -249,7 +169,7 @@
          transform="scale(0.5)"
          style="fill:#ffdd00;fill-rule:evenodd;stroke:#ffdd00;stroke-width:1pt"
          d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path5" />
+         id="path35" />
     </marker>
     <marker
        style="overflow:visible"
@@ -262,30 +182,14 @@
        viewBox="0 0 1 1"
        preserveAspectRatio="xMidYMid">
       <g
-         transform="rotate(180,0,0)"
-         id="g11">
+         transform="scale(-1)"
+         id="g48">
         <path
            transform="scale(0.5)"
            style="fill:#ffdd00;fill-rule:evenodd;stroke:#ffdd00;stroke-width:1pt"
            d="M 5.77,0 -2.88,5 V -5 Z"
-           id="path11" />
+           id="path48" />
       </g>
-    </marker>
-    <marker
-       style="overflow:visible"
-       id="Triangle-9-5-2-8-4-6-8-4"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1.001"
-       markerHeight="1.001"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path135-7-6-6-9-9-7-0-9" />
     </marker>
     <marker
        style="overflow:visible"
@@ -301,7 +205,7 @@
          transform="scale(0.5)"
          style="fill:#ffdd00;fill-rule:evenodd;stroke:#ffdd00;stroke-width:1pt"
          d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path6" />
+         id="path36" />
     </marker>
     <marker
        style="overflow:visible"
@@ -314,13 +218,13 @@
        viewBox="0 0 1 1"
        preserveAspectRatio="xMidYMid">
       <g
-         transform="rotate(180,0,0)"
-         id="g12">
+         transform="scale(-1)"
+         id="g49">
         <path
            transform="scale(0.5)"
            style="fill:#ffdd00;fill-rule:evenodd;stroke:#ffdd00;stroke-width:1pt"
            d="M 5.77,0 -2.88,5 V -5 Z"
-           id="path12" />
+           id="path49" />
       </g>
     </marker>
   </defs>
