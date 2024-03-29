@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+    mows:
+        image: firstdorsal/mows-website
+        restart: always
+        container_name: mows-website
+        networks:
+            - rp
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.mows-website.tls.certresolver=default
+            - traefik.http.routers.mows-website.tls.domains[0].main=$DOMAIN
+            - traefik.http.routers.mows-website.tls.domains[0].sans=*.$DOMAIN
+            - traefik.http.routers.mows-website.rule=Host(`mows.$DOMAIN`)
+            - traefik.http.routers.mows-website.priority=1
+            - traefik.http.routers.mows-website.entrypoints=websecure
+            - traefik.http.services.mows-website.loadbalancer.server.port=80
+            - traefik.docker.network=rp
+            #            - com.centurylinklabs.watchtower.enable=true
+            - turing.public
+networks:
+    rp:
+        name: rp

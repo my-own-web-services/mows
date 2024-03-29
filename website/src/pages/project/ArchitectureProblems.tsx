@@ -58,7 +58,7 @@ const concepts: Concept[] = [
             {
                 category: 4,
                 description:
-                    "You are locked in to the provider. You can't easily switch to another provider if you don't like it anymore. This is made difficult on purpose."
+                    "You are locked in to the provider. You can't easily switch to another provider if you don't like it anymore. This is often made difficult on purpose."
             },
 
             {
