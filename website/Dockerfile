@@ -3,7 +3,6 @@ FROM node:21-alpine as build-stage
 WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn
-RUN yarn add sharp @img/sharp-linuxmusl-x64 --ignore-engines
 COPY . .
 RUN yarn build
 

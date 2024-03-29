@@ -7,7 +7,6 @@ interface BackgroundState {}
 
 const hWidth = 100;
 const hHeight = 87.5;
-const maxWidth = 1200;
 
 export default class Background extends Component<BackgroundProps, BackgroundState> {
     render = () => {
