@@ -1,31 +1,30 @@
 {
-  "name": "mows-website",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fontsource-variable/inter": "^5.0.17",
-    "@img/sharp-linuxmusl-x64": "^0.33.3",
-    "@types/animejs": "^3.1.12",
-    "@types/react-router-dom": "5",
-    "animejs": "^3.2.2",
-    "preact": "^10.19.6",
-    "react": "npm:@preact/compat",
-    "react-dom": "npm:@preact/compat",
-    "react-router-dom": "5",
-    "react-virtualized-auto-sizer": "^1.0.24",
-    "sass": "^1.72.0",
-    "sharp": "^0.33.3",
-    "vite-imagetools": "^7.0.0"
-  },
-  "devDependencies": {
-    "@preact/preset-vite": "^2.8.2",
-    "typescript": "^5.2.2",
-    "vite": "^5.2.0"
-  }
+    "name": "mows-website",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@fontsource-variable/inter": "^5.0.17",
+        "@types/animejs": "^3.1.12",
+        "@types/react-router-dom": "5",
+        "animejs": "^3.2.2",
+        "preact": "^10.19.6",
+        "react": "npm:@preact/compat",
+        "react-dom": "npm:@preact/compat",
+        "react-router-dom": "5",
+        "react-virtualized-auto-sizer": "^1.0.24",
+        "sass": "^1.72.0",
+        "sharp": "^0.33.3",
+        "vite-imagetools": "^7.0.0"
+    },
+    "devDependencies": {
+        "@preact/preset-vite": "^2.8.2",
+        "typescript": "^5.2.2",
+        "vite": "^5.2.0"
+    }
 }
