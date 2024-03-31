@@ -1,7 +1,7 @@
 import { Component } from "preact";
 import Face from "../assets/face.jpg";
 import HashNavLink from "../components/HashNavLink";
-import AnyMachine from "../components/animations/AnyMachine";
+//import AnyMachine from "../components/animations/AnyMachine";
 
 import FourParts from "./project/sections/FourParts";
 import Why from "./project/sections/Why";
