@@ -9,9 +9,12 @@
     --c-text-dim: #d5d5d5;
 
     --c-hl1: #ff3a16;
+    --c-hl1-less-opacity: #ff39165e;
+    --c-hl1-even-less-opacity: #ff391627;
 
     --c-hl2: #0199ff;
     --c-hl2-less-opacity: #0199ff5e;
+    --c-hl2-even-less-opacity: #0199ff27;
 
     --c-hl3: #ffb627;
 
@@ -73,6 +76,26 @@ h4 {
     max-width: 600px;
 }
 
+a {
+    color: var(--c-hl2);
+    font-weight: 500;
+}
+
+figcaption {
+    color: var(--c-text-dim);
+    font-size: 12px;
+    text-align: center;
+    max-width: 100%;
+}
+
+figure {
+    margin: 20px 0px;
+}
+
+i {
+    font-variation-settings: "GRAD" 88;
+}
+
 h1,
 h2,
 .largeText,
@@ -90,6 +113,14 @@ h2.hl1 {
 
 section {
     all: unset;
+    margin-bottom: 300px;
+    margin-top: 50px;
+    .subsection {
+        margin-bottom: 300px;
+        h2 {
+            text-align: center;
+        }
+    }
 }
 
 .hl1 {
@@ -121,6 +152,32 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 50px;
+    > * {
+        max-width: 50%;
+    }
+}
+
+.whiteBox {
+    border: 3px solid var(--c-text);
+    padding: 20px;
+    border-radius: 20px;
+    box-sizing: border-box;
+}
+
+.centered {
+    text-align: center;
+}
+
+.slate {
+    background: linear-gradient(
+        120deg,
+        var(--c-hl2-even-less-opacity) 0%,
+        var(--c-background) 100%
+    );
+    border-radius: 20px;
+    box-sizing: border-box;
+    border: 3px ridge var(--c-hl2);
 }
 
 div.Background {
@@ -159,11 +216,6 @@ div.Background {
     }
 }
 
-.orangeBox {
-    border: 3px solid var(--c-hl1);
-    padding: 30px 40px;
-}
-
 .Project {
     width: 100%;
     min-height: 100vh;
@@ -175,9 +227,7 @@ div.Background {
             max-width: 600px;
             margin: 0;
         }
-        margin: 100px 0px;
         > div {
-            margin: 50px 0px;
             .Parts > div {
                 margin: 20px 0px;
             }
@@ -204,9 +254,20 @@ div.Background {
                 }
             }
         }
-        &.Basics {
+
+        &.MOWS {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+
+            > div {
+            }
+        }
+
+        &.Why {
             .ArchitectureProblems {
                 .picker {
+                    text-align: center;
                     width: 100%;
                     margin: 20px 0px;
 
@@ -231,21 +292,35 @@ div.Background {
                     }
                 }
                 .architectureDisplay {
-                    min-height: 820px;
                     display: flex;
                     justify-content: space-between;
-                    align-items: center;
-                    > div {
-                        width: 48%;
-
-                        > img {
+                    align-items: start;
+                    margin-top: 30px;
+                    height: 850px;
+                    .imageBox {
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        img {
                             width: 100%;
+                            flex-shrink: 1;
                         }
+                        margin-right: 20px;
+                        height: 100%;
+                    }
+
+                    ul {
+                        padding: 0;
+                        max-width: 500px;
+                        padding: 0px 20px;
+                        margin: 0px;
                     }
 
                     .writtenProblems {
-                        > div {
-                            margin: 10px 0px;
+                        li {
+                            list-style-position: outside;
+                            margin-left: 20px;
                         }
                         h4 {
                             margin-top: 20px;
@@ -271,6 +346,9 @@ div.Background {
                         max-width: 800px;
                     }
                 }
+            }
+
+            .subsections.solutions {
             }
         }
         &.FourParts {
@@ -316,7 +394,7 @@ nav {
             margin: 0px 20px;
             padding: 2px 0px;
             &.active {
-                border-bottom: 2px solid var(--c-text);
+                border-bottom: 3px solid var(--c-hl1);
             }
         }
     }

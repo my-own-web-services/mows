@@ -247,7 +247,7 @@ const concepts: Concept[] = [
             {
                 category: 0,
                 description:
-                    "Managing your own email server can be made very easy regarding the technical concerns but unfortunately big providers are sometimes blocking email servers, so you might need to contact them to get removed. The problem is that a few big providers have too much power and often aren't following standards. This is a big problem for the decentralization of the internet."
+                    "Managing your own email server can be made very easy regarding the technical concerns but unfortunately big providers are sometimes blocking email servers, so you might need to contact them to get removed. The problem is that a few big providers have too much power and often aren't following standards. Things like this are big problems for the decentralization of the internet."
             }
         ],
         groups: [0, 1]
@@ -335,8 +335,18 @@ export default class ArchitectureProblems extends Component<
                     })}
                 </div>
 
-                <div className={"architectureDisplay orangeBox"}>
-                    <div className={"writtenProblems"}>
+                <div className={"architectureDisplay"}>
+                    <div className={"whiteBox imageBox"}>
+                        <img
+                            src={`/assets/architecture-problems/${
+                                concepts[this.state.selectedConcept]?.image
+                            }`}
+                            width={600}
+                            height={600}
+                            alt=""
+                        />
+                    </div>
+                    <ul className={"writtenProblems"}>
                         {concepts[this.state.selectedConcept]?.cons
                             .sort((a, b) => a.category - b.category)
                             .flatMap(c => {
@@ -349,7 +359,7 @@ export default class ArchitectureProblems extends Component<
                                     ) === c;
 
                                 return (
-                                    <div>
+                                    <div className={""}>
                                         {isFirst ? (
                                             <div>
                                                 <div
@@ -361,7 +371,7 @@ export default class ArchitectureProblems extends Component<
                                                             "var(--c-text)",
                                                         float: "left",
                                                         marginTop: 8,
-                                                        marginRight: 8,
+                                                        marginRight: 10,
                                                         borderRadius: "50%",
                                                         transform: "scale(1.5)"
                                                     }}
@@ -369,21 +379,11 @@ export default class ArchitectureProblems extends Component<
                                                 <h4>{problemCategories[c.category].name}</h4>
                                             </div>
                                         ) : null}
-                                        <div>- {c.description}</div>
+                                        <li>{c.description}</li>
                                     </div>
                                 );
                             })}
-                    </div>
-                    <div className={""}>
-                        <img
-                            src={`/assets/architecture-problems/${
-                                concepts[this.state.selectedConcept]?.image
-                            }`}
-                            width={600}
-                            height={600}
-                            alt=""
-                        />
-                    </div>
+                    </ul>
                 </div>
             </div>
         );
