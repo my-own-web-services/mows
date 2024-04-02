@@ -450,7 +450,7 @@
   optionalDependencies:
     "@img/sharp-libvips-linuxmusl-arm64" "1.0.2"
 
-"@img/sharp-linuxmusl-x64@0.33.3":
+"@img/sharp-linuxmusl-x64@0.33.3", "@img/sharp-linuxmusl-x64@^0.33.3":
   version "0.33.3"
   resolved "https://registry.yarnpkg.com/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.33.3.tgz#1e533e44abf2e2d427428ed49294ddba4eb11456"
   integrity sha512-Jhchim8kHWIU/GZ+9poHMWRcefeaxFIs9EBqf9KtcC14Ojk6qua7ghKiPs0sbeLbLj/2IGBtDcxHyjCdYWkk2w==
@@ -995,6 +995,13 @@ hoist-non-react-statics@^3.1.0:
   integrity sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==
   dependencies:
     react-is "^16.7.0"
+
+imagetools-core@^6.0.4:
+  version "6.0.4"
+  resolved "https://registry.yarnpkg.com/imagetools-core/-/imagetools-core-6.0.4.tgz#edc6ce096009b5bc4520b3c7654abd22e338c29d"
+  integrity sha512-N1qs5qn7u9nR3kboISkYuvJm8MohiphCfBa+wx1UOropVaFis9/mh6wuDPLHJNhl6/64C7q2Pch5NASVKAaSrg==
+  dependencies:
+    sharp "^0.33.1"
 
 imagetools-core@^7.0.0:
   version "7.0.0"

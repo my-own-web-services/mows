@@ -4,15 +4,18 @@ import ManagerSVG from "../../../assets/manager.svg";
 import OperatorSVG from "../../../assets/operator.svg";
 import ManifestExampleImage from "../../../assets/manifest_example.jpg";
 import ClusterFailure from "../../../components/animations/ClusterNodeFailure";
+import AnyMachine from "../../../components/animations/AnyMachine";
 
 interface FourPartsProps {}
 interface FourPartsState {}
 export default class FourParts extends Component<FourPartsProps, FourPartsState> {
     clusterNodeFailure: RefObject<ClusterFailure>;
+    anyMachine: RefObject<AnyMachine>;
 
     constructor(props: FourPartsProps) {
         super(props);
         this.clusterNodeFailure = createRef<ClusterFailure>();
+        this.anyMachine = createRef<AnyMachine>();
     }
     render = () => {
         return (
@@ -55,13 +58,13 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                                         <h3>Application Management</h3>
                                     </HashNavLink>
                                     <p>
-                                        Every app comes with a application manifest that describes
-                                        its minimum and recommended resource requirements. These
+                                        Every app comes with an application manifest that describes
+                                        its recommended and minimum resource requirements. These
                                         resources include things like storage, network, secrets,
-                                        compute and MOWS APIS. <br /> The admin of the cluster can
-                                        install apps through a web interface choosing if they want
-                                        to give an app the described resources, to adjust them to
-                                        his liking or deny the installation.
+                                        compute and MOWS APIs. <br /> The administrator of the
+                                        cluster can install apps through a web interface, choosing
+                                        if they want to give an app the requested resources, to
+                                        adjust them, or to deny the installation.
                                     </p>
                                 </div>
                                 <img
@@ -81,9 +84,9 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                                         <h3>Storage</h3>
                                     </HashNavLink>
                                     <p>
-                                        Through the use of a storage provider, replicated storage
-                                        gets provisioned and made available to the applications. In
-                                        case of a node(computer) or hard drive
+                                        Through the use of a storage provider, replicated storage is
+                                        provisioned and made available to the applications. In case
+                                        of a node(computer) or hard drive{" "}
                                         <span
                                             onClick={() =>
                                                 this.clusterNodeFailure.current?.runAnimation()
@@ -91,12 +94,12 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                                             title="Click to run animation"
                                             className={"hl1 animationTrigger"}
                                         >
-                                            {" "}
                                             failure
                                         </span>{" "}
-                                        at least one other node is available to continue operating.
-                                        As the data does not fulfill its replication goal anymore it
-                                        is replicated to another healthy node in the background.
+                                        (Click to run Animation) at least one other node is
+                                        available to continue operating. As the data does not
+                                        fulfill its replication goal anymore it is replicated to
+                                        another healthy node in the background.
                                     </p>
                                 </div>
                                 <ClusterFailure
@@ -110,16 +113,16 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                                 <h3>Backup</h3>
                             </HashNavLink>
                             <p>
-                                A out of cluster backup is performed on a regular basis given that
+                                An out-of-cluster backup is performed on a regular basis given that
                                 another machine is provided. The backup is encrypted, compressed,
-                                append only and cannot be deleted without physical access to the
-                                machine. The backup machine should reside at a another physical
-                                location than the cluster, for example on a rented server, a friends
-                                house or virtually on another persons cluster. The backups are
-                                regularly checked to be recoverable. <br />
-                                The backup also contains the clusters configuration data, to make it
+                                append only(if applicable) and cannot be deleted without physical
+                                access to the machine. The backup machine should reside at a another
+                                physical location than the cluster, for example on a rented server,
+                                at a friend's house, or on another persons cluster. The backups are
+                                regularly checked for recovery viability. <br />
+                                The backup also contains the cluster's configuration data, making it
                                 possible to fully restore the cluster to its last healthy state
-                                after a whole cluster failure. The full cluster restore procedure is
+                                after a whole-cluster failure. The full cluster restore procedure is
                                 performed by the MOWS Manager.
                             </p>
                         </div>
@@ -129,25 +132,27 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             </HashNavLink>
                             <p>
                                 Regular health checks are performed on drives, backups and running
-                                applications. <br /> Depending on the cluster setup even low level
+                                applications. <br /> Depending on the cluster setup, even low level
                                 checks like MemTest can be performed by shutting down the machine to
                                 be checked and controlling it with another cluster machine.
                             </p>
                         </div>
                     </div>
                 </div>
+                <br />
+                <br />
 
                 <div className={"FourPartsManager"}>
-                    <div className={"FourPartsOperatorTop childrenSideBySide"}>
+                    <div className={"FourPartsManagerTop childrenSideBySide"}>
                         <div style={{ maxWidth: "50%" }}>
                             <HashNavLink className={"FourPartsManager"}>
                                 <h2>Manager</h2>
                             </HashNavLink>
                             <p className={"largeText"}>
                                 The Manager handles everything that can’t be performed on the
-                                cluster, like the setup, decryption of the drives on a full restart,
-                                adding or removing nodes or drives and recovering the cluster from
-                                backup in case of a complete failure.
+                                cluster, setup, adding or removing nodes or drives, decryption of
+                                the drives on a full restart, and recovering the cluster from backup
+                                in case of a complete failure.
                             </p>
                         </div>
                         <img
@@ -159,28 +164,44 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                         />
                     </div>
                     <div className={"Parts"}>
-                        <div>
-                            <HashNavLink className={"FourPartsManagerSetup"}>
-                                <h3>Setup</h3>
-                            </HashNavLink>
-                            <p>
-                                The initial setup is performed by choosing the machines to install
-                                the cluster on and providing a domain name to use, in case of using
-                                external services their API keys need to be provided. After the
-                                installation you are provided with a single string of text that
-                                contains all system information, secrets and encryption keys. This
-                                information should be stored securely and reliably as it contains
-                                everything required to decrypt, restore from backup or repair the
-                                cluster from the outside. Without it all your data is lost to the
-                                encryption missing its decryption key.
-                            </p>
+                        <div className={"childrenSideBySide"}>
+                            <div>
+                                <HashNavLink className={"FourPartsManagerSetup"}>
+                                    <h3>Setup</h3>
+                                </HashNavLink>
+
+                                <h4>Choose Machines</h4>
+                                <p>
+                                    The initial setup is performed by choosing the machines to
+                                    install the cluster on.{" "}
+                                    <span
+                                        onClick={() => this.anyMachine.current?.runAnimation()}
+                                        title="Click to run animation"
+                                        className={"hl1 animationTrigger"}
+                                    >
+                                        Any combination
+                                    </span>{" "}
+                                    of Local VMs, Local pyhsical machines and rented remote machines
+                                    can be used.
+                                </p>
+                                <p>
+                                    If external services are used, their API keys need to be
+                                    provided. After the installation, you are provided with a single
+                                    string of text that contains all system information, secrets and
+                                    encryption keys. This information should be stored securely and
+                                    reliably as it contains everything required to decrypt, restore
+                                    from backup or repair the cluster from the outside. Without it,
+                                    encrypted data cannot be recovered.
+                                </p>
+                            </div>
+                            <AnyMachine ref={this.anyMachine} />
                         </div>
                         <div>
                             <HashNavLink className={"FourPartsManagerDecryption"}>
                                 <h3>Decryption</h3>
                             </HashNavLink>
                             <p>
-                                After a complete shutdown of the cluster you will need to provide
+                                After a complete shutdown of the cluster, you will need to provide
                                 your secret to the manager to start it again.
                             </p>
                         </div>
@@ -189,14 +210,14 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                                 <h3>Adding/Removing Nodes/Drives</h3>
                             </HashNavLink>
                             <p>
-                                When adding nodes or drives your secret needs to be provided. Adding
-                                a node requires the selection of a machine to add and waiting for
-                                the setup to finish. The removal of a node requires the selection of
-                                a cluster machine to remove. Adding or removing drives works by
-                                starting the removal procedure in the manager ui that will then
-                                guide you through the process, shutting down the node and starting
-                                it again after you finished the manual addition or removal of the
-                                drives.
+                                When adding nodes or drives, your secret needs to be provided.
+                                Adding a node requires the selection of a machine to add and waiting
+                                for the setup to finish. The removal of a node requires the
+                                selection of a cluster machine to remove. Adding or removing drives
+                                works by starting the removal procedure in the manager ui that will
+                                then guide you through the process, shutting down the node and
+                                starting it again after you finished the manual addition or removal
+                                of the drives.
                             </p>
                         </div>
                         <div>
@@ -205,25 +226,27 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             </HashNavLink>
                             <p>
                                 After a full system failure you can choose to recreate the cluster
-                                from the backup. The process starts with the normal setup but then
+                                from the backup. The process starts with the normal setup, but then
                                 imports your operating and user data to restore everything. Some
                                 encryption keys will change in the process.
                             </p>
                         </div>
                     </div>
                 </div>
+                <br />
+                <br />
 
                 <div className={"FourPartsHardware"}>
                     <HashNavLink className={"FourPartsHardware"}>
                         <h2>Hardware</h2>
                     </HashNavLink>
                     <p className={"largeText"}>
-                        The hardware part of the project aims to provide a well integrated,
-                        performant, cost effective solution as a base for the system on top. You can
-                        build it yourself from parts or buy the assembled version to save some time.
-                        To automate the installation on bare metal, consumer hardware as much as
-                        possible, the manager is extended with a few components and a ultra cheap
-                        KVM solution is provided.
+                        The hardware part of the project aims to provide a well-integrated,
+                        performant, cost-effective solution as a base for the system on top. You can
+                        build it yourself from parts, or buy the assembled version to save some
+                        time. To automate the installation on bare metal, and support as much
+                        consumer hardware as much as possible, the manager is extended with a few
+                        components and a cheap KVM solution is provided.
                     </p>
                     <div className={"Parts"}>
                         <div>
@@ -231,21 +254,23 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                                 <h3>Pico KVM</h3>
                             </HashNavLink>
                             <p>
-                                Pi-KVM is awesome but it needs another computer with a full
+                                Pi-KVM is awesome, but it needs another computer with a full
                                 operating system, that would need to be set up and could fail. We
-                                already have three machines to manage and would need three other
-                                ones or an relatively expensive KVM switch to manage them with
-                                Pi-KVM. So we need to convert our existing machines into a KVM
-                                device. For the video input a cheap USB capture card can be used. To
-                                send keystrokes a USB host device would be required on the sending
-                                machine but this is rarely the case. To achieve this cheaply, a
+                                already have three machines to manage and would need three more (or
+                                a relatively expensive KVM switch) to manage them with Pi-KVM. So we
+                                need to convert our existing machines into a KVM device. For the
+                                video input, a cheap USB capture card can be used. To emulate a
+                                keyboard, a USB host device would be required on the sending
+                                machine, but this is rarely the case. To achieve this cheaply, a
                                 custom solution was made that has a Pi Pico forwarding keystrokes to
-                                the other computer, bridging this age old flaw in the USB
+                                the other computer, bridging this age-old flaw in the USB
                                 specification.
                             </p>
                         </div>
                     </div>
                 </div>
+                <br />
+                <br />
                 <div className={"FourPartsApis"}>
                     <HashNavLink className={"FourPartsApis"}>
                         <h2>MOWS Cloud APIs</h2>
@@ -294,6 +319,20 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                                     <li>Option for setting custom metadata on files per app</li>
                                     <li>And many more</li>
                                 </ul>
+                            </p>
+                        </div>
+                        <div>
+                            <HashNavLink className={"FourPartsApisAuth"}>
+                                <h3>Auth</h3>
+                            </HashNavLink>
+                            <p>
+                                The Auth API handles everything related to identity and access
+                                management. Its is based on the{" "}
+                                <a rel={"noreferrer noopener"} href="https://zitadel.com/">
+                                    Zitadel
+                                </a>{" "}
+                                project and configured by the MOWS Operator to integrate with your
+                                Apps.
                             </p>
                         </div>
                     </div>

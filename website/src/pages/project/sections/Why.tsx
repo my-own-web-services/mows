@@ -18,7 +18,7 @@ export default class Why extends Component<WhyProps, WhyState> {
             <section className={"Why"}>
                 <div className={"subsection"}>
                     <HashNavLink className={"WhyProblems"}>
-                        <h2>Problems with current cloud architectures</h2>
+                        <h2>Problems with Current Cloud Architectures</h2>
                     </HashNavLink>
 
                     <ArchitectureProblems />
@@ -26,7 +26,7 @@ export default class Why extends Component<WhyProps, WhyState> {
                 <div className={"subsection"}>
                     <HashNavLink className={"WhyDifferent"}>
                         <h2>
-                            What makes <span className={"hl1"}>MOWS</span> different?
+                            What Makes <span className={"hl1"}>MOWS</span> Different?
                         </h2>
                     </HashNavLink>
                     <div className={"basicsLine"}>
@@ -38,95 +38,97 @@ export default class Why extends Component<WhyProps, WhyState> {
                             src={basics}
                             alt=""
                         />
-                        <div style={{ top: 0, left: 200, width: 332 }}>
-                            <HashNavLink className={"WhyDifferentEasyToUse"}>
-                                <h3>Easy to use</h3>
-                            </HashNavLink>
-                            <p>
-                                MOWS is designed to be easy to setup, use and operate. It is
-                                designed to be usable by everyone, on every device, everywhere.
-                            </p>
-                        </div>
-                        <div style={{ top: 177, left: 295, width: 380 }}>
-                            <HashNavLink className={"WhyDifferentReliable"}>
-                                <h3>Reliable</h3>
-                            </HashNavLink>
-                            <p>
-                                As MOWS is built to run across multiple computers it is highly
-                                reliable, to keep on working after a failure even when you are not
-                                around.
-                            </p>
-                        </div>
+                        <div>
+                            <div className={"WhyDifferentEasyToUse"}>
+                                <HashNavLink className={"WhyDifferentEasyToUse"}>
+                                    <h3>Easy to Use</h3>
+                                </HashNavLink>
+                                <p>
+                                    MOWS is designed to be easy to set up and operate. It's designed
+                                    to be usable by everyone, on any device, everywhere.
+                                </p>
+                            </div>
+                            <div className={"WhyDifferentReliable"}>
+                                <HashNavLink className={"WhyDifferentReliable"}>
+                                    <h3>Reliable</h3>
+                                </HashNavLink>
+                                <p>
+                                    MOWS is built to run across multiple computers, so it's highly
+                                    reliable, and designed to keep on working after a failure, even
+                                    when you are not around.
+                                </p>
+                            </div>
 
-                        <div style={{ top: 360, left: 200, width: 456 }}>
-                            <HashNavLink className={"WhyDifferentSecure"}>
-                                <h3>Secure</h3>
-                            </HashNavLink>
-                            <p>
-                                Application isolation is at the core of the MOWS ecosystem, ensuring
-                                that no bit can escape your control. Full encryption at rest ensures
-                                that your data cannot be stolen physically.
-                            </p>
-                        </div>
-                        <div style={{ top: 525, left: 400, width: 422 }}>
-                            <HashNavLink className={"WhyDifferentPrivate"}>
-                                <h3>Private</h3>
-                            </HashNavLink>
-                            <p>
-                                Reclaim privacy by storing your data locally again, while not losing
-                                the amenities of modern web applications that are usable on and
-                                synced to every device.
-                            </p>
-                        </div>
+                            <div className={"WhyDifferentSecure"}>
+                                <HashNavLink className={"WhyDifferentSecure"}>
+                                    <h3>Secure</h3>
+                                </HashNavLink>
+                                <p>
+                                    Application isolation is at the core of the MOWS ecosystem,
+                                    ensuring that no bit can escape your control. Full encryption at
+                                    rest ensures that your data cannot be stolen physically.
+                                </p>
+                            </div>
+                            <div className={"WhyDifferentPrivate"}>
+                                <HashNavLink className={"WhyDifferentPrivate"}>
+                                    <h3>Private</h3>
+                                </HashNavLink>
+                                <p>
+                                    Reclaim privacy by storing your data locally again, while not
+                                    losing the amenities of modern web applications that are usable
+                                    on&mdash;and synced to&mdash;every device.
+                                </p>
+                            </div>
 
-                        <div style={{ top: 700, left: 295, width: 441 }}>
-                            <HashNavLink className={"WhyDifferentOpen"}>
-                                <h3>Open</h3>
-                            </HashNavLink>
-                            <p>
-                                The open nature of MOWS makes it impossible to get locked in to one
-                                provider. No centralized app store can tell you what to do. MOWS is
-                                licensed under GNU AGPL v3.
-                            </p>
-                        </div>
-                        <div style={{ top: 875, left: 295, width: 370 }}>
-                            <HashNavLink className={"WhyDifferentDeveloperFriendly"}>
-                                <h3>Developer Friendly</h3>
-                            </HashNavLink>
-                            <p>
-                                MOWS streamlines app development by offering a variety of essential
-                                APIs, sparing developers from repetitive, cluttered groundwork while
-                                creating awesome integrated web services.
-                            </p>
-                        </div>
-                        <div style={{ top: 1052, left: 200, width: 550 }}>
-                            <HashNavLink className={"WhyDifferentComprehensive"}>
-                                <h3>Comprehensive</h3>
-                            </HashNavLink>
-                            <p>
-                                MOWS is a holistic solution for a lot of challenges in the current
-                                software ecosystem regarding privacy, ease of use, compatibility,
-                                reliability, easy app development (while preserving privacy) and
-                                many more.
-                            </p>
-                        </div>
-                        <div style={{ top: 1230, left: 295, width: 574 }}>
-                            <HashNavLink className={"WhyDifferentScalable"}>
-                                <h3>Scalable</h3>
-                            </HashNavLink>
-                            <p>
-                                No matter if you are starting in a home lab or in a data center,
-                                MOWS scales with your needs. It is designed to run on multiple
-                                computers but can also run on a single one. MOWS can run on every
-                                machine that can run Linux.
-                            </p>
+                            <div className={"WhyDifferentOpen"}>
+                                <HashNavLink className={"WhyDifferentOpen"}>
+                                    <h3>Open</h3>
+                                </HashNavLink>
+                                <p>
+                                    The open nature of MOWS makes it impossible to get locked in to
+                                    one provider. No centralized app store can tell you what to do.
+                                    MOWS is licensed under GNU AGPL v3.
+                                </p>
+                            </div>
+                            <div className={"WhyDifferentDeveloperFriendly"}>
+                                <HashNavLink className={"WhyDifferentDeveloperFriendly"}>
+                                    <h3>Developer-Friendly</h3>
+                                </HashNavLink>
+                                <p>
+                                    MOWS streamlines app development by offering a variety of
+                                    essential APIs, sparing developers repetitive, cluttered
+                                    groundwork while creating awesome integrated web services.
+                                </p>
+                            </div>
+                            <div className={"WhyDifferentComprehensive"}>
+                                <HashNavLink className={"WhyDifferentComprehensive"}>
+                                    <h3>Comprehensive</h3>
+                                </HashNavLink>
+                                <p>
+                                    MOWS is a holistic solution for a lot of challenges in the
+                                    current software ecosystem regarding privacy, ease of use,
+                                    compatibility, reliability, easy app development (while
+                                    preserving privacy) and many more.
+                                </p>
+                            </div>
+                            <div className={"WhyDifferentScalable"}>
+                                <HashNavLink className={"WhyDifferentScalable"}>
+                                    <h3>Scalable</h3>
+                                </HashNavLink>
+                                <p>
+                                    No matter if you are starting in a home lab or in a data center,
+                                    MOWS scales with your needs. It is designed to run on multiple
+                                    computers but can also run on a single one. MOWS can run on any
+                                    machine that can run Linux.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div className={"subsection solutions"}>
                     <HashNavLink className={"WhySolutions"}>
-                        <h2>All about solutions</h2>
-                        <h3 className={"hl1 centered"}>How MOWS was born</h3>
+                        <h2>All About Solutions</h2>
+                        <h3 className={"hl1 centered"}>How MOWS was Born</h3>
                     </HashNavLink>
                     <br />
                     <Collapsible
@@ -142,8 +144,8 @@ export default class Why extends Component<WhyProps, WhyState> {
                                 <h4>Problem</h4>
 
                                 <p>
-                                    The current IT landscape is in pieces. Big tech has thoroughly
-                                    vanquished their users privacy, sovereignty and choices. <br />
+                                    The current IT landscape is in pieces. Big Tech has thoroughly
+                                    vanquished their users' privacy, sovereignty and choices. <br />
                                     <br />
                                     Smartphone users and developers are forced to use the{" "}
                                     <a
@@ -159,16 +161,16 @@ export default class Why extends Component<WhyProps, WhyState> {
                                         href="https://mobilsicher.de/ratgeber/geheime-kommandozentrale-google-play-dienste"
                                         title="mobilsicher.de: Geheime Kommandozentrale: Google Play-Dienste"
                                     >
-                                        privacy invasive API’s [DE]
+                                        privacy invasive APIs [DE]
                                     </a>
                                     .
                                     <br />
-                                    <br /> To use a simple well integrated ecosystem you are forced
+                                    <br /> To use a simple well integrated ecosystem, you are forced
                                     to pay incredible prices to stay locked in this walled garden
-                                    with no perspective of leaving.
+                                    with no prospects of leaving.
                                     <br />
-                                    <br /> Services and your already payed for products can vanish
-                                    at any time like they have done{" "}
+                                    <br /> Services and your paid-for products can vanish at any
+                                    time, like they have done{" "}
                                     <a
                                         rel={"noopener noreferrer"}
                                         title={
@@ -178,12 +180,12 @@ export default class Why extends Component<WhyProps, WhyState> {
                                     >
                                         many times in the past
                                     </a>
-                                    . Companies can shutdown your accounts and online presence at
-                                    any time regardless of your compliance with local laws but just
-                                    because your <i>legal</i> content does not fit their businesses
-                                    model.
+                                    . Companies can shut down your accounts and online presence at
+                                    will&mdash;regardless of your compliance with relevant
+                                    laws&mdash; just because your content does not fit their
+                                    businesses model.
                                     <br />
-                                    <br /> The move from one time payments to{" "}
+                                    <br /> The move from one-time payments to{" "}
                                     <a
                                         title={
                                             "Jumpstart: Do We Really Own Anything in the Subscription Economy?"
@@ -203,8 +205,8 @@ export default class Why extends Component<WhyProps, WhyState> {
                                     </a>{" "}
                                     if you keep using these services, further supporting this
                                     businesses model. <br />
-                                    <br /> You don’t need a thought out chip implant that gets
-                                    injected in your body when you carry around{" "}
+                                    <br /> You don’t need a imaginary chip implanted in your body
+                                    when you carry around{" "}
                                     <a
                                         title="YouTube: Edward Snowden: How Your Cell Phone Spies on You
 "
@@ -230,9 +232,9 @@ export default class Why extends Component<WhyProps, WhyState> {
                                     will get you. “The greatest trick the Devil ever pulled was
                                     convincing the world he didn't exist.” <br />
                                     <br />
-                                    Right now it is difficult for some and nearly impossible for
-                                    other services, to not be used, raising a growing concern for
-                                    putting all the power into the hands of a few.
+                                    Right now it is difficult and sometimes nearly impossible to
+                                    avoid some of the most popular services, raising a growing
+                                    concern for putting all the power into the hands of a few.
                                 </p>
 
                                 <br />

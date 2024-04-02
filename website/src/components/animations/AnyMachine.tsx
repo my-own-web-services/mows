@@ -58,13 +58,33 @@ const convertPositions = (lines: AnimLine[], first?: boolean): AnimLine[] => {
     return extendedLines.slice(1);
 };
 
-interface AnyMachineProps {}
-interface AnyMachineState {}
+interface AnyMachineProps {
+    readonly style?: any;
+}
+interface AnyMachineState {
+    readonly reloadKey: number;
+}
 export default class AnyMachine extends Component<AnyMachineProps, AnyMachineState> {
-    componentDidMount = () => {
-        anime({
-            targets: ".AnyMachineOverlay",
-            points: convertPositions(animLines)
+    animating: boolean;
+    constructor(props: AnyMachineProps) {
+        super(props);
+        this.animating = false;
+        this.state = { reloadKey: 0 };
+    }
+
+    runAnimation = () => {
+        if (this.animating) return;
+        this.animating = true;
+
+        this.setState({ reloadKey: this.state.reloadKey + 1 }, async () => {
+            console.log("Running AnyMachine animation");
+
+            await anime({
+                targets: ".AnyMachineOverlay",
+                points: convertPositions(animLines)
+            }).finished;
+
+            this.animating = false;
         });
     };
 
@@ -74,9 +94,10 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
 
         return (
             <div
+                key={this.state.reloadKey}
                 className="AnyMachine"
                 style={{
-                    backdropFilter: "blur(10px)"
+                    ...this.props.style
                 }}
             >
                 <div
@@ -84,13 +105,18 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
                         position: "relative",
                         top: "0",
                         left: "0",
-                        width: width,
-                        height: height,
+                        width: "100%",
+                        height: "100%",
                         backdropFilter: "blur(10px)"
                     }}
                 >
                     <svg
-                        style={{ position: "absolute", top: "0", left: "0", zIndex: 1 }}
+                        style={{
+                            position: "absolute",
+                            top: "0",
+                            left: "0",
+                            zIndex: 1
+                        }}
                         width={width}
                         height={height}
                         version="1.1"
@@ -105,7 +131,12 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
                         />
                     </svg>
                     <img
-                        style={{ position: "absolute", top: "0", left: "0", zIndex: 0 }}
+                        style={{
+                            position: "absolute",
+                            top: "0",
+                            left: "0",
+                            zIndex: 0
+                        }}
                         width={width}
                         height={height}
                         src={AnyMachineSVG}

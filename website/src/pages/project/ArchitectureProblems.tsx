@@ -33,17 +33,17 @@ const concepts: Concept[] = [
             {
                 category: 0,
                 description:
-                    "Sync clients can't be used on all devices. The provided web applications can't be extended or customized."
+                    "Sync clients can't be used on all devices. Provided web applications can't be extended or customized."
             },
             {
                 category: 1,
                 description:
-                    "Provider can do anything with your data. Everything you do is monitored and stored."
+                    "Providers can do anything with your data. Everything you do is monitored and stored."
             },
             {
                 category: 2,
                 description:
-                    "Data is hopefully backed up, but you can't be sure. The provider can terminate or delete your data at any time. So effectively you have no backups or need to manage them yourself."
+                    "Data is hopefully backed up, but you can't be sure. The provider can terminate or delete your data at any time. Effectively, you have no backups if you don't manage them yourself."
             },
             {
                 category: 2,
@@ -53,7 +53,7 @@ const concepts: Concept[] = [
             {
                 category: 5,
                 description:
-                    "When using streaming services or buying digital content that you cant download unencrypted, you are at the mercy of the provider to give you access. Even if you bought a movie or song, you don't own it as it can vanish at any time."
+                    "When using streaming services or buying digital content that you cant download unencrypted, you are at the mercy of the provider for access. Even if you bought a movie or song, you don't own it, and it can vanish at any time."
             },
             {
                 category: 4,
@@ -64,7 +64,7 @@ const concepts: Concept[] = [
             {
                 category: 3,
                 description:
-                    "If you have any larger amount of data, you will have to pay a lot for the storage."
+                    "Sooner or later you will hit the free storage limit. After that, you have to pay a lot for the storage."
             }
         ],
         groups: [0]
@@ -75,7 +75,7 @@ const concepts: Concept[] = [
             {
                 category: 4,
                 description:
-                    "You are locked in to the provider. You can't easily switch to another provider if you don't like their services anymore or grow out of them. This is often made difficult on purpose. Migrating is difficult time-consuming, error-prone and sometimes impossible."
+                    "You are locked in to the provider. You can't easily switch to another provider if you don't like their services anymore or outgrow of them. This is often made difficult on purpose. Migrating is difficult, time-consuming, error-prone and sometimes impossible."
             },
             {
                 category: 2,
@@ -85,7 +85,7 @@ const concepts: Concept[] = [
             {
                 category: 3,
                 description:
-                    "If you have any larger amount of data, you will have to pay a lot for the storage."
+                    "If you have larger amounts of data, you will have to pay a lot for the storage."
             },
             {
                 category: 3,
@@ -95,12 +95,12 @@ const concepts: Concept[] = [
             {
                 category: 0,
                 description:
-                    "Managing services and data is difficult. You have to use the providers web interface which is often limited and slow. These rarely upgraded service instances are often a security risk as they are difficult to maintain and configure securely in the first place."
+                    "Managing services and data is difficult. You have to use the provider's web interface, which is often limited and slow. These rarely upgraded service instances are often a security risk as they are difficult to maintain and configure securely in the first place."
             },
             {
                 category: 1,
                 description:
-                    "The provider can not only monitor everything you do, but also everything your visitors do. This also can create compliance issues as you often have no idea where your data is stored."
+                    "The provider can not only monitor everything you do, but also everything your visitors do. This also can create compliance issues as you often have no idea where your visitors' data is stored or how it is used."
             }
         ],
         groups: [1],
@@ -112,7 +112,7 @@ const concepts: Concept[] = [
             {
                 category: 4,
                 description:
-                    "Especially when building on the proprietary APIS of cloud providers, you are locked in to the provider. Your application is worthless without the provider. The provider can raise prices at any time or terminate the service leaving you in the dust."
+                    "Especially when building on the proprietary APIS of cloud providers, you are locked in to the provider. Your application is worthless without the provider. The provider can raise prices or terminate your service at any time, leaving you in the dust."
             },
             {
                 category: 3,
@@ -122,7 +122,7 @@ const concepts: Concept[] = [
             {
                 category: 1,
                 description:
-                    "The provider can not only monitor everything you do, but also everything your visitors do. This also can create compliance issues as you often have no idea where your data is stored or how it is used."
+                    "The provider can not only monitor everything you do, but also everything your visitors do. This also can create compliance issues as you often have no idea where your visitors' data is stored or how it is used."
             }
         ],
         groups: [1],
@@ -140,7 +140,7 @@ const concepts: Concept[] = [
             {
                 category: 0,
                 description:
-                    "You have to manage each system and it's data manually, data is not synchronized between devices."
+                    "You have to manage each system and its data manually, data is not synchronized between devices."
             },
             {
                 category: 2,
@@ -166,7 +166,7 @@ const concepts: Concept[] = [
             {
                 category: 3,
                 description:
-                    "If you have any larger amount of data, you will have to pay a lot for the storage."
+                    "If you have larger amounts of data, you will have to pay a lot for the storage."
             },
             {
                 category: 2,
@@ -237,17 +237,17 @@ const concepts: Concept[] = [
             {
                 category: 2,
                 description:
-                    "Backups can't be created offsite without an internet connection. There is no way around this."
+                    "Backups can't be created off-site without an internet connection. There is no way around this."
             },
             {
                 category: 2,
                 description:
-                    "If you lose your internet connection your services go offline for the rest of the world, although most connections are very stable these days. You can still access your services and data locally."
+                    "If you lose your internet connection, your services go offline for the rest of the world, although most connections are very stable these days. You can still access your services and data locally."
             },
             {
                 category: 0,
                 description:
-                    "Managing your own email server can be made very easy regarding the technical concerns but unfortunately big providers are sometimes blocking email servers, so you might need to contact them to get removed. The problem is that a few big providers have too much power and often aren't following standards. Things like this are big problems for the decentralization of the internet."
+                    "Managing your own email server can be made very easy regarding the technical concerns but unfortunately big providers sometimes block email servers, so you might need to contact them to get removed. The problem is that a few big providers have too much power and often aren't following standards. Things like this are big problems for the decentralization of the internet."
             }
         ],
         groups: [0, 1]

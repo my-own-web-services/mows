@@ -3,7 +3,7 @@ import { Component } from "preact";
 import { CSSProperties } from "react";
 
 interface ClusterNodeFailureProps {
-    readonly style: CSSProperties;
+    readonly style?: CSSProperties;
 }
 interface ClusterNodeFailureState {
     readonly reloadKey: number;

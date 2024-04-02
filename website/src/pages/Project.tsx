@@ -18,14 +18,15 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                 <section className={"Hero"}>
                     <div className={"HeroText"}>
                         <h1>
-                            <span>Leave the dark clouds behind and</span>
-                            <span className={"hl1"}> create your own!</span>
+                            <div>Leave the Dark Clouds Behind and</div>
+
+                            <div className={"hl1"}> Create Your Own!</div>
                         </h1>
                         <p className={"largeText"}>
                             Break free from the confines of tech giants' locked-in cloud
-                            surveillance systems while enjoying the easy, worry-free operation of
-                            your own cloud environment. Reclaim your privacy and sovereignty with
-                            ease by using MOWS.
+                            surveillance systems, while still enjoying the easy, worry-free
+                            operation of your own cloud environment. Reclaim your privacy and
+                            sovereignty by using MOWS.
                         </p>
                     </div>
                     <div className={"Face"}>
@@ -37,25 +38,23 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                         <HashNavLink className={"MOWS"}>
                             <h1>My Own Web Services</h1>
                         </HashNavLink>
-                        <h2 className={"hl1"}>The cloud OS with batteries included</h2>
+                        <h2 className={"hl1"}>The Cloud OS with Batteries Included</h2>
                         <p className={"largeText"}>
                             MOWS makes it easy to start your own multi-computer cloud system from
-                            scratch. Perfect for businesses, individuals, and beyond, it enables
-                            effortless empowerment in reclaiming data sovereignty and privacy. It
-                            offers an open solution but still has you covered on all operational
-                            basics, to let you focus on what truly matters.
+                            scratch. Perfect for businesses, individuals, and beyond. It empowers
+                            you to reclaim data sovereignty and privacy. It offers an open solution,
+                            but still has you covered on all operational basics so you can focus on
+                            what truly matters.
                         </p>
                     </div>
                     <div>
-                        <ClusterNodeFailure style={{ width: "200px" }} />
+                        <ClusterNodeFailure />
                     </div>
                 </section>
 
                 <Why />
 
                 <FourParts />
-
-                <h1>To be continued</h1>
             </main>
         );
     };
