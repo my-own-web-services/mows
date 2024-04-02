@@ -21,3 +21,4 @@ services:
 networks:
     rp:
         name: rp
+        external: true

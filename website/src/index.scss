@@ -46,7 +46,6 @@ body {
     min-height: 100vh;
     background: var(--c-background);
     overflow-x: hidden;
-    width: 100%;
 }
 
 .App {
@@ -54,7 +53,6 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     min-height: 100vh;
-    max-width: 100vw;
 }
 
 .Collapsible {
