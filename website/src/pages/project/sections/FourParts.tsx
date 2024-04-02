@@ -246,6 +246,58 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                         </div>
                     </div>
                 </div>
+                <div className={"FourPartsApis"}>
+                    <HashNavLink className={"FourPartsApis"}>
+                        <h2>MOWS Cloud APIs</h2>
+                    </HashNavLink>
+                    <p className={"largeText"}>
+                        The MOWS cloud APIs make it easy to develop web applications that are well
+                        integrated with the MOWS ecosystem. Building on these APIs makes it possible
+                        for apps to integrate with each other as well as sparing developers from
+                        implementing basic requirements over and over again. The APIs are provided
+                        through http, clients for different languages and directly through frontend
+                        components that also facilitate difficult UI-Server interactions, for
+                        example virtual scrolling of huge file lists.
+                    </p>
+                    <div className={"Parts"}>
+                        <div>
+                            <HashNavLink className={"FourPartsApisFilez"}>
+                                <h3>Filez</h3>
+                            </HashNavLink>
+                            <p>
+                                Filez makes it easy to handle everything file related. It brings
+                                many features with it:
+                                <ul>
+                                    <li>File upload, download, sorting etc.</li>
+                                    <li>
+                                        Optimized display of images by converting them to different
+                                        formats and sizes
+                                    </li>
+                                    <li>
+                                        Optimized video playback by creating multiple different
+                                        sized versions of videos to make adaptive streaming possible
+                                    </li>
+                                    <li>
+                                        Synchronization features and native clients to bridge
+                                        compatibility gaps
+                                    </li>
+                                    <li>Metadata extraction to enable quick searches</li>
+                                    <li>File sharing</li>
+                                    <li>Grouping files manually</li>
+                                    <li>Automatic grouping of files based on metadata</li>
+                                    <li>Tagging files</li>
+                                    <li>Searching files</li>
+                                    <li>OCR</li>
+                                    <li>Automatic image classification</li>
+                                    <li>Transcriptions for audio and video files</li>
+                                    <li>Virtualized scrolling through huge file lists</li>
+                                    <li>Option for setting custom metadata on files per app</li>
+                                    <li>And many more</li>
+                                </ul>
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </section>
         );
     };

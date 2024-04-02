@@ -19,8 +19,10 @@
     --c-hl3: #ffb627;
 
     --fs-h1: 48px;
-    --fs-h2: 36px;
-    --fs-h3: 24px;
+    --fs-h2: 40px;
+    --fs-h3: 30px;
+    --fs-h4: 24px;
+    --fs-h5: 18px;
 
     --fs-large-text: 20px;
 
@@ -31,6 +33,23 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+.Collapsible {
+    .CollapsibleTitle {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        margin: 0px;
+        padding: 10px 0px;
+        svg {
+            margin: 0px 10px;
+
+            transition: transform 0.3s;
+        }
+    }
 }
 
 ::-moz-selection {
@@ -66,7 +85,12 @@ h3 {
 }
 
 h4 {
-    font-size: 18px;
+    font-size: var(--fs-h4);
+    margin: 0px 0px;
+}
+
+h5 {
+    font-size: var(--fs-h5);
     margin: 0px 0px;
 }
 

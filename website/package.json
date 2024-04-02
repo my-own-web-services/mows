@@ -16,6 +16,7 @@
         "preact": "^10.19.6",
         "react": "npm:@preact/compat",
         "react-dom": "npm:@preact/compat",
+        "react-icons": "^5.0.1",
         "react-router-dom": "5",
         "react-virtualized-auto-sizer": "^1.0.24",
         "sass": "^1.72.0",
