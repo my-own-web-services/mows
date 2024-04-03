@@ -170,7 +170,6 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                                     <h3>Setup</h3>
                                 </HashNavLink>
 
-                                <h4>Choose Machines</h4>
                                 <p>
                                     The initial setup is performed by choosing the machines to
                                     install the cluster on.{" "}

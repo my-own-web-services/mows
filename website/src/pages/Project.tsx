@@ -6,6 +6,7 @@ import HashNavLink from "../components/HashNavLink";
 import FourParts from "./project/sections/FourParts";
 import Why from "./project/sections/Why";
 import ClusterNodeFailure from "../components/animations/ClusterNodeFailure";
+import Progress from "./project/sections/Progress";
 
 interface ProjectProps {}
 interface ProjectState {}
@@ -34,22 +35,43 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                     </div>
                 </section>
                 <section className={"MOWS"}>
-                    <div>
-                        <HashNavLink className={"MOWS"}>
-                            <h1>My Own Web Services</h1>
-                        </HashNavLink>
-                        <h2 className={"hl1"}>The Cloud OS with Batteries Included</h2>
-                        <p className={"largeText"}>
-                            MOWS makes it easy to start your own multi-computer cloud system from
-                            scratch. Perfect for businesses, individuals, and beyond. It empowers
-                            you to reclaim data sovereignty and privacy. It offers an open solution,
-                            but still has you covered on all operational basics so you can focus on
-                            what truly matters.
-                        </p>
+                    <div className="subsection childrenCenterFlex">
+                        <div>
+                            <HashNavLink className={"MOWS"}>
+                                <h1>My Own Web Services</h1>
+                            </HashNavLink>
+                            <h2 className={"hl1"}>The Cloud OS with Batteries Included</h2>
+                            <p className={"largeText"}>
+                                MOWS makes it easy to start your own multi-computer cloud system
+                                from scratch. Perfect for businesses, individuals, and beyond. It
+                                empowers you to reclaim data sovereignty and privacy. It offers an
+                                open solution, but still has you covered on all operational basics
+                                so you can focus on what truly matters.
+                            </p>
+                        </div>
+                        <div>
+                            <ClusterNodeFailure />
+                        </div>
                     </div>
-                    <div>
-                        <ClusterNodeFailure />
-                    </div>
+                    <div className={"subsection"}>
+                        <div>
+                            <HashNavLink className={"MOWSWIP"}>
+                                <h2>Work in progress 🏗️</h2>
+                            </HashNavLink>
+                            <p className={"largeText"}>
+                                MOWS is currently in the early stages of development. Layed out
+                                below is the vision of what MOWS will be. Many problems have a
+                                conceptualized solution, but the implementation is still pending. If
+                                you are interested in contributing or donating to help us make this
+                                vision reality, please don't hesitate to{" "}
+                                <a href="mailto:mows@vindelicum.eu">contact us</a>. Sharing the
+                                project, giving feedback, and dropping a star on GitHub, to show
+                                your interest and pushing our motivation, is also highly
+                                appreciated.
+                            </p>
+                        </div>
+                        <Progress />
+                    </div>{" "}
                 </section>
 
                 <Why />

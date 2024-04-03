@@ -48,6 +48,120 @@ body {
     overflow-x: hidden;
 }
 
+.Progress {
+    margin-top: 100px;
+    .Collapsible,
+    .CollapsibleTitle {
+        outline: 1px solid var(--c-text);
+    }
+
+    .Collapsible {
+        padding-bottom: 1px;
+    }
+    .priority {
+        user-select: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        position: relative;
+        display: block;
+        > span {
+            position: absolute;
+            top: -1.5px;
+            font-weight: 600;
+            width: 10px;
+            height: 10px;
+            left: 5px;
+            text-align: center;
+            color: var(--c-background);
+        }
+        &.p1 {
+            background: #ff3a16;
+        }
+        &.p2 {
+            background: #ffb627;
+        }
+        &.p3 {
+            background: #0199ff;
+        }
+        &.p4 {
+            background: #949494;
+        }
+    }
+    .wipSubprojectName {
+        user-select: none;
+        padding-left: 10px;
+        width: 270px;
+        height: 100px;
+        img {
+            transform: scale(1.5);
+        }
+        span {
+            font-size: var(--fs-h4);
+            font-weight: 600;
+            vertical-align: 40px;
+            margin-left: 10px;
+        }
+    }
+    .part {
+        .milestones {
+            display: grid;
+            grid-auto-flow: column;
+            // add a gap before the first element
+
+            overflow-x: auto;
+
+            box-sizing: border-box;
+            .milestone {
+                text-align: left;
+                box-sizing: border-box;
+
+                min-width: 400px;
+
+                border-right: 1px solid var(--c-text);
+                padding: 20px 30px;
+
+                > .topLine {
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    gap: 10px;
+                    font-weight: 600;
+
+                    > .name {
+                        font-size: var(--fs-h5);
+
+                        margin: 0px;
+                    }
+                }
+
+                .task {
+                    height: 50px;
+                    width: 100%;
+                    span.taskName {
+                        // ellipsis if to large
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        display: block;
+                        max-width: fit-content;
+                    }
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-start;
+                    gap: 10px;
+                    min-width: 300px;
+
+                    .icon {
+                        width: 20px;
+                        user-select: none;
+                    }
+                }
+            }
+        }
+    }
+}
+
 .App {
     min-width: 320px;
     max-width: 1200px;
@@ -161,9 +275,6 @@ section {
     margin-top: 50px;
     .subsection {
         margin-bottom: 300px;
-        h2 {
-            text-align: center;
-        }
     }
 }
 
@@ -188,6 +299,15 @@ section {
     }
 }
 
+div.childrenCenterFlex {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
 .whiteBox {
     border: 3px solid var(--c-text);
     padding: 20px;
@@ -195,8 +315,11 @@ section {
     box-sizing: border-box;
 }
 
-.centered {
+.centerAligned {
     text-align: center;
+}
+.leftAligned {
+    text-align: left;
 }
 
 .slate {
@@ -285,22 +408,10 @@ div.Background {
             }
         }
 
-        &.MOWS {
-            max-width: 1000px;
-            margin-left: auto;
-            margin-right: auto;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-
-            > div {
-            }
-        }
-
         &.Why {
             .ArchitectureProblems {
                 .picker {
-                    text-align: center;
+                    text-align: left;
                     width: 100%;
                     margin: 20px 0px;
 
