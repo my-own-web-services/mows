@@ -66,9 +66,11 @@ interface AnyMachineState {
 }
 export default class AnyMachine extends Component<AnyMachineProps, AnyMachineState> {
     animating: boolean;
+    id: number;
     constructor(props: AnyMachineProps) {
         super(props);
         this.animating = false;
+        this.id = Math.floor(Math.random() * 1000000);
         this.state = { reloadKey: 0 };
     }
 
@@ -77,10 +79,8 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
         this.animating = true;
 
         this.setState({ reloadKey: this.state.reloadKey + 1 }, async () => {
-            console.log("Running AnyMachine animation");
-
             await anime({
-                targets: ".AnyMachineOverlay",
+                targets: `.AnyMachineOverlay${this.id}`,
                 points: convertPositions(animLines)
             }).finished;
 
@@ -123,7 +123,7 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
                         xmlns="http://www.w3.org/2000/svg"
                     >
                         <polygon
-                            className={"AnyMachineOverlay"}
+                            className={`AnyMachineOverlay${this.id}`}
                             stroke={"var(--c-hl2)"}
                             fill="none"
                             stroke-width={5}

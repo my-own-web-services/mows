@@ -50,19 +50,23 @@ body {
 
 .Progress {
     margin-top: 100px;
-    .Collapsible,
-    .CollapsibleTitle {
-        outline: 1px solid var(--c-text);
+
+    > .Collapsible {
+        border: 2px solid var(--c-text);
+        border-radius: 10px;
+        margin: 5px;
+        > .CollapsibleTitle.open {
+            border-bottom: 2px solid var(--c-text);
+        }
     }
 
-    .Collapsible {
-        padding-bottom: 1px;
-    }
     .priority {
         user-select: none;
         border-radius: 50%;
         width: 20px;
         height: 20px;
+        min-width: 20px;
+        min-height: 20px;
         position: relative;
         display: block;
         > span {
@@ -103,7 +107,10 @@ body {
             margin-left: 10px;
         }
     }
-    .part {
+    .subprojectCollapsible {
+        margin: 10px 0px;
+    }
+    .subproject {
         .milestones {
             display: grid;
             grid-auto-flow: column;
@@ -116,8 +123,6 @@ body {
                 text-align: left;
                 box-sizing: border-box;
 
-                min-width: 400px;
-
                 border-right: 1px solid var(--c-text);
                 padding: 20px 30px;
 
@@ -126,17 +131,26 @@ body {
                     justify-content: flex-start;
                     align-items: center;
                     gap: 10px;
-                    font-weight: 600;
+                    min-width: 300px;
 
                     > .name {
                         font-size: var(--fs-h5);
-
+                        font-weight: 600;
                         margin: 0px;
                     }
                 }
 
+                .Collapsible {
+                    > .CollapsibleTitle {
+                        padding: 0px 0px;
+                    }
+                }
+                > *div > .pusher {
+                    margin-left: 30px;
+                }
                 .task {
                     height: 50px;
+
                     width: 100%;
                     span.taskName {
                         // ellipsis if to large
@@ -145,6 +159,14 @@ body {
                         text-overflow: ellipsis;
                         display: block;
                         max-width: fit-content;
+                        font-weight: 600;
+                        &.done {
+                            text-decoration: line-through;
+                        }
+
+                        &.inProgress {
+                            color: var(--c-hl3);
+                        }
                     }
                     display: flex;
                     align-items: center;

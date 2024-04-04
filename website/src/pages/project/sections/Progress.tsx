@@ -56,7 +56,7 @@ const parts: ProgressPart[] = [
                     {
                         name: "Install Core APIs",
                         description: "Install and configure MOWS Core APIs and services",
-                        status: "todo",
+                        status: "inProgress",
                         priority: 1
                     },
                     {
@@ -258,18 +258,117 @@ const parts: ProgressPart[] = [
     {
         name: "Apps",
         logo: "apps",
-        milestones: []
+        milestones: [
+            {
+                name: "Password Manager",
+                description: "Create a password manager",
+                priority: 1,
+                tasks: []
+            },
+            {
+                name: "Music Player",
+                description: "Create a music player with synchronized listening",
+                priority: 1,
+                tasks: []
+            },
+            {
+                name: "Video Player",
+                description: "Create a video player",
+                priority: 1,
+                tasks: []
+            },
+
+            {
+                name: "Photo Gallery",
+                description: "Create a photo gallery",
+                priority: 1,
+                tasks: []
+            },
+            {
+                name: "Life Services",
+                description:
+                    "Create a app for mood tracking, journaling, health tracking, calendar for future and past, tracking of routes, visited places and more all in one, file e2e encrypted",
+                priority: 1,
+                tasks: []
+            },
+            {
+                name: "File Downloader",
+                description: "Create a app for downloading files from the web and torrents",
+                priority: 1,
+                tasks: []
+            },
+            {
+                name: "Public/Private photo diary sites with friends",
+                description: "Create a app similar to hexlerz",
+                priority: 1,
+                tasks: []
+            },
+            {
+                name: "Simple Blog",
+                description: "Create a easy to use blog system",
+                priority: 1,
+                tasks: []
+            }
+        ]
     }
 ];
 
 interface ProgressProps {}
 interface ProgressState {}
 export default class Progress extends Component<ProgressProps, ProgressState> {
+    Milestone = (milestone: Milestone, index?: number) => {
+        const completed = milestone.tasks.filter(task => task.status === "done");
+        return (
+            <div className={"milestone"}>
+                <div className={"topLine"}>
+                    <span className={"name"}>{milestone.name}</span>
+                    <div className={`priority p${milestone.priority}`}>
+                        <span>{milestone.priority}</span>
+                    </div>
+                    <span>
+                        {completed.length}/{milestone.tasks.length}
+                    </span>
+                </div>
+                <div>{milestone.description}</div>
+
+                <br />
+                <div>{milestone.tasks.sort((a, b) => a.priority - b.priority).map(this.Task)}</div>
+            </div>
+        );
+    };
+
+    Task = (task: Task, index?: number) => {
+        return (
+            <Collapsible
+                className={"pusher"}
+                key={index}
+                title={
+                    <div className={"task"}>
+                        <div className={`priority p${task.priority}`}>
+                            <span>{task.priority}</span>
+                        </div>
+                        <span className={"icon"}>
+                            {task.status === "done" ? "✅" : task.status === "todo" ? "❌" : "🚧"}
+                        </span>
+                        <span title={task.name} className={`taskName ${task.status}`}>
+                            {task.name}
+                        </span>
+                    </div>
+                }
+            >
+                <div className={"taskDescription"}>{task.description}</div>
+
+                {task.tasks?.sort((a, b) => a.priority - b.priority).map(this.Task)}
+            </Collapsible>
+        );
+    };
+
     render = () => {
         return (
             <div className="Progress">
                 {parts.map(part => (
                     <Collapsible
+                        className="subprojectCollapsible"
                         title={
                             <div className={"wipSubprojectName"}>
                                 <img
@@ -282,61 +381,11 @@ export default class Progress extends Component<ProgressProps, ProgressState> {
                             </div>
                         }
                     >
-                        <div className={"part"}>
+                        <div className={"subproject"}>
                             <div className={"milestones"}>
                                 {part.milestones
                                     .sort((a, b) => a.priority - b.priority)
-                                    .map(milestone => {
-                                        const completed = milestone.tasks.filter(
-                                            task => task.status === "done"
-                                        );
-                                        return (
-                                            <div className={"milestone"}>
-                                                <div className={"topLine"}>
-                                                    <span className={"name"}>{milestone.name}</span>
-                                                    <div
-                                                        className={`priority p${milestone.priority}`}
-                                                    >
-                                                        <span>{milestone.priority}</span>
-                                                    </div>
-                                                    <span>
-                                                        {completed.length}/{milestone.tasks.length}
-                                                    </span>
-                                                </div>
-                                                <div>{milestone.description}</div>
-
-                                                <br />
-                                                <div>
-                                                    {milestone.tasks
-                                                        .sort((a, b) => a.priority - b.priority)
-                                                        .map(task => {
-                                                            return (
-                                                                <div className={"task"}>
-                                                                    <div
-                                                                        className={`priority p${task.priority}`}
-                                                                    >
-                                                                        <span>{task.priority}</span>
-                                                                    </div>
-                                                                    <span className={"icon"}>
-                                                                        {task.status === "done"
-                                                                            ? "✅"
-                                                                            : task.status === "todo"
-                                                                            ? "❌"
-                                                                            : "🚧"}
-                                                                    </span>
-                                                                    <span
-                                                                        title={task.name}
-                                                                        className={"taskName"}
-                                                                    >
-                                                                        {task.name}
-                                                                    </span>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    .map(this.Milestone)}
                             </div>
                         </div>
                     </Collapsible>

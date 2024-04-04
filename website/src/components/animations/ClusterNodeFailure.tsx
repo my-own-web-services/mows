@@ -22,9 +22,11 @@ export default class ClusterNodeFailure extends Component<
     ClusterNodeFailureState
 > {
     animating: boolean;
+    id: number;
     constructor(props: ClusterNodeFailureProps) {
         super(props);
         this.animating = false;
+        this.id = Math.floor(Math.random() * 1000000);
         this.state = { reloadKey: 0 };
     }
 
@@ -32,13 +34,14 @@ export default class ClusterNodeFailure extends Component<
         if (this.animating) {
             return;
         }
+        const currentClassName = `.ClusterNodeFailure${this.id}`;
         this.animating = true;
         this.setState({ reloadKey: this.state.reloadKey + 1 }, async () => {
             const appearTime = 500;
 
             /*
             anime({
-                targets: ".ClusterNodeFailure #path198-1-4",
+                targets: `${currentClassName} #path198-1-4",
                 opacity: [1, 0.9, 1],
                 duration: 1000,
                 loop: true,
@@ -54,17 +57,17 @@ export default class ClusterNodeFailure extends Component<
                     duration: 500
                 })
                 .add({
-                    targets: ".ClusterNodeFailure #g5",
+                    targets: `${currentClassName} #g5`,
                     duration: 300,
                     opacity: [1, 0.1]
                 })
                 .add({
-                    targets: ".ClusterNodeFailure #g5",
+                    targets: `${currentClassName} #g5`,
                     duration: 200,
                     opacity: [1, 0.1]
                 })
                 .add({
-                    targets: ".ClusterNodeFailure #g5",
+                    targets: `${currentClassName} #g5`,
                     duration: 100,
                     opacity: [1, 0.1]
                 })
@@ -72,55 +75,55 @@ export default class ClusterNodeFailure extends Component<
                     duration: 500
                 })
                 .add({
-                    targets: [".ClusterNodeFailure #g198-9", ".ClusterNodeFailure  #g198-0"],
+                    targets: [`${currentClassName} #g198-9`, `${currentClassName}  #g198-0`],
                     duration: 1000,
                     opacity: [1, 0.5, 1, 0.5, 1, 0.5, 1]
                 })
 
                 .add({
-                    targets: ".ClusterNodeFailure #path3-5-2-66-12-0-3-57",
+                    targets: `${currentClassName} #path3-5-2-66-12-0-3-57`,
                     opacity: [0, 1],
                     duration: appearTime
                 })
                 .add({
-                    targets: ".ClusterNodeFailure #path3-5-9-0-7-0-2-6-8",
+                    targets: `${currentClassName} #path3-5-9-0-7-0-2-6-8`,
                     opacity: [0, 1],
                     duration: appearTime
                 })
                 .add({
-                    targets: ".ClusterNodeFailure #path3-5-9-0-7-0-2-6-8-3",
+                    targets: `${currentClassName} #path3-5-9-0-7-0-2-6-8-3`,
                     opacity: [0, 1],
                     duration: appearTime
                 })
                 .add({
-                    targets: ".ClusterNodeFailure #path3-5-2-8-26-5-1-8-24",
+                    targets: `${currentClassName} #path3-5-2-8-26-5-1-8-24`,
                     opacity: [0, 1],
                     duration: appearTime
                 })
                 .add({
-                    targets: ".ClusterNodeFailure #path3-5-2-66-12-0-3-5",
+                    targets: `${currentClassName} #path3-5-2-66-12-0-3-5`,
                     opacity: [0, 1],
                     duration: appearTime
                 })
                 .add({
-                    targets: ".ClusterNodeFailure #path3-5-4-8-97-8-7-1",
-                    opacity: [0, 1],
-                    duration: appearTime
-                })
-
-                .add({
-                    targets: ".ClusterNodeFailure #path3-5-40-51-3-3-9",
-                    opacity: [0, 1],
-                    duration: appearTime
-                })
-                .add({
-                    targets: ".ClusterNodeFailure #path3-5-2-8-64-4-5-26-4",
+                    targets: `${currentClassName} #path3-5-4-8-97-8-7-1`,
                     opacity: [0, 1],
                     duration: appearTime
                 })
 
                 .add({
-                    targets: ".ClusterNodeFailure #path195-47-0-9-0",
+                    targets: `${currentClassName} #path3-5-40-51-3-3-9`,
+                    opacity: [0, 1],
+                    duration: appearTime
+                })
+                .add({
+                    targets: `${currentClassName} #path3-5-2-8-64-4-5-26-4`,
+                    opacity: [0, 1],
+                    duration: appearTime
+                })
+
+                .add({
+                    targets: `${currentClassName} #path195-47-0-9-0`,
                     opacity: [0, 1],
                     duration: appearTime
                 })
@@ -129,7 +132,7 @@ export default class ClusterNodeFailure extends Component<
                 })
                 .add({
                     duration: 2000,
-                    targets: ".ClusterNodeFailure #path197-0-2-1",
+                    targets: `${currentClassName} #path197-0-2-1`,
                     translateY: (-1 * (145.565 - 44.302)) / hScale,
                     translateX: (-1 * (211.081 - 152.784)) / wScale
                 }).finished;
@@ -140,7 +143,11 @@ export default class ClusterNodeFailure extends Component<
 
     render = () => {
         return (
-            <div key={this.state.reloadKey} className="ClusterNodeFailure" style={this.props.style}>
+            <div
+                key={this.state.reloadKey}
+                className={`ClusterNodeFailure ClusterNodeFailure${this.id}`}
+                style={this.props.style}
+            >
                 <div
                     style={{
                         width,
