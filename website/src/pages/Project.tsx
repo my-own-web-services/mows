@@ -65,8 +65,21 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                                 you are interested in contributing or donating to help us make this
                                 vision reality, please don't hesitate to{" "}
                                 <a href="mailto:mows@vindelicum.eu">contact us</a>. Sharing the
-                                project, giving feedback, and dropping a star on GitHub, to show
-                                your interest and pushing our motivation, is also highly
+                                project, giving feedback, asking a{" "}
+                                <a
+                                    rel="noreferrer noopener"
+                                    href="https://github.com/my-own-web-services/mows/discussions"
+                                >
+                                    question
+                                </a>{" "}
+                                and dropping a star on{" "}
+                                <a
+                                    rel="noreferrer noopener"
+                                    href="https://github.com/my-own-web-services/mows"
+                                >
+                                    GitHub
+                                </a>
+                                , to show your interest and pushing our motivation, is also highly
                                 appreciated.
                             </p>
                         </div>
@@ -83,3 +96,14 @@ export default class Project extends Component<ProjectProps, ProjectState> {
 }
 
 //                 <AnyMachine />
+/*this of course does not work because of cors
+        fetch("https://git.vindelicum.eu/firstdorsal/mows/-/graphs/main/charts").then(v =>
+            v.text().then(t => {
+                const beginToken = "Authors: <strong>";
+                const endToken = "</strong>";
+                const t1 = t.substring(t.indexOf(beginToken) + beginToken.length);
+                const t2 = t1.substring(0, t1.indexOf(endToken));
+                console.log(t2);
+            })
+        );
+*/

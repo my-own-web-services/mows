@@ -8,6 +8,8 @@ import Project from "./pages/Project";
 interface AppProps {}
 interface AppState {}
 export default class App extends Component<AppProps, AppState> {
+    componentDidMount = async () => {};
+
     render = () => {
         return (
             <div className="App">
