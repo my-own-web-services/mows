@@ -32,7 +32,7 @@ This is currently my primary job ^^
 I don't love it. I like working on technical stuff a lot more.
 
 -   Explain the project
--   Give guidance on how to start
+-   Give guidance on how to develop the project and in the future apps for it
 
 ### Code
 
