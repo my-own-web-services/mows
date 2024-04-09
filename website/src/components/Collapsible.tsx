@@ -23,7 +23,7 @@ export default class Collapsible extends Component<CollapsibleProps, Collapsible
         return (
             <div
                 key={this.props.key}
-                className={`Collapsible ${this.props.className}`}
+                className={`Collapsible ${this.props.className ?? ""}`}
                 style={this.props.style}
             >
                 <div

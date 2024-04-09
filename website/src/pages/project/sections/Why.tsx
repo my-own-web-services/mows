@@ -15,15 +15,18 @@ interface WhyState {}
 export default class Why extends Component<WhyProps, WhyState> {
     render = () => {
         return (
-            <section className={"Why"}>
-                <div className={"subsection"}>
+            <section className={"Why"} id="Why">
+                <HashNavLink className={"Why"}>
+                    <h1>Why?</h1>
+                </HashNavLink>
+                <div className={"subsection"} id="WhyProblems">
                     <HashNavLink className={"WhyProblems"}>
-                        <h2>Problems with Current Cloud Architectures</h2>
+                        <h2>Problems With Current Architectures</h2>
                     </HashNavLink>
 
                     <ArchitectureProblems />
                 </div>
-                <div className={"subsection"}>
+                <div className={"subsection"} id="WhyDifferent">
                     <HashNavLink className={"WhyDifferent"}>
                         <h2>
                             What Makes <span className={"hl1"}>MOWS</span> Different?
@@ -125,7 +128,7 @@ export default class Why extends Component<WhyProps, WhyState> {
                         </div>
                     </div>
                 </div>
-                <div className={"subsection solutions"}>
+                <div className={"subsection solutions"} id="WhySolutions">
                     <HashNavLink className={"WhySolutions"}>
                         <h2>All About Solutions</h2>
                         <h3 className={"hl1 centered"}>How MOWS was Born</h3>

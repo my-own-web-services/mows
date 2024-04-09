@@ -391,6 +391,45 @@ div.Background {
     }
 }
 
+aside.TableOfContents {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 100vh;
+
+    // align vertical in the parent box
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    padding-left: 30px;
+    box-sizing: border-box;
+    overflow: none;
+    z-index: 10;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    svg,
+    a {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    a {
+        color: var(--c-text-dim);
+        // overflow ellipsis
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .pusher {
+        margin-left: 20px;
+    }
+}
+
 .Project {
     width: 100%;
     min-height: 100vh;
@@ -562,11 +601,11 @@ div.Background {
                     }
                 }
             }
-
-            .subsections.solutions {
-            }
         }
-        &.FourParts {
+        &.How {
+            img {
+                z-index: -1;
+            }
             .manifestExample {
                 max-width: 400px;
                 height: auto;
@@ -574,7 +613,7 @@ div.Background {
                 margin: 0px auto;
             }
 
-            .FourPartsManager {
+            .HowManyPartsManager {
                 .AnyMachine {
                     width: 550px;
                     transform: translate(-100px, -90px) scale(0.5);
@@ -633,7 +672,6 @@ nav {
     }
 
     section {
-        all: unset;
         margin-bottom: 100px;
         margin-top: 50px;
         .subsection {

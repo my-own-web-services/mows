@@ -1,6 +1,8 @@
 # [MOWS - My Own Web Services](https://mows.vindelicum.eu)
 
-MOWS aims to be a self-hosted cloud "operating system" focused on privacy, security, ease of use (for users and developers) and expandability, leveraging the web platform as well as the cloud native landscape without creating a real vendor lock in as everything is open source and free as in freedom.
+**MOWS is my ideal conception of the computer ecosystem that I've always wanted (Given that we can't start from scratch)**
+
+MOWS is in the early stages of development. 🏗️
 
 To learn more, visit the [Website](https://mows.vindelicum.eu)
 
@@ -14,18 +16,20 @@ Feel free to leave them at any time in the [GitHub Discussions](https://github.c
 
 ## Work
 
-The core team currently consists of 1 member, so you could be the first one to join me on my quest to create something revolutionary.
+The core team currently consists of 1 member, so you could be the first one to join me on my quest to create something great.
 
-Don't be afraid to reach out if you haven't touched some technology or topic yet, as long as you are open to learning something new we are on the same page :).
+Don't be afraid to reach out if you haven't touched some technology or topic yet, as long as you are open to learning something new we are on the same page.
+
+I am stubborn on the vision but flexible on details. So if you like the vision but disagree with some detail, let's talk about it!
 
 Listed below are some related topics, helpful skills and experiences that would help out a lot.
 
-### Language
+### 🗣️ Language
 
 -   Fix my bad english
 -   Translate stuff
 
-### Education
+### 🧑‍🏫 Education
 
 This is currently my primary job ^^
 
@@ -34,11 +38,11 @@ I don't love it. I like working on technical stuff a lot more.
 -   Explain the project
 -   Give guidance on how to develop the project and in the future apps for it
 
-### Code
+### 🧑‍💻 Code
 
-#### Frontend
+#### 💻 Frontend
 
-**Related topics/Helpful skills/Experience with:**
+Related topics/Helpful skills/Experience with:
 
 -   React/Preact
     -   Building interfaces
@@ -51,14 +55,16 @@ I don't love it. I like working on technical stuff a lot more.
     -   Offline storage
     -   Web encryption (End to End)
 
-#### Backend
+#### 🔌 Backend
 
-**Related topics/Helpful skills/Experience with:**
+Related topics/Helpful skills/Experience with:
 
 -   Linux
+
     -   Networking
     -   Process isolation
     -   General linux system administration
+
 -   Netboot
 -   Cloud Native
 
@@ -86,11 +92,13 @@ I don't love it. I like working on technical stuff a lot more.
 -   OpenApi/Swagger
 -   gRPC/REST/GraphQL
 -   CI/CD
--   Developer experience (Making other developers life's easier)
+-   Developer experience (Making other developers job easier)
+-   Wireguard
+-   Hetzners hcloud and other Cloud APIs
 
-### Design
+### 🎨 Design
 
-**Related topics/Helpful skills/Experience with:**
+Related topics/Helpful skills/Experience with:
 
 -   Figma
 -   Inkscape, Illustrator etc.
@@ -100,7 +108,7 @@ I don't love it. I like working on technical stuff a lot more.
 -   Animation
 -   Design and UI systems
 
-### Hardware Product
+### 🔩 Hardware Product (To cover some costs)
 
 -   KVM (Keyboard Video Mouse)
     -   Embedded programming
@@ -109,11 +117,9 @@ I don't love it. I like working on technical stuff a lot more.
     -   Money management (Taxes, Bookkeeping etc.)
     -   Communication with suppliers
 
-### Public Relations
+### 📢 Public Relations
 
 -   Social Media
 -   Marketing
 -   Presentation
 -   Education
-
-### Team Management

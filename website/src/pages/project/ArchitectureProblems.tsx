@@ -370,7 +370,7 @@ export default class ArchitectureProblems extends Component<
                                                             problemCategories[c.category].color ??
                                                             "var(--c-text)",
                                                         float: "left",
-                                                        marginTop: 8,
+                                                        marginTop: 13,
                                                         marginRight: 10,
                                                         borderRadius: "50%",
                                                         transform: "scale(1.5)"

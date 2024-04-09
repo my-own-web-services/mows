@@ -6,29 +6,27 @@ import ManifestExampleImage from "../../../assets/manifest_example.jpg";
 import ClusterFailure from "../../../components/animations/ClusterNodeFailure";
 import AnyMachine from "../../../components/animations/AnyMachine";
 
-interface FourPartsProps {}
-interface FourPartsState {}
-export default class FourParts extends Component<FourPartsProps, FourPartsState> {
+interface ManyPartsProps {}
+interface ManyPartsState {}
+export default class ManyParts extends Component<ManyPartsProps, ManyPartsState> {
     clusterNodeFailure: RefObject<ClusterFailure>;
     anyMachine: RefObject<AnyMachine>;
 
-    constructor(props: FourPartsProps) {
+    constructor(props: ManyPartsProps) {
         super(props);
         this.clusterNodeFailure = createRef<ClusterFailure>();
         this.anyMachine = createRef<AnyMachine>();
     }
     render = () => {
         return (
-            <section className={"FourParts"}>
-                <div className={"FourPartsTop"}>
-                    <HashNavLink className={"FourParts"}>
-                        <h1>One Vision, Four Parts</h1>
-                    </HashNavLink>
-                </div>
-                <div className={"FourPartsOperator"}>
-                    <div className={"FourPartsOperatorTop childrenSideBySide"}>
+            <div className={"subsection"} id="HowManyParts">
+                <HashNavLink className={"HowManyParts"}>
+                    <h2>One Vision, Many Parts</h2>
+                </HashNavLink>
+                <div className={"HowManyPartsOperator"} id="HowManyPartsOperator">
+                    <div className={"HowManyPartsOperatorTop childrenSideBySide"}>
                         <div style={{ maxWidth: "50%" }}>
-                            <HashNavLink className={"FourPartsOperator"}>
+                            <HashNavLink className={"HowManyPartsOperator"}>
                                 <h2>Operator</h2>
                             </HashNavLink>
                             <p className={"largeText"}>
@@ -38,14 +36,16 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                                 also runs backups, health checks and many other tasks.
                             </p>
                         </div>
+
+                        {/* don't use css: scale here as it messes with the layout in chrome when jumping to an element with id by using the #id in the url (not a problem in firefox) */}
                         <img
-                            width={100}
-                            height={100}
+                            width={400}
+                            height={400}
                             draggable={false}
                             src={OperatorSVG}
                             className={"glow"}
                             alt="Operator"
-                            style={{ width: "50%", scale: "4", zIndex: "-1" }}
+                            style={{ width: "50%", margin: "-400px 0px" }}
                         />
                     </div>
                     <div className={"Parts"}>
@@ -53,7 +53,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             <div className={"childrenSideBySide"}>
                                 <div>
                                     <HashNavLink
-                                        className={"FourPartsOperatorApplicationManagement"}
+                                        className={"HowManyPartsOperatorApplicationManagement"}
                                     >
                                         <h3>Application Management</h3>
                                     </HashNavLink>
@@ -80,7 +80,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                         <div>
                             <div className={"childrenSideBySide"}>
                                 <div>
-                                    <HashNavLink className={"FourPartsOperatorStorage"}>
+                                    <HashNavLink className={"HowManyPartsOperatorStorage"}>
                                         <h3>Storage</h3>
                                     </HashNavLink>
                                     <p>
@@ -109,7 +109,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             </div>
                         </div>
                         <div>
-                            <HashNavLink className={"FourPartsOperatorBackup"}>
+                            <HashNavLink className={"HowManyPartsOperatorBackup"}>
                                 <h3>Backup</h3>
                             </HashNavLink>
                             <p>
@@ -127,7 +127,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             </p>
                         </div>
                         <div>
-                            <HashNavLink className={"FourPartsOperatorHealthChecks"}>
+                            <HashNavLink className={"HowManyPartsOperatorHealthChecks"}>
                                 <h3>Health Checks</h3>
                             </HashNavLink>
                             <p>
@@ -142,10 +142,10 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                 <br />
                 <br />
 
-                <div className={"FourPartsManager"}>
-                    <div className={"FourPartsManagerTop childrenSideBySide"}>
+                <div className={"HowManyPartsManager"} id="HowManyPartsManager">
+                    <div className={"HowManyPartsManagerTop childrenSideBySide"}>
                         <div style={{ maxWidth: "50%" }}>
-                            <HashNavLink className={"FourPartsManager"}>
+                            <HashNavLink className={"HowManyPartsManager"}>
                                 <h2>Manager</h2>
                             </HashNavLink>
                             <p className={"largeText"}>
@@ -156,17 +156,17 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             </p>
                         </div>
                         <img
-                            width={100}
-                            height={100}
+                            width={400}
+                            height={400}
                             src={ManagerSVG}
                             alt="Manager"
-                            style={{ width: "50%", scale: "4" }}
+                            style={{ width: "50%", margin: "-400px 0px" }}
                         />
                     </div>
                     <div className={"Parts"}>
                         <div className={"childrenSideBySide"}>
                             <div>
-                                <HashNavLink className={"FourPartsManagerSetup"}>
+                                <HashNavLink className={"HowManyPartsManagerSetup"}>
                                     <h3>Setup</h3>
                                 </HashNavLink>
 
@@ -196,7 +196,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             <AnyMachine ref={this.anyMachine} />
                         </div>
                         <div>
-                            <HashNavLink className={"FourPartsManagerDecryption"}>
+                            <HashNavLink className={"HowManyPartsManagerDecryption"}>
                                 <h3>Decryption</h3>
                             </HashNavLink>
                             <p>
@@ -205,7 +205,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             </p>
                         </div>
                         <div>
-                            <HashNavLink className={"FourPartsManagerAddingRemovingDrivesNodes"}>
+                            <HashNavLink className={"HowManyPartsManagerAddingRemovingDrivesNodes"}>
                                 <h3>Adding/Removing Nodes/Drives</h3>
                             </HashNavLink>
                             <p>
@@ -220,7 +220,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             </p>
                         </div>
                         <div>
-                            <HashNavLink className={"FourPartsManagerRecovery"}>
+                            <HashNavLink className={"HowManyPartsManagerRecovery"}>
                                 <h3>Recovery</h3>
                             </HashNavLink>
                             <p>
@@ -235,8 +235,8 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                 <br />
                 <br />
 
-                <div className={"FourPartsHardware"}>
-                    <HashNavLink className={"FourPartsHardware"}>
+                <div className={"HowManyPartsHardware"} id="HowManyPartsHardware">
+                    <HashNavLink className={"HowManyPartsHardware"}>
                         <h2>Hardware</h2>
                     </HashNavLink>
                     <p className={"largeText"}>
@@ -249,7 +249,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                     </p>
                     <div className={"Parts"}>
                         <div>
-                            <HashNavLink className={"FourPartsHardwarePicoKVM"}>
+                            <HashNavLink className={"HowManyPartsHardwarePicoKVM"}>
                                 <h3>Pico KVM</h3>
                             </HashNavLink>
                             <p>
@@ -270,8 +270,8 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                 </div>
                 <br />
                 <br />
-                <div className={"FourPartsApis"}>
-                    <HashNavLink className={"FourPartsApis"}>
+                <div className={"HowManyPartsCloudAPIs"} id="HowManyPartsCloudAPIs">
+                    <HashNavLink className={"HowManyPartsCloudApis"}>
                         <h2>MOWS Cloud APIs</h2>
                     </HashNavLink>
                     <p className={"largeText"}>
@@ -285,7 +285,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                     </p>
                     <div className={"Parts"}>
                         <div>
-                            <HashNavLink className={"FourPartsApisFilez"}>
+                            <HashNavLink className={"HowManyPartsApisFilez"}>
                                 <h3>Filez</h3>
                             </HashNavLink>
                             <p>
@@ -321,7 +321,7 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                             </p>
                         </div>
                         <div>
-                            <HashNavLink className={"FourPartsApisAuth"}>
+                            <HashNavLink className={"HowManyPartsApisAuth"}>
                                 <h3>Auth</h3>
                             </HashNavLink>
                             <p>
@@ -336,7 +336,11 @@ export default class FourParts extends Component<FourPartsProps, FourPartsState>
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
         );
     };
 }
+
+/*
+              
+*/

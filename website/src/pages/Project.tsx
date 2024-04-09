@@ -3,10 +3,12 @@ import Face from "../assets/face.jpg";
 import HashNavLink from "../components/HashNavLink";
 //import AnyMachine from "../components/animations/AnyMachine";
 
-import FourParts from "./project/sections/FourParts";
 import Why from "./project/sections/Why";
 import ClusterNodeFailure from "../components/animations/ClusterNodeFailure";
 import Progress from "./project/sections/Progress";
+import ManyParts from "./project/sections/ManyParts";
+import TableOfContents from "./project/TableOfContents";
+import How from "./project/sections/How";
 
 interface ProjectProps {}
 interface ProjectState {}
@@ -16,7 +18,9 @@ export default class Project extends Component<ProjectProps, ProjectState> {
     render = () => {
         return (
             <main className="Project">
-                <section className={"Hero"}>
+                <TableOfContents />
+
+                <section className={"Hero"} id="Hero">
                     <div className={"HeroText"}>
                         <h1>
                             <div>Leave the Dark Clouds Behind and</div>
@@ -34,7 +38,7 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                         <img height={1100} width={967} draggable={false} src={Face} alt="" />
                     </div>
                 </section>
-                <section className={"MOWS"}>
+                <section className={"MOWS"} id="MOWS">
                     <div className="subsection childrenCenterFlex">
                         <div>
                             <HashNavLink className={"MOWS"}>
@@ -53,43 +57,11 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                             <ClusterNodeFailure />
                         </div>
                     </div>
-                    <div className={"subsection"}>
-                        <div>
-                            <HashNavLink className={"MOWSWIP"}>
-                                <h2>Work in progress 🏗️</h2>
-                            </HashNavLink>
-                            <p className={"largeText"}>
-                                MOWS is currently in the early stages of development. Layed out
-                                below is the vision of what MOWS will be. Many problems have a
-                                conceptualized solution, but the implementation is still pending. If
-                                you are interested in contributing or donating to help us make this
-                                vision reality, please don't hesitate to{" "}
-                                <a href="mailto:mows@vindelicum.eu">contact us</a>. Sharing the
-                                project, giving feedback, asking a{" "}
-                                <a
-                                    rel="noreferrer noopener"
-                                    href="https://github.com/my-own-web-services/mows/discussions"
-                                >
-                                    question
-                                </a>{" "}
-                                and dropping a star on{" "}
-                                <a
-                                    rel="noreferrer noopener"
-                                    href="https://github.com/my-own-web-services/mows"
-                                >
-                                    GitHub
-                                </a>
-                                , to show your interest and pushing our motivation, is also highly
-                                appreciated.
-                            </p>
-                        </div>
-                        <Progress />
-                    </div>{" "}
                 </section>
 
                 <Why />
 
-                <FourParts />
+                <How />
             </main>
         );
     };
