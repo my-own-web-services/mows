@@ -292,11 +292,12 @@ h2.hl1 {
 }
 
 section {
-    all: unset;
-    margin-bottom: 300px;
-    margin-top: 50px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     .subsection {
-        margin-bottom: 300px;
+        min-height: 100vh;
     }
 }
 
@@ -435,6 +436,20 @@ aside.TableOfContents {
     min-height: 100vh;
     padding: 0px 40px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    div.HeroSplit {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    section.MOWS {
+        margin-bottom: 100px;
+    }
 
     section {
         p {

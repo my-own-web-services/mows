@@ -2,12 +2,14 @@ import { Component } from "preact";
 import HashNavLink from "../../../components/HashNavLink";
 import Progress from "./Progress";
 
-interface WorkInProgressProps {}
+interface WorkInProgressProps {
+    readonly style?: React.CSSProperties;
+}
 interface WorkInProgressState {}
 export default class WorkInProgress extends Component<WorkInProgressProps, WorkInProgressState> {
     render = () => {
         return (
-            <div className={"subsection"}>
+            <div className={"subsection"} style={this.props.style}>
                 <div>
                     <HashNavLink className={"MOWSWIP"}>
                         <h2>Work in progress 🏗️</h2>

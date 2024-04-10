@@ -6,13 +6,13 @@ import ManifestExampleImage from "../../../assets/manifest_example.jpg";
 import ClusterFailure from "../../../components/animations/ClusterNodeFailure";
 import AnyMachine from "../../../components/animations/AnyMachine";
 
-interface ManyPartsProps {}
-interface ManyPartsState {}
-export default class ManyParts extends Component<ManyPartsProps, ManyPartsState> {
+interface HowManyPartsProps {}
+interface HowManyPartsState {}
+export default class HowManyParts extends Component<HowManyPartsProps, HowManyPartsState> {
     clusterNodeFailure: RefObject<ClusterFailure>;
     anyMachine: RefObject<AnyMachine>;
 
-    constructor(props: ManyPartsProps) {
+    constructor(props: HowManyPartsProps) {
         super(props);
         this.clusterNodeFailure = createRef<ClusterFailure>();
         this.anyMachine = createRef<AnyMachine>();
@@ -280,8 +280,7 @@ export default class ManyParts extends Component<ManyPartsProps, ManyPartsState>
                         for apps to integrate with each other as well as sparing developers from
                         implementing basic requirements over and over again. The APIs are provided
                         through http, clients for different languages and directly through frontend
-                        components that also facilitate difficult UI-Server interactions, for
-                        example virtual scrolling of huge file lists.
+                        components.
                     </p>
                     <div className={"Parts"}>
                         <div>
