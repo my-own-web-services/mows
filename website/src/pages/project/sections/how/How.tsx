@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import ManyParts from "./HowManyParts";
-import HashNavLink from "../../../components/HashNavLink";
+import HashNavLink from "../../../../components/HashNavLink";
 
 interface HowProps {}
 interface HowState {}

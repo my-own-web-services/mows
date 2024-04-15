@@ -14,6 +14,7 @@ export default class WorkInProgress extends Component<WorkInProgressProps, WorkI
                     <HashNavLink className={"MOWSWIP"}>
                         <h2>Work in progress 🏗️</h2>
                     </HashNavLink>
+
                     <p className={"largeText"}>
                         MOWS is currently in the early stages of development. Layed out below is the
                         vision of what MOWS will be. Many problems have a conceptualized solution,
@@ -38,6 +39,7 @@ export default class WorkInProgress extends Component<WorkInProgressProps, WorkI
                         appreciated.
                     </p>
                 </div>
+
                 <Progress />
             </div>
         );

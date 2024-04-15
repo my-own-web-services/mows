@@ -1,5 +1,5 @@
 import { Component } from "preact";
-import HashNavLink from "../../../components/HashNavLink";
+import HashNavLink from "../../../../components/HashNavLink";
 
 import WhyProblems from "./WhyProblems";
 import WhyDifferent from "./WhyDifferent";
@@ -10,15 +10,12 @@ export default class Why extends Component<WhyProps, WhyState> {
     render = () => {
         return (
             <section className={"Why"} id="Why">
-                <div className={"subsection"}>
+                <section className={"subsection"}>
                     <HashNavLink className={"Why"}>
                         <h1 className={"centerAligned"}>Why</h1>
                     </HashNavLink>
 
-                    <div
-                        className={"childrenSideBySide"}
-                        style={{ alignItems: "flex-start", marginTop: "100px" }}
-                    >
+                    <div className={"childrenSideBySide"}>
                         <div>
                             <h2 className={"hl1"}>self-host?</h2>
 
@@ -37,13 +34,13 @@ export default class Why extends Component<WhyProps, WhyState> {
                             <p className={"largeText"}>
                                 MOWS is not just another Home-Server. MOWS OS is not limited to just
                                 one machine but can use many to make it highly reliable and
-                                scalable. MOWS does not leave you standing in the rain as it brings
-                                integrated solutions for backups, public static IPs and much more.
-                                The MOWS APIs make it easy to create great apps.
+                                scalable. MOWS does not leave you standing in the rain on day two as
+                                it brings integrated solutions for backups, public static IPs and
+                                much more. The MOWS APIs make it easy to create great apps.
                             </p>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <WhyProblems />
 

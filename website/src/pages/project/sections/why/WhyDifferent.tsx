@@ -1,17 +1,15 @@
 import { Component } from "preact";
-import HashNavLink from "../../../components/HashNavLink";
-import basics from "../../../assets/basics.svg";
+import HashNavLink from "../../../../components/HashNavLink";
+import basics from "../../../../assets/basics.svg";
 
 interface WhyDifferentProps {}
 interface WhyDifferentState {}
 export default class WhyDifferent extends Component<WhyDifferentProps, WhyDifferentState> {
     render = () => {
         return (
-            <div className={"subsection"} id="WhyDifferent">
+            <section id="WhyDifferent">
                 <HashNavLink className={"WhyDifferent"}>
-                    <h2>
-                        What Makes <span className={"hl1"}>MOWS</span> Different?
-                    </h2>
+                    <h2>What Makes MOWS Different?</h2>
                 </HashNavLink>
                 <div className={"basicsLine"}>
                     <img
@@ -108,7 +106,7 @@ export default class WhyDifferent extends Component<WhyDifferentProps, WhyDiffer
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
         );
     };
 }

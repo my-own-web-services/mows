@@ -1,10 +1,10 @@
 import { Component, RefObject, createRef } from "preact";
-import HashNavLink from "../../../components/HashNavLink";
-import ManagerSVG from "../../../assets/manager.svg";
-import OperatorSVG from "../../../assets/operator.svg";
-import ManifestExampleImage from "../../../assets/manifest_example.jpg";
-import ClusterFailure from "../../../components/animations/ClusterNodeFailure";
-import AnyMachine from "../../../components/animations/AnyMachine";
+import HashNavLink from "../../../../components/HashNavLink";
+import ManagerSVG from "../../../../assets/manager.svg";
+import OperatorSVG from "../../../../assets/operator.svg";
+import ManifestExampleImage from "../../../../assets/manifest_example.jpg";
+import ClusterFailure from "../../../../components/animations/ClusterNodeFailure";
+import AnyMachine from "../../../../components/animations/AnyMachine";
 
 interface HowManyPartsProps {}
 interface HowManyPartsState {}

@@ -1,7 +1,7 @@
 import { Component } from "preact";
-import Collapsible from "../../../components/Collapsible";
-import HashNavLink from "../../../components/HashNavLink";
-import Image from "../../../components/Image";
+import Collapsible from "../../../../components/Collapsible";
+import HashNavLink from "../../../../components/HashNavLink";
+import Image from "../../../../components/Image";
 //@ts-ignore
 import Fortnite1984Image from "./assets/fortnite.png?w=500&format=webp&as=metadata";
 //@ts-ignore
@@ -11,7 +11,7 @@ interface WhySolutionsState {}
 export default class WhySolutions extends Component<WhySolutionsProps, WhySolutionsState> {
     render = () => {
         return (
-            <div className={"subsection solutions"} id="WhySolutions">
+            <section className={"solutions"} id="WhySolutions">
                 <HashNavLink className={"WhySolutions"}>
                     <h2>All About Solutions</h2>
                     <h3 className={"hl1 centered"}>How MOWS was Born</h3>
@@ -376,7 +376,7 @@ export default class WhySolutions extends Component<WhySolutionsProps, WhySoluti
                         <div></div>
                     </div>
                 </Collapsible>
-            </div>
+            </section>
         );
     };
 }

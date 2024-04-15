@@ -1,5 +1,6 @@
 import { Component } from "preact";
 import Collapsible from "../../../components/Collapsible";
+import HashNavLink from "../../../components/HashNavLink";
 
 interface ProgressPart {
     name: string;
@@ -365,7 +366,10 @@ export default class Progress extends Component<ProgressProps, ProgressState> {
 
     render = () => {
         return (
-            <div className="Progress">
+            <div className="Progress mt-10">
+                <HashNavLink className={"Milestones"}>
+                    <h3>Milestones</h3>
+                </HashNavLink>
                 {parts.map(part => (
                     <Collapsible
                         className="subprojectCollapsible"

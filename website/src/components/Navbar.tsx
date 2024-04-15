@@ -62,11 +62,13 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     render = () => {
         return (
             <nav className="NavBar">
-                <div>
-                    <ul>{this.mapItems(navUserItems)}</ul>
-                </div>
-                <div className={"dev"}>
-                    <ul>{this.mapItems(navDevItems)}</ul>
+                <div className={"Desktop"}>
+                    <div>
+                        <ul>{this.mapItems(navUserItems)}</ul>
+                    </div>
+                    <div className={"dev"}>
+                        <ul>{this.mapItems(navDevItems)}</ul>
+                    </div>
                 </div>
             </nav>
         );

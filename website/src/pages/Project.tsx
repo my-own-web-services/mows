@@ -3,12 +3,12 @@ import Face from "../assets/face.jpg";
 import HashNavLink from "../components/HashNavLink";
 //import AnyMachine from "../components/animations/AnyMachine";
 
-import Why from "./project/sections/Why";
+import Why from "./project/sections/why/Why";
 import ClusterNodeFailure from "../components/animations/ClusterNodeFailure";
 import Progress from "./project/sections/Progress";
-import ManyParts from "./project/sections/HowManyParts";
+import ManyParts from "./project/sections/how/HowManyParts";
 import TableOfContents from "./project/TableOfContents";
-import How from "./project/sections/How";
+import How from "./project/sections/how/How";
 import WorkInProgress from "./project/sections/WorkInProgress";
 
 //                <TableOfContents />
@@ -60,11 +60,11 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                     </div>
                 </section>
 
-                <WorkInProgress style={{ width: "100%" }} />
-
                 <Why />
 
                 <How />
+
+                <WorkInProgress style={{ width: "100%" }} />
             </main>
         );
     };
