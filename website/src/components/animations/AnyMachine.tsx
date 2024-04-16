@@ -60,6 +60,8 @@ const convertPositions = (lines: AnimLine[], first?: boolean): AnimLine[] => {
 
 interface AnyMachineProps {
     readonly style?: any;
+    readonly loop?: boolean;
+    readonly className?: string;
 }
 interface AnyMachineState {
     readonly reloadKey: number;
@@ -74,14 +76,21 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
         this.state = { reloadKey: 0 };
     }
 
-    runAnimation = () => {
+    componentDidMount = () => {
+        if (this.props.loop) {
+            this.runAnimation(true);
+        }
+    };
+
+    runAnimation = (loop?: boolean) => {
         if (this.animating) return;
         this.animating = true;
 
         this.setState({ reloadKey: this.state.reloadKey + 1 }, async () => {
             await anime({
                 targets: `.AnyMachineOverlay${this.id}`,
-                points: convertPositions(animLines)
+                points: convertPositions(animLines),
+                loop
             }).finished;
 
             this.animating = false;
@@ -95,27 +104,28 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
         return (
             <div
                 key={this.state.reloadKey}
-                className="AnyMachine"
+                className={`AnyMachine ${this.props.className}`}
                 style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
                     ...this.props.style
                 }}
             >
                 <div
                     style={{
                         position: "relative",
-                        top: "0",
-                        left: "0",
-                        width: "100%",
-                        height: "100%",
-                        backdropFilter: "blur(10px)"
+                        width: width / 2,
+                        height: height / 2
                     }}
                 >
                     <svg
                         style={{
                             position: "absolute",
-                            top: "0",
-                            left: "0",
-                            zIndex: 1
+
+                            zIndex: 1,
+                            transformOrigin: "0 0",
+                            transform: "scale(0.5)"
                         }}
                         width={width}
                         height={height}
@@ -133,9 +143,11 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
                     <img
                         style={{
                             position: "absolute",
-                            top: "0",
-                            left: "0",
-                            zIndex: 0
+
+                            zIndex: 0,
+                            maxWidth: "unset",
+                            transformOrigin: "0 0",
+                            transform: "scale(0.5)"
                         }}
                         width={width}
                         height={height}

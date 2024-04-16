@@ -7,9 +7,9 @@ interface WhyProblemsState {}
 export default class WhyProblems extends Component<WhyProblemsProps, WhyProblemsState> {
     render = () => {
         return (
-            <section id="WhyProblems">
+            <section id="WhyProblems" className={"WhyProblems"}>
                 <HashNavLink className={"WhyProblems"}>
-                    <h2>Problems With Current Architectures</h2>
+                    <h1>Problems With Current Architectures</h1>
                 </HashNavLink>
 
                 <ArchitectureProblems />

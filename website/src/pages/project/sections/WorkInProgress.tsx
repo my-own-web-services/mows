@@ -16,12 +16,11 @@ export default class WorkInProgress extends Component<WorkInProgressProps, WorkI
                     </HashNavLink>
 
                     <p className={"largeText"}>
-                        MOWS is currently in the early stages of development. Layed out below is the
-                        vision of what MOWS will be. Many problems have a conceptualized solution,
-                        but the implementation is still pending. If you are interested in
-                        contributing or donating to help us make this vision reality, please don't
-                        hesitate to <a href="mailto:mows@vindelicum.eu">contact us</a>. Sharing the
-                        project, giving feedback, asking a{" "}
+                        MOWS is currently in the early stages of development. Many problems have a
+                        conceptualized solution, but the implementation is still pending. If you are
+                        interested in contributing or donating to help us make this vision reality,
+                        please don't hesitate to <a href="mailto:mows@vindelicum.eu">contact us</a>.
+                        Sharing the project, giving feedback, asking a{" "}
                         <a
                             rel="noreferrer noopener"
                             href="https://github.com/my-own-web-services/mows/discussions"

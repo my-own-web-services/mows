@@ -19,13 +19,13 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
     }
     render = () => {
         return (
-            <div className={"subsection"} id="HowManyParts">
+            <section id="HowManyParts" className={"HowManyParts"}>
                 <HashNavLink className={"HowManyParts"}>
-                    <h2>One Vision, Many Parts</h2>
+                    <h1>One Vision, Many Parts</h1>
                 </HashNavLink>
-                <div className={"HowManyPartsOperator"} id="HowManyPartsOperator">
-                    <div className={"HowManyPartsOperatorTop childrenSideBySide"}>
-                        <div style={{ maxWidth: "50%" }}>
+                <div className={"mt-10"} id="HowManyPartsOperator">
+                    <div className={"flex flex-col-reverse md:flex-row"}>
+                        <div className={"md:w-[50%] mb-10"}>
                             <HashNavLink className={"HowManyPartsOperator"}>
                                 <h2>Operator</h2>
                             </HashNavLink>
@@ -43,72 +43,67 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             height={400}
                             draggable={false}
                             src={OperatorSVG}
-                            className={"glow"}
+                            className={"glow md:w-[50%] -my-32"}
                             alt="Operator"
-                            style={{ width: "50%", margin: "-400px 0px" }}
                         />
                     </div>
-                    <div className={"Parts"}>
-                        <div>
-                            <div className={"childrenSideBySide"}>
-                                <div>
-                                    <HashNavLink
-                                        className={"HowManyPartsOperatorApplicationManagement"}
-                                    >
-                                        <h3>Application Management</h3>
-                                    </HashNavLink>
-                                    <p>
-                                        Every app comes with an application manifest that describes
-                                        its recommended and minimum resource requirements. These
-                                        resources include things like storage, network, secrets,
-                                        compute and MOWS APIs. <br /> The administrator of the
-                                        cluster can install apps through a web interface, choosing
-                                        if they want to give an app the requested resources, to
-                                        adjust them, or to deny the installation.
-                                    </p>
-                                </div>
+                    <div className={"mt-10"}>
+                        <div
+                            className={
+                                "flex flex-col md:flex-row gap-10 justify-center md:justify-start items-center"
+                            }
+                        >
+                            <div className={"md:w-[50%]"}>
+                                <HashNavLink
+                                    className={"HowManyPartsOperatorApplicationManagement"}
+                                >
+                                    <h3>Application Management</h3>
+                                </HashNavLink>
+                                <p>
+                                    Every app comes with an application manifest that describes its
+                                    recommended and minimum resource requirements. These resources
+                                    include things like storage, network, secrets, compute and MOWS
+                                    APIs. <br /> The administrator of the cluster can install apps
+                                    through a web interface, choosing if they want to give an app
+                                    the requested resources, to adjust them, or to deny the
+                                    installation.
+                                </p>
+                            </div>
+                            <div className={"w-full md:w-[50%]"}>
                                 <img
                                     width={1239}
                                     height={560}
                                     draggable={false}
                                     src={ManifestExampleImage}
-                                    className={"manifestExample"}
+                                    className={"w-[100%] h-auto rounded-lg"}
                                     alt="A example of a manifest file written in yaml"
                                 />
                             </div>
                         </div>
-                        <div>
-                            <div className={"childrenSideBySide"}>
-                                <div>
-                                    <HashNavLink className={"HowManyPartsOperatorStorage"}>
-                                        <h3>Storage</h3>
-                                    </HashNavLink>
-                                    <p>
-                                        Through the use of a storage provider, replicated storage is
-                                        provisioned and made available to the applications. In case
-                                        of a node(computer) or hard drive{" "}
-                                        <span
-                                            onClick={() =>
-                                                this.clusterNodeFailure.current?.runAnimation()
-                                            }
-                                            title="Click to run animation"
-                                            className={"hl1 animationTrigger"}
-                                        >
-                                            failure
-                                        </span>{" "}
-                                        (Click to run Animation) at least one other node is
-                                        available to continue operating. As the data does not
-                                        fulfill its replication goal anymore it is replicated to
-                                        another healthy node in the background.
-                                    </p>
-                                </div>
-                                <ClusterFailure
-                                    ref={this.clusterNodeFailure}
-                                    style={{ width: "50%", margin: "0px auto" }}
-                                />
+                        <div
+                            className={
+                                "flex flex-col md:flex-row gap-10 justify-center md:justify-start items-center mt-10"
+                            }
+                        >
+                            <div style={"md:w-[50%]"}>
+                                <HashNavLink className={"HowManyPartsOperatorStorage"}>
+                                    <h3>Storage</h3>
+                                </HashNavLink>
+                                <p>
+                                    Through the use of a storage provider, replicated storage is
+                                    provisioned and made available to the applications. In case of a
+                                    node(computer) or hard drive failure at least one other node is
+                                    available to continue operating. As the data does not fulfill
+                                    its replication goal anymore it is replicated to another healthy
+                                    node in the background.
+                                </p>
                             </div>
+                            <ClusterFailure
+                                ref={this.clusterNodeFailure}
+                                className={"mx-auto md:w-[50%]"}
+                            />
                         </div>
-                        <div>
+                        <div className={"my-10"}>
                             <HashNavLink className={"HowManyPartsOperatorBackup"}>
                                 <h3>Backup</h3>
                             </HashNavLink>
@@ -139,12 +134,10 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                         </div>
                     </div>
                 </div>
-                <br />
-                <br />
 
-                <div className={"HowManyPartsManager"} id="HowManyPartsManager">
-                    <div className={"HowManyPartsManagerTop childrenSideBySide"}>
-                        <div style={{ maxWidth: "50%" }}>
+                <div className={"mt-32"} id="HowManyPartsManager">
+                    <div className={"flex flex-col md:flex-row"}>
+                        <div>
                             <HashNavLink className={"HowManyPartsManager"}>
                                 <h2>Manager</h2>
                             </HashNavLink>
@@ -160,11 +153,15 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             height={400}
                             src={ManagerSVG}
                             alt="Manager"
-                            style={{ width: "50%", margin: "-400px 0px" }}
+                            className={"glow md:w-[50%] -my-32 "}
                         />
                     </div>
                     <div className={"Parts"}>
-                        <div className={"childrenSideBySide"}>
+                        <div
+                            className={
+                                "flex flex-col md:flex-row gap-10 justify-center md:justify-start items-center mt-10"
+                            }
+                        >
                             <div>
                                 <HashNavLink className={"HowManyPartsManagerSetup"}>
                                     <h3>Setup</h3>
@@ -172,16 +169,8 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
 
                                 <p>
                                     The initial setup is performed by choosing the machines to
-                                    install the cluster on.{" "}
-                                    <span
-                                        onClick={() => this.anyMachine.current?.runAnimation()}
-                                        title="Click to run animation"
-                                        className={"hl1 animationTrigger"}
-                                    >
-                                        Any combination
-                                    </span>{" "}
-                                    of Local VMs, Local pyhsical machines and rented remote machines
-                                    can be used.
+                                    install the cluster on. Any combination of Local VMs, Local
+                                    pyhsical machines and rented remote machines can be used.
                                 </p>
                                 <p>
                                     If external services are used, their API keys need to be
@@ -193,9 +182,14 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                                     encrypted data cannot be recovered.
                                 </p>
                             </div>
-                            <AnyMachine ref={this.anyMachine} />
+                            <AnyMachine
+                                ref={this.anyMachine}
+                                className={
+                                    "scale-75 -ml-24 lg:scale-100 lg:ml-0 w-[100%] md:w-[50%]"
+                                }
+                            />
                         </div>
-                        <div>
+                        <div className={"mt-10"}>
                             <HashNavLink className={"HowManyPartsManagerDecryption"}>
                                 <h3>Decryption</h3>
                             </HashNavLink>
@@ -204,7 +198,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                                 your secret to the manager to start it again.
                             </p>
                         </div>
-                        <div>
+                        <div className={"mt-10"}>
                             <HashNavLink className={"HowManyPartsManagerAddingRemovingDrivesNodes"}>
                                 <h3>Adding/Removing Nodes/Drives</h3>
                             </HashNavLink>
@@ -219,7 +213,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                                 of the drives.
                             </p>
                         </div>
-                        <div>
+                        <div className={"mt-10"}>
                             <HashNavLink className={"HowManyPartsManagerRecovery"}>
                                 <h3>Recovery</h3>
                             </HashNavLink>
@@ -232,10 +226,8 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                         </div>
                     </div>
                 </div>
-                <br />
-                <br />
 
-                <div className={"HowManyPartsHardware"} id="HowManyPartsHardware">
+                <div className={"mt-32"} id="HowManyPartsHardware">
                     <HashNavLink className={"HowManyPartsHardware"}>
                         <h2>Hardware</h2>
                     </HashNavLink>
@@ -268,9 +260,8 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                         </div>
                     </div>
                 </div>
-                <br />
-                <br />
-                <div className={"HowManyPartsCloudAPIs"} id="HowManyPartsCloudAPIs">
+
+                <div className={"mt-32"} id="HowManyPartsCloudAPIs">
                     <HashNavLink className={"HowManyPartsCloudApis"}>
                         <h2>MOWS Cloud APIs</h2>
                     </HashNavLink>
@@ -335,11 +326,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
         );
     };
 }
-
-/*
-              
-*/

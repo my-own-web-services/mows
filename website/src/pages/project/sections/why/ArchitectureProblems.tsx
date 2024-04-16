@@ -295,48 +295,55 @@ export default class ArchitectureProblems extends Component<
     render = () => {
         return (
             <div className="ArchitectureProblems">
-                <div className={"groupPicker picker"}>
-                    {groupType.flatMap((p, index) => {
-                        return (
-                            <button onClick={() => this.selectGroupType(index)}>
-                                <h3
-                                    style={{
-                                        borderBottom:
-                                            index === this.state.selectedGroupType
-                                                ? "3px solid var(--c-hl1)"
-                                                : "3px solid transparent"
-                                    }}
-                                >
-                                    {p.name}
-                                </h3>
-                            </button>
-                        );
-                    })}
-                </div>
-                <div className={"picker"}>
-                    {concepts.flatMap((p, index) => {
-                        if (!p.groups.includes(this.state.selectedGroupType)) {
-                            return null;
-                        }
-                        return (
-                            <button onClick={() => this.selectConcept(index)}>
-                                <span
-                                    style={{
-                                        borderBottom:
-                                            index === this.state.selectedConcept
-                                                ? "3px solid var(--c-hl1)"
-                                                : "3px solid transparent"
-                                    }}
-                                >
-                                    {p.name}
-                                </span>
-                            </button>
-                        );
-                    })}
+                <div className={"pickers"}>
+                    <div className={"groupPicker picker"}>
+                        {groupType.flatMap((p, index) => {
+                            return (
+                                <button onClick={() => this.selectGroupType(index)}>
+                                    <span
+                                        className={"text-2xl"}
+                                        style={{
+                                            borderBottom:
+                                                index === this.state.selectedGroupType
+                                                    ? "3px solid var(--c-hl1)"
+                                                    : "3px solid transparent"
+                                        }}
+                                    >
+                                        {p.name}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className={"picker"}>
+                        {concepts.flatMap((p, index) => {
+                            if (!p.groups.includes(this.state.selectedGroupType)) {
+                                return null;
+                            }
+                            return (
+                                <button onClick={() => this.selectConcept(index)}>
+                                    <span
+                                        style={{
+                                            borderBottom:
+                                                index === this.state.selectedConcept
+                                                    ? "3px solid var(--c-hl1)"
+                                                    : "3px solid transparent"
+                                        }}
+                                    >
+                                        {p.name}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
 
-                <div className={"architectureDisplay"}>
-                    <div className={"whiteBox imageBox"}>
+                <div
+                    className={
+                        "architectureDisplay md:flex-row md:h-[850px] flex flex-col justify-between align-top mt-8"
+                    }
+                >
+                    <div className={"imageBox"}>
                         <img
                             src={`/assets/architecture-problems/${
                                 concepts[this.state.selectedConcept]?.image
@@ -346,7 +353,7 @@ export default class ArchitectureProblems extends Component<
                             alt=""
                         />
                     </div>
-                    <ul className={"writtenProblems"}>
+                    <ul className={"md:max-w-96 lg:max-w-[500px]"}>
                         {concepts[this.state.selectedConcept]?.cons
                             .sort((a, b) => a.category - b.category)
                             .flatMap(c => {
@@ -363,23 +370,21 @@ export default class ArchitectureProblems extends Component<
                                         {isFirst ? (
                                             <div>
                                                 <div
+                                                    className={
+                                                        "h-3 w-3 float-left mt-[8px] mr-[10px] ml-[5px] rounded-full transform scale-150"
+                                                    }
                                                     style={{
-                                                        height: 10,
-                                                        width: 10,
                                                         background:
                                                             problemCategories[c.category].color ??
-                                                            "var(--c-text)",
-                                                        float: "left",
-                                                        marginTop: 13,
-                                                        marginRight: 10,
-                                                        borderRadius: "50%",
-                                                        transform: "scale(1.5)"
+                                                            "var(--c-text)"
                                                     }}
                                                 ></div>
-                                                <h4>{problemCategories[c.category].name}</h4>
+                                                <div className={"font-bold text-xl mt-5 mb-1"}>
+                                                    {problemCategories[c.category].name}
+                                                </div>
                                             </div>
                                         ) : null}
-                                        <li>{c.description}</li>
+                                        <li className={"mb-4"}>{c.description}</li>
                                     </div>
                                 );
                             })}

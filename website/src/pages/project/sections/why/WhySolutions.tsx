@@ -11,7 +11,7 @@ interface WhySolutionsState {}
 export default class WhySolutions extends Component<WhySolutionsProps, WhySolutionsState> {
     render = () => {
         return (
-            <section className={"solutions"} id="WhySolutions">
+            <section className={"WhySolutions"} id="WhySolutions">
                 <HashNavLink className={"WhySolutions"}>
                     <h2>All About Solutions</h2>
                     <h3 className={"hl1 centered"}>How MOWS was Born</h3>

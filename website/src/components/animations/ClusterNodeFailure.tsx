@@ -4,6 +4,8 @@ import { CSSProperties } from "react";
 
 interface ClusterNodeFailureProps {
     readonly style?: CSSProperties;
+    readonly loop?: boolean;
+    readonly className?: string;
 }
 interface ClusterNodeFailureState {
     readonly reloadKey: number;
@@ -30,7 +32,13 @@ export default class ClusterNodeFailure extends Component<
         this.state = { reloadKey: 0 };
     }
 
-    runAnimation = async () => {
+    componentDidMount = () => {
+        if (this.props.loop) {
+            this.runAnimation(true);
+        }
+    };
+
+    runAnimation = async (loop?: boolean) => {
         if (this.animating) {
             return;
         }
@@ -51,7 +59,8 @@ export default class ClusterNodeFailure extends Component<
 
             await anime
                 .timeline({
-                    easing: "easeInOutQuad"
+                    easing: "easeInOutQuad",
+                    loop
                 })
                 .add({
                     duration: 500
@@ -135,6 +144,9 @@ export default class ClusterNodeFailure extends Component<
                     targets: `${currentClassName} #path197-0-2-1`,
                     translateY: (-1 * (145.565 - 44.302)) / hScale,
                     translateX: (-1 * (211.081 - 152.784)) / wScale
+                })
+                .add({
+                    delay: 1000
                 }).finished;
 
             this.animating = false;
@@ -145,7 +157,7 @@ export default class ClusterNodeFailure extends Component<
         return (
             <div
                 key={this.state.reloadKey}
-                className={`ClusterNodeFailure ClusterNodeFailure${this.id}`}
+                className={`ClusterNodeFailure ClusterNodeFailure${this.id} ${this.props.className}`}
                 style={this.props.style}
             >
                 <div
