@@ -91,9 +91,6 @@ export default class WhyDifferent extends Component<WhyDifferentProps, WhyDiffer
     render = () => {
         return (
             <section id="WhyDifferent" className={"WhyDifferent"}>
-                <HashNavLink className={"WhyDifferent"}>
-                    <h1>What Makes MOWS Different?</h1>
-                </HashNavLink>
                 <div
                     className={
                         "basicsLine md:relative md:-ml-4 md:mt-10 lg:mt-0 lg:w-[860px] lg:mx-auto"

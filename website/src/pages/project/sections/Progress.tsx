@@ -366,7 +366,7 @@ export default class Progress extends Component<ProgressProps, ProgressState> {
 
     render = () => {
         return (
-            <div className="Progress mt-10">
+            <div className="Progress mt-10" id="Progress">
                 <HashNavLink className={"Milestones"}>
                     <h3>Milestones</h3>
                 </HashNavLink>

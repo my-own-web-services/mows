@@ -1,13 +1,12 @@
 import { Component } from "preact";
 
-import Progress from "./project/sections/Progress";
-import ManyParts from "./project/sections/how/HowManyParts";
 import TableOfContents from "./project/TableOfContents";
 import WorkInProgress from "./project/sections/WorkInProgress";
 import Hero from "./project/sections/what/Hero";
 import Overview from "./project/sections/what/Overview";
 import WhyProblems from "./project/sections/why/WhyProblems";
 import WhyDifferent from "./project/sections/why/WhyDifferent";
+import FiveParts from "./project/sections/how/FiveParts";
 
 //                <TableOfContents />
 
@@ -18,17 +17,24 @@ export default class Project extends Component<ProjectProps, ProjectState> {
 
     render = () => {
         return (
-            <main className="Project">
+            <main className="Project mb-20">
+                <TableOfContents mode="desktop" />
                 <Hero />
 
-                <Overview />
+                <div id="Introduction">
+                    <Overview />
+                    <WhyDifferent />
+                </div>
 
-                <WhyProblems />
-                <WhyDifferent />
+                <div id="Why">
+                    <WhyProblems />
+                </div>
 
-                <ManyParts />
+                <div id="How">
+                    <FiveParts />
+                </div>
 
-                <WorkInProgress style={{ width: "100%" }} />
+                <WorkInProgress />
             </main>
         );
     };

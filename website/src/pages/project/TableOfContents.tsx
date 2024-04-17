@@ -1,4 +1,5 @@
 import { Component } from "preact";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 
 interface TableOfContentsItem {
     title: string;
@@ -8,8 +9,8 @@ interface TableOfContentsItem {
 
 const table: TableOfContentsItem[] = [
     {
-        title: "Introduction",
-        href: "#MOWS",
+        title: "Overview",
+        href: "#Overview",
         children: []
     },
     {
@@ -17,13 +18,8 @@ const table: TableOfContentsItem[] = [
         href: "#Why",
         children: [
             {
-                title: "Problems With Current Architectures",
+                title: "Current Problems",
                 href: "#WhyProblems",
-                children: []
-            },
-            {
-                title: "What Makes MOWS Different?",
-                href: "#WhyDifferent",
                 children: []
             }
         ]
@@ -33,32 +29,32 @@ const table: TableOfContentsItem[] = [
         href: "#How",
         children: [
             {
-                title: "One Vision, Many Parts",
-                href: "#HowManyParts",
+                title: "One Vision, Five Parts",
+                href: "#FiveParts",
                 children: [
                     {
                         title: "Operator",
-                        href: "#HowManyPartsOperator",
+                        href: "#FivePartsOperator",
                         children: []
                     },
                     {
                         title: "Manager",
-                        href: "#HowManyPartsManager",
+                        href: "#FivePartsManager",
                         children: []
                     },
                     {
                         title: "Hardware",
-                        href: "#HowManyPartsHardware",
+                        href: "#FivePartsHardware",
                         children: []
                     },
                     {
                         title: "Cloud APIs",
-                        href: "#HowManyPartsCloudAPIs",
+                        href: "#FivePartsCloudAPIs",
                         children: []
                     },
                     {
                         title: "Apps",
-                        href: "#HowManyPartsApps",
+                        href: "#FivePartsApps",
                         children: []
                     }
                 ]
@@ -69,23 +65,42 @@ const table: TableOfContentsItem[] = [
     {
         title: "Contributing",
         href: "#Contributing",
-        children: []
+        children: [
+            {
+                title: "Progress",
+                href: "#Progress",
+                children: []
+            }
+        ]
     }
 ];
+// flatten table and rename titles of nested items to include parent titles
+const flattenTable = (table: TableOfContentsItem[]): TableOfContentsItem[] => {
+    return table.flatMap(item => [item, ...flattenTable(item.children)]);
+};
 
-interface TableOfContentsProps {}
+const flatTable = flattenTable(table);
+
+interface TableOfContentsProps {
+    readonly className?: string;
+    readonly mode: "desktop" | "mobile";
+    readonly onExpandFlip?: () => void;
+}
 interface TableOfContentsState {
     readonly currentSection: string;
+    readonly reachedEnd: boolean;
+    readonly reachedStart: boolean;
 }
 export default class TableOfContents extends Component<TableOfContentsProps, TableOfContentsState> {
     constructor(props: TableOfContentsProps) {
         super(props);
         this.state = {
-            currentSection: ""
+            currentSection: "",
+            reachedEnd: false,
+            reachedStart: true
         };
     }
 
-    // handle this with an intersection observer
     componentDidMount = () => {
         const observer = new IntersectionObserver(
             entries => {
@@ -116,11 +131,11 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                 }}
             >
                 <svg
+                    className={"inline -mt-1 w-3 h-3 mr-3"}
                     width="101"
                     height="101"
                     viewBox="0 0 101 101"
                     fill="none"
-                    style={{ width: "10px", height: "10px", marginRight: "10px" }}
                     xmlns="http://www.w3.org/2000/svg"
                 >
                     <path
@@ -141,6 +156,7 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                                 ? "var(--c-hl2)"
                                 : "var(--c-text-dim)"
                     }}
+                    className="text-primary whitespace-nowrap overflow-hidden text-ellipsis"
                     onClick={e => {
                         e.preventDefault();
 
@@ -155,18 +171,77 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                     {item.title}
                 </a>
                 {item.children.length > 0 && (
-                    <div className="TableOfContentsChildren">
+                    <div>
                         {item.children.map(item => this.TableOfContentsItem(item, nesting + 1))}
                     </div>
                 )}
             </div>
         );
     };
+
+    jumpToSection = (direction: boolean) => {
+        const currentIndex = flatTable.findIndex(item => item.href === this.state.currentSection);
+        const newIndex = currentIndex + (direction ? 1 : -1);
+        if (newIndex < 0 || newIndex >= flatTable.length) return;
+
+        const newSection = flatTable[newIndex].href;
+        document.querySelector(newSection)?.scrollIntoView({
+            behavior: "smooth"
+        });
+        this.setState({
+            currentSection: newSection,
+            reachedEnd: newIndex === flatTable.length - 1,
+            reachedStart: newIndex === 0
+        });
+        history.pushState(null, "", newSection);
+    };
+
+    MobileSwitchThrough = () => {
+        return (
+            <div className={"MobileSwitchThrough flex justify-between flex-grow"}>
+                <button
+                    onClick={() => this.jumpToSection(false)}
+                    className={`block md:hidden ${
+                        this.state.reachedStart ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                >
+                    <IoChevronBack size={35} />
+                </button>
+                <button className={"flex items-center max-w-36"} onClick={this.props.onExpandFlip}>
+                    <span
+                        className={
+                            "w-full overflow-hidden whitespace-nowrap text-ellipsis font-bold "
+                        }
+                    >
+                        {flatTable.find(item => item.href === this.state.currentSection)?.title ??
+                            "Overview"}
+                    </span>
+                </button>
+                <button
+                    onClick={() => this.jumpToSection(true)}
+                    className={`block md:hidden
+                ${this.state.reachedEnd ? "opacity-50 cursor-not-allowed" : ""}
+                `}
+                >
+                    <IoChevronForward size={35} />
+                </button>
+            </div>
+        );
+    };
+
     render = () => {
         return (
-            <aside className="TableOfContents">
-                {table.map(item => this.TableOfContentsItem(item, 0))}
-            </aside>
+            <div className={`TableOfContents ${this.props.className ?? ""} select-none`}>
+                {this.props.mode === "desktop" && (
+                    <aside
+                        className={`fixed hidden 2xl:flex top-0 left-0 h-full w-72 flex-col justify-center pl-8 overflow-hidden text-sm whitespace-nowrap text-ellipsis`}
+                    >
+                        {table.map(item => this.TableOfContentsItem(item, 0))}
+                    </aside>
+                )}
+
+                {this.props.mode === "mobile" && this.MobileSwitchThrough()}
+            </div>
         );
     };
 }

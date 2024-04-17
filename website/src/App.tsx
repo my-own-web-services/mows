@@ -1,6 +1,6 @@
 import "@fontsource-variable/inter";
 import { Component } from "preact";
-import NavBar from "./components/Navbar";
+import NavBar from "./components/Nav";
 import { BrowserRouter, Route } from "react-router-dom";
 import "./index.scss";
 import Project from "./pages/Project";

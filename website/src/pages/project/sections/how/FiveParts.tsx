@@ -6,27 +6,27 @@ import ManifestExampleImage from "../../../../assets/manifest_example.jpg";
 import ClusterFailure from "../../../../components/animations/ClusterNodeFailure";
 import AnyMachine from "../../../../components/animations/AnyMachine";
 
-interface HowManyPartsProps {}
-interface HowManyPartsState {}
-export default class HowManyParts extends Component<HowManyPartsProps, HowManyPartsState> {
+interface FivePartsProps {}
+interface FivePartsState {}
+export default class FiveParts extends Component<FivePartsProps, FivePartsState> {
     clusterNodeFailure: RefObject<ClusterFailure>;
     anyMachine: RefObject<AnyMachine>;
 
-    constructor(props: HowManyPartsProps) {
+    constructor(props: FivePartsProps) {
         super(props);
         this.clusterNodeFailure = createRef<ClusterFailure>();
         this.anyMachine = createRef<AnyMachine>();
     }
     render = () => {
         return (
-            <section id="HowManyParts" className={"HowManyParts"}>
-                <HashNavLink className={"HowManyParts"}>
-                    <h1>One Vision, Many Parts</h1>
+            <section id="FiveParts" className={"FiveParts"}>
+                <HashNavLink className={"FiveParts"}>
+                    <h1>One Vision, Five Parts</h1>
                 </HashNavLink>
-                <div className={"mt-10"} id="HowManyPartsOperator">
+                <div className={"mt-10"} id="FivePartsOperator">
                     <div className={"flex flex-col-reverse md:flex-row"}>
                         <div className={"md:w-[50%] mb-10"}>
-                            <HashNavLink className={"HowManyPartsOperator"}>
+                            <HashNavLink className={"FivePartsOperator"}>
                                 <h2>Operator</h2>
                             </HashNavLink>
                             <p className={"largeText"}>
@@ -54,9 +54,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             }
                         >
                             <div className={"md:w-[50%]"}>
-                                <HashNavLink
-                                    className={"HowManyPartsOperatorApplicationManagement"}
-                                >
+                                <HashNavLink className={"FivePartsOperatorApplicationManagement"}>
                                     <h3>Application Management</h3>
                                 </HashNavLink>
                                 <p>
@@ -86,7 +84,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             }
                         >
                             <div style={"md:w-[50%]"}>
-                                <HashNavLink className={"HowManyPartsOperatorStorage"}>
+                                <HashNavLink className={"FivePartsOperatorStorage"}>
                                     <h3>Storage</h3>
                                 </HashNavLink>
                                 <p>
@@ -104,7 +102,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             />
                         </div>
                         <div className={"my-10"}>
-                            <HashNavLink className={"HowManyPartsOperatorBackup"}>
+                            <HashNavLink className={"FivePartsOperatorBackup"}>
                                 <h3>Backup</h3>
                             </HashNavLink>
                             <p>
@@ -122,7 +120,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             </p>
                         </div>
                         <div>
-                            <HashNavLink className={"HowManyPartsOperatorHealthChecks"}>
+                            <HashNavLink className={"FivePartsOperatorHealthChecks"}>
                                 <h3>Health Checks</h3>
                             </HashNavLink>
                             <p>
@@ -135,10 +133,10 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                     </div>
                 </div>
 
-                <div className={"mt-32"} id="HowManyPartsManager">
+                <div className={"mt-32"} id="FivePartsManager">
                     <div className={"flex flex-col md:flex-row"}>
                         <div>
-                            <HashNavLink className={"HowManyPartsManager"}>
+                            <HashNavLink className={"FivePartsManager"}>
                                 <h2>Manager</h2>
                             </HashNavLink>
                             <p className={"largeText"}>
@@ -163,7 +161,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             }
                         >
                             <div>
-                                <HashNavLink className={"HowManyPartsManagerSetup"}>
+                                <HashNavLink className={"FivePartsManagerSetup"}>
                                     <h3>Setup</h3>
                                 </HashNavLink>
 
@@ -190,7 +188,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             />
                         </div>
                         <div className={"mt-10"}>
-                            <HashNavLink className={"HowManyPartsManagerDecryption"}>
+                            <HashNavLink className={"FivePartsManagerDecryption"}>
                                 <h3>Decryption</h3>
                             </HashNavLink>
                             <p>
@@ -199,7 +197,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             </p>
                         </div>
                         <div className={"mt-10"}>
-                            <HashNavLink className={"HowManyPartsManagerAddingRemovingDrivesNodes"}>
+                            <HashNavLink className={"FivePartsManagerAddingRemovingDrivesNodes"}>
                                 <h3>Adding/Removing Nodes/Drives</h3>
                             </HashNavLink>
                             <p>
@@ -214,7 +212,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             </p>
                         </div>
                         <div className={"mt-10"}>
-                            <HashNavLink className={"HowManyPartsManagerRecovery"}>
+                            <HashNavLink className={"FivePartsManagerRecovery"}>
                                 <h3>Recovery</h3>
                             </HashNavLink>
                             <p>
@@ -227,8 +225,8 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                     </div>
                 </div>
 
-                <div className={"mt-32"} id="HowManyPartsHardware">
-                    <HashNavLink className={"HowManyPartsHardware"}>
+                <div className={"mt-32"} id="FivePartsHardware">
+                    <HashNavLink className={"FivePartsHardware"}>
                         <h2>Hardware</h2>
                     </HashNavLink>
                     <p className={"largeText"}>
@@ -241,7 +239,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                     </p>
                     <div className={"Parts"}>
                         <div>
-                            <HashNavLink className={"HowManyPartsHardwarePicoKVM"}>
+                            <HashNavLink className={"FivePartsHardwarePicoKVM"}>
                                 <h3>Pico KVM</h3>
                             </HashNavLink>
                             <p>
@@ -261,8 +259,8 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                     </div>
                 </div>
 
-                <div className={"mt-32"} id="HowManyPartsCloudAPIs">
-                    <HashNavLink className={"HowManyPartsCloudApis"}>
+                <div className={"mt-32"} id="FivePartsCloudAPIs">
+                    <HashNavLink className={"FivePartsCloudApis"}>
                         <h2>MOWS Cloud APIs</h2>
                     </HashNavLink>
                     <p className={"largeText"}>
@@ -275,7 +273,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                     </p>
                     <div className={"Parts"}>
                         <div>
-                            <HashNavLink className={"HowManyPartsApisFilez"}>
+                            <HashNavLink className={"FivePartsApisFilez"}>
                                 <h3>Filez</h3>
                             </HashNavLink>
                             <p>
@@ -311,7 +309,7 @@ export default class HowManyParts extends Component<HowManyPartsProps, HowManyPa
                             </p>
                         </div>
                         <div>
-                            <HashNavLink className={"HowManyPartsApisAuth"}>
+                            <HashNavLink className={"FivePartsApisAuth"}>
                                 <h3>Auth</h3>
                             </HashNavLink>
                             <p>

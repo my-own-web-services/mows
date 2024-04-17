@@ -1,6 +1,5 @@
 import { Component } from "preact";
 import HashNavLink from "../../../components/HashNavLink";
-import Progress from "./Progress";
 
 interface WorkInProgressProps {
     readonly style?: React.CSSProperties;
@@ -11,8 +10,8 @@ export default class WorkInProgress extends Component<WorkInProgressProps, WorkI
         return (
             <div className={"subsection"} style={this.props.style}>
                 <div>
-                    <HashNavLink className={"MOWSWIP"}>
-                        <h2>Work in progress 🏗️</h2>
+                    <HashNavLink className={"WorkInProgress"}>
+                        <h3>Work in progress 🏗️</h3>
                     </HashNavLink>
 
                     <p className={"largeText"}>
@@ -38,8 +37,6 @@ export default class WorkInProgress extends Component<WorkInProgressProps, WorkI
                         appreciated.
                     </p>
                 </div>
-
-                <Progress />
             </div>
         );
     };

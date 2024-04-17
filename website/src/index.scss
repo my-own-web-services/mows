@@ -432,51 +432,11 @@ div.Background {
     }
 }
 
-aside.TableOfContents {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 300px;
-    height: 100vh;
-
-    // align vertical in the parent box
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-
-    padding-left: 30px;
-    box-sizing: border-box;
-    overflow: none;
-    z-index: 10;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    svg,
-    a {
-        display: inline-flex;
-        align-items: center;
-    }
-
-    a {
-        color: var(--c-text-dim);
-        // overflow ellipsis
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .pusher {
-        margin-left: 20px;
-    }
-}
-
 .Project {
     width: 100%;
     min-height: 100vh;
     padding: 0px 20px;
 
-    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -588,6 +548,11 @@ aside.TableOfContents {
     }
 }
 
+.active {
+    border-bottom: 3px solid var(--c-hl1);
+}
+
+/*
 nav {
     user-select: none;
     width: 100%;
@@ -632,12 +597,11 @@ nav {
                 margin: 0px 20px;
             }
             padding: 2px 0px;
-            &.active {
-                border-bottom: 3px solid var(--c-hl1);
-            }
+            &
         }
     }
 }
+*/
 /*
 @media screen and (min-width: 600px) {
     nav {
