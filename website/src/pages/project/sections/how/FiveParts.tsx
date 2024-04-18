@@ -236,7 +236,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                         components and a cheap KVM solution is provided.
                     </p>
                     <div className={"Parts"}>
-                        <div>
+                        <div className={"mt-10"}>
                             <HashNavLink className={"FivePartsHardwarePicoKVM"}>
                                 <h3>Pico KVM</h3>
                             </HashNavLink>
@@ -270,7 +270,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                         components.
                     </p>
                     <div className={"Parts"}>
-                        <div>
+                        <div className={"mt-10"}>
                             <HashNavLink className={"FivePartsApisFilez"}>
                                 <h3>Filez</h3>
                             </HashNavLink>
@@ -306,7 +306,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                                 </ul>
                             </p>
                         </div>
-                        <div>
+                        <div className={"mt-10"}>
                             <HashNavLink className={"FivePartsApisAuth"}>
                                 <h3>Auth</h3>
                             </HashNavLink>

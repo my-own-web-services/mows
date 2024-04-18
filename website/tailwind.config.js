@@ -14,7 +14,11 @@ export default {
             accent2Opaque2: "#0199ff27",
             accent3: "#ffb627"
         },
-        extend: {}
+        extend: {
+            transitionProperty: {
+                height: "height"
+            }
+        }
     },
     plugins: []
 };

@@ -104,7 +104,7 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
         const aspectRatio = imageWidth / imageHeight;
 
         return (
-            <div key={this.state.reloadKey} className={`AnyMachine ${this.props.className} h-full`}>
+            <div key={this.state.reloadKey} className={`AnyMachine ${this.props.className}`}>
                 <ReactVirtualizedAutoSizer>
                     {parentSize => {
                         const { width, height, top, left } = (() => {

@@ -45,10 +45,6 @@ $bp-lg: 1024px;
     -moz-osx-font-smoothing: grayscale;
 }
 
-img {
-    overflow: hidden;
-}
-
 body {
     background: var(--c-background);
 }
@@ -193,9 +189,11 @@ body {
     min-width: 320px;
     max-width: 1200px;
     margin: 0 auto;
+
     min-height: 100vh;
     height: 100%;
     overflow-x: hidden;
+
     overflow-y: auto;
 }
 
@@ -430,18 +428,6 @@ div.Background {
 }
 
 .Project {
-    width: 100%;
-    min-height: 100vh;
-    padding: 0px 20px;
-
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    @media screen and (min-width: $bp-lg) {
-        padding: 0px 40px;
-    }
-
     .ArchitectureProblems {
         .pickers {
             display: flex;
@@ -548,156 +534,3 @@ div.Background {
 .active {
     border-bottom: 3px solid var(--c-hl1);
 }
-
-/*
-nav {
-    user-select: none;
-    width: 100%;
-    height: 80px;
-    div.Desktop {
-        height: 100%;
-        display: none;
-
-        @media screen and (min-width: $bp-md) {
-            display: block;
-        }
-        > div {
-            // align vertical in the parent box
-            display: flex;
-            float: left;
-            height: 100%;
-            margin: 0px 20px;
-
-            &.dev {
-                // align right
-                float: right;
-            }
-        }
-    }
-    ul {
-        all: unset;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        height: 100%;
-    }
-    li {
-        all: unset;
-        a {
-            text-decoration: none;
-            color: var(--c-text);
-            text-transform: uppercase;
-            font-weight: 600;
-
-            margin: 0px 7px;
-            @media screen and (min-width: $bp-lg) {
-                margin: 0px 20px;
-            }
-            padding: 2px 0px;
-            &
-        }
-    }
-}
-*/
-/*
-@media screen and (min-width: 600px) {
-    nav {
-        display: none;
-    }
-
-    section {
-        margin-bottom: 100px;
-        margin-top: 50px;
-        .subsection {
-            margin-bottom: 50px;
-        }
-    }
-
-    h1 {
-        font-size: 36px !important;
-    }
-    h2 {
-        font-size: 30px !important;
-    }
-    h3 {
-        font-size: 24px !important;
-    }
-    h4 {
-        font-size: 20px !important;
-    }
-    h5 {
-        font-size: 16px !important;
-    }
-
-    .childrenCenterFlex {
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .Project {
-        padding: 0px 20px;
-        max-width: 100%;
-        section {
-            &.Hero {
-                display: block !important;
-                position: relative;
-                .Face {
-                    position: absolute;
-                    z-index: -1 !important;
-                    top: 20px;
-                    img {
-                        height: unset;
-                        margin: unset;
-                        width: 100%;
-                        transform: scale(1.5);
-                    }
-                    //transform: scale(0.7) translate(-160px, 400px);
-                }
-                .HeroText {
-                    position: absolute;
-                    max-width: 100%;
-
-                    top: 500px !important;
-                }
-            }
-            &.MOWS {
-                flex-wrap: wrap;
-            }
-            &.Why {
-                .ArchitectureProblems {
-                    .picker {
-                        margin: 5px 2.5px;
-                        button {
-                            padding-right: 20px;
-                        }
-                    }
-                    .architectureDisplay {
-                        margin: 0px;
-                        flex-direction: column;
-                        height: auto;
-                        .imageBox {
-                            margin-right: 0px;
-                            height: 300px;
-                            img {
-                                width: 100%;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-@media screen and (max-height: 800px) {
-    main.Project {
-        .Hero {
-            div.Face {
-                top: -50px !important;
-            }
-            div.HeroText {
-                top: 350px !important;
-            }
-        }
-    }
-}
-*/

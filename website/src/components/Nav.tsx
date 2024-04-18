@@ -2,9 +2,12 @@ import { Component } from "preact";
 import { IoChevronUp, IoClose, IoMenu } from "react-icons/io5";
 import { NavLink } from "react-router-dom";
 import TableOfContents from "../pages/project/TableOfContents";
+import { VscGithub } from "react-icons/vsc";
 export interface NavItem {
     name: string;
     link: string;
+    external?: boolean;
+    icon?: JSX.Element;
 }
 
 const navUserItems: NavItem[] = [
@@ -16,17 +19,6 @@ const navUserItems: NavItem[] = [
         name: "Install",
         link: "/install"
     },
-    {
-        name: "Apps",
-        link: "/apps"
-    },
-    {
-        name: "Hardware",
-        link: "/hardware"
-    }
-];
-
-const navDevItems: NavItem[] = [
     {
         name: "Manager",
         link: "/dev/manager"
@@ -42,6 +34,20 @@ const navDevItems: NavItem[] = [
     {
         name: "Hardware",
         link: "/dev/hardware"
+    },
+    {
+        name: "Apps",
+        link: "/dev/apps"
+    },
+    {
+        name: "Github",
+        link: "https://github.com/my-own-web-services/mows",
+        external: true,
+        icon: (
+            <div className={""}>
+                <VscGithub size={20} />
+            </div>
+        )
     }
 ];
 
@@ -59,19 +65,27 @@ export default class Nav extends Component<NavProps, NavState> {
         };
     }
 
-    mapItems = (items: NavItem[]) => {
+    mapItems = (items: NavItem[], onClick?: () => void) => {
         return items.map((item, index) => {
             return (
-                <li key={index}>
-                    {/* @ts-ignore */}
-                    <NavLink
-                        className={"no-underline uppercase text-primary mx-5 font-bold px-[2px]"}
-                        exact
-                        to={item.link}
-                        onClick={this.flipMenu}
-                    >
-                        {item.name}
-                    </NavLink>
+                <li key={index} className={"mx-3 lg:mx-5"}>
+                    {item.external ? (
+                        <a rel={"noreferrer noopener"} href={item.link} className={"text-primary"}>
+                            {item.icon ? item.icon : item.name}
+                        </a>
+                    ) : (
+                        /* @ts-ignore */
+                        <NavLink
+                            className={
+                                "no-underline uppercase text-primary  font-semibold px-[2px]"
+                            }
+                            exact
+                            to={item.link}
+                            onClick={onClick}
+                        >
+                            {item.icon ? item.icon : item.name}
+                        </NavLink>
+                    )}
                 </li>
             );
         });
@@ -88,20 +102,21 @@ export default class Nav extends Component<NavProps, NavState> {
     render = () => {
         return (
             <nav
-                className={`md:static fixed bottom-0 left-0 w-[100vw] md:mt-10 z-10 border-t-2 border-t-primary box-content md:border-t-0 bg-background md:bg-none ${
+                className={`md:static fixed bottom-0 left-0 w-[100vw] md:w-full md:mt-10 z-10 border-t-2 border-t-primary box-content md:border-t-0 bg-background md:bg-none transition-all ease duration-300 ${
                     this.state.isMenuOpen ? "h-1/2" : "h-16"
                 }`}
             >
-                <div className={"hidden h-full md:flex md:justify-between"}>
-                    <ul className={"flex h-full"}>{this.mapItems(navUserItems)}</ul>
-                    <ul className={"flex h-full"}>{this.mapItems(navDevItems)}</ul>
+                <div className={"hidden h-full w-full md:block"}>
+                    <ul className={"flex h-full w-full justify-center"}>
+                        {this.mapItems(navUserItems)}
+                    </ul>
                 </div>
                 <div className={"md:hidden w-full h-16 bottom-0 absolute bg-background"}>
                     <div className={"flex w-full h-full justify-between items-center"}>
                         <div>
                             <button
                                 onClick={this.flipMenu}
-                                className={`${this.state.isMenuOpen ? "hidden" : "block"} mx-5`}
+                                className={`${this.state.isMenuOpen ? "hidden" : "block"} mx-5 `}
                             >
                                 <IoMenu size={35} />
                             </button>
@@ -120,7 +135,7 @@ export default class Nav extends Component<NavProps, NavState> {
                         <div>
                             <button
                                 onClick={() => {
-                                    window.scrollTo(0, 0);
+                                    window.scrollTo({ top: 0, behavior: "smooth" });
                                 }}
                                 className={"mx-5"}
                             >
@@ -141,8 +156,7 @@ export default class Nav extends Component<NavProps, NavState> {
                         this.state.isMenuOpen ? "flex" : "hidden"
                     } w-full p-5 justify-between`}
                 >
-                    <ul>{this.mapItems(navUserItems)}</ul>
-                    <ul>{this.mapItems(navDevItems)}</ul>
+                    <ul>{this.mapItems(navUserItems, this.flipMenu)}</ul>
                 </div>
             </nav>
         );

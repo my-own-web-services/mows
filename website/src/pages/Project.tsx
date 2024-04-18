@@ -19,7 +19,7 @@ export default class Project extends Component<ProjectProps, ProjectState> {
 
     render = () => {
         return (
-            <main className="Project mb-20">
+            <main className="Project mb-20 w-full min-h-[100vh] px-5 md:px-20 flex flex-col justify-center items-center">
                 <TableOfContents mode="desktop" />
                 <Hero />
 
