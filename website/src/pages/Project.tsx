@@ -1,12 +1,14 @@
 import { Component } from "preact";
 
 import TableOfContents from "./project/TableOfContents";
-import WorkInProgress from "./project/sections/WorkInProgress";
+import WorkInProgress from "./project/sections/contribute/WorkInProgress";
 import Hero from "./project/sections/what/Hero";
 import Overview from "./project/sections/what/Overview";
 import WhyProblems from "./project/sections/why/WhyProblems";
-import WhyDifferent from "./project/sections/why/WhyDifferent";
+import WhyDifferent from "./project/sections/what/WhyDifferent";
 import FiveParts from "./project/sections/how/FiveParts";
+import Contribute from "./project/sections/contribute/Contribute";
+import Progress from "./project/sections/Progress";
 
 //                <TableOfContents />
 
@@ -21,20 +23,22 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                 <TableOfContents mode="desktop" />
                 <Hero />
 
-                <div id="Introduction">
+                <div className={"w-full"} id="Introduction">
                     <Overview />
                     <WhyDifferent />
                 </div>
 
-                <div id="Why">
+                <div className={"w-full"} id="Why">
                     <WhyProblems />
                 </div>
 
-                <div id="How">
+                <div className={"w-full"} id="How">
                     <FiveParts />
                 </div>
-
-                <WorkInProgress />
+                <div className={"w-full"} id="Contribute">
+                    <Contribute className={"w-full"} />
+                </div>
+                <Progress className={"w-full"} />
             </main>
         );
     };

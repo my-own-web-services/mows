@@ -61,17 +61,32 @@ const table: TableOfContentsItem[] = [
             }
         ]
     },
-
     {
-        title: "Contributing",
-        href: "#Contributing",
+        // make this vision a reality
+        title: "Contribute",
+        href: "#Contribute",
         children: [
             {
-                title: "Progress",
-                href: "#Progress",
+                title: "Commits",
+                href: "#Commits",
+                children: []
+            },
+            {
+                title: "Donations",
+                href: "#Donations",
+                children: []
+            },
+            {
+                title: "Feedback",
+                href: "#Feedback",
                 children: []
             }
         ]
+    },
+    {
+        title: "Progress",
+        href: "#Progress",
+        children: []
     }
 ];
 // flatten table and rename titles of nested items to include parent titles

@@ -314,7 +314,9 @@ const parts: ProgressPart[] = [
     }
 ];
 
-interface ProgressProps {}
+interface ProgressProps {
+    readonly className?: string;
+}
 interface ProgressState {}
 export default class Progress extends Component<ProgressProps, ProgressState> {
     Milestone = (milestone: Milestone, index?: number) => {
@@ -366,9 +368,9 @@ export default class Progress extends Component<ProgressProps, ProgressState> {
 
     render = () => {
         return (
-            <div className="Progress mt-10" id="Progress">
-                <HashNavLink className={"Milestones"}>
-                    <h3>Milestones</h3>
+            <div className={`Progress ${this.props.className}`} id="Progress">
+                <HashNavLink className={"Progress"}>
+                    <h1>Progress</h1>
                 </HashNavLink>
                 {parts.map(part => (
                     <Collapsible

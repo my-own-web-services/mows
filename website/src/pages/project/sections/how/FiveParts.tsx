@@ -279,7 +279,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             <p>
                                 Filez makes it easy to handle everything file related. It brings
                                 many features with it:
-                                <ul>
+                                <ul className={"list-disc list-outside ml-4"}>
                                     <li>File upload, download, sorting etc.</li>
                                     <li>
                                         Optimized display of images by converting them to different
