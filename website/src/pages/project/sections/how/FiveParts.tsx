@@ -182,9 +182,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             </div>
                             <AnyMachine
                                 ref={this.anyMachine}
-                                className={
-                                    "scale-75 -ml-24 lg:scale-100 lg:ml-0 w-[100%] md:w-[50%]"
-                                }
+                                className={"w-[100%] md:w-[50%] h-[300px]"}
                             />
                         </div>
                         <div className={"mt-10"}>

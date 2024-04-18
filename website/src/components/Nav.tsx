@@ -88,7 +88,7 @@ export default class Nav extends Component<NavProps, NavState> {
     render = () => {
         return (
             <nav
-                className={`md:static fixed bottom-0 left-0 w-full md:mt-10 z-10 border-t-2 border-t-primary box-content md:border-t-0 bg-background md:bg-none ${
+                className={`md:static fixed bottom-0 left-0 w-[100vw] md:mt-10 z-10 border-t-2 border-t-primary box-content md:border-t-0 bg-background md:bg-none ${
                     this.state.isMenuOpen ? "h-1/2" : "h-16"
                 }`}
             >

@@ -1,6 +1,7 @@
 import { Component } from "preact";
 import anime from "animejs/lib/anime.es.js";
 import AnyMachineSVG from "../../assets/any_machine.svg";
+import ReactVirtualizedAutoSizer from "react-virtualized-auto-sizer";
 
 interface AnimLine {
     value: string;
@@ -98,63 +99,77 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
     };
 
     render = () => {
-        const width = 922.71301;
-        const height = 727.6778;
+        const imageWidth = 922.71301;
+        const imageHeight = 727.6778;
+        const aspectRatio = imageWidth / imageHeight;
 
         return (
-            <div
-                key={this.state.reloadKey}
-                className={`AnyMachine ${this.props.className}`}
-                style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    ...this.props.style
-                }}
-            >
-                <div
-                    style={{
-                        position: "relative",
-                        width: width / 2,
-                        height: height / 2
+            <div key={this.state.reloadKey} className={`AnyMachine ${this.props.className} h-full`}>
+                <ReactVirtualizedAutoSizer>
+                    {parentSize => {
+                        const { width, height, top, left } = (() => {
+                            if (parentSize.width / aspectRatio > parentSize.height) {
+                                return {
+                                    width: parentSize.height * aspectRatio,
+                                    height: parentSize.height,
+                                    top: 0,
+                                    left: (parentSize.width - parentSize.height * aspectRatio) / 2
+                                };
+                            } else {
+                                return {
+                                    width: parentSize.width,
+                                    height: parentSize.width / aspectRatio,
+                                    top: (parentSize.height - parentSize.width / aspectRatio) / 2,
+                                    left: 0
+                                };
+                            }
+                        })();
+
+                        return (
+                            <div
+                                style={{
+                                    position: "relative",
+                                    top,
+                                    left,
+                                    width,
+                                    height
+                                }}
+                            >
+                                <svg
+                                    style={{
+                                        position: "absolute",
+                                        top: 0,
+                                        left: 0
+                                    }}
+                                    width={width}
+                                    height={height}
+                                    viewBox={`0 0 ${imageWidth} ${imageHeight}`}
+                                    version="1.1"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <polygon
+                                        className={`AnyMachineOverlay${this.id}`}
+                                        stroke={"var(--c-hl2)"}
+                                        fill="none"
+                                        stroke-width={5}
+                                        points={convertPositions(animLines, true)[0].value}
+                                    />
+                                </svg>
+                                <img
+                                    style={{
+                                        position: "absolute",
+                                        top: 0,
+                                        left: 0
+                                    }}
+                                    width={width}
+                                    height={height}
+                                    src={AnyMachineSVG}
+                                    alt=""
+                                />
+                            </div>
+                        );
                     }}
-                >
-                    <svg
-                        style={{
-                            position: "absolute",
-
-                            zIndex: 1,
-                            transformOrigin: "0 0",
-                            transform: "scale(0.5)"
-                        }}
-                        width={width}
-                        height={height}
-                        version="1.1"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <polygon
-                            className={`AnyMachineOverlay${this.id}`}
-                            stroke={"var(--c-hl2)"}
-                            fill="none"
-                            stroke-width={5}
-                            points={convertPositions(animLines, true)[0].value}
-                        />
-                    </svg>
-                    <img
-                        style={{
-                            position: "absolute",
-
-                            zIndex: 0,
-                            maxWidth: "unset",
-                            transformOrigin: "0 0",
-                            transform: "scale(0.5)"
-                        }}
-                        width={width}
-                        height={height}
-                        src={AnyMachineSVG}
-                        alt=""
-                    />
-                </div>
+                </ReactVirtualizedAutoSizer>
             </div>
         );
     };
