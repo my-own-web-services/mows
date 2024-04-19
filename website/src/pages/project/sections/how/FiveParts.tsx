@@ -17,6 +17,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
         this.anyMachine = createRef<AnyMachine>();
     }
     render = () => {
+        const h2Class = "text-center md:text-left text-4xl font-bold";
         return (
             <section id="FiveParts" className={"FiveParts"}>
                 <HashNavLink className={"FiveParts"}>
@@ -28,19 +29,17 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                     solution for managing your own web services without compromising on the
                     flexibility to run whatever you want.
                 </p>
-                <div className={"mt-10"} id="FivePartsOperator">
-                    <div className={"flex flex-col-reverse md:flex-row"}>
-                        <div className={"md:w-[50%] mb-10"}>
-                            <HashNavLink className={"FivePartsOperator"}>
-                                <h2>Operator</h2>
-                            </HashNavLink>
-                            <p className={"largeText"}>
-                                The Operator is the brain of the system and has its components
-                                running on all computers in the cluster. It handles the internal
-                                operation, resource allocation and the lifecycle of applications. It
-                                also runs backups, health checks and many other tasks.
-                            </p>
-                        </div>
+                <div className={"mt-20"} id="FivePartsOperator">
+                    <HashNavLink className={"FivePartsOperator"}>
+                        <h2 className={h2Class}>Operator</h2>
+                    </HashNavLink>
+                    <div className={"flex flex-col-reverse md:flex-row "}>
+                        <p className={"largeText "}>
+                            The Operator is the brain of the system and has its components running
+                            on all computers in the cluster. It handles the internal operation,
+                            resource allocation and the lifecycle of applications. It also runs
+                            backups, health checks and many other tasks.
+                        </p>
 
                         {/* don't use css: scale here as it messes with the layout in chrome when jumping to an element with id by using the #id in the url (not a problem in firefox) */}
                         <img
@@ -48,7 +47,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             height={400}
                             draggable={false}
                             src={"/assets/logos/operator_logo.svg"}
-                            className={"glow md:w-[50%] -my-32"}
+                            className={"glow md:w-[50%] -my-20 md:-my-40"}
                             alt="Operator Logo"
                         />
                     </div>
@@ -139,24 +138,22 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                 </div>
 
                 <div className={"mt-32"} id="FivePartsManager">
-                    <div className={"flex flex-col md:flex-row"}>
-                        <div>
-                            <HashNavLink className={"FivePartsManager"}>
-                                <h2>Manager</h2>
-                            </HashNavLink>
-                            <p className={"largeText"}>
-                                The Manager handles everything that can’t be performed on the
-                                cluster, setup, adding or removing nodes or drives, decryption of
-                                the drives on a full restart, and recovering the cluster from backup
-                                in case of a complete failure.
-                            </p>
-                        </div>
+                    <HashNavLink className={"FivePartsManager"}>
+                        <h2 className={h2Class}>Manager</h2>
+                    </HashNavLink>
+                    <div className={"flex flex-col-reverse md:flex-row"}>
+                        <p className={"largeText"}>
+                            The Manager handles everything that can’t be performed on the cluster,
+                            setup, adding or removing nodes or drives, decryption of the drives on a
+                            full restart, and recovering the cluster from backup in case of a
+                            complete failure.
+                        </p>
                         <img
                             width={400}
                             height={400}
                             src={"/assets/logos/manager_logo.svg"}
                             alt="Manager Logo"
-                            className={"glow md:w-[50%] -my-32 "}
+                            className={"glow md:w-[50%] -my-20 md:-my-40"}
                         />
                     </div>
                     <div className={"Parts"}>
@@ -229,21 +226,18 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                 </div>
 
                 <div className={"mt-32"} id="FivePartsHardware">
-                    <div className={"flex flex-col md:flex-row"}>
-                        <div>
-                            <HashNavLink className={"FivePartsHardware"}>
-                                <h2>Hardware</h2>
-                            </HashNavLink>
-                            <p className={"largeText"}>
-                                The hardware part of the project aims to provide a well-integrated,
-                                performant, cost-effective solution as a base for the system on top.
-                                You can build it yourself from parts, or buy the assembled version
-                                to save some time. To automate the installation on bare metal, and
-                                support as much consumer hardware as much as possible, the manager
-                                is extended with a few components and a cheap KVM solution is
-                                provided.
-                            </p>
-                        </div>
+                    <HashNavLink className={"FivePartsHardware"}>
+                        <h2 className={h2Class}>Hardware</h2>
+                    </HashNavLink>
+                    <div className={"flex flex-col-reverse md:flex-row"}>
+                        <p className={"largeText"}>
+                            The hardware part of the project aims to provide a well-integrated,
+                            performant, cost-effective solution as a base for the system on top. You
+                            can build it yourself from parts, or buy the assembled version to save
+                            some time. To automate the installation on bare metal, and support as
+                            much consumer hardware as much as possible, the manager is extended with
+                            a few components and a cheap KVM solution is provided.
+                        </p>
                         <img
                             width={400}
                             height={400}
@@ -275,20 +269,18 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                 </div>
 
                 <div className={"mt-32"} id="FivePartsCloudAPIs">
-                    <div className={"flex flex-col md:flex-row"}>
-                        <div>
-                            <HashNavLink className={"FivePartsCloudApis"}>
-                                <h2>MOWS Cloud APIs</h2>
-                            </HashNavLink>
-                            <p className={"largeText"}>
-                                The MOWS cloud APIs make it easy to develop web applications that
-                                are well integrated with the MOWS ecosystem. Building on these APIs
-                                makes it possible for apps to integrate with each other as well as
-                                sparing developers from implementing basic requirements over and
-                                over again. The APIs are provided through http, clients for
-                                different languages and directly through frontend components.
-                            </p>
-                        </div>
+                    <HashNavLink className={"FivePartsCloudApis"}>
+                        <h2 className={h2Class}>Cloud APIs</h2>
+                    </HashNavLink>
+                    <div className={"flex flex-col-reverse md:flex-row"}>
+                        <p className={"largeText"}>
+                            The MOWS cloud APIs make it easy to develop web applications that are
+                            well integrated with the MOWS ecosystem. Building on these APIs makes it
+                            possible for apps to integrate with each other as well as sparing
+                            developers from implementing basic requirements over and over again. The
+                            APIs are provided through http, clients for different languages and
+                            directly through frontend components.
+                        </p>
                         <img
                             width={400}
                             height={400}
@@ -351,17 +343,16 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                     </div>
                 </div>
                 <div className={"mt-32"} id="FivePartsCloudApps">
-                    <div className={"flex flex-col md:flex-row"}>
-                        <div>
-                            <HashNavLink className={"FivePartsCloudApis"}>
-                                <h2>Apps</h2>
-                            </HashNavLink>
-                            <p className={"largeText"}>
-                                The MOWS Apps aim to cover the basic needs of everyday users as well
-                                as showing the possibilities and ease of use of the MOWS Cloud APIs
-                                and components.
-                            </p>
-                        </div>
+                    <HashNavLink className={"FivePartsCloudApis"}>
+                        <h2 className={h2Class}>Apps</h2>
+                    </HashNavLink>
+                    <div className={"flex flex-col-reverse md:flex-row"}>
+                        <p className={"largeText"}>
+                            The MOWS Apps aim to cover the basic needs of everyday users as well as
+                            showing the possibilities and ease of use of the MOWS Cloud APIs and
+                            components.
+                        </p>
+
                         <img
                             width={400}
                             height={400}

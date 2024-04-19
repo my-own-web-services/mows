@@ -219,8 +219,6 @@ export default class Contribute extends Component<ContributeProps, ContributeSta
                         <ul className={ul}>
                             <li>Social Media</li>
                             <li>Marketing</li>
-                            <li>Presentation</li>
-                            <li>Education</li>
                         </ul>
                     </div>
                 </div>

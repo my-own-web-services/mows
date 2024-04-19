@@ -9,6 +9,7 @@ import WhyDifferent from "./project/sections/what/WhyDifferent";
 import FiveParts from "./project/sections/how/FiveParts";
 import Contribute from "./project/sections/contribute/Contribute";
 import Progress from "./project/sections/Progress";
+import FAQ from "./project/sections/FAQ";
 
 //                <TableOfContents />
 
@@ -23,22 +24,25 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                 <TableOfContents mode="desktop" />
                 <Hero />
 
-                <div className={"w-full"} id="Introduction">
+                <div className={"w-full"} id="Overview">
                     <Overview />
                     <WhyDifferent />
                 </div>
 
                 <div className={"w-full"} id="Why">
                     <WhyProblems />
+                    {/* Motivation */}
                 </div>
 
                 <div className={"w-full"} id="How">
                     <FiveParts />
+                    {/* Built on the shoulders of giants */}
                 </div>
                 <div className={"w-full"} id="Contribute">
                     <Contribute className={"w-full"} />
                 </div>
                 <Progress className={"w-full"} />
+                <FAQ className={"w-full"} />
             </main>
         );
     };
