@@ -1,7 +1,6 @@
 import { Component, RefObject, createRef } from "preact";
 import HashNavLink from "../../../../components/HashNavLink";
-import ManagerSVG from "../../../../assets/manager.svg";
-import OperatorSVG from "../../../../assets/operator.svg";
+
 import ManifestExampleImage from "../../../../assets/manifest_example.jpg";
 import ClusterFailure from "../../../../components/animations/ClusterNodeFailure";
 import AnyMachine from "../../../../components/animations/AnyMachine";
@@ -23,6 +22,12 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                 <HashNavLink className={"FiveParts"}>
                     <h1>One Vision, Five Parts</h1>
                 </HashNavLink>
+                <p className={"largeText"}>
+                    MOWS consists of five parts: Operator, Manager, Hardware, Cloud APIs and Apps.
+                    The parts are designed to work together seamlessly, providing a complete
+                    solution for managing your own web services without compromising on the
+                    flexibility to run whatever you want.
+                </p>
                 <div className={"mt-10"} id="FivePartsOperator">
                     <div className={"flex flex-col-reverse md:flex-row"}>
                         <div className={"md:w-[50%] mb-10"}>
@@ -42,9 +47,9 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             width={400}
                             height={400}
                             draggable={false}
-                            src={OperatorSVG}
+                            src={"/assets/logos/operator_logo.svg"}
                             className={"glow md:w-[50%] -my-32"}
-                            alt="Operator"
+                            alt="Operator Logo"
                         />
                     </div>
                     <div className={"mt-10"}>
@@ -149,8 +154,8 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                         <img
                             width={400}
                             height={400}
-                            src={ManagerSVG}
-                            alt="Manager"
+                            src={"/assets/logos/manager_logo.svg"}
+                            alt="Manager Logo"
                             className={"glow md:w-[50%] -my-32 "}
                         />
                     </div>
@@ -224,17 +229,29 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                 </div>
 
                 <div className={"mt-32"} id="FivePartsHardware">
-                    <HashNavLink className={"FivePartsHardware"}>
-                        <h2>Hardware</h2>
-                    </HashNavLink>
-                    <p className={"largeText"}>
-                        The hardware part of the project aims to provide a well-integrated,
-                        performant, cost-effective solution as a base for the system on top. You can
-                        build it yourself from parts, or buy the assembled version to save some
-                        time. To automate the installation on bare metal, and support as much
-                        consumer hardware as much as possible, the manager is extended with a few
-                        components and a cheap KVM solution is provided.
-                    </p>
+                    <div className={"flex flex-col md:flex-row"}>
+                        <div>
+                            <HashNavLink className={"FivePartsHardware"}>
+                                <h2>Hardware</h2>
+                            </HashNavLink>
+                            <p className={"largeText"}>
+                                The hardware part of the project aims to provide a well-integrated,
+                                performant, cost-effective solution as a base for the system on top.
+                                You can build it yourself from parts, or buy the assembled version
+                                to save some time. To automate the installation on bare metal, and
+                                support as much consumer hardware as much as possible, the manager
+                                is extended with a few components and a cheap KVM solution is
+                                provided.
+                            </p>
+                        </div>
+                        <img
+                            width={400}
+                            height={400}
+                            src={"/assets/logos/hardware_logo.svg"}
+                            alt="Hardware Logo"
+                            className={"glow md:w-[50%] -my-20 "}
+                        />
+                    </div>
                     <div className={"Parts"}>
                         <div className={"mt-10"}>
                             <HashNavLink className={"FivePartsHardwarePicoKVM"}>
@@ -258,17 +275,28 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                 </div>
 
                 <div className={"mt-32"} id="FivePartsCloudAPIs">
-                    <HashNavLink className={"FivePartsCloudApis"}>
-                        <h2>MOWS Cloud APIs</h2>
-                    </HashNavLink>
-                    <p className={"largeText"}>
-                        The MOWS cloud APIs make it easy to develop web applications that are well
-                        integrated with the MOWS ecosystem. Building on these APIs makes it possible
-                        for apps to integrate with each other as well as sparing developers from
-                        implementing basic requirements over and over again. The APIs are provided
-                        through http, clients for different languages and directly through frontend
-                        components.
-                    </p>
+                    <div className={"flex flex-col md:flex-row"}>
+                        <div>
+                            <HashNavLink className={"FivePartsCloudApis"}>
+                                <h2>MOWS Cloud APIs</h2>
+                            </HashNavLink>
+                            <p className={"largeText"}>
+                                The MOWS cloud APIs make it easy to develop web applications that
+                                are well integrated with the MOWS ecosystem. Building on these APIs
+                                makes it possible for apps to integrate with each other as well as
+                                sparing developers from implementing basic requirements over and
+                                over again. The APIs are provided through http, clients for
+                                different languages and directly through frontend components.
+                            </p>
+                        </div>
+                        <img
+                            width={400}
+                            height={400}
+                            src={"/assets/logos/cloud_apis_logo.svg"}
+                            alt="Cloud APIS Logo"
+                            className={"glow md:w-[50%] -my-16 "}
+                        />
+                    </div>
                     <div className={"Parts"}>
                         <div className={"mt-10"}>
                             <HashNavLink className={"FivePartsApisFilez"}>
@@ -321,6 +349,28 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             </p>
                         </div>
                     </div>
+                </div>
+                <div className={"mt-32"} id="FivePartsCloudApps">
+                    <div className={"flex flex-col md:flex-row"}>
+                        <div>
+                            <HashNavLink className={"FivePartsCloudApis"}>
+                                <h2>Apps</h2>
+                            </HashNavLink>
+                            <p className={"largeText"}>
+                                The MOWS Apps aim to cover the basic needs of everyday users as well
+                                as showing the possibilities and ease of use of the MOWS Cloud APIs
+                                and components.
+                            </p>
+                        </div>
+                        <img
+                            width={400}
+                            height={400}
+                            src={"/assets/logos/apps_logo.svg"}
+                            alt="Apps Logo"
+                            className={"glow md:w-[50%] -my-16 "}
+                        />
+                    </div>
+                    <div className={"Parts"}></div>
                 </div>
             </section>
         );

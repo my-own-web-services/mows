@@ -329,7 +329,8 @@ h2,
     filter: drop-shadow(0px 0px 50px var(--c-hl2-less-opacity));
 }
 
-p {
+p,
+ul {
     color: var(--c-text-dim);
 }
 
@@ -526,7 +527,6 @@ div.Background {
     section {
         p {
             max-width: 600px;
-            margin: 0;
         }
     }
 }

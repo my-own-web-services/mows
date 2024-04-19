@@ -14,6 +14,10 @@ export default {
             accent2Opaque2: "#0199ff27",
             accent3: "#ffb627"
         },
+        fontFamily: {
+            sans: ["Inter Variable", "sans-serif"],
+            mono: ["monospace"]
+        },
         extend: {
             transitionProperty: {
                 height: "height"

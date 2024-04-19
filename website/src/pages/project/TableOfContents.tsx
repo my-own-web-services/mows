@@ -67,18 +67,18 @@ const table: TableOfContentsItem[] = [
         href: "#Contribute",
         children: [
             {
-                title: "Commits",
-                href: "#Commits",
+                title: "Work",
+                href: "#ContributeWork",
                 children: []
             },
             {
                 title: "Donations",
-                href: "#Donations",
+                href: "#ContributeDonations",
                 children: []
             },
             {
                 title: "Feedback",
-                href: "#Feedback",
+                href: "#ContributeFeedback",
                 children: []
             }
         ]
@@ -86,6 +86,11 @@ const table: TableOfContentsItem[] = [
     {
         title: "Progress",
         href: "#Progress",
+        children: []
+    },
+    {
+        title: "FAQ",
+        href: "#FAQ",
         children: []
     }
 ];
