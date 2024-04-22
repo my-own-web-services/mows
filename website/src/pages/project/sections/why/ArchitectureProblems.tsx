@@ -379,7 +379,11 @@ export default class ArchitectureProblems extends Component<
                                                             "var(--c-text)"
                                                     }}
                                                 ></div>
-                                                <div className={"font-bold text-xl mt-5 mb-1"}>
+                                                <div
+                                                    className={
+                                                        "font-bold text-xl mt-5 mb-1 text-primary"
+                                                    }
+                                                >
                                                     {problemCategories[c.category].name}
                                                 </div>
                                             </div>

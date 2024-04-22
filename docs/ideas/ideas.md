@@ -118,3 +118,27 @@ apis
 applications
 
 # bios butler
+
+Similar concepts / inspiration:
+
+General:
+
+-   Big Tech Cloud services
+-   Nextcloud (File cloud)
+-   https://umbrel.com/umbrelos (Home Server OS)
+-   https://casaos.io/ (Home Server OS)
+-   https://www.cloudron.io/ (Server OS)
+
+-   https://supabase.com/ (Web APIs)
+
+-   https://forums.serverbuilds.net/t/guide-remote-gaming-on-unraid/4248/7 (Game/Desktop Streaming)
+-   https://www.igel.de/ (Thin clients and desktop streaming)
+
+Other Systems
+
+-   https://yunohost.org/#/ (Server OS)
+-   https://sandstorm.org/ (Server OS)
+-   https://start9.com/ (Server OS)
+-   https://caprover.com/ (Server OS)
+
+-   https://www.youtube.com/watch?v=wTQeMkYRMcw (File Manager)

@@ -340,10 +340,19 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                                 Apps.
                             </p>
                         </div>
+                        <div className={"mt-10"}>
+                            <HashNavLink className={"FivePartsApisFederation"}>
+                                <h3>Federation</h3>
+                            </HashNavLink>
+                            <p>
+                                The federation API makes it possible to build apps that can exchange
+                                data with other MOWS clusters.
+                            </p>
+                        </div>
                     </div>
                 </div>
-                <div className={"mt-32"} id="FivePartsCloudApps">
-                    <HashNavLink className={"FivePartsCloudApis"}>
+                <div className={"mt-32"} id="FivePartsApps">
+                    <HashNavLink className={"FivePartsApps"}>
                         <h2 className={h2Class}>Apps</h2>
                     </HashNavLink>
                     <div className={"flex flex-col-reverse md:flex-row"}>

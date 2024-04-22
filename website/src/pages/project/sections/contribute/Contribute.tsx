@@ -1,7 +1,6 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 import HashNavLink from "../../../../components/HashNavLink";
-import WorkInProgress from "./WorkInProgress";
 
 interface ContributeProps {
     readonly className?: string;
@@ -33,7 +32,7 @@ export default class Contribute extends Component<ContributeProps, ContributeSta
                 <p className={"largeText"}>
                     MOWS is currently in the early stages of development. Many problems have a
                     conceptualized solution, but the implementation is still pending. <br /> If you
-                    like the vision please consider to share it and leave a on{" "}
+                    like the vision please consider to share it and leave a star on{" "}
                     <a rel="noreferrer noopener" href="https://github.com/my-own-web-services/mows">
                         GitHub
                     </a>{" "}
