@@ -9,9 +9,9 @@ export default class Hero extends Component<HeroProps, HeroState> {
                 <div className={"HeroSplit"}>
                     <div className={"HeroText"}>
                         <h1>
-                            <div>Leave the Dark Clouds Behind and</div>
+                            <div>Leave All the Dark Clouds Behind and</div>
 
-                            <div className={"hl1"}> Create Your Own!</div>
+                            <div className={"hl1"}>Run Your Own!</div>
                         </h1>
                         <p className={"largeText"}>
                             Break free from the confines of tech giants' locked-in cloud

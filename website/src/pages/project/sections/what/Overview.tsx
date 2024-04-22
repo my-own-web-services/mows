@@ -13,7 +13,7 @@ export default class Overview extends Component<OverviewProps, OverviewState> {
                         <HashNavLink className={"Overview"}>
                             <h1>My Own Web Services</h1>
                         </HashNavLink>
-                        <h3 className={"hl1"}>The power of the cloud in your hands</h3>
+                        <h3 className={"hl1"}>The power of the cloud put back in your hands</h3>
                         <p className={"largeText"}>
                             MOWS makes it easy to start your own multi-computer cloud system from
                             scratch. It is not just another home server OS, as it provides powerful

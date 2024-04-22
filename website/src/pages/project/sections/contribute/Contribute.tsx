@@ -38,7 +38,7 @@ export default class Contribute extends Component<ContributeProps, ContributeSta
                     </a>{" "}
                     to keep us motivated. 🤗🤩 <br />
                 </p>
-                <div className={"mt-8"}>
+                <div className={"mt-8"} id="ContributeWork">
                     <HashNavLink className={"ContributeWork"}>
                         <h2>Work</h2>
                     </HashNavLink>
@@ -221,7 +221,7 @@ export default class Contribute extends Component<ContributeProps, ContributeSta
                         </ul>
                     </div>
                 </div>
-                <div className={"mt-8"}>
+                <div className={"mt-8"} id="ContributeDonations">
                     <HashNavLink className={"ContributeDonations"}>
                         <h2>Donations</h2>
                     </HashNavLink>
@@ -248,12 +248,12 @@ export default class Contribute extends Component<ContributeProps, ContributeSta
                         </span>
                     </div>
                 </div>
-                <div className={"mt-8"}>
+                <div className={"mt-8"} id="ContributeFeedback">
                     <HashNavLink className={"ContributeFeedback"}>
                         <h2>Feedback</h2>
                     </HashNavLink>
                     <p>
-                        Feel free to leave questions and feedback in the{" "}
+                        After reading the FAQ, feel free to leave questions and feedback in the{" "}
                         <a
                             rel={"noreferrer noopener"}
                             href="https://github.com/my-own-web-services/mows/discussions"

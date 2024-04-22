@@ -42,7 +42,7 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                     <Contribute className={"w-full"} />
                 </div>
                 <Progress className={"w-full"} />
-                <FAQ className={"w-full"} />
+                <FAQ className={"w-full mt-20"} />
             </main>
         );
     };

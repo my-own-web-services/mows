@@ -115,9 +115,9 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
     constructor(props: TableOfContentsProps) {
         super(props);
         this.state = {
-            currentSection: "",
+            currentSection: window.location.hash || "#Overview",
             reachedEnd: false,
-            reachedStart: true
+            reachedStart: window.location.hash === "#Overview" || window.location.hash === ""
         };
     }
 
@@ -131,7 +131,7 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                 });
             },
             {
-                threshold: 0.5
+                threshold: 0.3
             }
         );
 
