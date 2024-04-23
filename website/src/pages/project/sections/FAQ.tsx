@@ -18,7 +18,7 @@ interface FAQState {}
 const faq: FAQItem[] = [
     {
         question: "Why not docker-compose?",
-        answer: "The docker and docker-compose ecosystem is awesome and great for getting started with containers, but it is missing a lot of features that would be required for the home-lab to grow out of the lab stage into a system that you can rely on every day. A software platform can really only grow well when it can not only support some home users, but also small businesses and even larger organizations. Kubernetes is a great platform for this, but as it is only one part of a larger system, it is not enough to just install Kubernetes and call it a day. MOWS is a complete solution that is designed to be easy to use, but also to be able to grow with you as your needs grow."
+        answer: "The docker and docker-compose ecosystem is awesome and great for getting started with containers, but it is missing a lot of features that would be required for home-labs to grow out of the lab stage into a system that you can rely on every day. A software platform can really only grow well when it can not only support some home users, but also small businesses and even larger organizations. Kubernetes is a great platform for this, but as it is only one part of a larger system, it is not enough to just install Kubernetes and call it a day. MOWS is a complete solution that is designed to be easy to use, but also to be able to grow with you as your needs grow."
     },
     {
         question: "Why not use a cloud provider?",

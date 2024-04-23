@@ -101,6 +101,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                                 </p>
                             </div>
                             <ClusterFailure
+                                loop
                                 ref={this.clusterNodeFailure}
                                 className={"mx-auto md:w-[50%]"}
                             />
@@ -184,6 +185,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             </div>
                             <AnyMachine
                                 ref={this.anyMachine}
+                                loop={true}
                                 className={"w-[100%] md:w-[50%] h-[300px]"}
                             />
                         </div>

@@ -2,6 +2,7 @@ import { Component } from "preact";
 import anime from "animejs/lib/anime.es.js";
 import AnyMachineSVG from "../../assets/any_machine.svg";
 import ReactVirtualizedAutoSizer from "react-virtualized-auto-sizer";
+import { animationsEnabled } from "../Nav";
 
 interface AnimLine {
     value: string;
@@ -64,17 +65,12 @@ interface AnyMachineProps {
     readonly loop?: boolean;
     readonly className?: string;
 }
-interface AnyMachineState {
-    readonly reloadKey: number;
-}
+interface AnyMachineState {}
 export default class AnyMachine extends Component<AnyMachineProps, AnyMachineState> {
-    animating: boolean;
     id: number;
     constructor(props: AnyMachineProps) {
         super(props);
-        this.animating = false;
         this.id = Math.floor(Math.random() * 1000000);
-        this.state = { reloadKey: 0 };
     }
 
     componentDidMount = () => {
@@ -83,19 +79,29 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
         }
     };
 
-    runAnimation = (loop?: boolean) => {
-        if (this.animating) return;
-        this.animating = true;
+    runAnimation = async (loop?: boolean) => {
+        const targets = `.AnyMachineOverlay${this.id}`;
 
-        this.setState({ reloadKey: this.state.reloadKey + 1 }, async () => {
-            await anime({
-                targets: `.AnyMachineOverlay${this.id}`,
-                points: convertPositions(animLines),
-                loop
-            }).finished;
-
-            this.animating = false;
+        const animation = anime({
+            targets,
+            points: convertPositions(animLines),
+            loop
         });
+
+        animationsEnabled.subscribe(enabled => {
+            if (enabled) {
+                animation.play();
+            } else {
+                animation.pause();
+            }
+        });
+
+        if (animation.animatables.length === 0) {
+            // await Promise setTimeout
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            this.runAnimation(loop);
+        }
     };
 
     render = () => {
@@ -104,7 +110,7 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
         const aspectRatio = imageWidth / imageHeight;
 
         return (
-            <div key={this.state.reloadKey} className={`AnyMachine ${this.props.className}`}>
+            <div className={`AnyMachine ${this.props.className}`}>
                 <ReactVirtualizedAutoSizer>
                     {parentSize => {
                         const { width, height, top, left } = (() => {

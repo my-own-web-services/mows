@@ -23,7 +23,7 @@ export default class Overview extends Component<OverviewProps, OverviewState> {
                             operational basics so you can focus on what truly matters.
                         </p>
                     </div>
-                    <ClusterNodeFailure className={"lg:w-1/5 lg:mt-5 lg:-ml-10 "} />
+                    <ClusterNodeFailure loop className={"lg:w-1/5 lg:mt-5 lg:-ml-10 "} />
                 </div>
             </section>
         );

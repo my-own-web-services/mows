@@ -142,3 +142,6 @@ Other Systems
 -   https://caprover.com/ (Server OS)
 
 -   https://www.youtube.com/watch?v=wTQeMkYRMcw (File Manager)
+
+WILL make it possible
+umformulieren dass man merkt dass es um die idee/vision geht und nicht ready

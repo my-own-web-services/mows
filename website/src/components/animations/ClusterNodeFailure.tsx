@@ -1,6 +1,7 @@
 import anime from "animejs";
 import { Component } from "preact";
 import { CSSProperties } from "react";
+import { animationsEnabled } from "../Nav";
 
 interface ClusterNodeFailureProps {
     readonly style?: CSSProperties;
@@ -23,13 +24,10 @@ export default class ClusterNodeFailure extends Component<
     ClusterNodeFailureProps,
     ClusterNodeFailureState
 > {
-    animating: boolean;
     id: number;
     constructor(props: ClusterNodeFailureProps) {
         super(props);
-        this.animating = false;
         this.id = Math.floor(Math.random() * 1000000);
-        this.state = { reloadKey: 0 };
     }
 
     componentDidMount = () => {
@@ -39,25 +37,11 @@ export default class ClusterNodeFailure extends Component<
     };
 
     runAnimation = async (loop?: boolean) => {
-        if (this.animating) {
-            return;
-        }
         const currentClassName = `.ClusterNodeFailure${this.id}`;
-        this.animating = true;
-        this.setState({ reloadKey: this.state.reloadKey + 1 }, async () => {
-            const appearTime = 500;
+        const appearTime = 500;
 
-            /*
-            anime({
-                targets: `${currentClassName} #path198-1-4",
-                opacity: [1, 0.9, 1],
-                duration: 1000,
-                loop: true,
-                easing: "easeInOutQuad"
-            });
-            */
-
-            await anime
+        const animation = (() =>
+            anime
                 .timeline({
                     easing: "easeInOutQuad",
                     loop
@@ -147,16 +131,20 @@ export default class ClusterNodeFailure extends Component<
                 })
                 .add({
                     delay: 1000
-                }).finished;
+                }))();
 
-            this.animating = false;
+        animationsEnabled.subscribe(enabled => {
+            if (enabled) {
+                animation.play();
+            } else {
+                animation.pause();
+            }
         });
     };
 
     render = () => {
         return (
             <div
-                key={this.state.reloadKey}
                 className={`ClusterNodeFailure ClusterNodeFailure${this.id} ${this.props.className}`}
                 style={this.props.style}
             >

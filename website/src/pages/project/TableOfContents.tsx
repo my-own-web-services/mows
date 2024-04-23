@@ -1,5 +1,8 @@
 import { Component } from "preact";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+import Toggle from "../../components/Toggle";
+import { animationsEnabled } from "../../components/Nav";
+import { MdAnimation } from "react-icons/md";
 
 interface TableOfContentsItem {
     title: string;
@@ -151,7 +154,7 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                 }}
             >
                 <svg
-                    className={"inline -mt-1 w-3 h-3 mr-3"}
+                    className={"inline -mt-1 w-3 h-3 mr-2"}
                     width="101"
                     height="101"
                     viewBox="0 0 101 101"
@@ -256,6 +259,16 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                     <aside
                         className={`fixed hidden 2xl:flex top-0 left-0 h-full w-72 flex-col justify-center pl-8 overflow-hidden text-sm whitespace-nowrap text-ellipsis`}
                     >
+                        <Toggle
+                            className="fixed top-0 left-0 m-8 z-10"
+                            checked={animationsEnabled.value}
+                            onClick={() => {
+                                animationsEnabled.value = !animationsEnabled.value;
+                            }}
+                            title="Toggle animations"
+                        >
+                            Animations
+                        </Toggle>
                         {table.map(item => this.TableOfContentsItem(item, 0))}
                     </aside>
                 )}

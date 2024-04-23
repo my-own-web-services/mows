@@ -3,6 +3,10 @@ import { IoChevronUp, IoClose, IoMenu } from "react-icons/io5";
 import { NavLink } from "react-router-dom";
 import TableOfContents from "../pages/project/TableOfContents";
 import { VscGithub } from "react-icons/vsc";
+import { signal } from "@preact/signals";
+import Toggle from "./Toggle";
+import { MdAnimation } from "react-icons/md";
+
 export interface NavItem {
     name: string;
     link: string;
@@ -51,6 +55,8 @@ const navUserItems: NavItem[] = [
     }
 ];
 
+export const animationsEnabled = signal(true);
+
 interface NavProps {}
 interface NavState {
     readonly isMenuOpen: boolean;
@@ -68,7 +74,7 @@ export default class Nav extends Component<NavProps, NavState> {
     mapItems = (items: NavItem[], onClick?: () => void) => {
         return items.map((item, index) => {
             return (
-                <li key={index} className={"mx-3 lg:mx-5"}>
+                <li key={index} className={"mx-3 my-2 lg:mx-5 lg:my-0"}>
                     {item.external ? (
                         <a rel={"noreferrer noopener"} href={item.link} className={"text-primary"}>
                             {item.icon ? item.icon : item.name}
@@ -91,6 +97,75 @@ export default class Nav extends Component<NavProps, NavState> {
         });
     };
 
+    DesktopNav = () => {
+        return (
+            <div className={"hidden h-full w-full md:block"}>
+                <ul className={"flex h-full w-full justify-center"}>
+                    {this.mapItems(navUserItems)}
+                </ul>
+            </div>
+        );
+    };
+
+    MobileBottomBar = () => {
+        return (
+            <div className={"md:hidden w-full h-16 bottom-0 absolute bg-background"}>
+                <div className={"flex w-full h-full justify-between items-center"}>
+                    <div>
+                        <button
+                            onClick={this.flipMenu}
+                            className={`${this.state.isMenuOpen ? "hidden" : "block"} mx-5 `}
+                        >
+                            <IoMenu size={35} />
+                        </button>
+                        <button
+                            onClick={this.flipMenu}
+                            className={`${this.state.isMenuOpen ? "block" : "hidden"} mx-5`}
+                        >
+                            <IoClose size={35} />
+                        </button>
+                    </div>
+                    <TableOfContents
+                        mode="mobile"
+                        className="flex-grow max-w-56"
+                        onExpandFlip={this.onMobileTableFlip}
+                    />
+                    <div>
+                        <button
+                            onClick={() => {
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                            className={"mx-5"}
+                        >
+                            <IoChevronUp size={35} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    MobileNavWindow = () => {
+        return (
+            <div
+                className={`${
+                    this.state.isMenuOpen ? "flex" : "hidden"
+                } w-full p-5 justify-between`}
+            >
+                <ul>{this.mapItems(navUserItems, this.flipMenu)}</ul>
+                <Toggle
+                    checked={animationsEnabled.value}
+                    onClick={() => {
+                        animationsEnabled.value = !animationsEnabled.value;
+                    }}
+                    title="Toggle animations"
+                >
+                    Animations
+                </Toggle>
+            </div>
+        );
+    };
+
     flipMenu = () => {
         this.setState({ isMenuOpen: !this.state.isMenuOpen });
     };
@@ -106,44 +181,10 @@ export default class Nav extends Component<NavProps, NavState> {
                     this.state.isMenuOpen ? "h-1/2" : "h-16"
                 }`}
             >
-                <div className={"hidden h-full w-full md:block"}>
-                    <ul className={"flex h-full w-full justify-center"}>
-                        {this.mapItems(navUserItems)}
-                    </ul>
-                </div>
-                <div className={"md:hidden w-full h-16 bottom-0 absolute bg-background"}>
-                    <div className={"flex w-full h-full justify-between items-center"}>
-                        <div>
-                            <button
-                                onClick={this.flipMenu}
-                                className={`${this.state.isMenuOpen ? "hidden" : "block"} mx-5 `}
-                            >
-                                <IoMenu size={35} />
-                            </button>
-                            <button
-                                onClick={this.flipMenu}
-                                className={`${this.state.isMenuOpen ? "block" : "hidden"} mx-5`}
-                            >
-                                <IoClose size={35} />
-                            </button>
-                        </div>
-                        <TableOfContents
-                            mode="mobile"
-                            className="flex-grow max-w-56"
-                            onExpandFlip={this.onMobileTableFlip}
-                        />
-                        <div>
-                            <button
-                                onClick={() => {
-                                    window.scrollTo({ top: 0, behavior: "smooth" });
-                                }}
-                                className={"mx-5"}
-                            >
-                                <IoChevronUp size={35} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                {this.DesktopNav()}
+
+                {this.MobileBottomBar()}
+
                 <div
                     className={`${
                         this.state.isTableOpen ? "flex" : "hidden"
@@ -151,13 +192,7 @@ export default class Nav extends Component<NavProps, NavState> {
                 >
                     <TableOfContents mode="desktop" />
                 </div>
-                <div
-                    className={`${
-                        this.state.isMenuOpen ? "flex" : "hidden"
-                    } w-full p-5 justify-between`}
-                >
-                    <ul>{this.mapItems(navUserItems, this.flipMenu)}</ul>
-                </div>
+                {this.MobileNavWindow()}
             </nav>
         );
     };
