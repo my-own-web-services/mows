@@ -1,6 +1,7 @@
 import { Component } from "preact";
 import HashNavLink from "../../../../components/HashNavLink";
 import basicsLine from "../../../../assets/basics.svg";
+import { CSSProperties } from "preact/compat";
 
 const basics = [
     {
@@ -85,12 +86,19 @@ const basics = [
     }
 ];
 
-interface WhyDifferentProps {}
+interface WhyDifferentProps {
+    readonly className?: string;
+    readonly style?: CSSProperties;
+}
 interface WhyDifferentState {}
 export default class WhyDifferent extends Component<WhyDifferentProps, WhyDifferentState> {
     render = () => {
         return (
-            <section id="WhyDifferent" className={"WhyDifferent"}>
+            <section
+                style={{ ...this.props.style }}
+                className={`WhyDifferent ${this.props.className ?? ""}`}
+                id="WhyDifferent"
+            >
                 <div
                     className={
                         "basicsLine md:relative md:-ml-4 md:mt-10 lg:mt-0 lg:w-[860px] lg:mx-auto"

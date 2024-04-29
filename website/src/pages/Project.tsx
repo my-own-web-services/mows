@@ -27,8 +27,8 @@ export default class Project extends Component<ProjectProps, ProjectState> {
 
                 <div className={"w-full"} id="Overview">
                     <Overview />
-                    <What />
-                    <WhyDifferent />
+                    <What className={"mt-48"} />
+                    <WhyDifferent className={"mt-48"} />
                 </div>
 
                 <div className={"w-full"} id="Why">
