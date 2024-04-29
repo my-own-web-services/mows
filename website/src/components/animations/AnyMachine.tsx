@@ -145,7 +145,8 @@ export default class AnyMachine extends Component<AnyMachineProps, AnyMachineSta
                                     style={{
                                         position: "absolute",
                                         top: 0,
-                                        left: 0
+                                        left: 0,
+                                        zIndex: 1
                                     }}
                                     width={width}
                                     height={height}

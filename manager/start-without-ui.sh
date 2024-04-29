@@ -11,7 +11,7 @@ docker network create -d macvlan \
 
 docker network create -d bridge mows-manager-bridge || true
 
-DEV_NAME=enp3s0f0u2u4
+DEV_NAME=enp34s0
 
 
 docker network create -d macvlan \

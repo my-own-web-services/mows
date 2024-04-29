@@ -10,6 +10,7 @@ import FiveParts from "./project/sections/how/FiveParts";
 import Contribute from "./project/sections/contribute/Contribute";
 import Progress from "./project/sections/Progress";
 import FAQ from "./project/sections/FAQ";
+import What from "./project/sections/what/What";
 
 //                <TableOfContents />
 
@@ -26,6 +27,7 @@ export default class Project extends Component<ProjectProps, ProjectState> {
 
                 <div className={"w-full"} id="Overview">
                     <Overview />
+                    <What />
                     <WhyDifferent />
                 </div>
 
