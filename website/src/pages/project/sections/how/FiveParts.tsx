@@ -144,10 +144,10 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                     </HashNavLink>
                     <div className={"flex flex-col-reverse md:flex-row"}>
                         <p className={"largeText"}>
-                            The Manager handles everything that can’t be performed on the cluster,
-                            setup, adding or removing nodes or drives, decryption of the drives on a
-                            full restart, and recovering the cluster from backup in case of a
-                            complete failure.
+                            The Manager handles everything that can’t be performed on the cluster.
+                            It handles the setup, adding or removing of nodes or drives, decryption
+                            of the drives on a full restart, and recovering the cluster from backup
+                            in case of a complete failure.
                         </p>
                         <img
                             width={400}
@@ -171,7 +171,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                                 <p>
                                     The initial setup is performed by choosing the machines to
                                     install the cluster on. Any combination of Local VMs, Local
-                                    pyhsical machines and rented remote machines can be used.
+                                    physical machines and rented remote machines can be used.
                                 </p>
                                 <p>
                                     If external services are used, their API keys need to be
@@ -207,7 +207,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                                 Adding a node requires the selection of a machine to add and waiting
                                 for the setup to finish. The removal of a node requires the
                                 selection of a cluster machine to remove. Adding or removing drives
-                                works by starting the removal procedure in the manager ui that will
+                                works by starting the removal procedure in the manager UI that will
                                 then guide you through the process, shutting down the node and
                                 starting it again after you finished the manual addition or removal
                                 of the drives.
@@ -236,9 +236,9 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             The hardware part of the project aims to provide a well-integrated,
                             performant, cost-effective solution as a base for the system on top. You
                             can build it yourself from parts, or buy the assembled version to save
-                            some time. To automate the installation on bare metal, and support as
-                            much consumer hardware as much as possible, the manager is extended with
-                            a few components and a cheap KVM solution is provided.
+                            some time. To automate the installation on bare metal and facilitate
+                            this process for consumer hardware as much as possible, the manager is
+                            extended with a few components and a cheap KVM solution is provided.
                         </p>
                         <img
                             width={400}

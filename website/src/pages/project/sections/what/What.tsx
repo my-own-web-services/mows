@@ -60,6 +60,11 @@ const capabilities: Capability[] = [
             "Get help with your daily tasks, like scheduling, reminders, shopping lists, and more, without the need for a subscription.",
         image: "ai.webp"
     }*/
+    /*
+    Router
+    Freifunk
+    
+    */
 ];
 
 interface WhatProps {

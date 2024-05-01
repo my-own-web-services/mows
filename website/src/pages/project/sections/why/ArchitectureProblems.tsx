@@ -53,7 +53,7 @@ const concepts: Concept[] = [
             {
                 category: 5,
                 description:
-                    "When using streaming services or buying digital content that you cant download unencrypted, you are at the mercy of the provider for access. Even if you bought a movie or song, you don't own it, and it can vanish at any time."
+                    "When using streaming services or buying digital content that you can't download unencrypted, you are at the mercy of the provider for access. Even if you bought a movie or song, you don't own it, and it can vanish at any time."
             },
             {
                 category: 4,
@@ -285,7 +285,7 @@ export default class ArchitectureProblems extends Component<
     };
 
     selectGroupType = (selectedGroupType: number) => {
-        // when changing the group type set the selected concept to the first one maching the new group type
+        // when changing the group type set the selected concept to the first one matching the new group type
 
         const selectedConcept = concepts.findIndex(c => c.groups.includes(selectedGroupType));
 

@@ -30,7 +30,9 @@
     },
     "devDependencies": {
         "@preact/preset-vite": "^2.8.2",
+        "@vite-pwa/assets-generator": "^0.2.4",
         "typescript": "^5.2.2",
-        "vite": "^5.2.0"
+        "vite": "^5.2.0",
+        "vite-plugin-pwa": "^0.20.0"
     }
 }

@@ -11,6 +11,7 @@ import Contribute from "./project/sections/contribute/Contribute";
 import Progress from "./project/sections/Progress";
 import FAQ from "./project/sections/FAQ";
 import What from "./project/sections/what/What";
+import WhySolutions from "./project/sections/why/WhySolutions";
 
 //                <TableOfContents />
 

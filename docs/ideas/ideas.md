@@ -232,3 +232,9 @@ Other apis include:
 -   maps api, data from osm converted into tiles and searchable database for location lookup, things like that need a collaborative effort that could maybe achieved with a collaboration/federation api
 
 when the apis are ready the primary focus is to build well integrated progressive web apps that can be mostly built out of api building blocks.
+
+presentation problems
+
+-   Multiple audiences
+-   Multiple distinct parts
+-   Convincing but not bragging
