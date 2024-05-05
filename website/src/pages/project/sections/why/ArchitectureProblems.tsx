@@ -350,6 +350,7 @@ export default class ArchitectureProblems extends Component<
                             }`}
                             width={600}
                             height={600}
+                            loading={"lazy"}
                             alt=""
                         />
                     </div>

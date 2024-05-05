@@ -8,14 +8,18 @@ interface Capability {
     readonly image?: string;
 }
 
-// see ideas.md
-
 const capabilities: Capability[] = [
     {
         title: "Stream your PC!",
         description:
-            "Stream any operating system to any device, wherever you are, without worrying about failing hardware when you just want to get work done, or play games with your friends. Make the most of your hardware, and ",
+            "Stream any operating system to any device, wherever you are, without worrying about failing hardware when you just want to get work done.. Make the most of your hardware, and never worry about losing your data or settings again.",
         image: "stream-desktop.webp"
+    },
+    {
+        title: "Own your files!",
+        description:
+            "Search through all your data with any device at lightning speed. No more folders, external drives, or limited cloud services that train AI models with your data. Never loose a file again with automatic backups and finally have an easy way to share and collaborate on files. Extend your file cloud with any app that integrates with it and stop building up file backends for every new project.",
+        image: "files.webp"
     },
     {
         title: "You've got mail!",
@@ -42,29 +46,36 @@ const capabilities: Capability[] = [
         image: "movies.webp"
     },
     {
-        title: "Game on!",
+        title: "It's better together!",
         description:
-            "Run your own game servers. Play with your friends, wherever they are, without paying for a subscription.",
+            "Run your own game servers for any game that supports it. Play with your friends, wherever they are, without arbitrary player limits, only bound by your hardware.",
         image: "game-server.webp"
     },
     {
         title: "Ad-free everywhere!",
         description:
-            "Block most ads on all your devices in all apps, network wide, without the need for a browser extension.",
+            "Block most ads and other creepy stuff on all your devices in all apps, network wide, without the need for a browser extension.",
         image: "ads.webp"
-    }
-    /*
+    },
     {
-        title: "Your personal AI assistant.",
+        title: "Wifi everywhere!",
         description:
-            "Get help with your daily tasks, like scheduling, reminders, shopping lists, and more, without the need for a subscription.",
-        image: "ai.webp"
-    }*/
-    /*
-    Router
-    Freifunk
-    
-    */
+            "Ditch the ISP's router and run your own, with better security, more features, and less spying. Use your cluster nodes as wifi access points, and roam freely without losing connection or buying another device. Provide free wifi to everyone around and profit from everyone else when you're out and about. Everything secured, encrypted and private, of course.",
+        image: "wifi.webp"
+    },
+    {
+        title: "Your personal assistant, not theirs.",
+        description:
+            "Get help with your daily tasks, as well as with work, without the need for a subscription or giving away your most personal data or that of your company.",
+        image: "assistant.webp"
+    },
+
+    {
+        title: "Unlimited gaming!",
+        description:
+            "Run PC, console and emulated games on your cluster and stream them to any device in your network without the need to stuff your living room full with old dying consoles and cables. Make the most of your hardware and never worry about losing your bought games, savegames or settings again.",
+        image: "gaming.webp"
+    }
 ];
 
 interface WhatProps {
@@ -88,6 +99,12 @@ export default class What extends Component<WhatProps, WhatState> {
                 <HashNavLink className={"What"}>
                     <h1 className={""}>Endless possibilities...</h1>
                 </HashNavLink>
+                <h3 className={"hl1"}>What can you do with your own cloud/cluster?</h3>
+                <p className={"largeText"}>
+                    Here are some examples of what you can do with your own cloud/cluster, MOWS
+                    primary goal is to develop a solid platform that makes it easy to run, use and
+                    develop services like these.
+                </p>
                 <div className={"mt-16"}>
                     {capabilities.map((capability, index) => (
                         <div
@@ -104,6 +121,7 @@ export default class What extends Component<WhatProps, WhatState> {
                                 <img
                                     width={1024}
                                     height={1024}
+                                    loading={"lazy"}
                                     src={`/assets/what/${capability.image}`}
                                     alt={capability.title}
                                     className={"-mt-10 lg:w-2/5 lg:mt-5 lg:-ml-10 rounded-2xl"}

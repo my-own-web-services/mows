@@ -1,0 +1,22 @@
+VERSION 0.7
+
+build:
+    FROM node:21-alpine
+    WORKDIR /app
+    COPY package.json yarn.lock ./
+    RUN yarn
+    RUN yarn add sharp @img/sharp-linuxmusl-x64 --ignore-engines
+    COPY . .
+    RUN yarn build
+    SAVE ARTIFACT /app/dist/
+
+docker:
+    FROM pektin/feoco
+    COPY +build/ /public/
+    COPY server/config.yml /
+    EXPOSE 80
+    SAVE IMAGE mows-website:latest
+
+local:
+    COPY +build/ /
+    SAVE ARTIFACT / AS LOCAL dist

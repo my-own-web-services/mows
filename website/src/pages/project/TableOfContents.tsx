@@ -17,6 +17,11 @@ const table: TableOfContentsItem[] = [
         children: []
     },
     {
+        title: "What?",
+        href: "#What",
+        children: []
+    },
+    {
         title: "Why?",
         href: "#Why",
         children: [

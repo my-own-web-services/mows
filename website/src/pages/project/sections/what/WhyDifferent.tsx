@@ -108,6 +108,7 @@ export default class WhyDifferent extends Component<WhyDifferentProps, WhyDiffer
                         width={352}
                         height={1406}
                         draggable={false}
+                        loading={"lazy"}
                         className={"glow md:block hidden md:ml-5 lg:ml-0 lg:mt-2"}
                         src={basicsLine}
                         alt=""
@@ -126,6 +127,7 @@ export default class WhyDifferent extends Component<WhyDifferentProps, WhyDiffer
                                 width={100}
                                 height={100}
                                 draggable={false}
+                                loading={"lazy"}
                                 src={`/assets/different/basics_single/${imageName}.svg`}
                                 alt=""
                             />

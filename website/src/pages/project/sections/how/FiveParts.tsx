@@ -49,6 +49,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             src={"/assets/logos/operator_logo.svg"}
                             className={"glow md:w-[50%] -my-20 md:-my-40"}
                             alt="Operator Logo"
+                            loading={"lazy"}
                         />
                     </div>
                     <div className={"mt-10"}>
@@ -79,6 +80,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                                     src={ManifestExampleImage}
                                     className={"w-[100%] h-auto rounded-lg"}
                                     alt="A example of a manifest file written in yaml"
+                                    loading={"lazy"}
                                 />
                             </div>
                         </div>
@@ -155,6 +157,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             src={"/assets/logos/manager_logo.svg"}
                             alt="Manager Logo"
                             className={"glow md:w-[50%] -my-20 md:-my-40"}
+                            loading={"lazy"}
                         />
                     </div>
                     <div className={"Parts"}>
@@ -246,6 +249,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             src={"/assets/logos/hardware_logo.svg"}
                             alt="Hardware Logo"
                             className={"glow md:w-[50%] -my-20 "}
+                            loading={"lazy"}
                         />
                     </div>
                     <div className={"Parts"}>
@@ -289,6 +293,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             src={"/assets/logos/cloud_apis_logo.svg"}
                             alt="Cloud APIS Logo"
                             className={"glow md:w-[50%] -my-16 "}
+                            loading={"lazy"}
                         />
                     </div>
                     <div className={"Parts"}>
@@ -370,6 +375,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             src={"/assets/logos/apps_logo.svg"}
                             alt="Apps Logo"
                             className={"glow md:w-[50%] -my-16 "}
+                            loading={"lazy"}
                         />
                     </div>
                     <div className={"Parts"}></div>
