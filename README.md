@@ -1,9 +1,11 @@
 <div align="center">
 <h1>
-<a href="https://mows.vindelicum.eu">MOWS - My Own Web Services 
+<a href="https://mows.cloud">
 <div>
 <img src="./website/public/assets/logos/mows_logo.svg"/>
-</div></a>
+</div>
+MOWS - My Own Web Services 
+</a>
 </h1>
 
 </div>
@@ -17,4 +19,4 @@ flexibility to run whatever you want.
 
 The project is in the early stages of development and needs your help to make it reality. 🏗️
 
-To learn more, visit the [Website](https://mows.vindelicum.eu)
+To learn more, visit the [Website](https://mows.cloud)
