@@ -9,9 +9,14 @@ services:
         labels:
             - traefik.enable=true
             - traefik.http.routers.mows-website.tls.certresolver=default
-            - traefik.http.routers.mows-website.tls.domains[0].main=$DOMAIN
-            - traefik.http.routers.mows-website.tls.domains[0].sans=*.$DOMAIN
-            - traefik.http.routers.mows-website.rule=Host(`mows.$DOMAIN`)
+            - traefik.http.routers.mows-website.tls.domains[0].main=mows.cloud
+            - traefik.http.routers.mows-website.tls.domains[0].sans=*.mows.cloud
+            - traefik.http.routers.mows-website.rule=Host(`mows.cloud`)
+            # redirect mows.vindelicum.eu to mows.cloud
+            - traefik.http.routers.mows-website.middlewares=redirect-to-mows-cloud
+            - traefik.http.middlewares.redirect-to-mows-cloud.redirectregex.regex=^https?://mows.vindelicum.eu/(.*)
+            - traefik.http.middlewares.redirect-to-mows-cloud.redirectregex.replacement=https://mows.cloud/$${1}
+            - traefik.http.middlewares.redirect-to-mows-cloud.redirectregex.permanent=true
             - traefik.http.routers.mows-website.priority=1
             - traefik.http.routers.mows-website.entrypoints=websecure
             - traefik.http.services.mows-website.loadbalancer.server.port=80
