@@ -1,6 +1,6 @@
 import { Component } from "preact";
 import HashNavLink from "../../../../components/HashNavLink";
-import ArchitectureProblems from "./ArchitectureProblems";
+import ArchitectureProblems from "./components/ArchitectureProblems";
 import { CSSProperties } from "preact/compat";
 
 interface ProblemsProps {

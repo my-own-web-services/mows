@@ -1,8 +1,8 @@
 import { Component } from "preact";
 
 import TableOfContents from "./project/TableOfContents";
-import Hero from "./project/sections/what/Hero";
-import Overview from "./project/sections/what/Overview";
+import Hero from "./project/sections/Hero";
+import Overview from "./project/sections/Overview";
 import WhyProblems from "./project/sections/why/Problems";
 import WhyDifferent from "./project/sections/what/Differences";
 import FiveParts from "./project/sections/how/FiveParts";

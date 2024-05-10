@@ -1,6 +1,6 @@
 import { Component } from "preact";
-import HashNavLink from "../../../../components/HashNavLink";
-import ClusterNodeFailure from "../../../../components/animations/ClusterNodeFailure";
+import HashNavLink from "../../../components/HashNavLink";
+import ClusterNodeFailure from "../../../components/animations/ClusterNodeFailure";
 
 interface OverviewProps {}
 interface OverviewState {}

@@ -1,5 +1,5 @@
 import { Component } from "preact";
-import Face from "../../../../assets/face.jpg";
+import Face from "../../../assets/face.jpg";
 interface HeroProps {}
 interface HeroState {}
 export default class Hero extends Component<HeroProps, HeroState> {
