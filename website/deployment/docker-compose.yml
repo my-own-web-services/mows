@@ -17,6 +17,7 @@ services:
             - traefik.http.middlewares.redirect-to-mows-cloud.redirectregex.regex=^https?://mows.vindelicum.eu/(.*)
             - traefik.http.middlewares.redirect-to-mows-cloud.redirectregex.replacement=https://mows.cloud/$${1}
             - traefik.http.middlewares.redirect-to-mows-cloud.redirectregex.permanent=true
+
             - traefik.http.routers.mows-website.priority=1
             - traefik.http.routers.mows-website.entrypoints=websecure
             - traefik.http.services.mows-website.loadbalancer.server.port=80

@@ -19,7 +19,18 @@ const table: TableOfContentsItem[] = [
     {
         title: "What?",
         href: "#What",
-        children: []
+        children: [
+            {
+                title: "Endless Possibilities",
+                href: "#WhatPossibilities",
+                children: []
+            },
+            {
+                title: "Differences",
+                href: "#WhatDifferences",
+                children: []
+            }
+        ]
     },
     {
         title: "Why?",
@@ -30,6 +41,11 @@ const table: TableOfContentsItem[] = [
                 href: "#WhyProblems",
                 children: []
             }
+            /*           {
+                title: "The Story",
+                href: "#WhyStory",
+                children: []
+            } */
         ]
     },
     {
@@ -38,7 +54,7 @@ const table: TableOfContentsItem[] = [
         children: [
             {
                 title: "One Vision, Five Parts",
-                href: "#FiveParts",
+                href: "#HowFiveParts",
                 children: [
                     {
                         title: "Operator",

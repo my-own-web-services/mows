@@ -1,14 +1,19 @@
 import { Component } from "preact";
 import HashNavLink from "../../../../components/HashNavLink";
 import ArchitectureProblems from "./ArchitectureProblems";
+import { CSSProperties } from "preact/compat";
 
-interface WhyProblemsProps {}
-interface WhyProblemsState {}
-export default class WhyProblems extends Component<WhyProblemsProps, WhyProblemsState> {
+interface ProblemsProps {
+    readonly className?: string;
+    readonly style?: CSSProperties;
+    readonly id?: string;
+}
+interface ProblemsState {}
+export default class Problems extends Component<ProblemsProps, ProblemsState> {
     render = () => {
         return (
-            <section id="WhyProblems" className={"WhyProblems"}>
-                <HashNavLink className={"WhyProblems"}>
+            <section id={this.props.id}>
+                <HashNavLink className={this.props.id}>
                     <h1>Problems With Current Architectures</h1>
                 </HashNavLink>
 

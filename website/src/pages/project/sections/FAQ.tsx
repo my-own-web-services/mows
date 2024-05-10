@@ -11,6 +11,7 @@ interface FAQItem {
 interface FAQProps {
     readonly className?: string;
     readonly style?: CSSProperties;
+    readonly id?: string;
 }
 
 interface FAQState {}
@@ -67,8 +68,9 @@ export default class FAQ extends Component<FAQProps, FAQState> {
             <section
                 style={{ ...this.props.style }}
                 className={`FAQ ${this.props.className ?? ""}`}
+                id={this.props.id}
             >
-                <HashNavLink className={"FAQ"}>
+                <HashNavLink className={this.props.id}>
                     <h1>FAQ</h1>
                 </HashNavLink>
                 <div>

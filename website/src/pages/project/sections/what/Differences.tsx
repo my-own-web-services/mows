@@ -86,19 +86,24 @@ const basics = [
     }
 ];
 
-interface WhyDifferentProps {
+interface DifferencesProps {
     readonly className?: string;
     readonly style?: CSSProperties;
+    readonly id?: string;
 }
-interface WhyDifferentState {}
-export default class WhyDifferent extends Component<WhyDifferentProps, WhyDifferentState> {
+interface DifferencesState {}
+export default class Differences extends Component<DifferencesProps, DifferencesState> {
     render = () => {
         return (
             <section
                 style={{ ...this.props.style }}
-                className={`WhyDifferent ${this.props.className ?? ""}`}
-                id="WhyDifferent"
+                className={`Differences ${this.props.className ?? ""}`}
+                id={this.props.id}
             >
+                <HashNavLink className={this.props.id}>
+                    <h1>What makes MOWS different?</h1>
+                </HashNavLink>
+
                 <div
                     className={
                         "basicsLine md:relative md:-ml-4 md:mt-10 lg:mt-0 lg:w-[860px] lg:mx-auto"
@@ -117,7 +122,7 @@ export default class WhyDifferent extends Component<WhyDifferentProps, WhyDiffer
                     {basics.map(({ title, description, imageName, classesLg }) => (
                         <div
                             key={title}
-                            className={`WhyDifferent${title.replace(
+                            className={`Differences${title.replace(
                                 / /g,
                                 ""
                             )} md:absolute ${classesLg} md:block text-center md:text-left my-10 md:my-0 md:-mt-5 lg:mt-0`}
@@ -131,7 +136,7 @@ export default class WhyDifferent extends Component<WhyDifferentProps, WhyDiffer
                                 src={`/assets/different/basics_single/${imageName}.svg`}
                                 alt=""
                             />
-                            <HashNavLink className={`WhyDifferent${title.replace(/ /g, "")}`}>
+                            <HashNavLink className={`Differences${title.replace(/ /g, "")}`}>
                                 <h3>{title}</h3>
                             </HashNavLink>
                             <p className={"glow md:w-[360px] lg:w-[inherit]"}>{description}</p>

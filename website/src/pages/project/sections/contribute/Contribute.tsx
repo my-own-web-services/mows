@@ -5,6 +5,7 @@ import HashNavLink from "../../../../components/HashNavLink";
 interface ContributeProps {
     readonly className?: string;
     readonly style?: CSSProperties;
+    readonly id?: string;
 }
 
 interface ContributeState {}
@@ -25,8 +26,9 @@ export default class Contribute extends Component<ContributeProps, ContributeSta
             <section
                 style={{ ...this.props.style }}
                 className={`Contribute ${this.props.className ?? ""}`}
+                id={this.props.id}
             >
-                <HashNavLink className={"Contribute"}>
+                <HashNavLink className={this.props.id}>
                     <h1>Contribute</h1>
                 </HashNavLink>
                 <p className={"largeText"}>

@@ -1,17 +1,19 @@
 import { Component } from "preact";
 
 import TableOfContents from "./project/TableOfContents";
-import WorkInProgress from "./project/sections/contribute/WorkInProgress";
 import Hero from "./project/sections/what/Hero";
 import Overview from "./project/sections/what/Overview";
-import WhyProblems from "./project/sections/why/WhyProblems";
-import WhyDifferent from "./project/sections/what/WhyDifferent";
+import WhyProblems from "./project/sections/why/Problems";
+import WhyDifferent from "./project/sections/what/Differences";
 import FiveParts from "./project/sections/how/FiveParts";
 import Contribute from "./project/sections/contribute/Contribute";
 import Progress from "./project/sections/Progress";
 import FAQ from "./project/sections/FAQ";
-import What from "./project/sections/what/What";
-import WhySolutions from "./project/sections/why/WhySolutions";
+import What from "./project/sections/what/Possibilities";
+import Possibilities from "./project/sections/what/Possibilities";
+import Differences from "./project/sections/what/Differences";
+import Problems from "./project/sections/why/Problems";
+import Story from "./project/sections/why/Story";
 
 //                <TableOfContents />
 
@@ -28,24 +30,24 @@ export default class Project extends Component<ProjectProps, ProjectState> {
 
                 <div className={"w-full"} id="Overview">
                     <Overview />
-                    <What className={"mt-48"} />
-                    <WhyDifferent className={"mt-48"} />
+                </div>
+                <div className={"w-full"} id="What">
+                    <Possibilities className={"mt-48"} id="WhatPossibilities" />
+                    <Differences className={"mt-48"} id="WhatDifferences" />
                 </div>
 
                 <div className={"w-full"} id="Why">
-                    <WhyProblems />
-                    {/* Motivation */}
+                    <Problems id="WhyProblems" />
+                    {/* <Story id="WhyStory" />*/}
                 </div>
 
                 <div className={"w-full"} id="How">
-                    <FiveParts />
+                    <FiveParts id="HowFiveParts" />
                     {/* Built on the shoulders of giants */}
                 </div>
-                <div className={"w-full"} id="Contribute">
-                    <Contribute className={"w-full"} />
-                </div>
-                <Progress className={"w-full"} />
-                <FAQ className={"w-full mt-20"} />
+                <Contribute className={"w-full"} id={"Contribute"} />
+                <Progress className={"w-full"} id={"Progress"} />
+                <FAQ className={"w-full mt-20"} id={"FAQ"} />
             </main>
         );
     };

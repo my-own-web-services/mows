@@ -5,7 +5,9 @@ import ManifestExampleImage from "../../../../assets/manifest_example.jpg";
 import ClusterFailure from "../../../../components/animations/ClusterNodeFailure";
 import AnyMachine from "../../../../components/animations/AnyMachine";
 
-interface FivePartsProps {}
+interface FivePartsProps {
+    readonly id?: string;
+}
 interface FivePartsState {}
 export default class FiveParts extends Component<FivePartsProps, FivePartsState> {
     clusterNodeFailure: RefObject<ClusterFailure>;
@@ -19,8 +21,8 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
     render = () => {
         const h2Class = "text-center md:text-left text-4xl font-bold";
         return (
-            <section id="FiveParts" className={"FiveParts"}>
-                <HashNavLink className={"FiveParts"}>
+            <section id={this.props.id}>
+                <HashNavLink className={this.props.id}>
                     <h1>One Vision, Five Parts</h1>
                 </HashNavLink>
                 <p className={"largeText"}>

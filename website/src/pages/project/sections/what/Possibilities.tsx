@@ -78,15 +78,16 @@ const capabilities: Capability[] = [
     }
 ];
 
-interface WhatProps {
+interface PossibilitiesProps {
     readonly className?: string;
     readonly style?: CSSProperties;
+    readonly id?: string;
 }
 
-interface WhatState {}
+interface PossibilitiesState {}
 
-export default class What extends Component<WhatProps, WhatState> {
-    constructor(props: WhatProps) {
+export default class Possibilities extends Component<PossibilitiesProps, PossibilitiesState> {
+    constructor(props: PossibilitiesProps) {
         super(props);
         this.state = {};
     }
@@ -95,8 +96,12 @@ export default class What extends Component<WhatProps, WhatState> {
 
     render = () => {
         return (
-            <div style={{ ...this.props.style }} className={`What ${this.props.className ?? ""}`}>
-                <HashNavLink className={"What"}>
+            <div
+                style={{ ...this.props.style }}
+                className={`Possibilities ${this.props.className ?? ""}`}
+                id={this.props.id}
+            >
+                <HashNavLink className={this.props.id}>
                     <h1 className={""}>Endless possibilities...</h1>
                 </HashNavLink>
                 <h3 className={"hl1"}>What can you do with your own cloud/cluster?</h3>

@@ -1,6 +1,7 @@
 import { Component } from "preact";
 import Collapsible from "../../../components/Collapsible";
 import HashNavLink from "../../../components/HashNavLink";
+import { CSSProperties } from "preact/compat";
 
 interface ProgressPart {
     name: string;
@@ -316,6 +317,8 @@ const parts: ProgressPart[] = [
 
 interface ProgressProps {
     readonly className?: string;
+    readonly style?: CSSProperties;
+    readonly id?: string;
 }
 interface ProgressState {}
 export default class Progress extends Component<ProgressProps, ProgressState> {
@@ -368,8 +371,12 @@ export default class Progress extends Component<ProgressProps, ProgressState> {
 
     render = () => {
         return (
-            <div className={`Progress ${this.props.className}`} id="Progress">
-                <HashNavLink className={"Progress"}>
+            <div
+                className={`Progress ${this.props.className}`}
+                style={{ ...this.props.style }}
+                id={this.props.id}
+            >
+                <HashNavLink className={this.props.id}>
                     <h1>Progress</h1>
                 </HashNavLink>
                 {parts.map(part => (
