@@ -1,5 +1,5 @@
 import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { CSSProperties } from "react";
 import HashNavLink from "../../../../components/HashNavLink";
 
 interface ContributeProps {
@@ -40,7 +40,7 @@ export default class Contribute extends Component<ContributeProps, ContributeSta
                     </a>{" "}
                     to keep us motivated. 🤗🤩 <br />
                 </p>
-                <div className={"mt-8"} id="ContributeWork">
+                <div className={"mt-8 intersect"} id="ContributeWork">
                     <HashNavLink className={"ContributeWork"}>
                         <h2>Work</h2>
                     </HashNavLink>
@@ -223,7 +223,7 @@ export default class Contribute extends Component<ContributeProps, ContributeSta
                         </ul>
                     </div>
                 </div>
-                <div className={"mt-8"} id="ContributeDonations">
+                <div className={"mt-8 intersect"} id="ContributeDonations">
                     <HashNavLink className={"ContributeDonations"}>
                         <h2>Donations</h2>
                     </HashNavLink>
@@ -250,7 +250,7 @@ export default class Contribute extends Component<ContributeProps, ContributeSta
                         </span>
                     </div>
                 </div>
-                <div className={"mt-8"} id="ContributeFeedback">
+                <div className={"mt-8 intersect"} id="ContributeFeedback">
                     <HashNavLink className={"ContributeFeedback"}>
                         <h2>Feedback</h2>
                     </HashNavLink>

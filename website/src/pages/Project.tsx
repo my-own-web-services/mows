@@ -28,26 +28,24 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                 <TableOfContents mode="desktop" />
                 <Hero />
 
-                <div className={"w-full"} id="Overview">
-                    <Overview />
-                </div>
+                <Overview className="intersect" />
                 <div className={"w-full"} id="What">
-                    <Possibilities className={"mt-48"} id="WhatPossibilities" />
-                    <Differences className={"mt-48"} id="WhatDifferences" />
+                    <Possibilities className={"mt-48 intersect"} id="WhatPossibilities" />
+                    <Differences className={"mt-48 intersect"} id="WhatDifferences" />
                 </div>
 
                 <div className={"w-full"} id="Why">
-                    <Problems id="WhyProblems" />
-                    {/* <Story id="WhyStory" />*/}
+                    <Problems id="WhyProblems" className="intersect mt-48" />
+                    <Story id="WhyStory" />
                 </div>
 
-                <div className={"w-full"} id="How">
+                <div className={"w-full mt-32"} id="How">
                     <FiveParts id="HowFiveParts" />
                     {/* Built on the shoulders of giants */}
                 </div>
                 <Contribute className={"w-full"} id={"Contribute"} />
-                <Progress className={"w-full"} id={"Progress"} />
-                <FAQ className={"w-full mt-20"} id={"FAQ"} />
+                <Progress className={"w-full intersect"} id={"Progress"} />
+                <FAQ className={"w-full mt-20 intersect"} id={"FAQ"} />
             </main>
         );
     };

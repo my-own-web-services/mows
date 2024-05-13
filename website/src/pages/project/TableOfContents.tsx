@@ -21,7 +21,7 @@ const table: TableOfContentsItem[] = [
         href: "#What",
         children: [
             {
-                title: "Endless Possibilities",
+                title: "Possibilities",
                 href: "#WhatPossibilities",
                 children: []
             },
@@ -40,12 +40,33 @@ const table: TableOfContentsItem[] = [
                 title: "Current Problems",
                 href: "#WhyProblems",
                 children: []
-            }
-            /*           {
+            },
+            {
                 title: "The Story",
                 href: "#WhyStory",
-                children: []
-            } */
+                children: [
+                    {
+                        title: "Privacy & Sovereignty",
+                        href: "#WhyStoryPrivacySovereignty",
+                        children: []
+                    },
+                    {
+                        title: "Simplicity",
+                        href: "#WhyStorySimplicity",
+                        children: []
+                    },
+                    {
+                        title: "Reliability",
+                        href: "#WhyStoryReliability",
+                        children: []
+                    },
+                    {
+                        title: "Openness & Compatibility",
+                        href: "#WhyStoryOpennessCompatibility",
+                        children: []
+                    }
+                ]
+            }
         ]
     },
     {
@@ -145,22 +166,25 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
         };
     }
 
-    componentDidMount = () => {
-        const observer = new IntersectionObserver(
-            entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting && entry.target.id.length) {
-                        this.setState({ currentSection: "#" + entry.target.id });
-                    }
-                });
-            },
-            {
-                threshold: 0.3
-            }
-        );
+    componentDidMount = async () => {
+        const observer = new IntersectionObserver(entries => {
+            // always select the entry that is largest in the viewport
 
-        document.querySelectorAll("div, section").forEach(section => {
-            observer.observe(section);
+            console.log(entries);
+
+            const largestEntry = entries.reduce((prev, current) =>
+                prev.intersectionRatio > current.intersectionRatio ? prev : current
+            );
+
+            if (largestEntry.isIntersecting) {
+                this.setState({ currentSection: `#${largestEntry.target.id}` });
+            }
+        });
+
+        document.querySelectorAll(".intersect").forEach(element => {
+            console.log(element);
+
+            observer.observe(element);
         });
     };
 
@@ -201,12 +225,10 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                                 : "var(--c-text-dim)"
                     }}
                     className="text-primary whitespace-nowrap overflow-hidden text-ellipsis"
-                    onClick={e => {
+                    onClick={async e => {
                         e.preventDefault();
 
-                        document.querySelector(item.href)?.scrollIntoView({
-                            behavior: "smooth"
-                        });
+                        await scrollIntoViewAndWait(document.querySelector(item.href));
                         this.setState({ currentSection: item.href });
 
                         history.pushState(null, "", item.href);
@@ -245,7 +267,7 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
             <div className={"MobileSwitchThrough flex justify-between flex-grow"}>
                 <button
                     onClick={() => this.jumpToSection(false)}
-                    className={`block md:hidden ${
+                    className={`block  ${
                         this.state.reachedStart ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                 >
@@ -263,7 +285,7 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                 </button>
                 <button
                     onClick={() => this.jumpToSection(true)}
-                    className={`block md:hidden
+                    className={`block
                 ${this.state.reachedEnd ? "opacity-50 cursor-not-allowed" : ""}
                 `}
                 >
@@ -298,4 +320,13 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
             </div>
         );
     };
+}
+
+function scrollIntoViewAndWait(element: HTMLElement | null) {
+    if (!element) return Promise.resolve();
+    return new Promise(resolve => {
+        document.addEventListener("scrollend", resolve, { once: true });
+
+        element.scrollIntoView({ behavior: "smooth" });
+    });
 }

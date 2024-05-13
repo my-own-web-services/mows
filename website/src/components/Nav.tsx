@@ -99,7 +99,7 @@ export default class Nav extends Component<NavProps, NavState> {
 
     DesktopNav = () => {
         return (
-            <div className={"hidden h-full w-full md:block"}>
+            <div className={"hidden h-full w-full lg:block"}>
                 <ul className={"flex h-full w-full justify-center"}>
                     {this.mapItems(navUserItems)}
                 </ul>
@@ -109,7 +109,7 @@ export default class Nav extends Component<NavProps, NavState> {
 
     MobileBottomBar = () => {
         return (
-            <div className={"md:hidden w-full h-16 bottom-0 absolute bg-background"}>
+            <div className={"lg:hidden w-full h-16 bottom-0 absolute bg-background"}>
                 <div className={"flex w-full h-full justify-between items-center"}>
                     <div>
                         <button
@@ -150,7 +150,7 @@ export default class Nav extends Component<NavProps, NavState> {
             <div
                 className={`${
                     this.state.isMenuOpen ? "flex" : "hidden"
-                } w-full p-5 justify-between`}
+                } w-full p-5 justify-between lg:hidden`}
             >
                 <ul>{this.mapItems(navUserItems, this.flipMenu)}</ul>
                 <Toggle
@@ -177,7 +177,7 @@ export default class Nav extends Component<NavProps, NavState> {
     render = () => {
         return (
             <nav
-                className={`md:static fixed bottom-0 left-0 w-[100vw] md:w-full md:mt-10 z-10 border-t-2 border-t-primary box-content md:border-t-0 bg-background md:bg-none transition-all ease duration-300 ${
+                className={`lg:static fixed bottom-0 left-0 w-[100vw] md:w-full lg:mt-10 z-10 border-t-2 border-t-primary box-content lg:border-t-0 bg-background lg:bg-none transition-all ease duration-300 ${
                     this.state.isMenuOpen ? "h-1/2" : "h-16"
                 }`}
             >

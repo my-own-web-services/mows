@@ -31,7 +31,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                     solution for managing your own web services without compromising on the
                     flexibility to run whatever you want.
                 </p>
-                <div className={"mt-20"} id="FivePartsOperator">
+                <div className={"mt-20 intersect"} id="FivePartsOperator">
                     <HashNavLink className={"FivePartsOperator"}>
                         <h2 className={h2Class}>Operator</h2>
                     </HashNavLink>
@@ -142,7 +142,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                     </div>
                 </div>
 
-                <div className={"mt-32"} id="FivePartsManager">
+                <div className={"mt-32 intersect"} id="FivePartsManager">
                     <HashNavLink className={"FivePartsManager"}>
                         <h2 className={h2Class}>Manager</h2>
                     </HashNavLink>
@@ -232,7 +232,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                     </div>
                 </div>
 
-                <div className={"mt-32"} id="FivePartsHardware">
+                <div className={"mt-32 intersect"} id="FivePartsHardware">
                     <HashNavLink className={"FivePartsHardware"}>
                         <h2 className={h2Class}>Hardware</h2>
                     </HashNavLink>
@@ -268,15 +268,14 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                                 video input, a cheap USB capture card can be used. To emulate a
                                 keyboard, a USB host device would be required on the sending
                                 machine, but this is rarely the case. To achieve this cheaply, a
-                                custom solution was made that has a Pi Pico forwarding keystrokes to
-                                the other computer, bridging this age-old flaw in the USB
-                                specification.
+                                custom solution will be created that has a Pi Pico forwarding
+                                keystrokes to the other computer.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className={"mt-32"} id="FivePartsCloudAPIs">
+                <div className={"mt-32 intersect"} id="FivePartsCloudAPIs">
                     <HashNavLink className={"FivePartsCloudApis"}>
                         <h2 className={h2Class}>Cloud APIs</h2>
                     </HashNavLink>
@@ -360,7 +359,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                         </div>
                     </div>
                 </div>
-                <div className={"mt-32"} id="FivePartsApps">
+                <div className={"mt-32 intersect"} id="FivePartsApps">
                     <HashNavLink className={"FivePartsApps"}>
                         <h2 className={h2Class}>Apps</h2>
                     </HashNavLink>

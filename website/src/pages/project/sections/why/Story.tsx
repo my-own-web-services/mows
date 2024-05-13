@@ -4,169 +4,185 @@ import HashNavLink from "../../../../components/HashNavLink";
 import Image from "../../../../components/Image";
 //@ts-ignore
 import Fortnite1984Image from "./assets/fortnite.png?w=500&format=webp&as=metadata";
-//@ts-ignore
-import CamerasImage from "./assets/cameras.png?w=500&format=webp&as=metadata";
 import { CSSProperties } from "react";
+
 interface StoryProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly id?: string;
 }
+
 interface StoryState {}
+
 export default class Story extends Component<StoryProps, StoryState> {
     render = () => {
+        const ul = "list-disc list-inside";
+        const subUl = "list-disc list-inside ml-8";
+
         return (
             <section id={this.props.id}>
                 <HashNavLink className={this.props.id}>
                     <h1>The Story</h1>
                 </HashNavLink>
-                <h2 className={"hl1 centered"}>How MOWS was Born</h2>
+                <h3 className={"hl1 -mt-4"}>How MOWS was Born</h3>
 
-                <br />
-                <HashNavLink className={"StoryPrivacy"}>
-                    <h2>Privacy and Sovereignty</h2>
-                </HashNavLink>
-                <div className={"mt-1"}>
-                    <h3>Problem</h3>
-                    <div className={"w-full md:w-1/2"}>
-                        The current IT landscape is in pieces. Big Tech has thoroughly vanquished
-                        their users' privacy, sovereignty and choices.
-                    </div>
-                    <div className={"flex flex-col md:flex-row md:items-center mt-4 md:gap-8"}>
-                        <div className={"w-full md:w-2/3 "}>
-                            Smartphone users and developers are forced to use the{" "}
-                            <a
-                                rel={"noopener noreferrer"}
-                                title="BBC: Apple 'like The Godfather' with new App Store rules"
-                                href="https://www.bbc.com/news/technology-68517246"
-                            >
-                                provided app stores
-                            </a>{" "}
-                            that take big cuts for basically doing nothing. The platforms are locked
-                            down and most apps wont work without some proprietary{" "}
-                            <a
-                                href="https://mobilsicher.de/ratgeber/geheime-kommandozentrale-google-play-dienste"
-                                title="mobilsicher.de: Geheime Kommandozentrale: Google Play-Dienste"
-                            >
-                                privacy invasive APIs [DE]
-                            </a>
-                            .
-                            <br />
-                            <br /> To use a simple well integrated ecosystem, you are forced to pay
-                            incredible prices to stay locked in this walled garden with no prospects
-                            of leaving.
-                        </div>{" "}
-                        <div className={"md:h-[200px]"}>
-                            <Image
-                                image={Fortnite1984Image}
-                                alt="Still from the Fortnite 1984 video."
-                                caption={
-                                    <span>
-                                        Epic Games{" "}
-                                        <a
-                                            rel={"noopener noreferrer"}
-                                            href="https://www.youtube.com/watch?v=ErwS24cBZPc"
-                                        >
-                                            Nineteen Eighty-Fortnite
-                                        </a>{" "}
-                                        video mocking Apple's now ironic{" "}
-                                        <a
-                                            rel={"noopener noreferrer"}
-                                            href="https://www.youtube.com/watch?v=ErwS24cBZPc"
-                                        >
-                                            1984 commercial
-                                        </a>
-                                    </span>
-                                }
-                            />
-                        </div>
-                    </div>
-                    <div className={"flex gap-8"}>
-                        <div className={"md:w-2/3 md:pr-20"}>
-                            Services and your paid-for products can vanish at any time, like they
-                            have done{" "}
-                            <a
-                                rel={"noopener noreferrer"}
-                                title={
-                                    "The Verge: PlayStation Store removes purchased movies from libraries after service shutdown"
-                                }
-                                href="https://www.theverge.com/2022/7/8/23199861/playstation-store-film-tv-show-removed-austria-germany-studiocanal"
-                            >
-                                many times in the past
-                            </a>
-                            . Companies can shut down your accounts and online presence at
-                            will&mdash;regardless of your compliance with relevant laws&mdash; just
-                            because your content does not fit their businesses model.
-                            <br />
-                            <br /> The move from one-time payments to{" "}
-                            <a
-                                title={
-                                    "Jumpstart: Do We Really Own Anything in the Subscription Economy?"
-                                }
-                                rel={"noopener noreferrer"}
-                                href="https://www.jumpstartmag.com/do-we-really-own-anything-in-the-subscription-economy/"
-                            >
-                                subscription models
-                            </a>{" "}
-                            is also great for companies as{" "}
-                            <a
-                                rel={"noopener noreferrer"}
-                                title="Wikipedia: You'll own nothing and be happy"
-                                href="https://en.wikipedia.org/wiki/You%27ll_own_nothing_and_be_happy"
-                            >
-                                “you'll own nothing and be happy”
-                            </a>{" "}
-                            if you keep using these services, further supporting this businesses
-                            model. <br />
-                            <br /> You don’t need a imaginary chip implanted in your body when you
-                            carry around{" "}
-                            <a
-                                title="YouTube: Edward Snowden: How Your Cell Phone Spies on You
-"
-                                rel={"noopener noreferrer"}
-                                href="https://www.youtube.com/watch?v=VFns39RXPrU"
-                            >
-                                your personal surveillance device
-                            </a>{" "}
-                            and upload your data into the massive data centers of your favorite tech
-                            giants. You don’t need such a device to be influenced and manipulated by
-                            the endless scrolling posts that are picked just for you, at best to
-                            maximize your time on their platforms and at worst to steer you and
-                            others towards hatred and{" "}
-                            <a
-                                rel={"noopener noreferrer"}
-                                href="https://www.amnesty.org/en/latest/news/2022/09/myanmar-facebooks-systems-promoted-violence-against-rohingya-meta-owes-reparations-new-report/"
-                            >
-                                ethnic cleansing of whole countries
-                            </a>
-                            . It will rarely be the obvious terrifying things that you think about,
-                            but the more subtle ones that you don't think about, that will get you.
-                            “The greatest trick the Devil ever pulled was convincing the world he
-                            didn't exist.” <br />
-                            <br />
-                            Right now it is difficult and sometimes nearly impossible to avoid some
-                            of the most popular services, raising a growing concern for putting all
-                            the power into the hands of a few.
-                        </div>
-                    </div>
-                    <div className={"mt-8"}>
-                        <h3>Solution</h3>
-                        <p>
-                            Move off the cloud and take back the control of your data and the
-                            freedom to do with it whatever you want! Easy right? In theory yes, but
-                            this raises a whole other pile of problems to be solved. This is how
-                            MOWS was born.
+                <div id="WhyStoryPrivacySovereignty" className={"intersect mt-8"}>
+                    <HashNavLink className={"WhyStoryPrivacySovereignty"}>
+                        <h2>Privacy and Sovereignty</h2>
+                    </HashNavLink>
+                    <div className={"mt-1"}>
+                        <h3>Problem</h3>
+                        <p className={"w-full md:w-1/2"}>
+                            The current IT landscape is in pieces. Big Tech has thoroughly
+                            vanquished their users' privacy, sovereignty and choices.
                         </p>
+                        <div className={"flex flex-col md:flex-row md:items-start mt-4 md:gap-12"}>
+                            <p className={"w-full md:w-1/2 "}>
+                                Smartphone users and developers are forced to use the{" "}
+                                <a
+                                    rel={"noopener noreferrer"}
+                                    title="BBC: Apple 'like The Godfather' with new App Store rules"
+                                    href="https://www.bbc.com/news/technology-68517246"
+                                >
+                                    provided app stores
+                                </a>{" "}
+                                that take big cuts for basically doing nothing. The platforms are
+                                locked down and most apps wont work without some proprietary{" "}
+                                <a
+                                    href="https://mobilsicher.de/ratgeber/geheime-kommandozentrale-google-play-dienste"
+                                    title="mobilsicher.de: Geheime Kommandozentrale: Google Play-Dienste"
+                                >
+                                    privacy invasive APIs [DE]
+                                </a>
+                                .
+                                <br />
+                                <br /> To use a simple well integrated ecosystem, you are forced to
+                                pay incredible prices to stay locked in this walled garden with no
+                                prospects of leaving. Services and your paid-for products can vanish
+                                at any time, like they have done{" "}
+                                <a
+                                    rel={"noopener noreferrer"}
+                                    title={
+                                        "The Verge: PlayStation Store removes purchased movies from libraries after service shutdown"
+                                    }
+                                    href="https://www.theverge.com/2022/7/8/23199861/playstation-store-film-tv-show-removed-austria-germany-studiocanal"
+                                >
+                                    many times in the past
+                                </a>
+                                . Companies can shut down your accounts and online presence at
+                                will&mdash;regardless of your compliance with relevant laws&mdash;
+                                just because your content does not fit their businesses model.
+                                <br />
+                                <br /> The move from one-time payments to{" "}
+                                <a
+                                    title={
+                                        "Jumpstart: Do We Really Own Anything in the Subscription Economy?"
+                                    }
+                                    rel={"noopener noreferrer"}
+                                    href="https://www.jumpstartmag.com/do-we-really-own-anything-in-the-subscription-economy/"
+                                >
+                                    subscription models
+                                </a>{" "}
+                                is also great for companies as{" "}
+                                <a
+                                    rel={"noopener noreferrer"}
+                                    title="Wikipedia: You'll own nothing and be happy"
+                                    href="https://en.wikipedia.org/wiki/You%27ll_own_nothing_and_be_happy"
+                                >
+                                    “you'll own nothing and be happy”
+                                </a>{" "}
+                                if you keep using these services, further supporting this businesses
+                                model. <br />
+                                <br />
+                            </p>
+                            <div className={"w-full md:h-[200px]  md:w-1/2"}>
+                                <Image
+                                    image={Fortnite1984Image}
+                                    alt="Still from the Fortnite 1984 video."
+                                    caption={
+                                        <span>
+                                            Epic Games{" "}
+                                            <a
+                                                rel={"noopener noreferrer"}
+                                                href="https://www.youtube.com/watch?v=ErwS24cBZPc"
+                                            >
+                                                Nineteen Eighty-Fortnite
+                                            </a>{" "}
+                                            video mocking Apple's now ironic{" "}
+                                            <a
+                                                rel={"noopener noreferrer"}
+                                                href="https://www.youtube.com/watch?v=ErwS24cBZPc"
+                                            >
+                                                1984 commercial
+                                            </a>
+                                        </span>
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        <div
+                            className={
+                                "flex gap-12 flex-col-reverse md:flex-row-reverse md:items-center"
+                            }
+                        >
+                            <p className={"w-full md:w-1/2 "}>
+                                You don’t need a imaginary chip implanted in your body when you
+                                carry around{" "}
+                                <a
+                                    title="YouTube: Edward Snowden: How Your Cell Phone Spies on You
+"
+                                    rel={"noopener noreferrer"}
+                                    href="https://www.youtube.com/watch?v=VFns39RXPrU"
+                                >
+                                    your personal surveillance device
+                                </a>{" "}
+                                and upload your data into the massive data centers of your favorite
+                                tech giants. You don’t need such a device to be influenced and
+                                manipulated by the endless scrolling posts that are picked just for
+                                you, at best to maximize your time on their platforms and at worst
+                                to steer you and others towards hatred and{" "}
+                                <a
+                                    rel={"noopener noreferrer"}
+                                    href="https://www.amnesty.org/en/latest/news/2022/09/myanmar-facebooks-systems-promoted-violence-against-rohingya-meta-owes-reparations-new-report/"
+                                >
+                                    ethnic cleansing of whole countries
+                                </a>
+                                .
+                                <br />
+                                <br />
+                                Right now it is difficult and sometimes nearly impossible to avoid
+                                some of the most popular services, raising a growing concern for
+                                putting all the power into the hands of a few.
+                            </p>
+                            <div className={"w-full md:w-1/2"}>
+                                <img
+                                    src="/assets/story/manipulation.webp"
+                                    width={1024}
+                                    height={1024}
+                                    alt="People looking at their smartphones with a giant red cyber eye above that is controlling them."
+                                />
+                            </div>
+                        </div>
+
+                        <div className={"mt-8 md:w-1/2"}>
+                            <h3>Solution</h3>
+                            <p>
+                                Move off the cloud and take back the control of your data and the
+                                freedom to do with it whatever you want! Easy right? In theory yes,
+                                but this raises a whole other pile of problems to be solved. From
+                                these problems the idea for MOWS was born.
+                            </p>
+                        </div>
                     </div>
                 </div>
-                <br />
 
-                <HashNavLink className={"StorySimplicity"}>
-                    <h2>Simplicity</h2>
-                </HashNavLink>
-                <div className={"childrenSideBySide"}>
-                    <div>
-                        <div>
+                <div id="WhyStorySimplicity" className={"intersect mt-24"}>
+                    <HashNavLink className={"WhyStorySimplicity"}>
+                        <h2>Simplicity</h2>
+                    </HashNavLink>
+                    <div className={"flex gap-12 flex-col md:flex-row"}>
+                        <div className={"md:w-1/2"}>
                             <h3>Problem</h3>
                             <p>
                                 Managing data securely and reliably on one device is difficult
@@ -180,25 +196,25 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 multiple devices with different operating systems is another great
                                 challenge you will encounter when trying to get off the cloud.
                                 <br /> <br />
-                                For users self hosting their web apps, that then can run in any
-                                browser, is a great option but requires a big chunk of knowledge to
-                                set up even with the use of tools like docker and docker-compose.
+                                Self hosting your web apps is a great option but requires a big
+                                chunk of knowledge to set up even with the use of tools like docker
+                                and docker-compose.
                                 <br /> <br />
                                 For a more reliable system you would need to get started with
                                 Kubernetes on bare metal yourself, also known as difficulty level:
                                 “Nightmare!”
                                 <br /> <br />
-                                For developers it is difficult to create good web apps without
-                                using, mostly payed, proprietary, privacy invasive non local API’s
-                                because they often need to reinvent the wheel for every part of
-                                their application, like authentication, data storage, good image
-                                display with image conversion in the backend, well done video
-                                hosting and much more. Many would like to incorporate cool
-                                technologies like realtime communication, AI, End to end encryption
-                                and many more, only to find out that they would need to learn a
-                                whole suite of other technologies in depth to setup these
-                                technologies before they can create the business logic of their
-                                application.
+                                For developers it is very time consuming to create good web apps
+                                without using, mostly payed, proprietary, privacy invasive non local
+                                API’s because they need to create basic features from scratch every
+                                time. Things like authentication, data storage, good image display
+                                with image conversion in the backend, well done video streaming,
+                                offline capabilities and many more are not trivial to implement.
+                                Many would like to incorporate cool technologies like realtime
+                                communication, AI, End to end encryption and many more, only to find
+                                out that they would need to learn a whole suite of other
+                                technologies in depth to setup these technologies before they can
+                                create the business logic of their application.
                                 <br />
                                 <br />
                                 When creating everything from scratch like this another problem
@@ -208,7 +224,7 @@ export default class Story extends Component<StoryProps, StoryState> {
                             </p>
                             <br />
                             <h3>Solution</h3>
-                            <h4>APIs</h4>
+                            <h4>(Web) APIs</h4>
                             <p>
                                 At this point, it should be pointed out that the main focus is to
                                 use web applications to get over the platform incompatibility of
@@ -228,35 +244,48 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 tagging, sharing and much more. Your data all in one place ready to
                                 be used by any application you want. <br />
                                 <br />
-                                For developers there are ready made components for the established
-                                frameworks available that allow without much additional code, for
-                                files: browser offline storage, display of images in multiple
-                                formats and resolutions, video players that can play different
-                                qualities out of the box, infinite scrolling adaptable file lists,
-                                search and much more. For packaging and publishing the application
-                                there are ready made solutions available. <br />
-                                <br /> This leads to easy to create applications and your files
+                                For the established frameworks there will be integrated components
+                                available to further increase the ease of use of the APIs. For
+                                example components for files that automatically handle browser
+                                offline storage, display of images in multiple formats and
+                                resolutions, video players that can play different qualities out of
+                                the box, infinite scrolling lists, search and much more. The
+                                packaging and publishing of apps will also get a streamlined
+                                workflow you can build on.
+                                <br />
+                                <br /> This will lead to easy to create applications and your files
                                 being stored in one place, editable from any device that runs a web
                                 browser.
                             </p>
                             <br />
                             <h4>Package Manager</h4>
-                            To handle your web applications life cycle as easy as possible while
-                            controlling their abilities, to integrate with MOWS and their access to
-                            your data, a package manager is provided. It handles the access and sets
-                            up things like:
-                            <ul>
+                            <p>
+                                The package manager will handle the lifecycle of your applications
+                                as well as configuring things like:
+                            </p>
+                            <ul className={ul}>
                                 <li>DNS</li>
                                 <li>Reverse proxy settings</li>
                                 <li>Access to compute resources</li>
                                 <li>Access to MOWS APIs</li>
                                 <li>
-                                    Network connectivity, incoming and outgoing traffic: blocked,
-                                    local network, public, through VPN, through TOR
+                                    Network settings (separate for ingress/egress) like:
+                                    <ul className={subUl}>
+                                        <li>disabled (default)</li>
+                                        <li>local network</li>
+                                        <li>public ip</li>
+                                        <li>through VPN</li>
+                                        <li>through TOR</li>
+                                    </ul>
                                 </li>
                                 <li>
-                                    App deployment through an inbuilt static server or through
-                                    containers or VMs
+                                    App deployment through:
+                                    <ul className={subUl}>
+                                        <li>A static web server for SPAs</li>
+                                        <li>Containers</li>
+                                        <li>Multi container deployments</li>
+                                        <li>VMs</li>
+                                    </ul>
                                 </li>
                             </ul>
                             <br />
@@ -267,59 +296,56 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 of the collocation machines is easily done with the installer.
                             </p>
                         </div>
+                        <div></div>
                     </div>
-                    <div></div>
                 </div>
 
-                <br />
-                <HashNavLink className={"StoryReliability"}>
-                    <h2>Reliability</h2>
-                </HashNavLink>
-                <div className={"childrenSideBySide"}>
-                    <div>
-                        <div>
+                <div id="WhyStoryReliability" className={"intersect mt-24"}>
+                    <HashNavLink className={"WhyStoryReliability"}>
+                        <h2>Reliability</h2>
+                    </HashNavLink>
+                    <div className={"flex gap-12 flex-col md:flex-row"}>
+                        <div className={"md:w-1/2"}>
                             <h3>Problem</h3>
                             <p>
                                 Providers of cloud applications have high standards of reliability
                                 that can’t be matched by a simple one machine setup at home. This is
                                 no problem if you are running a home server for fun, but intolerable
                                 as the intention is to use this device as your primary workhorse for
-                                everything from your home automation, mail server, or your business
-                                applications or public websites.{" "}
+                                everything from your home automation, mail server, your business
+                                applications or public websites.
                             </p>
                             <br />
                             <h3>Solution</h3>
                             <p>
                                 Using multiple independent physical machines that use MOWS to
-                                combine them into one more powerful reliable machine. At least three
-                                machines are required to achieve this automated (more) fail safe
-                                system. This may sound overkill to some, but not only can the
+                                combine them into one more powerful reliable "machine". At least
+                                three machines are required to achieve this automated (more) fail
+                                safe system. This may sound overkill, but not only can the
                                 individual machines be relatively cheap, the setup and replacement
-                                are performed mostly automatically. The problem for a home setup is
-                                not the small downtime when upgrading RAM or a broken power supply
-                                that you would need to have on hand but more about the times you
-                                can’t or don’t want to fix problems like these. Even in a home setup
-                                it would be very bad if all your services failed when you just
-                                started your vacation and relied on things like mail, password sync
-                                or files from your server.
+                                can be performed mostly automatically. The problem for a home setup
+                                may not be the small downtime when upgrading the RAM or a broken
+                                power supply but more about the times you can’t or don’t want to fix
+                                problems like these. Even in a home setup it would be very bad if
+                                all your services failed when you just started your vacation and
+                                relied on things like mail, password sync or files from your server.
                                 <br />
                                 When managing your own hardware is not your thing and you would
                                 rather pay a few dollars per month you can rent a physical or
-                                virtual server online, from any provider, that runs the distributed
-                                MOWS system. If you change your mind it is easy to switch to another
-                                provider or to your own hardware.
+                                virtual server online, from any provider, that then runs the
+                                distributed MOWS system. If you change your mind it will be easy to
+                                switch to another provider or to your own hardware.
                             </p>
                         </div>
+                        <div></div>
                     </div>
-                    <div></div>
                 </div>
-                <br />
-                <HashNavLink className={"StoryOpenness"}>
-                    <h2>Openness and Compatibility</h2>
-                </HashNavLink>
-                <div className={"childrenSideBySide"}>
-                    <div>
-                        <div>
+                <div id="WhyStoryOpennessCompatibility" className={"intersect mt-24"}>
+                    <HashNavLink className={"WhyStoryOpennessCompatibility"}>
+                        <h2>Openness and Compatibility</h2>
+                    </HashNavLink>
+                    <div className={"flex gap-12 flex-col md:flex-row"}>
+                        <div className={"md:w-1/2"}>
                             <h3>Problem</h3>
                             <p>
                                 When building web apps yourself on the APIs of any proprietary cloud

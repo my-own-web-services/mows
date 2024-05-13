@@ -1,7 +1,7 @@
 import { Component } from "preact";
 import HashNavLink from "../../../../components/HashNavLink";
 import basicsLine from "../../../../assets/basics.svg";
-import { CSSProperties } from "preact/compat";
+import { CSSProperties } from "react";
 
 const basics = [
     {
@@ -104,11 +104,7 @@ export default class Differences extends Component<DifferencesProps, Differences
                     <h1>What makes MOWS different?</h1>
                 </HashNavLink>
 
-                <div
-                    className={
-                        "basicsLine md:relative md:-ml-4 md:mt-10 lg:mt-0 lg:w-[860px] lg:mx-auto"
-                    }
-                >
+                <div className={"basicsLine md:relative md:-ml-4 mt-10 lg:w-[860px] lg:mx-auto"}>
                     <img
                         width={352}
                         height={1406}

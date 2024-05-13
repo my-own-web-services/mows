@@ -1,7 +1,7 @@
 import { Component } from "preact";
 import Collapsible from "../../../components/Collapsible";
 import HashNavLink from "../../../components/HashNavLink";
-import { CSSProperties } from "preact/compat";
+import { CSSProperties } from "react";
 
 interface ProgressPart {
     name: string;

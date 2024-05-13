@@ -1,5 +1,5 @@
 import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { CSSProperties } from "react";
 import HashNavLink from "../../../../components/HashNavLink";
 
 interface Capability {
@@ -96,19 +96,19 @@ export default class Possibilities extends Component<PossibilitiesProps, Possibi
 
     render = () => {
         return (
-            <div
+            <section
                 style={{ ...this.props.style }}
                 className={`Possibilities ${this.props.className ?? ""}`}
                 id={this.props.id}
             >
                 <HashNavLink className={this.props.id}>
-                    <h1 className={""}>Endless possibilities...</h1>
+                    <h1>Endless possibilities...</h1>
                 </HashNavLink>
-                <h3 className={"hl1"}>What can you do with your own cloud/cluster?</h3>
+                <h3 className={"hl1 -mt-4"}>What can you do with your own cloud?</h3>
                 <p className={"largeText"}>
-                    Here are some examples of what you can do with your own cloud/cluster, MOWS
-                    primary goal is to develop a solid platform that makes it easy to run, use and
-                    develop services like these.
+                    Here are some examples of what you can do with your own cloud, MOWS primary goal
+                    is to develop a solid platform that makes it easy to run, use and develop
+                    services like these.
                 </p>
                 <div className={"mt-16"}>
                     {capabilities.map((capability, index) => (
@@ -135,7 +135,7 @@ export default class Possibilities extends Component<PossibilitiesProps, Possibi
                         </div>
                     ))}
                 </div>
-            </div>
+            </section>
         );
     };
 }

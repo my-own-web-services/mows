@@ -1,5 +1,5 @@
 import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { CSSProperties } from "react";
 import HashNavLink from "../../../components/HashNavLink";
 import Collapsible from "../../../components/Collapsible";
 

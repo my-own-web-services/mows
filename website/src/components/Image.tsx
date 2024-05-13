@@ -1,5 +1,5 @@
 import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { CSSProperties } from "react";
 
 interface ImageProps {
     readonly image: {
@@ -30,7 +30,9 @@ export default class Image extends Component<ImageProps, ImageState> {
                     width={i.width}
                     height={i.height}
                 />
-                <figcaption>{this.props.caption}</figcaption>
+                <figcaption className={"mt-2 text-sm w-full text-center text-primaryDim"}>
+                    {this.props.caption}
+                </figcaption>
             </figure>
         );
     };
