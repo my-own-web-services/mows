@@ -18,6 +18,7 @@ interface Concept {
     name: string;
     groups: number[];
     image: string;
+    description: string;
     cons: {
         category: number;
         description: string;
@@ -29,6 +30,8 @@ const concepts: Concept[] = [
     {
         name: "Corporate Cloud",
         image: "consumer/concept_1.svg",
+        description:
+            "Your data is stored on the servers of a corporate cloud provider. You can use it through their web interface or their sync clients.",
         cons: [
             {
                 category: 0,
@@ -71,6 +74,8 @@ const concepts: Concept[] = [
     },
     {
         name: "Webspace",
+        description:
+            "You rent a webspace from a provider. You can run your own website with limited storage, performance and features.",
         cons: [
             {
                 category: 4,
@@ -108,6 +113,7 @@ const concepts: Concept[] = [
     },
     {
         name: "Corporate Cloud APIS",
+        description: "You build your application on the proprietary APIs of cloud providers.",
         cons: [
             {
                 category: 4,
@@ -131,6 +137,8 @@ const concepts: Concept[] = [
     {
         name: "Mostly Local",
         image: "consumer/concept_2.svg",
+        description:
+            "Your data is stored mostly locally on each device you use. You use corporate cloud services for mail and other services.",
         cons: [
             {
                 category: 1,
@@ -157,6 +165,7 @@ const concepts: Concept[] = [
     {
         name: "Single Rented server",
         image: "consumer/concept_3.svg",
+        description: "You rent a server from a provider. You can run any service you want on it.",
         cons: [
             {
                 category: 1,
@@ -189,6 +198,8 @@ const concepts: Concept[] = [
     {
         name: "Single Local server",
         image: "consumer/concept_4.svg",
+        description:
+            "You run a single server at home or in your office. You can run any service you want on it.",
         cons: [
             {
                 category: 0,
@@ -217,6 +228,8 @@ const concepts: Concept[] = [
     {
         name: "Multiple Local Servers",
         image: "consumer/concept_5.svg",
+        description:
+            "You run multiple servers at home or in your office. You can run any service you want on them.",
         cons: [
             {
                 category: 0,
@@ -233,6 +246,8 @@ const concepts: Concept[] = [
     {
         name: "MOWS",
         image: "consumer/concept_6.svg",
+        description:
+            "MOWS handles all the complexity for you. You can run any service you want on it.",
         cons: [
             {
                 category: 2,
@@ -353,6 +368,9 @@ export default class ArchitectureProblems extends Component<
                             loading={"lazy"}
                             alt=""
                         />
+                        <div className={"text-primaryDim mt-2 p-4"}>
+                            {concepts[this.state.selectedConcept]?.description}
+                        </div>
                     </div>
                     <ul className={"md:max-w-96 lg:max-w-[500px]"}>
                         {concepts[this.state.selectedConcept]?.cons
