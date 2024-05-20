@@ -1,6 +1,6 @@
 version: "3.9"
 services:
-    mows:
+    mows-website:
         image: firstdorsal/mows-website
         restart: always
         container_name: mows-website

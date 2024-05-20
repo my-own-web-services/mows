@@ -32,12 +32,12 @@ export default class Story extends Component<StoryProps, StoryState> {
                     </HashNavLink>
                     <div className={"mt-1"}>
                         <h3>Problem</h3>
-                        <p className={"w-full md:w-1/2"}>
+                        <p className={"w-full md:w-2/3"}>
                             The current IT landscape is in pieces. Big Tech has thoroughly
                             vanquished their users' privacy, sovereignty and choices.
                         </p>
                         <div className={"flex flex-col md:flex-row md:items-start mt-4 md:gap-12"}>
-                            <p className={"w-full md:w-1/2 "}>
+                            <p className={"w-full md:w-2/3 "}>
                                 Smartphone users and developers are forced to use the{" "}
                                 <a
                                     rel={"noopener noreferrer"}
@@ -95,7 +95,7 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 model. <br />
                                 <br />
                             </p>
-                            <div className={"w-full md:h-[200px]  md:w-1/2"}>
+                            <div className={"w-full md:h-[200px]  md:w-1/3"}>
                                 <Image
                                     image={Fortnite1984Image}
                                     alt="Still from the Fortnite 1984 video."
@@ -123,10 +123,10 @@ export default class Story extends Component<StoryProps, StoryState> {
 
                         <div
                             className={
-                                "flex gap-12 flex-col-reverse md:flex-row-reverse md:items-center"
+                                "flex gap-12 flex-col-reverse md:flex-row md:items-center md:mt-16"
                             }
                         >
-                            <p className={"w-full md:w-1/2 "}>
+                            <p className={"w-full md:w-2/3 "}>
                                 You don’t need a imaginary chip implanted in your body when you
                                 carry around{" "}
                                 <a
@@ -155,7 +155,7 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 some of the most popular services, raising a growing concern for
                                 putting all the power into the hands of a few.
                             </p>
-                            <div className={"w-full md:w-1/2"}>
+                            <div className={"w-full md:w-1/3"}>
                                 <img
                                     src="/assets/story/manipulation.webp"
                                     width={1024}
@@ -311,8 +311,8 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 Providers of cloud applications have high standards of reliability
                                 that can’t be matched by a simple one machine setup at home. This is
                                 no problem if you are running a home server for fun, but intolerable
-                                as the intention is to use this device as your primary workhorse for
-                                everything from your home automation, mail server, your business
+                                when the intention is to use this device as your primary workhorse
+                                for everything from your home automation, mail server, your business
                                 applications or public websites.
                             </p>
                             <br />

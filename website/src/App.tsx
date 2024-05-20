@@ -32,6 +32,10 @@ export default class App extends Component<AppProps, AppState> {
                     <Route path="/dev/apis" component={this.comingSoon} />
                     <Route path="/dev/hardware" component={this.comingSoon} />
                 </BrowserRouter>
+                <footer className={"w-full flex justify-center gap-24 p-24 lg:p-10"}>
+                    <a href="https://vindelicum.eu/impressum/">Legal Notice</a>
+                    <a href="https://vindelicum.eu/datenschutz/">Privacy</a>
+                </footer>
             </div>
         );
     };

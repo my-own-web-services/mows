@@ -1,5 +1,12 @@
 import { Component } from "preact";
-import { IoChevronUp, IoClose, IoMenu } from "react-icons/io5";
+import {
+    IoChevronUp,
+    IoClose,
+    IoLogoMastodon,
+    IoLogoTwitch,
+    IoLogoYoutube,
+    IoMenu
+} from "react-icons/io5";
 import { NavLink } from "react-router-dom";
 import TableOfContents from "../pages/project/TableOfContents";
 import { VscGithub } from "react-icons/vsc";
@@ -44,12 +51,42 @@ const navUserItems: NavItem[] = [
         link: "/dev/apps"
     },
     {
-        name: "Github",
+        name: "GitHub",
         link: "https://github.com/my-own-web-services/mows",
         external: true,
         icon: (
-            <div className={""}>
+            <div className={"w-0"}>
                 <VscGithub size={20} />
+            </div>
+        )
+    },
+    {
+        name: "Mastodon",
+        link: "https://mastodon.social/@mows",
+        external: true,
+        icon: (
+            <div className={"w-0"}>
+                <IoLogoMastodon size={20} />
+            </div>
+        )
+    },
+    {
+        name: "YouTube",
+        link: "https://www.youtube.com/@my-own-web-services",
+        external: true,
+        icon: (
+            <div className={"w-0"}>
+                <IoLogoYoutube size={20} />
+            </div>
+        )
+    },
+    {
+        name: "Twitch",
+        link: "https://www.twitch.tv/myownwebservices",
+        external: true,
+        icon: (
+            <div className={"w-0"}>
+                <IoLogoTwitch size={20} />
             </div>
         )
     }
@@ -82,9 +119,7 @@ export default class Nav extends Component<NavProps, NavState> {
                     ) : (
                         /* @ts-ignore */
                         <NavLink
-                            className={
-                                "no-underline uppercase text-primary  font-semibold px-[2px]"
-                            }
+                            className={"no-underline uppercase text-primary font-semibold px-[2px]"}
                             exact
                             to={item.link}
                             onClick={onClick}
