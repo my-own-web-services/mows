@@ -54,6 +54,14 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             loading={"lazy"}
                         />
                     </div>
+                    <div className={"w-full py-10"}>
+                        <img
+                            width={1482}
+                            height={982}
+                            src="/assets/diagrams/cluster.svg"
+                            alt="Diagram showing a MOWS cluster"
+                        />
+                    </div>
                     <div className={"mt-10"}>
                         <div
                             className={
@@ -160,6 +168,14 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             alt="Manager Logo"
                             className={"glow md:w-[50%] -my-20 md:-my-40"}
                             loading={"lazy"}
+                        />
+                    </div>
+                    <div className={"w-full py-10"}>
+                        <img
+                            width={1482}
+                            height={982}
+                            src="/assets/diagrams/manager.svg"
+                            alt="Diagram showing a MOWS manager"
                         />
                     </div>
                     <div className={"Parts"}>
