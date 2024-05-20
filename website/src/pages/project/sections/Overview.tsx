@@ -22,12 +22,12 @@ export default class Overview extends Component<OverviewProps, OverviewState> {
                             The power of the cloud put back in your hands
                         </h3>
                         <p className={"largeText"}>
-                            MOWS makes it easy to start your own multi-computer cloud system from
-                            scratch. It is not just another home server OS, as it provides powerful
-                            APIs, reliability and strong isolation through the use of the extensible
-                            and ever growing Kubernetes ecosystem. It can run on your own or rented
-                            hardware. It offers an open solution, but still has you covered on all
-                            operational basics.
+                            MOWS [maʊz] makes it easy to start your own multi-computer cloud system
+                            from scratch. It is not just another home server OS, as it provides
+                            powerful APIs, reliability and strong isolation through the use of the
+                            extensible and ever growing Kubernetes ecosystem. It can run on your own
+                            or rented hardware. It offers an open solution, but still has you
+                            covered on all operational basics.
                         </p>
                     </div>
                     <ClusterNodeFailure loop className={"lg:w-1/5 lg:mt-16 lg:-ml-10"} />

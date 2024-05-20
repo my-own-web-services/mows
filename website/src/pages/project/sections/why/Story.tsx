@@ -181,121 +181,142 @@ export default class Story extends Component<StoryProps, StoryState> {
                     <HashNavLink className={"WhyStorySimplicity"}>
                         <h2>Simplicity</h2>
                     </HashNavLink>
-                    <div className={"flex gap-12 flex-col md:flex-row"}>
-                        <div className={"md:w-1/2"}>
-                            <h3>Problem</h3>
-                            <p>
-                                Managing data securely and reliably on one device is difficult
-                                enough as drive failures, ransomware and no or bad backup practice
-                                can lead to its loss at any time. Managing data across all your, and
-                                possibly the devices of employees or friends and family gets
-                                exponentially more difficult.
-                                <br />
-                                <br />
-                                Installing, configuring and using often incompatible software across
-                                multiple devices with different operating systems is another great
-                                challenge you will encounter when trying to get off the cloud.
-                                <br /> <br />
-                                Self hosting your web apps is a great option but requires a big
-                                chunk of knowledge to set up even with the use of tools like docker
-                                and docker-compose.
-                                <br /> <br />
-                                For a more reliable system you would need to get started with
-                                Kubernetes on bare metal yourself, also known as difficulty level:
-                                “Nightmare!”
-                                <br /> <br />
-                                For developers it is very time consuming to create good web apps
-                                without using, mostly payed, proprietary, privacy invasive non local
-                                API’s because they need to create basic features from scratch every
-                                time. Things like authentication, data storage, good image display
-                                with image conversion in the backend, well done video streaming,
-                                offline capabilities and many more are not trivial to implement.
-                                Many would like to incorporate cool technologies like realtime
-                                communication, AI, End to end encryption and many more, only to find
-                                out that they would need to learn a whole suite of other
-                                technologies in depth to setup these technologies before they can
-                                create the business logic of their application.
-                                <br />
-                                <br />
-                                When creating everything from scratch like this another problem
-                                arises: Everything gets incompatible and cluttered, videos get
-                                converted twice into the same formats, files cannot be synchronously
-                                used between multiple applications and so on.
-                            </p>
-                            <br />
-                            <h3>Solution</h3>
-                            <h4>(Web) APIs</h4>
-                            <p>
-                                At this point, it should be pointed out that the main focus is to
-                                use web applications to get over the platform incompatibility of
-                                native apps as well as to fight off the huge, memory hogging,
-                                insecure web browsers disguised as native applications that then
-                                store the files on your not synced and not backed up drive anyway.
-                                Another great thing about the web platform is the incredible
-                                ecosystem and rich technologies it brings with it, as well as the
-                                flat learning curve to building simple applications.
-                                <br />
-                                <br />
-                                MOWS provides all the APIs you need for the simple creation of great
-                                web apps. The most important APIs are the Authentication API to
-                                handle user management and authentication and the File API, that
-                                handles everything related to user facing file storage: access
-                                management, conversion of formats, display, sorting, finding,
-                                tagging, sharing and much more. Your data all in one place ready to
-                                be used by any application you want. <br />
-                                <br />
-                                For the established frameworks there will be integrated components
-                                available to further increase the ease of use of the APIs. For
-                                example components for files that automatically handle browser
-                                offline storage, display of images in multiple formats and
-                                resolutions, video players that can play different qualities out of
-                                the box, infinite scrolling lists, search and much more. The
-                                packaging and publishing of apps will also get a streamlined
-                                workflow you can build on.
-                                <br />
-                                <br /> This will lead to easy to create applications and your files
-                                being stored in one place, editable from any device that runs a web
-                                browser.
-                            </p>
-                            <br />
-                            <h4>Package Manager</h4>
-                            <p>
-                                The package manager will handle the lifecycle of your applications
-                                as well as configuring things like:
-                            </p>
-                            <ul className={ul}>
-                                <li>DNS</li>
-                                <li>Reverse proxy settings</li>
-                                <li>Access to compute resources</li>
-                                <li>Access to MOWS APIs</li>
-                                <li>
-                                    Network settings (separate for ingress/egress) like:
-                                    <ul className={subUl}>
-                                        <li>disabled (default)</li>
-                                        <li>local network</li>
-                                        <li>public ip</li>
-                                        <li>through VPN</li>
-                                        <li>through TOR</li>
-                                    </ul>
-                                </li>
-                                <li>
-                                    App deployment through:
-                                    <ul className={subUl}>
-                                        <li>A static web server for SPAs</li>
-                                        <li>Containers</li>
-                                        <li>Multi container deployments</li>
-                                        <li>VMs</li>
-                                    </ul>
-                                </li>
-                            </ul>
-                            <br />
-                            <h4>Backup</h4>
-                            <p>
-                                Automated, encrypted, append only(if applicable) backups on machines
-                                at one (better two) collocations are regularly performed. The setup
-                                of the collocation machines is easily done with the installer.
-                            </p>
+                    <div className={""}>
+                        <h3>Problem</h3>
+                        <p className={"pb-4"}>
+                            Managing data securely and reliably on one device is difficult enough as
+                            drive failures, ransomware and no or bad backup practice can lead to its
+                            loss at any time. Managing data across all your, and possibly the
+                            devices of employees or friends and family gets exponentially more
+                            difficult.{" "}
+                        </p>
+                        <p className={"pb-4"}>
+                            Installing, configuring and using often incompatible software across
+                            multiple devices with different operating systems is another great
+                            challenge you will encounter when trying to get off the cloud.
+                        </p>
+                        <p className={"pb-4"}>
+                            Self hosting your web apps is a great option but requires a big chunk of
+                            knowledge to set up even with the use of tools like docker and
+                            docker-compose.
+                        </p>
+                        <p className={"pb-4"}>
+                            For a more reliable system you would need to get started with Kubernetes
+                            on bare metal yourself, also known as difficulty level: “Nightmare!”
+                        </p>
+
+                        <div className={"flex flex-col md:flex-row md:items-center mt-4 md:gap-12"}>
+                            <div className={"md:w-2/5"}>
+                                <p className={"pb-4"}>
+                                    For developers it is very time consuming to create good web apps
+                                    without using, mostly payed, proprietary, privacy invasive non
+                                    local API’s because they need to create basic features from
+                                    scratch every time. Things like authentication, data storage,
+                                    good image display with image conversion in the backend, well
+                                    done video streaming, offline capabilities and many more are not
+                                    trivial to implement. Many would like to incorporate cool
+                                    technologies like realtime communication, AI, End to end
+                                    encryption and many more, only to find out that they would need
+                                    to learn a whole suite of other technologies in depth to setup
+                                    these technologies before they can create the business logic of
+                                    their application.
+                                </p>
+                                <p className={"pb-4"}>
+                                    When creating everything from scratch like this another problem
+                                    arises: Everything gets incompatible and cluttered, videos get
+                                    converted twice into the same formats, files cannot be
+                                    synchronously used between multiple applications and so on.
+                                </p>
+                            </div>
+                            <div className={"w-full md:w-3/5 mx-2"}>
+                                <figure>
+                                    <img
+                                        src="/assets/diagrams/everything_from_scratch.svg"
+                                        alt="A diagram showing the traditional and the mows app stack"
+                                        width={941}
+                                        height={641}
+                                    />
+                                </figure>
+                                <figcaption
+                                    className={"mt-2 text-sm w-full text-center text-primaryDim"}
+                                >
+                                    Traditional app-stacks compared to an app built with MOWS
+                                </figcaption>
+                            </div>
                         </div>
+
+                        <br />
+                        <h3>Solution</h3>
+                        <h4>(Web) APIs</h4>
+                        <p className={"pb-4"}>
+                            At this point, it should be pointed out that the main focus is to use
+                            web applications to get over the platform incompatibility of native apps
+                            as well as to fight off the huge, memory hogging, insecure web browsers
+                            disguised as native applications that then store the files on your not
+                            synced and not backed up drive anyway. Another great thing about the web
+                            platform is the incredible ecosystem and rich technologies it brings
+                            with it, as well as the flat learning curve to building simple
+                            applications.
+                        </p>
+                        <p className={"pb-4"}>
+                            MOWS provides all the APIs you need for the simple creation of great web
+                            apps. The most important APIs are the Authentication API to handle user
+                            management and authentication and the File API, that handles everything
+                            related to user facing file storage: access management, conversion of
+                            formats, display, sorting, finding, tagging, sharing and much more. Your
+                            data all in one place ready to be used by any application you want.
+                        </p>
+                        <p className={"pb-4"}>
+                            For the established frameworks there will be integrated components
+                            available to further increase the ease of use of the APIs. For example
+                            components for files that automatically handle browser offline storage,
+                            display of images in multiple formats and resolutions, video players
+                            that can play different qualities out of the box, infinite scrolling
+                            lists, search and much more. The packaging and publishing of apps will
+                            also get a streamlined workflow you can build on.
+                        </p>
+                        <p className={"pb-4"}>
+                            This will lead to easy to create applications and your files being
+                            stored in one place, editable from any device that runs a web browser.
+                        </p>
+                        <br />
+                        <h4>Package Manager</h4>
+                        <p>
+                            The package manager will handle the lifecycle of your applications as
+                            well as configuring things like:
+                        </p>
+                        <ul className={ul}>
+                            <li>DNS</li>
+                            <li>Reverse proxy settings</li>
+                            <li>Access to compute resources</li>
+                            <li>Access to MOWS APIs</li>
+                            <li>
+                                Network settings (separate for ingress/egress) like:
+                                <ul className={subUl}>
+                                    <li>disabled (default)</li>
+                                    <li>local network</li>
+                                    <li>public ip</li>
+                                    <li>through VPN</li>
+                                    <li>through TOR</li>
+                                </ul>
+                            </li>
+                            <li>
+                                App deployment through:
+                                <ul className={subUl}>
+                                    <li>A static web server for SPAs</li>
+                                    <li>Containers</li>
+                                    <li>Multi container deployments</li>
+                                    <li>VMs</li>
+                                </ul>
+                            </li>
+                        </ul>
+                        <br />
+                        <h4>Backup</h4>
+                        <p>
+                            Automated, encrypted, append only(if applicable) backups on machines at
+                            one (better two) collocations are regularly performed. The setup of the
+                            collocation machines is easily done with the installer.
+                        </p>
                         <div></div>
                     </div>
                 </div>

@@ -257,7 +257,7 @@ const concepts: Concept[] = [
             {
                 category: 2,
                 description:
-                    "If you lose your internet connection, your services go offline for the rest of the world, although most connections are very stable these days. You can still access your services and data locally."
+                    "If you lose your internet connection, your services go offline for the rest of the world, although most connections are very stable these days. You can still access your services and data locally. You can further increase availability by using multiple internet connections and/or business tariffs."
             },
             {
                 category: 0,
@@ -363,6 +363,7 @@ export default class ArchitectureProblems extends Component<
                             src={`/assets/architecture-problems/${
                                 concepts[this.state.selectedConcept]?.image
                             }`}
+                            className={"rounded-lg border-primary md:border-2"}
                             width={600}
                             height={600}
                             loading={"lazy"}
