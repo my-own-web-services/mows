@@ -240,14 +240,14 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 <figcaption
                                     className={"mt-2 text-sm w-full text-center text-primaryDim"}
                                 >
-                                    Traditional app-stacks compared to an app built with MOWS
+                                    Traditional web app stacks compared to an app built with MOWS
                                 </figcaption>
                             </div>
                         </div>
 
                         <br />
                         <h3>Solution</h3>
-                        <h4>(Web) APIs</h4>
+                        <h4>Cloud APIs</h4>
                         <p className={"pb-4"}>
                             At this point, it should be pointed out that the main focus is to use
                             web applications to get over the platform incompatibility of native apps
@@ -262,9 +262,7 @@ export default class Story extends Component<StoryProps, StoryState> {
                             MOWS provides all the APIs you need for the simple creation of great web
                             apps. The most important APIs are the Authentication API to handle user
                             management and authentication and the File API, that handles everything
-                            related to user facing file storage: access management, conversion of
-                            formats, display, sorting, finding, tagging, sharing and much more. Your
-                            data all in one place ready to be used by any application you want.
+                            related to user facing file storage.
                         </p>
                         <p className={"pb-4"}>
                             For the established frameworks there will be integrated components
@@ -272,8 +270,7 @@ export default class Story extends Component<StoryProps, StoryState> {
                             components for files that automatically handle browser offline storage,
                             display of images in multiple formats and resolutions, video players
                             that can play different qualities out of the box, infinite scrolling
-                            lists, search and much more. The packaging and publishing of apps will
-                            also get a streamlined workflow you can build on.
+                            lists, search and much more.
                         </p>
                         <p className={"pb-4"}>
                             This will lead to easy to create applications and your files being
@@ -377,25 +374,28 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 <br />
                                 Software developed for any non free (as in freedom) operating system
                                 or ecosystem is a giant waste of time as anything related to it can
-                                disappear forever without any chance of recovering.
+                                disappear forever without any chance of recovering. Sure, open
+                                source projects can be discontinued as well, but at least you have
+                                the <b>chance</b> to fork it and continue development and use.
                             </p>
                             <br />
                             <h3>Solution</h3>
                             <p>
                                 MOWS and its APIs are free and open source as well as the underlying
                                 technologies. In the end MOWS is an overlay for kubernetes,
-                                containers and their related technologies so you aren’t even relying
-                                on the MOWS package manger to stay around as you could always
-                                migrate to a plain standardized container environment.
+                                containers, QEMU VMs and their related technologies so you aren’t
+                                even relying on the MOWS package manger to stay around as you could
+                                always migrate to a plain standardized container environment.
                                 <br />
                                 <br />
-                                Software not made for MOWS can be used without problems and be
+                                Software not made for MOWS can be used without problems too and be
                                 automatically set up to run in single and multi container
-                                deployments as well as in virtual machines that could also host a
-                                proprietary OS that is then used as a gaming/desktop streaming
-                                setup. In this case the use of the MOWS APIs is of course limited as
-                                the software would need to support them. Some of them are easy to
-                                integrate as they are standardized, like Zitadel with OAuth 2.0.
+                                deployments as well as in virtual machines. The latter can also host
+                                a proprietary OS that is then used as a gaming/desktop streaming
+                                setup. In this case the use of the MOWS Cloud APIs is of course
+                                limited as the software would need to support them. Some of the APIs
+                                are easy to integrate with foreign software too as they are
+                                standardized, like using Zitadel with any OAuth 2.0 consumer.
                             </p>
                         </div>
                     </div>

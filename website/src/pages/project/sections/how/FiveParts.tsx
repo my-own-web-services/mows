@@ -33,14 +33,16 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                 </p>
                 <div className={"mt-20 intersect"} id="FivePartsOperator">
                     <HashNavLink className={"FivePartsOperator"}>
-                        <h2 className={h2Class}>Operator</h2>
+                        <h2 className={h2Class}>Operator + Core APIs</h2>
                     </HashNavLink>
                     <div className={"flex flex-col-reverse md:flex-row "}>
                         <p className={"largeText "}>
                             The Operator is the brain of the system and has its components running
                             on all computers in the cluster. It handles the internal operation,
                             resource allocation and the lifecycle of applications. It also runs
-                            backups, health checks and many other tasks.
+                            backups, health checks and many other tasks. The Operator goes hand in
+                            hand with the Core APIs, which provide the building blocks for the
+                            System.
                         </p>
 
                         {/* don't use css: scale here as it messes with the layout in chrome when jumping to an element with id by using the #id in the url (not a problem in firefox) */}

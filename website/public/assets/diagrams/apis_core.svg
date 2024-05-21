@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="100"
+   height="99.999992"
+   viewBox="0 0 26.458332 26.458331"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <g
+     id="layer1"
+     style="display:inline;opacity:1"
+     transform="translate(-420.1583,0.99218747)">
+    <g
+       id="g12"
+       style="display:inline"
+       transform="translate(-18.262102,-9.3156857)">
+      <g
+         id="g25"
+         style="display:inline;opacity:1"
+         transform="translate(176.2053,53.407883)">
+        <path
+           style="fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.147311;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 270.97159,-30.207397 -3.52416,-2.034676 3.52416,-2.034674 v 4.06935"
+           id="path3-5-9-2-9-3-15" />
+        <path
+           style="fill:#0199ff;fill-opacity:1;stroke:none;stroke-width:0.147311;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 271.43957,-34.276742 3.52416,2.034674 -3.52416,2.034675 v -4.069349"
+           id="path3-6-4-8-54" />
+        <path
+           style="fill:#00797f;fill-opacity:1;stroke:none;stroke-width:0.147311;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 279.19273,-29.800458 -3.52417,2.034675 v -4.06935 l 3.52417,2.034675"
+           id="path3-5-9-0-9-9-76" />
+        <path
+           style="fill:#f8c517;fill-opacity:1;stroke:none;stroke-width:0.147311;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 275.2006,-31.851451 v 4.069351 l -3.52417,-2.034677 3.52417,-2.034674"
+           id="path3-5-90-3-4-6-5" />
+        <path
+           style="fill:#531c3c;fill-opacity:1;stroke:none;stroke-width:0.147311;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 275.20059,-36.726512 v 4.069351 l -3.52417,-2.034676 3.52417,-2.034675"
+           id="path3-5-90-8-3-9-06-6" />
+        <path
+           style="fill:#326de6;fill-opacity:1;stroke:none;stroke-width:0.147311;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 275.66855,-36.702038 3.52417,2.034675 -3.52417,2.034674 v -4.069349"
+           id="path3-5-6-8-9-2-93" />
+        <path
+           style="fill:#aaff00;fill-opacity:1;stroke:none;stroke-width:0.147311;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 279.89755,-30.19108 v -4.06935 l 3.52416,2.034676 -3.52416,2.034674"
+           id="path3-5-2-6-6-8-09-7" />
+        <path
+           style="fill:#ff0074;fill-opacity:1;stroke:none;stroke-width:0.147311;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 275.90543,-32.242069 3.52415,-2.034675 v 4.069351 l -3.52415,-2.034676"
+           id="path3-5-2-8-2-1-3-3-4" />
+        <path
+           style="fill:none;fill-opacity:1;stroke:#0199ff;stroke-width:0.79375;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 275.42293,-37.141919 -8.48533,4.907329 8.5142,4.879034 8.49823,-4.864275 z"
+           id="path196-5" />
+        <text
+           xml:space="preserve"
+           style="font-size:0.352778px;fill:#000000;stroke-width:0.0425962"
+           x="273.03845"
+           y="-34.529564"
+           id="text12"><tspan
+             id="tspan12"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:0.352778px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#ffffff;fill-opacity:1;stroke-width:0.0425962"
+             x="273.03845"
+             y="-34.529564">Longhorn</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-size:0.352778px;display:inline;fill:#000000;stroke-width:0.0312069"
+           x="276.05554"
+           y="-34.488995"
+           id="text12-7"><tspan
+             id="tspan12-1"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:0.352778px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#ffffff;fill-opacity:1;stroke-width:0.0312069"
+             x="276.05554"
+             y="-34.488995">Kubernetes</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-size:0.352778px;display:inline;fill:#000000;stroke-width:0.0312069"
+           x="272.12393"
+           y="-32.09964"
+           id="text12-7-6"><tspan
+             id="tspan12-1-5"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:0.352778px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#ffffff;fill-opacity:1;stroke-width:0.0312069"
+             x="272.12393"
+             y="-32.09964">MOWS</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-size:0.352778px;display:inline;fill:#000000;stroke-width:0.0312069"
+           x="276.31589"
+           y="-29.676323"
+           id="text12-7-2"><tspan
+             id="tspan12-1-6"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:0.352778px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#ffffff;fill-opacity:1;stroke-width:0.0312069"
+             x="276.31589"
+             y="-29.676323">Kubevirt</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-size:0.352778px;display:inline;fill:#000000;stroke-width:0.0312069"
+           x="277.69736"
+           y="-32.162102"
+           id="text12-7-2-1"><tspan
+             id="tspan12-1-6-7"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:0.352778px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#ffffff;fill-opacity:1;stroke-width:0.0312069"
+             x="277.69736"
+             y="-32.162102">DNS</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-size:0.352778px;display:inline;fill:#000000;stroke-width:0.0312069"
+           x="268.9556"
+           y="-32.093468"
+           id="text12-7-2-1-1"><tspan
+             id="tspan12-1-6-7-2"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:0.352778px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#ffffff;fill-opacity:1;stroke-width:0.0312069"
+             x="268.9556"
+             y="-32.093468">KubeVIP</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-size:0.352778px;display:inline;fill:#000000;stroke-width:0.0312069"
+           x="280.11978"
+           y="-32.03616"
+           id="text12-7-2-1-9"><tspan
+             id="tspan12-1-6-7-7"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:0.352778px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#000000;fill-opacity:1;stroke-width:0.0312069"
+             x="280.11978"
+             y="-32.03616">Reverse Proxy</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-size:0.352778px;display:inline;fill:#000000;stroke-width:0.0312069"
+           x="273.33865"
+           y="-29.754816"
+           id="text12-7-2-5"><tspan
+             id="tspan12-1-6-9"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:0.352778px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#000000;fill-opacity:1;stroke-width:0.0312069"
+             x="273.33865"
+             y="-29.754816">Cilium</tspan></text>
+      </g>
+    </g>
+  </g>
+</svg>

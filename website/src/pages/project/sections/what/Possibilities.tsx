@@ -12,7 +12,7 @@ const capabilities: Capability[] = [
     {
         title: "Stream your PC!",
         description:
-            "Stream any operating system to any device, wherever you are, without worrying about failing hardware when you just want to get work done.. Make the most of your hardware, and never worry about losing your data or settings again.",
+            "Stream any operating system to any device, wherever you are, without worrying about failing hardware when you just want to get work done. Make the most of your hardware, and never worry about losing your data or settings again.",
         image: "stream-desktop.webp"
     },
     {
