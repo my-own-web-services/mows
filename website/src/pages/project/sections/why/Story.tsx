@@ -26,12 +26,11 @@ export default class Story extends Component<StoryProps, StoryState> {
                 </HashNavLink>
                 <h3 className={"hl1 -mt-4"}>How MOWS was Born</h3>
 
-                <div id="WhyStoryPrivacySovereignty" className={"intersect mt-8"}>
-                    <HashNavLink className={"WhyStoryPrivacySovereignty"}>
-                        <h2>Privacy and Sovereignty</h2>
+                <div id="WhyStorySovereignty" className={"intersect mt-8"}>
+                    <HashNavLink className={"WhyStorySovereignty"}>
+                        <h2>Sovereignty</h2>
                     </HashNavLink>
-                    <div className={"mt-1"}>
-                        <h3>Problem</h3>
+                    <div>
                         <p className={"w-full md:w-2/3"}>
                             The current IT landscape is in pieces. Big Tech has thoroughly
                             vanquished their users' privacy, sovereignty and choices.
@@ -83,17 +82,11 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 >
                                     subscription models
                                 </a>{" "}
-                                is also great for companies as{" "}
-                                <a
-                                    rel={"noopener noreferrer"}
-                                    title="Wikipedia: You'll own nothing and be happy"
-                                    href="https://en.wikipedia.org/wiki/You%27ll_own_nothing_and_be_happy"
-                                >
-                                    “you'll own nothing and be happy”
-                                </a>{" "}
-                                if you keep using these services, further supporting this businesses
+                                is also great for companies as “you'll own nothing and be happy” if
+                                you keep using these services, further supporting this businesses
                                 model. <br />
                                 <br />
+                                {/*TODO: Messengers and network effects */}
                             </p>
                             <div className={"w-full md:h-[200px]  md:w-1/3"}>
                                 <Image
@@ -120,13 +113,57 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 />
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div
-                            className={
-                                "flex gap-12 flex-col-reverse md:flex-row md:items-center md:mt-16"
-                            }
-                        >
-                            <p className={"w-full md:w-2/3 "}>
+                <div id="WhyStoryPrivacy" className={"intersect mt-8"}>
+                    <HashNavLink className={"WhyStoryPrivacy"}>
+                        <h2>Privacy</h2>
+                    </HashNavLink>
+                    <p className={"largeText"}>
+                        This part is pretty grim and may sound like fear mongering to some, but it
+                        is important to not underestimate the risks we are facing with the current
+                        state of the internet. If you are already convinced that privacy is
+                        important, you can skip this part.
+                    </p>
+                    <div className={"mt-8"}>
+                        <h3>I have nothing to hide 😌</h3>
+                        <p>
+                            That was what I thought before I got into the tech sector and saw what
+                            is possible with the data being collected. When I started to learn more
+                            about privacy and found out that I myself belonged to a minority (🏳️‍🌈🦄),
+                            I realized that Privacy isn't about hiding; it's about protecting our
+                            rights, dignity, and lives from misuse of our personal information. In a
+                            world where data is constantly collected, privacy safeguards our freedom
+                            and security. This does not mean that you have to hide everything, but
+                            that you should have a real choice to do so.
+                        </p>
+                        <p className={"mt-4"}>
+                            Even when you have the privilege to trust your current government, you
+                            should always be aware that this can change in an instant and that the
+                            data collected today can be used against you in the future. Only one
+                            example is the Third Reich, where gay people were persecuted and killed
+                            based on the so-called{" "}
+                            <a
+                                rel={"noopener noreferrer"}
+                                href="https://media.ccc.de/v/36c3-101-rosa-listen"
+                            >
+                                Rosa Listen(Pink Lists)[DE]
+                            </a>{" "}
+                            from the Weimar Republic that before were "only" used to track them.
+                            There are many more examples of how data can be used against you, even
+                            if you are not doing anything wrong.
+                        </p>
+                    </div>
+                    <div
+                        className={
+                            "flex gap-12 flex-col-reverse md:flex-row md:items-start md:mt-16"
+                        }
+                    >
+                        <div className={"w-full md:w-2/3 "}>
+                            <h3>Manipulation</h3>
+
+                            <p>
                                 You don’t need a imaginary chip implanted in your body when you
                                 carry around{" "}
                                 <a
@@ -140,39 +177,83 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 and upload your data into the massive data centers of your favorite
                                 tech giants. You don’t need such a device to be influenced and
                                 manipulated by the endless scrolling posts that are picked just for
-                                you, at best to maximize your time on their platforms and at worst
-                                to steer you and others towards hatred and{" "}
+                                you, at best to maximize your time on their platforms, getting you
+                                addicted, and at worst to steer you and others towards hatred and
+                                violence. It has been shown that this, even by negligence, can lead
+                                to{" "}
                                 <a
                                     rel={"noopener noreferrer"}
                                     href="https://www.amnesty.org/en/latest/news/2022/09/myanmar-facebooks-systems-promoted-violence-against-rohingya-meta-owes-reparations-new-report/"
                                 >
-                                    ethnic cleansing of whole countries
+                                    the ethnic cleansing of whole countries
                                 </a>
                                 .
-                                <br />
-                                <br />
-                                Right now it is difficult and sometimes nearly impossible to avoid
-                                some of the most popular services, raising a growing concern for
-                                putting all the power into the hands of a few.
                             </p>
-                            <div className={"w-full md:w-1/3"}>
-                                <img
-                                    src="/assets/story/manipulation.webp"
-                                    width={1024}
-                                    height={1024}
-                                    alt="People looking at their smartphones with a giant red cyber eye above that is controlling them."
-                                />
-                            </div>
                         </div>
-
-                        <div className={"mt-8 md:w-1/2"}>
-                            <h3>Solution</h3>
-                            <p>
-                                Move off the cloud and take back the control of your data and the
-                                freedom to do with it whatever you want! Easy right? In theory yes,
-                                but this raises a whole other pile of problems to be solved. From
-                                these problems the idea for MOWS was born.
+                        <div className={"w-full md:w-1/3"}>
+                            <img
+                                src="/assets/story/manipulation.webp"
+                                width={1024}
+                                height={1024}
+                                alt="People looking at their smartphones with a giant red cyber eye above that is controlling them."
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Weapons of War, Threats to Democracy</h3>
+                        <p>
+                            About one hundred years ago, Nazi Germany used the latest technology of
+                            their time to manipulate the masses with broadly targeted propaganda
+                            campaigns. Today TV and Radio seem laughable as a medium for
+                            manipulation compared to the highly personalized feeds that can be
+                            created with the data collected by tech giants and governments today.
+                        </p>
+                        <br />
+                        <p>
+                            In democracies this data can be used to manipulate public opinion as
+                            well as elections, as has been
+                            <a
+                                rel={"noopener noreferrer"}
+                                href="https://en.wikipedia.org/wiki/Facebook%E2%80%93Cambridge_Analytica_data_scandal"
+                            >
+                                {" "}
+                                shown
+                            </a>{" "}
+                            in the past. In authoritarian regimes it can be used to suppress
+                            opposition and to track down people.
+                        </p>
+                        <br />
+                        <div
+                            className={
+                                "flex justify-between flex-col md:flex-row md:items-start md:gap-12"
+                            }
+                        >
+                            <p className={"w-full md:w-2/3"}>
+                                The manipulation of the masses is not only a threat to democracy
+                                internally, but also to the peace between nations. When talking
+                                about the domains of war it has long been established that
+                                information warfare is a crucial part of it, whether it is to spread
+                                propaganda or misinformation to an enemy population or to manipulate
+                                soldiers or leaders themselves.
                             </p>
+                            <figure className={"w-full md:w-1/3 md:-mt-40"}>
+                                <img
+                                    className={"w-full"}
+                                    src="/assets/diagrams/domains_of_warfare.svg"
+                                    alt="A diagram showing the domains of war"
+                                />
+                                <figcaption
+                                    className={"mt-2 text-sm w-full text-center text-primaryDim"}
+                                >
+                                    The domains of warfare as intersecting layers <br />
+                                    <a
+                                        rel={"noopener noreferrer"}
+                                        href="https://www.youtube.com/watch?v=xnQIYdBkoV0"
+                                    >
+                                        More about information warfare [DE]
+                                    </a>
+                                </figcaption>
+                            </figure>
                         </div>
                     </div>
                 </div>
@@ -182,7 +263,7 @@ export default class Story extends Component<StoryProps, StoryState> {
                         <h2>Simplicity</h2>
                     </HashNavLink>
                     <div className={""}>
-                        <h3>Problem</h3>
+                        <h3>For users</h3>
                         <p className={"pb-4"}>
                             Managing data securely and reliably on one device is difficult enough as
                             drive failures, ransomware and no or bad backup practice can lead to its
@@ -192,8 +273,8 @@ export default class Story extends Component<StoryProps, StoryState> {
                         </p>
                         <p className={"pb-4"}>
                             Installing, configuring and using often incompatible software across
-                            multiple devices with different operating systems is another great
-                            challenge you will encounter when trying to get off the cloud.
+                            multiple devices with different operating systems is another great mess
+                            you will encounter when trying to get off the cloud.
                         </p>
                         <p className={"pb-4"}>
                             Self hosting your web apps is a great option but requires a big chunk of
@@ -205,27 +286,71 @@ export default class Story extends Component<StoryProps, StoryState> {
                             on bare metal yourself, also known as difficulty level: “Nightmare!”
                         </p>
 
+                        <h3>For Developers</h3>
+
+                        <h4>Web Apps</h4>
+                        <p>
+                            When the first iPhone was released in 2007, there was no App Store and
+                            no way to install native applications. When asked about this, Steve Jobs
+                            said that people should just build web apps. It didn't take long for him
+                            to realize that the web of the time wasn't ready for this and that a
+                            central App Store would be extremely profitable for the company too.
+                            <br /> The webs frontend has come a long way since then and is now more
+                            than capable of building anything from simple websites to complex
+                            applications. <br />
+                            There is a reason why people keep using tools like Electron to build
+                            native applications, despite its many downsides. Whether one likes it or
+                            not, the web is the largest, most standardized and compatible frontend
+                            platform for applications we have. This said, I don't think that things
+                            like Electron are the answer to building apps. What? You are putting
+                            your web app in an extra browser just to use the local file system, too
+                            then have your files not backed up or synchronized again? Yes, this is
+                            kind of stupid, but there is a reason for it, the web is missing a very
+                            important piece of its puzzle.
+                        </p>
+                        <br />
+
+                        <h4>The missing piece</h4>
                         <div className={"flex flex-col md:flex-row md:items-center mt-4 md:gap-12"}>
                             <div className={"md:w-2/5"}>
-                                <p className={"pb-4"}>
-                                    For developers it is very time consuming to create good web apps
-                                    without using, mostly payed, proprietary, privacy invasive non
-                                    local API’s because they need to create basic features from
-                                    scratch every time. Things like authentication, data storage,
-                                    good image display with image conversion in the backend, well
-                                    done video streaming, offline capabilities and many more are not
-                                    trivial to implement. Many would like to incorporate cool
-                                    technologies like realtime communication, AI, End to end
-                                    encryption and many more, only to find out that they would need
-                                    to learn a whole suite of other technologies in depth to setup
-                                    these technologies before they can create the business logic of
-                                    their application.
-                                </p>
-                                <p className={"pb-4"}>
-                                    When creating everything from scratch like this another problem
-                                    arises: Everything gets incompatible and cluttered, videos get
-                                    converted twice into the same formats, files cannot be
-                                    synchronously used between multiple applications and so on.
+                                <p>
+                                    Let's take a step back and look at the web as an operating
+                                    system, made up from the frontend web application that is facing
+                                    the user and the backend that interacts with the data and
+                                    hardware. The frontend is well standardized but the backend is
+                                    everyone's own business. Now compare this to a "real" operating
+                                    system that interfaces with the hardware. Imagine every
+                                    application frontend on linux would interface directly with the
+                                    hard drive to store its data. Every application would need to
+                                    reimplement a huge amount of software only to save some data to
+                                    disk. Even worse, either, every application writes to one disk,
+                                    interfering with each other or each application writes to a
+                                    separate disk keeping the data intact but not interoperable
+                                    between applications. This is why we have a file system on every
+                                    "real" operating system that manages the data for our
+                                    applications. Going back to the web as an operating system, we
+                                    recognize the missing piece, a backend filesystem that handles
+                                    this interaction for our applications.
+                                    <br /> <br />
+                                    This is not a completely new idea after all, WebDAV brought with
+                                    it a standardized protocol for interacting with files. So why
+                                    isn't every application using WebDAV instead of building its own
+                                    file backend? The problem is that WebDAV is just a basic file
+                                    system. While thats great for background 1:1 file transfers it
+                                    isn't enough to create an even half useable web app because of,
+                                    among other things, network constraints. Not even local file
+                                    systems and computers are fast enough to "brute force" render
+                                    40MB RAW images in an instant to the screen. This is why
+                                    developers need to create image previews, convert videos, create
+                                    search indexes and much more. <br />
+                                    <br />
+                                    As there is no standard API for doing this, app developers need
+                                    to create this logic themselves time and time again instead of
+                                    creating their business logic. This does also lead to the same
+                                    desync problems as for the original files. Creating different
+                                    video versions for streaming is very computationally expensive
+                                    and time consuming. Creating them multiple times for each app
+                                    would be a huge waste of resources.
                                 </p>
                             </div>
                             <div className={"w-full md:w-3/5 mx-2"}>
@@ -235,86 +360,30 @@ export default class Story extends Component<StoryProps, StoryState> {
                                         alt="A diagram showing the traditional and the mows app stack"
                                         width={941}
                                         height={641}
-                                    />
+                                    />{" "}
+                                    <figcaption
+                                        className={
+                                            "mt-2 text-sm w-full text-center text-primaryDim"
+                                        }
+                                    >
+                                        Traditional web app stacks compared to an app built with
+                                        MOWS
+                                    </figcaption>
                                 </figure>
-                                <figcaption
-                                    className={"mt-2 text-sm w-full text-center text-primaryDim"}
-                                >
-                                    Traditional web app stacks compared to an app built with MOWS
-                                </figcaption>
                             </div>
                         </div>
 
                         <br />
-                        <h3>Solution</h3>
                         <h4>Cloud APIs</h4>
-                        <p className={"pb-4"}>
-                            At this point, it should be pointed out that the main focus is to use
-                            web applications to get over the platform incompatibility of native apps
-                            as well as to fight off the huge, memory hogging, insecure web browsers
-                            disguised as native applications that then store the files on your not
-                            synced and not backed up drive anyway. Another great thing about the web
-                            platform is the incredible ecosystem and rich technologies it brings
-                            with it, as well as the flat learning curve to building simple
-                            applications.
-                        </p>
-                        <p className={"pb-4"}>
-                            MOWS provides all the APIs you need for the simple creation of great web
-                            apps. The most important APIs are the Authentication API to handle user
-                            management and authentication and the File API, that handles everything
-                            related to user facing file storage.
-                        </p>
-                        <p className={"pb-4"}>
-                            For the established frameworks there will be integrated components
-                            available to further increase the ease of use of the APIs. For example
-                            components for files that automatically handle browser offline storage,
-                            display of images in multiple formats and resolutions, video players
-                            that can play different qualities out of the box, infinite scrolling
-                            lists, search and much more.
-                        </p>
-                        <p className={"pb-4"}>
-                            This will lead to easy to create applications and your files being
-                            stored in one place, editable from any device that runs a web browser.
-                        </p>
-                        <br />
-                        <h4>Package Manager</h4>
                         <p>
-                            The package manager will handle the lifecycle of your applications as
-                            well as configuring things like:
+                            The example above only highlights the missing file API. There are many
+                            other areas where developers are wasting their time reimplementing the
+                            same stuff over and over again. MOWS attempts to solve this problem by
+                            providing APIs over the network as well as frontend components that
+                            automatically use the network provided APIs. The second really important
+                            API that MOWS will provide is authentication. More details can be found
+                            in the <a href="/#FivePartsCloudAPIs"> Cloud APIs </a>section.
                         </p>
-                        <ul className={ul}>
-                            <li>DNS</li>
-                            <li>Reverse proxy settings</li>
-                            <li>Access to compute resources</li>
-                            <li>Access to MOWS APIs</li>
-                            <li>
-                                Network settings (separate for ingress/egress) like:
-                                <ul className={subUl}>
-                                    <li>disabled (default)</li>
-                                    <li>local network</li>
-                                    <li>public ip</li>
-                                    <li>through VPN</li>
-                                    <li>through TOR</li>
-                                </ul>
-                            </li>
-                            <li>
-                                App deployment through:
-                                <ul className={subUl}>
-                                    <li>A static web server for SPAs</li>
-                                    <li>Containers</li>
-                                    <li>Multi container deployments</li>
-                                    <li>VMs</li>
-                                </ul>
-                            </li>
-                        </ul>
-                        <br />
-                        <h4>Backup</h4>
-                        <p>
-                            Automated, encrypted, append only(if applicable) backups on machines at
-                            one (better two) collocations are regularly performed. The setup of the
-                            collocation machines is easily done with the installer.
-                        </p>
-                        <div></div>
                     </div>
                 </div>
 
@@ -324,7 +393,7 @@ export default class Story extends Component<StoryProps, StoryState> {
                     </HashNavLink>
                     <div className={"flex gap-12 flex-col md:flex-row"}>
                         <div className={"md:w-1/2"}>
-                            <h3>Problem</h3>
+                            <h3>Leaving the Lab</h3>
                             <p>
                                 Providers of cloud applications have high standards of reliability
                                 that can’t be matched by a simple one machine setup at home. This is
@@ -334,26 +403,84 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 applications or public websites.
                             </p>
                             <br />
-                            <h3>Solution</h3>
+
                             <p>
-                                Using multiple independent physical machines that use MOWS to
-                                combine them into one more powerful reliable "machine". At least
-                                three machines are required to achieve this automated (more) fail
-                                safe system. This may sound overkill, but not only can the
-                                individual machines be relatively cheap, the setup and replacement
-                                can be performed mostly automatically. The problem for a home setup
-                                may not be the small downtime when upgrading the RAM or a broken
-                                power supply but more about the times you can’t or don’t want to fix
-                                problems like these. Even in a home setup it would be very bad if
-                                all your services failed when you just started your vacation and
-                                relied on things like mail, password sync or files from your server.
-                                <br />
+                                The solution to this problem is not to rely on any single part that
+                                can fail and to make the things that are most likely to fail
+                                redundant first. MOWS uses multiple independent physical machines to
+                                achieve this goal. At least three machines are required to achieve
+                                this automated (more) fail safe system. This may sound overkill, but
+                                not only can the individual machines be relatively cheap, the setup
+                                and replacement can be performed mostly automatically. The problem
+                                for a home setup may not be the small downtime when upgrading the
+                                RAM or a broken power supply but more about the times you can’t or
+                                don’t want to fix problems like these. Even in a home setup it would
+                                be very bad if all your services failed when you just started your
+                                vacation and relied on things like mail, password sync or files from
+                                your server.
+                            </p>
+                            <br />
+
+                            <p>
                                 When managing your own hardware is not your thing and you would
                                 rather pay a few dollars per month you can rent a physical or
                                 virtual server online, from any provider, that then runs the
                                 distributed MOWS system. If you change your mind it will be easy to
                                 switch to another provider or to your own hardware.
                             </p>
+
+                            <Collapsible title={<h3>A more personal note (Expand)</h3>}>
+                                <p>
+                                    The mentioned vacation wasn't just an invented example; it was
+                                    the main reason I had to bring this idea to life. On New Year's
+                                    Eve, I was on vacation in Prague with friends to celebrate the
+                                    New Year. On New Year's Day, just after waking up, the board of
+                                    my organization, Queer Augsburg, informed me that our website
+                                    was down. I couldn't fix it until I returned from vacation the
+                                    next day. I had looked forward to working on my cloud in the new
+                                    year, but instead, I had to fix the server, whose boot SSD had
+                                    failed. To add insult to injury, the broken SSD had 1000GB, and
+                                    the new one only had 977GB, so I not only had to recover and
+                                    copy the data but also shrink the encrypted partition somehow.
+                                    Due to the long copying time, the self-hosting operation only
+                                    went back online after 4 days of downtime just at the beginning
+                                    of the year. In hindsight, with better preparation, the backup
+                                    and copying procedures could have gone faster, but putting this
+                                    aside what happens if I'm on vacation for two weeks? Emails will
+                                    retry sending for five days if the receiving server is offline,
+                                    but after two weeks, they're gone. The next weeks I tried to
+                                    find a solution that would really fix this problem and involve
+                                    minimal effort to setup and maintain for the user. I thought of
+                                    RAID 1 boot drives, but what if the power supply fails? You can
+                                    always throw more money on the problem and buy a server with
+                                    redundant power supplies that then blows away your ears and
+                                    still have the RAM or any other component fail. However you put
+                                    it, any single machine cannot be redundant so I thought of the
+                                    many Jeff Geerling videos about the Raspberry Pi clusters he
+                                    built, mostly for fun and experimentation. As I heard most
+                                    people did see this as a stupid fun project with no real world
+                                    application, mostly because raspberry Pis are too weak and
+                                    autoscaling is obviously what Kubernetes and clusters were made
+                                    for right? Yeah Raspberry Pi's aren’t really an option as soon
+                                    as you want to encode some videos or run any virtual machines
+                                    and kubernetes is about scalability of course, but also about
+                                    redundancy. So why not use the incredibly large and mature
+                                    Kubernetes ecosystem instead of manually creating some failover
+                                    solution. The next question was, is this affordable for me and
+                                    everyday people. The answer is yes, sure Raspberry Pi's don't
+                                    cut it, real servers are loud and expensive and desktop PCs are
+                                    power hungry, but there is something in between that is perfect
+                                    for this application: NUC or NAS systems. Inspired by{" "}
+                                    <a
+                                        rel={"noopener noreferrer"}
+                                        href="https://www.youtube.com/watch?v=vjDoQA4C22c"
+                                    >
+                                        Wolfgang ❤️
+                                    </a>{" "}
+                                    I got to work and found some affordable and even more capable
+                                    systems.
+                                </p>
+                            </Collapsible>
                         </div>
                         <div></div>
                     </div>
@@ -364,7 +491,6 @@ export default class Story extends Component<StoryProps, StoryState> {
                     </HashNavLink>
                     <div className={"flex gap-12 flex-col md:flex-row"}>
                         <div className={"md:w-1/2"}>
-                            <h3>Problem</h3>
                             <p>
                                 When building web apps yourself on the APIs of any proprietary cloud
                                 platform you will be left tightly locked into their ecosystem and
@@ -373,19 +499,19 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 <br />
                                 <br />
                                 Software developed for any non free (as in freedom) operating system
-                                or ecosystem is a giant waste of time as anything related to it can
-                                disappear forever without any chance of recovering. Sure, open
-                                source projects can be discontinued as well, but at least you have
-                                the <b>chance</b> to fork it and continue development and use.
+                                or ecosystem is a giant waste of time and money as anything related
+                                to it can disappear forever without any chance of recovering. Sure,
+                                open source projects can be discontinued as well, but at least you
+                                have the <b>chance</b> to fork it and continue the development and
+                                use.
                             </p>
                             <br />
-                            <h3>Solution</h3>
                             <p>
                                 MOWS and its APIs are free and open source as well as the underlying
-                                technologies. In the end MOWS is an overlay for kubernetes,
+                                technologies. In the end MOWS is an overlay for Kubernetes,
                                 containers, QEMU VMs and their related technologies so you aren’t
                                 even relying on the MOWS package manger to stay around as you could
-                                always migrate to a plain standardized container environment.
+                                always migrate to a plain container environment.
                                 <br />
                                 <br />
                                 Software not made for MOWS can be used without problems too and be
@@ -393,8 +519,8 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 deployments as well as in virtual machines. The latter can also host
                                 a proprietary OS that is then used as a gaming/desktop streaming
                                 setup. In this case the use of the MOWS Cloud APIs is of course
-                                limited as the software would need to support them. Some of the APIs
-                                are easy to integrate with foreign software too as they are
+                                limited as the software would need to support or use them. Some of
+                                the APIs are easy to integrate with foreign software too as they are
                                 standardized, like using Zitadel with any OAuth 2.0 consumer.
                             </p>
                         </div>

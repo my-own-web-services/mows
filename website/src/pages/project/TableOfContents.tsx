@@ -46,8 +46,13 @@ const table: TableOfContentsItem[] = [
                 href: "#WhyStory",
                 children: [
                     {
-                        title: "Privacy & Sovereignty",
-                        href: "#WhyStoryPrivacySovereignty",
+                        title: "Sovereignty",
+                        href: "#WhyStorySovereignty",
+                        children: []
+                    },
+                    {
+                        title: "Privacy",
+                        href: "#WhyStoryPrivacy",
                         children: []
                     },
                     {

@@ -29,9 +29,9 @@
      inkscape:document-units="px"
      showgrid="true"
      showguides="true"
-     inkscape:zoom="11.313709"
-     inkscape:cx="1633.0631"
-     inkscape:cy="40.216698"
+     inkscape:zoom="4.0000002"
+     inkscape:cx="1738.2499"
+     inkscape:cy="33.249999"
      inkscape:window-width="1920"
      inkscape:window-height="1024"
      inkscape:window-x="1920"
@@ -201,9 +201,26 @@
        inkscape:export-filename="../public/assets/diagrams/apis_core.svg"
        inkscape:export-xdpi="96"
        inkscape:export-ydpi="96" />
+    <inkscape:page
+       x="458.09293"
+       y="-0.9921875"
+       width="29.104164"
+       height="21.227348"
+       id="page7"
+       margin="0 0 0"
+       bleed="0"
+       inkscape:export-filename="../public/assets/diagrams/domains_of_warfare.svg"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96" />
   </sodipodi:namedview>
   <defs
      id="defs1">
+    <rect
+       x="1746.7499"
+       y="2.4374999"
+       width="15.201365"
+       height="6.2499997"
+       id="rect24" />
     <marker
        style="overflow:visible"
        id="marker93"
@@ -7642,5 +7659,95 @@
              y="-29.754816">Cilium</tspan></text>
       </g>
     </g>
+    <path
+       style="fill:#ff8080;fill-opacity:0.497207;stroke:#6500ff;stroke-width:0.79374997;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+       d="m 466.41076,5.9035151 h 16.6026"
+       id="path24" />
+    <path
+       style="display:inline;fill:#ff8080;fill-opacity:0.497207;stroke:#00d0ff;stroke-width:0.79375;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:0.99162012"
+       d="m 466.41076,8.5989578 h 16.6026"
+       id="path24-1" />
+    <path
+       style="display:inline;fill:#ff8080;fill-opacity:0.497207;stroke:#0800ff;stroke-width:0.79375;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+       d="m 466.41076,11.294401 h 16.6026"
+       id="path24-3" />
+    <path
+       style="display:inline;fill:#ff8080;fill-opacity:0.497207;stroke:#00ff38;stroke-width:0.79375;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+       d="m 466.41076,13.989844 h 16.6026"
+       id="path24-6" />
+    <path
+       style="display:inline;fill:#ff8080;fill-opacity:0.497207;stroke:#878787;stroke-width:0.79374997;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+       d="m 466.74365,2.65903 15.93682,14.591833"
+       id="path24-2" />
+    <text
+       xml:space="preserve"
+       style="font-size:1.33035px;display:inline;fill:#878787;fill-opacity:1;stroke-width:0.117683"
+       x="461.64282"
+       y="2.8135386"
+       id="text12-7-5-4-3-3"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:1.33035px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#878787;fill-opacity:1;stroke-width:0.117683"
+         x="461.64282"
+         y="2.8135386"
+         id="tspan13-8-1-8">Cyber</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:1.33035px;display:inline;fill:#ff0000;fill-opacity:1;stroke-width:0.117683"
+       x="470.66101"
+       y="0.89620072"
+       id="text12-7-5-4-3-3-8"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:1.33035px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#ff0000;fill-opacity:1;stroke-width:0.117683"
+         x="470.66101"
+         y="0.89620072"
+         id="tspan13-8-1-8-5">Information</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:1.33035px;display:inline;fill:#6500ff;fill-opacity:1;stroke-width:0.117683"
+       x="461.63284"
+       y="6.2254596"
+       id="text12-7-5-4-3-3-5"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:1.33035px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#6500ff;fill-opacity:1;stroke-width:0.117683"
+         x="461.63284"
+         y="6.2254596"
+         id="tspan13-8-1-8-9">Space</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:1.33035px;display:inline;fill:#00d1ff;fill-opacity:0.99215686;stroke-width:0.117683"
+       x="463.55188"
+       y="9.1044912"
+       id="text12-7-5-4-3-3-5-0"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:1.33035px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#00d1ff;fill-opacity:0.99215686;stroke-width:0.117683"
+         x="463.55188"
+         y="9.1044912"
+         id="tspan13-8-1-8-9-3">Air</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:1.33035px;display:inline;fill:#0800ff;fill-opacity:1;stroke-width:0.117683"
+       x="459.35107"
+       y="11.789957"
+       id="text12-7-5-4-3-3-5-0-4"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:1.33035px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#0800ff;fill-opacity:1;stroke-width:0.117683"
+         x="459.35107"
+         y="11.789957"
+         id="tspan13-8-1-8-9-3-7">Maritime</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:1.33035px;display:inline;fill:#00ff38;fill-opacity:1;stroke-width:0.117683"
+       x="462.33438"
+       y="14.488726"
+       id="text12-7-5-4-3-3-5-0-4-5"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:1.33035px;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';fill:#00ff38;fill-opacity:1;stroke-width:0.117683"
+         x="462.33438"
+         y="14.488726"
+         id="tspan13-8-1-8-9-3-7-9">Land</tspan></text>
+    <path
+       style="display:inline;fill:#ff8080;fill-opacity:0.497207;stroke:#ff0000;stroke-width:0.79375;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+       d="M 474.69468,1.6536464 V 18.256247"
+       id="path24-5" />
   </g>
 </svg>
