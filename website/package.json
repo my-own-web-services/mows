@@ -9,7 +9,9 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@babel/plugin-transform-react-jsx": "^7.24.6",
         "@fontsource-variable/inter": "^5.0.17",
+        "@img/sharp-linuxmusl-x64": "^0.33.4",
         "@preact/signals": "^1.2.3",
         "@types/animejs": "^3.1.12",
         "@types/react-router-dom": "5",
@@ -24,7 +26,7 @@
         "react-router-dom": "5",
         "react-virtualized-auto-sizer": "^1.0.24",
         "sass": "^1.72.0",
-        "sharp": "^0.33.3",
+        "sharp": "^0.33.4",
         "tailwindcss": "^3.4.3",
         "vite-imagetools": "^7.0.0"
     },

@@ -1,22 +1,26 @@
 VERSION 0.7
 
-build:
+deps:
     FROM node:21-alpine
+    RUN npm i --location=global pnpm
+
+build:
+    FROM +deps
     WORKDIR /app
-    COPY package.json yarn.lock ./
-    RUN yarn
-    RUN yarn add sharp @img/sharp-linuxmusl-x64 --ignore-engines
-    COPY . .
-    RUN yarn build
-    SAVE ARTIFACT /app/dist/
+    COPY package.json pnpm-lock.yaml ./
+    RUN pnpm install
+    COPY . . --exclude=node_modules --exclude=dist --exclude=.git --exclude=server --exclude=Earthfile --exclude=shell.nix
+    RUN pnpm build
+    SAVE ARTIFACT /app/dist/ /dist
 
 docker:
     FROM pektin/feoco
-    COPY +build/ /public/
+    COPY +build/dist /public/
     COPY server/config.yml /
     EXPOSE 80
     SAVE IMAGE mows-website:latest
 
-local:
-    COPY +build/ /
+build-local:
+    FROM node:21-alpine
+    COPY +build/dist /dist
     SAVE ARTIFACT / AS LOCAL dist

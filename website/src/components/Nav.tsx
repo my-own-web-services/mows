@@ -13,6 +13,7 @@ import { VscGithub } from "react-icons/vsc";
 import { signal } from "@preact/signals";
 import Toggle from "./Toggle";
 import { MdAnimation } from "react-icons/md";
+import { JSX } from "preact";
 
 export interface NavItem {
     name: string;

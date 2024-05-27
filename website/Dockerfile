@@ -1,11 +1,11 @@
 # 0. build stage
 FROM node:21-alpine as build-stage
+RUN npm i --location=global pnpm
 WORKDIR /app
-COPY package.json yarn.lock ./
-RUN yarn
-RUN yarn add sharp @img/sharp-linuxmusl-x64 --ignore-engines
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install
 COPY . .
-RUN yarn build
+RUN pnpm build
 
 # 1. execution stage
 FROM pektin/feoco

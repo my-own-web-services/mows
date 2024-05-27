@@ -1,3 +1,4 @@
+import { JSX } from "preact";
 import { Component } from "preact";
 import { IoChevronDownOutline, IoChevronForwardOutline } from "react-icons/io5";
 

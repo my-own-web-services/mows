@@ -1,6 +1,7 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 import HashNavLink from "../../../../components/HashNavLink";
+import { JSX } from "preact";
 
 interface API {
     name: string;
