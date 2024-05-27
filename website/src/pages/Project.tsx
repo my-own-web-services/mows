@@ -28,8 +28,8 @@ export default class Project extends Component<ProjectProps, ProjectState> {
                 <TableOfContents mode="desktop" />
                 <Hero />
 
-                <Overview className="intersect" />
                 <div className={"w-full"} id="What">
+                    <Overview className="intersect" />
                     <Possibilities className={"mt-48 intersect"} id="WhatPossibilities" />
                     <Differences className={"mt-48 intersect"} id="WhatDifferences" />
                 </div>

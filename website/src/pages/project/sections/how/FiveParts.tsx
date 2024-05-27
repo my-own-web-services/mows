@@ -4,6 +4,10 @@ import HashNavLink from "../../../../components/HashNavLink";
 import ManifestExampleImage from "../../../../assets/manifest_example.jpg";
 import ClusterFailure from "../../../../components/animations/ClusterNodeFailure";
 import AnyMachine from "../../../../components/animations/AnyMachine";
+import CloudAPIs from "./CloudAPIs";
+import Toggle from "../../../../components/Toggle";
+import { animationsEnabled } from "../../../../components/Nav";
+import Figure from "../../../../components/Figure";
 
 interface FivePartsProps {
     readonly id?: string;
@@ -31,126 +35,6 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                     solution for managing your own web services without compromising on the
                     flexibility to run whatever you want.
                 </p>
-                <div className={"mt-20 intersect"} id="FivePartsOperator">
-                    <HashNavLink className={"FivePartsOperator"}>
-                        <h2 className={h2Class}>Operator + Core APIs</h2>
-                    </HashNavLink>
-                    <div className={"flex flex-col-reverse md:flex-row "}>
-                        <p className={"largeText "}>
-                            The Operator is the brain of the system and has its components running
-                            on all computers in the cluster. It handles the internal operation,
-                            resource allocation and the lifecycle of applications. It also runs
-                            backups, health checks and many other tasks. The Operator goes hand in
-                            hand with the Core APIs, which provide the building blocks for the
-                            System.
-                        </p>
-
-                        {/* don't use css: scale here as it messes with the layout in chrome when jumping to an element with id by using the #id in the url (not a problem in firefox) */}
-                        <img
-                            width={400}
-                            height={400}
-                            draggable={false}
-                            src={"/assets/logos/operator_logo.svg"}
-                            className={"glow md:w-[50%] -my-20 md:-my-40"}
-                            alt="Operator Logo"
-                            loading={"lazy"}
-                        />
-                    </div>
-                    <div className={"w-full py-10"}>
-                        <img
-                            width={1482}
-                            height={982}
-                            src="/assets/diagrams/cluster.svg"
-                            alt="Diagram showing a MOWS cluster"
-                        />
-                    </div>
-                    <div className={"mt-10"}>
-                        <div
-                            className={
-                                "flex flex-col md:flex-row gap-10 justify-center md:justify-start items-center"
-                            }
-                        >
-                            <div className={"md:w-[50%]"}>
-                                <HashNavLink className={"FivePartsOperatorApplicationManagement"}>
-                                    <h3>Application Management</h3>
-                                </HashNavLink>
-                                <p>
-                                    Every app comes with an application manifest that describes its
-                                    recommended and minimum resource requirements. These resources
-                                    include things like storage, network, secrets, compute and MOWS
-                                    APIs. <br /> The administrator of the cluster can install apps
-                                    through a web interface, choosing if they want to give an app
-                                    the requested resources, to adjust them, or to deny the
-                                    installation.
-                                </p>
-                            </div>
-                            <div className={"w-full md:w-[50%]"}>
-                                <img
-                                    width={1239}
-                                    height={560}
-                                    draggable={false}
-                                    src={ManifestExampleImage}
-                                    className={"w-[100%] h-auto rounded-lg"}
-                                    alt="A example of a manifest file written in yaml"
-                                    loading={"lazy"}
-                                />
-                            </div>
-                        </div>
-                        <div
-                            className={
-                                "flex flex-col md:flex-row gap-10 justify-center md:justify-start items-center mt-10"
-                            }
-                        >
-                            <div style={"md:w-[50%]"}>
-                                <HashNavLink className={"FivePartsOperatorStorage"}>
-                                    <h3>Storage</h3>
-                                </HashNavLink>
-                                <p>
-                                    Through the use of a storage provider, replicated storage is
-                                    provisioned and made available to the applications. In case of a
-                                    node(computer) or hard drive failure at least one other node is
-                                    available to continue operating. As the data does not fulfill
-                                    its replication goal anymore it is replicated to another healthy
-                                    node in the background.
-                                </p>
-                            </div>
-                            <ClusterFailure
-                                loop
-                                ref={this.clusterNodeFailure}
-                                className={"mx-auto md:w-[50%]"}
-                            />
-                        </div>
-                        <div className={"my-10"}>
-                            <HashNavLink className={"FivePartsOperatorBackup"}>
-                                <h3>Backup</h3>
-                            </HashNavLink>
-                            <p>
-                                An out-of-cluster backup is performed on a regular basis given that
-                                another machine is provided. The backup is encrypted, compressed,
-                                append only(if applicable) and cannot be deleted without physical
-                                access to the machine. The backup machine should reside at a another
-                                physical location than the cluster, for example on a rented server,
-                                at a friend's house, or on another persons cluster. The backups are
-                                regularly checked for recovery viability. <br />
-                                The backup also contains the cluster's configuration data, making it
-                                possible to fully restore the cluster to its last healthy state
-                                after a whole-cluster failure. The full cluster restore procedure is
-                                performed by the MOWS Manager.
-                            </p>
-                        </div>
-                        <div>
-                            <HashNavLink className={"FivePartsOperatorHealthChecks"}>
-                                <h3>Health Checks</h3>
-                            </HashNavLink>
-                            <p>
-                                Regular health checks are performed on drives, backups and running
-                                applications. <br /> Depending on the cluster setup, even low level
-                                checks like MemTest can be performed by shutting down the machine to
-                                be checked and controlling it with another cluster machine.
-                            </p>
-                        </div>
-                    </div>
-                </div>
 
                 <div className={"mt-32 intersect"} id="FivePartsManager">
                     <HashNavLink className={"FivePartsManager"}>
@@ -250,6 +134,207 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                     </div>
                 </div>
 
+                <div className={"mt-20 intersect"} id="FivePartsOperator">
+                    <HashNavLink className={"FivePartsOperator"}>
+                        <h2 className={h2Class}>Operator + Core APIs</h2>
+                    </HashNavLink>
+                    <div className={"flex flex-col-reverse md:flex-row "}>
+                        <p className={"largeText "}>
+                            The Operator is the brain of the system and has its components running
+                            on all computers in the cluster. It handles the internal operation,
+                            resource allocation and the lifecycle of applications. It also runs
+                            backups, health checks and many other tasks. The Operator goes hand in
+                            hand with the Core APIs, which provide the building blocks for the
+                            System.
+                        </p>
+
+                        {/* don't use css: scale here as it messes with the layout in chrome when jumping to an element with id by using the #id in the url (not a problem in firefox) */}
+                        <img
+                            width={400}
+                            height={400}
+                            draggable={false}
+                            src={"/assets/logos/operator_logo.svg"}
+                            className={"glow md:w-[50%] -my-20 md:-my-40"}
+                            alt="Operator Logo"
+                            loading={"lazy"}
+                        />
+                    </div>
+                    <div className={"w-full py-10"}>
+                        <img
+                            width={1482}
+                            height={982}
+                            src="/assets/diagrams/cluster.svg"
+                            alt="Diagram showing a MOWS cluster"
+                        />
+                    </div>
+                    <div className={"mt-10"}>
+                        <div
+                            className={
+                                "flex flex-col md:flex-row gap-10 justify-center md:justify-start items-center mt-10"
+                            }
+                        >
+                            <div>
+                                <HashNavLink className={"FivePartsOperatorCoreAPIs"}>
+                                    <h3>Core APIs</h3>
+                                </HashNavLink>
+                                <p>
+                                    The Core APIs provide the basics for a stateful distributed
+                                    system. These APIs are needed as Kubernetes is not a complete
+                                    system by itself compared to for example Docker which brings all
+                                    the required components with it. This makes it more difficult to
+                                    setup but also more flexible in it's use.
+                                    <br />
+                                    <br />
+                                    The Core APIs are:
+                                    <ul className={"list-disc list-outside ml-6"}>
+                                        <li>
+                                            Longhorn, providing replicated storage including backup
+                                            procedures
+                                        </li>
+                                        <li>
+                                            KubeVIP, providing a virtual IP to the cluster to reach
+                                            the control plane on a single IP that automatically
+                                            fails over to another node in case of a node failure
+                                        </li>
+                                        <li>
+                                            Cilium as a network provider, providing a fast and
+                                            secure connection between nodes and applications as well
+                                            as network isolation
+                                        </li>
+                                        <li>
+                                            Kubevirt for running virtual machines on the cluster
+                                        </li>
+                                        <li>
+                                            Pektin DNS for resolving the names of the applications
+                                            to their IPs
+                                        </li>
+                                        <li>
+                                            Verkehr, a reverse proxy that terminates TLS and routes
+                                            the traffic to the right application
+                                        </li>
+                                        <li>
+                                            The MOWS Operator, that manages the applications and the
+                                            cluster
+                                        </li>
+                                    </ul>
+                                </p>
+                            </div>
+                            <div className={"w-full md:w-[50%]"}>
+                                <img
+                                    className={"w-full"}
+                                    src="/assets/diagrams/apis_core.svg"
+                                    alt="Diagram showing the core APIs of MOWS"
+                                />
+                            </div>
+                        </div>
+                        <div
+                            className={
+                                "flex flex-col md:flex-row gap-10 justify-center md:justify-start items-center mt-10"
+                            }
+                        >
+                            <div className={"md:w-[50%]"}>
+                                <HashNavLink className={"FivePartsOperatorApplicationManagement"}>
+                                    <h3>Application Management</h3>
+                                </HashNavLink>
+                                <p>
+                                    Every app comes with an application manifest that describes its
+                                    recommended and minimum resource requirements. These resources
+                                    include things like storage, network, secrets, compute and MOWS
+                                    Cloud APIs. <br /> The administrator of the cluster can install
+                                    apps through a web interface, choosing if they want to give an
+                                    app the requested resources, to adjust them, or to deny the
+                                    installation.
+                                </p>
+                            </div>
+                            <div className={"w-full md:w-[50%]"}>
+                                <img
+                                    width={1239}
+                                    height={560}
+                                    draggable={false}
+                                    src={ManifestExampleImage}
+                                    className={"w-[100%] h-auto rounded-lg"}
+                                    alt="A example of a manifest file written in yaml"
+                                    loading={"lazy"}
+                                />
+                            </div>
+                        </div>
+                        <div
+                            className={
+                                "flex flex-col md:flex-row gap-10 justify-center md:justify-start items-center mt-10"
+                            }
+                        >
+                            <div style={"md:w-[50%]"}>
+                                <HashNavLink className={"FivePartsOperatorStorage"}>
+                                    <h3>Storage</h3>
+                                </HashNavLink>
+                                <p>
+                                    Through the use of a storage provider, replicated storage is
+                                    provisioned and made available to the applications. In case of a
+                                    node(computer) or hard drive failure at least one other node is
+                                    available to continue operating. As the data does not fulfill
+                                    its replication goal anymore it is replicated to another healthy
+                                    node in the background.
+                                </p>
+                            </div>
+
+                            <Figure
+                                caption={
+                                    <>
+                                        A failing node and the recovery process of the cluster.
+                                        <Toggle
+                                            className="text-primaryDim"
+                                            checked={animationsEnabled.value}
+                                            onClick={() => {
+                                                animationsEnabled.value = !animationsEnabled.value;
+                                            }}
+                                            title="Toggle animations"
+                                        >
+                                            Animations
+                                        </Toggle>
+                                    </>
+                                }
+                            >
+                                <ClusterFailure loop ref={this.clusterNodeFailure} />
+                            </Figure>
+                        </div>
+                        <div className={"my-10"}>
+                            <HashNavLink className={"FivePartsOperatorBackup"}>
+                                <h3>Backup</h3>
+                            </HashNavLink>
+                            <p>
+                                An out-of-cluster backup is performed on a regular basis given that
+                                another machine is provided. The backup is encrypted, compressed,
+                                append only(if applicable) and cannot be deleted without physical
+                                access to the machine. The backup machine should reside at a another
+                                physical location than the cluster, for example on a rented server,
+                                at a friend's house, or on another persons cluster. The backups are
+                                regularly checked for recovery viability. <br />
+                                The backup also contains the cluster's configuration data, making it
+                                possible to fully restore the cluster to its last healthy state
+                                after a whole-cluster failure. The full cluster restore procedure is
+                                performed by the MOWS Manager.
+                            </p>
+                        </div>
+                        <div>
+                            <HashNavLink className={"FivePartsOperatorHealthChecks"}>
+                                <h3>Health Checks</h3>
+                            </HashNavLink>
+                            <p>
+                                Regular health checks are performed on drives, backups and running
+                                applications. <br /> Depending on the cluster setup, even low level
+                                checks like MemTest can be performed by shutting down the machine to
+                                be checked and controlling it with another cluster machine.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <CloudAPIs
+                    className={"mt-32 intersect"}
+                    h2Class={h2Class}
+                    id="FivePartsCloudAPIs"
+                />
+
                 <div className={"mt-32 intersect"} id="FivePartsHardware">
                     <HashNavLink className={"FivePartsHardware"}>
                         <h2 className={h2Class}>Hardware</h2>
@@ -293,90 +378,6 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                     </div>
                 </div>
 
-                <div className={"mt-32 intersect"} id="FivePartsCloudAPIs">
-                    <HashNavLink className={"FivePartsCloudApis"}>
-                        <h2 className={h2Class}>Cloud APIs</h2>
-                    </HashNavLink>
-                    <div className={"flex flex-col-reverse md:flex-row"}>
-                        <p className={"largeText"}>
-                            The MOWS cloud APIs make it easy to develop web applications that are
-                            well integrated with the MOWS ecosystem. Building on these APIs makes it
-                            possible for apps to integrate with each other as well as sparing
-                            developers from implementing basic requirements over and over again. The
-                            APIs are provided through http, clients for different languages and
-                            directly through frontend components.
-                        </p>
-                        <img
-                            width={400}
-                            height={400}
-                            src={"/assets/logos/cloud_apis_logo.svg"}
-                            alt="Cloud APIS Logo"
-                            className={"glow md:w-[50%] -my-16 "}
-                            loading={"lazy"}
-                        />
-                    </div>
-                    <div className={"Parts"}>
-                        <div className={"mt-10"}>
-                            <HashNavLink className={"FivePartsApisFilez"}>
-                                <h3>Filez</h3>
-                            </HashNavLink>
-                            <p>
-                                Filez makes it easy to handle everything file related. It brings
-                                many features with it:
-                                <ul className={"list-disc list-outside ml-4"}>
-                                    <li>File upload, download, sorting etc.</li>
-                                    <li>
-                                        Optimized display of images by converting them to different
-                                        formats and sizes
-                                    </li>
-                                    <li>
-                                        Optimized video playback by creating multiple different
-                                        sized versions of videos to make adaptive streaming possible
-                                    </li>
-                                    <li>
-                                        Synchronization features and native clients to bridge
-                                        compatibility gaps
-                                    </li>
-                                    <li>Metadata extraction to enable quick searches</li>
-                                    <li>File sharing</li>
-                                    <li>Grouping files manually</li>
-                                    <li>Automatic grouping of files based on metadata</li>
-                                    <li>Tagging files</li>
-                                    <li>Searching files</li>
-                                    <li>OCR</li>
-                                    <li>Automatic image classification</li>
-                                    <li>Transcriptions for audio and video files</li>
-                                    <li>Virtualized scrolling through huge file lists</li>
-                                    <li>Option for setting custom metadata on files per app</li>
-                                    <li>And many more</li>
-                                </ul>
-                            </p>
-                        </div>
-                        <div className={"mt-10"}>
-                            <HashNavLink className={"FivePartsApisAuth"}>
-                                <h3>Auth</h3>
-                            </HashNavLink>
-                            <p>
-                                The Auth API handles everything related to identity and access
-                                management. Its is based on the{" "}
-                                <a rel={"noreferrer noopener"} href="https://zitadel.com/">
-                                    Zitadel
-                                </a>{" "}
-                                project and configured by the MOWS Operator to integrate with your
-                                Apps.
-                            </p>
-                        </div>
-                        <div className={"mt-10"}>
-                            <HashNavLink className={"FivePartsApisFederation"}>
-                                <h3>Federation</h3>
-                            </HashNavLink>
-                            <p>
-                                The federation API makes it possible to build apps that can exchange
-                                data with other MOWS clusters.
-                            </p>
-                        </div>
-                    </div>
-                </div>
                 <div className={"mt-32 intersect"} id="FivePartsApps">
                     <HashNavLink className={"FivePartsApps"}>
                         <h2 className={h2Class}>Apps</h2>

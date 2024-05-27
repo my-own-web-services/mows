@@ -31,7 +31,7 @@ const faq: FAQItem[] = [
     },
     {
         question: "The idea looks great, but isn't this way too ambitious?",
-        answer: "Yes, it is ambitious. But not as impossible as it may seem. We are not trying to build a new operating system or a new programming language. We are using existing open-source technologies that are already in production-use by many of the largest companies in the world. The problem is that they are not easy to use for the average person. We are trying to make these technologies easy to use and accessible to everyone, while not creating another locked in cloud provider. The biggest make or break for this project is the community. We need people to help us build this system and to help us test it. We need people to help us write documentation and to help us make it easy to use. We need people to help us find bugs and to help us fix them. We need people to help us make this system better. We need you."
+        answer: "Yes, it is ambitious. But not as impossible as it may seem. We are not trying to build a new operating system or a new programming language. We are using existing open-source technologies that are already in production-use by many of the largest companies in the world. The problem is that they are not easy to use for the average person. We are trying to make these technologies easy to use and accessible to everyone, while not creating another locked in cloud provider. The biggest make or break for this project is the community. We need people to help us build this system. We need people to help us write documentation. We need people to help us find bugs and test the system. We need you."
     },
     {
         question: "Why another device?",
@@ -47,11 +47,11 @@ const faq: FAQItem[] = [
     },
     {
         question: "Is this the future?",
-        answer: "We don't know, but we would like to think so. The current cloud providers are getting more and more powerful and are starting to control more and more of our lives. We believe that we need to take back control of our data and our lives. We believe that we need to build a better internet that is not controlled by a few large companies. No matter what device comes after the smartphone, there will always be a need for a cloud service. We believe that MOWS is the best way to build that service. We believe that MOWS is the future."
+        answer: "We don't know, but we would like to think so. The current cloud providers are getting more and more powerful and are starting to control more and more of our lives. We believe that we need to take back control of our data and our lives. We believe that we need to build a better internet that isn't controlled by a few large companies. No matter what device comes after the smartphone, there will always be a need for a cloud service. We believe that MOWS is the best way to build that service. We believe that MOWS is the future."
     },
     {
         question: "What about Web3?",
-        answer: "The idea of decentralization is great, but it is absurd to believe that a complicated ecosystem with so much legacy code could be replaced solely by some version of a blockchain. However, Blockchain and similar technologies may very well be part of the future and the solution to some problems, that we want to solve with MOWS. Some form of decentralized payment system will be required for a true sovereign private and independent World Wide Web. Such a system will be included in the API stack at some point."
+        answer: "The idea of decentralization is great, but it is absurd to believe that a complicated ecosystem with so much legacy code could be replaced solely by some version of a blockchain. However, Blockchain and similar technologies may very well be part of the future and the solution to some problems that we want to solve with MOWS. Some form of decentralized payment system will be required for a true sovereign private and independent World Wide Web. Such a system will be included in the API stack at some point."
     }
 ];
 

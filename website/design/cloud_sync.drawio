@@ -1,0 +1,271 @@
+<mxfile host="app.diagrams.net" modified="2024-05-27T15:39:02.321Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="rZUshb_TpZL1PNKr_7U6" version="24.4.9" type="device">
+  <diagram name="Seite-1" id="bNh2h8S-OpoO2OfaxmEH">
+    <mxGraphModel dx="1905" dy="1049" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-6" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;" vertex="1" parent="1">
+          <mxGeometry x="720" y="680" width="640" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;" vertex="1" parent="1">
+          <mxGeometry x="40" y="680" width="640" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="_Ae_xf8NArjo4nXIG7cI-2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;" parent="1" vertex="1">
+          <mxGeometry x="40" y="360" width="640" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="_Ae_xf8NArjo4nXIG7cI-1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;" parent="1" vertex="1">
+          <mxGeometry x="40" y="40" width="640" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=cross;endFill=0;startArrow=cross;startFill=0;strokeColor=#FF3D51;strokeWidth=3;" parent="1" source="GZIEb12-RwzWinivUYwr-3" target="GZIEb12-RwzWinivUYwr-6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-3" value="Storage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="220" y="190" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-5" value="Electron" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="220" y="150" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-6" value="Storage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="380" y="190" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-8" value="Ionic/Cordova" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="380" y="150" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-10" value="Device A (Desktop PC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="820" y="850" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-11" value="Storage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="140" y="500" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-12" value="Web App (Codebase 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="140" y="420" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-13" value="Electron/Tauri" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="140" y="460" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-14" value="Device B (Smartphone)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="1140" y="850" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-15" value="Ionic/Cordova" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="460" y="460" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-17" value="Storage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="460" y="500" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-18" value="Cloud Sync App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="460" y="540" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" parent="1" source="GZIEb12-RwzWinivUYwr-19" target="GZIEb12-RwzWinivUYwr-23" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-19" value="Cloud Sync App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="140" y="540" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-21" value="Device C (Server)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="300" y="580" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" parent="1" source="GZIEb12-RwzWinivUYwr-23" target="GZIEb12-RwzWinivUYwr-18" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-23" value="Cloud Server App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="300" y="540" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-26" value="Device C (Server)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="980" y="850" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" parent="1" source="GZIEb12-RwzWinivUYwr-27" target="GZIEb12-RwzWinivUYwr-37" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1140" y="790" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-27" value="Cloud Server App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="980" y="810" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" parent="1" source="GZIEb12-RwzWinivUYwr-36" target="GZIEb12-RwzWinivUYwr-27" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="790" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-33" value="Device A (Desktop PC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="140" y="580" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-34" value="Device B (Smartphone)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="460" y="580" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-35" value="Web App (Codebase 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="460" y="420" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-36" value="Web App (Codebase 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="820" y="770" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-37" value="Web App (Codebase 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="1140" y="770" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-38" value="Web App (Codebase 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="220" y="110" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-39" value="Web App (Codebase 2)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+          <mxGeometry x="380" y="110" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-41" value="Storage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="60" y="780" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-42" value="Native App (Codebase 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="60" y="740" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-45" value="Storage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="380" y="780" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-46" value="Cloud Sync App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="380" y="820" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" parent="1" source="GZIEb12-RwzWinivUYwr-48" target="GZIEb12-RwzWinivUYwr-51" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-48" value="Cloud Sync App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="60" y="820" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-49" value="Device C (Server)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="220" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-50" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" parent="1" source="GZIEb12-RwzWinivUYwr-51" target="GZIEb12-RwzWinivUYwr-46" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-51" value="Cloud Server App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="220" y="820" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-52" value="Device A (Desktop PC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="60" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-53" value="Device B (Smartphone)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="380" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-54" value="Native App (Codebase 2)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+          <mxGeometry x="380" y="740" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-55" value="Web Browser" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="820" y="810" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-56" value="Web Browser" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="1140" y="810" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-57" value="Device A (Desktop PC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="220" y="230" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-58" value="Device B (Smartphone)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="380" y="230" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-59" value="&lt;font color=&quot;#1a1a1a&quot; style=&quot;font-size: 16px;&quot;&gt;&lt;span style=&quot;font-size: 16px;&quot;&gt;No cloud sync&lt;/span&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=0;fontSize=16;" parent="1" vertex="1">
+          <mxGeometry x="55" y="55" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-60" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;Cloud sync through webviews&amp;nbsp;&lt;/font&gt;&lt;span style=&quot;font-size: 16px; background-color: initial;&quot;&gt;and native sync clients&lt;/span&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=1;points=[];autosize=1;strokeColor=none;fillColor=none;movable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fontSize=16;" parent="1" vertex="1">
+          <mxGeometry x="60" y="375" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-61" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Cloud sync through native apps and native sync clients&lt;/span&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" parent="1" vertex="1">
+          <mxGeometry x="60" y="695" width="410" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="GZIEb12-RwzWinivUYwr-62" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;Cloud sync through MOWS Cloud APIs with web apps and included sync clients&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="740" y="695" width="590" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-2" value="Storage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="540" y="780" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-3" value="Cloud Sync App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="540" y="820" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-4" value="Device n" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="540" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-5" value="Native App (Codebase n)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="540" y="740" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-7" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;" vertex="1" parent="1">
+          <mxGeometry x="720" y="360" width="640" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-8" value="Device A (Desktop PC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="745" y="490" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-9" value="Device B (Smartphone)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1065" y="490" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-10" value="Device C (Server)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="905" y="490" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" edge="1" parent="1" source="Yg-4YhfZbHDhTGdia93g-12" target="Yg-4YhfZbHDhTGdia93g-15">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1065" y="470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-12" value="Cloud Server App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="905" y="450" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" edge="1" parent="1" source="Yg-4YhfZbHDhTGdia93g-14" target="Yg-4YhfZbHDhTGdia93g-12">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="865" y="470" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-14" value="Native App (Codebase 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="745" y="450" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-15" value="Native App (Codebase 2)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1065" y="450" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-18" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Cloud sync through MOWS Cloud APIs with native apps and included sync clients&lt;/span&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="740" y="375" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-19" value="Native App (Codebase n)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="450" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-20" value="Device n" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="490" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-21" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;" vertex="1" parent="1">
+          <mxGeometry x="720" y="40" width="640" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-23" value="Web App (Codebase 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="820" y="100" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-24" value="Electron/Tauri" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="820" y="180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-25" value="Ionic/Cordova" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" edge="1" parent="1" source="Yg-4YhfZbHDhTGdia93g-38" target="Yg-4YhfZbHDhTGdia93g-32">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="200" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-30" value="Device C (Server)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="980" y="220" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00FF80;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=classic;startFill=1;endArrow=classic;endFill=1;strokeWidth=3;" edge="1" parent="1" source="Yg-4YhfZbHDhTGdia93g-32" target="Yg-4YhfZbHDhTGdia93g-37">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1140" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-32" value="Cloud Server App" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="980" y="180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-33" value="Device A (Desktop PC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="820" y="220" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-34" value="Device B (Smartphone)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="220" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-35" value="Web App (Codebase 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="100" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-36" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;Cloud sync through webviews&amp;nbsp;&lt;/font&gt;&lt;span style=&quot;font-size: 16px; background-color: initial;&quot;&gt;and included sync clients&lt;/span&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=1;points=[];autosize=1;strokeColor=none;fillColor=none;movable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="740" y="55" width="420" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-37" value="Included Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="140" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Yg-4YhfZbHDhTGdia93g-38" value="Included Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="820" y="140" width="120" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -5,6 +5,7 @@ import Image from "../../../../components/Image";
 //@ts-ignore
 import Fortnite1984Image from "./assets/fortnite.png?w=500&format=webp&as=metadata";
 import { CSSProperties } from "react";
+import Figure from "../../../../components/Figure";
 
 interface StoryProps {
     readonly className?: string;
@@ -236,24 +237,27 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 propaganda or misinformation to an enemy population or to manipulate
                                 soldiers or leaders themselves.
                             </p>
-                            <figure className={"w-full md:w-1/3 md:-mt-40"}>
+                            <Figure
+                                className={"w-full md:w-1/3 md:-mt-40"}
+                                caption={
+                                    <>
+                                        The domains of warfare as intersecting layers <br />
+                                        <a
+                                            rel={"noopener noreferrer"}
+                                            href="https://www.youtube.com/watch?v=xnQIYdBkoV0"
+                                        >
+                                            More about information warfare [DE]
+                                        </a>
+                                    </>
+                                }
+                            >
+                                {" "}
                                 <img
                                     className={"w-full"}
                                     src="/assets/diagrams/domains_of_warfare.svg"
                                     alt="A diagram showing the domains of war"
                                 />
-                                <figcaption
-                                    className={"mt-2 text-sm w-full text-center text-primaryDim"}
-                                >
-                                    The domains of warfare as intersecting layers <br />
-                                    <a
-                                        rel={"noopener noreferrer"}
-                                        href="https://www.youtube.com/watch?v=xnQIYdBkoV0"
-                                    >
-                                        More about information warfare [DE]
-                                    </a>
-                                </figcaption>
-                            </figure>
+                            </Figure>
                         </div>
                     </div>
                 </div>
@@ -288,39 +292,58 @@ export default class Story extends Component<StoryProps, StoryState> {
 
                         <h3>For Developers</h3>
 
-                        <h4>Web Apps</h4>
-                        <p>
-                            When the first iPhone was released in 2007, there was no App Store and
-                            no way to install native applications. When asked about this, Steve Jobs
-                            said that people should just build web apps. It didn't take long for him
-                            to realize that the web of the time wasn't ready for this and that a
-                            central App Store would be extremely profitable for the company too.
-                            <br /> The webs frontend has come a long way since then and is now more
-                            than capable of building anything from simple websites to complex
-                            applications. <br />
-                            There is a reason why people keep using tools like Electron to build
-                            native applications, despite its many downsides. Whether one likes it or
-                            not, the web is the largest, most standardized and compatible frontend
-                            platform for applications we have. This said, I don't think that things
-                            like Electron are the answer to building apps. What? You are putting
-                            your web app in an extra browser just to use the local file system, too
-                            then have your files not backed up or synchronized again? Yes, this is
-                            kind of stupid, but there is a reason for it, the web is missing a very
-                            important piece of its puzzle.
-                        </p>
-                        <br />
-
-                        <h4>The missing piece</h4>
                         <div className={"flex flex-col md:flex-row md:items-center mt-4 md:gap-12"}>
                             <div className={"md:w-2/5"}>
+                                <h4>Web Apps</h4>
+
+                                <p>
+                                    When the first iPhone was released in 2007, there was no App
+                                    Store and no way to install native applications. When asked
+                                    about this, Steve Jobs said that people should just build web
+                                    apps. It didn't take long, for him to realize, that the web of
+                                    the time wasn't ready for this and that a central app store
+                                    would be extremely profitable for the company too.
+                                    <br /> The webs' frontend has come a long way since then and is
+                                    now more than capable of building anything from simple websites
+                                    to complex applications.
+                                    <br />
+                                    There is a reason why people keep using tools like Electron to
+                                    build native applications, despite its many downsides. Whether
+                                    you like it or not, the web is the largest, most standardized
+                                    and compatible frontend platform for applications we have. This
+                                    said, I don't think that things like Electron are the answer to
+                                    building apps. What? You are putting your web app in a separate
+                                    browser just to use the local file system, to then have your
+                                    files not backed up or synchronized? Yes, this is kind of
+                                    stupid, but there is a reason for it, the web is missing a very
+                                    important piece of the puzzle.
+                                </p>
+                            </div>
+                            <div className={"w-full md:w-3/5 mx-2"}>
+                                <Figure caption={<>App architecture and cloud sync concepts</>}>
+                                    <img
+                                        src="/assets/diagrams/cloud_sync.svg"
+                                        alt="A diagram showing apps and cloud sync"
+                                        width={1321}
+                                        height={921}
+                                    />
+                                </Figure>
+                            </div>
+                        </div>
+
+                        <br />
+
+                        <div className={"flex flex-col md:flex-row md:items-center mt-4 md:gap-12"}>
+                            <div className={"md:w-3/5"}>
+                                <h4>The missing piece</h4>
                                 <p>
                                     Let's take a step back and look at the web as an operating
-                                    system, made up from the frontend web application that is facing
+                                    system, made up of the frontend web application that is facing
                                     the user and the backend that interacts with the data and
-                                    hardware. The frontend is well standardized but the backend is
+                                    hardware. The frontend is well standardized, but the backend is
                                     everyone's own business. Now compare this to a "real" operating
                                     system that interfaces with the hardware. Imagine every
-                                    application frontend on linux would interface directly with the
+                                    application frontend on an OS would interface directly with the
                                     hard drive to store its data. Every application would need to
                                     reimplement a huge amount of software only to save some data to
                                     disk. Even worse, either, every application writes to one disk,
@@ -329,47 +352,60 @@ export default class Story extends Component<StoryProps, StoryState> {
                                     between applications. This is why we have a file system on every
                                     "real" operating system that manages the data for our
                                     applications. Going back to the web as an operating system, we
-                                    recognize the missing piece, a backend filesystem that handles
+                                    recognize the missing piece, a backend file system that handles
                                     this interaction for our applications.
                                     <br /> <br />
-                                    This is not a completely new idea after all, WebDAV brought with
-                                    it a standardized protocol for interacting with files. So why
-                                    isn't every application using WebDAV instead of building its own
-                                    file backend? The problem is that WebDAV is just a basic file
-                                    system. While thats great for background 1:1 file transfers it
-                                    isn't enough to create an even half useable web app because of,
-                                    among other things, network constraints. Not even local file
-                                    systems and computers are fast enough to "brute force" render
-                                    40MB RAW images in an instant to the screen. This is why
-                                    developers need to create image previews, convert videos, create
-                                    search indexes and much more. <br />
+                                    This is not a new idea after all, WebDAV brought with it a
+                                    standardized protocol for interacting with files. So why isn't
+                                    every application using WebDAV instead of building its own file
+                                    backend? The problem is that WebDAV is just a basic file system.
+                                    While that's great for background 1:1 file transfers, it isn't
+                                    enough to create an even half useable web app because of, among
+                                    other things, network constraints. Not even local file systems
+                                    and computers are fast enough to "brute force" render 40 MB RAW
+                                    images in an instant to the screen. This is why developers need
+                                    to create image previews, convert videos, create search indexes
+                                    and much more.
+                                    <br />
                                     <br />
                                     As there is no standard API for doing this, app developers need
                                     to create this logic themselves time and time again instead of
                                     creating their business logic. This does also lead to the same
                                     desync problems as for the original files. Creating different
                                     video versions for streaming is very computationally expensive
-                                    and time consuming. Creating them multiple times for each app
+                                    and time-consuming. Creating them multiple times for each app
                                     would be a huge waste of resources.
                                 </p>
                             </div>
-                            <div className={"w-full md:w-3/5 mx-2"}>
-                                <figure>
+                            <div className={"w-full md:w-2/5 mx-2"}>
+                                <Figure
+                                    caption={
+                                        <>
+                                            {" "}
+                                            Traditional web app stacks, creating everything from
+                                            scratch
+                                        </>
+                                    }
+                                >
                                     <img
-                                        src="/assets/diagrams/everything_from_scratch.svg"
-                                        alt="A diagram showing the traditional and the mows app stack"
-                                        width={941}
-                                        height={641}
-                                    />{" "}
-                                    <figcaption
-                                        className={
-                                            "mt-2 text-sm w-full text-center text-primaryDim"
-                                        }
-                                    >
-                                        Traditional web app stacks compared to an app built with
-                                        MOWS
-                                    </figcaption>
-                                </figure>
+                                        src="/assets/diagrams/everything_from_scratch_1.svg"
+                                        alt="A diagram showing the traditional web app stack"
+                                        width={742}
+                                        height={581}
+                                    />
+                                </Figure>
+
+                                <Figure
+                                    caption={<>MOWS app, building on top of the MOWS cloud APIs</>}
+                                >
+                                    {" "}
+                                    <img
+                                        src="/assets/diagrams/everything_from_scratch_2.svg"
+                                        alt="A diagram showing the mows app stack"
+                                        width={742}
+                                        height={572}
+                                    />
+                                </Figure>
                             </div>
                         </div>
 
@@ -478,24 +514,29 @@ export default class Story extends Component<StoryProps, StoryState> {
                                         Wolfgang ❤️
                                     </a>{" "}
                                     I got to work and found some affordable and even more capable
-                                    systems.
+                                    systems. The next step was to find a way to make this easy to
+                                    use for everyone, not just for people who know how to set up
+                                    Kubernetes. This is how MOWS was born.
                                 </p>
                             </Collapsible>
                         </div>
                         <div></div>
                     </div>
                 </div>
-                <div id="WhyStoryOpennessCompatibility" className={"intersect mt-24"}>
-                    <HashNavLink className={"WhyStoryOpennessCompatibility"}>
-                        <h2>Openness and Compatibility</h2>
+                <div id="WhyStoryOpenness" className={"intersect mt-24"}>
+                    <HashNavLink className={"WhyStoryOpenness"}>
+                        <h2>Openness</h2>
                     </HashNavLink>
                     <div className={"flex gap-12 flex-col md:flex-row"}>
                         <div className={"md:w-1/2"}>
                             <p>
-                                When building web apps yourself on the APIs of any proprietary cloud
-                                platform you will be left tightly locked into their ecosystem and
-                                paying them a premium for it. Even migrating or downloading your
-                                data has been made difficult to keep you locked in.
+                                When building web apps with the proprietary APIs of any cloud
+                                provider you will soon find yourself locked in to their ecosystem.
+                                Without the prospect of leaving, because your application is tightly
+                                coupled with their APIs, you will be forced to either pay their ever
+                                growing prices or completely recreate your application. Even
+                                migrating or downloading your data has been made difficult to keep
+                                you locked in.
                                 <br />
                                 <br />
                                 Software developed for any non free (as in freedom) operating system
@@ -522,6 +563,11 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 limited as the software would need to support or use them. Some of
                                 the APIs are easy to integrate with foreign software too as they are
                                 standardized, like using Zitadel with any OAuth 2.0 consumer.
+                            </p>
+                            <p className={"mt-4"}>
+                                MOWS will not be limited to one central app store. You can run any
+                                other application and still be sure that it won't be able to destroy
+                                or infect your system as apps run completely isolated by default.
                             </p>
                         </div>
                     </div>

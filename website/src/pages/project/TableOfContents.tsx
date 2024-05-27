@@ -2,7 +2,6 @@ import { Component } from "preact";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import Toggle from "../../components/Toggle";
 import { animationsEnabled } from "../../components/Nav";
-import { MdAnimation } from "react-icons/md";
 
 interface TableOfContentsItem {
     title: string;
@@ -12,14 +11,14 @@ interface TableOfContentsItem {
 
 const table: TableOfContentsItem[] = [
     {
-        title: "Overview",
-        href: "#Overview",
-        children: []
-    },
-    {
         title: "What?",
         href: "#What",
         children: [
+            {
+                title: "Overview",
+                href: "#Overview",
+                children: []
+            },
             {
                 title: "Possibilities",
                 href: "#WhatPossibilities",
@@ -66,8 +65,8 @@ const table: TableOfContentsItem[] = [
                         children: []
                     },
                     {
-                        title: "Openness & Compatibility",
-                        href: "#WhyStoryOpennessCompatibility",
+                        title: "Openness",
+                        href: "#WhyStoryOpenness",
                         children: []
                     }
                 ]
@@ -83,13 +82,19 @@ const table: TableOfContentsItem[] = [
                 href: "#HowFiveParts",
                 children: [
                     {
+                        title: "Manager",
+                        href: "#FivePartsManager",
+                        children: []
+                    },
+                    {
                         title: "Operator",
                         href: "#FivePartsOperator",
                         children: []
                     },
+
                     {
-                        title: "Manager",
-                        href: "#FivePartsManager",
+                        title: "Cloud APIs",
+                        href: "#FivePartsCloudAPIs",
                         children: []
                     },
                     {
@@ -97,11 +102,7 @@ const table: TableOfContentsItem[] = [
                         href: "#FivePartsHardware",
                         children: []
                     },
-                    {
-                        title: "Cloud APIs",
-                        href: "#FivePartsCloudAPIs",
-                        children: []
-                    },
+
                     {
                         title: "Apps",
                         href: "#FivePartsApps",
@@ -307,16 +308,6 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                     <aside
                         className={`fixed hidden 2xl:flex top-0 left-0 h-full w-72 flex-col justify-center pl-8 overflow-hidden text-sm whitespace-nowrap text-ellipsis`}
                     >
-                        <Toggle
-                            className="fixed top-0 left-0 m-8 z-10"
-                            checked={animationsEnabled.value}
-                            onClick={() => {
-                                animationsEnabled.value = !animationsEnabled.value;
-                            }}
-                            title="Toggle animations"
-                        >
-                            Animations
-                        </Toggle>
                         {table.map(item => this.TableOfContentsItem(item, 0))}
                     </aside>
                 )}
