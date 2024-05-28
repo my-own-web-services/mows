@@ -8,6 +8,7 @@ import CloudAPIs from "./CloudAPIs";
 import Toggle from "../../../../components/Toggle";
 import { animationsEnabled } from "../../../../components/Nav";
 import Figure from "../../../../components/Figure";
+import AnimationToggle from "../../../../components/animations/AnimationToggle";
 
 interface FivePartsProps {
     readonly id?: string;
@@ -90,11 +91,21 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                                     encrypted data cannot be recovered.
                                 </p>
                             </div>
-                            <AnyMachine
-                                ref={this.anyMachine}
-                                loop={true}
+                            <Figure
                                 className={"w-[100%] md:w-[50%] h-[300px]"}
-                            />
+                                caption={
+                                    <>
+                                        Use any machine: Local, VM or Rented. Switch anytime.
+                                        <AnimationToggle />
+                                    </>
+                                }
+                            >
+                                <AnyMachine
+                                    className="w-full h-full"
+                                    ref={this.anyMachine}
+                                    loop={true}
+                                />
+                            </Figure>
                         </div>
                         <div className={"mt-10"}>
                             <HashNavLink className={"FivePartsManagerDecryption"}>
@@ -221,6 +232,8 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                             </div>
                             <div className={"w-full md:w-[50%]"}>
                                 <img
+                                    width={100}
+                                    height={99.999992}
                                     className={"w-full"}
                                     src="/assets/diagrams/apis_core.svg"
                                     alt="Diagram showing the core APIs of MOWS"
@@ -281,16 +294,7 @@ export default class FiveParts extends Component<FivePartsProps, FivePartsState>
                                 caption={
                                     <>
                                         A failing node and the recovery process of the cluster.
-                                        <Toggle
-                                            className="text-primaryDim"
-                                            checked={animationsEnabled.value}
-                                            onClick={() => {
-                                                animationsEnabled.value = !animationsEnabled.value;
-                                            }}
-                                            title="Toggle animations"
-                                        >
-                                            Animations
-                                        </Toggle>
+                                        <AnimationToggle />
                                     </>
                                 }
                             >

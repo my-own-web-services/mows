@@ -1,5 +1,4 @@
 import { Component } from "preact";
-import Face from "../../../assets/face.jpg";
 interface HeroProps {}
 interface HeroState {}
 export default class Hero extends Component<HeroProps, HeroState> {
@@ -21,7 +20,13 @@ export default class Hero extends Component<HeroProps, HeroState> {
                         </p>
                     </div>
                     <div className={"Face"}>
-                        <img height={1100} width={967} draggable={false} src={Face} alt="" />
+                        <img
+                            height={1100}
+                            width={967}
+                            draggable={false}
+                            src={"/assets/hero/face.jpg"}
+                            alt=""
+                        />
                     </div>
                 </div>
             </section>

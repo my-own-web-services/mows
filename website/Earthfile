@@ -9,7 +9,7 @@ build:
     WORKDIR /app
     COPY package.json pnpm-lock.yaml ./
     RUN pnpm install
-    COPY . . --exclude=node_modules --exclude=dist --exclude=.git --exclude=server --exclude=Earthfile --exclude=shell.nix
+    COPY . .
     RUN pnpm build
     SAVE ARTIFACT /app/dist/ /dist
 
@@ -20,7 +20,7 @@ docker:
     EXPOSE 80
     SAVE IMAGE mows-website:latest
 
-build-local:
+local:
     FROM node:21-alpine
     COPY +build/dist /dist
-    SAVE ARTIFACT / AS LOCAL dist
+    SAVE ARTIFACT /dist AS LOCAL dist

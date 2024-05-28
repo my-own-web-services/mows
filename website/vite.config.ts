@@ -21,12 +21,12 @@ export default defineConfig({
                 theme_color: "#00040c",
                 icons: [
                     {
-                        src: "website/public/assets/logos/mows_logo.svg",
+                        src: "/assets/logos/mows_logo.svg",
                         sizes: "192x192",
                         type: "image/svg"
                     },
                     {
-                        src: "website/public/assets/logos/mows_logo.svg",
+                        src: "/assets/logos/mows_logo.svg",
                         sizes: "512x512",
                         type: "image/svg"
                     }

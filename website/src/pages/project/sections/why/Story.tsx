@@ -128,16 +128,15 @@ export default class Story extends Component<StoryProps, StoryState> {
                         important, you can skip this part.
                     </p>
                     <div className={"mt-8"}>
-                        <h3>I have nothing to hide 😌</h3>
+                        <h3>I have nothing to hide</h3>
                         <p>
                             That was what I thought before I got into the tech sector and saw what
                             is possible with the data being collected. When I started to learn more
-                            about privacy and found out that I myself belonged to a minority (🏳️‍🌈🦄),
-                            I realized that Privacy isn't about hiding; it's about protecting our
-                            rights, dignity, and lives from misuse of our personal information. In a
-                            world where data is constantly collected, privacy safeguards our freedom
-                            and security. This does not mean that you have to hide everything, but
-                            that you should have a real choice to do so.
+                            about privacy, I realized that it isn't about hiding; it's about
+                            protecting our rights, dignity, and lives from misuse of our personal
+                            information. In a world where data is constantly collected, privacy
+                            safeguards our freedom and security. This does not mean that you have to
+                            hide everything, but that you should have a real choice to do so.
                         </p>
                         <p className={"mt-4"}>
                             Even when you have the privilege to trust your current government, you
@@ -253,6 +252,8 @@ export default class Story extends Component<StoryProps, StoryState> {
                             >
                                 {" "}
                                 <img
+                                    width={110}
+                                    height={80.229347}
                                     className={"w-full"}
                                     src="/assets/diagrams/domains_of_warfare.svg"
                                     alt="A diagram showing the domains of war"
@@ -266,161 +267,189 @@ export default class Story extends Component<StoryProps, StoryState> {
                     <HashNavLink className={"WhyStorySimplicity"}>
                         <h2>Simplicity</h2>
                     </HashNavLink>
-                    <div className={""}>
-                        <h3>For users</h3>
-                        <p className={"pb-4"}>
-                            Managing data securely and reliably on one device is difficult enough as
-                            drive failures, ransomware and no or bad backup practice can lead to its
-                            loss at any time. Managing data across all your, and possibly the
-                            devices of employees or friends and family gets exponentially more
-                            difficult.{" "}
-                        </p>
-                        <p className={"pb-4"}>
-                            Installing, configuring and using often incompatible software across
-                            multiple devices with different operating systems is another great mess
-                            you will encounter when trying to get off the cloud.
-                        </p>
-                        <p className={"pb-4"}>
-                            Self hosting your web apps is a great option but requires a big chunk of
-                            knowledge to set up even with the use of tools like docker and
-                            docker-compose.
-                        </p>
-                        <p className={"pb-4"}>
-                            For a more reliable system you would need to get started with Kubernetes
-                            on bare metal yourself, also known as difficulty level: “Nightmare!”
-                        </p>
+                    <div className={"flex flex-col md:flex-row md:items-start mt-4 md:gap-12"}>
+                        <div className={"w-full md:w-1/2"}>
+                            <HashNavLink className={"WhyStorySimplicityForUsers"}>
+                                <h3>For users</h3>
+                            </HashNavLink>
 
-                        <h3>For Developers</h3>
-
-                        <div className={"flex flex-col md:flex-row md:items-center mt-4 md:gap-12"}>
-                            <div className={"md:w-2/5"}>
-                                <h4>Web Apps</h4>
-
-                                <p>
-                                    When the first iPhone was released in 2007, there was no App
-                                    Store and no way to install native applications. When asked
-                                    about this, Steve Jobs said that people should just build web
-                                    apps. It didn't take long, for him to realize, that the web of
-                                    the time wasn't ready for this and that a central app store
-                                    would be extremely profitable for the company too.
-                                    <br /> The webs' frontend has come a long way since then and is
-                                    now more than capable of building anything from simple websites
-                                    to complex applications.
-                                    <br />
-                                    There is a reason why people keep using tools like Electron to
-                                    build native applications, despite its many downsides. Whether
-                                    you like it or not, the web is the largest, most standardized
-                                    and compatible frontend platform for applications we have. This
-                                    said, I don't think that things like Electron are the answer to
-                                    building apps. What? You are putting your web app in a separate
-                                    browser just to use the local file system, to then have your
-                                    files not backed up or synchronized? Yes, this is kind of
-                                    stupid, but there is a reason for it, the web is missing a very
-                                    important piece of the puzzle.
-                                </p>
-                            </div>
-                            <div className={"w-full md:w-3/5 mx-2"}>
-                                <Figure caption={<>App architecture and cloud sync concepts</>}>
-                                    <img
-                                        src="/assets/diagrams/cloud_sync.svg"
-                                        alt="A diagram showing apps and cloud sync"
-                                        width={1321}
-                                        height={921}
-                                    />
-                                </Figure>
-                            </div>
+                            <p className={"pb-4"}>
+                                Managing data securely and reliably on one device is difficult
+                                enough as drive failures, ransomware and no or bad backup practice
+                                can lead to its loss at any time. Managing data across all your, and
+                                possibly the devices of employees or friends and family gets
+                                exponentially more difficult.{" "}
+                            </p>
+                            <p className={"pb-4"}>
+                                Installing, configuring and using often incompatible software across
+                                multiple devices with different operating systems is another great
+                                mess you will encounter when trying to get off the cloud.
+                            </p>
+                            <p className={"pb-4"}>
+                                Self hosting your web apps is a great option but requires a big
+                                chunk of knowledge to set up even with the use of tools like docker
+                                and docker-compose.
+                            </p>
+                            <p className={"pb-4"}>
+                                For a more reliable system you would need to get started with
+                                Kubernetes on bare metal yourself, also known as difficulty level:
+                                “Nightmare!”
+                            </p>
                         </div>
-
-                        <br />
-
-                        <div className={"flex flex-col md:flex-row md:items-center mt-4 md:gap-12"}>
-                            <div className={"md:w-3/5"}>
-                                <h4>The missing piece</h4>
-                                <p>
-                                    Let's take a step back and look at the web as an operating
-                                    system, made up of the frontend web application that is facing
-                                    the user and the backend that interacts with the data and
-                                    hardware. The frontend is well standardized, but the backend is
-                                    everyone's own business. Now compare this to a "real" operating
-                                    system that interfaces with the hardware. Imagine every
-                                    application frontend on an OS would interface directly with the
-                                    hard drive to store its data. Every application would need to
-                                    reimplement a huge amount of software only to save some data to
-                                    disk. Even worse, either, every application writes to one disk,
-                                    interfering with each other or each application writes to a
-                                    separate disk keeping the data intact but not interoperable
-                                    between applications. This is why we have a file system on every
-                                    "real" operating system that manages the data for our
-                                    applications. Going back to the web as an operating system, we
-                                    recognize the missing piece, a backend file system that handles
-                                    this interaction for our applications.
-                                    <br /> <br />
-                                    This is not a new idea after all, WebDAV brought with it a
-                                    standardized protocol for interacting with files. So why isn't
-                                    every application using WebDAV instead of building its own file
-                                    backend? The problem is that WebDAV is just a basic file system.
-                                    While that's great for background 1:1 file transfers, it isn't
-                                    enough to create an even half useable web app because of, among
-                                    other things, network constraints. Not even local file systems
-                                    and computers are fast enough to "brute force" render 40 MB RAW
-                                    images in an instant to the screen. This is why developers need
-                                    to create image previews, convert videos, create search indexes
-                                    and much more.
-                                    <br />
-                                    <br />
-                                    As there is no standard API for doing this, app developers need
-                                    to create this logic themselves time and time again instead of
-                                    creating their business logic. This does also lead to the same
-                                    desync problems as for the original files. Creating different
-                                    video versions for streaming is very computationally expensive
-                                    and time-consuming. Creating them multiple times for each app
-                                    would be a huge waste of resources.
-                                </p>
-                            </div>
-                            <div className={"w-full md:w-2/5 mx-2"}>
-                                <Figure
-                                    caption={
-                                        <>
-                                            {" "}
-                                            Traditional web app stacks, creating everything from
-                                            scratch
-                                        </>
-                                    }
-                                >
-                                    <img
-                                        src="/assets/diagrams/everything_from_scratch_1.svg"
-                                        alt="A diagram showing the traditional web app stack"
-                                        width={742}
-                                        height={581}
-                                    />
-                                </Figure>
-
-                                <Figure
-                                    caption={<>MOWS app, building on top of the MOWS cloud APIs</>}
-                                >
-                                    {" "}
-                                    <img
-                                        src="/assets/diagrams/everything_from_scratch_2.svg"
-                                        alt="A diagram showing the mows app stack"
-                                        width={742}
-                                        height={572}
-                                    />
-                                </Figure>
-                            </div>
+                        <div className={"w-full md:w-1/2"}>
+                            <Figure
+                                caption={
+                                    <>
+                                        Poor Moby is totally confused by the complexity of the
+                                        Kubernetes setup
+                                    </>
+                                }
+                            >
+                                <img
+                                    src="/assets/story/moby_confused.webp"
+                                    alt="A diagram showing the traditional cloud setup"
+                                    width={1024}
+                                    height={1024}
+                                />
+                            </Figure>
                         </div>
-
-                        <br />
-                        <h4>Cloud APIs</h4>
-                        <p>
-                            The example above only highlights the missing file API. There are many
-                            other areas where developers are wasting their time reimplementing the
-                            same stuff over and over again. MOWS attempts to solve this problem by
-                            providing APIs over the network as well as frontend components that
-                            automatically use the network provided APIs. The second really important
-                            API that MOWS will provide is authentication. More details can be found
-                            in the <a href="/#FivePartsCloudAPIs"> Cloud APIs </a>section.
-                        </p>
                     </div>
+
+                    <HashNavLink className={"WhyStorySimplicityForDevelopers"}>
+                        <h3>For Developers</h3>
+                    </HashNavLink>
+
+                    <div className={"flex flex-col md:flex-row md:items-center mt-4 md:gap-12"}>
+                        <div className={"md:w-2/5"}>
+                            <HashNavLink className={"WhyStorySimplicityForDevelopersWebApps"}>
+                                <h4>Web Apps</h4>
+                            </HashNavLink>
+
+                            <p>
+                                When the first iPhone was released in 2007, there was no App Store
+                                and no way to install native applications. When asked about this,
+                                Steve Jobs said that people should just build web apps. It didn't
+                                take long, for him to realize, that the web of the time wasn't ready
+                                for this and that a central app store would be extremely profitable
+                                for the company too.
+                                <br /> The webs' frontend has come a long way since then and is now
+                                more than capable of building anything from simple websites to
+                                complex applications.
+                                <br />
+                                There is a reason why people keep using tools like Electron to build
+                                native applications, despite its many downsides. Whether you like it
+                                or not, the web is the largest, most standardized and compatible
+                                frontend platform for applications we have. This said, I don't think
+                                that things like Electron are the answer to building apps. What? You
+                                are putting your web app in a separate browser just to use the local
+                                file system, to then have your files not backed up or synchronized?
+                                Yes, this is kind of stupid, but there is a reason for it, the web
+                                is missing a very important piece of the puzzle.
+                            </p>
+                        </div>
+                        <div className={"w-full md:w-3/5 mx-2"}>
+                            <Figure caption={<>App architecture and cloud sync concepts</>}>
+                                <img
+                                    src="/assets/diagrams/cloud_sync.svg"
+                                    alt="A diagram showing apps and cloud sync"
+                                    width={1321}
+                                    height={921}
+                                />
+                            </Figure>
+                        </div>
+                    </div>
+
+                    <br />
+
+                    <div className={"flex flex-col md:flex-row md:items-center mt-4 md:gap-12"}>
+                        <div className={"md:w-3/5"}>
+                            <HashNavLink
+                                className={"WhyStorySimplicityForDevelopersTheMissingPiece"}
+                            >
+                                <h4>The missing piece</h4>
+                            </HashNavLink>
+                            <p>
+                                Let's take a step back and look at the web as an operating system,
+                                made up of the frontend web application that is facing the user and
+                                the backend that interacts with the data and hardware. The frontend
+                                is well standardized, but the backend is everyone's own business.
+                                Now compare this to a "real" operating system that interfaces with
+                                the hardware. Imagine every application frontend on an OS would
+                                interface directly with the hard drive to store its data. Every
+                                application would need to reimplement a huge amount of software only
+                                to save some data to disk. Even worse, either, every application
+                                writes to one disk, interfering with each other or each application
+                                writes to a separate disk keeping the data intact but not
+                                interoperable between applications. This is why we have a file
+                                system on every "real" operating system that manages the data for
+                                our applications. Going back to the web as an operating system, we
+                                recognize the missing piece, a backend file system that handles this
+                                interaction for our applications.
+                                <br /> <br />
+                                This is not a new idea after all, WebDAV brought with it a
+                                standardized protocol for interacting with files. So why isn't every
+                                application using WebDAV instead of building its own file backend?
+                                The problem is that WebDAV is just a basic file system. While that's
+                                great for background 1:1 file transfers, it isn't enough to create
+                                an even half useable web app because of, among other things, network
+                                constraints. Not even local file systems and computers are fast
+                                enough to "brute force" render 40 MB RAW images in an instant to the
+                                screen. This is why developers need to create image previews,
+                                convert videos, create search indexes and much more.
+                                <br />
+                                <br />
+                                As there is no standard API for doing this, app developers need to
+                                create this logic themselves time and time again instead of creating
+                                their business logic. This does also lead to the same desync
+                                problems as for the original files. Creating different video
+                                versions for streaming is very computationally expensive and
+                                time-consuming. Creating them multiple times for each app is a huge
+                                waste of resources.
+                            </p>
+                        </div>
+                        <div className={"w-full md:w-2/5 mx-2"}>
+                            <Figure
+                                caption={
+                                    <>
+                                        {" "}
+                                        Traditional web app stacks, creating everything from scratch
+                                    </>
+                                }
+                            >
+                                <img
+                                    src="/assets/diagrams/everything_from_scratch_1.svg"
+                                    alt="A diagram showing the traditional web app stack"
+                                    width={742}
+                                    height={581}
+                                />
+                            </Figure>
+
+                            <Figure caption={<>MOWS app, building on top of the MOWS cloud APIs</>}>
+                                {" "}
+                                <img
+                                    src="/assets/diagrams/everything_from_scratch_2.svg"
+                                    alt="A diagram showing the mows app stack"
+                                    width={742}
+                                    height={572}
+                                />
+                            </Figure>
+                        </div>
+                    </div>
+
+                    <br />
+                    <HashNavLink className={"WhyStorySimplicityForDevelopersCloudAPIs"}>
+                        <h4>Cloud APIs</h4>
+                    </HashNavLink>
+
+                    <p>
+                        The example above only highlights the missing file API. There are many other
+                        areas where developers are wasting their time reimplementing the same stuff
+                        over and over again. MOWS solves this problem by providing APIs over the
+                        network as well as frontend components that automatically use the network
+                        provided APIs. The second really important API that MOWS will provide is
+                        authentication. More details can be found in the{" "}
+                        <a href="/#FivePartsCloudAPIs"> Cloud APIs </a>section.
+                    </p>
                 </div>
 
                 <div id="WhyStoryReliability" className={"intersect mt-24"}>
@@ -429,7 +458,10 @@ export default class Story extends Component<StoryProps, StoryState> {
                     </HashNavLink>
                     <div className={"flex gap-12 flex-col md:flex-row"}>
                         <div className={"md:w-1/2"}>
-                            <h3>Leaving the Lab</h3>
+                            <HashNavLink className={"WhyStoryReliabilityUpgradingTheLab"}>
+                                <h3>Upgrading the Lab</h3>
+                            </HashNavLink>
+
                             <p>
                                 Providers of cloud applications have high standards of reliability
                                 that can’t be matched by a simple one machine setup at home. This is
@@ -464,61 +496,6 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 distributed MOWS system. If you change your mind it will be easy to
                                 switch to another provider or to your own hardware.
                             </p>
-
-                            <Collapsible title={<h3>A more personal note (Expand)</h3>}>
-                                <p>
-                                    The mentioned vacation wasn't just an invented example; it was
-                                    the main reason I had to bring this idea to life. On New Year's
-                                    Eve, I was on vacation in Prague with friends to celebrate the
-                                    New Year. On New Year's Day, just after waking up, the board of
-                                    my organization, Queer Augsburg, informed me that our website
-                                    was down. I couldn't fix it until I returned from vacation the
-                                    next day. I had looked forward to working on my cloud in the new
-                                    year, but instead, I had to fix the server, whose boot SSD had
-                                    failed. To add insult to injury, the broken SSD had 1000GB, and
-                                    the new one only had 977GB, so I not only had to recover and
-                                    copy the data but also shrink the encrypted partition somehow.
-                                    Due to the long copying time, the self-hosting operation only
-                                    went back online after 4 days of downtime just at the beginning
-                                    of the year. In hindsight, with better preparation, the backup
-                                    and copying procedures could have gone faster, but putting this
-                                    aside what happens if I'm on vacation for two weeks? Emails will
-                                    retry sending for five days if the receiving server is offline,
-                                    but after two weeks, they're gone. The next weeks I tried to
-                                    find a solution that would really fix this problem and involve
-                                    minimal effort to setup and maintain for the user. I thought of
-                                    RAID 1 boot drives, but what if the power supply fails? You can
-                                    always throw more money on the problem and buy a server with
-                                    redundant power supplies that then blows away your ears and
-                                    still have the RAM or any other component fail. However you put
-                                    it, any single machine cannot be redundant so I thought of the
-                                    many Jeff Geerling videos about the Raspberry Pi clusters he
-                                    built, mostly for fun and experimentation. As I heard most
-                                    people did see this as a stupid fun project with no real world
-                                    application, mostly because raspberry Pis are too weak and
-                                    autoscaling is obviously what Kubernetes and clusters were made
-                                    for right? Yeah Raspberry Pi's aren’t really an option as soon
-                                    as you want to encode some videos or run any virtual machines
-                                    and kubernetes is about scalability of course, but also about
-                                    redundancy. So why not use the incredibly large and mature
-                                    Kubernetes ecosystem instead of manually creating some failover
-                                    solution. The next question was, is this affordable for me and
-                                    everyday people. The answer is yes, sure Raspberry Pi's don't
-                                    cut it, real servers are loud and expensive and desktop PCs are
-                                    power hungry, but there is something in between that is perfect
-                                    for this application: NUC or NAS systems. Inspired by{" "}
-                                    <a
-                                        rel={"noopener noreferrer"}
-                                        href="https://www.youtube.com/watch?v=vjDoQA4C22c"
-                                    >
-                                        Wolfgang ❤️
-                                    </a>{" "}
-                                    I got to work and found some affordable and even more capable
-                                    systems. The next step was to find a way to make this easy to
-                                    use for everyone, not just for people who know how to set up
-                                    Kubernetes. This is how MOWS was born.
-                                </p>
-                            </Collapsible>
                         </div>
                         <div></div>
                     </div>
@@ -528,7 +505,7 @@ export default class Story extends Component<StoryProps, StoryState> {
                         <h2>Openness</h2>
                     </HashNavLink>
                     <div className={"flex gap-12 flex-col md:flex-row"}>
-                        <div className={"md:w-1/2"}>
+                        <div className={"w-full md:w-1/2"}>
                             <p>
                                 When building web apps with the proprietary APIs of any cloud
                                 provider you will soon find yourself locked in to their ecosystem.
@@ -569,6 +546,16 @@ export default class Story extends Component<StoryProps, StoryState> {
                                 other application and still be sure that it won't be able to destroy
                                 or infect your system as apps run completely isolated by default.
                             </p>
+                        </div>
+                        <div className={"w-full md:w-1/2"}>
+                            <Figure caption={<>Building on proprietary APIs be like...</>}>
+                                <img
+                                    src="/assets/story/api_prison.webp"
+                                    alt="A symbol image for the API lock in showing persons locked in with servers in a walled prison."
+                                    width={1024}
+                                    height={1024}
+                                />
+                            </Figure>
                         </div>
                     </div>
                 </div>

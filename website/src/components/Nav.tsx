@@ -12,7 +12,6 @@ import TableOfContents from "../pages/project/TableOfContents";
 import { VscGithub } from "react-icons/vsc";
 import { signal } from "@preact/signals";
 import Toggle from "./Toggle";
-import { MdAnimation } from "react-icons/md";
 import { JSX } from "preact";
 
 export interface NavItem {
@@ -151,12 +150,14 @@ export default class Nav extends Component<NavProps, NavState> {
                         <button
                             onClick={this.flipMenu}
                             className={`${this.state.isMenuOpen ? "hidden" : "block"} mx-5 `}
+                            title={"Open menu"}
                         >
                             <IoMenu size={35} />
                         </button>
                         <button
                             onClick={this.flipMenu}
                             className={`${this.state.isMenuOpen ? "block" : "hidden"} mx-5`}
+                            title={"Close menu"}
                         >
                             <IoClose size={35} />
                         </button>
@@ -172,6 +173,7 @@ export default class Nav extends Component<NavProps, NavState> {
                                 window.scrollTo({ top: 0, behavior: "smooth" });
                             }}
                             className={"mx-5"}
+                            title={"Scroll to top"}
                         >
                             <IoChevronUp size={35} />
                         </button>

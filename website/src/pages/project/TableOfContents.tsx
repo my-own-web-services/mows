@@ -176,8 +176,6 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
         const observer = new IntersectionObserver(entries => {
             // always select the entry that is largest in the viewport
 
-            console.log(entries);
-
             const largestEntry = entries.reduce((prev, current) =>
                 prev.intersectionRatio > current.intersectionRatio ? prev : current
             );
@@ -188,8 +186,6 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
         });
 
         document.querySelectorAll(".intersect").forEach(element => {
-            console.log(element);
-
             observer.observe(element);
         });
     };
@@ -276,10 +272,15 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                     className={`block  ${
                         this.state.reachedStart ? "opacity-50 cursor-not-allowed" : ""
                     }`}
+                    title={"Previous section"}
                 >
                     <IoChevronBack size={35} />
                 </button>
-                <button className={"flex items-center max-w-36"} onClick={this.props.onExpandFlip}>
+                <button
+                    className={"flex items-center max-w-36"}
+                    onClick={this.props.onExpandFlip}
+                    title={"Expand table of contents (TODO)"}
+                >
                     <span
                         className={
                             "w-full overflow-hidden whitespace-nowrap text-ellipsis font-bold "
@@ -290,6 +291,7 @@ export default class TableOfContents extends Component<TableOfContentsProps, Tab
                     </span>
                 </button>
                 <button
+                    title={"Next section"}
                     onClick={() => this.jumpToSection(true)}
                     className={`block
                 ${this.state.reachedEnd ? "opacity-50 cursor-not-allowed" : ""}

@@ -358,7 +358,7 @@ export default class ArchitectureProblems extends Component<
                         "architectureDisplay md:flex-row md:h-[850px] flex flex-col justify-between align-top mt-8"
                     }
                 >
-                    <div className={"imageBox"}>
+                    <div className={"imageBox md:max-w-[520px]"}>
                         <img
                             src={`/assets/architecture-problems/${
                                 concepts[this.state.selectedConcept]?.image
@@ -386,10 +386,10 @@ export default class ArchitectureProblems extends Component<
                                     ) === c;
 
                                 return (
-                                    <div className={""}>
+                                    <ul className={""}>
                                         {isFirst ? (
-                                            <div>
-                                                <div
+                                            <ul>
+                                                <li
                                                     className={
                                                         "h-3 w-3 float-left mt-[8px] mr-[10px] ml-[5px] rounded-full transform scale-150"
                                                     }
@@ -398,18 +398,18 @@ export default class ArchitectureProblems extends Component<
                                                             problemCategories[c.category].color ??
                                                             "var(--c-text)"
                                                     }}
-                                                ></div>
-                                                <div
+                                                ></li>
+                                                <li
                                                     className={
                                                         "font-bold text-xl mt-5 mb-1 text-primary"
                                                     }
                                                 >
                                                     {problemCategories[c.category].name}
-                                                </div>
-                                            </div>
+                                                </li>
+                                            </ul>
                                         ) : null}
                                         <li className={"mb-4"}>{c.description}</li>
-                                    </div>
+                                    </ul>
                                 );
                             })}
                     </ul>

@@ -4,11 +4,16 @@ import NavBar from "./components/Nav";
 import { BrowserRouter, Route } from "react-router-dom";
 import "./index.scss";
 import Project from "./pages/Project";
+import { calcProb } from "./utils/failureCalculator";
 
 interface AppProps {}
 interface AppState {}
 export default class App extends Component<AppProps, AppState> {
-    componentDidMount = async () => {};
+    componentDidMount = async () => {
+        // calculate controlPlaneFailure(1, 0.05) from one to 9 with array
+
+        calcProb();
+    };
 
     comingSoon = () => {
         return (

@@ -1,6 +1,7 @@
 import { Component } from "preact";
 import { CSSProperties } from "react";
 import HashNavLink from "../../../../components/HashNavLink";
+import { removeNonAlphaNumericCharacters } from "../../../../utils/utils";
 
 interface Capability {
     readonly title: string;
@@ -111,29 +112,36 @@ export default class Possibilities extends Component<PossibilitiesProps, Possibi
                     services like these.
                 </p>
                 <div className={"mt-16"}>
-                    {capabilities.map((capability, index) => (
-                        <div
-                            key={index}
-                            className={`flex flex-col ${
-                                index % 2 === 0 ? "lg:flex-row" : "lg:flex-row-reverse"
-                            } content-between justify-center gap-20 rounded-xl mb-32 `}
-                        >
-                            <div className={"flex justify-center flex-col w-5/5 lg:w-1/2"}>
-                                <h2 className={"glow"}>{capability.title}</h2>
-                                <p className={"largeText"}>{capability.description}</p>
+                    {capabilities.map((capability, index) => {
+                        const hashLink =
+                            "Possibilities" + removeNonAlphaNumericCharacters(capability.title);
+                        return (
+                            <div
+                                key={index}
+                                id={hashLink}
+                                className={`flex flex-col ${
+                                    index % 2 === 0 ? "lg:flex-row" : "lg:flex-row-reverse"
+                                } content-between justify-center gap-20 rounded-xl mb-32 `}
+                            >
+                                <div className={"flex justify-center flex-col w-5/5 lg:w-1/2"}>
+                                    <HashNavLink className={hashLink}>
+                                        <h2 className={"glow"}>{capability.title}</h2>
+                                    </HashNavLink>
+                                    <p className={"largeText"}>{capability.description}</p>
+                                </div>
+                                {capability.image && (
+                                    <img
+                                        width={1024}
+                                        height={1024}
+                                        loading={"lazy"}
+                                        src={`/assets/what/${capability.image}`}
+                                        alt={capability.title}
+                                        className={"-mt-10 lg:w-2/5 lg:mt-5 lg:-ml-10 rounded-2xl"}
+                                    />
+                                )}
                             </div>
-                            {capability.image && (
-                                <img
-                                    width={1024}
-                                    height={1024}
-                                    loading={"lazy"}
-                                    src={`/assets/what/${capability.image}`}
-                                    alt={capability.title}
-                                    className={"-mt-10 lg:w-2/5 lg:mt-5 lg:-ml-10 rounded-2xl"}
-                                />
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </section>
         );
