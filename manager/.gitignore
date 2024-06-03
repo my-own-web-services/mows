@@ -1,3 +1,4 @@
-/target
-/temp-pxe-files
-/kcrypt-challenger
+target
+temp-pxe-files
+kcrypt-challenger
+netboot
