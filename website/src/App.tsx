@@ -4,6 +4,7 @@ import NavBar from "./components/Nav";
 import { BrowserRouter, Route } from "react-router-dom";
 import "./index.scss";
 import Project from "./pages/Project";
+import FailureCalculator from "./components/FailureCalculator";
 
 interface AppProps {}
 interface AppState {}

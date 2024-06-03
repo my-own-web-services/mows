@@ -193,6 +193,7 @@ export default class Story extends Component<StoryProps, StoryState> {
                         <div className={"w-full md:w-1/3"}>
                             <img
                                 src="/assets/story/manipulation.webp"
+                                loading={"lazy"}
                                 width={1024}
                                 height={1024}
                                 alt="People looking at their smartphones with a giant red cyber eye above that is controlling them."
