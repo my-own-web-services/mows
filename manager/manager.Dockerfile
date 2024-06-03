@@ -18,14 +18,16 @@ RUN upx --best --lzma target/x86_64-unknown-linux-musl/debug/main
 
 
 # 1. RUNTIME STAGE
-FROM debian:bookworm-slim AS runtime
+FROM debian:trixie-slim AS runtime
 
 ARG DEBCONF_NOWARNINGS "yes"
 ARG DEBIAN_FRONTEND "noninteractive"
 ARG DEBCONF_NONINTERACTIVE_SEEN "true"
 
-RUN apt-get update -y
-RUN apt install --no-install-recommends libvirt-clients virtinst dnsmasq wget openssh-client net-tools sshpass iproute2 apt-transport-https gnupg curl ca-certificates -y
+RUN set -eu && \
+    apt-get update && \
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates && \
+    apt-get clean
 
 # install pixiecore
 RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add -
@@ -39,7 +41,6 @@ RUN apt-get install apt-transport-https --yes
 RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
 RUN apt-get update
 RUN apt-get install helm
-
 
 
 WORKDIR /app
