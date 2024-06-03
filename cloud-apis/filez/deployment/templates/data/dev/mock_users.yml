@@ -1,0 +1,7 @@
+- name: Alan Turing
+  email: alan_turing.test@vindelicum.eu
+  status: Invited
+- name: Ada Lovelace
+  email: ada_lovelace.test@vindelicum.eu
+  status: Invited
+

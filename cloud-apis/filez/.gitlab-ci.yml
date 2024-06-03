@@ -1,0 +1,110 @@
+image: docker:latest
+
+stages:
+    - publish-ts-client
+    - docker-build
+
+publish-ts-client:
+    stage: publish-ts-client
+    image: pektin/deno-nodejs-alpine
+    script:
+        - cd clients/ts/
+        - yarn
+        - yarn before-publish
+        - echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'>.npmrc
+        - npm publish --verbose --access public || true
+
+docker-build-server:
+    stage: docker-build
+    image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+    script:
+        - export CI_PUBLIC_REGISTRY=index.docker.io
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
+        - export IMAGE_NAME=firstdorsal/filez-server
+        - mkdir -p /kaniko/.docker
+        - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+        - >-
+            /kaniko/executor
+            --cache=true
+            --context="${CI_PROJECT_DIR}"
+            --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
+            --dockerfile="./server/Dockerfile"
+            --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
+
+docker-build-web:
+    stage: docker-build
+    image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+    script:
+        - export CI_PUBLIC_REGISTRY=index.docker.io
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
+        - export IMAGE_NAME=firstdorsal/filez-web
+        - mkdir -p /kaniko/.docker
+        - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+        - >-
+            /kaniko/executor
+            --cache=true
+            --context="${CI_PROJECT_DIR}"
+            --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
+            --dockerfile="./web/Dockerfile"
+            --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
+
+docker-build-addons-video:
+    stage: docker-build
+    image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+    script:
+        - export CI_PUBLIC_REGISTRY=index.docker.io
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
+        - export IMAGE_NAME=firstdorsal/filez-addons-video
+        - mkdir -p /kaniko/.docker
+        - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+        - >-
+            /kaniko/executor
+            --cache=true
+            --context="${CI_PROJECT_DIR}"
+            --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
+            --dockerfile="./addons/video/Dockerfile"
+            --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
+
+docker-build-addons-image:
+    stage: docker-build
+    image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+    script:
+        - export CI_PUBLIC_REGISTRY=index.docker.io
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
+        - export IMAGE_NAME=firstdorsal/filez-addons-image
+        - mkdir -p /kaniko/.docker
+        - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+        - >-
+            /kaniko/executor
+            --cache=true
+            --context="${CI_PROJECT_DIR}"
+            --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
+            --dockerfile="./addons/image/Dockerfile"
+            --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"
+
+docker-build-addons-metadata:
+    stage: docker-build
+    image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+    script:
+        - export CI_PUBLIC_REGISTRY=index.docker.io
+        - export CI_PRIVATE_REGISTRY=hub.vindelicum.eu
+        - export IMAGE_NAME=firstdorsal/filez-addons-metadata
+        - mkdir -p /kaniko/.docker
+        - echo "{\"auths\":{\"https://${CI_PUBLIC_REGISTRY}/v1/\":{\"auth\":\"$(printf "%s:%s" "firstdorsal" "${CI_PUBLIC_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"https://${CI_PRIVATE_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "docker" "${CI_PRIVATE_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+        - >-
+            /kaniko/executor
+            --cache=true
+            --context="${CI_PROJECT_DIR}"
+            --cache-repo=${CI_PRIVATE_REGISTRY}/${IMAGE_NAME}/cache
+            --dockerfile="./addons/metadata/Dockerfile"
+            --destination="${CI_PUBLIC_REGISTRY}/${IMAGE_NAME}"

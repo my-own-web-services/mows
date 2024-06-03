@@ -1,0 +1,35 @@
+version: "3.8"
+services:
+    db:
+        build: .
+        restart: always
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: root
+        ports:
+            - "27017:27017"
+        healthcheck:
+            test: |
+                test $$(mongosh --quiet -u root -p root --eval "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost' }] }).ok } catch (_) { rs.status().ok }") -eq 1
+            # change above to
+            # test $$(mongosh --quiet -u root -p root --eval "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'db' }] }).ok } catch (_) { rs.status().ok }") -eq 1
+            # when using inside docker network (or whatever the name of the db service is)
+            interval: 10s
+            start_period: 10s
+
+    #arangodb:
+    #    image: arangodb:3.10
+    #    container_name: arango
+    #    restart: always
+    #    environment:
+    #        - ARANGO_ROOT_PASSWORD=password # root:password at http://localhost:8529/
+    #    ports:
+    #        - 8529:8529
+    #    command: ""
+    #surreal:
+    #    image: surrealdb/surrealdb
+    #    container_name: surreal
+    #    restart: always
+    #    ports:
+    #        - 8000:8000
+    #    command: start --log trace --user root --pass root

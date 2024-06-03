@@ -1,0 +1,21 @@
+#SelectView {
+    height: 100%;
+    float: right;
+    button {
+        all: unset;
+        cursor: pointer;
+        height: 100%;
+        opacity: 25%;
+        > * {
+            height: 100%;
+            margin: 0px 5px;
+        }
+
+        &.selected {
+            opacity: 100%;
+        }
+        &.Single {
+            padding-left: 2px;
+        }
+    }
+}

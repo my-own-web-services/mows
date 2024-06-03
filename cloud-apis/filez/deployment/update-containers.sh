@@ -1,0 +1,1 @@
+docker compose -f results/docker-compose.yml pull

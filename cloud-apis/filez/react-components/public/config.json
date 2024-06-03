@@ -1,0 +1,7 @@
+{
+    "interosseaServerAddress": "http://accounts-server.localhost",
+    "interosseaWebAddress": "http://accounts.localhost",
+    "filezServerAddress": "http://filez-server.localhost",
+    "skipInterossea": false,
+    "applicationId": "filez-react-components"
+}

@@ -1,0 +1,67 @@
+{{- $config :=  yamlFile "../../config.yml" -}}
+{{- $interosseaWebHostname := joindomain $config.interossea.web.publicHostname.subdomain (ternary "localhost" $config.interossea.web.publicHostname.domain (eq $config.routing "local")) -}}
+{{- $interosseaServerHostname := joindomain $config.interossea.server.publicHostname.subdomain (ternary "localhost" $config.interossea.server.publicHostname.domain (eq $config.routing "local")) -}}
+{{- $filezWebHostname := joindomain $config.filez.web.publicHostname.subdomain (ternary "localhost" $config.filez.web.publicHostname.domain (eq $config.routing "local")) -}}
+variablePrefix: "$"
+
+allowNewUsers: {{ $config.interossea.server.allowNewUsers}}
+
+redirectsDir: /redirects/
+
+createUsers: 
+    {{- range $config.interossea.server.createUsers }}
+    - {{ . }}
+    {{- end }}
+
+magicLink:
+    cooldownMinutes: 1
+    expirationMinutes: 10
+    maxUseCount: 10
+
+keyFolder: /keys/
+
+security:
+    usePreSessionIds: false
+    useIpCheck: false
+
+services:
+    - id: filez
+      allowedOrigins: [{{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostname}}]
+    {{- range $config.additionalAllowedApps }}
+    - id: {{ .id }}
+      allowedOrigins:
+        {{- range .allowedOrigins }}
+        - {{ . }}
+        {{- end }}
+    {{- end }}
+
+mail:
+    username: {{ $config.interossea.server.mail.username}}
+    password: $INTEROSSEA_MAIL_PASSWORD
+    smtpServer: {{ $config.interossea.server.mail.smtpServer}}
+    fromName: {{ $config.interossea.server.mail.fromName}}
+    fromAddress: {{ $config.interossea.server.mail.fromAddress}}
+    userAgent: {{ $config.interossea.server.mail.userAgent}}
+    replyTo: {{ $config.interossea.server.mail.replyTo}}
+    templateConfig:
+        defaultLanguage: en
+        templateFolder: /email-templates/
+        languages: [en, de]
+
+
+http:
+    internalAddress: "[::]:80"
+    host: {{ $interosseaServerHostname }}
+    protocol: {{ ternary "https" "http" $config.tls }}
+
+db:
+    url: mongodb://root:$MONGODB_ROOT_PASSWORD@interossea-db.localhost:{{ $config.interossea.server.db.port }}
+
+uiOrigin: {{ ternary "https://" "http://" $config.tls true }}{{ $interosseaWebHostname}}
+
+
+dev:
+    makeEmailsAdmin:
+        {{- range $config.interossea.server.makeUsersAdmin }}
+        - {{ . }}
+        {{- end }}

@@ -1,0 +1,276 @@
+* {
+    --bg: #111;
+    --bg2: #222;
+    --fg: #fff;
+    --hover: #333;
+    --accent: #0099ff55;
+    --lastSelected: #0099ffaa;
+    --gutters: #333;
+
+    --contexify-menu-bgColor: rgba(40, 40, 40, 0.98);
+    --contexify-separator-color: #4c4c4c;
+    --contexify-item-color: #fff;
+    --contexify-activeItem-color: #fff;
+    --contexify-activeItem-bgColor: #3498db;
+    --contexify-rightSlot-color: #6f6e77;
+    --contexify-activeRightSlot-color: #fff;
+    --contexify-arrow-color: #6f6e77;
+    --contexify-activeArrow-color: #fff;
+}
+
+.rs-modal-footer {
+    text-align: left;
+}
+
+.creatableButtons {
+    margin-top: 10px;
+    margin-bottom: -15px;
+}
+
+.vjs-text-track-display {
+    display: none !important;
+}
+
+.rs-tooltip {
+    z-index: 0 !important;
+}
+
+.OuterResourceList:focus {
+    outline: none;
+}
+
+.cantDrop {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+}
+
+#openseadragon:focus-visible {
+    outline: none !important;
+}
+
+.DragPreviewImage:active {
+    border: 10px solid red;
+}
+
+.dragOverActive {
+    position: relative;
+    &::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0px;
+        left: 0px;
+        right: -2px;
+        bottom: -2px;
+        border: 2px solid var(--accent);
+        border-radius: 4px;
+    }
+}
+
+.fadeIn {
+    animation: fadeInAnimation ease 0.5s;
+    animation-iteration-count: 1;
+    animation-fill-mode: forwards;
+}
+
+@keyframes fadeInAnimation {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.CheckIconButton {
+    &:hover {
+        color: var(--rs-color-green);
+    }
+    > svg {
+        transform: translate(1px, -1px);
+    }
+}
+
+.disabled {
+    background-color: var(--rs-input-disabled-bg);
+    color: var(--rs-text-disabled);
+}
+
+.rs-uploader-file-items {
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.rs-progress-info {
+    width: 70px;
+}
+
+button.Filez {
+    all: unset;
+    cursor: pointer;
+}
+
+.selectable {
+    user-select: text;
+}
+
+.Filez {
+    //background: var(--bg);
+    color: var(--fg);
+    user-select: none;
+
+    .clickable {
+        cursor: pointer;
+        &:hover {
+            background: var(--hover);
+        }
+    }
+    .active {
+        background: var(--accent);
+    }
+
+    .Row {
+        &:hover {
+            background: var(--hover);
+        }
+        &.selected {
+            background-color: var(--accent) !important;
+        }
+        &.lastSelected {
+            background-color: var(--lastSelected) !important;
+        }
+    }
+
+    nav.react-contextmenu {
+        z-index: 9999;
+        background: var(--bg2);
+        color: var(--fg);
+        border: 1px solid var(--hover);
+        border-radius: 5px;
+        padding: 5px 0px;
+        font-size: 12px;
+
+        .react-contextmenu-item {
+            padding: 5px 10px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+    }
+    .react-contextmenu-wrapper {
+        width: 100%;
+        height: 100%;
+    }
+
+    &.ResourceList {
+        width: 100%;
+        height: 100%;
+        .ListTopBar {
+            padding-top: 5px;
+            .Buttons {
+                float: left;
+                margin-left: 5px;
+                margin-top: 1px;
+            }
+        }
+    }
+
+    &.FileViewer {
+        overflow: hidden;
+        .Image {
+            width: 100%;
+            height: 100%;
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+        }
+        .Video {
+            width: 100%;
+            height: 100%;
+            video {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+        }
+        .Text {
+            overflow-x: hidden;
+            overflow-y: scroll;
+            width: 100%;
+            height: 100%;
+            pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                margin: 0px;
+                padding: 10px;
+            }
+        }
+    }
+
+    &.FileMetaEditor {
+        overflow-y: auto;
+        .panel {
+            .header {
+                svg {
+                    margin-right: 10px;
+                    transform: translate(0px, 3px);
+                }
+                h5 {
+                    display: inline;
+                }
+            }
+        }
+        .basicsBox {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .created,
+        .modified,
+        .size {
+            display: inline-block;
+            margin-right: 30px;
+            margin-top: 5px;
+        }
+    }
+}
+
+.gutter {
+    background-color: #eee;
+    background-repeat: no-repeat;
+    background-position: 50%;
+}
+
+.gutter.gutter-horizontal {
+    position: relative;
+    &::after {
+        content: "";
+        position: absolute;
+        top: 0px;
+        left: 5px;
+        width: 1px;
+        margin-left: 5px;
+        height: 100%;
+        background: var(--gutters);
+        background-repeat: no-repeat;
+        background-position: 50%;
+        &:hover {
+            background: red;
+        }
+    }
+    background-color: transparent;
+
+    cursor: col-resize;
+}
+
+.SortingBar .Gutter:hover {
+    background-color: var(--hover);
+}
+
+.SortingBar {
+    border-bottom: 1px solid var(--bg2);
+}

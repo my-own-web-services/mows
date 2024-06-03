@@ -1,0 +1,6 @@
+**/target/
+**/node_modules/
+server/storage/
+**/dist/
+addons/metadata/dev/config.yml
+example-files/

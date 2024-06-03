@@ -1,0 +1,76 @@
+{{- $config :=  yamlFile "../../config.yml" -}}
+{{- $filezWebHostname := joindomain $config.filez.web.publicHostname.subdomain (ternary "localhost" $config.filez.web.publicHostname.domain (eq $config.routing "local")) -}}
+variablePrefix: "$"
+
+serviceId: filez
+
+storage:
+    defaultStorage: {{ $config.filez.defaultStorage }}
+    storages:
+        {{- range $key, $value := $config.filez.storage }}
+        {{ $key }}:
+            path: /storage/{{ $key }}/
+            appStorage:
+                {{- range $appKey, $appValue := $value.appStorage }}
+                {{ $appKey }}:
+                    path: /app_data/{{ $key }}/{{ $appKey }}/
+                {{- end }}
+            {{- if $value.readonly }}
+            readonly: 
+                ownerEmail: {{ $value.readonly.ownerEmail }}
+                rescanSeconds: {{ $value.readonly.rescanSeconds }}
+            {{- else }}
+            defaultUserLimits:
+                maxStorage: {{ $value.defaultUserLimits.maxStorage }}
+                maxFiles: {{ $value.defaultUserLimits.maxFiles }}
+                maxBandwidth: {{ $value.defaultUserLimits.maxBandwidth }}
+            {{- end }}
+        {{- end }}
+
+
+
+
+http:
+    internalAddress: "[::]:80"
+
+db:
+    url: mongodb://root:$MONGODB_ROOT_PASSWORD@filez-db.localhost:{{ $config.filez.server.db.port }}
+    parallelQueries: 100
+
+interossea:
+    url: http://$INTEROSSEA_INTERNAL_URL
+    assertionValiditySeconds: 600
+
+dev:
+    {{- range $key, $value := $config.filez.server.dev }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+    mockUserPath: /.dev/mock_users.yml
+    
+
+constraints:
+    maxFileSize: 10000000000 # 10 GB
+    otherMaxBodySize: 1000000 # 1 MB TODO need to be implemented with hyper body to bytes with limit
+
+services:
+    - id: filez
+      allowedOrigins: [{{ ternary "https://" "http://" $config.tls true }}{{ $filezWebHostname}}]
+    {{- range $config.additionalAllowedApps }}
+    - id: {{ .id }}
+      allowedOrigins:
+        {{- range .allowedOrigins }}
+        - {{ . }}
+        {{- end }}
+    {{- end }}
+    
+
+users:
+    makeAdmin: 
+        {{- range $config.filez.server.users.makeAdmin }}
+        - {{ . }}
+        {{- end }}
+    create:
+        {{- range $config.filez.server.users.create }}
+        - {{ . }}
+        {{- end }}
+    allowNew: {{ $config.filez.server.users.allowNew }}

@@ -1,0 +1,176 @@
+external:
+    omdb:
+        # will contact omdb
+        enabled: true
+        # will contact amazon
+        downloadPostersAmazon: true
+
+reverseProxy:
+    create: true
+    network: rp
+
+tls: false
+routing: local
+
+networks:
+    subnet:
+        # /120 prefix
+        v6: "fd4d:6169:6c63:6f99:aaaa:aaaa:aaaa:aa"
+        # /24 prefix
+        legacy: "172.72.11"
+
+additionalAllowedApps:
+    - id: filez-react-components
+      allowedOrigins: [http://localhost:5173]
+      primaryOrigin: http://localhost:5173
+    - id: filez-storybooks
+      allowedOrigins: [http://localhost:6006]
+      primaryOrigin: http://localhost:6006
+filez:
+    runAsRoot: true
+    defaultStorage: default
+    storage:
+        default:
+            # volume or bind mount
+            type: volume
+            path: ""
+            readonly: false
+            defaultUserLimits:
+                maxStorage: 10000000000 # 10GB
+                maxFiles: 2000000
+                maxBandwidth: 0
+            appStorage:
+                image:
+                    type: volume
+                    path: ""
+                video:
+                    type: volume
+                    path: ""
+        hdd:
+            type: volume
+            path: ""
+            readonly: false
+            defaultUserLimits:
+                maxStorage: 10000000000 # 10GB
+                maxFiles: 100000
+                maxBandwidth: 0
+            appStorage:
+                image:
+                    type: volume
+                    path: ""
+                video:
+                    type: volume
+                    path: ""
+        readonlyExample:
+            type: bind
+            path: "/home/paul/Documents/filez/example-files"
+            readonly:
+                ownerEmail: test@vindelicum.eu
+                rescanSeconds: 120
+            appStorage:
+                image:
+                    type: volume
+                    path: ""
+                video:
+                    type: volume
+                    path: ""
+
+    server:
+        build:
+            enabled: true
+            path: ../../
+            dockerfile: server/dev.Dockerfile
+        publicHostname:
+            domain: vindelicum.eu
+            subdomain: filez-server
+        db:
+            exposeToLocalhost: true
+            port: 27018
+        users:
+            makeAdmin: [test@vindelicum.eu]
+            create: [test@vindelicum.eu]
+            allowNew: false
+        dev:
+            insecureSkipInterossea: false
+            disableComplexAccessControl: false
+            createMockUsers: true
+            checkDatabaseConsistencyOnStartup: true
+            checkDatabaseConsistencyOnMutatingRequests: false
+            checkDatabaseConsistencyRemoveOrphanedFiles: false
+            createMockFileEntriesUntilReachedLimit: 10000
+            mockFilesOwnerEmail: test@vindelicum.eu
+    web:
+        build:
+            enabled: true
+            path: ../../web/
+            dockerfile: Dockerfile
+        publicHostname:
+            domain: vindelicum.eu
+            subdomain: filez
+
+    # TODO if the number of addons is greater than 10 the network assignment will fail
+    addons:
+        - name: video
+          db: true
+          storage: true
+          filezAccess: true
+          image: firstdorsal/filez-addons-video
+          resetOnRestart: false
+          build:
+              enabled: true
+              path: ../../
+              dockerfile: addons/video/Dockerfile
+        - name: image
+          db: true
+          storage: true
+          filezAccess: true
+          image: firstdorsal/filez-addons-image
+          resetOnRestart: false
+          build:
+              enabled: true
+              path: ../../
+              dockerfile: ./addons/image/Dockerfile
+        - name: metadata
+          db: true
+          storage: false
+          filezAccess: true
+          image: firstdorsal/filez-addons-metadata
+          resetOnRestart: false
+          build:
+              enabled: true
+              path: ../../
+              dockerfile: addons/metadata/Dockerfile
+
+interossea:
+    server:
+        allowNewUsers: true
+        createUsers: [test@vindelicum.eu, peter@vindelicum.eu]
+        makeUsersAdmin: [test@vindelicum.eu]
+        create: true
+        internalHostname: interossea-server
+        publicHostname:
+            domain: vindelicum.eu
+            subdomain: accounts-server
+        build:
+            enabled: true
+            path: /home/paul/Documents/interossea/server/
+            dockerfile: Dockerfile
+        mail:
+            username: no-reply@vindelicum.eu
+            smtpServer: mx.vindelicum.eu
+            fromName: Interossea Login
+            fromAddress: no-reply@vindelicum.eu
+            userAgent: Sugar-Free-Mail-2023
+            replyTo: mail@vindelicum.eu
+        db:
+            exposeToLocalhost: true
+            port: 27019
+    web:
+        create: true
+        publicHostname:
+            domain: vindelicum.eu
+            subdomain: accounts
+        build:
+            enabled: true
+            path: /home/paul/Documents/interossea/web/
+            dockerfile: Dockerfile

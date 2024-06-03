@@ -1,0 +1,63 @@
+variablePrefix: "$"
+
+serviceId: filez
+
+storage:
+    ssd:
+        path: ./storage/
+        defaultUserLimits:
+            maxStorage: 1000000000
+            maxFiles: 1000
+            maxBandwidth: 0
+
+defaultStorage: ssd
+
+appStorage:
+    path: /home/paul/Documents/filez/server/appdata/
+
+http:
+    internalAddress: "[::]:8080"
+
+db:
+    url: mongodb://root:root@localhost:27017
+    parallelQueries: 100
+
+interossea:
+    url: http://localhost:8081
+    assertionValiditySeconds: 600
+
+dev:
+    insecureSkipInterossea: false
+    createDevUser: true
+    disableComplexAccessControl: true
+    checkDatabaseConsistencyOnStartup: true
+    checkDatabaseConsistencyOnMutatingRequests: true
+    checkDatabaseConsistencyRemoveOrphanedFiles: true
+
+constraints:
+    maxFileSize: 10000000000 # 10 GB
+    otherMaxBodySize: 1000000 # 1 MB TODO need to be implemented with hyper body to bytes with limit
+
+uiOrigin: http://localhost:5173
+
+readonlyMounts:
+    testVideo:
+        path: /home/paul/Downloads/test_video/
+        rescanSeconds: 120
+        ownerId: dev
+    importImages:
+        path: /home/paul/Downloads/filez_test/
+        rescanSeconds: 120
+        ownerId: dev
+    someVideos:
+        path: "/mnt/archive/Video/RawDLYT/classic/"
+        rescanSeconds: 120
+        ownerId: dev
+    music:
+        path: /mnt/archive/Music/JACKBOYS - JACKBOYS/
+        rescanSeconds: 120
+        ownerId: dev
+    someImages:
+        path: /mnt/archive/Bilder/Photos/2018/2018-12-03/
+        rescanSeconds: 120
+        ownerId: dev
