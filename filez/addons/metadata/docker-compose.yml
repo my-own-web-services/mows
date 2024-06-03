@@ -1,8 +1,0 @@
-version: "3.9"
-services:
-    metadata:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        volumes:
-            - /home/paul/Documents/filez/server/storage:/storage/:ro
