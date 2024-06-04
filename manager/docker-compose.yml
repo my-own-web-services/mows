@@ -5,7 +5,7 @@ services:
         image: mows-manager
         container_name: mows-manager
         build:
-            context: .
+            context: "."
             dockerfile: manager.Dockerfile
         networks:
             mows-manager-bridge:
@@ -17,21 +17,24 @@ services:
         volumes:
             - ./temp-pxe-files:/pxe_files/
         environment:
-            - LIBVIRT_DEFAULT_URI=qemu+tcp://qemu:16509/system
+            - LIBVIRT_DEFAULT_URI=qemu+tcp://qemu/system # qemu+tcp://localhost/system
     qemu:
         image: qemu
         container_name: qemu
         build:
-            context: .
+            context: "."
             dockerfile: qemu.Dockerfile
         ports:
             - "127.0.0.1:16509:16509"
+            - "127.0.0.1:5900:5900" # spice node 1
+            - "127.0.0.1:5901:5901" # spice node 2
+            - "127.0.0.1:5902:5902" # spice node 3
         privileged: true
         networks:
             mows-manager-qemu:
     dnsmasq:
         build:
-            context: .
+            context: "."
             dockerfile: dnsmasq.Dockerfile
         container_name: dnsmasq
         cap_add:
@@ -44,7 +47,7 @@ networks:
     mows-manager-bridge:
         driver: bridge
     mows-manager-qemu:
-
+        driver: bridge
     mows-manager-direct-attach:
         driver: macvlan
         driver_opts:
