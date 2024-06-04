@@ -18,3 +18,7 @@ ZiE+ERUMPWZGmQTGyCu9CqPPe9Yghon0UWml8=
 -----END OPENSSH PRIVATE KEY-----" > ~/.ssh/id
 
 tokio-console
+
+# BUGS
+
+-   virt-manager can't connect to local spice server, https://github.com/virt-manager/virt-manager/issues/592 use remote-viewer/virt-viewer

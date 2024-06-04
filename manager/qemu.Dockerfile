@@ -25,7 +25,8 @@ RUN apk add --no-cache \
     qemu-hw-display-virtio-gpu-pci \
     qemu-hw-display-virtio-vga \
     qemu-hw-usb-redirect \
-    qemu-img
+    qemu-img \
+    virt-viewer
 
 
 COPY ./misc/supervisord.conf /etc/supervisord.conf
