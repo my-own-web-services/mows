@@ -40,7 +40,7 @@ impl Machine {
                         "--machine",
                         "q35",
                         "--network",
-                        "default,model=virtio",
+                        "network=default",
                         "--video",
                         "qxl",
                         "--graphics",

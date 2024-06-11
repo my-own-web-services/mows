@@ -8,8 +8,8 @@ services:
             context: "."
             dockerfile: manager.Dockerfile
         networks:
-            mows-manager-bridge:
-            mows-manager-qemu:
+            mows-manager:
+                ipv4_address: "192.168.112.3"
             mows-manager-direct-attach:
                 ipv4_address: "192.168.111.3"
         ports:
@@ -18,6 +18,7 @@ services:
             - ./temp-pxe-files:/pxe_files/
         environment:
             - LIBVIRT_DEFAULT_URI=qemu+tcp://qemu/system # qemu+tcp://localhost/system
+
     qemu:
         image: qemu
         container_name: qemu
@@ -31,27 +32,47 @@ services:
             - "127.0.0.1:5902:5902" # spice node 3
         privileged: true
         networks:
-            mows-manager-qemu:
-    dnsmasq:
+            mows-manager:
+                ipv4_address: "192.168.112.4"
+    #dhcp-qemu:
+    #    build:
+    #        context: "."
+    #        dockerfile: dnsmasq.Dockerfile
+    #    container_name: dhcp-qemu
+    #    cap_add:
+    #        - "NET_ADMIN"
+    #    entrypoint: dnsmasq -a 192.168.112.2 -p 0 --no-daemon --log-queries #--dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h &&
+    #    networks:
+    #        mows-manager:
+    #            ipv4_address: "192.168.112.2"
+
+    dhcp-direct-attach:
         build:
             context: "."
             dockerfile: dnsmasq.Dockerfile
-        container_name: dnsmasq
+        container_name: dhcp-direct-attach
         cap_add:
             - "NET_ADMIN"
-        entrypoint: dnsmasq -a 192.168.111.2 -p 0 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.111.4,192.168.111.30,12h
+        entrypoint: dnsmasq -a 192.168.111.2 -p 0 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.111.5,192.168.111.30,12h &&
         networks:
             mows-manager-direct-attach:
                 ipv4_address: "192.168.111.2"
+
 networks:
-    mows-manager-bridge:
+    mows-manager:
         driver: bridge
-    mows-manager-qemu:
-        driver: bridge
-    mows-manager-direct-attach:
-        driver: macvlan
+        ipam:
+            config:
+                - subnet: 192.168.112.0/24
+                  gateway: "192.168.112.1"
         driver_opts:
-            parent: enp3s0f0u2u4
+            com.docker.network.bridge.name: mows-manager
+
+    mows-manager-direct-attach:
+        driver: bridge
+        #driver: macvlan
+        #driver_opts:
+        #    parent: enp3s0f0u2u4
         ipam:
             config:
                 - subnet: 192.168.111.0/24

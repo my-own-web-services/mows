@@ -1,3 +1,4 @@
+use anyhow::Context;
 use axum::error_handling::HandleErrorLayer;
 use axum::http::header::CONTENT_TYPE;
 use axum::http::{ Method, StatusCode};
@@ -11,7 +12,6 @@ use manager::utils::{get_cluster_config, install_cluster_basics, update_machine_
 use tokio::process::Command;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
-use std::io::Error;
 use std::time::Duration;
 use tokio::signal;
 use tower_http::services::{ServeDir, ServeFile};
@@ -34,7 +34,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), anyhow::Error> {
 
 
     #[derive(OpenApi)]
@@ -151,14 +151,14 @@ async fn main() -> Result<(), Error> {
     let api_url = "http://localhost:3000";
 
     let origins = [
-        "http://localhost:5173".parse().unwrap(),
-        api_url.parse().unwrap(),
+        "http://localhost:5173".parse()?,
+        api_url.parse()?,
     ];
 
 
 
-    Command::new("pixiecore").args(["api",api_url,"-l","192.168.111.3"]).spawn()?;
-    Command::new("pixiecore").args(["api",api_url,"-l","192.168.122.2"]).spawn()?;
+    Command::new("pixiecore").args(["api",api_url,"-l","192.168.111.3"]).spawn().context("Failed to start pixiecore server for direct attach")?;
+    Command::new("pixiecore").args(["api",api_url,"-l","192.168.112.3"]).spawn().context("Failed to start pixiecore server for qemu")?;
 
 
 
@@ -191,13 +191,15 @@ async fn main() -> Result<(), Error> {
                 .into_inner(),
         );
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
 
     println!("Open http://localhost:3000 in your browser");
 
     axum::serve(listener, app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
-        .await
+        .await?;
+
+    Ok(())
 }
 
 async fn shutdown_signal() {
