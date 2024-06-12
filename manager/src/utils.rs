@@ -87,6 +87,8 @@ pub async fn get_cluster_config() -> anyhow::Result<()> {
                 "Cluster not found"
             );
             cluster.kubeconfig = Some(kubeconfig);
+
+            config_locked2.apply_environment()?;
         }
     }
 

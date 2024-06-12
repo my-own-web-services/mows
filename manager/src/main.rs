@@ -5,8 +5,11 @@ use axum::http::{ Method, StatusCode};
 use axum::routing::{delete, get, put};
 use axum::BoxError;
 use axum::{routing::post, Router};
-use manager::api;
-use manager::api::*;
+use manager::api::boot::*;
+use manager::api::cluster::*;
+use manager::api::config::*;
+use manager::api::machines::*;
+use manager::api::terminal::*;
 use manager::config::*;
 use manager::utils::{get_cluster_config, install_cluster_basics, update_machine_install_state, CONFIG};
 use tokio::process::Command;
@@ -21,7 +24,7 @@ use tower_http::cors::CorsLayer;
 use manager::machines::{MachineCreationConfig,ExternalHetznerConfig,LocalQemuConfig};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use manager::cluster::ClusterCreationConfig;
-
+use manager::types::Success;
 
 
 #[cfg(not(target_env = "msvc"))]
@@ -40,12 +43,13 @@ async fn main() -> Result<(), anyhow::Error> {
     #[derive(OpenApi)]
     #[openapi(
         paths(
-            api::update_config,
-            api::get_config,
-            api::create_machines,
-            api::delete_all_machines,
-            api::create_cluster,
-            api::get_boot_config_by_mac
+            update_config,
+            get_config,
+            create_machines,
+            delete_all_machines,
+            create_cluster,
+            get_boot_config_by_mac,
+            websocket_handler
 
         ),
         components(
@@ -120,7 +124,15 @@ async fn main() -> Result<(), anyhow::Error> {
             tokio::time::sleep(Duration::from_secs(5)).await;
 
             match get_cluster_config().await{
-                Ok(_) => {},
+                Ok(_) => {
+                    match CONFIG.read().await.apply_environment(){
+                        Ok(_) => {},
+                        Err(e) => {
+                            println!("Error applying environment: {:?}",e);
+                        }
+                    }
+
+                },
                 Err(e) => {
                     println!("Error getting cluster config: {:?}",e);
                 }
@@ -169,6 +181,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .route("/api/machines/create", post(create_machines))
         .route("/api/machines/deleteall", delete(delete_all_machines))
         .route("/api/cluster/create", post(create_cluster))
+        .route("/api/terminal/local", get(websocket_handler))
         .route("/v1/boot/:mac_addr", get(get_boot_config_by_mac))
         .nest_service("/", serve_dir)
         .layer(CorsLayer::new()

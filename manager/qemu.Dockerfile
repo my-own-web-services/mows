@@ -27,7 +27,8 @@ RUN apk add --no-cache \
     qemu-hw-usb-redirect \
     qemu-img \
     virt-viewer \
-    openvswitch
+    openvswitch \
+    virt-install
 
 
 COPY ./misc/supervisord.conf /etc/supervisord.conf

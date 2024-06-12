@@ -2,6 +2,5 @@
 
 set -euo pipefail
 
+docker compose down ; docker compose up --build
 
-docker build -t mows-manager .
-docker run --net=host --rm -v /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock -v ./temp-pxe-files:/pxe_files/ --name mows-manager mows-manager 

@@ -35,7 +35,7 @@ lazy_static = "1.3.0"
 
 rand = "0.8.5"
 
-axum = "0.7.4"
+axum = { version = "0.7.5", features = ["ws"] }
 tokio = { version = "1.17.0", default-features = false, features = [
     "rt-multi-thread",
     "macros",
@@ -44,6 +44,8 @@ tokio = { version = "1.17.0", default-features = false, features = [
     "tracing",
     "full",
 ] }
+tokio-tungstenite = "0.23.0"
+futures-util = "0.3.17"
 utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
 utoipa = { version = "4", features = ["axum_extras"] }
 tower = { version = "0.4", features = ["util", "timeout"] }
