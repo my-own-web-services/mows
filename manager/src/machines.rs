@@ -40,7 +40,7 @@ impl Machine {
                         "--machine",
                         "q35",
                         "--network",
-                        "network=default",
+                        "network=mows-manager,model=virtio",
                         "--video",
                         "qxl",
                         "--graphics",
