@@ -1,6 +1,6 @@
-use anyhow::Context;
+use anyhow::{bail, Context};
 use axum::error_handling::HandleErrorLayer;
-use axum::http::header::CONTENT_TYPE;
+use axum::http::header::{CONTENT_TYPE, UPGRADE};
 use axum::http::{ Method, StatusCode};
 use axum::routing::{delete, get, put};
 use axum::BoxError;
@@ -49,7 +49,7 @@ async fn main() -> Result<(), anyhow::Error> {
             delete_all_machines,
             create_cluster,
             get_boot_config_by_mac,
-            websocket_handler
+            terminal_local
 
         ),
         components(
@@ -181,12 +181,12 @@ async fn main() -> Result<(), anyhow::Error> {
         .route("/api/machines/create", post(create_machines))
         .route("/api/machines/deleteall", delete(delete_all_machines))
         .route("/api/cluster/create", post(create_cluster))
-        .route("/api/terminal/local", get(websocket_handler))
+        .route("/api/terminal/local", get(terminal_local))
         .route("/v1/boot/:mac_addr", get(get_boot_config_by_mac))
         .nest_service("/", serve_dir)
         .layer(CorsLayer::new()
         .allow_origin(origins)
-        .allow_methods([Method::GET,Method::POST,Method::PUT,Method::DELETE]).allow_headers([CONTENT_TYPE]))
+        .allow_methods([Method::GET,Method::POST,Method::PUT,Method::DELETE]).allow_headers([CONTENT_TYPE,UPGRADE]))
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(|error: BoxError| async move {

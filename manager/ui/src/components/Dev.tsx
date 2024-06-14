@@ -1,6 +1,7 @@
 import { PureComponent } from "react";
 import { Button } from "rsuite";
 import { Api } from "../api-client";
+import TerminalComponent from "./Terminal";
 
 interface DevProps {
     readonly client: Api<unknown>;
@@ -55,6 +56,7 @@ export default class Dev extends PureComponent<DevProps, DevState> {
                 <Button onClick={this.createCluster}>
                     Create cluster from all machines in inventory
                 </Button>
+                <TerminalComponent />
             </div>
         );
     };
