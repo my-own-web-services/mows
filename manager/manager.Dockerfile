@@ -60,4 +60,4 @@ RUN groupadd -g 50001 mows-manager
 USER root
 STOPSIGNAL SIGKILL 
 # run it 
-ENTRYPOINT ["./mows-manager"]
+CMD ["./mows-manager"]
