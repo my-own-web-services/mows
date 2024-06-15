@@ -6,7 +6,7 @@ use tokio::{fs, process::Command};
 use utoipa::ToSchema;
 
 use crate::{
-    config::{Cluster, ClusterNode, Config, InstallState, SshAccess},
+    config::{Cluster, ClusterNode, Config, MachineInstallState, SshAccess},
     get_current_config_cloned, some_or_bail,
     utils::{generate_id, CONFIG},
 };
@@ -71,6 +71,7 @@ impl Cluster {
             backup_nodes: HashMap::new(),
             public_ip_config: None,
             cluster_backup_wg_private_key: None,
+            install_state: None,
         };
         {
             let mut config = CONFIG.write().await;
@@ -121,7 +122,7 @@ impl Cluster {
         for node in self.cluster_nodes.values() {
             if let Some(machine) = config.get_machine_by_id(&node.machine_id) {
                 if let Some(install) = &machine.install {
-                    if install.state == Some(InstallState::Installed) {
+                    if install.state == Some(MachineInstallState::Installed) {
                         if let Ok(kc) = node.get_kubeconfig().await {
                             return Ok(kc);
                         }

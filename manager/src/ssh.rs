@@ -65,20 +65,20 @@ impl SshAccess {
 
         // TODO add known hosts!
 
-        let mut sess = Session::new()?;
-        sess.set_tcp_stream(tcp);
-        sess.handshake()?;
+        let mut session = Session::new()?;
+        session.set_tcp_stream(tcp);
+        session.handshake()?;
 
-        sess.userauth_pubkey_memory(
+        session.userauth_pubkey_memory(
             &self.ssh_username,
             Some(&self.ssh_public_key),
             &self.ssh_private_key,
             Some(&self.ssh_passphrase),
         )?;
 
-        sess.set_timeout(timeout_seconds * 1000);
+        session.set_timeout(timeout_seconds * 1000);
 
-        let mut channel = sess.channel_session()?;
+        let mut channel = session.channel_session()?;
 
         channel.exec(command)?;
 

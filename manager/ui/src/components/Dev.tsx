@@ -2,6 +2,8 @@ import { PureComponent } from "react";
 import { Button } from "rsuite";
 import { Api } from "../api-client";
 import TerminalComponent from "./Terminal";
+import "@fontsource-variable/inter";
+import VNC from "./VNC";
 
 interface DevProps {
     readonly client: Api<unknown>;
@@ -42,21 +44,31 @@ export default class Dev extends PureComponent<DevProps, DevState> {
 
     render = () => {
         return (
-            <div className="Dev">
-                <textarea value={this.props.config} onChange={this.props.updateConfig}></textarea>{" "}
+            <div className="Dev w-full h-full">
+                <textarea
+                    className="w-[500px] h-[200px] block"
+                    value={this.props.config}
+                    onChange={this.props.updateConfig}
+                ></textarea>{" "}
                 <br />
-                <Button onClick={this.deleteAllMowsMachines}>
-                    Delete all MOWS virtual machines
-                </Button>
-                <br />
-                <Button onClick={this.updateConfig}>Update config</Button>
-                <br />
-                <Button onClick={this.createMachines}>Create virtual machines</Button>
-                <br />
-                <Button onClick={this.createCluster}>
-                    Create cluster from all machines in inventory
-                </Button>
-                <TerminalComponent />
+                <div className="flex gap-4">
+                    <Button onClick={this.deleteAllMowsMachines}>
+                        Delete all MOWS virtual machines
+                    </Button>
+                    <Button onClick={this.updateConfig}>Update config</Button>
+                    <Button onClick={this.createMachines}>Create virtual machines</Button>
+                    <Button onClick={this.createCluster}>
+                        Create cluster from all machines in inventory
+                    </Button>
+                </div>
+                <div className="w-full h-[500px]">
+                    <TerminalComponent url="ws://localhost:3000/api/terminal/local" />
+                </div>
+                <div className="flex w-full h-72 gap-4 justify-around">
+                    <VNC url="ws://localhost:5700" />
+                    <VNC url="ws://localhost:5701" />
+                    <VNC url="ws://localhost:5702" />
+                </div>
             </div>
         );
     };

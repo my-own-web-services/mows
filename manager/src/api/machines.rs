@@ -32,7 +32,7 @@ pub async fn create_machines(
 
 #[utoipa::path(
     delete,
-    path = "/api/machines/deleteall",
+    path = "/api/machines/delete_all",
     responses(
         (status = 200, description = "Deleted machines", body = [Success]),
         (status = 500, description = "Failed to create machines", body = [String])
