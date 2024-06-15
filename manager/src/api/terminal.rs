@@ -82,7 +82,6 @@ impl Command {
             Ok(it) => it,
             Err(e) => return Result::Err(CommandError::Error(e.to_string())),
         };
-        dbg!("1");
 
         if let Some(size) = size {
             pty.resize(size.into()).ok();
@@ -93,13 +92,11 @@ impl Command {
             Ok(it) => it,
             Err(e) => return Result::Err(CommandError::Error(e.to_string())),
         };
-        dbg!("2");
 
         let child = match self.inner.spawn(&pts) {
             Ok(it) => it,
             Err(e) => return Result::Err(CommandError::Error(e.to_string())),
         };
-        dbg!("3");
 
         self.pty = Some(pty);
         self.child = Some(child);
