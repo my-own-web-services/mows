@@ -2,7 +2,7 @@ use anyhow::bail;
 use axum::{extract::Path, Json};
 
 use crate::{
-    config::{InstallState, PixiecoreBootConfig},
+    config::{MachineInstallState, PixiecoreBootConfig},
     utils::{AppError, CONFIG},
 };
 
@@ -30,7 +30,7 @@ pub async fn get_boot_config(mac_addr: String) -> Result<PixiecoreBootConfig, an
         if let Some(mac) = &machine.mac {
             if mac == &mac_addr {
                 if let Some(install) = &mut machine.install {
-                    install.state = Some(InstallState::Requested);
+                    install.state = Some(MachineInstallState::Requested);
                     if let Some(boot_config) = &install.boot_config {
                         return Ok(boot_config.clone());
                     }

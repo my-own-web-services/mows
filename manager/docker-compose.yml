@@ -16,6 +16,7 @@ services:
             mows-manager:
         ports:
             - "127.0.0.1:3000:3000"
+            - "127.0.0.1:6669:6669"
         volumes:
             - ./temp-pxe-files:/pxe_files/
         environment:
@@ -32,6 +33,9 @@ services:
             - "127.0.0.1:5900:5900" # spice node 1
             - "127.0.0.1:5901:5901" # spice node 2
             - "127.0.0.1:5902:5902" # spice node 3
+            - "127.0.0.1:5700:5700" # vnc websocket node 1
+            - "127.0.0.1:5701:5701" # vnc websocket node 2
+            - "127.0.0.1:5702:5702" # vnc websocket node 3
         privileged: true
         volumes:
             - /lib/modules:/lib/modules

@@ -68,15 +68,6 @@ impl Command {
         }
     }
 
-    pub(crate) fn args<I, S>(&mut self, args: I) -> &mut Self
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<std::ffi::OsStr>,
-    {
-        self.inner.args(args);
-        self
-    }
-
     pub(crate) fn spawn(&mut self, size: Option<TerminalSize>) -> Result<(), CommandError> {
         let pty = match Pty::new() {
             Ok(it) => it,
@@ -198,7 +189,7 @@ async fn run_command(socket: WebSocket, terminal_size: Option<TerminalSize>) {
         _ => (),
     };
 
-    let pid = command
+    let _ = command
         .pid()
         .map_or("N/A".to_string(), |pid| pid.to_string());
 

@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use tokio::{process::Command, sync::RwLock};
 
 use crate::{
-    config::{Config, InstallState, MachineInstall},
+    config::{ClusterInstallState, Config, MachineInstall, MachineInstallState},
     get_current_config_cloned, some_or_bail,
 };
 
@@ -63,7 +63,7 @@ pub async fn update_machine_install_state() -> anyhow::Result<()> {
                 "Machine not found"
             );
             *machine.install.as_mut().unwrap() = MachineInstall {
-                state: Some(InstallState::Installed),
+                state: Some(MachineInstallState::Installed),
                 boot_config: None,
                 primary: machine.install.as_ref().unwrap().primary,
             };
@@ -99,8 +99,14 @@ pub async fn install_cluster_basics() -> anyhow::Result<()> {
     let cfg1 = get_current_config_cloned!();
 
     for cluster in cfg1.clusters.values() {
-        if cluster.kubeconfig.is_some() {
-            let _ = cluster.install_basics().await;
+        if cluster.kubeconfig.is_some() && cluster.install_state.is_none() {
+            cluster.install_basics().await?;
+            let mut config_locked2 = CONFIG.write().await;
+            let cluster = some_or_bail!(
+                config_locked2.clusters.get_mut(&cluster.id),
+                "Cluster not found"
+            );
+            cluster.install_state = Some(ClusterInstallState::Basics);
         }
     }
 

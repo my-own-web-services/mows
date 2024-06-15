@@ -7,8 +7,8 @@ use utoipa::ToSchema;
 
 use crate::{
     config::{
-        BackupNode, Cluster, ClusterNode, InstallState, Machine, MachineInstall, MachineType,
-        PixiecoreBootConfig, SshAccess,
+        BackupNode, Cluster, ClusterNode, Machine, MachineInstall, MachineInstallState,
+        MachineType, PixiecoreBootConfig, SshAccess,
     },
     some_or_bail,
     utils::{generate_id, get_current_ip_from_mac, CONFIG},
@@ -44,7 +44,7 @@ impl Machine {
                         "--video",
                         "qxl",
                         "--graphics",
-                        "spice,listen=0.0.0.0",
+                        "vnc,listen=0.0.0.0,websocket=-1",
                         "--boot",
                         "hd,network,menu=on",
                         "--pxe",
@@ -221,7 +221,7 @@ impl Machine {
         );
 
         current_machine.install = Some(MachineInstall {
-            state: Some(InstallState::Requested),
+            state: Some(MachineInstallState::Requested),
             boot_config: Some(boot_config),
             primary: primary_node.is_none(),
         });
@@ -262,7 +262,7 @@ impl Machine {
         clusters: &HashMap<String, Cluster>,
     ) -> anyhow::Result<()> {
         if let Some(install) = &self.install {
-            if install.state == Some(InstallState::Requested) {
+            if install.state == Some(MachineInstallState::Requested) {
                 let node = &self.get_attached_cluster_node(clusters)?;
 
                 let output = node

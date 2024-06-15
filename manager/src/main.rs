@@ -1,4 +1,4 @@
-use anyhow::{bail, Context};
+use anyhow::{ Context};
 use axum::error_handling::HandleErrorLayer;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
 use axum::http::{ Method, StatusCode};
@@ -73,7 +73,8 @@ async fn main() -> Result<(), anyhow::Error> {
                 ExternalHetznerConfig,
                 ClusterCreationConfig,
                 PixiecoreBootConfig,
-                InstallState
+                MachineInstallState,
+                ClusterInstallState
             
             )
         ),
@@ -124,15 +125,7 @@ async fn main() -> Result<(), anyhow::Error> {
             tokio::time::sleep(Duration::from_secs(5)).await;
 
             match get_cluster_config().await{
-                Ok(_) => {
-                    match CONFIG.read().await.apply_environment(){
-                        Ok(_) => {},
-                        Err(e) => {
-                            println!("Error applying environment: {:?}",e);
-                        }
-                    }
-
-                },
+                Ok(_) => {},
                 Err(e) => {
                     println!("Error getting cluster config: {:?}",e);
                 }
@@ -179,7 +172,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .route("/api/config", put(update_config))
         .route("/api/config", get(get_config))
         .route("/api/machines/create", post(create_machines))
-        .route("/api/machines/deleteall", delete(delete_all_machines))
+        .route("/api/machines/delete_all", delete(delete_all_machines))
         .route("/api/cluster/create", post(create_cluster))
         .route("/api/terminal/local", get(terminal_local))
         .route("/v1/boot/:mac_addr", get(get_boot_config_by_mac))

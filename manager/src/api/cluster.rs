@@ -12,7 +12,7 @@ use crate::{cluster::ClusterCreationConfig, config::Cluster, types::Success, uti
     )
 )]
 pub async fn create_cluster(
-    Json(cluster_creation_config): Json<ClusterCreationConfig>,
+    Json(_cluster_creation_config): Json<ClusterCreationConfig>,
 ) -> Result<Json<Success>, AppError> {
     Cluster::new().await?;
 

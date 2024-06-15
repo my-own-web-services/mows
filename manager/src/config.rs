@@ -68,6 +68,7 @@ pub struct Cluster {
     pub backup_nodes: HashMap<String, BackupNode>,
     pub public_ip_config: Option<PublicIpConfig>,
     pub cluster_backup_wg_private_key: Option<String>,
+    pub install_state: Option<ClusterInstallState>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
@@ -80,16 +81,21 @@ pub struct Machine {
 }
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
 pub struct MachineInstall {
-    pub state: Option<InstallState>,
+    pub state: Option<MachineInstallState>,
     pub primary: bool,
     pub boot_config: Option<PixiecoreBootConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Eq, PartialEq, Hash)]
-pub enum InstallState {
+pub enum MachineInstallState {
     Configured,
     Requested,
     Installed,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Eq, PartialEq, Hash)]
+pub enum ClusterInstallState {
+    Basics,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]

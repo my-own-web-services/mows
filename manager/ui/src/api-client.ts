@@ -13,7 +13,7 @@ export interface BackupNode {
   backup_wg_private_key?: string | null;
   hostname: string;
   mac: string;
-  machine_name: string;
+  machine_id: string;
   ssh_access: SshAccess;
 }
 
@@ -22,6 +22,8 @@ export interface Cluster {
   cluster_backup_wg_private_key?: string | null;
   cluster_nodes: Record<string, ClusterNode>;
   encryption_key?: string | null;
+  id: string;
+  install_state?: ClusterInstallState | null;
   k3s_token: string;
   kubeconfig?: string | null;
   public_ip_config?: PublicIpConfig | null;
@@ -29,9 +31,13 @@ export interface Cluster {
 
 export type ClusterCreationConfig = object;
 
+export enum ClusterInstallState {
+  Basics = "Basics",
+}
+
 export interface ClusterNode {
   hostname: string;
-  machine_name: string;
+  machine_id: string;
   ssh_access: SshAccess;
 }
 
@@ -64,12 +70,6 @@ export interface ExternalProvidersHetzner {
   api_token: string;
 }
 
-export enum InstallState {
-  Configured = "Configured",
-  Requested = "Requested",
-  Installed = "Installed",
-}
-
 export interface LocalQemuConfig {
   /**
    * @format int32
@@ -85,10 +85,11 @@ export interface LocalQemuConfig {
 }
 
 export interface Machine {
+  id: string;
   install?: null;
+  last_ip?: null;
   mac?: string | null;
   machine_type: MachineType;
-  name: string;
 }
 
 export type MachineCreationConfig =
@@ -101,6 +102,12 @@ export type MachineCreationConfig =
   | {
       ExternalHetzner: ExternalHetznerConfig;
     };
+
+export enum MachineInstallState {
+  Configured = "Configured",
+  Requested = "Requested",
+  Installed = "Installed",
+}
 
 export enum MachineType {
   LocalQemu = "LocalQemu",
@@ -242,8 +249,8 @@ export class HttpClient<SecurityDataType = unknown> {
           property instanceof Blob
             ? property
             : typeof property === "object" && property !== null
-            ? JSON.stringify(property)
-            : `${property}`,
+              ? JSON.stringify(property)
+              : `${property}`,
         );
         return formData;
       }, new FormData()),
@@ -316,7 +323,7 @@ export class HttpClient<SecurityDataType = unknown> {
       signal: (cancelToken ? this.createAbortSignal(cancelToken) : requestParams.signal) || null,
       body: typeof body === "undefined" || body === null ? null : payloadFormatter(body),
     }).then(async (response) => {
-      const r = response as HttpResponse<T, E>;
+      const r = response.clone() as HttpResponse<T, E>;
       r.data = null as unknown as T;
       r.error = null as unknown as E;
 
@@ -356,7 +363,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags api
+     * @tags crate
      * @name CreateCluster
      * @request POST:/api/cluster/create
      */
@@ -373,7 +380,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags api
+     * @tags crate
      * @name GetConfig
      * @request GET:/api/config
      */
@@ -388,12 +395,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags api
+     * @tags crate
      * @name UpdateConfig
      * @request PUT:/api/config
      */
     updateConfig: (data: Config, params: RequestParams = {}) =>
-      this.request<Success[], any>({
+      this.request<Success[], string[]>({
         path: `/api/config`,
         method: "PUT",
         body: data,
@@ -405,7 +412,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags api
+     * @tags crate
      * @name CreateMachines
      * @request POST:/api/machines/create
      */
@@ -422,7 +429,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags api
+     * @tags crate
      * @name DeleteAllMachines
      * @request DELETE:/api/machines/deleteall
      */
@@ -433,12 +440,27 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         format: "json",
         ...params,
       }),
+
+    /**
+     * No description
+     *
+     * @tags crate
+     * @name TerminalLocal
+     * @request GET:/api/terminal/local
+     */
+    terminalLocal: (params: RequestParams = {}) =>
+      this.request<string[], any>({
+        path: `/api/terminal/local`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
   };
   v1 = {
     /**
      * No description
      *
-     * @tags api
+     * @tags crate
      * @name GetBootConfigByMac
      * @request GET:/v1/boot/{mac_addr}
      */

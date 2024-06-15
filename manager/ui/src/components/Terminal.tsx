@@ -1,8 +1,19 @@
-import { Component, createRef } from "react";
+import { CSSProperties, Component, createRef } from "react";
 import { IDisposable, ITerminalAddon, Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 
-export default class TerminalComponent extends Component {
+interface TerminalComponentProps {
+    readonly className?: string;
+    readonly style?: CSSProperties;
+    readonly url: string;
+}
+
+interface TerminalComponentState {}
+
+export default class TerminalComponent extends Component<
+    TerminalComponentProps,
+    TerminalComponentState
+> {
     private terminalRef = createRef<HTMLDivElement>();
     private terminal: Terminal | null = null;
     private statusBanner = createRef<HTMLDivElement>();
@@ -11,12 +22,7 @@ export default class TerminalComponent extends Component {
         if (this.terminalRef.current && this.statusBanner.current) {
             this.terminal = new Terminal({ cursorBlink: true });
 
-            this.terminal.loadAddon(
-                new WebSocketAddon(
-                    "ws://localhost:3000/api/terminal/local",
-                    this.statusBanner.current
-                )
-            );
+            this.terminal.loadAddon(new WebSocketAddon(this.props.url, this.statusBanner.current));
             this.terminal.open(this.terminalRef.current);
         }
     }
@@ -29,10 +35,13 @@ export default class TerminalComponent extends Component {
 
     render() {
         return (
-            <>
+            <div
+                style={{ ...this.props.style }}
+                className={`VNC w-full h-full ${this.props.className ?? ""}`}
+            >
                 <div ref={this.statusBanner}></div>
-                <div ref={this.terminalRef} style={{ height: "100vh", width: "100%" }}></div>
-            </>
+                <div ref={this.terminalRef} className="w-full h-full"></div>
+            </div>
         );
     }
 }
@@ -44,6 +53,7 @@ const RESIZE_PREFIX = "2";
 
 export class WebSocketAddon implements ITerminalAddon {
     private _socket?: WebSocket;
+    //@ts-ignore
     private _terminal: Terminal;
     private _reconnect: number = -1;
     private _status: StatusBanner;
@@ -163,7 +173,7 @@ export class WebSocketAddon implements ITerminalAddon {
             return true;
         }
 
-        console.warn(`Socket state is: ${this._socket!.readyState}`);
+        //console.warn(`Socket state is: ${this._socket!.readyState}`);
         return false;
         ``;
     }
@@ -263,6 +273,7 @@ export class StatusBanner {
 
                 this._setText(text + ` (reconnecting in ${seconds}s)`);
             };
+            //@ts-ignore
             this._textInterval = setInterval(textUpdater, 1000);
             textUpdater();
         }
