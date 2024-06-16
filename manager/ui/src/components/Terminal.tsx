@@ -37,10 +37,10 @@ export default class TerminalComponent extends Component<
         return (
             <div
                 style={{ ...this.props.style }}
-                className={`VNC w-full h-full ${this.props.className ?? ""}`}
+                className={`VNC h-full w-full ${this.props.className ?? ""}`}
             >
                 <div ref={this.statusBanner}></div>
-                <div ref={this.terminalRef} className="w-full h-full"></div>
+                <div ref={this.terminalRef} className="h-full w-full"></div>
             </div>
         );
     }
@@ -83,11 +83,11 @@ export class WebSocketAddon implements ITerminalAddon {
         this._disposables = [];
         this._disposables.push(addSocketListener(this._socket, "open", () => this._onOpen()));
         this._disposables.push(
-            addSocketListener(this._socket, "message", ev => this._onMessage(ev))
+            addSocketListener(this._socket, "message", (ev) => this._onMessage(ev))
         );
-        this._disposables.push(addSocketListener(this._socket, "close", e => this._dispose(e)));
-        this._disposables.push(terminal.onData(data => this._sendData(data)));
-        this._disposables.push(terminal.onBinary(data => this._sendBinary(data)));
+        this._disposables.push(addSocketListener(this._socket, "close", (e) => this._dispose(e)));
+        this._disposables.push(terminal.onData((data) => this._sendData(data)));
+        this._disposables.push(terminal.onBinary((data) => this._sendBinary(data)));
         this._disposables.push(terminal.onResize(() => this._sendResize()));
         this._disposables.push(addWindowListener("resize", () => this._sendResize()));
 

@@ -24,7 +24,7 @@ export default class Navbar extends PureComponent<NavbarProps, NavbarState> {
         return (
             <div className="Navbar">
                 <Nav appearance="subtle">
-                    {this.navItems.map(item => {
+                    {this.navItems.map((item) => {
                         return (
                             <Nav.Item key={item.path} as={NavLink} href={item.path}>
                                 {item.name}

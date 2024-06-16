@@ -54,9 +54,9 @@ export default class Dev extends Component<DevProps, DevState> {
 
     render = () => {
         return (
-            <div className="Dev w-full h-full">
+            <div className="Dev h-full w-full">
                 <textarea
-                    className="w-full h-[200px] block"
+                    className="block h-[200px] w-full"
                     value={JSON.stringify(configSignal.value, null, 4)}
                     readOnly
                     disabled
@@ -79,10 +79,10 @@ export default class Dev extends Component<DevProps, DevState> {
                         Create cluster from all machines in inventory
                     </Button>
                 </div>
-                <div className="w-full h-[500px]">
+                <div className="h-[500px] w-full">
                     <TerminalComponent url="ws://localhost:3000/api/terminal/local" />
                 </div>
-                <div className="flex w-full gap-4 justify-start">
+                <div className="flex w-full justify-start gap-4">
                     {configSignal.value?.machines &&
                         Object.entries(configSignal.value?.machines).map(
                             ([machine_id, machine]) => {
