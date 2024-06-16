@@ -84,7 +84,7 @@ export default class VNC extends Component<VNCProps, VNCState> {
 
     render = () => {
         return (
-            <div style={{ ...this.props.style }} className={`VNC  ${this.props.className ?? ""}`}>
+            <div style={{ ...this.props.style }} className={`VNC ${this.props.className ?? ""}`}>
                 <div className="flex gap-1">
                     <Button size="xs" onClick={() => this.signalMachine(MachineSignal.Start)}>
                         Start
