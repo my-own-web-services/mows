@@ -1,23 +1,22 @@
-use std::{collections::HashMap, net::IpAddr};
-
 use anyhow::bail;
-use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::{collections::HashMap, net::IpAddr};
 use tokio::process::Command;
-use utoipa::ToSchema;
 
 use crate::{
+    api::machines::{MachineCreationReqBody, MachineSignal},
     config::{
         BackupNode, Cluster, ClusterNode, Machine, MachineInstall, MachineInstallState,
         MachineType, PixiecoreBootConfig, SshAccess,
     },
-    some_or_bail,
+    get_current_config_cloned, some_or_bail,
     utils::{generate_id, get_current_ip_from_mac, CONFIG},
 };
 
 impl Machine {
-    pub async fn new(machine_creation_config: &MachineCreationConfig) -> anyhow::Result<Self> {
+    pub async fn new(machine_creation_config: &MachineCreationReqBody) -> anyhow::Result<Self> {
         Ok(match machine_creation_config {
-            MachineCreationConfig::LocalQemu(cc) => {
+            MachineCreationReqBody::LocalQemu(cc) => {
                 let machine_name: String = format!("mows-{}", generate_id(8));
 
                 let primary_volume_name = format!("{}-ssd", machine_name);
@@ -78,11 +77,29 @@ impl Machine {
                     install: None,
                 };
 
-                machine.destroy().await?;
+                machine.force_off().await?;
                 machine
             }
-            MachineCreationConfig::Local(_) => todo!(),
-            MachineCreationConfig::ExternalHetzner(_) => todo!(),
+            MachineCreationReqBody::Local(_) => todo!(),
+            MachineCreationReqBody::ExternalHetzner(_) => todo!(),
+        })
+    }
+
+    pub async fn get_infos(&self) -> anyhow::Result<serde_json::Value> {
+        Ok(match self.machine_type {
+            MachineType::LocalQemu => {
+                let output = Command::new("virsh")
+                    .args(["dumpxml", &self.id])
+                    .output()
+                    .await?;
+                let output = String::from_utf8(output.stdout)?;
+
+                let xml: serde_json::Value = serde_xml_rs::from_str(&output)?;
+
+                xml
+            }
+            MachineType::Local => todo!(),
+            MachineType::ExternalHetzner => todo!(),
         })
     }
 
@@ -125,28 +142,30 @@ impl Machine {
                     .spawn()?
                     .wait()
                     .await?;
-
-                Ok(())
             }
             MachineType::Local => todo!(),
             MachineType::ExternalHetzner => todo!(),
-        }
-    }
+        };
+        let mut config_lock = CONFIG.write().await;
 
-    pub async fn destroy(&self) -> anyhow::Result<()> {
-        match self.machine_type {
-            MachineType::LocalQemu => {
-                Command::new("virsh")
-                    .args(["destroy", &self.id])
-                    .spawn()?
-                    .wait()
-                    .await?;
+        // remove the machine from the machine inventory
+        config_lock.machines.remove(&self.id);
+        let mut clusters_to_delete = vec![];
+        for cluster in config_lock.clusters.values_mut() {
+            // remove the machine from all clusters and backup nodes
+            cluster.cluster_nodes.remove(&self.id);
+            cluster.backup_nodes.remove(&self.id);
+            // if we just deleted the last machine in the cluster we remove the cluster
 
-                Ok(())
+            if cluster.cluster_nodes.is_empty() && cluster.backup_nodes.is_empty() {
+                clusters_to_delete.push(cluster.id.clone());
             }
-            MachineType::Local => todo!(),
-            MachineType::ExternalHetzner => todo!(),
         }
+        for cluster_id in clusters_to_delete {
+            config_lock.clusters.remove(&cluster_id);
+        }
+
+        Ok(())
     }
 
     pub async fn start(&self) -> anyhow::Result<()> {
@@ -165,30 +184,78 @@ impl Machine {
         }
     }
 
-    pub async fn delete_all_mows_machines() -> anyhow::Result<()> {
-        let output = Command::new("virsh")
-            .args(["list", "--all"])
-            .output()
-            .await?;
-        let output = String::from_utf8(output.stdout)?;
+    pub async fn reboot(&self) -> anyhow::Result<()> {
+        match self.machine_type {
+            MachineType::LocalQemu => {
+                Command::new("virsh")
+                    .args(["reboot", &self.id])
+                    .spawn()?
+                    .wait()
+                    .await?;
 
-        let lines: Vec<&str> = output.lines().collect();
-        for line in lines {
-            if line.contains("mows-") {
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                let name = some_or_bail!(parts.get(1), "No name found: name");
-                let machine = Machine {
-                    id: name.to_string(),
-                    mac: None,
-                    last_ip: None,
-                    machine_type: MachineType::LocalQemu,
-                    install: None,
-                };
-                machine.delete().await?;
+                Ok(())
             }
+            MachineType::Local => todo!(),
+            MachineType::ExternalHetzner => todo!(),
         }
+    }
 
-        Ok(())
+    pub async fn shutdown(&self) -> anyhow::Result<()> {
+        match self.machine_type {
+            MachineType::LocalQemu => {
+                Command::new("virsh")
+                    .args(["shutdown", &self.id])
+                    .spawn()?
+                    .wait()
+                    .await?;
+
+                Ok(())
+            }
+            MachineType::Local => todo!(),
+            MachineType::ExternalHetzner => todo!(),
+        }
+    }
+
+    pub async fn reset(&self) -> anyhow::Result<()> {
+        match self.machine_type {
+            MachineType::LocalQemu => {
+                Command::new("virsh")
+                    .args(["reset", &self.id])
+                    .spawn()?
+                    .wait()
+                    .await?;
+
+                Ok(())
+            }
+            MachineType::Local => todo!(),
+            MachineType::ExternalHetzner => todo!(),
+        }
+    }
+
+    pub async fn force_off(&self) -> anyhow::Result<()> {
+        match self.machine_type {
+            MachineType::LocalQemu => {
+                Command::new("virsh")
+                    .args(["destroy", &self.id])
+                    .spawn()?
+                    .wait()
+                    .await?;
+
+                Ok(())
+            }
+            MachineType::Local => todo!(),
+            MachineType::ExternalHetzner => todo!(),
+        }
+    }
+
+    pub async fn send_signal(&self, machine_signal: MachineSignal) -> anyhow::Result<()> {
+        match machine_signal {
+            MachineSignal::Reboot => self.reboot().await,
+            MachineSignal::Shutdown => self.shutdown().await,
+            MachineSignal::Reset => self.reset().await,
+            MachineSignal::ForceOff => self.force_off().await,
+            MachineSignal::Start => self.start().await,
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -270,7 +337,6 @@ impl Machine {
                     .exec(self, &format!("kubectl get node {}", node.machine_id), 5)
                     .await?;
 
-                dbg!(&output);
                 if output.contains("NotReady") {
                     bail!("Node not ready")
                 }
@@ -321,25 +387,4 @@ async fn qemu_get_mac_address(node_name: &str) -> anyhow::Result<String> {
     let mac_address = some_or_bail!(parts.get(4), "No MAC address found: mac_address");
 
     Ok(mac_address.to_string())
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub enum MachineCreationConfig {
-    LocalQemu(LocalQemuConfig),
-    Local(Vec<String>),
-    ExternalHetzner(ExternalHetznerConfig),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
-pub struct LocalQemuConfig {
-    /**
-     * Memory in GB
-     */
-    pub memory: u8,
-    pub cpus: u8,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct ExternalHetznerConfig {
-    pub server_type: String,
 }

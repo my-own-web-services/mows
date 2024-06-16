@@ -8,12 +8,12 @@ use once_cell::sync::Lazy;
 use tokio::{process::Command, sync::RwLock};
 
 use crate::{
-    config::{ClusterInstallState, Config, MachineInstall, MachineInstallState},
+    config::{ClusterInstallState, MachineInstall, MachineInstallState, ManagerConfig},
     get_current_config_cloned, some_or_bail,
 };
 
-pub static CONFIG: Lazy<Arc<RwLock<Config>>> =
-    Lazy::new(|| Arc::new(RwLock::new(Config::default())));
+pub static CONFIG: Lazy<Arc<RwLock<ManagerConfig>>> =
+    Lazy::new(|| Arc::new(RwLock::new(ManagerConfig::default())));
 
 pub fn generate_id(length: usize) -> String {
     use rand::Rng;
@@ -88,7 +88,7 @@ pub async fn get_cluster_config() -> anyhow::Result<()> {
             );
             cluster.kubeconfig = Some(kubeconfig);
 
-            config_locked2.apply_environment()?;
+            config_locked2.apply_environment().await?;
         }
     }
 

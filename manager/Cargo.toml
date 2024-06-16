@@ -71,6 +71,7 @@ futures-util = { version = "0.3", default-features = false, features = [
 async-stream = "0.3.5"
 thiserror = "1.0.40"
 tokio-util = "0.7.8"
+serde-xml-rs = "0.6.0"
 
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]

@@ -27,6 +27,13 @@ html,
     overflow-x: hidden;
 }
 
+.VNC {
+    canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+}
+
 @media (prefers-color-scheme: light) {
     :root {
         color: #000000;

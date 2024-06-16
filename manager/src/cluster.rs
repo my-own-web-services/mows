@@ -1,12 +1,10 @@
 use std::{collections::HashMap, net::IpAddr};
 
 use anyhow::bail;
-use serde::{Deserialize, Serialize};
 use tokio::{fs, process::Command};
-use utoipa::ToSchema;
 
 use crate::{
-    config::{Cluster, ClusterNode, Config, MachineInstallState, SshAccess},
+    config::{Cluster, ClusterNode, ManagerConfig, MachineInstallState, SshAccess},
     get_current_config_cloned, some_or_bail,
     utils::{generate_id, CONFIG},
 };
@@ -86,7 +84,7 @@ impl Cluster {
         Ok(cluster)
     }
 
-    pub async fn start_machines(&self, config: &Config) -> anyhow::Result<()> {
+    pub async fn start_machines(&self, config: &ManagerConfig) -> anyhow::Result<()> {
         for node in self.cluster_nodes.values() {
             match config.get_machine_by_id(&node.machine_id) {
                 Some(machine) => machine.start().await?,
@@ -134,28 +132,41 @@ impl Cluster {
         bail!("No installed nodes with kubeconfig found")
     }
 
+    pub async fn write_kubeconfig(&self) -> anyhow::Result<()> {
+        let kubeconfig_path = format!("/tmp/{}-kubeconfig.yml", &self.id);
+        let ip = self.get_reachable_node_ip().await?;
+
+        let kubeconfig = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
+            .replace("https://127.0.0.1", &format!("https://{}", ip));
+        std::fs::write(&kubeconfig_path, kubeconfig)?;
+
+        std::env::set_var("KUBECONFIG", &kubeconfig_path);
+
+        Ok(())
+    }
+
     pub async fn run_command_with_kubeconfig(
         &self,
         command: &mut Command,
     ) -> anyhow::Result<String> {
-        let kubectl_path = "~/.kube/config";
+        let kubeconfig_path = "~/.kube/config";
 
         let ip = self.get_reachable_node_ip().await?;
 
         let kubeconfig = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
             .replace("https://127.0.0.1", &format!("https://{}", ip));
 
-        fs::write(kubectl_path, kubeconfig).await?;
+        fs::write(kubeconfig_path, kubeconfig).await?;
 
         let output = match command.output().await {
             Ok(v) => v,
             Err(e) => {
-                fs::remove_file(kubectl_path).await?;
+                fs::remove_file(kubeconfig_path).await?;
                 bail!(e)
             }
         };
 
-        fs::remove_file(kubectl_path).await?;
+        fs::remove_file(kubeconfig_path).await?;
 
         if !output.status.success() {
             bail!(
@@ -249,6 +260,3 @@ impl Cluster {
         Ok(())
     }
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct ClusterCreationConfig {}
