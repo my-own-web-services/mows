@@ -3,16 +3,14 @@ use std::{collections::HashMap, net::IpAddr};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::some_or_bail;
-
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
-pub struct Config {
+pub struct ManagerConfig {
     pub clusters: HashMap<String, Cluster>,
     pub external_providers: ExternalProviders,
     pub machines: HashMap<String, Machine>,
 }
 
-impl Config {
+impl ManagerConfig {
     pub fn get_node_by_machine_id(&self, machine_id: &str) -> Option<ClusterNode> {
         for cluster in self.clusters.values() {
             if let Some(node) = cluster.cluster_nodes.get(machine_id) {
@@ -31,26 +29,18 @@ impl Config {
         None
     }
 
-    pub fn apply_environment(&self) -> anyhow::Result<()> {
+    pub async fn apply_environment(&self) -> anyhow::Result<()> {
         // create the /tmp directory
         std::fs::create_dir_all("/tmp")?;
 
-        self.write_kubeconfig()?;
+        self.write_kubeconfig().await?;
 
         Ok(())
     }
 
-    pub fn write_kubeconfig(&self) -> anyhow::Result<()> {
+    pub async fn write_kubeconfig(&self) -> anyhow::Result<()> {
         for cluster in self.clusters.values() {
-            let cluster_id = &cluster.id;
-
-            let path = format!("/tmp/{}-kubeconfig.yml", cluster_id);
-            let cluster = some_or_bail!(self.clusters.get(cluster_id), "Cluster not found");
-            let kubeconfig = some_or_bail!(cluster.kubeconfig.as_ref(), "Kubeconfig not found");
-            std::fs::write(&path, kubeconfig)?;
-
-            // set the KUBECONFIG env var
-            std::env::set_var("KUBECONFIG", &path);
+            cluster.write_kubeconfig().await?;
             // TODO this only works for one cluster at a time
         }
 

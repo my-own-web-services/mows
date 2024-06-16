@@ -41,12 +41,6 @@ export interface ClusterNode {
   ssh_access: SshAccess;
 }
 
-export interface Config {
-  clusters: Record<string, Cluster>;
-  external_providers: ExternalProviders;
-  machines: Record<string, Machine>;
-}
-
 export interface ExternalHetznerConfig {
   server_type: string;
 }
@@ -92,7 +86,7 @@ export interface Machine {
   machine_type: MachineType;
 }
 
-export type MachineCreationConfig =
+export type MachineCreationReqBody =
   | {
       LocalQemu: LocalQemuConfig;
     }
@@ -103,16 +97,47 @@ export type MachineCreationConfig =
       ExternalHetzner: ExternalHetznerConfig;
     };
 
+export interface MachineDeleteReqBody {
+  machine_id: string;
+}
+
+export interface MachineInfoReqBody {
+  machine_id: string;
+}
+
+export interface MachineInfoResBody {
+  machine_infos: any;
+}
+
 export enum MachineInstallState {
   Configured = "Configured",
   Requested = "Requested",
   Installed = "Installed",
 }
 
+export enum MachineSignal {
+  Start = "Start",
+  Reboot = "Reboot",
+  Shutdown = "Shutdown",
+  Reset = "Reset",
+  ForceOff = "ForceOff",
+}
+
+export interface MachineSignalReqBody {
+  machine_id: string;
+  signal: MachineSignal;
+}
+
 export enum MachineType {
   LocalQemu = "LocalQemu",
   Local = "Local",
   ExternalHetzner = "ExternalHetzner",
+}
+
+export interface ManagerConfig {
+  clusters: Record<string, Cluster>;
+  external_providers: ExternalProviders;
+  machines: Record<string, Machine>;
 }
 
 export interface PixiecoreBootConfig {
@@ -368,7 +393,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request POST:/api/cluster/create
      */
     createCluster: (data: ClusterCreationConfig, params: RequestParams = {}) =>
-      this.request<Success[], string[]>({
+      this.request<Success, string>({
         path: `/api/cluster/create`,
         method: "POST",
         body: data,
@@ -385,7 +410,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request GET:/api/config
      */
     getConfig: (params: RequestParams = {}) =>
-      this.request<Config[], any>({
+      this.request<ManagerConfig, any>({
         path: `/api/config`,
         method: "GET",
         format: "json",
@@ -399,8 +424,8 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @name UpdateConfig
      * @request PUT:/api/config
      */
-    updateConfig: (data: Config, params: RequestParams = {}) =>
-      this.request<Success[], string[]>({
+    updateConfig: (data: ManagerConfig, params: RequestParams = {}) =>
+      this.request<Success, string>({
         path: `/api/config`,
         method: "PUT",
         body: data,
@@ -416,8 +441,8 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @name CreateMachines
      * @request POST:/api/machines/create
      */
-    createMachines: (data: MachineCreationConfig, params: RequestParams = {}) =>
-      this.request<Success[], string[]>({
+    createMachines: (data: MachineCreationReqBody, params: RequestParams = {}) =>
+      this.request<Success, string>({
         path: `/api/machines/create`,
         method: "POST",
         body: data,
@@ -430,13 +455,49 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags crate
-     * @name DeleteAllMachines
-     * @request DELETE:/api/machines/deleteall
+     * @name DeleteMachine
+     * @request DELETE:/api/machines/delete
      */
-    deleteAllMachines: (params: RequestParams = {}) =>
-      this.request<Success[], string[]>({
-        path: `/api/machines/deleteall`,
+    deleteMachine: (data: MachineDeleteReqBody, params: RequestParams = {}) =>
+      this.request<Success, string>({
+        path: `/api/machines/delete`,
         method: "DELETE",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
+     * @name GetMachineInfo
+     * @request POST:/api/machines/info
+     */
+    getMachineInfo: (data: MachineInfoReqBody, params: RequestParams = {}) =>
+      this.request<MachineInfoResBody, string>({
+        path: `/api/machines/info`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
+     * @name SignalMachine
+     * @request POST:/api/machines/signal
+     */
+    signalMachine: (data: MachineSignalReqBody, params: RequestParams = {}) =>
+      this.request<Success, string>({
+        path: `/api/machines/signal`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -449,10 +510,9 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request GET:/api/terminal/local
      */
     terminalLocal: (params: RequestParams = {}) =>
-      this.request<string[], any>({
+      this.request<string, any>({
         path: `/api/terminal/local`,
         method: "GET",
-        format: "json",
         ...params,
       }),
   };
@@ -465,7 +525,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request GET:/v1/boot/{mac_addr}
      */
     getBootConfigByMac: (macAddr: string, params: RequestParams = {}) =>
-      this.request<Success[], PixiecoreBootConfig[]>({
+      this.request<Success, PixiecoreBootConfig>({
         path: `/v1/boot/${macAddr}`,
         method: "GET",
         format: "json",

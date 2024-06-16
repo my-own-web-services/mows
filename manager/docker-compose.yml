@@ -14,11 +14,13 @@ services:
             mows-manager-direct-attach:
                 ipv4_address: "192.168.111.3"
             mows-manager:
+
         ports:
             - "127.0.0.1:3000:3000"
             - "127.0.0.1:6669:6669"
         volumes:
             - ./temp-pxe-files:/pxe_files/
+        #    - /var/run/docker.sock:/var/run/docker.sock
         environment:
             - LIBVIRT_DEFAULT_URI=qemu+tcp://qemu/system # qemu+tcp://localhost/system
 

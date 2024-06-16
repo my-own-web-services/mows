@@ -2,6 +2,8 @@
     "cSpell.words": [
         "cpus",
         "domiflist",
+        "dominfo",
+        "dumpxml",
         "Hetzner",
         "hwtype",
         "Jemalloc",

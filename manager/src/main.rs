@@ -1,61 +1,56 @@
-use anyhow::{ Context};
+use anyhow::Context;
 use axum::error_handling::HandleErrorLayer;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
-use axum::http::{ Method, StatusCode};
-use axum::routing::{delete, get, put};
+use axum::http::{Method, StatusCode};
+use axum::routing::{delete, get, post, put};
 use axum::BoxError;
-use axum::{routing::post, Router};
+use axum::Router;
 use manager::api::boot::*;
 use manager::api::cluster::*;
 use manager::api::config::*;
 use manager::api::machines::*;
 use manager::api::terminal::*;
 use manager::config::*;
-use manager::utils::{get_cluster_config, install_cluster_basics, update_machine_install_state, CONFIG};
-use tokio::process::Command;
-use tower::ServiceBuilder;
-use tower_http::trace::TraceLayer;
+use manager::types::*;
+use manager::utils::{
+    get_cluster_config, install_cluster_basics, update_machine_install_state, CONFIG,
+};
 use std::time::Duration;
+use tokio::process::Command;
 use tokio::signal;
+use tower::ServiceBuilder;
+use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-use tower_http::cors::CorsLayer;
-use manager::machines::{MachineCreationConfig,ExternalHetznerConfig,LocalQemuConfig};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use manager::cluster::ClusterCreationConfig;
-use manager::types::Success;
-
 
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
-
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-
-
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-
-
     #[derive(OpenApi)]
     #[openapi(
         paths(
             update_config,
             get_config,
             create_machines,
-            delete_all_machines,
+            signal_machine,
             create_cluster,
             get_boot_config_by_mac,
-            terminal_local
-
+            terminal_local,
+            delete_machine,
+            get_machine_info
         ),
         components(
             schemas(
-                Config, 
-                Success, 
+                ManagerConfig,
+                Success,
                 Cluster,
                 ClusterNode,
                 BackupNode,
@@ -65,17 +60,21 @@ async fn main() -> Result<(), anyhow::Error> {
                 PublicIpConfigSingleIp,
                 ExternalProviderIpOptions,
                 ExternalProviderIpOptionsHetzner,
-                SshAccess, 
-                MachineType, 
+                SshAccess,
+                MachineType,
                 Machine,
-                MachineCreationConfig, 
-                LocalQemuConfig, 
+                MachineCreationReqBody,
+                LocalQemuConfig,
                 ExternalHetznerConfig,
                 ClusterCreationConfig,
                 PixiecoreBootConfig,
                 MachineInstallState,
-                ClusterInstallState
-            
+                ClusterInstallState,
+                MachineSignalReqBody,
+                MachineSignal,
+                MachineDeleteReqBody,
+                MachineInfoReqBody,
+                MachineInfoResBody
             )
         ),
         tags(
@@ -91,7 +90,6 @@ async fn main() -> Result<(), anyhow::Error> {
         .server_addr(([0, 0, 0, 0], 6669))
         .spawn();
 
-
     tracing_subscriber::registry()
         .with(console_layer)
         .with(
@@ -104,19 +102,15 @@ async fn main() -> Result<(), anyhow::Error> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-
-
-    
     tokio::spawn(async {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
-            match update_machine_install_state().await{
-                Ok(_) => {},
+            match update_machine_install_state().await {
+                Ok(_) => {}
                 Err(e) => {
-                    println!("Error updating machine install state: {:?}",e);
+                    println!("Error updating machine install state: {:?}", e);
                 }
             };
-
         }
     });
 
@@ -124,62 +118,63 @@ async fn main() -> Result<(), anyhow::Error> {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
 
-            match get_cluster_config().await{
-                Ok(_) => {},
+            match get_cluster_config().await {
+                Ok(_) => {}
                 Err(e) => {
-                    println!("Error getting cluster config: {:?}",e);
+                    println!("Error getting cluster config: {:?}", e);
                 }
             };
         }
     });
-    
+
     tokio::spawn(async {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
 
-            match install_cluster_basics().await{
-                Ok(_) => {},
+            match install_cluster_basics().await {
+                Ok(_) => {}
                 Err(e) => {
-                    println!("Error installing cluster basics: {:?}",e);
+                    println!("Error installing cluster basics: {:?}", e);
                 }
             };
         }
     });
-
-
 
     //Machine::delete_all_mows_machines().unwrap();
 
     let serve_dir = ServeDir::new("ui").not_found_service(ServeFile::new("ui/index.html"));
 
-
     let api_url = "http://localhost:3000";
 
-    let origins = [
-        "http://localhost:5173".parse()?,
-        api_url.parse()?,
-    ];
+    let origins = ["http://localhost:5173".parse()?, api_url.parse()?];
 
-
-
-    Command::new("pixiecore").args(["api",api_url,"-l","192.168.111.3"]).spawn().context("Failed to start pixiecore server for direct attach")?;
-    Command::new("pixiecore").args(["api",api_url,"-l","192.168.112.3"]).spawn().context("Failed to start pixiecore server for qemu")?;
-
-
+    Command::new("pixiecore")
+        .args(["api", api_url, "-l", "192.168.111.3"])
+        .spawn()
+        .context("Failed to start pixiecore server for direct attach")?;
+    Command::new("pixiecore")
+        .args(["api", api_url, "-l", "192.168.112.3"])
+        .spawn()
+        .context("Failed to start pixiecore server for qemu")?;
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/config", put(update_config))
         .route("/api/config", get(get_config))
         .route("/api/machines/create", post(create_machines))
-        .route("/api/machines/delete_all", delete(delete_all_machines))
+        .route("/api/machines/signal", post(signal_machine))
+        .route("/api/machines/delete", delete(delete_machine))
+        .route("/api/machines/info", post(get_machine_info))
         .route("/api/cluster/create", post(create_cluster))
         .route("/api/terminal/local", get(terminal_local))
         .route("/v1/boot/:mac_addr", get(get_boot_config_by_mac))
         .nest_service("/", serve_dir)
-        .layer(CorsLayer::new()
-        .allow_origin(origins)
-        .allow_methods([Method::GET,Method::POST,Method::PUT,Method::DELETE]).allow_headers([CONTENT_TYPE,UPGRADE]))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(origins)
+                .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+                .allow_headers([CONTENT_TYPE, UPGRADE]),
+        )
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(|error: BoxError| async move {
@@ -231,5 +226,3 @@ async fn shutdown_signal() {
         _ = terminate => {},
     }
 }
-
-

@@ -1,40 +1,31 @@
-import { PureComponent } from "react";
-import { Api } from "./api-client";
+import { Api, ManagerConfig } from "./api-client";
 import Dev from "./components/Dev";
 import { CustomProvider } from "rsuite";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 import "rsuite/dist/rsuite.min.css";
 import "./index.scss";
 import Navbar from "./components/Navbar";
+import { signal } from "@preact/signals";
+import "@fontsource-variable/inter";
+import { Component, PureComponent } from "preact/compat";
+import { configSignal, reloadConfig } from "./config";
 
 interface AppProps {}
 
-interface AppState {
-    config: string;
-}
+interface AppState {}
 
-export default class App extends PureComponent<AppProps, AppState> {
+export default class App extends Component<AppProps, AppState> {
     client: Api<unknown>;
 
     constructor(props: AppProps) {
         super(props);
-        this.state = {
-            config: ""
-        };
+
         this.client = new Api({ baseUrl: "http://localhost:3000" });
     }
 
     componentDidMount = async () => {
-        await this.loadConfig();
-    };
-
-    updateConfig = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        this.setState({ config: e.target.value });
-    };
-
-    loadConfig = async () => {
-        const config = (await this.client.api.getConfig()).data;
-        this.setState({ config: JSON.stringify(config) });
+        await reloadConfig();
+        //setInterval(this.loadConfig, 1000);
     };
 
     render = () => {
@@ -46,12 +37,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                         <span className="Page">
                             <Switch>
                                 <Route path="/dev/">
-                                    <Dev
-                                        client={this.client}
-                                        config={this.state.config}
-                                        loadConfig={this.loadConfig}
-                                        updateConfig={this.updateConfig}
-                                    ></Dev>
+                                    <Dev client={this.client} />
                                 </Route>
                             </Switch>
                         </span>
