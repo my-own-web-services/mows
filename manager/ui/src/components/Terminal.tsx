@@ -1,6 +1,11 @@
-import { CSSProperties, Component, createRef } from "react";
+import { ClipboardAddon } from "@xterm/addon-clipboard";
+import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
 import { IDisposable, ITerminalAddon, Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
+import { CSSProperties, Component, createRef } from "react";
 
 interface TerminalComponentProps {
     readonly className?: string;
@@ -17,13 +22,22 @@ export default class TerminalComponent extends Component<
     private terminalRef = createRef<HTMLDivElement>();
     private terminal: Terminal | null = null;
     private statusBanner = createRef<HTMLDivElement>();
+    private fitAddon: FitAddon | null = null;
 
     componentDidMount() {
         if (this.terminalRef.current && this.statusBanner.current) {
             this.terminal = new Terminal({ cursorBlink: true });
+            this.fitAddon = new FitAddon();
 
             this.terminal.loadAddon(new WebSocketAddon(this.props.url, this.statusBanner.current));
+            this.terminal.loadAddon(this.fitAddon);
+            this.terminal.loadAddon(new ClipboardAddon());
+            this.terminal.loadAddon(new SearchAddon());
+            this.terminal.loadAddon(new WebLinksAddon());
+            this.terminal.loadAddon(new WebglAddon());
+
             this.terminal.open(this.terminalRef.current);
+            this.fitAddon.fit();
         }
     }
 
@@ -37,10 +51,10 @@ export default class TerminalComponent extends Component<
         return (
             <div
                 style={{ ...this.props.style }}
-                className={`VNC h-full w-full ${this.props.className ?? ""}`}
+                className={`VNC relative h-full w-full ${this.props.className ?? ""}`}
             >
-                <div ref={this.statusBanner}></div>
-                <div ref={this.terminalRef} className="h-full w-full"></div>
+                <div className={"absolute left-0 top-0"} ref={this.statusBanner}></div>
+                <div ref={this.terminalRef} className="h-[calc(100%+9px)]"></div>
             </div>
         );
     }
@@ -286,7 +300,7 @@ export class StatusBanner {
 
     private _setStatus(status: Status) {
         if (!this._el) return;
-        this._el.className = STATUS_CLASSES[status];
+        //this._el.className = STATUS_CLASSES[status];
     }
 
     private _clearTextInterval() {

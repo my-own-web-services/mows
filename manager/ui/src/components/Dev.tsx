@@ -1,9 +1,9 @@
+import { Component } from "preact/compat";
 import { Button, Input } from "rsuite";
-import { Api, ManagerConfig } from "../api-client";
+import { Api } from "../api-client";
+import { configSignal, reloadConfig } from "../config";
 import TerminalComponent from "./Terminal";
 import VNC from "./VNC";
-import { Component } from "preact/compat";
-import { configSignal, reloadConfig } from "../config";
 
 interface DevProps {
     readonly client: Api<unknown>;
@@ -55,14 +55,7 @@ export default class Dev extends Component<DevProps, DevState> {
     render = () => {
         return (
             <div className="Dev h-full w-full">
-                <textarea
-                    className="block h-[200px] w-full"
-                    value={JSON.stringify(configSignal.value, null, 4)}
-                    readOnly
-                    disabled
-                />
-                <br />
-                <div className="flex gap-4">
+                <div className="flex gap-4 p-4 pb-0">
                     <Button onClick={this.deleteAllMowsMachines}>
                         Delete all MOWS virtual machines
                     </Button>
@@ -79,8 +72,19 @@ export default class Dev extends Component<DevProps, DevState> {
                         Create cluster from all machines in inventory
                     </Button>
                 </div>
-                <div className="h-[500px] w-full">
-                    <TerminalComponent url="ws://localhost:3000/api/terminal/local" />
+                <div className={"flex h-[400px] items-stretch gap-4 p-4"}>
+                    <div className={"h-full w-1/3"}>
+                        <textarea
+                            className="box-border h-full w-full resize-none"
+                            value={JSON.stringify(configSignal.value, null, 4)}
+                            readOnly
+                            disabled
+                        />
+                    </div>
+
+                    <div className="h-full w-2/3">
+                        <TerminalComponent url="ws://localhost:3000/api/terminal/local" />
+                    </div>
                 </div>
                 <div className="flex w-full justify-start gap-4">
                     {configSignal.value?.machines &&

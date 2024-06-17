@@ -22,3 +22,13 @@ tokio-console
 # BUGS
 
 -   virt-manager can't connect to local spice server, https://github.com/virt-manager/virt-manager/issues/592 use remote-viewer/virt-viewer
+
+
+59: eth1@if60: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue master br0 state UP 
+    link/ether 02:42:c0:a8:70:04 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.112.4/24 brd 192.168.112.255 scope global eth1
+       valid_lft forever preferred_lft forever
+63: eth0@if64: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP 
+    link/ether 02:42:ac:14:00:03 brd ff:ff:ff:ff:ff:ff
+    inet 172.20.0.3/16 brd 172.20.255.255 scope global eth0
+       valid_lft forever preferred_lft forever

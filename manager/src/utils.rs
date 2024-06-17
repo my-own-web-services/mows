@@ -5,7 +5,8 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use once_cell::sync::Lazy;
-use tokio::{process::Command, sync::RwLock};
+use timed_locks::RwLock;
+use tokio::process::Command;
 
 use crate::{
     config::{ClusterInstallState, MachineInstall, MachineInstallState, ManagerConfig},
@@ -57,7 +58,7 @@ pub async fn update_machine_install_state() -> anyhow::Result<()> {
 
     for machine in cfg1.machines.values() {
         if machine.poll_install_state(&cfg1.clusters).await.is_ok() {
-            let mut config_locked2 = CONFIG.write().await;
+            let mut config_locked2 = CONFIG.write_err().await?;
             let machine = some_or_bail!(
                 config_locked2.machines.get_mut(&machine.id),
                 "Machine not found"
@@ -81,7 +82,7 @@ pub async fn get_cluster_config() -> anyhow::Result<()> {
         if cluster.kubeconfig.is_none() {
             let kubeconfig = cluster.get_kubeconfig().await?;
 
-            let mut config_locked2 = CONFIG.write().await;
+            let mut config_locked2 = CONFIG.write_err().await?;
             let cluster = some_or_bail!(
                 config_locked2.clusters.get_mut(&cluster.id),
                 "Cluster not found"
@@ -101,7 +102,7 @@ pub async fn install_cluster_basics() -> anyhow::Result<()> {
     for cluster in cfg1.clusters.values() {
         if cluster.kubeconfig.is_some() && cluster.install_state.is_none() {
             cluster.install_basics().await?;
-            let mut config_locked2 = CONFIG.write().await;
+            let mut config_locked2 = CONFIG.write_err().await?;
             let cluster = some_or_bail!(
                 config_locked2.clusters.get_mut(&cluster.id),
                 "Cluster not found"

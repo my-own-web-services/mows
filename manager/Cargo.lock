@@ -980,10 +980,8 @@ dependencies = [
  "console-subscriber",
  "futures",
  "futures-util",
- "lazy_static",
  "once_cell",
  "openssl",
- "parking_lot 0.12.1",
  "pty-process",
  "rand",
  "serde",
@@ -993,6 +991,7 @@ dependencies = [
  "ssh2",
  "thiserror",
  "tikv-jemallocator",
+ "timed-locks",
  "tokio",
  "tokio-tungstenite 0.23.0",
  "tokio-util",
@@ -1785,6 +1784,16 @@ checksum = "965fe0c26be5c56c94e38ba547249074803efd52adfb66de62107d95aab3eaca"
 dependencies = [
  "libc",
  "tikv-jemalloc-sys",
+]
+
+[[package]]
+name = "timed-locks"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e70ab652a1e0c2ccc438672650ff7498c5b60525e209df78b862e4dae72bbe2b"
+dependencies = [
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

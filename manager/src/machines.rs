@@ -1,5 +1,4 @@
 use anyhow::bail;
-use serde_json::Value;
 use std::{collections::HashMap, net::IpAddr};
 use tokio::process::Command;
 
@@ -9,7 +8,7 @@ use crate::{
         BackupNode, Cluster, ClusterNode, Machine, MachineInstall, MachineInstallState,
         MachineType, PixiecoreBootConfig, SshAccess,
     },
-    get_current_config_cloned, some_or_bail,
+    some_or_bail,
     utils::{generate_id, get_current_ip_from_mac, CONFIG},
 };
 
@@ -146,7 +145,7 @@ impl Machine {
             MachineType::Local => todo!(),
             MachineType::ExternalHetzner => todo!(),
         };
-        let mut config_lock = CONFIG.write().await;
+        let mut config_lock = CONFIG.write_err().await?;
 
         // remove the machine from the machine inventory
         config_lock.machines.remove(&self.id);
@@ -280,7 +279,7 @@ impl Machine {
         )
         .await?;
 
-        let mut config_lock = CONFIG.write().await;
+        let mut config_lock = CONFIG.write_err().await?;
 
         let current_machine = some_or_bail!(
             config_lock.machines.get_mut(&self.id),
@@ -352,7 +351,7 @@ impl Machine {
         if let Some(mac) = &self.mac {
             if let Ok(ip_from_mac) = get_current_ip_from_mac(mac).await {
                 if let Ok(ip_from_mac_parsed) = ip_from_mac.parse() {
-                    let mut config_lock = CONFIG.write().await;
+                    let mut config_lock = CONFIG.write_err().await?;
                     let current_machine =
                         some_or_bail!(config_lock.machines.get_mut(&self.id), "Machine not found");
                     current_machine.last_ip = Some(ip_from_mac_parsed);
