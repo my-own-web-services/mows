@@ -3,6 +3,7 @@ use crate::{
     types::Success,
     utils::{AppError, CONFIG},
 };
+use anyhow::Result;
 use axum::Json;
 
 #[utoipa::path(
@@ -17,7 +18,7 @@ use axum::Json;
 pub async fn update_config(
     Json(posted_config): Json<ManagerConfig>,
 ) -> Result<Json<Success>, AppError> {
-    let mut config = CONFIG.write().await;
+    let mut config = CONFIG.write_err().await?;
 
     *config = posted_config;
 
@@ -32,9 +33,10 @@ pub async fn update_config(
     get,
     path = "/api/config",
     responses(
-        (status = 200, description = "Gets the config", body = ManagerConfig)
+        (status = 200, description = "Gets the config", body = ManagerConfig),
+        (status = 500, description = "Failed to get config", body = String)
     )
 )]
-pub async fn get_config() -> Json<ManagerConfig> {
-    Json(CONFIG.read().await.clone())
+pub async fn get_config() -> Result<Json<ManagerConfig>, AppError> {
+    Ok(Json(CONFIG.read_err().await?.clone()))
 }

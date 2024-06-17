@@ -1,6 +1,8 @@
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tokio::spawn;
+use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
@@ -22,15 +24,24 @@ use crate::{
 pub async fn create_machines(
     Json(machine_creation_config): Json<MachineCreationReqBody>,
 ) -> Result<Json<Success>, AppError> {
-    for _ in 0..3 {
-        let machine = Machine::new(&machine_creation_config).await?;
-        let mut config_locked = CONFIG.write().await;
-        config_locked.machines.insert(machine.id.clone(), machine);
-    }
+    spawn(async move {
+        if let Err(e) = create_machine(machine_creation_config).await {
+            error!("Failed to create machine: {:?}", e);
+        }
+    });
 
     Ok(Json(Success {
         message: "Machines created".to_string(),
     }))
+}
+
+pub async fn create_machine(machine_creation_config: MachineCreationReqBody) -> anyhow::Result<()> {
+    for _ in 0..3 {
+        let machine = Machine::new(&machine_creation_config).await?;
+        let mut config_locked = CONFIG.write_err().await?;
+        config_locked.machines.insert(machine.id.clone(), machine);
+    }
+    Ok(())
 }
 
 #[utoipa::path(
@@ -45,7 +56,7 @@ pub async fn create_machines(
 pub async fn signal_machine(
     Json(machine_signal): Json<MachineSignalReqBody>,
 ) -> Result<Json<Success>, AppError> {
-    let config = CONFIG.read().await;
+    let config = CONFIG.read_err().await?;
     let machine = config
         .machines
         .get(&machine_signal.machine_id)
@@ -93,7 +104,7 @@ pub async fn delete_machine(
 pub async fn get_machine_info(
     Json(machine_info_json): Json<MachineInfoReqBody>,
 ) -> Result<Json<MachineInfoResBody>, AppError> {
-    let config = CONFIG.read().await;
+    let config = CONFIG.read_err().await?;
     let machine = config
         .machines
         .get(&machine_info_json.machine_id)

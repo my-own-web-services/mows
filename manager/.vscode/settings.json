@@ -1,5 +1,29 @@
-{ 
-    "cSpell.words": [
+{
+    "restoreTerminals.terminals": [
+
+        {
+          "splitTerminals": [
+            {
+              "name": "frontend dev server",
+              "commands": ["cd ui","pnpm dev"],
+            },
+            {
+              "name": "frontend",
+              "commands": ["cd ui"]
+            }
+          ]
+        },
+        {
+          "splitTerminals": [
+            {
+              "name": "backend",
+              "commands": []
+            },
+
+          ]
+        },
+      ],
+      "cSpell.words": [
         "cpus",
         "domiflist",
         "dominfo",

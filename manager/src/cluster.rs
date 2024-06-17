@@ -4,7 +4,7 @@ use anyhow::bail;
 use tokio::{fs, process::Command};
 
 use crate::{
-    config::{Cluster, ClusterNode, ManagerConfig, MachineInstallState, SshAccess},
+    config::{Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
     get_current_config_cloned, some_or_bail,
     utils::{generate_id, CONFIG},
 };
@@ -21,7 +21,7 @@ impl Cluster {
 
         let mut cluster_nodes = HashMap::new();
 
-        let cfg1 = CONFIG.read().await;
+        let cfg1 = CONFIG.read_err().await?;
 
         let possible_machines = cfg1.machines.clone();
         drop(cfg1);
@@ -72,7 +72,7 @@ impl Cluster {
             install_state: None,
         };
         {
-            let mut config = CONFIG.write().await;
+            let mut config = CONFIG.write_err().await?;
 
             config.clusters.insert(cluster_id, cluster.clone());
         }
@@ -133,14 +133,13 @@ impl Cluster {
     }
 
     pub async fn write_kubeconfig(&self) -> anyhow::Result<()> {
-        let kubeconfig_path = format!("/tmp/{}-kubeconfig.yml", &self.id);
+        let kubeconfig_path = "~/.kube/config";
+
         let ip = self.get_reachable_node_ip().await?;
 
         let kubeconfig = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
             .replace("https://127.0.0.1", &format!("https://{}", ip));
         std::fs::write(&kubeconfig_path, kubeconfig)?;
-
-        std::env::set_var("KUBECONFIG", &kubeconfig_path);
 
         Ok(())
     }
@@ -149,24 +148,14 @@ impl Cluster {
         &self,
         command: &mut Command,
     ) -> anyhow::Result<String> {
-        let kubeconfig_path = "~/.kube/config";
-
-        let ip = self.get_reachable_node_ip().await?;
-
-        let kubeconfig = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
-            .replace("https://127.0.0.1", &format!("https://{}", ip));
-
-        fs::write(kubeconfig_path, kubeconfig).await?;
+        self.write_kubeconfig().await?;
 
         let output = match command.output().await {
             Ok(v) => v,
             Err(e) => {
-                fs::remove_file(kubeconfig_path).await?;
                 bail!(e)
             }
         };
-
-        fs::remove_file(kubeconfig_path).await?;
 
         if !output.status.success() {
             bail!(
@@ -180,6 +169,23 @@ impl Cluster {
 
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         // install kube-vip
+
+        {
+            let _ = self
+                .run_command_with_kubeconfig(Command::new("kubectl").args([
+                    "apply",
+                    "-f",
+                    "/install/cluster-basics/kube-vip/role.yml",
+                ]))
+                .await;
+            let _ = self
+                .run_command_with_kubeconfig(Command::new("kubectl").args([
+                    "apply",
+                    "-f",
+                    "/install/cluster-basics/kube-vip/manifest.yml",
+                ]))
+                .await;
+        }
 
         // install storage: longhorn
         {

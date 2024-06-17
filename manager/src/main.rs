@@ -22,6 +22,7 @@ use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
+use tracing::{error, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -83,7 +84,7 @@ async fn main() -> Result<(), anyhow::Error> {
     )]
     struct ApiDoc;
     {
-        let _ = CONFIG.read().await;
+        let _ = CONFIG.read_err().await?;
     }
 
     let console_layer = console_subscriber::ConsoleLayer::builder()
@@ -96,49 +97,11 @@ async fn main() -> Result<(), anyhow::Error> {
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 // axum logs rejections from built-in extractors with the `axum::rejection`
                 // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
-                "manager=debug,tower_http=debug,axum::rejection=trace,tokio=debug".into()
+                "main=debug,manager=debug,tower_http=debug,axum::rejection=trace,tokio=debug".into()
             }),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
-
-    tokio::spawn(async {
-        loop {
-            tokio::time::sleep(Duration::from_secs(5)).await;
-            match update_machine_install_state().await {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Error updating machine install state: {:?}", e);
-                }
-            };
-        }
-    });
-
-    tokio::spawn(async {
-        loop {
-            tokio::time::sleep(Duration::from_secs(5)).await;
-
-            match get_cluster_config().await {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Error getting cluster config: {:?}", e);
-                }
-            };
-        }
-    });
-
-    tokio::spawn(async {
-        loop {
-            tokio::time::sleep(Duration::from_secs(5)).await;
-
-            match install_cluster_basics().await {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Error installing cluster basics: {:?}", e);
-                }
-            };
-        }
-    });
 
     //Machine::delete_all_mows_machines().unwrap();
 
@@ -194,7 +157,24 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
 
-    println!("Open http://localhost:3000 in your browser");
+    info!("Open http://localhost:3000 in your browser");
+
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if let Err(e) = update_machine_install_state().await {
+                error!("Error updating machine install state: {:?}", e);
+            };
+
+            if let Err(e) = get_cluster_config().await {
+                error!("Error getting cluster config: {:?}", e);
+            };
+
+            if let Err(e) = install_cluster_basics().await {
+                error!("Error installing cluster basics: {:?}", e);
+            };
+        }
+    });
 
     axum::serve(listener, app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())

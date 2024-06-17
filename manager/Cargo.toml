@@ -27,11 +27,9 @@ serde_yaml = { version = "0.9.13" }
 serde_json = { version = "1" }
 
 once_cell = "1.19.0"
-parking_lot = "0.12.1"
 
 
 anyhow = "1"
-lazy_static = "1.3.0"
 
 rand = "0.8.5"
 
@@ -72,6 +70,7 @@ async-stream = "0.3.5"
 thiserror = "1.0.40"
 tokio-util = "0.7.8"
 serde-xml-rs = "0.6.0"
+timed-locks = "0.1.1"
 
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]

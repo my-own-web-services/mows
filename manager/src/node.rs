@@ -4,7 +4,7 @@ use crate::{config::ClusterNode, some_or_bail, utils::CONFIG};
 
 impl ClusterNode {
     pub async fn get_kubeconfig(&self) -> anyhow::Result<String> {
-        let config = CONFIG.read().await;
+        let config = CONFIG.read_err().await?;
         let machine = some_or_bail!(
             config.get_machine_by_id(&self.machine_id),
             format!("Machine with id: {} not found", self.machine_id)

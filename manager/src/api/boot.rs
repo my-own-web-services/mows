@@ -24,7 +24,7 @@ pub async fn get_boot_config_by_mac(
 }
 
 pub async fn get_boot_config(mac_addr: String) -> Result<PixiecoreBootConfig, anyhow::Error> {
-    let mut config = CONFIG.write().await;
+    let mut config = CONFIG.write_err().await?;
 
     for machine in config.machines.values_mut() {
         if let Some(mac) = &machine.mac {

@@ -62,7 +62,7 @@ virsh net-start mows-manager
 
 
 ip link add name br0 type bridge
-ip link set eth1 master br0
+ip link set pxe0 master br0
 ip link set br0 up
 ip address add dev br0 192.168.0.90/24
 

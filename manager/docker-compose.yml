@@ -1,5 +1,4 @@
 version: "3.9"
-
 services:
     mows-manager:
         image: mows-manager
@@ -14,15 +13,16 @@ services:
             mows-manager-direct-attach:
                 ipv4_address: "192.168.111.3"
             mows-manager:
-
         ports:
             - "127.0.0.1:3000:3000"
             - "127.0.0.1:6669:6669"
         volumes:
             - ./temp-pxe-files:/pxe_files/
+            - ./install:/install
         #    - /var/run/docker.sock:/var/run/docker.sock
         environment:
             - LIBVIRT_DEFAULT_URI=qemu+tcp://qemu/system # qemu+tcp://localhost/system
+            #- RUST_BACKTRACE=full
 
     qemu:
         image: qemu
@@ -44,6 +44,7 @@ services:
         networks:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.4"
+            # we need two networks because the pxe network is bridged
             mows-manager:
     dhcp-qemu:
         build:
@@ -74,9 +75,14 @@ networks:
     mows-manager-pxe:
         driver: bridge
         ipam:
+            driver: default
             config:
                 - subnet: 192.168.112.0/24
                   gateway: "192.168.112.1"
+        driver_opts:
+            com.docker.network.bridge.name: pxe
+            com.docker.network.container_iface_prefix: pxe
+        
 
     mows-manager-direct-attach:
         driver: bridge
