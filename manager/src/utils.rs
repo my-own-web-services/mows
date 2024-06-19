@@ -1,20 +1,15 @@
-use std::sync::Arc;
-
+use anyhow::Context;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use once_cell::sync::Lazy;
-use timed_locks::RwLock;
 use tokio::process::Command;
+use tracing::debug;
 
 use crate::{
-    config::{ClusterInstallState, MachineInstall, MachineInstallState, ManagerConfig},
-    get_current_config_cloned, some_or_bail,
+    config::{ClusterInstallState, MachineInstall, MachineInstallState},
+    get_current_config_cloned, some_or_bail, write_config,
 };
-
-pub static CONFIG: Lazy<Arc<RwLock<ManagerConfig>>> =
-    Lazy::new(|| Arc::new(RwLock::new(ManagerConfig::default())));
 
 pub fn generate_id(length: usize) -> String {
     use rand::Rng;
@@ -57,21 +52,23 @@ pub async fn update_machine_install_state() -> anyhow::Result<()> {
     let cfg1 = get_current_config_cloned!();
 
     for machine in cfg1.machines.values() {
-        if machine.poll_install_state(&cfg1.clusters).await.is_ok() {
-            let mut config_locked2 = CONFIG.write_err().await?;
-            let machine = some_or_bail!(
-                config_locked2.machines.get_mut(&machine.id),
-                "Machine not found"
-            );
-            *machine.install.as_mut().unwrap() = MachineInstall {
-                state: Some(MachineInstallState::Installed),
-                boot_config: None,
-                primary: machine.install.as_ref().unwrap().primary,
-            };
-            drop(config_locked2);
+        debug!("Checking install state for machine {}", machine.id);
+        if machine.poll_install_state(&cfg1.clusters).await.is_err() {
+            continue;
         }
+        debug!("Machine {} is installed", machine.id);
+        let mut config_locked2 = write_config!();
+        let machine = some_or_bail!(
+            config_locked2.machines.get_mut(&machine.id),
+            "Machine not found"
+        );
+        let primary = machine.install.as_ref().unwrap().primary;
+        *machine.install.as_mut().unwrap() = MachineInstall {
+            state: Some(MachineInstallState::Installed),
+            boot_config: None,
+            primary,
+        };
     }
-
     Ok(())
 }
 
@@ -80,16 +77,28 @@ pub async fn get_cluster_config() -> anyhow::Result<()> {
 
     for cluster in cfg1.clusters.values() {
         if cluster.kubeconfig.is_none() {
-            let kubeconfig = cluster.get_kubeconfig().await?;
+            debug!("Getting kubeconfig for cluster {}", cluster.id);
+            let kubeconfig = cluster.get_kubeconfig().await.context(format!(
+                "Failed to get kubeconfig for cluster {}",
+                cluster.id
+            ))?;
+            debug!("Got kubeconfig for cluster {}", cluster.id);
 
-            let mut config_locked2 = CONFIG.write_err().await?;
+            let mut config_locked2 = write_config!();
             let cluster = some_or_bail!(
                 config_locked2.clusters.get_mut(&cluster.id),
                 "Cluster not found"
             );
             cluster.kubeconfig = Some(kubeconfig);
+            cluster.install_state = Some(ClusterInstallState::Kubernetes);
 
-            config_locked2.apply_environment().await?;
+            drop(config_locked2);
+
+            let cfg3 = get_current_config_cloned!();
+
+            cfg3.apply_environment()
+                .await
+                .context("Failed to apply environment after getting kubeconfig for cluster")?;
         }
     }
 
@@ -100,9 +109,14 @@ pub async fn install_cluster_basics() -> anyhow::Result<()> {
     let cfg1 = get_current_config_cloned!();
 
     for cluster in cfg1.clusters.values() {
-        if cluster.kubeconfig.is_some() && cluster.install_state.is_none() {
+        if cluster.kubeconfig.is_some()
+            && cluster.install_state == Some(ClusterInstallState::Kubernetes)
+        {
+            debug!("Installing basics for cluster {}", cluster.id);
             cluster.install_basics().await?;
-            let mut config_locked2 = CONFIG.write_err().await?;
+            debug!("Installed basics for cluster {}", cluster.id);
+
+            let mut config_locked2 = write_config!();
             let cluster = some_or_bail!(
                 config_locked2.clusters.get_mut(&cluster.id),
                 "Cluster not found"
@@ -142,7 +156,9 @@ pub async fn get_connected_machines_arp() -> anyhow::Result<Vec<Arp>> {
 }
 
 pub async fn get_current_ip_from_mac(mac: &str) -> anyhow::Result<String> {
-    let online_machines = get_connected_machines_arp().await?;
+    let online_machines = get_connected_machines_arp().await.context(
+        "Could not get connected machines from arp table while trying to get ip from mac address",
+    )?;
 
     let arp_machine = some_or_bail!(
         online_machines.into_iter().find(|arp| arp.mac == mac),

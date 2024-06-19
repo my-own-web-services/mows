@@ -25,6 +25,7 @@
         "postcss": "^8.4.38",
         "preact": "^10.22.0",
         "react-dom": "^18.2.0",
+        "react-icons": "^5.2.1",
         "react-router-dom": "5",
         "react-vnc": "^2.0.1",
         "rsuite": "^5.54.0",

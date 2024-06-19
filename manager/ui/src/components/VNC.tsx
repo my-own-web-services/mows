@@ -1,9 +1,11 @@
+import { Component } from "preact";
+import { CSSProperties } from "preact/compat";
+import { VscDebugStart, VscDebugStop, VscSync, VscSyncIgnored, VscTrash } from "react-icons/vsc";
 //@ts-ignore
 import { VncScreen } from "react-vnc";
 import { Button } from "rsuite";
 import { Api, Machine, MachineSignal } from "../api-client";
-import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { machineStatusSignal } from "../config";
 
 interface VNCProps {
     readonly className?: string;
@@ -83,36 +85,103 @@ export default class VNC extends Component<VNCProps, VNCState> {
     }
 
     render = () => {
+        const buttonSize = "sm";
+        const machineStatus = machineStatusSignal.value[this.props.machine.id];
         return (
             <div style={{ ...this.props.style }} className={`VNC ${this.props.className ?? ""}`}>
-                <div className="flex gap-1">
-                    <Button size="xs" onClick={() => this.signalMachine(MachineSignal.Start)}>
-                        Start
-                    </Button>
-                    <Button size="xs" onClick={() => this.signalMachine(MachineSignal.Shutdown)}>
-                        Shutdown
-                    </Button>
-                    <Button size="xs" onClick={() => this.signalMachine(MachineSignal.Reboot)}>
-                        Reboot
-                    </Button>
-                    <Button size="xs" onClick={() => this.signalMachine(MachineSignal.Reset)}>
-                        Reset
-                    </Button>
-                    <Button size="xs" onClick={() => this.signalMachine(MachineSignal.ForceOff)}>
-                        ForceOff
-                    </Button>
-                    <Button size="xs" onClick={() => this.delete()}>
-                        Delete
-                    </Button>
-                </div>
-                <div>
-                    {this.state.machine_infos !== null && (
+                <h1 className="pb-1 text-xl">
+                    <span
+                        className={(() => {
+                            const classes = [
+                                "mr-2",
+                                "inline-block",
+                                "h-4",
+                                "w-4",
+                                "rounded-full",
+                                "align-middle"
+                            ];
+
+                            if (machineStatus === `running\n\n`) {
+                                classes.push("bg-[lime]");
+                            } else if (machineStatus === `shut off\n\n`) {
+                                classes.push("bg-[gray]");
+                            } else {
+                                classes.push("bg-[gray]");
+                            }
+                            return classes.join(" ");
+                        })()}
+                    ></span>
+                    {this.props.machine.id}
+                </h1>
+
+                <div
+                    className={
+                        "flex min-h-[300px] items-center justify-center rounded-lg bg-[black] p-2"
+                    }
+                >
+                    {this.state.machine_infos !== null && machineStatus === "running\n\n" ? (
                         <VncScreen
-                            style={{ width: "100%", height: "100%" }}
                             url={this.getUrl(this.state.machine_infos)}
                             backgroundColor="#000"
+                            loadingUI={<div></div>}
                         />
+                    ) : (
+                        <div
+                            className={
+                                "flex h-full w-full items-center justify-center text-[lightgrey]"
+                            }
+                        >
+                            {machineStatus ?? "Loading..."}
+                        </div>
                     )}
+                </div>
+                <div className="flex gap-2 pt-2">
+                    <Button
+                        title="Start"
+                        size={buttonSize}
+                        onClick={() => this.signalMachine(MachineSignal.Start)}
+                    >
+                        <VscDebugStart />
+                    </Button>
+                    <Button
+                        title="Shutdown"
+                        size={buttonSize}
+                        onClick={() => this.signalMachine(MachineSignal.Shutdown)}
+                    >
+                        <VscDebugStop />
+                    </Button>
+                    <Button
+                        title="Reboot"
+                        size={buttonSize}
+                        onClick={() => this.signalMachine(MachineSignal.Reboot)}
+                    >
+                        <VscSync />
+                    </Button>
+                    <Button
+                        title="Reset"
+                        size={buttonSize}
+                        onClick={() => this.signalMachine(MachineSignal.Reset)}
+                    >
+                        <VscSyncIgnored />
+                    </Button>
+                    <Button
+                        title="Force Off"
+                        size={buttonSize}
+                        onClick={() => this.signalMachine(MachineSignal.ForceOff)}
+                    >
+                        💥
+                    </Button>
+                    <Button size={buttonSize} onClick={() => this.delete()}>
+                        <VscTrash />
+                    </Button>
+                </div>
+                <div className={"flex flex-col gap-1 pt-2"}>
+                    <div>
+                        Last IP: <span>{this.props.machine.last_ip}</span>
+                    </div>
+                    <div>
+                        MAC: <span>{this.props.machine.mac}</span>
+                    </div>
                 </div>
             </div>
         );

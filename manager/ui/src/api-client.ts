@@ -14,7 +14,7 @@ export interface BackupNode {
   hostname: string;
   mac: string;
   machine_id: string;
-  ssh_access: SshAccess;
+  ssh: SshAccess;
 }
 
 export interface Cluster {
@@ -32,13 +32,14 @@ export interface Cluster {
 export type ClusterCreationConfig = object;
 
 export enum ClusterInstallState {
+  Kubernetes = "Kubernetes",
   Basics = "Basics",
 }
 
 export interface ClusterNode {
   hostname: string;
   machine_id: string;
-  ssh_access: SshAccess;
+  ssh: SshAccess;
 }
 
 export interface ExternalHetznerConfig {
@@ -126,6 +127,11 @@ export enum MachineSignal {
 export interface MachineSignalReqBody {
   machine_id: string;
   signal: MachineSignal;
+}
+
+export interface MachineStatus {
+  id: string;
+  status: string;
 }
 
 export enum MachineType {
@@ -410,10 +416,9 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request GET:/api/config
      */
     getConfig: (params: RequestParams = {}) =>
-      this.request<ManagerConfig, any>({
+      this.request<any, ManagerConfig>({
         path: `/api/config`,
         method: "GET",
-        format: "json",
         ...params,
       }),
 
@@ -499,6 +504,20 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         body: data,
         type: ContentType.Json,
         format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
+     * @name GetMachineStatus
+     * @request GET:/api/machines/status
+     */
+    getMachineStatus: (params: RequestParams = {}) =>
+      this.request<any, any>({
+        path: `/api/machines/status`,
+        method: "GET",
         ...params,
       }),
 

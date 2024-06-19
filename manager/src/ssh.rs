@@ -1,10 +1,12 @@
-use std::{io::Read, process::Command};
+use std::time::Duration;
+use std::{path::Path, process::Stdio};
 
-use ssh2::Session;
-use std::net::TcpStream;
+use anyhow::bail;
+use async_ssh2_tokio::{AuthMethod, Client, Config, ServerCheckMethod};
+use tokio::{io::AsyncWriteExt, process::Command};
 
 use crate::{
-    config::{Machine, SshAccess},
+    config::{ClusterNode, Machine, SshAccess},
     utils::generate_id,
 };
 
@@ -14,12 +16,12 @@ struct SshPubAndPrivKey {
 }
 
 impl SshAccess {
-    pub fn new() -> anyhow::Result<Self> {
+    pub async fn new() -> anyhow::Result<Self> {
         let ssh_username = "kairos".to_string();
         let ssh_password = generate_id(100);
         let ssh_passphrase = generate_id(100);
 
-        let ssh_keys = Self::generate_ssh_key(&ssh_passphrase)?;
+        let ssh_keys = Self::generate_ssh_key(&ssh_passphrase).await?;
 
         Ok(Self {
             ssh_username,
@@ -31,26 +33,25 @@ impl SshAccess {
         })
     }
 
-    fn generate_ssh_key(ssh_passphrase: &str) -> anyhow::Result<SshPubAndPrivKey> {
+    async fn generate_ssh_key(ssh_passphrase: &str) -> anyhow::Result<SshPubAndPrivKey> {
         Command::new("ssh-keygen")
             .args(["-t", "ed25519", "-q", "-N", ssh_passphrase, "-f", "/id"])
             .spawn()?
-            .wait()?;
+            .wait()
+            .await?;
 
         let keys = SshPubAndPrivKey {
-            pub_key: std::fs::read_to_string("/id.pub")?.trim().to_string(),
-            priv_key: std::fs::read_to_string("/id")?,
+            pub_key: tokio::fs::read_to_string("/id.pub")
+                .await?
+                .trim()
+                .to_string(),
+            priv_key: tokio::fs::read_to_string("/id").await?,
         };
 
-        std::fs::remove_file("/id")?;
-        std::fs::remove_file("/id.pub")?;
+        tokio::fs::remove_file("/id").await?;
+        tokio::fs::remove_file("/id.pub").await?;
 
         Ok(keys)
-    }
-
-    pub async fn prepare_manual_access() -> anyhow::Result<()> {
-        todo!()
-        //fs::write("~./ssh/id", contents)
     }
 
     pub async fn exec(
@@ -61,31 +62,64 @@ impl SshAccess {
     ) -> anyhow::Result<String> {
         let ip = machine.get_current_ip().await?;
 
-        let tcp = TcpStream::connect(format!("{ip}:22"))?;
-
         // TODO add known hosts!
 
-        let mut session = Session::new()?;
-        session.set_tcp_stream(tcp);
-        session.handshake()?;
+        let auth_method = AuthMethod::with_key(&self.ssh_private_key, Some(&self.ssh_passphrase));
 
-        session.userauth_pubkey_memory(
+        let mut ssh_config = Config::default();
+        ssh_config.inactivity_timeout = Some(Duration::from_secs(2));
+
+        let client = Client::connect_with_config(
+            (ip, 22),
             &self.ssh_username,
-            Some(&self.ssh_public_key),
-            &self.ssh_private_key,
-            Some(&self.ssh_passphrase),
-        )?;
+            auth_method,
+            ServerCheckMethod::NoCheck,
+            ssh_config,
+        )
+        .await?;
 
-        session.set_timeout(timeout_seconds * 1000);
+        let res = client.execute(command).await?;
 
-        let mut channel = session.channel_session()?;
+        if res.exit_status != 0 {
+            bail!("SSH Command failed: {:?}", res.stderr)
+        }
 
-        channel.exec(command)?;
+        Ok(res.stdout)
+    }
 
-        let mut s = String::new();
-        channel.read_to_string(&mut s)?;
-        channel.wait_close()?;
+    pub async fn add_ssh_key_to_local_agent(&self, node: &ClusterNode) -> anyhow::Result<()> {
+        let key_path = Path::new("/id/");
 
-        Ok(s)
+        tokio::fs::create_dir_all(&key_path).await?;
+
+        tokio::fs::write(&key_path.join(&node.hostname), &self.ssh_private_key).await?;
+        // add private keys to ssh agent
+        let mut child = Command::new("ssh-add")
+            .arg(&key_path)
+            .stdin(Stdio::piped())
+            .spawn()
+            .expect("Failed to execute ssh-add");
+
+        {
+            let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+            stdin
+                .write_all(&self.ssh_passphrase.as_bytes())
+                .await
+                .expect("Failed to write to stdin");
+        }
+
+        let output = child
+            .wait_with_output()
+            .await
+            .expect("Failed to read stdout");
+
+        tokio::fs::remove_file(&key_path).await?;
+
+        if output.status.success() {
+            // remove the private key
+            Ok(())
+        } else {
+            bail!("Failed to add ssh key to agent")
+        }
     }
 }

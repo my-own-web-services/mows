@@ -12,9 +12,8 @@ use manager::api::machines::*;
 use manager::api::terminal::*;
 use manager::config::*;
 use manager::types::*;
-use manager::utils::{
-    get_cluster_config, install_cluster_basics, update_machine_install_state, CONFIG,
-};
+use manager::utils::{get_cluster_config, install_cluster_basics, update_machine_install_state};
+
 use std::time::Duration;
 use tokio::process::Command;
 use tokio::signal;
@@ -22,17 +21,20 @@ use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
-use tracing::{error, info};
+use tracing::info;
+use tracing_subscriber::Layer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-
+/*
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
+*/
 
+#[tracing::instrument]
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     #[derive(OpenApi)]
@@ -46,7 +48,8 @@ async fn main() -> Result<(), anyhow::Error> {
             get_boot_config_by_mac,
             terminal_local,
             delete_machine,
-            get_machine_info
+            get_machine_info,
+            get_machine_status
         ),
         components(
             schemas(
@@ -75,7 +78,8 @@ async fn main() -> Result<(), anyhow::Error> {
                 MachineSignal,
                 MachineDeleteReqBody,
                 MachineInfoReqBody,
-                MachineInfoResBody
+                MachineInfoResBody,
+                MachineStatus
             )
         ),
         tags(
@@ -83,40 +87,43 @@ async fn main() -> Result<(), anyhow::Error> {
         )
     )]
     struct ApiDoc;
-    {
-        let _ = CONFIG.read_err().await?;
-    }
 
     let console_layer = console_subscriber::ConsoleLayer::builder()
         .server_addr(([0, 0, 0, 0], 6669))
-        .spawn();
+        .spawn()
+        .with_filter(tracing_subscriber::EnvFilter::new(
+            "main=trace,manager=trace,tower_http=trace,axum::rejection=trace,tokio=trace,runtime=trace"
+            ,
+        ));
+
+    let log_filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        // axum logs rejections from built-in extractors with the `axum::rejection`
+        // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
+        "main=debug,manager=debug,tower_http=trace,axum::rejection=trace,tokio=debug,runtime=debug"
+            .into()
+    });
+    let log_layer = tracing_subscriber::fmt::layer().with_filter(log_filter);
 
     tracing_subscriber::registry()
         .with(console_layer)
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                // axum logs rejections from built-in extractors with the `axum::rejection`
-                // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
-                "main=debug,manager=debug,tower_http=debug,axum::rejection=trace,tokio=debug".into()
-            }),
-        )
-        .with(tracing_subscriber::fmt::layer())
+        .with(log_layer)
         .init();
 
     //Machine::delete_all_mows_machines().unwrap();
 
     let serve_dir = ServeDir::new("ui").not_found_service(ServeFile::new("ui/index.html"));
 
-    let api_url = "http://localhost:3000";
+    let api_url = "http://0.0.0.0:3000";
 
     let origins = ["http://localhost:5173".parse()?, api_url.parse()?];
 
+    info!("Starting pixiecore servers");
     Command::new("pixiecore")
-        .args(["api", api_url, "-l", "192.168.111.3"])
+        .args(["api", api_url, "-l", "192.168.111.3", "--dhcp-no-bind"])
         .spawn()
         .context("Failed to start pixiecore server for direct attach")?;
     Command::new("pixiecore")
-        .args(["api", api_url, "-l", "192.168.112.3"])
+        .args(["api", api_url, "-l", "192.168.112.3", "--dhcp-no-bind"])
         .spawn()
         .context("Failed to start pixiecore server for qemu")?;
 
@@ -128,6 +135,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .route("/api/machines/signal", post(signal_machine))
         .route("/api/machines/delete", delete(delete_machine))
         .route("/api/machines/info", post(get_machine_info))
+        .route("/api/machines/status", get(get_machine_status))
         .route("/api/cluster/create", post(create_cluster))
         .route("/api/terminal/local", get(terminal_local))
         .route("/v1/boot/:mac_addr", get(get_boot_config_by_mac))
@@ -150,7 +158,7 @@ async fn main() -> Result<(), anyhow::Error> {
                         ))
                     }
                 }))
-                .timeout(Duration::from_secs(2000))
+                .timeout(Duration::from_secs(5))
                 .layer(TraceLayer::new_for_http())
                 .into_inner(),
         );
@@ -159,23 +167,36 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Open http://localhost:3000 in your browser");
 
+    info!("Starting background tasks");
+    // these are separated for easier debugging
     tokio::spawn(async {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
             if let Err(e) = update_machine_install_state().await {
-                error!("Error updating machine install state: {:?}", e);
-            };
-
-            if let Err(e) = get_cluster_config().await {
-                error!("Error getting cluster config: {:?}", e);
-            };
-
-            if let Err(e) = install_cluster_basics().await {
-                error!("Error installing cluster basics: {:?}", e);
+                info!("Could not update machine install state: {:?}", e);
             };
         }
     });
 
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if let Err(e) = get_cluster_config().await {
+                info!("Could not get cluster config: {:?}", e);
+            };
+        }
+    });
+
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if let Err(e) = install_cluster_basics().await {
+                info!("Could not install cluster basics: {:?}", e);
+            };
+        }
+    });
+
+    info!("Starting server");
     axum::serve(listener, app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await?;
