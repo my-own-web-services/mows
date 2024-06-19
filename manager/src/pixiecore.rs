@@ -36,7 +36,8 @@ impl PixiecoreBootConfig {
             primary_node,
             k3s_token,
             cloud_init_str,
-        )?;
+        )
+        .await?;
 
         Ok(Self {
             kernel: format!(
@@ -67,7 +68,7 @@ impl PixiecoreBootConfig {
         k3s_version: &str,
         os: &str,
     ) -> anyhow::Result<()> {
-        std::fs::create_dir_all(DOWNLOAD_DIRECTORY)?;
+        tokio::fs::create_dir_all(DOWNLOAD_DIRECTORY).await?;
 
         let kernel_path = Self::get_artifact_path("-kernel", kairos_version, k3s_version, os)?;
         let initrd_path = Self::get_artifact_path("-initrd", kairos_version, k3s_version, os)?;
@@ -96,7 +97,7 @@ impl PixiecoreBootConfig {
         Ok(())
     }
 
-    fn generate_cloud_init(
+    async fn generate_cloud_init(
         hostname: &str,
         ssh_config: &SshAccess,
         primary_node: &Option<String>,
@@ -139,7 +140,7 @@ impl PixiecoreBootConfig {
             bail!("Failed to replace all replacements in cloud-init")
         }
 
-        std::fs::write(cloud_init_path, temp_config)?;
+        tokio::fs::write(cloud_init_path, temp_config).await?;
 
         Ok(())
     }

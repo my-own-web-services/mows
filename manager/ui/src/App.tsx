@@ -1,14 +1,13 @@
-import { Api, ManagerConfig } from "./api-client";
-import Dev from "./components/Dev";
-import { CustomProvider } from "rsuite";
-import { BrowserRouter, Route, Switch } from "react-router-dom";
-import "rsuite/dist/rsuite.min.css";
-import "./index.scss";
-import Navbar from "./components/Navbar";
-import { signal } from "@preact/signals";
 import "@fontsource-variable/inter";
-import { Component, PureComponent } from "preact/compat";
-import { configSignal, reloadConfig } from "./config";
+import { Component } from "preact/compat";
+import { BrowserRouter, Route, Switch } from "react-router-dom";
+import { CustomProvider } from "rsuite";
+import "rsuite/dist/rsuite.min.css";
+import { Api } from "./api-client";
+import Dev from "./components/Dev";
+import Navbar from "./components/Navbar";
+import { handleConfigUpdate, handleMachineStatusUpdate } from "./config";
+import "./index.scss";
 
 interface AppProps {}
 
@@ -24,8 +23,9 @@ export default class App extends Component<AppProps, AppState> {
     }
 
     componentDidMount = async () => {
-        await reloadConfig();
-        //setInterval(this.loadConfig, 1000);
+        await handleConfigUpdate();
+        await handleMachineStatusUpdate();
+        //setInterval(reloadConfig, 1000);
     };
 
     render = () => {

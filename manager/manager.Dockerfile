@@ -13,7 +13,7 @@ RUN rm -f target/x86_64-unknown-linux-musl/debug/deps/mows-manager*
 COPY --chown=root:root ./src src
 RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --bin main
 RUN strip target/x86_64-unknown-linux-musl/debug/main
-RUN upx --best --lzma target/x86_64-unknown-linux-musl/debug/main
+#RUN upx --best --lzma target/x86_64-unknown-linux-musl/debug/main
 
 
 

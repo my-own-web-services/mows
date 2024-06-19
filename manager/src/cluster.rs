@@ -1,12 +1,15 @@
-use std::{collections::HashMap, net::IpAddr};
+use std::{collections::HashMap, net::IpAddr, path::Path, process::Output};
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use tokio::{fs, process::Command};
+use tracing::debug;
+use tracing_subscriber::field::debug;
 
 use crate::{
-    config::{Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
+    config::{config, Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
     get_current_config_cloned, some_or_bail,
-    utils::{generate_id, CONFIG},
+    utils::generate_id,
+    write_config,
 };
 
 impl Cluster {
@@ -21,7 +24,7 @@ impl Cluster {
 
         let mut cluster_nodes = HashMap::new();
 
-        let cfg1 = CONFIG.read_err().await?;
+        let cfg1 = config().read().await;
 
         let possible_machines = cfg1.machines.clone();
         drop(cfg1);
@@ -30,7 +33,7 @@ impl Cluster {
 
         for (i, (machine_name, machine)) in possible_machines.iter().enumerate() {
             let hostname = machine_name.clone();
-            let ssh_access = SshAccess::new()?;
+            let ssh_access = SshAccess::new().await?;
 
             machine
                 .configure_install(
@@ -53,7 +56,7 @@ impl Cluster {
                 ClusterNode {
                     machine_id: machine_name.clone(),
                     hostname,
-                    ssh_access,
+                    ssh: ssh_access,
                 },
             );
         }
@@ -72,7 +75,7 @@ impl Cluster {
             install_state: None,
         };
         {
-            let mut config = CONFIG.write_err().await?;
+            let mut config = write_config!();
 
             config.clusters.insert(cluster_id, cluster.clone());
         }
@@ -95,14 +98,17 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn get_reachable_node_ip(&self) -> anyhow::Result<IpAddr> {
+    /*
+    Get the ip of the first reachable node
+    */
+    pub async fn get_ssh_reachable_node_ip(&self) -> anyhow::Result<IpAddr> {
         let config = get_current_config_cloned!();
 
         // TODO try the vip first
 
         for node in self.cluster_nodes.values() {
             if let Some(machine) = config.get_machine_by_id(&node.machine_id) {
-                if node.ssh_access.exec(&machine, "echo", 2).await.is_ok() {
+                if node.ssh.exec(&machine, "echo", 2).await.is_ok() {
                     match machine.last_ip {
                         Some(ip) => return Ok(ip),
                         None => bail!("No ip found"),
@@ -115,31 +121,45 @@ impl Cluster {
     }
 
     pub async fn get_kubeconfig(&self) -> anyhow::Result<String> {
+        if self.kubeconfig.is_some() {
+            return Ok(self.kubeconfig.clone().unwrap());
+        }
         let config = get_current_config_cloned!();
 
         for node in self.cluster_nodes.values() {
             if let Some(machine) = config.get_machine_by_id(&node.machine_id) {
                 if let Some(install) = &machine.install {
                     if install.state == Some(MachineInstallState::Installed) {
-                        if let Ok(kc) = node.get_kubeconfig().await {
-                            return Ok(kc);
+                        match node.get_kubeconfig().await {
+                            Ok(kc) => return Ok(kc),
+                            Err(e) => debug!(
+                                "Could not get kubeconfig for node: {} {:?}",
+                                node.hostname, e
+                            ),
                         }
-                    }
-                }
+                    } else {
+                        debug!("Node {} not installed", node.hostname);
+                    };
+                } else {
+                    debug!("Node {} not installed", node.hostname);
+                };
             };
         }
 
         bail!("No installed nodes with kubeconfig found")
     }
 
-    pub async fn write_kubeconfig(&self) -> anyhow::Result<()> {
-        let kubeconfig_path = "~/.kube/config";
+    pub async fn write_local_kubeconfig(&self) -> anyhow::Result<()> {
+        let kubeconfig_path = Path::new("/root/.kube/");
 
-        let ip = self.get_reachable_node_ip().await?;
+        let ip = self.get_ssh_reachable_node_ip().await?;
 
         let kubeconfig = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
             .replace("https://127.0.0.1", &format!("https://{}", ip));
-        std::fs::write(&kubeconfig_path, kubeconfig)?;
+
+        tokio::fs::create_dir_all(&kubeconfig_path).await?;
+
+        tokio::fs::write(&kubeconfig_path.join("config"), kubeconfig).await?;
 
         Ok(())
     }
@@ -147,44 +167,30 @@ impl Cluster {
     pub async fn run_command_with_kubeconfig(
         &self,
         command: &mut Command,
-    ) -> anyhow::Result<String> {
-        self.write_kubeconfig().await?;
+    ) -> anyhow::Result<Output> {
+        self.write_local_kubeconfig().await?;
 
-        let output = match command.output().await {
-            Ok(v) => v,
-            Err(e) => {
-                bail!(e)
-            }
-        };
-
-        if !output.status.success() {
-            bail!(
-                "Failed to run command: {}",
-                String::from_utf8_lossy(&output.stderr)
-            )
-        }
-
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        let out = command.spawn()?.wait_with_output().await?;
+        Ok(out)
     }
 
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         // install kube-vip
-
         {
-            let _ = self
-                .run_command_with_kubeconfig(Command::new("kubectl").args([
-                    "apply",
-                    "-f",
-                    "/install/cluster-basics/kube-vip/role.yml",
-                ]))
-                .await;
-            let _ = self
-                .run_command_with_kubeconfig(Command::new("kubectl").args([
-                    "apply",
-                    "-f",
-                    "/install/cluster-basics/kube-vip/manifest.yml",
-                ]))
-                .await;
+            self.run_command_with_kubeconfig(Command::new("kubectl").args([
+                "apply",
+                "-f",
+                "/install/cluster-basics/kube-vip/role.yml",
+            ]))
+            .await
+            .context("Failed to install kube-vip cluster role")?;
+            self.run_command_with_kubeconfig(Command::new("kubectl").args([
+                "apply",
+                "-f",
+                "/install/cluster-basics/kube-vip/manifest.yml",
+            ]))
+            .await
+            .context("Failed to install kube-vip manifest.")?;
         }
 
         // install storage: longhorn
@@ -192,12 +198,12 @@ impl Cluster {
             let _ = Command::new("helm")
                 .args(["repo", "add", "longhorn", "https://charts.longhorn.io"])
                 .spawn()?
-                .wait()
+                .wait_with_output()
                 .await;
             let _ = Command::new("helm")
                 .args(["repo", "update"])
                 .spawn()?
-                .wait()
+                .wait_with_output()
                 .await;
             let _ = self
                 .run_command_with_kubeconfig(Command::new("helm").args([
@@ -262,6 +268,46 @@ impl Cluster {
         // install cert-manager?
 
         // install dns server
+
+        Ok(())
+    }
+
+    pub async fn write_local_ssh_config(&self) -> anyhow::Result<()> {
+        let config = get_current_config_cloned!();
+        let ssh_config_path = Path::new("/root/.ssh/");
+
+        let mut ssh_config_file = String::new();
+
+        for node in self.cluster_nodes.values() {
+            let machine = some_or_bail!(
+                config.get_machine_by_id(&node.machine_id),
+                "Machine not found"
+            );
+            let ip = machine.get_current_ip().await?;
+            let val = format!(
+                r#"
+Host {}
+    HostName {}
+    User {}
+    IdentityFile /id/{}
+    "#,
+                node.hostname, ip, node.ssh.ssh_username, node.hostname
+            );
+
+            ssh_config_file.push_str(&val);
+        }
+
+        fs::create_dir_all(ssh_config_path).await?;
+
+        fs::write(ssh_config_path.join("config"), ssh_config_file).await?;
+
+        Ok(())
+    }
+
+    pub async fn setup_local_ssh_access(&self) -> anyhow::Result<()> {
+        for node in self.cluster_nodes.values() {
+            node.add_ssh_key_to_local_agent().await?;
+        }
 
         Ok(())
     }

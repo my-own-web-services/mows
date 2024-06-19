@@ -26,7 +26,7 @@ export default class TerminalComponent extends Component<
 
     componentDidMount() {
         if (this.terminalRef.current && this.statusBanner.current) {
-            this.terminal = new Terminal({ cursorBlink: true });
+            this.terminal = new Terminal({ cursorBlink: false });
             this.fitAddon = new FitAddon();
 
             this.terminal.loadAddon(new WebSocketAddon(this.props.url, this.statusBanner.current));
@@ -51,9 +51,9 @@ export default class TerminalComponent extends Component<
         return (
             <div
                 style={{ ...this.props.style }}
-                className={`VNC relative h-full w-full ${this.props.className ?? ""}`}
+                className={`Terminal relative h-full w-full ${this.props.className ?? ""} rounded-lg bg-[black] p-3 pb-3`}
             >
-                <div className={"absolute left-0 top-0"} ref={this.statusBanner}></div>
+                <div className={"absolute left-0 top-0 hidden"} ref={this.statusBanner}></div>
                 <div ref={this.terminalRef} className="h-[calc(100%+9px)]"></div>
             </div>
         );

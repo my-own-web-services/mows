@@ -1,13 +1,14 @@
-use std::{collections::HashMap, net::IpAddr};
-
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
+use std::{collections::HashMap, net::IpAddr};
+use tokio::sync::RwLock;
 use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
-pub struct ManagerConfig {
-    pub clusters: HashMap<String, Cluster>,
-    pub external_providers: ExternalProviders,
-    pub machines: HashMap<String, Machine>,
+#[tracing::instrument]
+pub fn config() -> &'static RwLock<ManagerConfig> {
+    static CONFIG: OnceLock<RwLock<ManagerConfig>> = OnceLock::new();
+    CONFIG.get_or_init(|| RwLock::new(ManagerConfig::default()))
 }
 
 impl ManagerConfig {
@@ -30,25 +31,45 @@ impl ManagerConfig {
     }
 
     pub async fn apply_environment(&self) -> anyhow::Result<()> {
-        // create the /tmp directory
-        std::fs::create_dir_all("/tmp")?;
-
-        self.write_kubeconfig().await?;
+        self.write_local_kubeconfig()
+            .await
+            .context("Failed to write kubeconfig to disk.")?;
+        self.setup_local_ssh_access()
+            .await
+            .context("Failed to setup local ssh access.")?;
 
         Ok(())
     }
 
-    pub async fn write_kubeconfig(&self) -> anyhow::Result<()> {
-        for cluster in self.clusters.values() {
-            cluster.write_kubeconfig().await?;
-            // TODO this only works for one cluster at a time
+    pub async fn write_local_kubeconfig(&self) -> anyhow::Result<()> {
+        for (i, cluster) in self.clusters.values().enumerate() {
+            cluster.write_local_kubeconfig().await?;
+            if i > 0 {
+                todo!("This only works for one cluster at a time")
+            }
         }
+        Ok(())
+    }
 
+    pub async fn setup_local_ssh_access(&self) -> anyhow::Result<()> {
+        for (i, cluster) in self.clusters.values().enumerate() {
+            cluster.setup_local_ssh_access().await?;
+            if i > 0 {
+                todo!("This only works for one cluster at a time")
+            }
+        }
         Ok(())
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
+pub struct ManagerConfig {
+    pub clusters: HashMap<String, Cluster>,
+    pub external_providers: ExternalProviders,
+    pub machines: HashMap<String, Machine>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct Cluster {
     pub id: String,
     pub cluster_nodes: HashMap<String, ClusterNode>,
@@ -61,7 +82,7 @@ pub struct Cluster {
     pub install_state: Option<ClusterInstallState>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct Machine {
     pub id: String,
     pub machine_type: MachineType,
@@ -69,7 +90,7 @@ pub struct Machine {
     pub last_ip: Option<IpAddr>,
     pub install: Option<MachineInstall>,
 }
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct MachineInstall {
     pub state: Option<MachineInstallState>,
     pub primary: bool,
@@ -85,17 +106,18 @@ pub enum MachineInstallState {
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Eq, PartialEq, Hash)]
 pub enum ClusterInstallState {
+    Kubernetes,
     Basics,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct PixiecoreBootConfig {
     pub kernel: String,
     pub initrd: Vec<String>,
     pub cmdline: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub enum MachineType {
     #[default]
     LocalQemu,
@@ -103,56 +125,56 @@ pub enum MachineType {
     ExternalHetzner,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct ClusterNode {
     pub machine_id: String,
     pub hostname: String,
-    pub ssh_access: SshAccess,
+    pub ssh: SshAccess,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct BackupNode {
     pub machine_id: String,
     pub hostname: String,
     pub mac: String,
-    pub ssh_access: SshAccess,
+    pub ssh: SshAccess,
     pub backup_wg_private_key: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct ExternalProviders {
     pub hetzner: Option<ExternalProvidersHetzner>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct ExternalProvidersHetzner {
     pub api_token: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct PublicIpConfig {
     pub ips: HashMap<String, PublicIpConfigSingleIp>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct PublicIpConfigSingleIp {
     pub provider: ExternalProviderIpOptions,
     pub ip: IpAddr,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub enum ExternalProviderIpOptions {
     Hetzner(ExternalProviderIpOptionsHetzner),
     Own,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct ExternalProviderIpOptionsHetzner {
     pub server_id: String,
     pub ssh_access: Option<SshAccess>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct SshAccess {
     pub ssh_username: String,
     pub ssh_private_key: String,

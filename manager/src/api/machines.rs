@@ -1,4 +1,11 @@
-use axum::Json;
+use axum::{
+    extract::{
+        ws::{Message, WebSocket},
+        WebSocketUpgrade,
+    },
+    response::IntoResponse,
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::spawn;
@@ -6,10 +13,11 @@ use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
-    config::Machine,
+    config::{config, Machine},
     get_current_config_cloned,
     types::Success,
-    utils::{AppError, CONFIG},
+    utils::AppError,
+    write_config,
 };
 
 #[utoipa::path(
@@ -38,7 +46,7 @@ pub async fn create_machines(
 pub async fn create_machine(machine_creation_config: MachineCreationReqBody) -> anyhow::Result<()> {
     for _ in 0..3 {
         let machine = Machine::new(&machine_creation_config).await?;
-        let mut config_locked = CONFIG.write_err().await?;
+        let mut config_locked = write_config!();
         config_locked.machines.insert(machine.id.clone(), machine);
     }
     Ok(())
@@ -56,7 +64,7 @@ pub async fn create_machine(machine_creation_config: MachineCreationReqBody) -> 
 pub async fn signal_machine(
     Json(machine_signal): Json<MachineSignalReqBody>,
 ) -> Result<Json<Success>, AppError> {
-    let config = CONFIG.read_err().await?;
+    let config = config().read().await;
     let machine = config
         .machines
         .get(&machine_signal.machine_id)
@@ -104,7 +112,7 @@ pub async fn delete_machine(
 pub async fn get_machine_info(
     Json(machine_info_json): Json<MachineInfoReqBody>,
 ) -> Result<Json<MachineInfoResBody>, AppError> {
-    let config = CONFIG.read_err().await?;
+    let config = config().read().await;
     let machine = config
         .machines
         .get(&machine_info_json.machine_id)
@@ -112,6 +120,44 @@ pub async fn get_machine_info(
     let machine_infos = machine.get_infos().await?;
 
     Ok(Json(MachineInfoResBody { machine_infos }))
+}
+
+// machine status with socket
+#[utoipa::path(get, path = "/api/machines/status")]
+pub async fn get_machine_status(ws: WebSocketUpgrade) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_get_machine_status(socket))
+}
+
+pub async fn handle_get_machine_status(mut socket: WebSocket) {
+    'outer: loop {
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        let config = config().read().await.clone();
+
+        for machine in config.machines.values() {
+            let infos = machine.get_status().await.unwrap();
+
+            let status = MachineStatus {
+                id: machine.id.clone(),
+                status: infos,
+            };
+
+            let message = Message::Text(serde_json::to_string(&status).unwrap());
+            match socket.send(message).await {
+                Ok(_) => continue,
+                Err(e) => {
+                    error!("Failed to send message: {:?}", e);
+                    break 'outer;
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct MachineStatus {
+    pub id: String,
+    pub status: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

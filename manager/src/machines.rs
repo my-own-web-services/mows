@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{bail, Context};
 use std::{collections::HashMap, net::IpAddr};
 use tokio::process::Command;
 
@@ -9,7 +9,8 @@ use crate::{
         MachineType, PixiecoreBootConfig, SshAccess,
     },
     some_or_bail,
-    utils::{generate_id, get_current_ip_from_mac, CONFIG},
+    utils::{generate_id, get_current_ip_from_mac},
+    write_config,
 };
 
 impl Machine {
@@ -102,6 +103,22 @@ impl Machine {
         })
     }
 
+    pub async fn get_status(&self) -> anyhow::Result<String> {
+        Ok(match self.machine_type {
+            MachineType::LocalQemu => {
+                let output = Command::new("virsh")
+                    .args(["domstate", &self.id])
+                    .output()
+                    .await?;
+                let output = String::from_utf8(output.stdout)?;
+
+                output
+            }
+            MachineType::Local => todo!(),
+            MachineType::ExternalHetzner => todo!(),
+        })
+    }
+
     pub async fn create_direct_attach_network() -> anyhow::Result<()> {
         todo!()
     }
@@ -145,7 +162,7 @@ impl Machine {
             MachineType::Local => todo!(),
             MachineType::ExternalHetzner => todo!(),
         };
-        let mut config_lock = CONFIG.write_err().await?;
+        let mut config_lock = write_config!();
 
         // remove the machine from the machine inventory
         config_lock.machines.remove(&self.id);
@@ -279,7 +296,7 @@ impl Machine {
         )
         .await?;
 
-        let mut config_lock = CONFIG.write_err().await?;
+        let mut config_lock = write_config!();
 
         let current_machine = some_or_bail!(
             config_lock.machines.get_mut(&self.id),
@@ -329,20 +346,27 @@ impl Machine {
     ) -> anyhow::Result<()> {
         if let Some(install) = &self.install {
             if install.state == Some(MachineInstallState::Requested) {
-                let node = &self.get_attached_cluster_node(clusters)?;
+                let node = &self
+                    .get_attached_cluster_node(clusters)
+                    .context("Could not find attached cluster node for requested install")?;
 
                 let output = node
-                    .ssh_access
-                    .exec(self, &format!("kubectl get node {}", node.machine_id), 5)
-                    .await?;
+                    .ssh
+                    .exec(self, &format!("sudo systemctl status k3s"), 1)
+                    .await
+                    .context("Could not get node status.")?;
 
-                if output.contains("NotReady") {
+                if output.contains("active (running)") {
+                    Ok(())
+                } else {
                     bail!("Node not ready")
                 }
-                return Ok(());
+            } else {
+                Ok(())
             }
-        };
-        bail!("No requested install found")
+        } else {
+            bail!("No install found")
+        }
     }
 
     pub async fn get_current_ip(&self) -> anyhow::Result<IpAddr> {
@@ -351,7 +375,7 @@ impl Machine {
         if let Some(mac) = &self.mac {
             if let Ok(ip_from_mac) = get_current_ip_from_mac(mac).await {
                 if let Ok(ip_from_mac_parsed) = ip_from_mac.parse() {
-                    let mut config_lock = CONFIG.write_err().await?;
+                    let mut config_lock = write_config!();
                     let current_machine =
                         some_or_bail!(config_lock.machines.get_mut(&self.id), "Machine not found");
                     current_machine.last_ip = Some(ip_from_mac_parsed);
