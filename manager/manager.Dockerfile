@@ -26,7 +26,7 @@ ARG DEBCONF_NONINTERACTIVE_SEEN "true"
 
 RUN set -eu && \
     apt-get update && \
-    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates && \
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools && \
     apt-get clean
 
 # install pixiecore
@@ -47,6 +47,10 @@ RUN chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 RUN echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
 RUN apt-get update
 RUN apt-get install kubectl -y
+
+# colored bash
+# https://bash-prompt-generator.org/
+RUN echo "PS1='\[\e[38;5;202;1m\]manager\[\e[0m\]:\[\e[1m\]\w\[\e[0;2m\][\$(printf "%d" \$?)]\[\e[0;1m\]> \[\e[0m\]'" >> /root/.bashrc
 
 
 

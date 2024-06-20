@@ -23,7 +23,7 @@ services:
         environment:
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system
             #- RUST_BACKTRACE=full
-            RUST_LOG: "main=debug,manager=debug,tower_http=error,axum::rejection=trace,tokio=debug,runtime=debug,russh=error"
+            RUST_LOG: main=debug,manager=debug,tower_http=error,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error
 
     qemu:
         image: qemu
