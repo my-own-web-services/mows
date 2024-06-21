@@ -26,8 +26,7 @@ ARG DEBCONF_NONINTERACTIVE_SEEN "true"
 
 RUN set -eu && \
     apt-get update && \
-    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools && \
-    apt-get clean
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop
 
 # install pixiecore
 RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add -
@@ -50,10 +49,7 @@ RUN apt-get install kubectl -y
 
 # colored bash
 # https://bash-prompt-generator.org/
-RUN echo "PS1='\[\e[38;5;202;1m\]manager\[\e[0m\]:\[\e[1m\]\w\[\e[0;2m\][\$(printf "%d" \$?)]\[\e[0;1m\]> \[\e[0m\]'" >> /root/.bashrc
-
-
-
+COPY ./misc/.bashrc /root/.bashrc
 
 WORKDIR /app
 
