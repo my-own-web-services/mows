@@ -16,10 +16,17 @@
         {
           "splitTerminals": [
             {
+              "name": "backend-peripherals",
+              "commands": ["bash scripts/start-peripherals.sh"]
+            },
+          ]
+        },
+        {
+          "splitTerminals": [
+            {
               "name": "backend",
               "commands": []
             },
-
           ]
         },
       ],
@@ -43,12 +50,16 @@
         "noautoconsole",
         "nodepair",
         "openapi",
+        "opentelemetry",
+        "otlp",
         "overlayfs",
         "pixieboot",
         "Pixiecore",
         "pubkey",
         "qcow",
         "squashfs",
+        "sshpass",
+        "tempfile",
         "thiserror",
         "tikv",
         "traefik",
@@ -59,5 +70,5 @@
         "virsh",
         "virt",
         "virtio"
-    ],
+      ],
 }

@@ -1,8 +1,8 @@
-use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use std::{collections::HashMap, net::IpAddr};
 use tokio::sync::RwLock;
+use tracing::{debug, trace};
 use utoipa::ToSchema;
 
 #[tracing::instrument]
@@ -31,12 +31,15 @@ impl ManagerConfig {
     }
 
     pub async fn apply_environment(&self) -> anyhow::Result<()> {
-        self.write_local_kubeconfig()
-            .await
-            .context("Failed to write kubeconfig to disk.")?;
-        self.setup_local_ssh_access()
-            .await
-            .context("Failed to setup local ssh access.")?;
+        trace!("Applying environment");
+        match self.write_local_kubeconfig().await {
+            Ok(_) => trace!("Wrote local kubeconfig"),
+            Err(e) => debug!("Failed to write local kubeconfig: {:?}", e),
+        }
+        match self.setup_local_ssh_access().await {
+            Ok(_) => trace!("Setup local ssh access"),
+            Err(e) => debug!("Failed to setup local ssh access: {:?}", e),
+        }
 
         Ok(())
     }
@@ -87,7 +90,6 @@ pub struct Machine {
     pub id: String,
     pub machine_type: MachineType,
     pub mac: Option<String>,
-    pub last_ip: Option<IpAddr>,
     pub install: Option<MachineInstall>,
 }
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
@@ -181,5 +183,5 @@ pub struct SshAccess {
     pub ssh_public_key: String,
     pub ssh_passphrase: String,
     pub ssh_password: String,
-    pub remote_fingerprint: Option<String>,
+    pub remote_public_key: Option<String>,
 }

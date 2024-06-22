@@ -526,11 +526,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      *
      * @tags crate
      * @name TerminalLocal
-     * @request GET:/api/terminal/local
+     * @request GET:/api/terminal/{id}
      */
-    terminalLocal: (params: RequestParams = {}) =>
+    terminalLocal: (id: string, params: RequestParams = {}) =>
       this.request<string, any>({
-        path: `/api/terminal/local`,
+        path: `/api/terminal/${id}`,
         method: "GET",
         ...params,
       }),

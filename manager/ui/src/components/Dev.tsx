@@ -1,6 +1,6 @@
 import { Component } from "preact/compat";
 import { Button, Input } from "rsuite";
-import { Api } from "../api-client";
+import { Api, ManagerConfig } from "../api-client";
 import { configSignal } from "../config";
 import TerminalComponent from "./Terminal";
 import VNC from "./VNC";
@@ -48,10 +48,31 @@ export default class Dev extends Component<DevProps, DevState> {
         }
     };
 
+    loadConfigFromLocalStorage = () => {
+        const mb_config = localStorage.getItem("config");
+        if (mb_config) {
+            const config: ManagerConfig = JSON.parse(mb_config);
+            configSignal.value = config;
+            this.props.client.api.updateConfig(config).catch(console.error);
+        }
+    };
+
+    saveConfigToLocalStorage = () => {
+        localStorage.setItem("config", JSON.stringify(configSignal.value));
+    };
+
     render = () => {
         return (
             <div className="Dev h-full w-full">
                 <div className={"p-4"}>
+                    <div className={"pb-4"}>
+                        <a
+                            href="http://localhost:16686/search?service=manager"
+                            className={"text-md underline"}
+                        >
+                            Jaeger
+                        </a>
+                    </div>
                     <div className="flex flex-row gap-4">
                         <Button onClick={this.deleteAllMowsMachines}>
                             Delete all MOWS virtual machines
@@ -67,6 +88,8 @@ export default class Dev extends Component<DevProps, DevState> {
                         <Button onClick={this.createCluster}>
                             Create cluster from all machines in inventory
                         </Button>
+                        <Button onClick={this.loadConfigFromLocalStorage}>Load config</Button>
+                        <Button onClick={this.saveConfigToLocalStorage}>Save config</Button>
                     </div>
                     <div className={"flex h-[400px] items-stretch pt-4"}>
                         <div className={"h-full w-1/3 pr-4"}>
@@ -81,17 +104,11 @@ export default class Dev extends Component<DevProps, DevState> {
                     </div>
                     <div className={"pt-4"}>
                         <h1 className={"pb-4 text-2xl"}>Machines</h1>
-                        <div className="flex w-full justify-start gap-4">
+                        <div className="flex w-full flex-col justify-start gap-4">
                             {configSignal.value?.machines &&
                                 Object.entries(configSignal.value?.machines).map(
                                     ([machine_id, machine]) => {
-                                        return (
-                                            <VNC
-                                                className="w-1/3"
-                                                key={machine_id}
-                                                machine={machine}
-                                            />
-                                        );
+                                        return <VNC key={machine_id} machine={machine} />;
                                     }
                                 )}
                         </div>

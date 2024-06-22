@@ -1,9 +1,12 @@
-use std::{collections::HashMap, net::IpAddr, path::Path, process::Output};
+use std::{
+    collections::HashMap, fs::Permissions, net::IpAddr, os::unix::fs::PermissionsExt, path::Path,
+    process::Output,
+};
 
 use anyhow::{bail, Context};
+use openssl::conf;
 use tokio::{fs, process::Command};
 use tracing::debug;
-use tracing_subscriber::field::debug;
 
 use crate::{
     config::{config, Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
@@ -32,7 +35,7 @@ impl Cluster {
         let mut primary_hostname: Option<String> = None;
 
         for (i, (machine_name, machine)) in possible_machines.iter().enumerate() {
-            let hostname = machine_name.clone();
+            let hostname = machine_name.clone().to_lowercase();
             let ssh_access = SshAccess::new().await?;
 
             machine
@@ -98,28 +101,6 @@ impl Cluster {
         Ok(())
     }
 
-    /*
-    Get the ip of the first reachable node
-    */
-    pub async fn get_ssh_reachable_node_ip(&self) -> anyhow::Result<IpAddr> {
-        let config = get_current_config_cloned!();
-
-        // TODO try the vip first
-
-        for node in self.cluster_nodes.values() {
-            if let Some(machine) = config.get_machine_by_id(&node.machine_id) {
-                if node.ssh.exec(&machine, "echo", 2).await.is_ok() {
-                    match machine.last_ip {
-                        Some(ip) => return Ok(ip),
-                        None => bail!("No ip found"),
-                    }
-                }
-            };
-        }
-
-        bail!("No reachable node found")
-    }
-
     pub async fn get_kubeconfig(&self) -> anyhow::Result<String> {
         if self.kubeconfig.is_some() {
             return Ok(self.kubeconfig.clone().unwrap());
@@ -150,16 +131,34 @@ impl Cluster {
     }
 
     pub async fn write_local_kubeconfig(&self) -> anyhow::Result<()> {
-        let kubeconfig_path = Path::new("/root/.kube/");
+        let kubeconfig_directory = Path::new("/root/.kube/");
+        let kubeconfig_path = kubeconfig_directory.join("config");
 
-        let ip = self.get_ssh_reachable_node_ip().await?;
+        let node = some_or_bail!(self.cluster_nodes.values().next(), "No nodes found");
 
         let kubeconfig = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
-            .replace("https://127.0.0.1", &format!("https://{}", ip));
+            .replace("https://127.0.0.1", &format!("https://{}", node.hostname));
 
-        tokio::fs::create_dir_all(&kubeconfig_path).await?;
+        tokio::fs::create_dir_all(&kubeconfig_directory)
+            .await
+            .context(format!(
+                "Failed to create kubeconfig directory: {:?}",
+                kubeconfig_directory
+            ))?;
 
-        tokio::fs::write(&kubeconfig_path.join("config"), kubeconfig).await?;
+        tokio::fs::write(&kubeconfig_path, kubeconfig)
+            .await
+            .context(format!(
+                "Failed to write kubeconfig to: {:?}",
+                kubeconfig_path
+            ))?;
+
+        tokio::fs::set_permissions(&kubeconfig_path, Permissions::from_mode(0o600))
+            .await
+            .context(format!(
+                "Failed to set permissions on kubeconfig: {:?}",
+                kubeconfig_path
+            ))?;
 
         Ok(())
     }
@@ -175,6 +174,41 @@ impl Cluster {
     }
 
     pub async fn install_basics(&self) -> anyhow::Result<()> {
+        // install network: cilium
+
+        Command::new("helm")
+            .args(["repo", "add", "cilium", "https://helm.cilium.io/"])
+            .spawn()?
+            .wait()
+            .await
+            .context("Failed to add cilium helm repo")?;
+        Command::new("helm")
+            .args(["repo", "update"])
+            .spawn()?
+            .wait()
+            .await
+            .context("Failed to update helm repos")?;
+        self.run_command_with_kubeconfig(Command::new("helm").args([
+            "upgrade",
+            "cilium/cilium",
+            "--install",
+            "cilium",
+            "--namespace",
+            "cilium",
+            "--create-namespace",
+            "--version",
+            "1.15.0",
+            "--set",
+            "operator.replicas=1",
+            "--set",
+            "hubble.relay.enabled=true",
+            "--set",
+            "hubble.ui.enabled=true",
+        ]))
+        .await
+        .context("Failed to install cilium")?;
+
+        /*
         // install kube-vip
         {
             self.run_command_with_kubeconfig(Command::new("kubectl").args([
@@ -221,39 +255,7 @@ impl Cluster {
                 ]))
                 .await;
         }
-
-        // install network: cilium
-        {
-            let _ = Command::new("helm")
-                .args(["repo", "add", "cilium", "https://helm.cilium.io/"])
-                .spawn()?
-                .wait()
-                .await;
-            let _ = Command::new("helm")
-                .args(["repo", "update"])
-                .spawn()?
-                .wait()
-                .await;
-            let _ = self
-                .run_command_with_kubeconfig(Command::new("helm").args([
-                    "upgrade",
-                    "cilium/cilium",
-                    "--install",
-                    "cilium",
-                    "--namespace",
-                    "cilium",
-                    "--create-namespace",
-                    "--version",
-                    "1.15.0",
-                    "--set",
-                    "operator.replicas=1",
-                    "--set",
-                    "hubble.relay.enabled=true",
-                    "--set",
-                    "hubble.ui.enabled=true",
-                ]))
-                .await;
-        }
+        */
 
         // install lightweight virtual runtime: kata
 
@@ -272,42 +274,77 @@ impl Cluster {
         Ok(())
     }
 
+    pub async fn write_known_hosts(&self) -> anyhow::Result<()> {
+        let known_hosts_path = Path::new("/root/.ssh/");
+
+        let mut known_hosts_file = String::new();
+
+        for node in self.cluster_nodes.values() {
+            if let Some(remote_pub_key) = &node.ssh.remote_public_key {
+                let val = format!("{} ssh-ed25519 {}\n", node.hostname, remote_pub_key);
+
+                known_hosts_file.push_str(&val);
+            }
+        }
+
+        fs::create_dir_all(known_hosts_path)
+            .await
+            .context("Failed to create known_hosts directory")?;
+
+        fs::write(known_hosts_path.join("known_hosts"), known_hosts_file)
+            .await
+            .context("Failed to write known_hosts")?;
+
+        Ok(())
+    }
+
     pub async fn write_local_ssh_config(&self) -> anyhow::Result<()> {
-        let config = get_current_config_cloned!();
         let ssh_config_path = Path::new("/root/.ssh/");
 
         let mut ssh_config_file = String::new();
 
         for node in self.cluster_nodes.values() {
-            let machine = some_or_bail!(
-                config.get_machine_by_id(&node.machine_id),
-                "Machine not found"
-            );
-            let ip = machine.get_current_ip().await?;
             let val = format!(
                 r#"
 Host {}
-    HostName {}
     User {}
     IdentityFile /id/{}
     "#,
-                node.hostname, ip, node.ssh.ssh_username, node.hostname
+                node.hostname, node.ssh.ssh_username, node.hostname
             );
 
             ssh_config_file.push_str(&val);
         }
 
-        fs::create_dir_all(ssh_config_path).await?;
+        fs::create_dir_all(ssh_config_path)
+            .await
+            .context("Failed to create ssh config directory")?;
 
-        fs::write(ssh_config_path.join("config"), ssh_config_file).await?;
+        fs::write(ssh_config_path.join("config"), ssh_config_file)
+            .await
+            .context("Failed to write ssh config")?;
 
         Ok(())
     }
 
     pub async fn setup_local_ssh_access(&self) -> anyhow::Result<()> {
         for node in self.cluster_nodes.values() {
-            node.add_ssh_key_to_local_agent().await?;
+            node.ssh
+                .add_ssh_key_to_local_agent()
+                .await
+                .context(format!(
+                    "Failed to add ssh key to local agent for node {}",
+                    node.hostname
+                ))?;
         }
+
+        self.write_local_ssh_config()
+            .await
+            .context("Failed to write local ssh config")?;
+
+        self.write_known_hosts()
+            .await
+            .context("Failed to write known hosts")?;
 
         Ok(())
     }

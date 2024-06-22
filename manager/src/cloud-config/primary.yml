@@ -10,7 +10,6 @@ users:
       passwd: "$$$SSH_PASSWORD" # The password for the user.
       ssh_authorized_keys: # A list of SSH keys to add to the user's authorized keys.
           - $$$SSH_PUBLIC_KEY # A key from the user's GitHub account.
-          - github:firstdorsal
 
 # Enable K3s on the node.
 k3s:
@@ -21,10 +20,12 @@ k3s:
         - --disable=local-storage
         - --flannel-backend=none
         - --disable-network-policy
+        - --disable-kube-proxy
         - --disable=traefik
+        - --disable servicelb
         #- --kubelet-arg="node-ip=::"
         - --cluster-cidr=192.168.122.0/24 #,2001:cafe:42::/56
-        - --service-cidr=10.43.0.0/16 #,2001:cafe:43::/112
+        - --service-cidr=10.42.0.0/16 #,2001:cafe:43::/112
     env:
         K3S_TOKEN: "$$$K3S_TOKEN"
 

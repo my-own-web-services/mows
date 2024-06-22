@@ -11,9 +11,16 @@ use manager::api::config::*;
 use manager::api::machines::*;
 use manager::api::terminal::*;
 use manager::config::*;
+use manager::tracing::init_tracer;
 use manager::types::*;
-use manager::utils::{get_cluster_config, install_cluster_basics, update_machine_install_state};
+use manager::utils::{
+    apply_environment, get_cluster_kubeconfig, install_cluster_basics, update_machine_install_state,
+};
 
+use tracing_opentelemetry::OpenTelemetryLayer;
+use tracing_subscriber::util::SubscriberInitExt;
+
+use std::process::Stdio;
 use std::time::Duration;
 use tokio::process::Command;
 use tokio::signal;
@@ -21,9 +28,9 @@ use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
-use tracing::info;
+use tracing::{info, trace};
+use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::Layer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 /*
@@ -107,7 +114,8 @@ async fn main() -> Result<(), anyhow::Error> {
     tracing_subscriber::registry()
         .with(console_layer)
         .with(log_layer)
-        .init();
+        .with(OpenTelemetryLayer::new(init_tracer("http://jaeger:4317")))
+        .try_init()?;
 
     //Machine::delete_all_mows_machines().unwrap();
 
@@ -120,10 +128,12 @@ async fn main() -> Result<(), anyhow::Error> {
     info!("Starting pixiecore servers");
     Command::new("pixiecore")
         .args(["api", api_url, "-l", "192.168.111.3", "--dhcp-no-bind"])
+        .stdout(Stdio::null())
         .spawn()
         .context("Failed to start pixiecore server for direct attach")?;
     Command::new("pixiecore")
         .args(["api", api_url, "-l", "192.168.112.3", "--dhcp-no-bind"])
+        .stdout(Stdio::null())
         .spawn()
         .context("Failed to start pixiecore server for qemu")?;
 
@@ -137,7 +147,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .route("/api/machines/info", post(get_machine_info))
         .route("/api/machines/status", get(get_machine_status))
         .route("/api/cluster/create", post(create_cluster))
-        .route("/api/terminal/local", get(terminal_local))
+        .route("/api/terminal/:id", get(terminal_local))
         .route("/v1/boot/:mac_addr", get(get_boot_config_by_mac))
         .nest_service("/", serve_dir)
         .layer(
@@ -173,7 +183,7 @@ async fn main() -> Result<(), anyhow::Error> {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
             if let Err(e) = update_machine_install_state().await {
-                info!("Could not update machine install state: {:?}", e);
+                trace!("Could not update machine install state: {:?}", e);
             };
         }
     });
@@ -181,8 +191,17 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::spawn(async {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
-            if let Err(e) = get_cluster_config().await {
-                info!("Could not get cluster config: {:?}", e);
+            if let Err(e) = apply_environment().await {
+                trace!("Failed to apply environment: {:?}", e);
+            };
+        }
+    });
+
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if let Err(e) = get_cluster_kubeconfig().await {
+                trace!("Could not get cluster config: {:?}", e);
             };
         }
     });
@@ -191,7 +210,7 @@ async fn main() -> Result<(), anyhow::Error> {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
             if let Err(e) = install_cluster_basics().await {
-                info!("Could not install cluster basics: {:?}", e);
+                trace!("Could not install cluster basics: {:?}", e);
             };
         }
     });

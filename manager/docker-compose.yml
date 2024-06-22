@@ -5,7 +5,7 @@ services:
         container_name: mows-manager
         build:
             context: "."
-            dockerfile: manager.Dockerfile
+            dockerfile: docker/manager.Dockerfile
         init: true # without this the mows manager cant start a pty process
         networks:
             mows-manager-pxe:
@@ -13,6 +13,8 @@ services:
             mows-manager-direct-attach:
                 ipv4_address: "192.168.111.3"
             mows-manager:
+        dns:
+            - "192.168.112.2"
         ports:
             - "127.0.0.1:3000:3000"
             - "127.0.0.1:6669:6669"
@@ -25,12 +27,23 @@ services:
             #- RUST_BACKTRACE=full
             RUST_LOG: main=debug,manager=debug,tower_http=error,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error
 
+    jaeger:
+        image: jaegertracing/all-in-one
+        container_name: jaeger
+        ports:
+            - "16686:16686"
+        environment:
+            - LOG_LEVEL=error
+        networks:
+            mows-manager:
     qemu:
         image: qemu
+        init: true
+        privileged: true
         container_name: qemu
         build:
             context: "."
-            dockerfile: qemu.Dockerfile
+            dockerfile: docker/qemu.Dockerfile
         ports:
             - "127.0.0.1:16509:16509"
             - "127.0.0.1:5900:5900" # spice node 1
@@ -39,9 +52,10 @@ services:
             - "127.0.0.1:5700:5700" # vnc websocket node 1
             - "127.0.0.1:5701:5701" # vnc websocket node 2
             - "127.0.0.1:5702:5702" # vnc websocket node 3
-        privileged: true
-        volumes:
-            - /lib/modules:/lib/modules
+        cap_add:
+          - "NET_ADMIN"
+        devices:
+          - "/dev/kvm"
         networks:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.4"
@@ -50,11 +64,11 @@ services:
     dhcp-qemu:
         build:
             context: "."
-            dockerfile: dnsmasq.Dockerfile
+            dockerfile: docker/dnsmasq.Dockerfile
         container_name: dhcp-qemu
         cap_add:
             - "NET_ADMIN"
-        entrypoint: dnsmasq -a 192.168.112.2 -p 0 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h
+        entrypoint: dnsmasq -a 192.168.112.2 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h --domain-needed --bogus-priv --dhcp-authoritative
         networks:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.2"
@@ -62,7 +76,7 @@ services:
     dhcp-direct-attach:
         build:
             context: "."
-            dockerfile: dnsmasq.Dockerfile
+            dockerfile: docker/dnsmasq.Dockerfile
         container_name: dhcp-direct-attach
         cap_add:
             - "NET_ADMIN"

@@ -1,14 +1,19 @@
 /*
-Code from https://github.com/papigers/rutty
+With code from https://github.com/papigers/rutty
 */
 
 use axum::{
-    extract::ws::{close_code, CloseFrame, Message, WebSocket, WebSocketUpgrade},
+    extract::{
+        ws::{close_code, CloseFrame, Message, WebSocket, WebSocketUpgrade},
+        Path,
+    },
     response::IntoResponse,
 };
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
+use std::io::Write;
 use std::{borrow::Cow, sync::Arc};
 use std::{pin::Pin, time::Duration};
+use tempfile::NamedTempFile;
 use tokio::{io::AsyncWriteExt, sync::Notify, time::sleep};
 use tracing::{debug, error, warn};
 
@@ -20,25 +25,37 @@ use thiserror::Error;
 use tokio::process::Child;
 use tokio_util::io::ReaderStream;
 
+use crate::get_current_config_cloned;
+
 #[utoipa::path(
     get,
-    path = "/api/terminal/local",
+    path = "/api/terminal/{id}",
     responses(
         (status = 200, description = "Websocket connection", body = String)
+    ),
+    params(
+        ("id" = String, Path, description = "The id of the console to connect to, either the machine id or 'local'"),
+
     )
 )]
-pub async fn terminal_local(ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| local_shell(socket))
+pub async fn terminal_local(ws: WebSocketUpgrade, Path(id): Path<String>) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| local_shell(socket, id))
 }
 
-pub async fn local_shell(mut socket: WebSocket) {
+pub async fn local_shell(mut socket: WebSocket, id: String) {
     loop {
         sleep(Duration::from_millis(10)).await;
         let message = socket.recv().await;
         match message {
             Some(Ok(message)) => {
                 if let CommandMessage::Start(size) = message.into() {
-                    run_command(socket, size).await;
+                    match run_command(socket, size, id).await {
+                        Ok(_) => (),
+                        Err(err) => {
+                            error!("Failed to run command: {err}");
+                            break;
+                        }
+                    }
                     break;
                 }
                 continue;
@@ -48,10 +65,44 @@ pub async fn local_shell(mut socket: WebSocket) {
     }
 }
 
-async fn run_command(socket: WebSocket, terminal_size: Option<TerminalSize>) {
+async fn run_command(
+    socket: WebSocket,
+    terminal_size: Option<TerminalSize>,
+    id: String,
+) -> anyhow::Result<()> {
     let (mut sender, receiver) = futures_util::StreamExt::split(socket);
 
+    let mut tempfile = NamedTempFile::new()?;
+
     let mut command = Command::new("/bin/bash");
+
+    if id != "local" {
+        let config = get_current_config_cloned!();
+        let (_, selected_node) = config
+            .clusters
+            .iter()
+            .flat_map(|(_, cluster)| cluster.cluster_nodes.iter())
+            .find(|(node_id, _)| **node_id == id)
+            .ok_or(anyhow::anyhow!(
+                "Failed to find node with id {id} in the current config"
+            ))?;
+        let pw = &selected_node.ssh.ssh_password;
+        writeln!(tempfile, "{pw}")?;
+
+        let pw_path = tempfile.path().to_str().ok_or(anyhow::anyhow!(
+            "Failed to convert password file path to string"
+        ))?;
+        debug!("Using password file: {pw_path}");
+
+        let command_str = format!(
+            "sshpass -f {} ssh {}@{}",
+            pw_path, selected_node.ssh.ssh_username, selected_node.hostname
+        );
+
+        debug!("Running command: {command_str}");
+        let args = ["-c", &command_str];
+        command.args(args);
+    };
 
     match command.spawn(terminal_size) {
         Err(err) => {
@@ -64,10 +115,12 @@ async fn run_command(socket: WebSocket, terminal_size: Option<TerminalSize>) {
                 .await
                 .unwrap_or_default();
 
-            return;
+            return Ok(());
         }
         _ => (),
     };
+
+    drop(tempfile);
 
     let _ = command
         .pid()
@@ -84,10 +137,12 @@ async fn run_command(socket: WebSocket, terminal_size: Option<TerminalSize>) {
         _ = (&mut send_task) => {
             recv_task.abort();
             aborter.notify_waiters();
+            Ok(())
         },
         _ = (&mut recv_task) => {
             send_task.abort();
             aborter2.notify_waiters();
+            Ok(())
         },
     }
 }
@@ -165,6 +220,15 @@ impl Command {
         self.child = Some(child);
 
         Ok(())
+    }
+
+    pub(crate) fn args<I, S>(&mut self, args: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<std::ffi::OsStr>,
+    {
+        self.inner.args(args);
+        self
     }
 
     pub(crate) fn read_and_control(self, aborter: Arc<Notify>) -> (CommandWriter, CommandStream) {

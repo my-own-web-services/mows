@@ -74,9 +74,9 @@ export class WebSocketAddon implements ITerminalAddon {
     private _disposables: IDisposable[] = [];
     private endpoint: string;
 
-    constructor(path: string, statusBanner: HTMLElement) {
+    constructor(endpoint: string, statusBanner: HTMLElement) {
         this._status = new StatusBanner(statusBanner);
-        this.endpoint = path;
+        this.endpoint = endpoint;
     }
 
     createSocket = (endpoint: string) => {
