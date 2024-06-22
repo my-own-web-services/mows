@@ -1,5 +1,5 @@
 use anyhow::{bail, Context};
-use std::{collections::HashMap, net::IpAddr};
+use std::{collections::HashMap, net::IpAddr, process::Stdio};
 use tokio::process::Command;
 
 use crate::{
@@ -17,7 +17,7 @@ impl Machine {
     pub async fn new(machine_creation_config: &MachineCreationReqBody) -> anyhow::Result<Self> {
         Ok(match machine_creation_config {
             MachineCreationReqBody::LocalQemu(cc) => {
-                let machine_name: String = format!("mows-{}", generate_id(8));
+                let machine_name: String = format!("mows-{}", generate_id(8)).to_lowercase();
 
                 let primary_volume_name = format!("{}-ssd", machine_name);
                 let primary_volume_size = 20;
@@ -63,6 +63,7 @@ impl Machine {
                             secondary_volume_name, secondary_volume_size
                         ),
                     ])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
@@ -72,7 +73,6 @@ impl Machine {
                 let machine = Machine {
                     id: machine_name.clone(),
                     mac: Some(mac),
-                    last_ip: None,
                     machine_type: MachineType::LocalQemu,
                     install: None,
                 };
@@ -128,11 +128,13 @@ impl Machine {
             MachineType::LocalQemu => {
                 Command::new("virsh")
                     .args(["destroy", &self.id])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
                 Command::new("virsh")
                     .args(["undefine", &self.id])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
@@ -144,6 +146,7 @@ impl Machine {
                         "default",
                         &format!("{}-primary.qcow2", &self.id),
                     ])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
@@ -155,6 +158,7 @@ impl Machine {
                         "default",
                         &format!("{}-secondary.qcow2", &self.id),
                     ])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
@@ -189,6 +193,7 @@ impl Machine {
             MachineType::LocalQemu => {
                 Command::new("virsh")
                     .args(["start", &self.id])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
@@ -205,6 +210,7 @@ impl Machine {
             MachineType::LocalQemu => {
                 Command::new("virsh")
                     .args(["reboot", &self.id])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
@@ -221,6 +227,7 @@ impl Machine {
             MachineType::LocalQemu => {
                 Command::new("virsh")
                     .args(["shutdown", &self.id])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
@@ -237,6 +244,7 @@ impl Machine {
             MachineType::LocalQemu => {
                 Command::new("virsh")
                     .args(["reset", &self.id])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
@@ -253,6 +261,7 @@ impl Machine {
             MachineType::LocalQemu => {
                 Command::new("virsh")
                     .args(["destroy", &self.id])
+                    .stdout(Stdio::null())
                     .spawn()?
                     .wait()
                     .await?;
@@ -344,56 +353,32 @@ impl Machine {
         &self,
         clusters: &HashMap<String, Cluster>,
     ) -> anyhow::Result<()> {
-        if let Some(install) = &self.install {
-            if install.state == Some(MachineInstallState::Requested) {
-                let node = &self
-                    .get_attached_cluster_node(clusters)
-                    .context("Could not find attached cluster node for requested install")?;
+        let node = &self
+            .get_attached_cluster_node(clusters)
+            .context("Could not find attached cluster node for requested install")?;
 
-                let output = node
-                    .ssh
-                    .exec(self, &format!("sudo systemctl status k3s"), 1)
-                    .await
-                    .context("Could not get node status.")?;
+        let output = node
+            .exec(&format!("sudo systemctl status k3s"), 1)
+            .await
+            .context("Could not get node status.")?;
 
-                if output.contains("active (running)") {
-                    Ok(())
-                } else {
-                    bail!("Node not ready")
-                }
-            } else {
-                Ok(())
-            }
+        if output.contains("active (running)") {
+            Ok(())
         } else {
-            bail!("No install found")
+            bail!("Node not ready")
         }
     }
 
     pub async fn get_current_ip(&self) -> anyhow::Result<IpAddr> {
-        let mut ip: Option<IpAddr> = None;
-
         if let Some(mac) = &self.mac {
             if let Ok(ip_from_mac) = get_current_ip_from_mac(mac).await {
                 if let Ok(ip_from_mac_parsed) = ip_from_mac.parse() {
-                    let mut config_lock = write_config!();
-                    let current_machine =
-                        some_or_bail!(config_lock.machines.get_mut(&self.id), "Machine not found");
-                    current_machine.last_ip = Some(ip_from_mac_parsed);
-                    drop(config_lock);
-                    ip = Some(ip_from_mac_parsed);
+                    return Ok(ip_from_mac_parsed);
                 }
             }
         };
 
-        if let Some(last_ip) = self.last_ip {
-            ip = Some(last_ip);
-        };
-
-        if let Some(ip) = ip {
-            Ok(ip)
-        } else {
-            bail!("No IP found")
-        }
+        bail!("No IP found")
     }
 }
 

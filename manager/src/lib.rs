@@ -5,6 +5,7 @@ pub mod macros;
 pub mod node;
 pub mod pixiecore;
 pub mod ssh;
+pub mod tracing;
 pub mod types;
 pub mod utils;
 pub mod api {

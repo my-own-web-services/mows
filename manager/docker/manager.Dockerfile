@@ -26,7 +26,7 @@ ARG DEBCONF_NONINTERACTIVE_SEEN "true"
 
 RUN set -eu && \
     apt-get update && \
-    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils
 
 # install pixiecore
 RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add -

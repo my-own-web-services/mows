@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, process::Stdio};
 
 use anyhow::bail;
 use tokio::process::Command;
@@ -80,16 +80,22 @@ impl PixiecoreBootConfig {
 
         Command::new("wget")
             .args(["-nc", &kernel_url, "-O", &kernel_path])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .spawn()?
             .wait()
             .await?;
         Command::new("wget")
             .args(["-nc", &initrd_url, "-O", &initrd_path])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .spawn()?
             .wait()
             .await?;
         Command::new("wget")
             .args(["-nc", &squashfs_url, "-O", &squashfs_path])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .spawn()?
             .wait()
             .await?;

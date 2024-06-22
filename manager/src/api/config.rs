@@ -13,6 +13,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use tracing::info;
 
 #[utoipa::path(
     put,
@@ -31,6 +32,8 @@ pub async fn update_config(
     *config = posted_config;
 
     config.apply_environment().await?;
+
+    info!("Config updated");
 
     Ok(Json(Success {
         message: "Config updated".to_string(),

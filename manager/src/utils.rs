@@ -4,10 +4,10 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use tokio::process::Command;
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::{
-    config::{ClusterInstallState, MachineInstall, MachineInstallState},
+    config::{ClusterInstallState, MachineInstallState},
     get_current_config_cloned, some_or_bail, write_config,
 };
 
@@ -48,31 +48,46 @@ where
     }
 }
 
+pub async fn apply_environment() -> anyhow::Result<()> {
+    let cfg1 = get_current_config_cloned!();
+
+    cfg1.apply_environment()
+        .await
+        .context("Failed to apply environment")?;
+
+    Ok(())
+}
+
 pub async fn update_machine_install_state() -> anyhow::Result<()> {
     let cfg1 = get_current_config_cloned!();
 
     for machine in cfg1.machines.values() {
-        debug!("Checking install state for machine {}", machine.id);
-        if machine.poll_install_state(&cfg1.clusters).await.is_err() {
-            continue;
+        if let Some(install) = &machine.install {
+            if install.state == Some(MachineInstallState::Requested) {
+                debug!("Checking Machine {} install state", machine.id);
+                match machine.poll_install_state(&cfg1.clusters).await {
+                    Ok(_) => (),
+                    Err(e) => {
+                        debug!("Machine not installed yet: {:?}", e);
+                        continue;
+                    }
+                }
+
+                info!("Machine {} is installed", machine.id);
+                let mut config_locked2 = write_config!();
+                let machine = some_or_bail!(
+                    config_locked2.machines.get_mut(&machine.id),
+                    "Machine not found"
+                );
+                machine.install.as_mut().unwrap().boot_config = None;
+                machine.install.as_mut().unwrap().state = Some(MachineInstallState::Installed);
+            }
         }
-        debug!("Machine {} is installed", machine.id);
-        let mut config_locked2 = write_config!();
-        let machine = some_or_bail!(
-            config_locked2.machines.get_mut(&machine.id),
-            "Machine not found"
-        );
-        let primary = machine.install.as_ref().unwrap().primary;
-        *machine.install.as_mut().unwrap() = MachineInstall {
-            state: Some(MachineInstallState::Installed),
-            boot_config: None,
-            primary,
-        };
     }
     Ok(())
 }
 
-pub async fn get_cluster_config() -> anyhow::Result<()> {
+pub async fn get_cluster_kubeconfig() -> anyhow::Result<()> {
     let cfg1 = get_current_config_cloned!();
 
     for cluster in cfg1.clusters.values() {
@@ -82,7 +97,7 @@ pub async fn get_cluster_config() -> anyhow::Result<()> {
                 "Failed to get kubeconfig for cluster {}",
                 cluster.id
             ))?;
-            debug!("Got kubeconfig for cluster {}", cluster.id);
+            info!("Got kubeconfig for cluster {}", cluster.id);
 
             let mut config_locked2 = write_config!();
             let cluster = some_or_bail!(
@@ -112,9 +127,9 @@ pub async fn install_cluster_basics() -> anyhow::Result<()> {
         if cluster.kubeconfig.is_some()
             && cluster.install_state == Some(ClusterInstallState::Kubernetes)
         {
-            debug!("Installing basics for cluster {}", cluster.id);
+            info!("Installing basics for cluster {}", cluster.id);
             cluster.install_basics().await?;
-            debug!("Installed basics for cluster {}", cluster.id);
+            info!("Installed basics for cluster {}", cluster.id);
 
             let mut config_locked2 = write_config!();
             let cluster = some_or_bail!(
