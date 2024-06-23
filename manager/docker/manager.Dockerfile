@@ -1,20 +1,17 @@
-# 0. BUILD STAGE
-FROM clux/muslrust:stable AS build
-# build deps
-USER root
-RUN apt-get update && apt-get install upx -y
-RUN cargo install cargo-build-deps
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+WORKDIR /app
 
+FROM chef AS planner
 COPY ./Cargo.toml ./Cargo.lock ./
+RUN cargo chef prepare --recipe-path recipe.json
 
-RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps
-RUN rm -f target/x86_64-unknown-linux-musl/debug/deps/mows-manager*
-# build
-COPY --chown=root:root ./src src
+FROM chef AS builder 
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN RUSTFLAGS="--cfg tokio_unstable" cargo chef cook --recipe-path recipe.json
+# Build application
+COPY . .
 RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --bin main
-RUN strip target/x86_64-unknown-linux-musl/debug/main
-#RUN upx --best --lzma target/x86_64-unknown-linux-musl/debug/main
-
 
 
 # 1. RUNTIME STAGE
@@ -47,13 +44,25 @@ RUN echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://p
 RUN apt-get update
 RUN apt-get install kubectl -y
 
+# download k9s https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd64.deb
+RUN wget https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd64.deb -O /tmp/k9s.deb
+RUN dpkg -i /tmp/k9s.deb
+RUN mkdir -p /etc/bash_completion.d
+RUN k9s completion bash > /etc/bash_completion.d/k9s 
+
+# install kustomize
+RUN wget https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.2/kustomize_v5.4.2_linux_amd64.tar.gz -O /tmp/kustomize.tar.gz
+RUN tar -xvf /tmp/kustomize.tar.gz -C /usr/local/bin
+RUN chmod +x /usr/local/bin/kustomize
+
+
 # colored bash
 # https://bash-prompt-generator.org/
 COPY ./misc/.bashrc /root/.bashrc
 
 WORKDIR /app
 
-COPY --from=build --chown=mows-manager:mows-manager /volume/target/x86_64-unknown-linux-musl/debug/main ./mows-manager
+COPY --from=builder --chown=mows-manager:mows-manager /app/target/debug/main ./mows-manager
 RUN useradd -u 50001 -N mows-manager
 RUN groupadd -g 50001 mows-manager
 

@@ -6,7 +6,7 @@ use crate::{
     api::machines::{MachineCreationReqBody, MachineSignal},
     config::{
         BackupNode, Cluster, ClusterNode, Machine, MachineInstall, MachineInstallState,
-        MachineType, PixiecoreBootConfig, SshAccess,
+        MachineType, ManagerConfig, PixiecoreBootConfig, SshAccess,
     },
     some_or_bail,
     utils::{generate_id, get_current_ip_from_mac},
@@ -40,6 +40,8 @@ impl Machine {
                         "q35",
                         "--network",
                         "network=mows-manager,model=virtio",
+                        "--network",
+                        "network=default,model=virtio",
                         "--video",
                         "qxl",
                         "--graphics",
@@ -121,6 +123,61 @@ impl Machine {
 
     pub async fn create_direct_attach_network() -> anyhow::Result<()> {
         todo!()
+    }
+
+    pub async fn dev_delete_all() -> anyhow::Result<()> {
+        // list all virtual machines
+        let output = Command::new("virsh")
+            .args(["list", "--all"])
+            .output()
+            .await?;
+        let output = String::from_utf8(output.stdout)?;
+
+        let lines: Vec<&str> = output.lines().collect();
+        for line in lines {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() > 1 {
+                let machine_name = parts[1];
+                if machine_name.starts_with("mows-") {
+                    Command::new("virsh")
+                        .args(["destroy", machine_name])
+                        .stdout(Stdio::null())
+                        .spawn()?
+                        .wait()
+                        .await?;
+                    Command::new("virsh")
+                        .args(["undefine", machine_name])
+                        .stdout(Stdio::null())
+                        .spawn()?
+                        .wait()
+                        .await?;
+                    Command::new("virsh")
+                        .args([
+                            "vol-delete",
+                            "--pool",
+                            "default",
+                            &format!("{}-primary.qcow2", machine_name),
+                        ])
+                        .stdout(Stdio::null())
+                        .spawn()?
+                        .wait()
+                        .await?;
+                    Command::new("virsh")
+                        .args([
+                            "vol-delete",
+                            "--pool",
+                            "default",
+                            &format!("{}-secondary.qcow2", machine_name),
+                        ])
+                        .stdout(Stdio::null())
+                        .spawn()?
+                        .wait()
+                        .await?;
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn delete(&self) -> anyhow::Result<()> {

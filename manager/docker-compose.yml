@@ -1,4 +1,3 @@
-version: "3.9"
 services:
     mows-manager:
         image: mows-manager
@@ -21,7 +20,7 @@ services:
         volumes:
             - ./temp-pxe-files:/pxe_files/
             - ./install:/install
-        #    - /var/run/docker.sock:/var/run/docker.sock
+            - /var/run/docker.sock:/var/run/docker.sock
         environment:
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system
             #- RUST_BACKTRACE=full
@@ -46,12 +45,9 @@ services:
             dockerfile: docker/qemu.Dockerfile
         ports:
             - "127.0.0.1:16509:16509"
-            - "127.0.0.1:5900:5900" # spice node 1
-            - "127.0.0.1:5901:5901" # spice node 2
-            - "127.0.0.1:5902:5902" # spice node 3
-            - "127.0.0.1:5700:5700" # vnc websocket node 1
-            - "127.0.0.1:5701:5701" # vnc websocket node 2
-            - "127.0.0.1:5702:5702" # vnc websocket node 3
+            - "127.0.0.1:5900-5999:5900-5999" # spice
+            - "127.0.0.1:5700-5799:5700-5799" # vnc websocket 
+
         cap_add:
           - "NET_ADMIN"
         devices:

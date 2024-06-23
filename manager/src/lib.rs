@@ -12,6 +12,7 @@ pub mod api {
     pub mod boot;
     pub mod cluster;
     pub mod config;
+    pub mod direct_terminal;
+    pub mod docker_terminal;
     pub mod machines;
-    pub mod terminal;
 }

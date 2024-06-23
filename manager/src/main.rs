@@ -5,19 +5,20 @@ use axum::http::{Method, StatusCode};
 use axum::routing::{delete, get, post, put};
 use axum::BoxError;
 use axum::Router;
+use bollard::Docker;
 use manager::api::boot::*;
 use manager::api::cluster::*;
 use manager::api::config::*;
+use manager::api::direct_terminal::*;
+use manager::api::docker_terminal::*;
 use manager::api::machines::*;
-use manager::api::terminal::*;
 use manager::config::*;
-use manager::tracing::init_tracer;
 use manager::types::*;
 use manager::utils::{
     apply_environment, get_cluster_kubeconfig, install_cluster_basics, update_machine_install_state,
 };
 
-use tracing_opentelemetry::OpenTelemetryLayer;
+use tracing_subscriber::fmt::time;
 use tracing_subscriber::util::SubscriberInitExt;
 
 use std::process::Stdio;
@@ -53,10 +54,12 @@ async fn main() -> Result<(), anyhow::Error> {
             signal_machine,
             create_cluster,
             get_boot_config_by_mac,
-            terminal_local,
             delete_machine,
             get_machine_info,
-            get_machine_status
+            get_machine_status,
+            dev_delete_all_machines,
+            docker_terminal,
+            direct_terminal,
         ),
         components(
             schemas(
@@ -95,6 +98,8 @@ async fn main() -> Result<(), anyhow::Error> {
     )]
     struct ApiDoc;
 
+    let _ = Docker::connect_with_local_defaults();
+
     let console_layer = console_subscriber::ConsoleLayer::builder()
         .server_addr(([0, 0, 0, 0], 6669))
         .spawn()
@@ -109,12 +114,18 @@ async fn main() -> Result<(), anyhow::Error> {
         "main=debug,manager=debug,tower_http=trace,axum::rejection=trace,tokio=debug,runtime=debug"
             .into()
     });
-    let log_layer = tracing_subscriber::fmt::layer().with_filter(log_filter);
+    let log_layer = tracing_subscriber::fmt::layer()
+        .with_ansi(true)
+        .with_level(true)
+        .with_timer(time::ChronoLocal::new("%H:%M:%S".to_string()))
+        .with_file(true)
+        .with_line_number(true)
+        .with_filter(log_filter);
 
     tracing_subscriber::registry()
         .with(console_layer)
         .with(log_layer)
-        .with(OpenTelemetryLayer::new(init_tracer("http://jaeger:4317")))
+        //.with(OpenTelemetryLayer::new(init_tracer("http://jaeger:4317")))
         .try_init()?;
 
     //Machine::delete_all_mows_machines().unwrap();
@@ -146,8 +157,13 @@ async fn main() -> Result<(), anyhow::Error> {
         .route("/api/machines/delete", delete(delete_machine))
         .route("/api/machines/info", post(get_machine_info))
         .route("/api/machines/status", get(get_machine_status))
+        .route(
+            "/api/dev/machines/delete_all",
+            delete(dev_delete_all_machines),
+        )
         .route("/api/cluster/create", post(create_cluster))
-        .route("/api/terminal/:id", get(terminal_local))
+        .route("/api/terminal/direct/:id", get(direct_terminal))
+        .route("/api/terminal/docker/:id", get(docker_terminal))
         .route("/v1/boot/:mac_addr", get(get_boot_config_by_mac))
         .nest_service("/", serve_dir)
         .layer(

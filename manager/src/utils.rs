@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use tokio::process::Command;
-use tracing::{debug, info};
+use tracing::{debug, info, trace};
 
 use crate::{
     config::{ClusterInstallState, MachineInstallState},
@@ -13,7 +13,7 @@ use crate::{
 
 pub fn generate_id(length: usize) -> String {
     use rand::Rng;
-    const CHARSET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    const CHARSET: &[u8; 62] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     let mut rng = rand::thread_rng();
 
@@ -58,6 +58,7 @@ pub async fn apply_environment() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[tracing::instrument]
 pub async fn update_machine_install_state() -> anyhow::Result<()> {
     let cfg1 = get_current_config_cloned!();
 
@@ -68,7 +69,7 @@ pub async fn update_machine_install_state() -> anyhow::Result<()> {
                 match machine.poll_install_state(&cfg1.clusters).await {
                     Ok(_) => (),
                     Err(e) => {
-                        debug!("Machine not installed yet: {:?}", e);
+                        trace!("Machine not installed yet: {:?}", e);
                         continue;
                     }
                 }
@@ -86,7 +87,7 @@ pub async fn update_machine_install_state() -> anyhow::Result<()> {
     }
     Ok(())
 }
-
+#[tracing::instrument]
 pub async fn get_cluster_kubeconfig() -> anyhow::Result<()> {
     let cfg1 = get_current_config_cloned!();
 
@@ -119,7 +120,7 @@ pub async fn get_cluster_kubeconfig() -> anyhow::Result<()> {
 
     Ok(())
 }
-
+#[tracing::instrument]
 pub async fn install_cluster_basics() -> anyhow::Result<()> {
     let cfg1 = get_current_config_cloned!();
 
@@ -136,7 +137,7 @@ pub async fn install_cluster_basics() -> anyhow::Result<()> {
                 config_locked2.clusters.get_mut(&cluster.id),
                 "Cluster not found"
             );
-            cluster.install_state = Some(ClusterInstallState::Basics);
+            cluster.install_state = Some(ClusterInstallState::BasicsConfigured);
         }
     }
 

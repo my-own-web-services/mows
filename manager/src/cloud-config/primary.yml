@@ -24,8 +24,8 @@ k3s:
         - --disable=traefik
         - --disable servicelb
         #- --kubelet-arg="node-ip=::"
-        - --cluster-cidr=192.168.122.0/24 #,2001:cafe:42::/56
-        - --service-cidr=10.42.0.0/16 #,2001:cafe:43::/112
+        - --cluster-cidr=10.42.0.0/16 #,2001:cafe:42::/56
+        - --service-cidr=10.43.0.0/16 #,2001:cafe:43::/112
     env:
         K3S_TOKEN: "$$$K3S_TOKEN"
 

@@ -1,3 +1,4 @@
+import { AttachAddon } from "@xterm/addon-attach";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
@@ -10,7 +11,8 @@ import { CSSProperties, Component, createRef } from "react";
 interface TerminalComponentProps {
     readonly className?: string;
     readonly style?: CSSProperties;
-    readonly url: string;
+    readonly id: string;
+    readonly type: "docker" | "direct";
 }
 
 interface TerminalComponentState {}
@@ -23,38 +25,105 @@ export default class TerminalComponent extends Component<
     private terminal: Terminal | null = null;
     private statusBanner = createRef<HTMLDivElement>();
     private fitAddon: FitAddon | null = null;
+    private attachAddon: AttachAddon | null = null;
+    private searchAddon: SearchAddon | null = null;
+    private webLinksAddon: WebLinksAddon | null = null;
+    private webglAddon: WebglAddon | null = null;
+    private clipboardAddon: ClipboardAddon | null = null;
+    private websocketAddon: WebSocketAddon | null = null;
+    private ws: WebSocket | null = null;
 
-    componentDidMount() {
-        if (this.terminalRef.current && this.statusBanner.current) {
+    componentDidMount = async () => {
+        await this.init();
+    };
+
+    getUrl = () => `ws://localhost:3000/api/terminal/${this.props.type}/${this.props.id}`;
+
+    checkReady = async (): Promise<boolean> => {
+        const ws = new WebSocket(this.getUrl());
+
+        return new Promise((resolve) => {
+            ws.onopen = () => {
+                ws.close();
+                resolve(true);
+            };
+
+            ws.onerror = () => {
+                ws.close();
+                resolve(false);
+            };
+        });
+    };
+
+    createWebSocket = () => {
+        this.ws = new WebSocket(this.getUrl());
+        this.ws.onclose = async () => {
+            await this.retry();
+        };
+
+        this.ws.onerror = async () => {
+            await this.retry();
+        };
+    };
+
+    retry = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        this.dispose();
+        this.init();
+    };
+
+    init = async () => {
+        this.createWebSocket();
+        if (this.terminalRef.current && this.statusBanner.current && this.ws) {
             this.terminal = new Terminal({ cursorBlink: false });
             this.fitAddon = new FitAddon();
+            this.searchAddon = new SearchAddon();
+            this.webLinksAddon = new WebLinksAddon();
+            this.webglAddon = new WebglAddon();
+            this.clipboardAddon = new ClipboardAddon();
 
-            this.terminal.loadAddon(new WebSocketAddon(this.props.url, this.statusBanner.current));
+            if (this.props.type === "docker") {
+                this.attachAddon = new AttachAddon(this.ws);
+                this.terminal.loadAddon(this.attachAddon);
+            } else if (this.props.type === "direct") {
+                this.websocketAddon = new WebSocketAddon(this.ws, this.statusBanner.current);
+                this.terminal.loadAddon(this.websocketAddon);
+            } else {
+                throw new Error("Invalid type");
+            }
             this.terminal.loadAddon(this.fitAddon);
-            this.terminal.loadAddon(new ClipboardAddon());
-            this.terminal.loadAddon(new SearchAddon());
-            this.terminal.loadAddon(new WebLinksAddon());
-            this.terminal.loadAddon(new WebglAddon());
+            this.terminal.loadAddon(this.clipboardAddon);
+            this.terminal.loadAddon(this.searchAddon);
+            this.terminal.loadAddon(this.webLinksAddon);
+            this.terminal.loadAddon(this.webglAddon);
 
             this.terminal.open(this.terminalRef.current);
             this.fitAddon.fit();
         }
-    }
+    };
 
-    componentWillUnmount() {
-        if (this.terminal) {
-            this.terminal.dispose();
-        }
-    }
+    dispose = () => {
+        // cleanup everything that is created in init
+        this.terminal?.dispose();
+        this.fitAddon?.dispose();
+        this.attachAddon?.dispose();
+        this.searchAddon?.dispose();
+        this.webLinksAddon?.dispose();
+        this.webglAddon?.dispose();
+        this.clipboardAddon?.dispose();
+        this.websocketAddon?.dispose();
+        this.terminal = null;
+    };
 
     render() {
         return (
             <div
                 style={{ ...this.props.style }}
-                className={`Terminal relative h-full w-full ${this.props.className ?? ""} rounded-lg bg-[black] p-3 pb-3`}
+                className={`Terminal relative h-full min-h-full w-full ${this.props.className ?? ""} rounded-lg bg-[black] p-3 pb-3`}
             >
                 <div className={"absolute left-0 top-0 hidden"} ref={this.statusBanner}></div>
-                <div ref={this.terminalRef} className="h-[calc(100%+9px)]"></div>
+                <div ref={this.terminalRef} className={`h-[calc(100%+9px)]`}></div>
             </div>
         );
     }
@@ -66,32 +135,24 @@ const INPUT_PREFIX = "1";
 const RESIZE_PREFIX = "2";
 
 export class WebSocketAddon implements ITerminalAddon {
-    private _socket?: WebSocket;
+    private _socket: WebSocket;
     //@ts-ignore
     private _terminal: Terminal;
     private _reconnect: number = -1;
     private _status: StatusBanner;
     private _disposables: IDisposable[] = [];
-    private endpoint: string;
 
-    constructor(endpoint: string, statusBanner: HTMLElement) {
+    constructor(ws: WebSocket, statusBanner: HTMLElement) {
         this._status = new StatusBanner(statusBanner);
-        this.endpoint = endpoint;
+        this._socket = ws;
+        ws.binaryType = "arraybuffer";
     }
-
-    createSocket = (endpoint: string) => {
-        const socket = new WebSocket(endpoint);
-        socket.binaryType = "arraybuffer";
-
-        return socket;
-    };
 
     public activate(terminal: Terminal): void {
         terminal.clear();
         terminal.focus();
 
         this._status.setConnecting();
-        this._socket = this.createSocket(this.endpoint);
         this._terminal = terminal;
 
         this._disposables = [];
