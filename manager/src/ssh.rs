@@ -159,7 +159,7 @@ impl SshAccess {
     pub async fn add_ssh_key_to_local_agent(&self) -> anyhow::Result<()> {
         self.ensure_local_ssh_agent_is_running().await?;
 
-        let mut tempfile = NamedTempFile::new()?;
+        let mut tempfile = NamedTempFile::new().context("Failed to create temporary file ")?;
 
         writeln!(tempfile, "{}", &self.ssh_private_key).context("Failed to write private key")?;
 

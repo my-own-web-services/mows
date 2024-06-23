@@ -33,7 +33,8 @@ export type ClusterCreationConfig = object;
 
 export enum ClusterInstallState {
   Kubernetes = "Kubernetes",
-  Basics = "Basics",
+  BasicsConfigured = "BasicsConfigured",
+  BasicsReady = "BasicsReady",
 }
 
 export interface ClusterNode {
@@ -82,7 +83,6 @@ export interface LocalQemuConfig {
 export interface Machine {
   id: string;
   install?: null;
-  last_ip?: null;
   mac?: string | null;
   machine_type: MachineType;
 }
@@ -162,7 +162,7 @@ export interface PublicIpConfigSingleIp {
 }
 
 export interface SshAccess {
-  remote_fingerprint?: string | null;
+  remote_public_key?: string | null;
   ssh_passphrase: string;
   ssh_password: string;
   ssh_private_key: string;
@@ -443,6 +443,21 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags crate
+     * @name DevDeleteAllMachines
+     * @request DELETE:/api/dev/machines/delete_all
+     */
+    devDeleteAllMachines: (params: RequestParams = {}) =>
+      this.request<Success, string>({
+        path: `/api/dev/machines/delete_all`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
      * @name CreateMachines
      * @request POST:/api/machines/create
      */
@@ -525,10 +540,24 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags crate
-     * @name TerminalLocal
+     * @name DockerTerminal
+     * @request GET:/api/terminal/docker/{id}
+     */
+    dockerTerminal: (id: string, params: RequestParams = {}) =>
+      this.request<string, any>({
+        path: `/api/terminal/docker/${id}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
+     * @name DirectTerminal
      * @request GET:/api/terminal/{id}
      */
-    terminalLocal: (id: string, params: RequestParams = {}) =>
+    directTerminal: (id: string, params: RequestParams = {}) =>
       this.request<string, any>({
         path: `/api/terminal/${id}`,
         method: "GET",

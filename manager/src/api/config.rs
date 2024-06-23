@@ -51,16 +51,16 @@ pub async fn get_config(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_get_config(socket))
 }
 
-// send the config to the client every time and only if it changes the config is a RwLock
 pub async fn handle_get_config(mut socket: WebSocket) {
     loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-
         let config = config().read().await.clone();
 
         let message = Message::Text(serde_json::to_string(&config).unwrap());
         match socket.send(message).await {
-            Ok(_) => continue,
+            Ok(_) => {
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                continue;
+            }
             Err(_) => break,
         }
     }

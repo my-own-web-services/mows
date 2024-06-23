@@ -38,7 +38,7 @@ use crate::get_current_config_cloned;
 
     )
 )]
-pub async fn terminal_local(ws: WebSocketUpgrade, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn direct_terminal(ws: WebSocketUpgrade, Path(id): Path<String>) -> impl IntoResponse {
     ws.on_upgrade(move |socket| local_shell(socket, id))
 }
 

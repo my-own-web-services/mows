@@ -13,7 +13,7 @@ use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
-    config::{config, Machine},
+    config::{config, Machine, ManagerConfig},
     get_current_config_cloned,
     types::Success,
     utils::AppError,
@@ -97,6 +97,26 @@ pub async fn delete_machine(
 
     Ok(Json(Success {
         message: "Machine deleted".to_string(),
+    }))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/dev/machines/delete_all",
+    responses(
+        (status = 200, description = "Machines deleted", body = Success),
+        (status = 500, description = "Failed to delete machines", body = String)
+    )
+)]
+pub async fn dev_delete_all_machines() -> Result<Json<Success>, AppError> {
+    Machine::dev_delete_all().await?;
+
+    let mut config = write_config!();
+
+    *config = ManagerConfig::default();
+
+    Ok(Json(Success {
+        message: "Machines deleted".to_string(),
     }))
 }
 

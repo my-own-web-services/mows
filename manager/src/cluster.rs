@@ -1,10 +1,17 @@
+use std::io::Write;
 use std::{
-    collections::HashMap, fs::Permissions, net::IpAddr, os::unix::fs::PermissionsExt, path::Path,
+    collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path,
     process::Output,
 };
 
 use anyhow::{bail, Context};
-use openssl::conf;
+use k8s_openapi::api::core::v1::Node;
+use kube::{
+    api::ListParams,
+    config::{KubeConfigOptions, Kubeconfig},
+    Api,
+};
+use tempfile::NamedTempFile;
 use tokio::{fs, process::Command};
 use tracing::debug;
 
@@ -173,9 +180,16 @@ impl Cluster {
         Ok(out)
     }
 
-    pub async fn install_basics(&self) -> anyhow::Result<()> {
-        // install network: cilium
+    pub async fn get_kubeconfig_struct(&self) -> anyhow::Result<kube::Config> {
+        let kc = some_or_bail!(&self.kubeconfig, "No kubeconfig found");
 
+        let kc = Kubeconfig::from_yaml(kc)?;
+
+        Ok(kube::Config::from_custom_kubeconfig(kc, &KubeConfigOptions::default()).await?)
+    }
+
+    pub async fn install_network(&self) -> anyhow::Result<()> {
+        let cilium_version = "1.15.0";
         Command::new("helm")
             .args(["repo", "add", "cilium", "https://helm.cilium.io/"])
             .spawn()?
@@ -190,72 +204,142 @@ impl Cluster {
             .context("Failed to update helm repos")?;
         self.run_command_with_kubeconfig(Command::new("helm").args([
             "upgrade",
-            "cilium/cilium",
             "--install",
-            "cilium",
-            "--namespace",
-            "cilium",
             "--create-namespace",
+            "network",
+            "cilium/cilium",
+            "--namespace",
+            "network",
             "--version",
-            "1.15.0",
+            cilium_version,
             "--set",
             "operator.replicas=1",
             "--set",
             "hubble.relay.enabled=true",
             "--set",
             "hubble.ui.enabled=true",
+            "--set",
+            "global.kubeProxyReplacement='strict'",
+            "--set",
+            "global.containerRuntime.integration='containerd'",
+            "--set",
+            "global.containerRuntime.socketPath='/var/run/k3s/containerd/containerd.sock'",
+            "--set",
+            "k8sServiceHost=127.0.0.1",
+            "--set",
+            "k8sServicePort=6443",
         ]))
         .await
         .context("Failed to install cilium")?;
 
-        /*
-        // install kube-vip
-        {
-            self.run_command_with_kubeconfig(Command::new("kubectl").args([
+        Ok(())
+    }
+
+    pub async fn are_nodes_ready(&self) -> anyhow::Result<bool> {
+        let kc = self.get_kubeconfig_struct().await?;
+        let client = kube::client::Client::try_from(kc)?;
+
+        let nodes: Api<Node> = Api::all(client);
+
+        let ready = nodes
+            .list(&ListParams::default())
+            .await?
+            .items
+            .iter()
+            .all(|node| {
+                node.status
+                    .as_ref()
+                    .and_then(|status| status.conditions.as_ref())
+                    .and_then(|conditions| {
+                        Some(conditions.iter().any(|condition| {
+                            condition.type_ == "Ready" && condition.status == "True"
+                        }))
+                    })
+                    .unwrap_or(false)
+            });
+
+        Ok(ready)
+    }
+
+    pub async fn install_kubevip(&self) -> anyhow::Result<()> {
+        let vip = "192.168.122.99";
+        let vip_interface = "enp2s0";
+
+        let template_manifest =
+            fs::read_to_string("/install/cluster-basics/kube-vip/manifest.yml").await?;
+
+        let mut manifest_tempfile =
+            NamedTempFile::new().context("Failed to create temporary file")?;
+
+        let manifest = template_manifest
+            .replace("$$$VIP$$$", vip)
+            .replace("$$$VIP_INTERFACE$$$", vip_interface);
+
+        writeln!(manifest_tempfile, "{}", &manifest,)
+            .context("Failed to write to temporary file")?;
+
+        Command::new("kubectl")
+            .args([
                 "apply",
                 "-f",
-                "/install/cluster-basics/kube-vip/role.yml",
-            ]))
+                "/install/cluster-basics/kube-vip/cluster-role.yml",
+            ])
+            .spawn()?
+            .wait()
             .await
             .context("Failed to install kube-vip cluster role")?;
-            self.run_command_with_kubeconfig(Command::new("kubectl").args([
+        Command::new("kubectl")
+            .args([
                 "apply",
                 "-f",
-                "/install/cluster-basics/kube-vip/manifest.yml",
-            ]))
+                some_or_bail!(manifest_tempfile.path().to_str(), "No path"),
+            ])
+            .spawn()?
+            .wait()
             .await
-            .context("Failed to install kube-vip manifest.")?;
-        }
+            .context("Failed to install kube-vip manifest")?;
 
-        // install storage: longhorn
-        {
-            let _ = Command::new("helm")
-                .args(["repo", "add", "longhorn", "https://charts.longhorn.io"])
-                .spawn()?
-                .wait_with_output()
-                .await;
-            let _ = Command::new("helm")
-                .args(["repo", "update"])
-                .spawn()?
-                .wait_with_output()
-                .await;
-            let _ = self
-                .run_command_with_kubeconfig(Command::new("helm").args([
-                    "upgrade",
-                    "longhorn/longhorn",
-                    "--install",
-                    "longhorn",
-                    "--namespace",
-                    "longhorn-system",
-                    "--create-namespace",
-                    "--version",
-                    "1.5.3",
-                    "--set",
-                    "defaultSettings.createDefaultDiskLabeledNodes=true",
-                ]))
-                .await;
-        }
-        */
+        Ok(())
+    }
+
+    pub async fn install_storage(&self) -> anyhow::Result<()> {
+        Command::new("helm")
+            .args(["repo", "add", "longhorn", "https://charts.longhorn.io"])
+            .spawn()?
+            .wait()
+            .await
+            .context("Failed to add storage/longhorn helm repo")?;
+        Command::new("helm")
+            .args(["repo", "update"])
+            .spawn()?
+            .wait()
+            .await
+            .context("Failed to update helm repos")?;
+        self.run_command_with_kubeconfig(Command::new("helm").args([
+            "upgrade",
+            "longhorn/longhorn",
+            "--install",
+            "longhorn",
+            "--namespace",
+            "storage",
+            "--create-namespace",
+            "--version",
+            "1.5.3",
+            "--set",
+            "defaultSettings.createDefaultDiskLabeledNodes=true",
+        ]))
+        .await
+        .context("Failed to install storage/longhorn")?;
+
+        Ok(())
+    }
+
+    pub async fn install_basics(&self) -> anyhow::Result<()> {
+        self.install_network().await?;
+
+        self.install_kubevip().await?;
+
+        self.install_storage().await?;
 
         // install lightweight virtual runtime: kata
 

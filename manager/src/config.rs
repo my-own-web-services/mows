@@ -34,11 +34,11 @@ impl ManagerConfig {
         trace!("Applying environment");
         match self.write_local_kubeconfig().await {
             Ok(_) => trace!("Wrote local kubeconfig"),
-            Err(e) => debug!("Failed to write local kubeconfig: {:?}", e),
+            Err(e) => trace!("Failed to write local kubeconfig: {:?}", e),
         }
         match self.setup_local_ssh_access().await {
             Ok(_) => trace!("Setup local ssh access"),
-            Err(e) => debug!("Failed to setup local ssh access: {:?}", e),
+            Err(e) => trace!("Failed to setup local ssh access: {:?}", e),
         }
 
         Ok(())
@@ -109,7 +109,8 @@ pub enum MachineInstallState {
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Eq, PartialEq, Hash)]
 pub enum ClusterInstallState {
     Kubernetes,
-    Basics,
+    BasicsConfigured,
+    BasicsReady,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
