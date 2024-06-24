@@ -87,6 +87,7 @@ export default class VNC extends Component<VNCProps, VNCState> {
     render = () => {
         const buttonSize = "sm";
         const machineStatus = machineStatusSignal.value[this.props.machine.id];
+
         return (
             <div style={{ ...this.props.style }} className={`VNC ${this.props.className ?? ""}`}>
                 <div
@@ -94,7 +95,7 @@ export default class VNC extends Component<VNCProps, VNCState> {
                         "pointer-events-none flex min-h-[300px] w-full items-center justify-center rounded-lg bg-[black] p-2"
                     }
                 >
-                    {this.state.machine_infos !== null && machineStatus === "running\n\n" ? (
+                    {this.state.machine_infos !== null && machineStatus?.includes("running") ? (
                         <VncScreen
                             url={this.getUrl(this.state.machine_infos)}
                             backgroundColor="#000"

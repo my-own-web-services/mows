@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{bail, Context};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -23,6 +23,27 @@ pub fn generate_id(length: usize) -> String {
             *CHARSET.get(idx).unwrap() as char
         })
         .collect()
+}
+
+pub async fn cmd(cmd_and_args: Vec<&str>, error: &str) -> anyhow::Result<()> {
+    let cmd = some_or_bail!(cmd_and_args.first(), "No command provided");
+    let args = cmd_and_args
+        .iter()
+        .skip(1)
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+    let command = Command::new(cmd)
+        .args(args.clone())
+        .output()
+        .await
+        .context(error.to_string())?;
+
+    if !command.status.success() {
+        let stderr = std::str::from_utf8(&command.stderr).unwrap_or("Failed to get stderr");
+        bail!("{}: [{}]: {}", error.to_string(), command.status, stderr)
+    }
+
+    Ok(())
 }
 
 pub struct AppError(anyhow::Error);

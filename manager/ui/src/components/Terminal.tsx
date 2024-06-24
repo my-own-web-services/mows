@@ -37,6 +37,12 @@ export default class TerminalComponent extends Component<
         await this.init();
     };
 
+    componentWillUnmount = () => {
+        this.dispose();
+        // remove the resize event listener
+        window.removeEventListener("resize", this.fitAddon!.fit);
+    };
+
     getUrl = () => `ws://localhost:3000/api/terminal/${this.props.type}/${this.props.id}`;
 
     checkReady = async (): Promise<boolean> => {
@@ -57,13 +63,13 @@ export default class TerminalComponent extends Component<
 
     createWebSocket = () => {
         this.ws = new WebSocket(this.getUrl());
-        this.ws.onclose = async () => {
-            await this.retry();
-        };
+        // this.ws.onclose = async () => {
+        //     await this.retry();
+        // };
 
-        this.ws.onerror = async () => {
-            await this.retry();
-        };
+        // this.ws.onerror = async () => {
+        //     await this.retry();
+        // };
     };
 
     retry = async () => {
@@ -100,6 +106,11 @@ export default class TerminalComponent extends Component<
 
             this.terminal.open(this.terminalRef.current);
             this.fitAddon.fit();
+
+            // resize event listener that can be disposed when component is unmounted
+            window.addEventListener("resize", () => {
+                this.fitAddon!.fit();
+            });
         }
     };
 

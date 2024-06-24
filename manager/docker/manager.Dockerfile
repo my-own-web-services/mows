@@ -60,6 +60,8 @@ RUN chmod +x /usr/local/bin/kustomize
 # https://bash-prompt-generator.org/
 COPY ./misc/.bashrc /root/.bashrc
 
+ENV TERM=xterm
+
 WORKDIR /app
 
 COPY --from=builder --chown=mows-manager:mows-manager /app/target/debug/main ./mows-manager
