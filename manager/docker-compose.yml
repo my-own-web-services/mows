@@ -17,6 +17,7 @@ services:
         ports:
             - "127.0.0.1:3000:3000"
             - "127.0.0.1:6669:6669"
+            - "127.0.0.1:8001:8001"
         volumes:
             - ./temp-pxe-files:/pxe_files/
             - ./install:/install

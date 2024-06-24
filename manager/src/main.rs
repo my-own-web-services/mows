@@ -29,7 +29,7 @@ use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
-use tracing::{info, trace};
+use tracing::{error, info, trace};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::Layer;
 use utoipa::OpenApi;
@@ -60,6 +60,7 @@ async fn main() -> Result<(), anyhow::Error> {
             dev_delete_all_machines,
             docker_terminal,
             direct_terminal,
+            dev_install_cluster_basics
         ),
         components(
             schemas(
@@ -162,6 +163,10 @@ async fn main() -> Result<(), anyhow::Error> {
             delete(dev_delete_all_machines),
         )
         .route("/api/cluster/create", post(create_cluster))
+        .route(
+            "/api/dev/cluster/install_basics",
+            post(dev_install_cluster_basics),
+        )
         .route("/api/terminal/direct/:id", get(direct_terminal))
         .route("/api/terminal/docker/:id", get(docker_terminal))
         .route("/v1/boot/:mac_addr", get(get_boot_config_by_mac))
@@ -226,7 +231,7 @@ async fn main() -> Result<(), anyhow::Error> {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
             if let Err(e) = install_cluster_basics().await {
-                trace!("Could not install cluster basics: {:?}", e);
+                error!("Could not install cluster basics: {:?}", e);
             };
         }
     });

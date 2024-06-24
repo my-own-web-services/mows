@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube-vip-ds
-  namespace: kube-system
+  namespace: mows-vip
 spec:
   selector:
     matchLabels:
@@ -37,7 +37,7 @@ spec:
         - name: cp_enable
           value: "true"
         - name: cp_namespace
-          value: kube-system
+          value: mows-vip
         - name: vip_ddns
           value: "false"
         - name: svc_enable
@@ -52,7 +52,7 @@ spec:
           value: "1"
         - name: address
           value: $$$VIP$$$
-        image: ghcr.io/kube-vip/kube-vip:v0.4.0
+        image: ghcr.io/kube-vip/kube-vip:v$$$KUBE_VIP_VERSION$$$
         imagePullPolicy: Always
         name: kube-vip
         resources: {}

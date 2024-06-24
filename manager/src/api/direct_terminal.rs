@@ -15,7 +15,7 @@ use std::{borrow::Cow, sync::Arc};
 use std::{pin::Pin, time::Duration};
 use tempfile::NamedTempFile;
 use tokio::{io::AsyncWriteExt, sync::Notify, time::sleep};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
 use async_stream::stream;
 use bytes::Bytes;
@@ -43,26 +43,24 @@ pub async fn direct_terminal(ws: WebSocketUpgrade, Path(id): Path<String>) -> im
 }
 
 pub async fn local_shell(mut socket: WebSocket, id: String) {
-    loop {
-        sleep(Duration::from_millis(10)).await;
-        let message = socket.recv().await;
-        match message {
-            Some(Ok(message)) => {
-                if let CommandMessage::Start(size) = message.into() {
-                    match run_command(socket, size, id).await {
-                        Ok(_) => (),
-                        Err(err) => {
-                            error!("Failed to run command: {err}");
-                            break;
-                        }
+    info!("Socket connected");
+    debug!("Waiting for message");
+
+    match socket.recv().await {
+        Some(Ok(message)) => {
+            if let CommandMessage::Start(size) = message.into() {
+                match run_command(socket, size, id).await {
+                    Ok(_) => (),
+                    Err(err) => {
+                        error!("Failed to run command: {err}");
                     }
-                    break;
                 }
-                continue;
             }
-            _ => continue,
         }
+        _ => (),
     }
+
+    info!("Socket disconnected");
 }
 
 async fn run_command(

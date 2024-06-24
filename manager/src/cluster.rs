@@ -1,8 +1,5 @@
 use std::io::Write;
-use std::{
-    collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path,
-    process::Output,
-};
+use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
 
 use anyhow::{bail, Context};
 use k8s_openapi::api::core::v1::Node;
@@ -12,9 +9,10 @@ use kube::{
     Api,
 };
 use tempfile::NamedTempFile;
-use tokio::{fs, process::Command};
+use tokio::fs;
 use tracing::debug;
 
+use crate::utils::cmd;
 use crate::{
     config::{config, Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
     get_current_config_cloned, some_or_bail,
@@ -170,69 +168,12 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn run_command_with_kubeconfig(
-        &self,
-        command: &mut Command,
-    ) -> anyhow::Result<Output> {
-        self.write_local_kubeconfig().await?;
-
-        let out = command.spawn()?.wait_with_output().await?;
-        Ok(out)
-    }
-
     pub async fn get_kubeconfig_struct(&self) -> anyhow::Result<kube::Config> {
         let kc = some_or_bail!(&self.kubeconfig, "No kubeconfig found");
 
         let kc = Kubeconfig::from_yaml(kc)?;
 
         Ok(kube::Config::from_custom_kubeconfig(kc, &KubeConfigOptions::default()).await?)
-    }
-
-    pub async fn install_network(&self) -> anyhow::Result<()> {
-        let cilium_version = "1.15.0";
-        Command::new("helm")
-            .args(["repo", "add", "cilium", "https://helm.cilium.io/"])
-            .spawn()?
-            .wait()
-            .await
-            .context("Failed to add cilium helm repo")?;
-        Command::new("helm")
-            .args(["repo", "update"])
-            .spawn()?
-            .wait()
-            .await
-            .context("Failed to update helm repos")?;
-        self.run_command_with_kubeconfig(Command::new("helm").args([
-            "upgrade",
-            "--install",
-            "--create-namespace",
-            "network",
-            "cilium/cilium",
-            "--namespace",
-            "network",
-            "--version",
-            cilium_version,
-            "--set",
-            "operator.replicas=1",
-            "--set",
-            "hubble.relay.enabled=true",
-            "--set",
-            "hubble.ui.enabled=true",
-            "--set",
-            "global.kubeProxyReplacement='strict'",
-            "--set",
-            "global.containerRuntime.integration='containerd'",
-            "--set",
-            "global.containerRuntime.socketPath='/var/run/k3s/containerd/containerd.sock'",
-            "--set",
-            "k8sServiceHost=127.0.0.1",
-            "--set",
-            "k8sServicePort=6443",
-        ]))
-        .await
-        .context("Failed to install cilium")?;
-
-        Ok(())
     }
 
     pub async fn are_nodes_ready(&self) -> anyhow::Result<bool> {
@@ -261,9 +202,75 @@ impl Cluster {
         Ok(ready)
     }
 
+    pub async fn install_network(&self) -> anyhow::Result<()> {
+        let cilium_version = "1.15.6";
+        cmd(
+            vec!["helm", "repo", "add", "cilium", "https://helm.cilium.io/"],
+            "Failed to add cilium helm repo",
+        )
+        .await?;
+
+        cmd(
+            vec!["helm", "repo", "update"],
+            "Failed to update helm repos",
+        )
+        .await?;
+
+        cmd(
+            vec![
+                "helm",
+                "upgrade",
+                // release
+                "mows-network",
+                // chart
+                "cilium/cilium",
+                //
+                "--install",
+                //
+                "--create-namespace",
+                //
+                "--namespace",
+                "mows-network",
+                //
+                "--version",
+                cilium_version,
+                //
+                "--set",
+                "operator.replicas=1",
+                //
+                "--set",
+                "hubble.relay.enabled=true",
+                //
+                "--set",
+                "hubble.ui.enabled=true",
+                //
+                "--set",
+                "global.kubeProxyReplacement='strict'",
+                //
+                "--set",
+                "global.containerRuntime.integration='containerd'",
+                //
+                "--set",
+                "global.containerRuntime.socketPath='/var/run/k3s/containerd/containerd.sock'",
+                //
+                "--set",
+                "k8sServiceHost=127.0.0.1",
+                //
+                "--set",
+                "k8sServicePort=6443",
+            ],
+            "Failed to install cilium",
+        )
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn install_kubevip(&self) -> anyhow::Result<()> {
         let vip = "192.168.122.99";
         let vip_interface = "enp2s0";
+        let kubevip_version = "0.4.0";
+        todo!("update version");
 
         let template_manifest =
             fs::read_to_string("/install/cluster-basics/kube-vip/manifest.yml").await?;
@@ -273,73 +280,104 @@ impl Cluster {
 
         let manifest = template_manifest
             .replace("$$$VIP$$$", vip)
-            .replace("$$$VIP_INTERFACE$$$", vip_interface);
+            .replace("$$$VIP_INTERFACE$$$", vip_interface)
+            .replace("$$$KUBE_VIP_VERSION$$$", kubevip_version);
 
         writeln!(manifest_tempfile, "{}", &manifest,)
             .context("Failed to write to temporary file")?;
 
-        Command::new("kubectl")
-            .args([
+        // create the mows-vip namespace
+
+        cmd(
+            vec!["kubectl", "create", "namespace", "mows-vip"],
+            "Failed to install kube-vip namespace",
+        )
+        .await?;
+
+        cmd(
+            vec![
+                "kubectl",
                 "apply",
                 "-f",
                 "/install/cluster-basics/kube-vip/cluster-role.yml",
-            ])
-            .spawn()?
-            .wait()
-            .await
-            .context("Failed to install kube-vip cluster role")?;
-        Command::new("kubectl")
-            .args([
+            ],
+            "Failed to install kube-vip cluster role",
+        )
+        .await?;
+
+        cmd(
+            vec![
+                "kubectl",
                 "apply",
                 "-f",
                 some_or_bail!(manifest_tempfile.path().to_str(), "No path"),
-            ])
-            .spawn()?
-            .wait()
-            .await
-            .context("Failed to install kube-vip manifest")?;
+            ],
+            "Failed to install kube-vip manifest",
+        )
+        .await?;
 
         Ok(())
     }
 
     pub async fn install_storage(&self) -> anyhow::Result<()> {
-        Command::new("helm")
-            .args(["repo", "add", "longhorn", "https://charts.longhorn.io"])
-            .spawn()?
-            .wait()
-            .await
-            .context("Failed to add storage/longhorn helm repo")?;
-        Command::new("helm")
-            .args(["repo", "update"])
-            .spawn()?
-            .wait()
-            .await
-            .context("Failed to update helm repos")?;
-        self.run_command_with_kubeconfig(Command::new("helm").args([
-            "upgrade",
-            "longhorn/longhorn",
-            "--install",
-            "longhorn",
-            "--namespace",
-            "storage",
-            "--create-namespace",
-            "--version",
-            "1.5.3",
-            "--set",
-            "defaultSettings.createDefaultDiskLabeledNodes=true",
-        ]))
-        .await
-        .context("Failed to install storage/longhorn")?;
+        let longhorn_version = "1.6.2";
+        cmd(
+            vec![
+                "helm",
+                "repo",
+                "add",
+                "longhorn",
+                "https://charts.longhorn.io",
+            ],
+            "Failed to add storage/longhorn helm repo",
+        )
+        .await?;
+
+        cmd(
+            vec!["helm", "repo", "update"],
+            "Failed to update helm repos",
+        )
+        .await?;
+
+        cmd(
+            vec![
+                "helm",
+                "upgrade",
+                // release
+                "mows-storage",
+                // chart
+                "longhorn/longhorn",
+                //
+                "--install",
+                //
+                "--create-namespace",
+                //
+                "--namespace",
+                "mows-storage",
+                //
+                "--version",
+                longhorn_version,
+                //
+                "--set",
+                "defaultSettings.createDefaultDiskLabeledNodes=true",
+            ],
+            "Failed to install storage/longhorn",
+        )
+        .await?;
 
         Ok(())
     }
 
     pub async fn install_basics(&self) -> anyhow::Result<()> {
+        self.write_local_kubeconfig().await?;
+
         self.install_network().await?;
 
         self.install_kubevip().await?;
 
         self.install_storage().await?;
+
+        // kubectl proxy --address 0.0.0.0
 
         // install lightweight virtual runtime: kata
 

@@ -5,3 +5,6 @@ test
 install-test
 kcrypt-challenger
 netboot
+ui/node_modules
+ui/dist
+
