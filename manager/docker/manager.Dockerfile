@@ -60,6 +60,8 @@ RUN chmod +x /usr/local/bin/kustomize
 # https://bash-prompt-generator.org/
 COPY ./misc/.bashrc /root/.bashrc
 
+
+# TODO: this should not be set globally
 ENV TERM=xterm
 
 WORKDIR /app
