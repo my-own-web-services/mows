@@ -14,6 +14,18 @@ interface DevState {
     readonly configToSet: string;
 }
 
+const urls = [
+    { url: "http://localhost:16686/search?service=manager", title: "Jaeger" },
+    {
+        url: "http://localhost:8001/api/v1/namespaces/mows-network/services/http:hubble-ui:http/proxy/",
+        title: "Hubble/Cilium/Network"
+    },
+    {
+        url: "http://127.0.0.1:8001/api/v1/namespaces/mows-storage/services/http:longhorn-frontend:http/proxy/",
+        title: "Longhorn/Storage"
+    }
+];
+
 export default class Dev extends Component<DevProps, DevState> {
     constructor(props: DevProps) {
         super(props);
@@ -57,17 +69,20 @@ export default class Dev extends Component<DevProps, DevState> {
         localStorage.setItem("config", JSON.stringify(configSignal.value));
     };
 
+    installClusterBasics = async () => {
+        await this.props.client.api.devInstallClusterBasics().catch(console.error);
+    };
+
     render = () => {
         return (
             <div className="Dev h-full w-full">
                 <div className={"p-4"}>
-                    <div className={"pb-4"}>
-                        <a
-                            href="http://localhost:16686/search?service=manager"
-                            className={"text-md underline"}
-                        >
-                            Jaeger
-                        </a>
+                    <div className={"flex gap-4 pb-4"}>
+                        {urls.map((url) => (
+                            <a href={url.url} className={"text-md underline"}>
+                                {url.title}
+                            </a>
+                        ))}
                     </div>
                     <div className="flex flex-row gap-4">
                         <Button
@@ -88,6 +103,7 @@ export default class Dev extends Component<DevProps, DevState> {
                         <Button onClick={this.createCluster}>
                             Create cluster from all machines in inventory
                         </Button>
+                        <Button onClick={this.installClusterBasics}>Install Cluster Basics</Button>
                         <Button
                             title="Loads the last saved config from the browsers local storage and sets it on the manager"
                             onClick={this.loadConfigFromLocalStorage}

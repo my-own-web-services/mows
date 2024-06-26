@@ -6,7 +6,7 @@ use crate::{
     api::machines::{MachineCreationReqBody, MachineSignal},
     config::{
         BackupNode, Cluster, ClusterNode, Machine, MachineInstall, MachineInstallState,
-        MachineType, ManagerConfig, PixiecoreBootConfig, SshAccess,
+        MachineType, PixiecoreBootConfig, SshAccess,
     },
     some_or_bail,
     utils::{generate_id, get_current_ip_from_mac},
@@ -20,7 +20,7 @@ impl Machine {
                 let machine_name: String = format!("mows-{}", generate_id(8)).to_lowercase();
 
                 let primary_volume_name = format!("{}-ssd", machine_name);
-                let primary_volume_size = 20;
+                let primary_volume_size = 30;
                 let secondary_volume_name = format!("{}-hdd", machine_name);
                 let secondary_volume_size = 30;
 
@@ -347,18 +347,25 @@ impl Machine {
         k3s_version: &str,
         os: &str,
         k3s_token: &str,
-        hostname: &str,
+        own_hostname: &str,
         ssh_config: &SshAccess,
-        primary_node: &Option<String>,
+        primary_node_hostname: &str,
     ) -> anyhow::Result<()> {
+        let virt = if self.machine_type == MachineType::LocalQemu {
+            true
+        } else {
+            false
+        };
+
         let boot_config = PixiecoreBootConfig::new(
             kairos_version,
             k3s_version,
             os,
             k3s_token,
-            hostname,
+            own_hostname,
             ssh_config,
-            primary_node,
+            primary_node_hostname,
+            virt,
         )
         .await?;
 
@@ -372,7 +379,7 @@ impl Machine {
         current_machine.install = Some(MachineInstall {
             state: Some(MachineInstallState::Requested),
             boot_config: Some(boot_config),
-            primary: primary_node.is_none(),
+            primary: primary_node_hostname == own_hostname,
         });
 
         Ok(())

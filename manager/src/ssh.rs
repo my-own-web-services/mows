@@ -8,11 +8,11 @@ use std::time::Duration;
 use tempfile::NamedTempFile;
 use tokio::{io::AsyncWriteExt, process::Command};
 
+use crate::write_config;
 use crate::{
     config::{ClusterNode, SshAccess},
     utils::generate_id,
 };
-use crate::{some_or_bail, write_config};
 
 struct SshPubAndPrivKey {
     pub pub_key: String,

@@ -1,13 +1,10 @@
-use std::error::Error;
-
 use crate::{
     config::{Cluster, ClusterInstallState},
-    get_current_config_cloned, some_or_bail,
+    get_current_config_cloned,
     types::Success,
     utils::AppError,
     write_config,
 };
-use anyhow::anyhow;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use tracing::info;

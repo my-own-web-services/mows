@@ -443,6 +443,21 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags crate
+     * @name DevInstallClusterBasics
+     * @request POST:/api/dev/cluster/install_basics
+     */
+    devInstallClusterBasics: (params: RequestParams = {}) =>
+      this.request<Success, string>({
+        path: `/api/dev/cluster/install_basics`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
      * @name DevDeleteAllMachines
      * @request DELETE:/api/dev/machines/delete_all
      */

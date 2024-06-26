@@ -26,3 +26,10 @@ macro_rules! write_config {
         crate::config::config().write().await
     }};
 }
+
+#[macro_export]
+macro_rules! s {
+    ($str:expr) => {
+        $str.to_string()
+    };
+}

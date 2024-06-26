@@ -15,7 +15,8 @@ use manager::api::machines::*;
 use manager::config::*;
 use manager::types::*;
 use manager::utils::{
-    apply_environment, get_cluster_kubeconfig, install_cluster_basics, update_machine_install_state,
+    apply_environment, get_cluster_kubeconfig, install_cluster_basics, start_cluster_proxy,
+    update_machine_install_state,
 };
 
 use tracing_subscriber::fmt::time;
@@ -233,6 +234,25 @@ async fn main() -> Result<(), anyhow::Error> {
             if let Err(e) = install_cluster_basics().await {
                 error!("Could not install cluster basics: {:?}", e);
             };
+        }
+    });
+
+    tokio::spawn(async {
+        let mut proxy_running = false;
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if proxy_running {
+                continue;
+            }
+            match start_cluster_proxy().await {
+                Ok(true) => {
+                    proxy_running = true;
+                }
+                Ok(false) => {}
+                Err(e) => {
+                    error!("Could not start cluster proxy: {:?}", e);
+                }
+            }
         }
     });
 
