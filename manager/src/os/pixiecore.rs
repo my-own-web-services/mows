@@ -1,6 +1,5 @@
 use std::{path::Path, process::Stdio};
 
-use anyhow::bail;
 use tokio::process::Command;
 
 use crate::{
@@ -8,6 +7,8 @@ use crate::{
     some_or_bail,
     utils::generate_id,
 };
+
+use super::cloud_init::CloudInit;
 
 const DOWNLOAD_DIRECTORY: &str = "/pxe_files";
 
@@ -17,9 +18,10 @@ impl PixiecoreBootConfig {
         k3s_version: &str,
         os: &str,
         k3s_token: &str,
-        hostname: &str,
+        own_hostname: &str,
         ssh_config: &SshAccess,
-        primary_node: &Option<String>,
+        primary_node_hostname: &str,
+        virt: bool,
     ) -> anyhow::Result<Self> {
         let file_name = format!("cloud-init-{}.yml", generate_id(20));
 
@@ -31,11 +33,12 @@ impl PixiecoreBootConfig {
 
         Self::download_os_images(kairos_version, k3s_version, os).await?;
         Self::generate_cloud_init(
-            hostname,
+            own_hostname,
             ssh_config,
-            primary_node,
+            primary_node_hostname,
             k3s_token,
             cloud_init_str,
+            virt,
         )
         .await?;
 
@@ -104,49 +107,25 @@ impl PixiecoreBootConfig {
     }
 
     async fn generate_cloud_init(
-        hostname: &str,
+        own_hostname: &str,
         ssh_config: &SshAccess,
-        primary_node: &Option<String>,
+        primary_node_hostname: &str,
         k3s_token: &str,
         cloud_init_path: &str,
+        virt: bool,
     ) -> anyhow::Result<()> {
-        let replacement_prefix = "$$$";
+        let cloud_init = CloudInit::new(
+            own_hostname,
+            primary_node_hostname,
+            ssh_config,
+            true,
+            virt,
+            k3s_token,
+        );
 
-        let mut replacements = vec![
-            ("SSH_USERNAME", ssh_config.ssh_username.to_string()),
-            ("SSH_PASSWORD", ssh_config.ssh_password.to_string()),
-            ("SSH_PUBLIC_KEY", ssh_config.ssh_public_key.to_string()),
-            ("HOSTNAME", hostname.to_string()),
-            ("K3S_TOKEN", k3s_token.to_string()),
-            ("INSTALL_DEVICE", "/dev/vda".to_string()),
-        ];
+        let cloud_init_str = "#cloud-config\n".to_string() + &serde_yaml::to_string(&cloud_init)?;
 
-        let (template, local_replacements) = if primary_node.is_none() {
-            let template = include_str!("./cloud-config/primary.yml");
-
-            let local_replacements: Vec<(&str, String)> = vec![];
-
-            (template, local_replacements)
-        } else {
-            let template = include_str!("./cloud-config/secondary.yml");
-            let local_replacements: Vec<(&str, String)> =
-                vec![("PRIMARY_NODE_HOSTNAME", primary_node.clone().unwrap())];
-
-            (template, local_replacements)
-        };
-
-        replacements.extend(local_replacements);
-
-        let mut temp_config = template.to_string();
-        for (key, value) in replacements.iter() {
-            temp_config = temp_config.replace(&format!("{replacement_prefix}{key}"), value);
-        }
-
-        if temp_config.contains(replacement_prefix) {
-            bail!("Failed to replace all replacements in cloud-init")
-        }
-
-        tokio::fs::write(cloud_init_path, temp_config).await?;
+        tokio::fs::write(cloud_init_path, cloud_init_str).await?;
 
         Ok(())
     }

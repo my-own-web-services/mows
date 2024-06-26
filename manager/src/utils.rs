@@ -25,7 +25,7 @@ pub fn generate_id(length: usize) -> String {
         .collect()
 }
 
-pub async fn cmd(cmd_and_args: Vec<&str>, error: &str) -> anyhow::Result<()> {
+pub async fn cmd(cmd_and_args: Vec<&str>, error: &str) -> anyhow::Result<String> {
     let cmd = some_or_bail!(cmd_and_args.first(), "No command provided");
     let args = cmd_and_args
         .iter()
@@ -43,7 +43,7 @@ pub async fn cmd(cmd_and_args: Vec<&str>, error: &str) -> anyhow::Result<()> {
         bail!("{}: [{}]: {}", error.to_string(), command.status, stderr)
     }
 
-    Ok(())
+    Ok(String::from_utf8(command.stdout)?)
 }
 
 pub struct AppError(anyhow::Error);
@@ -101,7 +101,9 @@ pub async fn update_machine_install_state() -> anyhow::Result<()> {
                     config_locked2.machines.get_mut(&machine.id),
                     "Machine not found"
                 );
+
                 machine.install.as_mut().unwrap().boot_config = None;
+
                 machine.install.as_mut().unwrap().state = Some(MachineInstallState::Installed);
             }
         }
@@ -163,6 +165,23 @@ pub async fn install_cluster_basics() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+pub async fn start_cluster_proxy() -> anyhow::Result<bool> {
+    let cfg1 = get_current_config_cloned!();
+
+    for cluster in cfg1.clusters.values() {
+        if cluster.kubeconfig.is_some()
+            && cluster.install_state == Some(ClusterInstallState::BasicsConfigured)
+        {
+            info!("Starting proxy for cluster {}", cluster.id);
+            cluster.start_proxy().await?;
+            info!("Started proxy for cluster {}", cluster.id);
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
 }
 
 pub struct Arp {

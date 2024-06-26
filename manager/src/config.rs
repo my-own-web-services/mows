@@ -177,7 +177,7 @@ pub struct ExternalProviderIpOptionsHetzner {
     pub ssh_access: Option<SshAccess>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, Eq, PartialEq)]
 pub struct SshAccess {
     pub ssh_username: String,
     pub ssh_private_key: String,
@@ -185,4 +185,12 @@ pub struct SshAccess {
     pub ssh_passphrase: String,
     pub ssh_password: String,
     pub remote_public_key: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, Eq, PartialEq)]
+pub enum HelmDeploymentState {
+    #[default]
+    Requested,
+    Installed,
+    NotInstalled,
 }

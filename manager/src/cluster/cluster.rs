@@ -12,6 +12,7 @@ use tempfile::NamedTempFile;
 use tokio::fs;
 use tracing::debug;
 
+use crate::config::HelmDeploymentState;
 use crate::utils::cmd;
 use crate::{
     config::{config, Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
@@ -20,14 +21,16 @@ use crate::{
     write_config,
 };
 
+use super::cluster_storage::ClusterStorage;
+
 impl Cluster {
     pub async fn new() -> anyhow::Result<Self> {
         let encryption_key = generate_id(100);
 
         let k3s_token = generate_id(100);
 
-        let kairos_version = "v2.5.0";
-        let k3s_version = "k3sv1.29.0+k3s1";
+        let kairos_version = "v3.0.14";
+        let k3s_version = "k3sv1.29.3+k3s1";
         let os = "opensuse-tumbleweed";
 
         let mut cluster_nodes = HashMap::new();
@@ -43,6 +46,10 @@ impl Cluster {
             let hostname = machine_name.clone().to_lowercase();
             let ssh_access = SshAccess::new().await?;
 
+            if i == 0 {
+                primary_hostname = Some(hostname.clone());
+            }
+
             machine
                 .configure_install(
                     kairos_version,
@@ -51,13 +58,9 @@ impl Cluster {
                     &k3s_token,
                     &hostname,
                     &ssh_access,
-                    &primary_hostname,
+                    &primary_hostname.clone().unwrap(),
                 )
                 .await?;
-
-            if i == 0 {
-                primary_hostname = Some(hostname.clone());
-            }
 
             cluster_nodes.insert(
                 hostname.clone(),
@@ -169,9 +172,12 @@ impl Cluster {
     }
 
     pub async fn get_kubeconfig_struct(&self) -> anyhow::Result<kube::Config> {
-        let kc = some_or_bail!(&self.kubeconfig, "No kubeconfig found");
+        let node = some_or_bail!(self.cluster_nodes.values().next(), "No nodes found");
 
-        let kc = Kubeconfig::from_yaml(kc)?;
+        let kc = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
+            .replace("https://127.0.0.1", &format!("https://{}", node.hostname));
+
+        let kc = Kubeconfig::from_yaml(&kc)?;
 
         Ok(kube::Config::from_custom_kubeconfig(kc, &KubeConfigOptions::default()).await?)
     }
@@ -202,8 +208,47 @@ impl Cluster {
         Ok(ready)
     }
 
+    pub async fn check_helm_deployment_state(
+        deployment: &str,
+        namespace: &str,
+    ) -> anyhow::Result<HelmDeploymentState> {
+        match cmd(
+            vec!["helm", "status", deployment, "-n", namespace],
+            "Failed to check if cilium is installed",
+        )
+        .await
+        {
+            Ok(v) => {
+                if v.contains("STATUS: deployed") {
+                    return Ok(HelmDeploymentState::Installed);
+                } else {
+                    return Ok(HelmDeploymentState::Requested);
+                }
+            }
+            Err(e) => {
+                // if the error includes release:not found, then cilium is not installed
+                if e.to_string().contains("Error: release: not found") {
+                    debug!("{} not installed", deployment);
+                    return Ok(HelmDeploymentState::NotInstalled);
+                };
+                bail!(
+                    "Failed to check if deployment {} is ready: {:?}",
+                    deployment,
+                    e
+                );
+            }
+        }
+    }
+
     pub async fn install_network(&self) -> anyhow::Result<()> {
-        let cilium_version = "1.15.6";
+        // check if cilium is already installed
+        if Cluster::check_helm_deployment_state("mows-network", "mows-network").await?
+            != HelmDeploymentState::NotInstalled
+        {
+            return Ok(()); // network is already installed
+        }
+
+        let cilium_version = "1.15.0";
         cmd(
             vec!["helm", "repo", "add", "cilium", "https://helm.cilium.io/"],
             "Failed to add cilium helm repo",
@@ -245,6 +290,9 @@ impl Cluster {
                 "hubble.ui.enabled=true",
                 //
                 "--set",
+                "hubble.enabled=true",
+                //
+                "--set",
                 "global.kubeProxyReplacement='strict'",
                 //
                 "--set",
@@ -269,8 +317,8 @@ impl Cluster {
     pub async fn install_kubevip(&self) -> anyhow::Result<()> {
         let vip = "192.168.122.99";
         let vip_interface = "enp2s0";
-        let kubevip_version = "0.4.0";
-        todo!("update version");
+        // update the version by creating a new manifest with
+        // bash scripts/generate-kube-vip-files.sh VERSION
 
         let template_manifest =
             fs::read_to_string("/install/cluster-basics/kube-vip/manifest.yml").await?;
@@ -280,19 +328,18 @@ impl Cluster {
 
         let manifest = template_manifest
             .replace("$$$VIP$$$", vip)
-            .replace("$$$VIP_INTERFACE$$$", vip_interface)
-            .replace("$$$KUBE_VIP_VERSION$$$", kubevip_version);
+            .replace("$$$VIP_INTERFACE$$$", vip_interface);
 
         writeln!(manifest_tempfile, "{}", &manifest,)
             .context("Failed to write to temporary file")?;
 
         // create the mows-vip namespace
 
-        cmd(
+        let _ = cmd(
             vec!["kubectl", "create", "namespace", "mows-vip"],
             "Failed to install kube-vip namespace",
         )
-        .await?;
+        .await;
 
         cmd(
             vec![
@@ -319,55 +366,6 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn install_storage(&self) -> anyhow::Result<()> {
-        let longhorn_version = "1.6.2";
-        cmd(
-            vec![
-                "helm",
-                "repo",
-                "add",
-                "longhorn",
-                "https://charts.longhorn.io",
-            ],
-            "Failed to add storage/longhorn helm repo",
-        )
-        .await?;
-
-        cmd(
-            vec!["helm", "repo", "update"],
-            "Failed to update helm repos",
-        )
-        .await?;
-
-        cmd(
-            vec![
-                "helm",
-                "upgrade",
-                // release
-                "mows-storage",
-                // chart
-                "longhorn/longhorn",
-                //
-                "--install",
-                //
-                "--create-namespace",
-                //
-                "--namespace",
-                "mows-storage",
-                //
-                "--version",
-                longhorn_version,
-                //
-                "--set",
-                "defaultSettings.createDefaultDiskLabeledNodes=true",
-            ],
-            "Failed to install storage/longhorn",
-        )
-        .await?;
-
-        Ok(())
-    }
-
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         self.write_local_kubeconfig().await?;
 
@@ -375,7 +373,7 @@ impl Cluster {
 
         self.install_kubevip().await?;
 
-        self.install_storage().await?;
+        ClusterStorage::install(&self).await?;
 
         // kubectl proxy --address 0.0.0.0
 
@@ -467,6 +465,16 @@ Host {}
         self.write_known_hosts()
             .await
             .context("Failed to write known hosts")?;
+
+        Ok(())
+    }
+
+    pub async fn start_proxy(&self) -> anyhow::Result<()> {
+        cmd(
+            vec!["kubectl", "proxy", "--address", "0.0.0.0"],
+            "Failed to start kubectl proxy",
+        )
+        .await?;
 
         Ok(())
     }

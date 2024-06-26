@@ -1,7 +1,10 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
+import { IoTerminal } from "react-icons/io5";
+import { Button } from "rsuite";
 import { Machine } from "../api-client";
 import { machineStatusSignal } from "../config";
+import TerminalComponent from "./Terminal";
 import VNC from "./VNC";
 
 interface MachineComponentProps {
@@ -10,7 +13,9 @@ interface MachineComponentProps {
     readonly machine: Machine;
 }
 
-interface MachineComponentState {}
+interface MachineComponentState {
+    readonly sshOpen: boolean;
+}
 
 export default class MachineComponent extends Component<
     MachineComponentProps,
@@ -18,10 +23,16 @@ export default class MachineComponent extends Component<
 > {
     constructor(props: MachineComponentProps) {
         super(props);
-        this.state = {};
+        this.state = {
+            sshOpen: false
+        };
     }
 
     componentDidMount = async () => {};
+
+    toggleSSH = async () => {
+        this.setState({ sshOpen: !this.state.sshOpen });
+    };
 
     render = () => {
         const machineStatus = machineStatusSignal.value[this.props.machine.id];
@@ -59,10 +70,23 @@ export default class MachineComponent extends Component<
 
                         <VNC machine={this.props.machine} />
                         <div className={"flex flex-col gap-1 pt-2"}>
-                            <div>
-                                MAC: <span>{this.props.machine.mac}</span>
-                            </div>
+                            <Button className="w-8" title="Toggle SSH" onClick={this.toggleSSH}>
+                                <div className={"scale-100"}>
+                                    <IoTerminal />
+                                </div>
+                            </Button>
                         </div>
+                    </div>
+                    <div className="w-2/3">
+                        {this.state.sshOpen ? (
+                            <TerminalComponent
+                                type="direct"
+                                className="w-full"
+                                id={this.props.machine.id}
+                            />
+                        ) : (
+                            ""
+                        )}
                     </div>
                 </div>
             </div>

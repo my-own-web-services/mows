@@ -9,7 +9,7 @@ export IP=192.168.122.106
 
 export INTERFACE=enp1s0
 
-export KVVERSION=v0.6.4
+export KVVERSION=v0.8.0
 
 docker run --rm ghcr.io/kube-vip/kube-vip:$KVVERSION manifest daemonset \
     --interface $INTERFACE \
