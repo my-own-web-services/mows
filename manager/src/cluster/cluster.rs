@@ -10,6 +10,7 @@ use kube::{
 };
 use tempfile::NamedTempFile;
 use tokio::fs;
+use tokio::time::sleep;
 use tracing::debug;
 
 use crate::config::HelmDeploymentState;
@@ -100,6 +101,7 @@ impl Cluster {
 
     pub async fn start_machines(&self, config: &ManagerConfig) -> anyhow::Result<()> {
         for node in self.cluster_nodes.values() {
+            sleep(std::time::Duration::from_secs(3)).await;
             match config.get_machine_by_id(&node.machine_id) {
                 Some(machine) => machine.start().await?,
                 None => bail!("Machine not found"),

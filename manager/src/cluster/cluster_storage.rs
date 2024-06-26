@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use anyhow::bail;
 use k8s_openapi::api::{core::v1::Secret, storage::v1::StorageClass};
 use kube::{api::ObjectMeta, Client};
 
@@ -64,11 +65,19 @@ impl ClusterStorage {
 
         let secret_api: kube::Api<Secret> = kube::Api::namespaced(client.clone(), namespace);
 
-        secret_api
+        match secret_api
             .create(&kube::api::PostParams::default(), &secret)
-            .await?;
-
-        Ok(())
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                if e.to_string().contains("already exists") {
+                    Ok(())
+                } else {
+                    bail!(e);
+                }
+            }
+        }
     }
 
     pub async fn create_storage_class(cluster: &Cluster) -> anyhow::Result<()> {
@@ -118,11 +127,16 @@ impl ClusterStorage {
 
         let sc_api: kube::Api<StorageClass> = kube::Api::all(client);
 
-        sc_api
-            .create(&kube::api::PostParams::default(), &sc)
-            .await?;
-
-        Ok(())
+        match sc_api.create(&kube::api::PostParams::default(), &sc).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                if e.to_string().contains("already exists") {
+                    Ok(())
+                } else {
+                    bail!(e);
+                }
+            }
+        }
     }
 
     pub async fn install_longhorn() -> anyhow::Result<()> {
@@ -171,6 +185,9 @@ impl ClusterStorage {
                 //
                 "--set",
                 "defaultSettings.createDefaultDiskLabeledNodes=true",
+                //
+                "--set",
+                "defaultSettings.allowCollectingLonghornUsageMetrics=false",
             ],
             "Failed to install storage/longhorn",
         )

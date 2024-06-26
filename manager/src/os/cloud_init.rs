@@ -110,10 +110,10 @@ impl CloudInit {
             vec![Task {
                 name: s!("Mount the partition p0"),
                 commands: vec![
-                    s!("mkdir -p /mnt/drives/p0"),
-                    s!("mount -o rw /dev/disk/by-partlabel/p0 /mnt/drives/p0"),
-                    s!("mkdir -p /mnt/drives/p1"),
-                    s!("mount -o rw /dev/disk/by-partlabel/p1 /mnt/drives/p1"),
+                    s!("mkdir -p /opt/drives/p0"),
+                    s!("mount -o rw /dev/disk/by-partlabel/p0 /opt/drives/p0"),
+                    s!("mkdir -p /opt/drives/p1"),
+                    s!("mount -o rw /dev/disk/by-partlabel/p1 /opt/drives/p1"),
                 ],
                 ..Task::default()
             }],

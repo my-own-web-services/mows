@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use anyhow::bail;
 use k8s_openapi::api::core::v1::Node;
 use kube::{api::Patch, Api};
@@ -32,12 +34,10 @@ impl ClusterNode {
 
         let nodes: Api<Node> = Api::all(client);
 
-        let current_node = nodes.get(&self.hostname).await?;
-
         // set the labels of the node
-        let mut labels = current_node.metadata.labels.unwrap_or_default();
+        let mut annotations = BTreeMap::new();
 
-        labels.insert(s!("node.longhorn.io/create-default-disk"), s!("config"));
+        annotations.insert(s!("node.longhorn.io/create-default-disk"), s!("'config'"));
 
         let disk_config = json!([
             {
@@ -56,15 +56,15 @@ impl ClusterNode {
             }
         ]);
 
-        labels.insert(s!("node.longhorn.io/default-disks-config"), s!("true"));
-        labels.insert(
+        annotations.insert(s!("node.longhorn.io/default-disks-config"), s!("true"));
+        annotations.insert(
             s!("node.longhorn.io/default-disks-config"),
             disk_config.to_string(),
         );
 
         let patch = json!({
             "metadata": {
-                "labels": labels
+                "annotations": annotations
             }
         });
 
