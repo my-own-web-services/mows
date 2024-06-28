@@ -31,6 +31,7 @@
         },
       ],
       "cSpell.words": [
+        "clusterrolebindings",
         "containerd",
         "cpus",
         "domiflist",
@@ -48,6 +49,7 @@
         "kubelet",
         "kubevip",
         "kubevirt",
+        "loadbalancer",
         "msvc",
         "neednet",
         "netboot",

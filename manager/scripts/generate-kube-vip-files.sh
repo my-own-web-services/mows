@@ -15,6 +15,7 @@ docker run --rm ghcr.io/kube-vip/kube-vip:v$KVVERSION manifest daemonset \
     --inCluster \
     --taint \
     --controlplane \
+    --services \
     --arp \
     --leaderElection > $MANIFEST_PATH
 
