@@ -21,8 +21,12 @@ const urls = [
         title: "Hubble/Cilium/Network"
     },
     {
-        url: "http://127.0.0.1:8001/api/v1/namespaces/mows-storage/services/http:longhorn-frontend:http/proxy/",
+        url: "http://localhost:8001/api/v1/namespaces/mows-storage/services/http:longhorn-frontend:http/proxy/",
         title: "Longhorn/Storage"
+    },
+    {
+        url: "http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:443/proxy/",
+        title: "K8s Dashboard"
     }
 ];
 
@@ -42,8 +46,10 @@ export default class Dev extends Component<DevProps, DevState> {
             .catch(console.error);
     };
 
-    createCluster = async () => {
-        await this.props.client.api.createCluster({}).catch(console.error);
+    devCreateClusterFromAllMachinesInInventory = async () => {
+        await this.props.client.api
+            .devCreateClusterFromAllMachinesInInventory({})
+            .catch(console.error);
     };
 
     setConfig = async () => {
@@ -100,7 +106,7 @@ export default class Dev extends Component<DevProps, DevState> {
                             <Button onClick={this.setConfig}>Set config</Button>
                         </div>
                         <Button onClick={this.createMachines}>Create virtual machines</Button>
-                        <Button onClick={this.createCluster}>
+                        <Button onClick={this.devCreateClusterFromAllMachinesInInventory}>
                             Create cluster from all machines in inventory
                         </Button>
                         <Button onClick={this.installClusterBasics}>Install Cluster Basics</Button>

@@ -13,15 +13,16 @@ use manager::api::direct_terminal::*;
 use manager::api::docker_terminal::*;
 use manager::api::machines::*;
 use manager::config::*;
-use manager::types::*;
-use manager::utils::{
+use manager::tasks::{
     apply_environment, get_cluster_kubeconfig, install_cluster_basics, start_cluster_proxy,
     update_machine_install_state,
 };
+use manager::types::*;
 
 use tracing_subscriber::fmt::time;
 use tracing_subscriber::util::SubscriberInitExt;
 
+use std::net::SocketAddr;
 use std::process::Stdio;
 use std::time::Duration;
 use tokio::process::Command;
@@ -53,7 +54,7 @@ async fn main() -> Result<(), anyhow::Error> {
             get_config,
             create_machines,
             signal_machine,
-            create_cluster,
+            dev_create_cluster_from_all_machines_in_inventory,
             get_boot_config_by_mac,
             delete_machine,
             get_machine_info,
@@ -124,10 +125,17 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_line_number(true)
         .with_filter(log_filter);
 
+    let tracing_layer = tracing_opentelemetry::OpenTelemetryLayer::new(
+        manager::tracing::init_tracer("http://jaeger:4317"),
+    )
+    .with_filter(tracing_subscriber::EnvFilter::new(
+        "main=trace,manager=trace,tower_http=trace,axum::rejection=trace,tokio=trace,runtime=trace",
+    ));
+
     tracing_subscriber::registry()
         .with(console_layer)
         .with(log_layer)
-        //.with(OpenTelemetryLayer::new(init_tracer("http://jaeger:4317")))
+        .with(tracing_layer)
         .try_init()?;
 
     //Machine::delete_all_mows_machines().unwrap();
@@ -163,7 +171,10 @@ async fn main() -> Result<(), anyhow::Error> {
             "/api/dev/machines/delete_all",
             delete(dev_delete_all_machines),
         )
-        .route("/api/cluster/create", post(create_cluster))
+        .route(
+            "/api/dev/cluster/create_from_all_machines_in_inventory",
+            post(dev_create_cluster_from_all_machines_in_inventory),
+        )
         .route(
             "/api/dev/cluster/install_basics",
             post(dev_install_cluster_basics),
@@ -177,22 +188,6 @@ async fn main() -> Result<(), anyhow::Error> {
                 .allow_origin(origins)
                 .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
                 .allow_headers([CONTENT_TYPE, UPGRADE]),
-        )
-        .layer(
-            ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(|error: BoxError| async move {
-                    if error.is::<tower::timeout::error::Elapsed>() {
-                        Ok(StatusCode::REQUEST_TIMEOUT)
-                    } else {
-                        Err((
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            format!("Unhandled internal error: {error}"),
-                        ))
-                    }
-                }))
-                .timeout(Duration::from_secs(5))
-                .layer(TraceLayer::new_for_http())
-                .into_inner(),
         );
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
@@ -257,9 +252,12 @@ async fn main() -> Result<(), anyhow::Error> {
     });
 
     info!("Starting server");
-    axum::serve(listener, app.into_make_service())
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     Ok(())
 }

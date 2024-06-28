@@ -2,6 +2,7 @@ pub mod config;
 pub mod machines;
 pub mod macros;
 pub mod ssh;
+pub mod tasks;
 pub mod tracing;
 pub mod types;
 pub mod utils;

@@ -14,15 +14,18 @@ interface NotesState {
 }
 
 interface Note {
-    id: string;
+    id?: string;
     content: string;
     type: "default" | "custom";
 }
 
 const defaultNotes: Note[] = [
     {
-        content: "sudo journalctl -u k3s -b | cat",
-        id: "1",
+        content: "sudo journalctl -u k3s -b",
+        type: "default"
+    },
+    {
+        content: "kubectl -n kubernetes-dashboard create token admin-user",
         type: "default"
     }
 ];
@@ -55,7 +58,7 @@ export default class Notes extends Component<NotesProps, NotesState> {
         this.setState({ notes, newNote: "" });
     };
 
-    removeNote = async (id: string) => {
+    removeNote = async (id?: string) => {
         const notes = this.state.notes.filter((note) => note.id !== id);
         localStorage.setItem("notes", JSON.stringify(notes));
         this.setState({ notes });
