@@ -460,6 +460,60 @@ impl Cluster {
         Ok(())
     }
 
+    pub async fn install_local_ingress(&self) -> anyhow::Result<()> {
+        let version = "28.3.0";
+        let name = "mows-ingress";
+
+        if Cluster::check_helm_deployment_state(&name, &name).await?
+            != HelmDeploymentState::NotInstalled
+        {
+            return Ok(());
+        }
+
+        cmd(
+            vec![
+                "helm",
+                "repo",
+                "add",
+                "traefik",
+                "https://traefik.github.io/charts",
+            ],
+            "Failed to add traefik helm repo",
+        )
+        .await?;
+
+        cmd(
+            vec!["helm", "repo", "update"],
+            "Failed to update helm repos",
+        )
+        .await?;
+
+        cmd(
+            vec![
+                "helm",
+                "upgrade",
+                // release
+                &name,
+                // chart
+                "traefik/traefik",
+                //
+                "--install",
+                //
+                "--create-namespace",
+                //
+                "--namespace",
+                &name,
+                //
+                "--version",
+                version,
+            ],
+            "Failed to install traefik",
+        )
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         self.write_local_kubeconfig().await?;
 
@@ -471,16 +525,16 @@ impl Cluster {
 
         self.install_dashboard().await?;
 
-        // install lightweight virtual runtime: kata
-
-        // install full virtual runtime: kubevirt
+        self.install_local_ingress().await?;
 
         // install ingress: traefik
 
         // install application-manager: mows-controller
 
+        // optional for now
+        // install lightweight virtual runtime: kata
+        // install full virtual runtime: kubevirt
         // install cert-manager?
-
         // install dns server
 
         Ok(())

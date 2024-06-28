@@ -195,6 +195,9 @@ impl ClusterStorage {
                 //
                 "--set",
                 "defaultSettings.allowCollectingLonghornUsageMetrics=false",
+                //
+                "--set",
+                "defaultSettings.defaultLonghornStaticStorageClass=longhorn-static",
             ],
             "Failed to install storage/longhorn",
         )
