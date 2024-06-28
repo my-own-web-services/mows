@@ -31,6 +31,7 @@ services:
     jaeger:
         image: jaegertracing/all-in-one
         container_name: jaeger
+        restart: always
         ports:
             - "16686:16686"
         environment:
@@ -39,6 +40,7 @@ services:
             mows-manager:
     qemu:
         image: qemu
+        restart: always
         init: true
         privileged: true
         container_name: qemu
@@ -60,6 +62,7 @@ services:
             # we need two networks because the pxe network is bridged
             mows-manager:
     dhcp-qemu:
+        restart: always
         build:
             context: "."
             dockerfile: docker/dnsmasq.Dockerfile
@@ -72,6 +75,7 @@ services:
                 ipv4_address: "192.168.112.2"
 
     dhcp-direct-attach:
+        restart: always
         build:
             context: "."
             dockerfile: docker/dnsmasq.Dockerfile

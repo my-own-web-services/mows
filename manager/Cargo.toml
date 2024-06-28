@@ -40,7 +40,7 @@ tokio = { version = "1.17.0", default-features = false, features = [
     "tracing",
 ] }
 
-axum = { version = "0.7.5", features = ["ws"] }
+axum = { version = "0.7.5", features = ["ws", "tokio"] }
 tokio-tungstenite = "0.23.0"
 
 futures = "0.3.17"

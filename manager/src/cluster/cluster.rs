@@ -16,7 +16,7 @@ use tracing::debug;
 use crate::config::HelmDeploymentState;
 use crate::utils::cmd;
 use crate::{
-    config::{config, Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
+    config::{Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
     get_current_config_cloned, some_or_bail,
     utils::generate_id,
     write_config,
@@ -25,7 +25,8 @@ use crate::{
 use super::cluster_storage::ClusterStorage;
 
 impl Cluster {
-    pub async fn new() -> anyhow::Result<Self> {
+    #[tracing::instrument]
+    pub async fn new() -> anyhow::Result<()> {
         let encryption_key = generate_id(100);
 
         let k3s_token = generate_id(100);
@@ -34,16 +35,20 @@ impl Cluster {
         let k3s_version = "k3sv1.29.3+k3s1";
         let os = "opensuse-tumbleweed";
 
+        let cluster_id = generate_id(8);
+
         let mut cluster_nodes = HashMap::new();
 
-        let cfg1 = config().read().await;
+        debug!("Creating cluster: {}", cluster_id);
 
-        let possible_machines = cfg1.machines.clone();
-        drop(cfg1);
+        let cfg1 = get_current_config_cloned!();
 
         let mut primary_hostname: Option<String> = None;
 
-        for (i, (machine_name, machine)) in possible_machines.iter().enumerate() {
+        for (i, (machine_name, machine)) in cfg1.machines.iter().enumerate() {
+            if machine.install.is_some() {
+                continue;
+            }
             let hostname = machine_name.clone().to_lowercase();
             let ssh_access = SshAccess::new().await?;
 
@@ -73,8 +78,6 @@ impl Cluster {
             );
         }
 
-        let cluster_id = generate_id(8);
-
         let cluster = Self {
             id: cluster_id.clone(),
             cluster_nodes,
@@ -86,22 +89,27 @@ impl Cluster {
             cluster_backup_wg_private_key: None,
             install_state: None,
         };
-        {
-            let mut config = write_config!();
 
-            config.clusters.insert(cluster_id, cluster.clone());
-        }
+        let mut config = write_config!();
 
-        let config = get_current_config_cloned!();
+        config.clusters.insert(cluster_id.clone(), cluster.clone());
 
-        cluster.start_machines(&config).await?;
+        drop(config);
 
-        Ok(cluster)
+        tokio::spawn(async move {
+            let config = get_current_config_cloned!();
+            cluster.start_machines(&config).await.unwrap();
+            debug!("Cluster {} was created", cluster_id);
+        });
+
+        Ok(())
     }
 
     pub async fn start_machines(&self, config: &ManagerConfig) -> anyhow::Result<()> {
+        debug!("Starting machines");
         for node in self.cluster_nodes.values() {
-            sleep(std::time::Duration::from_secs(3)).await;
+            debug!("Starting machine: {}", node.hostname);
+            sleep(tokio::time::Duration::from_secs(3)).await;
             match config.get_machine_by_id(&node.machine_id) {
                 Some(machine) => machine.start().await?,
                 None => bail!("Machine not found"),
@@ -368,6 +376,90 @@ impl Cluster {
         Ok(())
     }
 
+    pub async fn install_dashboard(&self) -> anyhow::Result<()> {
+        let version = "6.0.8";
+
+        if Cluster::check_helm_deployment_state("kubernetes-dashboard", "kubernetes-dashboard")
+            .await?
+            != HelmDeploymentState::NotInstalled
+        {
+            return Ok(());
+        }
+
+        cmd(
+            vec![
+                "helm",
+                "repo",
+                "add",
+                "kubernetes-dashboard",
+                "https://kubernetes.github.io/dashboard/",
+            ],
+            "Failed to add kubernetes-dashboard helm repo",
+        )
+        .await?;
+
+        cmd(
+            vec!["helm", "repo", "update"],
+            "Failed to update helm repos",
+        )
+        .await?;
+
+        cmd(
+            vec![
+                "helm",
+                "upgrade",
+                // release
+                "kubernetes-dashboard",
+                // chart
+                "kubernetes-dashboard/kubernetes-dashboard",
+                //
+                "--install",
+                //
+                "--create-namespace",
+                //
+                "--namespace",
+                "kubernetes-dashboard",
+                //
+                "--version",
+                version,
+                //
+                "--set",
+                "metrics-server.enabled=false",
+                //
+                "--set",
+                "cert-manager.enabled=true",
+                //
+                "--set",
+                "app.ingress.enabled=true",
+            ],
+            "Failed to install kubernetes-dashboard",
+        )
+        .await?;
+
+        let _ = cmd(
+            vec![
+                "kubectl",
+                "delete",
+                "clusterrolebindings.rbac.authorization.k8s.io kubernetes-dashboard",
+            ],
+            "Failed to delete kubernetes-dashboard clusterrolebindings",
+        )
+        .await;
+
+        cmd(
+            vec![
+                "kubectl",
+                "apply",
+                "-f",
+                "/install/cluster-basics/dashboard/dashboard-admin.yml",
+            ],
+            "Failed to apply clusterrolebindings for dashboard",
+        )
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         self.write_local_kubeconfig().await?;
 
@@ -377,13 +469,11 @@ impl Cluster {
 
         ClusterStorage::install(&self).await?;
 
-        // kubectl proxy --address 0.0.0.0
+        self.install_dashboard().await?;
 
         // install lightweight virtual runtime: kata
 
         // install full virtual runtime: kubevirt
-
-        // install dashboard
 
         // install ingress: traefik
 

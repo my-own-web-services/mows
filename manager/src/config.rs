@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use std::{collections::HashMap, net::IpAddr};
 use tokio::sync::RwLock;
-use tracing::{debug, trace};
+use tracing::trace;
 use utoipa::ToSchema;
 
 #[tracing::instrument]

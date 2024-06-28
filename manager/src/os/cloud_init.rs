@@ -22,6 +22,27 @@ pub struct Task {
     pub commands: Vec<String>,
     #[serde(rename = "if")]
     pub if_: Option<String>,
+    pub layout: Option<DiskLayout>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
+pub struct DiskLayout {
+    pub device: DiskLayoutDevice,
+    pub add_partitions: Vec<DiskLayoutPartition>,
+}
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
+pub struct DiskLayoutDevice {
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
+pub struct DiskLayoutPartition {
+    #[serde(rename = "fsLabel")]
+    pub fs_label: String,
+    pub size: u64,
+    #[serde(rename = "pLabel")]
+    pub p_label: String,
+    pub filesystem: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
@@ -110,10 +131,10 @@ impl CloudInit {
             vec![Task {
                 name: s!("Mount the partition p0"),
                 commands: vec![
-                    s!("mkdir -p /opt/drives/p0"),
-                    s!("mount -o rw /dev/disk/by-partlabel/p0 /opt/drives/p0"),
-                    s!("mkdir -p /opt/drives/p1"),
-                    s!("mount -o rw /dev/disk/by-partlabel/p1 /opt/drives/p1"),
+                    s!("mkdir -p /var/lib/longhorn/drives/p0"),
+                    s!("mount -o rw /dev/disk/by-partlabel/p0 /var/lib/longhorn/drives/p0"),
+                    s!("mkdir -p /var/lib/longhorn/drives/p1"),
+                    s!("mount -o rw /dev/disk/by-partlabel/p1 /var/lib/longhorn/drives/p1"),
                 ],
                 ..Task::default()
             }],
@@ -125,9 +146,20 @@ impl CloudInit {
                 if_: Some(format!(r#"[ -e "{}" ]"#, get_device_string(virt, 1))),
                 name: s!("Create the partition p1 as ext4"),
                 commands: vec![format!(
-                    "mke2fs -t ext4 -L p1 {}",
+                    r#"parted --script --machine -- "{}" mklabel gpt"#,
                     get_device_string(virt, 1)
                 )],
+                layout: Some(DiskLayout {
+                    device: DiskLayoutDevice {
+                        path: get_device_string(virt, 1),
+                    },
+                    add_partitions: vec![DiskLayoutPartition {
+                        fs_label: s!("p1"),
+                        size: 0,
+                        p_label: s!("p1"),
+                        filesystem: s!("ext4"),
+                    }],
+                }),
             }],
         );
 
@@ -178,7 +210,6 @@ impl Install {
 impl K3s {
     pub fn new(primary: bool, primary_hostname: &str, k3s_token: &str) -> K3s {
         let base_args = vec![
-            "--disable=local-storage",
             "--flannel-backend=none",
             "--disable-network-policy",
             "--disable-kube-proxy",

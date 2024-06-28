@@ -152,7 +152,7 @@ pub async fn handle_get_machine_status(mut socket: WebSocket) {
     'outer: loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-        let config = config().read().await.clone();
+        let config = get_current_config_cloned!();
 
         for machine in config.machines.values() {
             let infos = machine.get_status().await.unwrap();

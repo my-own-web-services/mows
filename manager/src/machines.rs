@@ -1,6 +1,7 @@
 use anyhow::{bail, Context};
 use std::{collections::HashMap, net::IpAddr, process::Stdio};
 use tokio::process::Command;
+use tracing::debug;
 
 use crate::{
     api::machines::{MachineCreationReqBody, MachineSignal},
@@ -381,6 +382,8 @@ impl Machine {
             boot_config: Some(boot_config),
             primary: primary_node_hostname == own_hostname,
         });
+
+        debug!("Machine install configured: {}", self.id);
 
         Ok(())
     }

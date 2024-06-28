@@ -395,23 +395,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags crate
-     * @name CreateCluster
-     * @request POST:/api/cluster/create
-     */
-    createCluster: (data: ClusterCreationConfig, params: RequestParams = {}) =>
-      this.request<Success, string>({
-        path: `/api/cluster/create`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags crate
      * @name GetConfig
      * @request GET:/api/config
      */
@@ -433,6 +416,23 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       this.request<Success, string>({
         path: `/api/config`,
         method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
+     * @name DevCreateClusterFromAllMachinesInInventory
+     * @request POST:/api/dev/cluster/create_from_all_machines_in_inventory
+     */
+    devCreateClusterFromAllMachinesInInventory: (data: ClusterCreationConfig, params: RequestParams = {}) =>
+      this.request<Success, string>({
+        path: `/api/dev/cluster/create_from_all_machines_in_inventory`,
+        method: "POST",
         body: data,
         type: ContentType.Json,
         format: "json",

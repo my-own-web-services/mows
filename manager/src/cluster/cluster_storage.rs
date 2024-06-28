@@ -1,11 +1,18 @@
 use std::collections::BTreeMap;
 
 use anyhow::bail;
-use k8s_openapi::api::{core::v1::Secret, storage::v1::StorageClass};
-use kube::{api::ObjectMeta, Client};
+use k8s_openapi::api::{
+    core::v1::{Node, Secret},
+    storage::v1::StorageClass,
+};
+use kube::{
+    api::{ObjectMeta, Patch},
+    Api, Client,
+};
+use serde_json::json;
 
 use crate::{
-    config::{Cluster, HelmDeploymentState},
+    config::{Cluster, ClusterNode, HelmDeploymentState},
     s,
     utils::{cmd, generate_id},
 };
@@ -25,7 +32,7 @@ impl ClusterStorage {
         let kc = cluster.get_kubeconfig_struct().await?;
 
         for (_, node) in &cluster.cluster_nodes {
-            node.set_storage_labels(&kc).await?;
+            ClusterStorage::set_storage_labels(&node, &kc).await?;
         }
 
         Ok(())
@@ -192,6 +199,61 @@ impl ClusterStorage {
             "Failed to install storage/longhorn",
         )
         .await?;
+
+        Ok(())
+    }
+
+    /*
+    Sets the labels that are required for longhorn to automatically detect the storage
+    https://longhorn.io/docs/1.6.2/nodes-and-volumes/nodes/default-disk-and-node-config/
+    */
+    pub async fn set_storage_labels(node: &ClusterNode, kc: &kube::Config) -> anyhow::Result<()> {
+        let client = kube::client::Client::try_from(kc.clone())?;
+
+        let nodes: Api<Node> = Api::all(client);
+
+        // set the labels of the node
+        let mut annotations = BTreeMap::new();
+        let mut labels = BTreeMap::new();
+
+        labels.insert(s!("node.longhorn.io/create-default-disk"), s!("config"));
+
+        let disk_config = json!([
+            {
+                "path":"/var/lib/longhorn/drives/p0",
+                "allowScheduling":true,
+                "tags":[
+                    "nvme"
+                ]
+            },
+            {
+                "path":"/var/lib/longhorn/drives/p1",
+                "allowScheduling":true,
+                "tags":[
+                    "hdd"
+                ]
+            }
+        ]);
+
+        annotations.insert(
+            s!("node.longhorn.io/default-disks-config"),
+            disk_config.to_string(),
+        );
+
+        let patch = json!({
+            "metadata": {
+                "annotations": annotations,
+                "labels": labels
+            }
+        });
+
+        nodes
+            .patch(
+                &node.hostname,
+                &kube::api::PatchParams::default(),
+                &Patch::Merge(&patch),
+            )
+            .await?;
 
         Ok(())
     }

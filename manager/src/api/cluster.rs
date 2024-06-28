@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use crate::{
     config::{Cluster, ClusterInstallState},
     get_current_config_cloned,
@@ -5,21 +7,21 @@ use crate::{
     utils::AppError,
     write_config,
 };
-use axum::Json;
+use axum::{extract::ConnectInfo, Json};
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::{debug, info};
 use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
-    path = "/api/cluster/create",
+    path = "/api/dev/cluster/create_from_all_machines_in_inventory",
     request_body = ClusterCreationConfig,
     responses(
         (status = 200, description = "Created cluster", body = Success),
         (status = 500, description = "Failed to create cluster", body = String)
     )
 )]
-pub async fn create_cluster(
+pub async fn dev_create_cluster_from_all_machines_in_inventory(
     Json(_cluster_creation_config): Json<ClusterCreationConfig>,
 ) -> Result<Json<Success>, AppError> {
     Cluster::new().await?;
