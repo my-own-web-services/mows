@@ -124,18 +124,18 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_file(true)
         .with_line_number(true)
         .with_filter(log_filter);
-
-    let tracing_layer = tracing_opentelemetry::OpenTelemetryLayer::new(
-        manager::tracing::init_tracer("http://jaeger:4317"),
-    )
-    .with_filter(tracing_subscriber::EnvFilter::new(
-        "main=trace,manager=trace,tower_http=trace,axum::rejection=trace,tokio=trace,runtime=trace",
-    ));
-
+    /*
+        let tracing_layer = tracing_opentelemetry::OpenTelemetryLayer::new(
+            manager::tracing::init_tracer("http://jaeger:4317"),
+        )
+        .with_filter(tracing_subscriber::EnvFilter::new(
+            "main=trace,manager=trace,tower_http=trace,axum::rejection=trace,tokio=trace,runtime=trace",
+        ));
+    */
     tracing_subscriber::registry()
         .with(console_layer)
         .with(log_layer)
-        .with(tracing_layer)
+        //.with(tracing_layer)
         .try_init()?;
 
     //Machine::delete_all_mows_machines().unwrap();
@@ -146,17 +146,13 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let origins = ["http://localhost:5173".parse()?, api_url.parse()?];
 
-    info!("Starting pixiecore servers");
-    Command::new("pixiecore")
-        .args(["api", api_url, "-l", "192.168.111.3", "--dhcp-no-bind"])
-        .stdout(Stdio::null())
-        .spawn()
-        .context("Failed to start pixiecore server for direct attach")?;
+    info!("Starting pixiecore server");
+
     Command::new("pixiecore")
         .args(["api", api_url, "-l", "192.168.112.3", "--dhcp-no-bind"])
         .stdout(Stdio::null())
         .spawn()
-        .context("Failed to start pixiecore server for qemu")?;
+        .context("Failed to start pixiecore server")?;
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))

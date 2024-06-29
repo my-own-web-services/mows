@@ -217,7 +217,7 @@ impl K3s {
             "--disable servicelb",
             "--cluster-cidr=10.42.0.0/16", // ,2001:cafe:42::/56 TODO implement ipv6
             "--service-cidr=10.43.0.0/16", // ,2001:cafe:43::/112
-            "--tls-san=192.168.122.99",
+            "--tls-san=192.168.112.99",
         ];
 
         let primary_args = vec!["--cluster-init"];
