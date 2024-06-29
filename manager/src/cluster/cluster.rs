@@ -8,6 +8,7 @@ use kube::{
     config::{KubeConfigOptions, Kubeconfig},
     Api,
 };
+use serde_json::json;
 use tempfile::NamedTempFile;
 use tokio::fs;
 use tokio::time::sleep;
@@ -251,8 +252,10 @@ impl Cluster {
     }
 
     pub async fn install_network(&self) -> anyhow::Result<()> {
+        let name = "mows-network";
+
         // check if cilium is already installed
-        if Cluster::check_helm_deployment_state("mows-network", "mows-network").await?
+        if Cluster::check_helm_deployment_state(name, name).await?
             != HelmDeploymentState::NotInstalled
         {
             return Ok(()); // network is already installed
@@ -276,7 +279,7 @@ impl Cluster {
                 "helm",
                 "upgrade",
                 // release
-                "mows-network",
+                name,
                 // chart
                 "cilium/cilium",
                 //
@@ -285,7 +288,7 @@ impl Cluster {
                 "--create-namespace",
                 //
                 "--namespace",
-                "mows-network",
+                name,
                 //
                 "--version",
                 cilium_version,
@@ -303,7 +306,7 @@ impl Cluster {
                 "hubble.enabled=true",
                 //
                 "--set",
-                "global.kubeProxyReplacement='strict'",
+                "global.kubeProxyReplacement=true",
                 //
                 "--set",
                 "global.containerRuntime.integration='containerd'",
@@ -316,6 +319,9 @@ impl Cluster {
                 //
                 "--set",
                 "k8sServicePort=6443",
+                //
+                "--set",
+                "externalIPs.enabled=true",
             ],
             "Failed to install cilium",
         )
@@ -325,8 +331,8 @@ impl Cluster {
     }
 
     pub async fn install_kubevip(&self) -> anyhow::Result<()> {
-        let vip = "192.168.122.99";
-        let vip_interface = "enp2s0";
+        let vip = "192.168.112.99";
+        let vip_interface = "enp1s0";
         // update the version by creating a new manifest with
         // bash scripts/generate-kube-vip-files.sh VERSION
 
@@ -378,13 +384,15 @@ impl Cluster {
 
     pub async fn install_dashboard(&self) -> anyhow::Result<()> {
         let version = "6.0.8";
+        let name = "kubernetes-dashboard";
 
-        if Cluster::check_helm_deployment_state("kubernetes-dashboard", "kubernetes-dashboard")
-            .await?
+        if Cluster::check_helm_deployment_state(name, name).await?
             != HelmDeploymentState::NotInstalled
         {
             return Ok(());
         }
+
+        debug!("Installing kubernetes-dashboard");
 
         cmd(
             vec![
@@ -409,7 +417,7 @@ impl Cluster {
                 "helm",
                 "upgrade",
                 // release
-                "kubernetes-dashboard",
+                name,
                 // chart
                 "kubernetes-dashboard/kubernetes-dashboard",
                 //
@@ -418,7 +426,7 @@ impl Cluster {
                 "--create-namespace",
                 //
                 "--namespace",
-                "kubernetes-dashboard",
+                name,
                 //
                 "--version",
                 version,
@@ -457,6 +465,8 @@ impl Cluster {
         )
         .await?;
 
+        debug!("Kubernetes dashboard installed");
+
         Ok(())
     }
 
@@ -464,11 +474,13 @@ impl Cluster {
         let version = "28.3.0";
         let name = "mows-ingress";
 
-        if Cluster::check_helm_deployment_state(&name, &name).await?
+        if Cluster::check_helm_deployment_state(name, name).await?
             != HelmDeploymentState::NotInstalled
         {
             return Ok(());
         }
+
+        debug!("Installing traefik ingress");
 
         cmd(
             vec![
@@ -493,7 +505,7 @@ impl Cluster {
                 "helm",
                 "upgrade",
                 // release
-                &name,
+                name,
                 // chart
                 "traefik/traefik",
                 //
@@ -502,14 +514,25 @@ impl Cluster {
                 "--create-namespace",
                 //
                 "--namespace",
-                &name,
+                name,
                 //
                 "--version",
                 version,
+                //
+                "--set",
+                "additional.sendAnonymousUsage=false",
+                //
+                "--set",
+                "service.spec.loadBalancerClass=kube-vip.io/kube-vip-class",
+                //use this values file
+                "--values",
+                "/install/cluster-basics/ingress/traefik-values.yml",
             ],
             "Failed to install traefik",
         )
         .await?;
+
+        debug!("Traefik ingress installed");
 
         Ok(())
     }

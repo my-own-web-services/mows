@@ -9,8 +9,6 @@ services:
         networks:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.3"
-            mows-manager-direct-attach:
-                ipv4_address: "192.168.111.3"
             mows-manager:
         dns:
             - "192.168.112.2"
@@ -27,17 +25,6 @@ services:
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system
             #- RUST_BACKTRACE=full
             RUST_LOG: main=debug,manager=debug,tower_http=error,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error
-
-    jaeger:
-        image: jaegertracing/all-in-one
-        container_name: jaeger
-        restart: always
-        ports:
-            - "16686:16686"
-        environment:
-            - LOG_LEVEL=error
-        networks:
-            mows-manager:
     qemu:
         image: qemu
         restart: always
@@ -61,12 +48,12 @@ services:
                 ipv4_address: "192.168.112.4"
             # we need two networks because the pxe network is bridged
             mows-manager:
-    dhcp-qemu:
+    dhcp:
         restart: always
         build:
             context: "."
             dockerfile: docker/dnsmasq.Dockerfile
-        container_name: dhcp-qemu
+        container_name: dhcp
         cap_add:
             - "NET_ADMIN"
         entrypoint: dnsmasq -a 192.168.112.2 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h --domain-needed --bogus-priv --dhcp-authoritative
@@ -74,18 +61,6 @@ services:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.2"
 
-    dhcp-direct-attach:
-        restart: always
-        build:
-            context: "."
-            dockerfile: docker/dnsmasq.Dockerfile
-        container_name: dhcp-direct-attach
-        cap_add:
-            - "NET_ADMIN"
-        entrypoint: dnsmasq -a 192.168.111.2 -p 0 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.111.5,192.168.111.30,12h
-        networks:
-            mows-manager-direct-attach:
-                ipv4_address: "192.168.111.2"
 
 networks:
     mows-manager:
@@ -101,12 +76,3 @@ networks:
             com.docker.network.container_iface_prefix: pxe
         
 
-    mows-manager-direct-attach:
-        driver: bridge
-        #driver: macvlan
-        #driver_opts:
-        #    parent: enp3s0f0u2u4
-        ipam:
-            config:
-                - subnet: 192.168.111.0/24
-                  gateway: "192.168.111.1"

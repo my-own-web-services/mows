@@ -53,8 +53,6 @@ virsh net-define ./network.xml
 virsh net-start mows-manager
 
 
-
-
 #ip link add virbr0 type bridge
 #ip address ad dev virbr0 10.25.0.1/24
 #ip link set dev virbr0 up
@@ -67,13 +65,7 @@ ip link set br0 up
 ip address add dev br0 192.168.0.90/24
 
 
-#ip link add name virbr0 type bridge
-#ip link set dev virbr0 up
 
-#ip link set eth0 master br0
-
-# Enable Spanning Tree Protocol on the bridge to prevent loops
-#ip link set dev virbr0 type bridge stp_state 1
 
 # Stop libvirtd
 killall libvirtd

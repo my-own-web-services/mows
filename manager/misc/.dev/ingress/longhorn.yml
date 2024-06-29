@@ -1,0 +1,18 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: mows-storage-ui
+  namespace: mows-storage
+spec:
+  entryPoints:                     
+    - web
+  routes:                           
+  - kind: Rule
+    match: PathRegexp(`.*/longhorn/.*`) 
+    priority: 10                    
+    services:                       
+    - kind: Service
+      name: longhorn-frontend
+      namespace: mows-storage
+      passHostHeader: true
+      
