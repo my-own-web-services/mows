@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use crate::{
     config::{Cluster, ClusterInstallState},
     get_current_config_cloned,
@@ -7,9 +5,9 @@ use crate::{
     utils::AppError,
     write_config,
 };
-use axum::{extract::ConnectInfo, Json};
+use axum::Json;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::info;
 use utoipa::ToSchema;
 
 #[utoipa::path(
