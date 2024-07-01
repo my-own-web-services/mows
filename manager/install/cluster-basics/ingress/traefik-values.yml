@@ -1,3 +1,9 @@
 service:
     annotations:
-        kube-vip.io/loadbalancerIPs: '192.168.112.99'
+        io.cilium/lb-ipam-ips: 192.168.112.50
+
+ingressRoute:
+  dashboard:
+    entryPoints:
+      - web
+    matchRule: PathPrefix(`/dashboard/`)

@@ -1,18 +1,7 @@
 use std::io::Write;
+use std::os::fd::{FromRawFd, RawFd};
+use std::process::Stdio;
 use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
-
-use anyhow::{bail, Context};
-use k8s_openapi::api::core::v1::Node;
-use kube::{
-    api::ListParams,
-    config::{KubeConfigOptions, Kubeconfig},
-    Api,
-};
-use serde_json::json;
-use tempfile::NamedTempFile;
-use tokio::fs;
-use tokio::time::sleep;
-use tracing::debug;
 
 use crate::config::HelmDeploymentState;
 use crate::utils::cmd;
@@ -22,6 +11,21 @@ use crate::{
     utils::generate_id,
     write_config,
 };
+use anyhow::{bail, Context};
+use k8s_openapi::api::core::v1::Node;
+use kube::{
+    api::ListParams,
+    config::{KubeConfigOptions, Kubeconfig},
+    Api,
+};
+use serde_json::json;
+use std::os::unix::io::AsRawFd;
+use tempfile::NamedTempFile;
+use tokio::fs;
+use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
+use tokio::time::sleep;
+use tracing::debug;
 
 use super::cluster_storage::ClusterStorage;
 
@@ -306,13 +310,7 @@ impl Cluster {
                 "hubble.enabled=true",
                 //
                 "--set",
-                "global.kubeProxyReplacement=true",
-                //
-                "--set",
-                "global.containerRuntime.integration='containerd'",
-                //
-                "--set",
-                "global.containerRuntime.socketPath='/var/run/k3s/containerd/containerd.sock'",
+                "kubeProxyReplacement=strict",
                 //
                 "--set",
                 "k8sServiceHost=127.0.0.1",
@@ -322,8 +320,49 @@ impl Cluster {
                 //
                 "--set",
                 "externalIPs.enabled=true",
+                //
+                "--set",
+                &format!("cluster.name={}", self.id),
+                //
+                "--set",
+                "bgpControlPlane.enabled=true",
+                //
+                "--set",
+                "l2announcements.enabled=true",
+                //
+                "--set",
+                "k8sClientRateLimit.qps=32",
+                //
+                "--set",
+                "k8sClientRateLimit.burst=64",
+                //
+                "--set",
+                "gatewayAPI.enabled=true",
+                //
+                "--set",
+                "operator.rollOutPods=true",
+                //
+                "--set",
+                "rollOutCiliumPods=true",
+                //
+                "--set",
+                "enableCiliumEndpointSlice=true",
+                //
+                "--set",
+                "debug.enabled=true",
             ],
             "Failed to install cilium",
+        )
+        .await?;
+
+        cmd(
+            vec![
+                "kubectl",
+                "apply",
+                "-f",
+                "/install/cluster-basics/network/resources.yml",
+            ],
+            "Failed to apply cilium network policy",
         )
         .await?;
 
@@ -521,12 +560,9 @@ impl Cluster {
                 //
                 "--set",
                 "additional.sendAnonymousUsage=false",
-                //
-                "--set",
-                "service.spec.loadBalancerClass=kube-vip.io/kube-vip-class",
                 //use this values file
-                "--values",
-                "/install/cluster-basics/ingress/traefik-values.yml",
+                "--set",
+                "'service.annotations.\"io\\.cilium/lb-ipam-ips\"=192.168.112.50'",
             ],
             "Failed to install traefik",
         )
@@ -537,12 +573,51 @@ impl Cluster {
         Ok(())
     }
 
+    pub async fn install_with_kustomize(&self, generation: u8) -> anyhow::Result<()> {
+        let output = Command::new("kubectl")
+            .args(vec![
+                "kustomize",
+                "--enable-helm",
+                &format!("/install/{}/network/", generation),
+            ])
+            .output()
+            .await
+            .context("Failed to run kubectl kustomize")?;
+
+        // kubectl apply -f -
+        let mut kubectl_apply = Command::new("kubectl")
+            .args(vec!["apply", "-f", "-"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .spawn()
+            .context("Failed to run kubectl apply")?;
+
+        let stdin = kubectl_apply
+            .stdin
+            .as_mut()
+            .context("Failed to open stdin")?;
+
+        stdin
+            .write_all(&output.stdout)
+            .await
+            .context("Failed to write to stdin")?;
+
+        let _ = kubectl_apply
+            .wait_with_output()
+            .await
+            .context("Failed to wait for kubectl apply")?;
+
+        Ok(())
+    }
+
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         self.write_local_kubeconfig().await?;
 
         self.install_network().await?;
 
-        self.install_kubevip().await?;
+        //self.install_with_kustomize(0).await?;
+
+        //self.install_kubevip().await?;
 
         ClusterStorage::install(&self).await?;
 

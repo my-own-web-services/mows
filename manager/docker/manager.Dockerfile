@@ -50,10 +50,10 @@ RUN dpkg -i /tmp/k9s.deb
 RUN mkdir -p /etc/bash_completion.d
 RUN k9s completion bash > /etc/bash_completion.d/k9s 
 
-# install kustomize
-RUN wget https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.2/kustomize_v5.4.2_linux_amd64.tar.gz -O /tmp/kustomize.tar.gz
-RUN tar -xvf /tmp/kustomize.tar.gz -C /usr/local/bin
-RUN chmod +x /usr/local/bin/kustomize
+# install cilium cli
+RUN wget https://github.com/cilium/cilium-cli/releases/download/v0.16.11/cilium-linux-amd64.tar.gz
+RUN tar -xvf cilium-linux-amd64.tar.gz -C /usr/local/bin
+RUN chmod +x /usr/local/bin/cilium
 
 
 # colored bash

@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use tokio::process::Command;
+use tracing::error;
 
 use crate::some_or_bail;
 
@@ -36,6 +37,10 @@ pub async fn cmd(cmd_and_args: Vec<&str>, error: &str) -> anyhow::Result<String>
 
     if !command.status.success() {
         let stderr = std::str::from_utf8(&command.stderr).unwrap_or("Failed to get stderr");
+
+        // log the exact command that was spawned
+        error!("Failed to execute command: {} {:?}", cmd, args);
+
         bail!("{}: [{}]: {}", error.to_string(), command.status, stderr)
     }
 
