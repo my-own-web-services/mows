@@ -1,6 +1,6 @@
 .git
 target
-temp-pxe-files
+temp
 test
 install-test
 kcrypt-challenger

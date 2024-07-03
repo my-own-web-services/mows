@@ -1,7 +1,15 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+
+pub enum ApiResponseStatus {
+    Success,
+    Error,
+}
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct Success {
+pub struct ApiResponse<T> {
     pub message: String,
+    pub status: ApiResponseStatus,
+    pub data: Option<T>,
 }

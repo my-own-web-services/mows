@@ -1,9 +1,8 @@
 use anyhow::Context;
 use axum::error_handling::HandleErrorLayer;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
-use axum::http::{Method, StatusCode};
+use axum::http::{Method};
 use axum::routing::{delete, get, post, put};
-use axum::BoxError;
 use axum::Router;
 use bollard::Docker;
 use manager::api::boot::*;
@@ -12,7 +11,7 @@ use manager::api::config::*;
 use manager::api::direct_terminal::*;
 use manager::api::docker_terminal::*;
 use manager::api::machines::*;
-use manager::config::*;
+use manager::{config::{self, *}};
 use manager::tasks::{
     apply_environment, get_cluster_kubeconfig, install_cluster_basics, start_cluster_proxy,
     update_machine_install_state,
@@ -26,7 +25,7 @@ use std::net::SocketAddr;
 use std::process::Stdio;
 use std::time::Duration;
 use tokio::process::Command;
-use tokio::signal;
+use tokio::{fs, signal};
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
@@ -47,12 +46,13 @@ static GLOBAL: Jemalloc = Jemalloc;
 #[tracing::instrument]
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+
     #[derive(OpenApi)]
     #[openapi(
         paths(
             update_config,
             get_config,
-            create_machines,
+            dev_create_machines,
             signal_machine,
             dev_create_cluster_from_all_machines_in_inventory,
             get_boot_config_by_mac,
@@ -66,8 +66,9 @@ async fn main() -> Result<(), anyhow::Error> {
         ),
         components(
             schemas(
+                ApiResponseStatus,
+                ApiResponse<()>,
                 ManagerConfig,
-                Success,
                 Cluster,
                 ClusterNode,
                 BackupNode,
@@ -92,7 +93,8 @@ async fn main() -> Result<(), anyhow::Error> {
                 MachineDeleteReqBody,
                 MachineInfoReqBody,
                 MachineInfoResBody,
-                MachineStatus
+                MachineStatus,
+                
             )
         ),
         tags(
@@ -154,11 +156,50 @@ async fn main() -> Result<(), anyhow::Error> {
         .spawn()
         .context("Failed to start pixiecore server")?;
 
+    // start dnsmasq: dnsmasq -a 192.168.112.3 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h --domain-needed --bogus-priv --dhcp-authoritative
+
+
+    let resolv_bak= fs::read_to_string("/etc/resolv.conf.bak").await?;
+
+    let docker_server="nameserver 127.0.0.11";
+
+    fs::write("/etc/resolv.dnsmasq.conf", format!(
+        "{}\n{}",
+        docker_server,
+        resolv_bak
+
+    )).await?;
+
+
+    
+    tokio::fs::create_dir_all("/hosts").await?;
+
+   Command::new("dnsmasq")
+    .args(["--no-daemon",
+             "--log-queries",
+             "--dhcp-alternate-port=67",
+             "--dhcp-range=192.168.112.5,192.168.112.30,12h",
+             "--domain-needed",
+             "--bogus-priv",
+             "--dhcp-authoritative",
+             "--hostsdir","/hosts/", 
+             "--resolv-file=/etc/resolv.dnsmasq.conf",
+             "--dhcp-leasefile=/temp/dnsmasq/leases",
+             ])
+    .stdout(Stdio::null())
+    .stderr(Stdio::null())
+    .spawn()
+    .context("Failed to start the dnsmasq server")?;
+
+    // make it possible to restart the child from the dnsmasq_handle from everywhere in the program
+
+    
+   
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/config", put(update_config))
         .route("/api/config", get(get_config))
-        .route("/api/machines/create", post(create_machines))
+        .route("/api/dev/machines/create", post(dev_create_machines))
         .route("/api/machines/signal", post(signal_machine))
         .route("/api/machines/delete", delete(delete_machine))
         .route("/api/machines/info", post(get_machine_info))
@@ -229,21 +270,31 @@ async fn main() -> Result<(), anyhow::Error> {
     });
 
     tokio::spawn(async {
-        let mut proxy_running = false;
+        let mut proxy_running_for_cluster:Option<String> = None;
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
-            if proxy_running {
+
+            if let Some(cluster_id) = &proxy_running_for_cluster{
+                // the proxy is running... check if the cluster still exists else stop the proxy and allow the next iteration to start a new proxy
+                let cfg1 = config::config().read().await.clone();
+                if cfg1.clusters.get(&cluster_id.clone()).is_none(){
+                    if let Err(e)=Cluster::stop_proxy().await{
+                        error!("Could not stop cluster proxy: {:?}", e);
+                    }
+                    proxy_running_for_cluster = None;
+                }else{
                 continue;
-            }
-            match start_cluster_proxy().await {
-                Ok(true) => {
-                    proxy_running = true;
                 }
-                Ok(false) => {}
+            };
+
+            match start_cluster_proxy().await {
+                Ok(cluster_id) => {
+                    proxy_running_for_cluster = cluster_id;
+                }
                 Err(e) => {
                     error!("Could not start cluster proxy: {:?}", e);
                 }
-            }
+            };
         }
     });
 

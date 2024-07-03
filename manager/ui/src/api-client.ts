@@ -9,6 +9,17 @@
  * ---------------------------------------------------------------
  */
 
+export interface ApiResponse {
+  data?: null;
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export enum ApiResponseStatus {
+  Success = "Success",
+  Error = "Error",
+}
+
 export interface BackupNode {
   backup_wg_private_key?: string | null;
   hostname: string;
@@ -170,10 +181,6 @@ export interface SshAccess {
   ssh_username: string;
 }
 
-export interface Success {
-  message: string;
-}
-
 export type QueryParamsType = Record<string | number, any>;
 export type ResponseFormat = keyof Omit<Body, "body" | "bodyUsed">;
 
@@ -272,9 +279,9 @@ export class HttpClient<SecurityDataType = unknown> {
     [ContentType.Json]: (input: any) =>
       input !== null && (typeof input === "object" || typeof input === "string") ? JSON.stringify(input) : input,
     [ContentType.Text]: (input: any) => (input !== null && typeof input !== "string" ? JSON.stringify(input) : input),
-    [ContentType.FormData]: (input: any) =>
-      Object.keys(input || {}).reduce((formData, key) => {
-        const property = input[key];
+    [ContentType.FormData]: (input: FormData) =>
+      (Array.from(input.keys()) || []).reduce((formData, key) => {
+        const property = input.get(key);
         formData.append(
           key,
           property instanceof Blob
@@ -413,7 +420,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request PUT:/api/config
      */
     updateConfig: (data: ManagerConfig, params: RequestParams = {}) =>
-      this.request<Success, string>({
+      this.request<ApiResponse, any>({
         path: `/api/config`,
         method: "PUT",
         body: data,
@@ -430,7 +437,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request POST:/api/dev/cluster/create_from_all_machines_in_inventory
      */
     devCreateClusterFromAllMachinesInInventory: (data: ClusterCreationConfig, params: RequestParams = {}) =>
-      this.request<Success, string>({
+      this.request<ApiResponse, any>({
         path: `/api/dev/cluster/create_from_all_machines_in_inventory`,
         method: "POST",
         body: data,
@@ -447,9 +454,26 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request POST:/api/dev/cluster/install_basics
      */
     devInstallClusterBasics: (params: RequestParams = {}) =>
-      this.request<Success, string>({
+      this.request<ApiResponse, any>({
         path: `/api/dev/cluster/install_basics`,
         method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
+     * @name DevCreateMachines
+     * @request POST:/api/dev/machines/create
+     */
+    devCreateMachines: (data: MachineCreationReqBody, params: RequestParams = {}) =>
+      this.request<ApiResponse, any>({
+        path: `/api/dev/machines/create`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -462,26 +486,9 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request DELETE:/api/dev/machines/delete_all
      */
     devDeleteAllMachines: (params: RequestParams = {}) =>
-      this.request<Success, string>({
+      this.request<ApiResponse, any>({
         path: `/api/dev/machines/delete_all`,
         method: "DELETE",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags crate
-     * @name CreateMachines
-     * @request POST:/api/machines/create
-     */
-    createMachines: (data: MachineCreationReqBody, params: RequestParams = {}) =>
-      this.request<Success, string>({
-        path: `/api/machines/create`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -494,7 +501,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request DELETE:/api/machines/delete
      */
     deleteMachine: (data: MachineDeleteReqBody, params: RequestParams = {}) =>
-      this.request<Success, string>({
+      this.request<ApiResponse, any>({
         path: `/api/machines/delete`,
         method: "DELETE",
         body: data,
@@ -511,7 +518,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request POST:/api/machines/info
      */
     getMachineInfo: (data: MachineInfoReqBody, params: RequestParams = {}) =>
-      this.request<MachineInfoResBody, string>({
+      this.request<ApiResponse, any>({
         path: `/api/machines/info`,
         method: "POST",
         body: data,
@@ -528,7 +535,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request POST:/api/machines/signal
      */
     signalMachine: (data: MachineSignalReqBody, params: RequestParams = {}) =>
-      this.request<Success, string>({
+      this.request<ApiResponse, any>({
         path: `/api/machines/signal`,
         method: "POST",
         body: data,
@@ -588,7 +595,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request GET:/v1/boot/{mac_addr}
      */
     getBootConfigByMac: (macAddr: string, params: RequestParams = {}) =>
-      this.request<Success, PixiecoreBootConfig>({
+      this.request<PixiecoreBootConfig, string>({
         path: `/v1/boot/${macAddr}`,
         method: "GET",
         format: "json",

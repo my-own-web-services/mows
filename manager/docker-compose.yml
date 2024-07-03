@@ -11,16 +11,18 @@ services:
                 ipv4_address: "192.168.112.3"
             mows-manager:
         dns:
-            - "192.168.112.2"
+            - "192.168.112.3"
+        cap_add:
+          - "NET_ADMIN"
         ports:
             - "127.0.0.1:3000:3000"
             - "127.0.0.1:6669:6669"
             - "127.0.0.1:8001:8001"
+            - "127.0.0.1:53:53"
         volumes:
-            - ./temp-pxe-files:/pxe_files/
+            - ./temp/:/temp/
             - ./install:/install
-            - ./misc/.dev/:/.dev/
-            - /var/run/docker.sock:/var/run/docker.sock
+            - /etc/resolv.conf.bak:/etc/resolv.conf.bak
         environment:
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system
             #- RUST_BACKTRACE=full
@@ -48,23 +50,14 @@ services:
                 ipv4_address: "192.168.112.4"
             # we need two networks because the pxe network is bridged
             mows-manager:
-    dhcp:
-        restart: always
-        build:
-            context: "."
-            dockerfile: docker/dnsmasq.Dockerfile
-        container_name: dhcp
-        cap_add:
-            - "NET_ADMIN"
-        entrypoint: dnsmasq -a 192.168.112.2 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h --domain-needed --bogus-priv --dhcp-authoritative
-        networks:
-            mows-manager-pxe:
-                ipv4_address: "192.168.112.2"
 
 
 networks:
     mows-manager:
+        name: mows-manager
+        
     mows-manager-pxe:
+        name: mows-manager-pxe
         driver: bridge
         ipam:
             driver: default

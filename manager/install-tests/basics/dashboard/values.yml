@@ -1,7 +1,0 @@
-metrics-server:
-    enabled: false
-cert-manager:
-    enabled: true
-app:
-    ingress:
-        enabled: true

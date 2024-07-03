@@ -1,9 +1,13 @@
 use serde::{Deserialize, Serialize};
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::OnceLock;
 use std::{collections::HashMap, net::IpAddr};
+use tokio::fs;
 use tokio::sync::RwLock;
 use tracing::trace;
 use utoipa::ToSchema;
+
+use crate::some_or_bail;
 
 #[tracing::instrument]
 pub fn config() -> &'static RwLock<ManagerConfig> {
@@ -30,6 +34,26 @@ impl ManagerConfig {
         None
     }
 
+    pub async fn set_cluster_hostname(&self) -> anyhow::Result<()> {
+        for cluster in self.clusters.values() {
+            if let Some(ip) = &cluster.vip.service.legacy_ip {
+                fs::write(
+                    format!("/hosts/service.{}", cluster.id),
+                    format!("{} svc.{} \n {} svc.{} ", ip, cluster.id, ip, cluster.id),
+                )
+                .await?;
+
+                fs::write(
+                    format!("/hosts/cp.{}", cluster.id),
+                    format!("{} cp.{}", ip, cluster.id),
+                )
+                .await?;
+            }
+        }
+
+        Ok(())
+    }
+
     pub async fn apply_environment(&self) -> anyhow::Result<()> {
         trace!("Applying environment");
         match self.write_local_kubeconfig().await {
@@ -39,6 +63,10 @@ impl ManagerConfig {
         match self.setup_local_ssh_access().await {
             Ok(_) => trace!("Setup local ssh access"),
             Err(e) => trace!("Failed to setup local ssh access: {:?}", e),
+        }
+        match self.set_cluster_hostname().await {
+            Ok(_) => trace!("Set cluster hostname"),
+            Err(e) => trace!("Failed to set cluster hostname: {:?}", e),
         }
 
         Ok(())
@@ -75,6 +103,7 @@ pub struct ManagerConfig {
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct Cluster {
     pub id: String,
+    pub vip: Vip,
     pub cluster_nodes: HashMap<String, ClusterNode>,
     pub kubeconfig: Option<String>,
     pub k3s_token: String,
@@ -83,6 +112,18 @@ pub struct Cluster {
     pub public_ip_config: Option<PublicIpConfig>,
     pub cluster_backup_wg_private_key: Option<String>,
     pub install_state: Option<ClusterInstallState>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
+pub struct Vip {
+    pub service: VipIp,
+    pub controlplane: VipIp,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
+
+pub struct VipIp {
+    pub legacy_ip: Option<String>,
+    pub ip: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]

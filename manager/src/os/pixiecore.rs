@@ -1,16 +1,18 @@
-use std::{path::Path, process::Stdio};
+use std::path::Path;
 
-use tokio::process::Command;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
+use tracing::debug;
 
 use crate::{
-    config::{PixiecoreBootConfig, SshAccess},
+    config::{PixiecoreBootConfig, SshAccess, Vip},
     some_or_bail,
     utils::generate_id,
 };
 
 use super::cloud_init::CloudInit;
 
-const DOWNLOAD_DIRECTORY: &str = "/pxe_files";
+const DOWNLOAD_DIRECTORY: &str = "/temp/pxe-files";
 
 impl PixiecoreBootConfig {
     pub async fn new(
@@ -22,7 +24,9 @@ impl PixiecoreBootConfig {
         ssh_config: &SshAccess,
         primary_node_hostname: &str,
         virt: bool,
+        vip: &Vip,
     ) -> anyhow::Result<Self> {
+        tokio::fs::create_dir_all(DOWNLOAD_DIRECTORY).await?;
         let file_name = format!("cloud-init-{}.yml", generate_id(20));
 
         let cloud_init_path = Path::new("/").join(file_name.clone());
@@ -39,6 +43,7 @@ impl PixiecoreBootConfig {
             k3s_token,
             cloud_init_str,
             virt,
+            vip,
         )
         .await?;
 
@@ -81,27 +86,29 @@ impl PixiecoreBootConfig {
         let initrd_url = Self::get_artifact_url("-initrd", kairos_version, k3s_version, os)?;
         let squashfs_url = Self::get_artifact_url(".squashfs", kairos_version, k3s_version, os)?;
 
-        Command::new("wget")
-            .args(["-nc", &kernel_url, "-O", &kernel_path])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()?
-            .wait()
-            .await?;
-        Command::new("wget")
-            .args(["-nc", &initrd_url, "-O", &initrd_path])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()?
-            .wait()
-            .await?;
-        Command::new("wget")
-            .args(["-nc", &squashfs_url, "-O", &squashfs_path])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()?
-            .wait()
-            .await?;
+        Self::download_artifact(&kernel_url, &kernel_path).await?;
+
+        Self::download_artifact(&initrd_url, &initrd_path).await?;
+
+        Self::download_artifact(&squashfs_url, &squashfs_path).await?;
+
+        Ok(())
+    }
+
+    async fn download_artifact(url: &str, path: &str) -> anyhow::Result<()> {
+        let reqwest = reqwest::Client::new();
+
+        debug!("Downloading PXE files");
+
+        if Path::new(path).exists() {
+            return Ok(());
+        }
+
+        let mut res = reqwest.get(url).send().await?;
+        let mut file = File::create(path).await?;
+        while let Some(chunk) = res.chunk().await? {
+            file.write_all(&chunk).await?;
+        }
 
         Ok(())
     }
@@ -113,6 +120,7 @@ impl PixiecoreBootConfig {
         k3s_token: &str,
         cloud_init_path: &str,
         virt: bool,
+        vip: &Vip,
     ) -> anyhow::Result<()> {
         let cloud_init = CloudInit::new(
             own_hostname,
@@ -121,6 +129,7 @@ impl PixiecoreBootConfig {
             true,
             virt,
             k3s_token,
+            vip,
         );
 
         let cloud_init_str = "#cloud-config\n".to_string() + &serde_yaml::to_string(&cloud_init)?;

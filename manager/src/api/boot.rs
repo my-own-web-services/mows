@@ -14,8 +14,8 @@ use crate::{
         ("mac_addr" = String, Path, description = "Mac address of the machine to get boot config for")
     ),
     responses(
-        (status = 200, description = "Sending boot config to pixieboot server", body = Success),
-        (status = 500, description = "Failed to get config for mac address", body = PixiecoreBootConfig)
+        (status = 200, description = "Sending boot config to pixieboot server", body = PixiecoreBootConfig),
+        (status = 500, description = "Failed to get config for mac address", body = String)
     )
 )]
 pub async fn get_boot_config_by_mac(

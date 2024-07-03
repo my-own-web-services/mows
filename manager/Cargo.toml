@@ -86,6 +86,8 @@ bollard = "0.16.1"
 kube = { version = "0.92.0", features = ["runtime", "derive", "client"] }
 k8s-openapi = { version = "0.22.0", features = ["latest"] }
 
+reqwest = { version = "0.12.5", features = ["json"] }
+
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"
 
