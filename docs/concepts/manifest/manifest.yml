@@ -1,0 +1,39 @@
+# https://git.cloudron.io/cloudron/minecraft-java-app/-/blob/master/CloudronManifest.json?ref_type=heads
+# https://hub.docker.com/_/nextcloud
+manifestVersion: 0.0.1
+
+metadata:
+    name: nextcloud
+    id: nextcloud.apps.mows.cloud
+    version: 1.0.0
+
+resources:
+    hull: Container # VM | MicroVM | Container | StaticHTML
+    memory:
+        minimum: 512 # 512MB
+        recommended: 1024 # 1GB
+    cpu:
+        minimum: 0.1 # 10% of a single core
+        recommended: 0.5 # 50% of a single core
+    storage:
+        minimum: 10240 # 10GB
+        recommended: 20480 # 20GB
+apis:
+-   id: smtp.mail.mows.cloud # we allow access to this API
+    relevance: recommended # recommended | optional | required
+    version: 1.0.0
+    params: # api specific parameters
+        send: # the app wants to send mail
+            defaultNoReply: true # the app is fine with sending from the servers default no-reply address,
+
+
+          
+# SMTP_HOST (not set by default): The hostname of the SMTP server.
+# SMTP_SECURE (empty by default): Set to ssl to use SSL, or tls to use STARTTLS.
+# SMTP_PORT (default: 465 for SSL and 25 for non-secure connections): Optional port for the SMTP connection. Use 587 for an alternative port for STARTTLS.
+# SMTP_AUTHTYPE (default: LOGIN): The method used for authentication. Use PLAIN if no authentication is required.
+# SMTP_NAME (empty by default): The username for the authentication.
+# SMTP_PASSWORD (empty by default): The password for the authentication.
+# MAIL_FROM_ADDRESS (not set by default): Set the local-part for the 'from' field in the emails sent by Nextcloud.
+# MAIL_DOMAIN (not set by default): Set a different domain for the emails than the domain where Nextcloud is installed.
+
