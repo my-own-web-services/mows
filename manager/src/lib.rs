@@ -14,8 +14,9 @@ pub mod os {
 
 pub mod cluster {
     pub mod cluster;
-    pub mod cluster_storage;
+    pub mod network;
     pub mod node;
+    pub mod storage;
 }
 
 pub mod api {

@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{config::SshAccess, s};
+use crate::{
+    config::{SshAccess, Vip},
+    s,
+};
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
 pub struct CloudInit {
@@ -113,6 +116,7 @@ impl CloudInit {
         debug: bool,
         virt: bool,
         k3s_token: &str,
+        vip: &Vip,
     ) -> CloudInit {
         let todo = "http://192.168.122.216:30000";
 
@@ -170,6 +174,7 @@ impl CloudInit {
                 node_hostname == primary_hostname,
                 primary_hostname,
                 k3s_token,
+                vip,
             ),
             hostname: node_hostname.to_string(),
             install: Install::new(&get_device_string(virt, 0)),
@@ -208,8 +213,13 @@ impl Install {
 }
 
 impl K3s {
-    pub fn new(primary: bool, primary_hostname: &str, k3s_token: &str) -> K3s {
-        let base_args = vec![
+    pub fn new(primary: bool, primary_hostname: &str, k3s_token: &str, vip: &Vip) -> K3s {
+        let tls_san = match &vip.controlplane.legacy_ip {
+            Some(ip) => Some(format!("--tls-san={}", ip)),
+            None => None,
+        };
+
+        let mut base_args = vec![
             "--flannel-backend=none",
             "--disable-network-policy",
             "--disable-kube-proxy",
@@ -217,8 +227,11 @@ impl K3s {
             "--disable servicelb",
             "--cluster-cidr=10.42.0.0/16", // ,2001:cafe:42::/56 TODO implement ipv6
             "--service-cidr=10.43.0.0/16", // ,2001:cafe:43::/112
-            "--tls-san=192.168.112.99",
         ];
+
+        if let Some(tls_san) = &tls_san {
+            base_args.push(tls_san);
+        }
 
         let primary_args = vec!["--cluster-init"];
 

@@ -15,35 +15,37 @@ use utoipa::ToSchema;
 use crate::{
     config::{config, Machine, ManagerConfig},
     get_current_config_cloned,
-    types::Success,
-    utils::AppError,
+    types::{ApiResponse, ApiResponseStatus},
     write_config,
 };
 
 #[utoipa::path(
     post,
-    path = "/api/machines/create",
+    path = "/api/dev/machines/create",
     request_body = MachineCreationReqBody,
     responses(
-        (status = 200, description = "Created machines", body = Success),
-        (status = 500, description = "Failed to create machines", body = String)
+        (status = 200, description = "Created machines", body = ApiResponse<()>),
     )
 )]
-pub async fn create_machines(
+pub async fn dev_create_machines(
     Json(machine_creation_config): Json<MachineCreationReqBody>,
-) -> Result<Json<Success>, AppError> {
+) -> Json<ApiResponse<()>> {
     spawn(async move {
-        if let Err(e) = create_machine(machine_creation_config).await {
+        if let Err(e) = dev_create_3_machines(machine_creation_config).await {
             error!("Failed to create machine: {:?}", e);
         }
     });
 
-    Ok(Json(Success {
-        message: "Machines created".to_string(),
-    }))
+    Json(ApiResponse {
+        message: "Started machine creation".to_string(),
+        status: ApiResponseStatus::Success,
+        data: None,
+    })
 }
 
-pub async fn create_machine(machine_creation_config: MachineCreationReqBody) -> anyhow::Result<()> {
+pub async fn dev_create_3_machines(
+    machine_creation_config: MachineCreationReqBody,
+) -> anyhow::Result<()> {
     for _ in 0..3 {
         let machine = Machine::new(&machine_creation_config).await?;
         let mut config_locked = write_config!();
@@ -57,23 +59,40 @@ pub async fn create_machine(machine_creation_config: MachineCreationReqBody) -> 
     path = "/api/machines/signal",
     request_body = MachineSignalReqBody,
     responses(
-        (status = 200, description = "Sent signal", body = Success),
-        (status = 500, description = "Failed to send signal", body = String)
+        (status = 200, description = "Sent signal", body = ApiResponse<()>),
     )
 )]
 pub async fn signal_machine(
     Json(machine_signal): Json<MachineSignalReqBody>,
-) -> Result<Json<Success>, AppError> {
+) -> Json<ApiResponse<()>> {
     let config = config().read().await;
-    let machine = config
+    let machine = match config
         .machines
         .get(&machine_signal.machine_id)
-        .ok_or(anyhow::Error::msg("Machine not found"))?;
-    machine.send_signal(machine_signal.signal).await?;
+        .ok_or(anyhow::Error::msg("Machine not found"))
+    {
+        Ok(machine) => machine,
+        Err(e) => {
+            return Json(ApiResponse {
+                message: format!("Failed to send signal: {}", e),
+                status: ApiResponseStatus::Error,
+                data: None,
+            })
+        }
+    };
+    if let Err(e) = machine.send_signal(machine_signal.signal).await {
+        return Json(ApiResponse {
+            message: format!("Failed to send signal: {}", e),
+            status: ApiResponseStatus::Error,
+            data: None,
+        });
+    }
 
-    Ok(Json(Success {
-        message: "Success".to_string(),
-    }))
+    Json(ApiResponse {
+        message: "Sent signal".to_string(),
+        status: ApiResponseStatus::Success,
+        data: None,
+    })
 }
 
 #[utoipa::path(
@@ -81,43 +100,63 @@ pub async fn signal_machine(
     path = "/api/machines/delete",
     request_body=MachineDeleteReqBody,
     responses(
-        (status = 200, description = "Machine deleted", body = Success),
-        (status = 500, description = "Failed to delete machines", body = String)
+        (status = 200, description = "Machine deleted", body = ApiResponse<()>),
     )
 )]
 pub async fn delete_machine(
     Json(machine_delete): Json<MachineDeleteReqBody>,
-) -> Result<Json<Success>, AppError> {
+) -> Json<ApiResponse<()>> {
     let config = get_current_config_cloned!();
-    let machine = config
-        .machines
-        .get(&machine_delete.machine_id)
-        .ok_or(anyhow::Error::msg("Machine not found"))?;
-    machine.delete().await?;
+    let machine = match config.machines.get(&machine_delete.machine_id) {
+        Some(machine) => machine,
+        None => {
+            return Json(ApiResponse {
+                message: "Machine not found".to_string(),
+                status: ApiResponseStatus::Error,
+                data: None,
+            })
+        }
+    };
+    if let Err(e) = machine.delete().await {
+        return Json(ApiResponse {
+            message: format!("Failed to delete machine: {}", e),
+            status: ApiResponseStatus::Error,
+            data: None,
+        });
+    }
 
-    Ok(Json(Success {
+    Json(ApiResponse {
         message: "Machine deleted".to_string(),
-    }))
+        status: ApiResponseStatus::Success,
+        data: None,
+    })
 }
 
 #[utoipa::path(
     delete,
     path = "/api/dev/machines/delete_all",
     responses(
-        (status = 200, description = "Machines deleted", body = Success),
-        (status = 500, description = "Failed to delete machines", body = String)
+        (status = 200, description = "Machines deleted", body = ApiResponse<()>),
     )
 )]
-pub async fn dev_delete_all_machines() -> Result<Json<Success>, AppError> {
-    Machine::dev_delete_all().await?;
+pub async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
+    if let Err(e) = Machine::dev_delete_all().await {
+        return Json(ApiResponse {
+            message: format!("Failed to delete machines: {}", e),
+            status: ApiResponseStatus::Error,
+            data: None,
+        });
+    }
 
     let mut config = write_config!();
 
     *config = ManagerConfig::default();
 
-    Ok(Json(Success {
+    Json(ApiResponse {
         message: "Machines deleted".to_string(),
-    }))
+        status: ApiResponseStatus::Success,
+        data: None,
+    })
 }
 
 #[utoipa::path(
@@ -125,21 +164,39 @@ pub async fn dev_delete_all_machines() -> Result<Json<Success>, AppError> {
     path = "/api/machines/info",
     request_body=MachineInfoReqBody,
     responses(
-        (status = 200, description = "Got machine info", body = MachineInfoResBody),
-        (status = 500, description = "Failed to get info", body = String)
+        (status = 200, description = "Got machine info", body =  ApiResponse<MachineInfoResBody>),
     )
 )]
 pub async fn get_machine_info(
     Json(machine_info_json): Json<MachineInfoReqBody>,
-) -> Result<Json<MachineInfoResBody>, AppError> {
+) -> Json<ApiResponse<MachineInfoResBody>> {
     let config = config().read().await;
-    let machine = config
-        .machines
-        .get(&machine_info_json.machine_id)
-        .ok_or(anyhow::Error::msg("Machine not found"))?;
-    let machine_infos = machine.get_infos().await?;
+    let machine = match config.machines.get(&machine_info_json.machine_id) {
+        Some(machine) => machine,
+        None => {
+            return Json(ApiResponse {
+                message: "Machine not found".to_string(),
+                status: ApiResponseStatus::Error,
+                data: None,
+            })
+        }
+    };
+    let machine_infos = match machine.get_infos().await {
+        Ok(infos) => infos,
+        Err(e) => {
+            return Json(ApiResponse {
+                message: format!("Failed to get machine info: {}", e),
+                status: ApiResponseStatus::Error,
+                data: None,
+            })
+        }
+    };
 
-    Ok(Json(MachineInfoResBody { machine_infos }))
+    Json(ApiResponse {
+        message: "Got machine info".to_string(),
+        status: ApiResponseStatus::Success,
+        data: Some(MachineInfoResBody { machine_infos }),
+    })
 }
 
 // machine status with socket

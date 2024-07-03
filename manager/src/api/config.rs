@@ -1,10 +1,8 @@
 use crate::{
     config::{config, ManagerConfig},
-    types::Success,
-    utils::AppError,
+    types::{ApiResponse, ApiResponseStatus},
     write_config,
 };
-use anyhow::Result;
 use axum::{
     extract::{
         ws::{Message, WebSocket},
@@ -20,24 +18,29 @@ use tracing::info;
     path = "/api/config",
     request_body = ManagerConfig,
     responses(
-        (status = 200, description = "Updates the config", body = Success),
-        (status = 500, description = "Failed to update config", body = String)
+        (status = 200, description = "Config updated", body = ApiResponse),
     )
 )]
-pub async fn update_config(
-    Json(posted_config): Json<ManagerConfig>,
-) -> Result<Json<Success>, AppError> {
+pub async fn update_config(Json(posted_config): Json<ManagerConfig>) -> Json<ApiResponse<()>> {
     let mut config = write_config!();
 
     *config = posted_config;
 
-    config.apply_environment().await?;
+    if let Err(e) = config.apply_environment().await {
+        return Json(ApiResponse {
+            message: format!("Failed to apply environment: {}", e),
+            status: ApiResponseStatus::Error,
+            data: None,
+        });
+    }
 
     info!("Config updated");
 
-    Ok(Json(Success {
+    Json(ApiResponse {
         message: "Config updated".to_string(),
-    }))
+        status: ApiResponseStatus::Success,
+        data: None,
+    })
 }
 
 #[utoipa::path(

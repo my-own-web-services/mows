@@ -7,7 +7,7 @@ use crate::{
     api::machines::{MachineCreationReqBody, MachineSignal},
     config::{
         BackupNode, Cluster, ClusterNode, Machine, MachineInstall, MachineInstallState,
-        MachineType, PixiecoreBootConfig, SshAccess,
+        MachineType, PixiecoreBootConfig, SshAccess, Vip,
     },
     some_or_bail,
     utils::{generate_id, get_current_ip_from_mac},
@@ -351,6 +351,7 @@ impl Machine {
         own_hostname: &str,
         ssh_config: &SshAccess,
         primary_node_hostname: &str,
+        vip: &Vip,
     ) -> anyhow::Result<()> {
         let virt = if self.machine_type == MachineType::LocalQemu {
             true
@@ -367,6 +368,7 @@ impl Machine {
             ssh_config,
             primary_node_hostname,
             virt,
+            vip,
         )
         .await?;
 

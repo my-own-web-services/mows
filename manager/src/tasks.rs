@@ -2,7 +2,7 @@ use anyhow::Context;
 use tracing::{debug, info, trace};
 
 use crate::{
-    config::{ClusterInstallState, MachineInstallState},
+    config::{Cluster, ClusterInstallState, MachineInstallState},
     get_current_config_cloned, some_or_bail, write_config,
 };
 
@@ -94,7 +94,7 @@ pub async fn install_cluster_basics() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn start_cluster_proxy() -> anyhow::Result<bool> {
+pub async fn start_cluster_proxy() -> anyhow::Result<Option<String>> {
     let cfg1 = get_current_config_cloned!();
 
     for cluster in cfg1.clusters.values() {
@@ -102,13 +102,12 @@ pub async fn start_cluster_proxy() -> anyhow::Result<bool> {
             && cluster.install_state == Some(ClusterInstallState::BasicsConfigured)
         {
             info!("Starting proxy for cluster {}", cluster.id);
-            cluster.start_proxy().await?;
+            Cluster::start_proxy().await?;
             info!("Started proxy for cluster {}", cluster.id);
-            return Ok(true);
+            return Ok(Some(cluster.id.clone()));
         }
     }
-
-    Ok(false)
+    Ok(None)
 }
 
 pub async fn apply_environment() -> anyhow::Result<()> {

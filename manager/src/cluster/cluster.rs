@@ -3,7 +3,8 @@ use std::os::fd::{FromRawFd, RawFd};
 use std::process::Stdio;
 use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
 
-use crate::config::HelmDeploymentState;
+use crate::config::{HelmDeploymentState, Vip, VipIp};
+use crate::s;
 use crate::utils::cmd;
 use crate::{
     config::{Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
@@ -18,16 +19,14 @@ use kube::{
     config::{KubeConfigOptions, Kubeconfig},
     Api,
 };
-use serde_json::json;
-use std::os::unix::io::AsRawFd;
-use tempfile::NamedTempFile;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tokio::time::sleep;
 use tracing::debug;
 
-use super::cluster_storage::ClusterStorage;
+use super::network::ClusterNetwork;
+use super::storage::ClusterStorage;
 
 impl Cluster {
     #[tracing::instrument]
@@ -40,7 +39,18 @@ impl Cluster {
         let k3s_version = "k3sv1.29.3+k3s1";
         let os = "opensuse-tumbleweed";
 
-        let cluster_id = generate_id(8);
+        let cluster_id = generate_id(8).to_lowercase();
+
+        let vip = Vip {
+            controlplane: VipIp {
+                legacy_ip: Some(s!("192.168.112.49")),
+                ip: None,
+            },
+            service: VipIp {
+                legacy_ip: Some(s!("192.168.112.50")),
+                ip: None,
+            },
+        };
 
         let mut cluster_nodes = HashMap::new();
 
@@ -70,6 +80,7 @@ impl Cluster {
                     &hostname,
                     &ssh_access,
                     &primary_hostname.clone().unwrap(),
+                    &vip,
                 )
                 .await?;
 
@@ -93,6 +104,7 @@ impl Cluster {
             public_ip_config: None,
             cluster_backup_wg_private_key: None,
             install_state: None,
+            vip,
         };
 
         let mut config = write_config!();
@@ -159,8 +171,14 @@ impl Cluster {
 
         let node = some_or_bail!(self.cluster_nodes.values().next(), "No nodes found");
 
+        let hostname = if let Ok(v) = self.controlplane_vip_is_ready().await {
+            v
+        } else {
+            node.hostname.clone()
+        };
+
         let kubeconfig = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
-            .replace("https://127.0.0.1", &format!("https://{}", node.hostname));
+            .replace("https://127.0.0.1", &format!("https://{}", hostname));
 
         tokio::fs::create_dir_all(&kubeconfig_directory)
             .await
@@ -189,8 +207,14 @@ impl Cluster {
     pub async fn get_kubeconfig_struct(&self) -> anyhow::Result<kube::Config> {
         let node = some_or_bail!(self.cluster_nodes.values().next(), "No nodes found");
 
+        let hostname = if let Ok(v) = self.controlplane_vip_is_ready().await {
+            v
+        } else {
+            node.hostname.clone()
+        };
+
         let kc = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
-            .replace("https://127.0.0.1", &format!("https://{}", node.hostname));
+            .replace("https://127.0.0.1", &format!("https://{}", hostname));
 
         let kc = Kubeconfig::from_yaml(&kc)?;
 
@@ -255,170 +279,23 @@ impl Cluster {
         }
     }
 
-    pub async fn install_network(&self) -> anyhow::Result<()> {
-        let name = "mows-network";
+    pub async fn controlplane_vip_is_ready(&self) -> anyhow::Result<String> {
+        // check if we can reach the kube api server on th control plane vip, we should get unauthorized, we use reqwest for this
+        let vip = some_or_bail!(&self.vip.controlplane.legacy_ip, "No controlplane vip");
 
-        // check if cilium is already installed
-        if Cluster::check_helm_deployment_state(name, name).await?
-            != HelmDeploymentState::NotInstalled
-        {
-            return Ok(()); // network is already installed
+        let url = format!("https://{}:6443", vip);
+
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()?;
+
+        let res = client.get(&url).send().await?;
+
+        if res.status() == reqwest::StatusCode::UNAUTHORIZED {
+            Ok(vip.to_string())
+        } else {
+            bail!("Controlplane vip is not ready")
         }
-
-        let cilium_version = "1.15.0";
-        cmd(
-            vec!["helm", "repo", "add", "cilium", "https://helm.cilium.io/"],
-            "Failed to add cilium helm repo",
-        )
-        .await?;
-
-        cmd(
-            vec!["helm", "repo", "update"],
-            "Failed to update helm repos",
-        )
-        .await?;
-
-        cmd(
-            vec![
-                "helm",
-                "upgrade",
-                // release
-                name,
-                // chart
-                "cilium/cilium",
-                //
-                "--install",
-                //
-                "--create-namespace",
-                //
-                "--namespace",
-                name,
-                //
-                "--version",
-                cilium_version,
-                //
-                "--set",
-                "operator.replicas=1",
-                //
-                "--set",
-                "hubble.relay.enabled=true",
-                //
-                "--set",
-                "hubble.ui.enabled=true",
-                //
-                "--set",
-                "hubble.enabled=true",
-                //
-                "--set",
-                "kubeProxyReplacement=strict",
-                //
-                "--set",
-                "k8sServiceHost=127.0.0.1",
-                //
-                "--set",
-                "k8sServicePort=6443",
-                //
-                "--set",
-                "externalIPs.enabled=true",
-                //
-                "--set",
-                &format!("cluster.name={}", self.id),
-                //
-                "--set",
-                "bgpControlPlane.enabled=true",
-                //
-                "--set",
-                "l2announcements.enabled=true",
-                //
-                "--set",
-                "k8sClientRateLimit.qps=32",
-                //
-                "--set",
-                "k8sClientRateLimit.burst=64",
-                //
-                "--set",
-                "gatewayAPI.enabled=true",
-                //
-                "--set",
-                "operator.rollOutPods=true",
-                //
-                "--set",
-                "rollOutCiliumPods=true",
-                //
-                "--set",
-                "enableCiliumEndpointSlice=true",
-                //
-                "--set",
-                "debug.enabled=true",
-            ],
-            "Failed to install cilium",
-        )
-        .await?;
-
-        cmd(
-            vec![
-                "kubectl",
-                "apply",
-                "-f",
-                "/install/cluster-basics/network/resources.yml",
-            ],
-            "Failed to apply cilium network policy",
-        )
-        .await?;
-
-        Ok(())
-    }
-
-    pub async fn install_kubevip(&self) -> anyhow::Result<()> {
-        let vip = "192.168.112.99";
-        let vip_interface = "enp1s0";
-        // update the version by creating a new manifest with
-        // bash scripts/generate-kube-vip-files.sh VERSION
-
-        let template_manifest =
-            fs::read_to_string("/install/cluster-basics/kube-vip/manifest.yml").await?;
-
-        let mut manifest_tempfile =
-            NamedTempFile::new().context("Failed to create temporary file")?;
-
-        let manifest = template_manifest
-            .replace("$$$VIP$$$", vip)
-            .replace("$$$VIP_INTERFACE$$$", vip_interface);
-
-        writeln!(manifest_tempfile, "{}", &manifest,)
-            .context("Failed to write to temporary file")?;
-
-        // create the mows-vip namespace
-
-        let _ = cmd(
-            vec!["kubectl", "create", "namespace", "mows-vip"],
-            "Failed to install kube-vip namespace",
-        )
-        .await;
-
-        cmd(
-            vec![
-                "kubectl",
-                "apply",
-                "-f",
-                "/install/cluster-basics/kube-vip/cluster-role.yml",
-            ],
-            "Failed to install kube-vip cluster role",
-        )
-        .await?;
-
-        cmd(
-            vec![
-                "kubectl",
-                "apply",
-                "-f",
-                some_or_bail!(manifest_tempfile.path().to_str(), "No path"),
-            ],
-            "Failed to install kube-vip manifest",
-        )
-        .await?;
-
-        Ok(())
     }
 
     pub async fn install_dashboard(&self) -> anyhow::Result<()> {
@@ -509,70 +386,6 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn install_local_ingress(&self) -> anyhow::Result<()> {
-        let version = "28.3.0";
-        let name = "mows-ingress";
-
-        if Cluster::check_helm_deployment_state(name, name).await?
-            != HelmDeploymentState::NotInstalled
-        {
-            return Ok(());
-        }
-
-        debug!("Installing traefik ingress");
-
-        cmd(
-            vec![
-                "helm",
-                "repo",
-                "add",
-                "traefik",
-                "https://traefik.github.io/charts",
-            ],
-            "Failed to add traefik helm repo",
-        )
-        .await?;
-
-        cmd(
-            vec!["helm", "repo", "update"],
-            "Failed to update helm repos",
-        )
-        .await?;
-
-        cmd(
-            vec![
-                "helm",
-                "upgrade",
-                // release
-                name,
-                // chart
-                "traefik/traefik",
-                //
-                "--install",
-                //
-                "--create-namespace",
-                //
-                "--namespace",
-                name,
-                //
-                "--version",
-                version,
-                //
-                "--set",
-                "additional.sendAnonymousUsage=false",
-                //use this values file
-                "--set",
-                "'service.annotations.\"io\\.cilium/lb-ipam-ips\"=192.168.112.50'",
-            ],
-            "Failed to install traefik",
-        )
-        .await?;
-
-        debug!("Traefik ingress installed");
-
-        Ok(())
-    }
-
     pub async fn install_with_kustomize(&self, generation: u8) -> anyhow::Result<()> {
         let output = Command::new("kubectl")
             .args(vec![
@@ -613,17 +426,13 @@ impl Cluster {
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         self.write_local_kubeconfig().await?;
 
-        self.install_network().await?;
-
         //self.install_with_kustomize(0).await?;
 
-        //self.install_kubevip().await?;
+        ClusterNetwork::install(&self).await?;
 
         ClusterStorage::install(&self).await?;
 
         self.install_dashboard().await?;
-
-        self.install_local_ingress().await?;
 
         // install ingress: traefik
 
@@ -713,13 +522,26 @@ Host {}
         Ok(())
     }
 
-    pub async fn start_proxy(&self) -> anyhow::Result<()> {
+    pub async fn start_proxy() -> anyhow::Result<()> {
+        debug!("Starting kubectl proxy");
+
+        Command::new("kubectl")
+            .args(vec!["proxy", "--address", "0.0.0.0"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .context("Failed to start kubectl proxy")?;
+
+        Ok(())
+    }
+
+    pub async fn stop_proxy() -> anyhow::Result<()> {
+        debug!("Stopping kubectl proxy");
         cmd(
-            vec!["kubectl", "proxy", "--address", "0.0.0.0"],
-            "Failed to start kubectl proxy",
+            vec!["pkill", "-f", "kubectl proxy"],
+            "Failed to stop kubectl proxy",
         )
         .await?;
-
         Ok(())
     }
 }

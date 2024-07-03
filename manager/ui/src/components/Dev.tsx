@@ -1,13 +1,23 @@
 import { Component } from "preact/compat";
-import { Button, Input } from "rsuite";
-import { Api, ManagerConfig } from "../api-client";
+import { Button, Input, Message, useToaster } from "rsuite";
+import { ToastContainerProps } from "rsuite/esm/toaster/ToastContainer";
+import {
+    Api,
+    ApiResponse,
+    ApiResponseStatus,
+    Cluster,
+    HttpResponse,
+    ManagerConfig
+} from "../api-client";
 import { configSignal } from "../config";
+import { withToasterHook } from "../utils"; // Ensure the path is correct
 import MachineComponent from "./Machine";
 import Notes from "./Notes";
 import TerminalComponent from "./Terminal";
 
 interface DevProps {
     readonly client: Api<unknown>;
+    readonly toaster: ReturnType<typeof useToaster>;
 }
 
 interface DevState {
@@ -30,7 +40,9 @@ const urls = [
     }
 ];
 
-export default class Dev extends Component<DevProps, DevState> {
+const toastParams: ToastContainerProps = { placement: "bottomEnd", duration: 5000 };
+
+class Dev extends Component<DevProps, DevState> {
     constructor(props: DevProps) {
         super(props);
         this.state = {
@@ -40,43 +52,84 @@ export default class Dev extends Component<DevProps, DevState> {
 
     componentDidMount = async () => {};
 
+    handleApiCall = async (apiCall: () => Promise<HttpResponse<ApiResponse>>) => {
+        await apiCall()
+            .then(({ data }) => {
+                this.props.toaster.push(
+                    <Message
+                        showIcon
+                        type={data.status === ApiResponseStatus.Success ? "success" : "error"}
+                        header={data.status}
+                        closable
+                    >
+                        {data.message}
+                    </Message>,
+                    toastParams
+                );
+            })
+            .catch((error) => {
+                this.props.toaster.push(
+                    <Message showIcon type="error" header="Error" closable>
+                        {error.message}
+                    </Message>,
+                    toastParams
+                );
+            });
+    };
+
     createMachines = async () => {
-        await this.props.client.api
-            .createMachines({ LocalQemu: { memory: 2, cpus: 2 } })
-            .catch(console.error);
+        await this.handleApiCall(() =>
+            this.props.client.api.devCreateMachines({ LocalQemu: { memory: 2, cpus: 2 } })
+        );
     };
 
     devCreateClusterFromAllMachinesInInventory = async () => {
-        await this.props.client.api
-            .devCreateClusterFromAllMachinesInInventory({})
-            .catch(console.error);
+        await this.handleApiCall(() =>
+            this.props.client.api.devCreateClusterFromAllMachinesInInventory({})
+        );
     };
 
     setConfig = async () => {
-        await this.props.client.api
-            .updateConfig(JSON.parse(this.state.configToSet))
-            .catch(console.error);
+        await this.handleApiCall(() =>
+            this.props.client.api.updateConfig(JSON.parse(this.state.configToSet))
+        );
     };
 
     deleteAllMowsMachines = async () => {
-        await this.props.client.api.devDeleteAllMachines().catch(console.error);
+        await this.handleApiCall(() => this.props.client.api.devDeleteAllMachines());
     };
 
-    loadConfigFromLocalStorage = () => {
+    loadConfigFromLocalStorage = async () => {
         const mb_config = localStorage.getItem("config");
         if (mb_config) {
             const config: ManagerConfig = JSON.parse(mb_config);
             configSignal.value = config;
-            this.props.client.api.updateConfig(config).catch(console.error);
+            await this.handleApiCall(() => this.props.client.api.updateConfig(config));
         }
     };
 
     saveConfigToLocalStorage = () => {
         localStorage.setItem("config", JSON.stringify(configSignal.value));
+        this.props.toaster.push(
+            <Message showIcon type="success" header="Success" closable>
+                Config saved to local storage
+            </Message>,
+            toastParams
+        );
     };
 
     installClusterBasics = async () => {
-        await this.props.client.api.devInstallClusterBasics().catch(console.error);
+        await this.handleApiCall(() => this.props.client.api.devInstallClusterBasics());
+    };
+
+    clusterServiceUrl = (clusters: Record<string, Cluster> | undefined) => {
+        for (const [_, cluster] of Object.entries(clusters || {})) {
+            return (
+                <a href={`http://svc.${cluster.id}`} className={"text-md underline"}>
+                    Cluster Service
+                </a>
+            );
+        }
     };
 
     render = () => {
@@ -89,6 +142,7 @@ export default class Dev extends Component<DevProps, DevState> {
                                 {url.title}
                             </a>
                         ))}
+                        {this.clusterServiceUrl(configSignal.value?.clusters)}
                     </div>
                     <div className="flex flex-row gap-4">
                         <Button
@@ -102,6 +156,7 @@ export default class Dev extends Component<DevProps, DevState> {
                                 placeholder="Set Config"
                                 className="w-[100px]"
                                 value={this.state.configToSet}
+                                onChange={(value) => this.setState({ configToSet: value })}
                             />
                             <Button onClick={this.setConfig}>Set config</Button>
                         </div>
@@ -155,3 +210,5 @@ export default class Dev extends Component<DevProps, DevState> {
         );
     };
 }
+
+export default withToasterHook(Dev);

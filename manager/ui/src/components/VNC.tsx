@@ -4,7 +4,7 @@ import { VscDebugStart, VscDebugStop, VscSync, VscSyncIgnored, VscTrash } from "
 //@ts-ignore
 import { VncScreen } from "react-vnc";
 import { Button } from "rsuite";
-import { Api, Machine, MachineSignal } from "../api-client";
+import { Api, Machine, MachineInfoResBody, MachineSignal } from "../api-client";
 import { machineStatusSignal } from "../config";
 
 interface VNCProps {
@@ -48,11 +48,12 @@ export default class VNC extends Component<VNCProps, VNCState> {
     }
 
     loadMachineInfo = async () => {
-        const {
-            data: { machine_infos }
-        } = await this.client.api.getMachineInfo({
+        const res = await this.client.api.getMachineInfo({
             machine_id: this.props.machine.id
         });
+
+        //@ts-ignore
+        const machine_infos: MachineInfoResBody = res.data?.data?.machine_infos;
         this.setState({ machine_infos: null }, () => {
             this.setState({ machine_infos });
         });

@@ -2,11 +2,14 @@ use anyhow::{bail, Context};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
+    Json,
 };
 use tokio::process::Command;
-use tracing::error;
 
-use crate::some_or_bail;
+use crate::{
+    some_or_bail,
+    types::{ApiResponse, ApiResponseStatus},
+};
 
 pub fn generate_id(length: usize) -> String {
     use rand::Rng;
@@ -39,7 +42,7 @@ pub async fn cmd(cmd_and_args: Vec<&str>, error: &str) -> anyhow::Result<String>
         let stderr = std::str::from_utf8(&command.stderr).unwrap_or("Failed to get stderr");
 
         // log the exact command that was spawned
-        error!("Failed to execute command: {} {:?}", cmd, args);
+        //error!("Failed to execute command: {} {:?}", cmd, args);
 
         bail!("{}: [{}]: {}", error.to_string(), command.status, stderr)
     }
@@ -52,8 +55,12 @@ pub struct AppError(anyhow::Error);
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Something went wrong: {}", self.0),
+            StatusCode::OK,
+            Json(ApiResponse {
+                message: self.0.to_string(),
+                data: None::<()>,
+                status: ApiResponseStatus::Error,
+            }),
         )
             .into_response()
     }

@@ -2,4 +2,6 @@
 
 set -euo pipefail
 
-docker compose down qemu dhcp; docker compose up qemu dhcp --build --force-recreate
+rm temp/dnsmasq/leases
+
+docker compose down qemu; docker compose up qemu --build --force-recreate
