@@ -23,37 +23,57 @@ ARG DEBCONF_NONINTERACTIVE_SEEN "true"
 
 RUN set -eu && \
     apt-get update && \
-    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git
 
 # install pixiecore
-RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add -
-RUN echo "deb https://packagecloud.io/danderson/pixiecore/debian stretch main" >/etc/apt/sources.list.d/pixiecore.list
-RUN apt-get update -y
-RUN apt-get install pixiecore -y
+RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add - && \
+    echo "deb https://packagecloud.io/danderson/pixiecore/debian/ stretch main" > /etc/apt/sources.list.d/pixiecore.list && \
+    apt-get update && \
+    apt-get install -y pixiecore
+
 
 # install helm
-RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null
-RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
-RUN apt-get update
-RUN apt-get install helm
+RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list && \
+    apt-get update && \
+    apt-get install -y helm && \
+    apt-get clean
+
 
 # install kubectl
-RUN curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-RUN chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-RUN echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
-RUN apt-get update
-RUN apt-get install kubectl -y
+RUN curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list && \
+    apt-get update && \
+    apt-get install -y kubectl && \
+    apt-get clean
+
 
 # download k9s https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd64.deb
-RUN wget https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd64.deb -O /tmp/k9s.deb
-RUN dpkg -i /tmp/k9s.deb
-RUN mkdir -p /etc/bash_completion.d
-RUN k9s completion bash > /etc/bash_completion.d/k9s 
+RUN wget https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd64.deb -O /tmp/k9s.deb && \
+    dpkg -i /tmp/k9s.deb && \
+    rm /tmp/k9s.deb && \
+    mkdir -p /etc/bash_completion.d && \
+    k9s completion bash > /etc/bash_completion.d/k9s && \
+    apt-get clean
+
+
 
 # install cilium cli
-RUN wget https://github.com/cilium/cilium-cli/releases/download/v0.16.11/cilium-linux-amd64.tar.gz
-RUN tar -xvf cilium-linux-amd64.tar.gz -C /usr/local/bin
-RUN chmod +x /usr/local/bin/cilium
+RUN wget https://github.com/cilium/cilium-cli/releases/download/v0.16.11/cilium-linux-amd64.tar.gz && \
+    tar -xvf cilium-linux-amd64.tar.gz -C /usr/local/bin && \
+    chmod +x /usr/local/bin/cilium
+
+
+
+# install krew
+RUN set -x; cd "$(mktemp -d)" && \
+    OS="$(uname | tr '[:upper:]' '[:lower:]')" && \
+    ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" && \
+    KREW="krew-${OS}_${ARCH}" && \
+    curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" && \
+    tar zxvf "${KREW}.tar.gz" && \
+    ./"${KREW}" install krew
+ENV PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
 
 # colored bash

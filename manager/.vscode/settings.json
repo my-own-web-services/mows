@@ -1,6 +1,5 @@
 {
     "restoreTerminals.terminals": [
-
         {
           "splitTerminals": [
             {
@@ -17,7 +16,7 @@
           "splitTerminals": [
             {
               "name": "backend-peripherals",
-              "commands": ["bash scripts/start-peripherals.sh"]
+              "commands": []
             },
           ]
         },
@@ -33,8 +32,10 @@
       "cSpell.words": [
         "autoupdate",
         "Chrono",
+        "cloudnative",
         "clusterrolebindings",
         "cmdline",
+        "cnpg",
         "containerd",
         "controlplane",
         "cpus",
