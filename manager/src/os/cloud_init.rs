@@ -223,6 +223,7 @@ impl K3s {
             "--flannel-backend=none",
             "--disable-network-policy",
             "--disable-kube-proxy",
+            "--disable local-storage",
             "--disable traefik",
             "--disable servicelb",
             "--cluster-cidr=10.42.0.0/16", // ,2001:cafe:42::/56 TODO implement ipv6

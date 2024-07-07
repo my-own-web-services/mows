@@ -37,6 +37,11 @@ const urls = [
     {
         url: "http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:443/proxy/",
         title: "K8s Dashboard"
+    },
+    {
+        url: "http://localhost:8001/api/v1/namespaces/mows-monitoring/services/http:mows-monitoring-grafana:80/proxy/",
+        title: "Grafana/Monitoring"
+        // admin // prom-operator
     }
 ];
 
@@ -79,7 +84,7 @@ class Dev extends Component<DevProps, DevState> {
 
     createMachines = async () => {
         await this.handleApiCall(() =>
-            this.props.client.api.devCreateMachines({ LocalQemu: { memory: 2, cpus: 2 } })
+            this.props.client.api.devCreateMachines({ LocalQemu: { memory: 4, cpus: 2 } })
         );
     };
 

@@ -24,7 +24,9 @@ fi
 
 
 
-docker compose down mows-manager; docker compose create mows-manager --build || true
+docker compose down mows-manager || true
+
+docker compose create mows-manager --build
 
 if [ "$edit_local_dns_config" == true ]; then
     echo "nameserver 192.168.112.3" | sudo tee /etc/resolv.conf || true

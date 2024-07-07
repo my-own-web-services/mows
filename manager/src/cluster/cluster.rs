@@ -25,6 +25,8 @@ use tokio::process::Command;
 use tokio::time::sleep;
 use tracing::debug;
 
+use super::db::ClusterDatabases;
+use super::monitoring::ClusterMonitoring;
 use super::network::ClusterNetwork;
 use super::storage::ClusterStorage;
 
@@ -426,23 +428,15 @@ impl Cluster {
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         self.write_local_kubeconfig().await?;
 
-        //self.install_with_kustomize(0).await?;
-
         ClusterNetwork::install(&self).await?;
 
         ClusterStorage::install(&self).await?;
 
         self.install_dashboard().await?;
 
-        // install ingress: traefik
+        ClusterDatabases::install(&self).await?;
 
-        // install application-manager: mows-controller
-
-        // optional for now
-        // install lightweight virtual runtime: kata
-        // install full virtual runtime: kubevirt
-        // install cert-manager?
-        // install dns server
+        ClusterMonitoring::install(&self).await?;
 
         Ok(())
     }
