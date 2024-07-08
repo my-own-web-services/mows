@@ -226,6 +226,7 @@ impl K3s {
             "--disable local-storage",
             "--disable traefik",
             "--disable servicelb",
+            "--etcd-expose-metrics=true",
             "--cluster-cidr=10.42.0.0/16", // ,2001:cafe:42::/56 TODO implement ipv6
             "--service-cidr=10.43.0.0/16", // ,2001:cafe:43::/112
         ];

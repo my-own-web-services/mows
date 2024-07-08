@@ -428,11 +428,11 @@ impl Cluster {
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         self.write_local_kubeconfig().await?;
 
+        self.install_dashboard().await?;
+
         ClusterNetwork::install(&self).await?;
 
         ClusterStorage::install(&self).await?;
-
-        self.install_dashboard().await?;
 
         ClusterDatabases::install(&self).await?;
 

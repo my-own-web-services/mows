@@ -98,9 +98,7 @@ pub async fn start_cluster_proxy() -> anyhow::Result<Option<String>> {
     let cfg1 = get_current_config_cloned!();
 
     for cluster in cfg1.clusters.values() {
-        if cluster.kubeconfig.is_some()
-            && cluster.install_state == Some(ClusterInstallState::BasicsConfigured)
-        {
+        if cluster.kubeconfig.is_some() {
             info!("Starting proxy for cluster {}", cluster.id);
             Cluster::start_proxy().await?;
             info!("Started proxy for cluster {}", cluster.id);
