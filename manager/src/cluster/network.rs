@@ -4,11 +4,11 @@ use crate::{
     utils::cmd,
 };
 use anyhow::Context;
+use serde_json::json;
 use std::io::Write;
 use tempfile::NamedTempFile;
 use tokio::fs;
 use tracing::debug;
-use tracing_subscriber::field::debug;
 
 pub struct ClusterNetwork;
 
@@ -109,6 +109,20 @@ impl ClusterNetwork {
         )
         .await?;
 
+        let values = json!({
+            "additional": {
+                "sendAnonymousUsage": false
+            },
+            "service": {
+                "annotations": {
+                    "io.cilium/lb-ipam-ips": service_vip
+                }
+            }
+        });
+
+        let mut tempfile = NamedTempFile::new().context("Failed to create temporary file ")?;
+        writeln!(tempfile, "{}", &values).context("Failed to write private key")?;
+
         cmd(
             vec![
                 "helm",
@@ -128,14 +142,8 @@ impl ClusterNetwork {
                 "--version",
                 version,
                 //
-                "--set",
-                "additional.sendAnonymousUsage=false",
-                //
-                "--set",
-                &format!(
-                    "'service.annotations.\"io\\.cilium/lb-ipam-ips\"={}'",
-                    service_vip
-                ),
+                "--values",
+                tempfile.path().to_str().unwrap(),
             ],
             "Failed to install traefik",
         )
@@ -182,6 +190,63 @@ impl ClusterNetwork {
         )
         .await?;
 
+        let values = json!({
+            "prometheus": {
+                "enabled": true
+            },
+            "operator": {
+                "replicas": 1,
+                "rollOutPods": true,
+                "prometheus": {
+                    "enabled": true
+                }
+            },
+            "hubble": {
+                "relay": {
+                    "enabled": true
+                },
+                "ui": {
+                    "enabled": true
+                },
+                "enabled": true,
+                "metrics": {
+                    // "{dns,drop,tcp,flow,port-distribution,icmp,httpV2:exemplars=true;labelsContext=source_ip,source_namespace,source_workload,destination_ip,destination_namespace,destination_workload,traffic_direction}"
+                    "enabled": ["dns", "drop", "tcp", "flow", "port-distribution", "icmp", "httpV2"]
+                }
+            },
+            "kubeProxyReplacement": "strict",
+            "k8sServiceHost": "127.0.0.1",
+            "k8sServicePort": 6443,
+            "externalIPs": {
+                "enabled": true
+            },
+            "cluster": {
+                "name": cluster.id
+            },
+            "bgpControlPlane": {
+                "enabled": true
+            },
+            "l2announcements": {
+                "enabled": true
+            },
+            "k8sClientRateLimit": {
+                "qps": 32,
+                "burst": 64
+            },
+            "gatewayAPI": {
+                "enabled": true
+            },
+            "enableCiliumEndpointSlice": true,
+            "debug": {
+                "enabled": true
+            },
+            "rollOutCiliumPods": true
+
+        });
+
+        let mut tempfile = NamedTempFile::new().context("Failed to create temporary file ")?;
+        writeln!(tempfile, "{}", &values).context("Failed to write private key")?;
+
         cmd(
             vec![
                 "helm",
@@ -200,60 +265,8 @@ impl ClusterNetwork {
                 //
                 "--version",
                 cilium_version,
-                //
-                "--set",
-                "operator.replicas=1",
-                //
-                "--set",
-                "hubble.relay.enabled=true",
-                //
-                "--set",
-                "hubble.ui.enabled=true",
-                //
-                "--set",
-                "hubble.enabled=true",
-                //
-                "--set",
-                "kubeProxyReplacement=strict",
-                //
-                "--set",
-                "k8sServiceHost=127.0.0.1",
-                //
-                "--set",
-                "k8sServicePort=6443",
-                //
-                "--set",
-                "externalIPs.enabled=true",
-                //
-                "--set",
-                &format!("cluster.name={}", cluster.id),
-                //
-                "--set",
-                "bgpControlPlane.enabled=true",
-                //
-                "--set",
-                "l2announcements.enabled=true",
-                //
-                "--set",
-                "k8sClientRateLimit.qps=32",
-                //
-                "--set",
-                "k8sClientRateLimit.burst=64",
-                //
-                "--set",
-                "gatewayAPI.enabled=true",
-                //
-                "--set",
-                "operator.rollOutPods=true",
-                //
-                "--set",
-                "rollOutCiliumPods=true",
-                //
-                "--set",
-                "enableCiliumEndpointSlice=true",
-                //
-                "--set",
-                "debug.enabled=true",
+                "--values",
+                tempfile.path().to_str().unwrap(),
             ],
             "Failed to install cilium",
         )

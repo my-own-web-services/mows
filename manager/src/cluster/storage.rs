@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use k8s_openapi::api::{
     core::v1::{Node, Secret},
     storage::v1::StorageClass,
@@ -10,6 +10,8 @@ use kube::{
     Api, Client,
 };
 use serde_json::json;
+use std::io::Write;
+use tempfile::NamedTempFile;
 
 use crate::{
     config::{Cluster, ClusterNode, HelmDeploymentState},
@@ -171,6 +173,17 @@ impl ClusterStorage {
         )
         .await?;
 
+        let values = json!({
+            "defaultSettings": {
+                "createDefaultDiskLabeledNodes": true,
+                "allowCollectingLonghornUsageMetrics": false,
+                "defaultLonghornStaticStorageClass": "longhorn-static"
+            }
+        });
+
+        let mut tempfile = NamedTempFile::new().context("Failed to create temporary file ")?;
+        writeln!(tempfile, "{}", &values).context("Failed to write private key")?;
+
         cmd(
             vec![
                 "helm",
@@ -190,14 +203,8 @@ impl ClusterStorage {
                 "--version",
                 longhorn_version,
                 //
-                "--set",
-                "defaultSettings.createDefaultDiskLabeledNodes=true",
-                //
-                "--set",
-                "defaultSettings.allowCollectingLonghornUsageMetrics=false",
-                //
-                "--set",
-                "defaultSettings.defaultLonghornStaticStorageClass=longhorn-static",
+                "--values",
+                tempfile.path().to_str().unwrap(),
             ],
             "Failed to install storage/longhorn",
         )

@@ -23,7 +23,7 @@ ARG DEBCONF_NONINTERACTIVE_SEEN "true"
 
 RUN set -eu && \
     apt-get update && \
-    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less
 
 # install pixiecore
 RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add - && \
@@ -73,7 +73,7 @@ RUN set -x; cd "$(mktemp -d)" && \
     curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" && \
     tar zxvf "${KREW}.tar.gz" && \
     ./"${KREW}" install krew
-ENV PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg
 
 
 # colored bash
