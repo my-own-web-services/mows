@@ -9,7 +9,8 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::spawn;
-use tracing::error;
+use tracing::{debug, error};
+use tracing_subscriber::field::debug;
 use utoipa::ToSchema;
 
 use crate::{

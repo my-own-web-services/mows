@@ -27,6 +27,7 @@ services:
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system
             #- RUST_BACKTRACE=full
             RUST_LOG: main=debug,manager=debug,tower_http=error,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error
+            EDIT_LOCAL_DNS_CONFIG: ${EDIT_LOCAL_DNS_CONFIG}
     qemu:
         image: qemu
         restart: always

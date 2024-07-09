@@ -35,4 +35,7 @@ COPY ./misc/supervisord.conf /etc/supervisord.conf
 COPY ./misc/init-libvirtd.sh /init-libvirtd.sh
 RUN chmod +x /init-libvirtd.sh
 
+STOPSIGNAL SIGKILL
+
+
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]

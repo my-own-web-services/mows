@@ -122,8 +122,8 @@ pub struct Vip {
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 
 pub struct VipIp {
-    pub legacy_ip: Option<String>,
-    pub ip: Option<String>,
+    pub legacy_ip: Option<Ipv4Addr>,
+    pub ip: Option<Ipv6Addr>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
@@ -174,6 +174,12 @@ pub struct ClusterNode {
     pub machine_id: String,
     pub hostname: String,
     pub ssh: SshAccess,
+    pub internal_ips: InternalIps,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
+pub struct InternalIps {
+    pub legacy: Ipv4Addr,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]

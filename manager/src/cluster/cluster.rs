@@ -1,9 +1,10 @@
 use std::io::Write;
+use std::net::Ipv4Addr;
 use std::os::fd::{FromRawFd, RawFd};
 use std::process::Stdio;
 use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
 
-use crate::config::{HelmDeploymentState, Vip, VipIp};
+use crate::config::{HelmDeploymentState, InternalIps, Vip, VipIp};
 use crate::s;
 use crate::utils::cmd;
 use crate::{
@@ -45,11 +46,11 @@ impl Cluster {
 
         let vip = Vip {
             controlplane: VipIp {
-                legacy_ip: Some(s!("192.168.112.49")),
+                legacy_ip: Some(Ipv4Addr::new(192, 168, 112, 254)),
                 ip: None,
             },
             service: VipIp {
-                legacy_ip: Some(s!("192.168.112.50")),
+                legacy_ip: Some(Ipv4Addr::new(192, 168, 112, 255)),
                 ip: None,
             },
         };
@@ -73,6 +74,10 @@ impl Cluster {
                 primary_hostname = Some(hostname.clone());
             }
 
+            let internal_ips = InternalIps {
+                legacy: Ipv4Addr::new(10, 41, 0, 1 + i as u8),
+            };
+
             machine
                 .configure_install(
                     kairos_version,
@@ -83,6 +88,7 @@ impl Cluster {
                     &ssh_access,
                     &primary_hostname.clone().unwrap(),
                     &vip,
+                    &internal_ips,
                 )
                 .await?;
 
@@ -92,6 +98,7 @@ impl Cluster {
                     machine_id: machine_name.clone(),
                     hostname,
                     ssh: ssh_access,
+                    internal_ips,
                 },
             );
         }

@@ -22,6 +22,7 @@ use tracing_subscriber::fmt::time;
 use tracing_subscriber::util::SubscriberInitExt;
 
 use std::net::SocketAddr;
+use std::os::unix::fs::PermissionsExt;
 use std::process::Stdio;
 use std::time::Duration;
 use tokio::process::Command;
@@ -156,8 +157,12 @@ async fn main() -> Result<(), anyhow::Error> {
         .spawn()
         .context("Failed to start pixiecore server")?;
 
-    // start dnsmasq: dnsmasq -a 192.168.112.3 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h --domain-needed --bogus-priv --dhcp-authoritative
 
+
+
+    info!("Starting dnsmasq server");
+
+    // start dnsmasq: dnsmasq -a 192.168.112.3 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h --domain-needed --bogus-priv --dhcp-authoritative
 
     let resolv_bak= fs::read_to_string("/etc/resolv.conf.bak").await?;
 
@@ -170,30 +175,33 @@ async fn main() -> Result<(), anyhow::Error> {
 
     )).await?;
 
-
-    
+    // the directory for the manually created dns entries
     tokio::fs::create_dir_all("/hosts").await?;
 
+    let args=["--no-daemon",
+    "--log-queries",
+    "--dhcp-alternate-port=67",
+    "--dhcp-range=192.168.112.5,192.168.112.253,2m",
+    "--domain-needed",
+    "--bogus-priv",
+    "--dhcp-authoritative",
+    "--hostsdir","/hosts/", 
+    "--resolv-file=/etc/resolv.dnsmasq.conf",
+    "--dhcp-leasefile=/temp/dnsmasq/leases",
+    ];
+
+    tokio::fs::create_dir_all("/temp/dnsmasq").await?;
+    // enable everyone to delete the folder
+    tokio::fs::set_permissions("/temp/dnsmasq", std::fs::Permissions::from_mode(0o777)).await?;
+
+
    Command::new("dnsmasq")
-    .args(["--no-daemon",
-             "--log-queries",
-             "--dhcp-alternate-port=67",
-             "--dhcp-range=192.168.112.5,192.168.112.30,12h",
-             "--domain-needed",
-             "--bogus-priv",
-             "--dhcp-authoritative",
-             "--hostsdir","/hosts/", 
-             "--resolv-file=/etc/resolv.dnsmasq.conf",
-             "--dhcp-leasefile=/temp/dnsmasq/leases",
-             ])
+    .args(args)
     .stdout(Stdio::null())
     .stderr(Stdio::null())
     .spawn()
     .context("Failed to start the dnsmasq server")?;
-
-    // make it possible to restart the child from the dnsmasq_handle from everywhere in the program
-
-    
+   
    
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))

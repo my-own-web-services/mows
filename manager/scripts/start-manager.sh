@@ -19,6 +19,7 @@ done
 if [ "$edit_local_dns_config" == true ]; then
     # backup the original file
     sudo cp /etc/resolv.conf /etc/resolv.conf.bak
+    export EDIT_LOCAL_DNS_CONFIG=true
 fi
 
 
