@@ -6,8 +6,8 @@ use tracing::debug;
 use crate::{
     api::machines::{MachineCreationReqBody, MachineSignal},
     config::{
-        BackupNode, Cluster, ClusterNode, Machine, MachineInstall, MachineInstallState,
-        MachineType, PixiecoreBootConfig, SshAccess, Vip,
+        BackupNode, Cluster, ClusterNode, InternalIps, Machine, MachineInstall,
+        MachineInstallState, MachineType, PixiecoreBootConfig, SshAccess, Vip,
     },
     some_or_bail,
     utils::{generate_id, get_current_ip_from_mac},
@@ -41,8 +41,6 @@ impl Machine {
                         "q35",
                         "--network",
                         "network=mows-manager,model=virtio",
-                        "--network",
-                        "network=default,model=virtio",
                         "--video",
                         "qxl",
                         "--graphics",
@@ -352,6 +350,7 @@ impl Machine {
         ssh_config: &SshAccess,
         primary_node_hostname: &str,
         vip: &Vip,
+        internal_ips: &InternalIps,
     ) -> anyhow::Result<()> {
         let virt = if self.machine_type == MachineType::LocalQemu {
             true
@@ -369,6 +368,7 @@ impl Machine {
             primary_node_hostname,
             virt,
             vip,
+            internal_ips,
         )
         .await?;
 

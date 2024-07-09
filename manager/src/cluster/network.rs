@@ -1,5 +1,5 @@
 use crate::{
-    config::{Cluster, HelmDeploymentState},
+    config::{Cluster, HelmDeploymentState, VipIp},
     some_or_bail,
     utils::cmd,
 };
@@ -15,14 +15,18 @@ pub struct ClusterNetwork;
 impl ClusterNetwork {
     pub async fn install(cluster: &Cluster) -> anyhow::Result<()> {
         ClusterNetwork::install_network(cluster).await?;
-        ClusterNetwork::install_kubevip().await?;
+        ClusterNetwork::install_kubevip(&cluster.vip.controlplane).await?;
         ClusterNetwork::install_local_ingress(cluster).await?;
 
         Ok(())
     }
 
-    pub async fn install_kubevip() -> anyhow::Result<()> {
-        let vip = "192.168.112.49";
+    pub async fn install_kubevip(cp_vip_config: &VipIp) -> anyhow::Result<()> {
+        let vip = some_or_bail!(
+            cp_vip_config.legacy_ip,
+            "No control plane legacy vip address set"
+        )
+        .to_string();
         let vip_interface = "enp1s0";
         // update the version by creating a new manifest with
         // bash scripts/generate-kube-vip-files.sh VERSION
@@ -36,7 +40,7 @@ impl ClusterNetwork {
             NamedTempFile::new().context("Failed to create temporary file")?;
 
         let manifest = template_manifest
-            .replace("$$$VIP$$$", vip)
+            .replace("$$$VIP$$$", &vip)
             .replace("$$$VIP_INTERFACE$$$", vip_interface);
 
         writeln!(manifest_tempfile, "{}", &manifest,)

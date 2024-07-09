@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    config::{SshAccess, Vip},
+    config::{InternalIps, SshAccess, Vip},
     s,
 };
 
@@ -21,11 +21,24 @@ pub struct CloudInit {
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
 pub struct Task {
-    pub name: String,
-    pub commands: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commands: Option<Vec<String>>,
     #[serde(rename = "if")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub if_: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub layout: Option<DiskLayout>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files: Option<Vec<CloudInitFile>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
+pub struct CloudInitFile {
+    pub path: String,
+    pub content: String,
+    pub permissions: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
@@ -117,6 +130,7 @@ impl CloudInit {
         virt: bool,
         k3s_token: &str,
         vip: &Vip,
+        internal_ips: &InternalIps,
     ) -> CloudInit {
         let todo = "http://192.168.122.216:30000";
 
@@ -130,29 +144,52 @@ impl CloudInit {
 
         let mut stages = HashMap::new();
 
+        // LEAVE THIS ALONE, THE FORMATTING MATTERS FOR SOME REASON
+        let static_ip_config = format!(
+            r#"[Match]
+Name=enp1s0
+
+[Network]
+Address={}/24
+DHCP=yes
+"#,
+            internal_ips.legacy
+        );
+
         stages.insert(
             s!("initramfs"),
-            vec![Task {
-                name: s!("Mount the partition p0"),
-                commands: vec![
-                    s!("mkdir -p /var/lib/longhorn/drives/p0"),
-                    s!("mount -o rw /dev/disk/by-partlabel/p0 /var/lib/longhorn/drives/p0"),
-                    s!("mkdir -p /var/lib/longhorn/drives/p1"),
-                    s!("mount -o rw /dev/disk/by-partlabel/p1 /var/lib/longhorn/drives/p1"),
-                ],
-                ..Task::default()
-            }],
+            vec![
+                Task {
+                    name: Some(s!("Mount the partition p0")),
+                    commands: Some(vec![
+                        s!("mkdir -p /var/lib/longhorn/drives/p0"),
+                        s!("mount -o rw /dev/disk/by-partlabel/p0 /var/lib/longhorn/drives/p0"),
+                        s!("mkdir -p /var/lib/longhorn/drives/p1"),
+                        s!("mount -o rw /dev/disk/by-partlabel/p1 /var/lib/longhorn/drives/p1"),
+                    ]),
+                    ..Task::default()
+                },
+                Task {
+                    name: Some(s!("Set the static ip addresses")),
+                    files: Some(vec![CloudInitFile {
+                        path: s!("/etc/systemd/network/01-man.network"),
+                        permissions: 644,
+                        content: static_ip_config,
+                    }]),
+                    ..Task::default()
+                },
+            ],
         );
 
         stages.insert(
             s!("kairos-install.pre.before"),
             vec![Task {
                 if_: Some(format!(r#"[ -e "{}" ]"#, get_device_string(virt, 1))),
-                name: s!("Create the partition p1 as ext4"),
-                commands: vec![format!(
+                name: Some(s!("Create the partition p1 as ext4")),
+                commands: Some(vec![format!(
                     r#"parted --script --machine -- "{}" mklabel gpt"#,
                     get_device_string(virt, 1)
-                )],
+                )]),
                 layout: Some(DiskLayout {
                     device: DiskLayoutDevice {
                         path: get_device_string(virt, 1),
@@ -164,6 +201,7 @@ impl CloudInit {
                         filesystem: s!("ext4"),
                     }],
                 }),
+                ..Task::default()
             }],
         );
 

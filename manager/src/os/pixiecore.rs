@@ -1,11 +1,11 @@
-use std::path::Path;
+use std::{os::unix::fs::PermissionsExt, path::Path};
 
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tracing::debug;
 
 use crate::{
-    config::{PixiecoreBootConfig, SshAccess, Vip},
+    config::{InternalIps, PixiecoreBootConfig, SshAccess, Vip},
     some_or_bail,
     utils::generate_id,
 };
@@ -25,11 +25,18 @@ impl PixiecoreBootConfig {
         primary_node_hostname: &str,
         virt: bool,
         vip: &Vip,
+        internal_ips: &InternalIps,
     ) -> anyhow::Result<Self> {
         tokio::fs::create_dir_all(DOWNLOAD_DIRECTORY).await?;
         let file_name = format!("cloud-init-{}.yml", generate_id(20));
 
-        let cloud_init_path = Path::new("/").join(file_name.clone());
+        let cloud_init_folder = Path::new("/temp/cloud-init/");
+        tokio::fs::create_dir_all(cloud_init_folder).await?;
+        // allow anyone to delete the folder
+        tokio::fs::set_permissions(cloud_init_folder, std::fs::Permissions::from_mode(0o777))
+            .await?;
+
+        let cloud_init_path = cloud_init_folder.join(file_name.clone());
 
         let cloud_init_str = cloud_init_path.to_str().ok_or(anyhow::anyhow!(
             "Failed to convert cloud init path to string"
@@ -44,6 +51,7 @@ impl PixiecoreBootConfig {
             cloud_init_str,
             virt,
             vip,
+            internal_ips,
         )
         .await?;
 
@@ -121,6 +129,7 @@ impl PixiecoreBootConfig {
         cloud_init_path: &str,
         virt: bool,
         vip: &Vip,
+        internal_ips: &InternalIps,
     ) -> anyhow::Result<()> {
         let cloud_init = CloudInit::new(
             own_hostname,
@@ -130,6 +139,7 @@ impl PixiecoreBootConfig {
             virt,
             k3s_token,
             vip,
+            internal_ips,
         );
 
         let cloud_init_str = "#cloud-config\n".to_string() + &serde_yaml::to_string(&cloud_init)?;

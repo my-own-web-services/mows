@@ -62,10 +62,15 @@ impl ClusterMonitoring {
         let cp_endpoints = cluster
             .cluster_nodes
             .iter()
-            .map(|node| node.1.hostname.clone())
+            .map(|node| node.1.internal_ips.legacy.to_string())
             .collect::<Vec<String>>();
 
         let values = json!({
+            "prometheus":{
+                "prometheusSpec": {
+                    "logLevel": "debug",
+                }
+            },
             "kubeEtcd": {
                 "enabled": false,
                 "endpoints": cp_endpoints,
@@ -73,6 +78,11 @@ impl ClusterMonitoring {
                     "enabled": true,
                     "port": 2381,
                     "targetPort": 2381
+                },
+                "serviceMonitor": {
+                    "enabled": true,
+                    "https": true,
+                    "insecureSkipVerify": true
                 }
             },
             "kubeProxy": {

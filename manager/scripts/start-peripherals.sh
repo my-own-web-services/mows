@@ -2,6 +2,6 @@
 
 set -euo pipefail
 
-rm -f temp/dnsmasq/leases
+rm -rf temp/dnsmasq/ || true
 
 docker compose down qemu; docker compose up qemu --build --force-recreate

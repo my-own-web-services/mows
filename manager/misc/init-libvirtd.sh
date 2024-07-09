@@ -15,7 +15,7 @@ spice_listen = "0.0.0.0"
 EOF
 
 
-cat > ./network.xml <<EOF
+cat > ./install-network.xml <<EOF
 <network>
   <name>mows-manager</name>
   <forward mode='bridge'/>
@@ -49,8 +49,9 @@ virsh net-destroy default ; virsh net-undefine default
 virsh net-define ./default-network.xml
 virsh net-start default
 
-virsh net-define ./network.xml 
+virsh net-define ./install-network.xml 
 virsh net-start mows-manager
+
 
 
 #ip link add virbr0 type bridge
