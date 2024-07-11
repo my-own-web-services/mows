@@ -9,13 +9,12 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::spawn;
-use tracing::{debug, error};
-use tracing_subscriber::field::debug;
+use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
     config::{config, Machine, ManagerConfig},
-    get_current_config_cloned,
+    dev_mode_disabled, get_current_config_cloned,
     types::{ApiResponse, ApiResponseStatus},
     write_config,
 };
@@ -31,6 +30,8 @@ use crate::{
 pub async fn dev_create_machines(
     Json(machine_creation_config): Json<MachineCreationReqBody>,
 ) -> Json<ApiResponse<()>> {
+    dev_mode_disabled!();
+
     spawn(async move {
         if let Err(e) = dev_create_3_machines(machine_creation_config).await {
             error!("Failed to create machine: {:?}", e);
@@ -141,6 +142,8 @@ pub async fn delete_machine(
     )
 )]
 pub async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
+    dev_mode_disabled!();
+
     if let Err(e) = Machine::dev_delete_all().await {
         return Json(ApiResponse {
             message: format!("Failed to delete machines: {}", e),

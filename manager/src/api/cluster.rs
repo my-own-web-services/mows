@@ -1,6 +1,6 @@
 use crate::{
     config::{Cluster, ClusterInstallState},
-    get_current_config_cloned,
+    dev_mode_disabled, get_current_config_cloned,
     types::{ApiResponse, ApiResponseStatus},
     write_config,
 };
@@ -20,6 +20,8 @@ use utoipa::ToSchema;
 pub async fn dev_create_cluster_from_all_machines_in_inventory(
     Json(_cluster_creation_config): Json<ClusterCreationConfig>,
 ) -> Json<ApiResponse<()>> {
+    dev_mode_disabled!();
+
     match Cluster::new().await {
         Ok(_) => Json(ApiResponse {
             message: "Cluster creation started...".to_string(),
@@ -42,6 +44,7 @@ pub async fn dev_create_cluster_from_all_machines_in_inventory(
     )
 )]
 pub async fn dev_install_cluster_basics() -> Json<ApiResponse<()>> {
+    dev_mode_disabled!();
     let config = get_current_config_cloned!();
     for cluster in config.clusters.values() {
         if cluster.kubeconfig.is_some() {

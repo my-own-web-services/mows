@@ -30,7 +30,7 @@ impl ClusterStorage {
         Ok(())
     }
 
-    pub async fn configure_node_storage_labels(cluster: &Cluster) -> anyhow::Result<()> {
+    async fn configure_node_storage_labels(cluster: &Cluster) -> anyhow::Result<()> {
         let kc = cluster.get_kubeconfig_struct().await?;
 
         for (_, node) in &cluster.cluster_nodes {
@@ -40,7 +40,7 @@ impl ClusterStorage {
         Ok(())
     }
 
-    pub async fn create_storage_secrets(
+    async fn create_storage_secrets(
         client: &Client,
         secret_name: &str,
         namespace: &str,
@@ -89,7 +89,7 @@ impl ClusterStorage {
         }
     }
 
-    pub async fn create_storage_class(cluster: &Cluster) -> anyhow::Result<()> {
+    async fn create_storage_class(cluster: &Cluster) -> anyhow::Result<()> {
         let params_map = BTreeMap::new();
 
         let secret_name = "mows-storage-secret";

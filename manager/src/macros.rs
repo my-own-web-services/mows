@@ -33,3 +33,16 @@ macro_rules! s {
         $str.to_string()
     };
 }
+
+#[macro_export]
+macro_rules! dev_mode_disabled {
+    () => {
+        if !crate::internal_config::INTERNAL_CONFIG.dev.enabled {
+            return Json(ApiResponse {
+                message: "Dev mode is not enabled".to_string(),
+                status: ApiResponseStatus::Error,
+                data: None,
+            });
+        };
+    };
+}

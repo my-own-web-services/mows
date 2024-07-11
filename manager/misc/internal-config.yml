@@ -1,0 +1,26 @@
+variable_prefix: "$"
+primary_origin: "http://localhost:$WEB_PORT"
+own_addresses:
+    legacy: "192.168.112.3"
+    ip: null
+
+cluster:
+    network:
+        start: "192.168.112.253"
+        end: "192.168.112.253"
+dhcp:
+    dhcp_range_start: "192.168.112.41"
+    dhcp_range_end: "192.168.112.252"
+    lease_time: "1h"
+dev:
+    enabled: true
+    allow_origins: 
+        - "http://localhost:5173"
+
+log:
+    dnsmasq:
+        stdout: false
+        stderr: false
+    pixiecore:
+        stdout: false
+        stderr: false

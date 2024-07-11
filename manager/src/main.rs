@@ -1,7 +1,7 @@
 use anyhow::Context;
 use axum::error_handling::HandleErrorLayer;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
-use axum::http::{Method};
+use axum::http::{HeaderValue, Method};
 use axum::routing::{delete, get, post, put};
 use axum::Router;
 use bollard::Docker;
@@ -11,6 +11,7 @@ use manager::api::config::*;
 use manager::api::direct_terminal::*;
 use manager::api::docker_terminal::*;
 use manager::api::machines::*;
+use manager::internal_config::{  INTERNAL_CONFIG};
 use manager::{config::{self, *}};
 use manager::tasks::{
     apply_environment, get_cluster_kubeconfig, install_cluster_basics, start_cluster_proxy,
@@ -21,9 +22,11 @@ use manager::types::*;
 use tracing_subscriber::fmt::time;
 use tracing_subscriber::util::SubscriberInitExt;
 
-use std::net::SocketAddr;
+use std::fs::read_to_string;
+use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::os::unix::fs::PermissionsExt;
 use std::process::Stdio;
+use std::str::FromStr;
 use std::time::Duration;
 use tokio::process::Command;
 use tokio::{fs, signal};
@@ -104,10 +107,13 @@ async fn main() -> Result<(), anyhow::Error> {
     )]
     struct ApiDoc;
 
-    let _ = Docker::connect_with_local_defaults();
+    let ic = &INTERNAL_CONFIG;
+    
 
+    
+    //let _ = Docker::connect_with_local_defaults();
     let console_layer = console_subscriber::ConsoleLayer::builder()
-        .server_addr(([0, 0, 0, 0], 6669))
+        .server_addr((Ipv6Addr::from_str("::")?, 6669))
         .spawn()
         .with_filter(tracing_subscriber::EnvFilter::new(
             "main=trace,manager=trace,tower_http=trace,axum::rejection=trace,tokio=trace,runtime=trace"
@@ -145,15 +151,15 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let serve_dir = ServeDir::new("ui").not_found_service(ServeFile::new("ui/index.html"));
 
-    let api_url = "http://0.0.0.0:3000";
 
-    let origins = ["http://localhost:5173".parse()?, api_url.parse()?];
+
 
     info!("Starting pixiecore server");
 
     Command::new("pixiecore")
-        .args(["api", api_url, "-l", "192.168.112.3", "--dhcp-no-bind"])
-        .stdout(Stdio::null())
+        .args(["api", "http://localhost:3000", "-l", &ic.own_addresses.legacy.to_string(), "--dhcp-no-bind"])
+        .stdout(if ic.log.pixiecore.stdout { Stdio::inherit() } else { Stdio::null() })
+        .stderr(if ic.log.pixiecore.stderr { Stdio::inherit() } else { Stdio::null() })
         .spawn()
         .context("Failed to start pixiecore server")?;
 
@@ -181,7 +187,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let args=["--no-daemon",
     "--log-queries",
     "--dhcp-alternate-port=67",
-    "--dhcp-range=192.168.112.5,192.168.112.253,2m",
+    &format!("--dhcp-range={},{},{}",ic.dhcp.dhcp_range_start, ic.dhcp.dhcp_range_end, ic.dhcp.lease_time),
     "--domain-needed",
     "--bogus-priv",
     "--dhcp-authoritative",
@@ -197,12 +203,21 @@ async fn main() -> Result<(), anyhow::Error> {
 
    Command::new("dnsmasq")
     .args(args)
-    .stdout(Stdio::null())
-    .stderr(Stdio::null())
+    .stdout(if ic.log.dnsmasq.stdout { Stdio::inherit() } else { Stdio::null() })
+    .stderr(if ic.log.dnsmasq.stderr { Stdio::inherit() } else { Stdio::null() })    
     .spawn()
     .context("Failed to start the dnsmasq server")?;
    
-   
+    let mut origins = vec![&ic.primary_origin];
+
+    if ic.dev.enabled {
+        let _ =&ic.dev.allow_origins.iter().for_each(|x| origins.push(x));
+
+    }
+
+  
+
+
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/config", put(update_config))
@@ -230,14 +245,16 @@ async fn main() -> Result<(), anyhow::Error> {
         .nest_service("/", serve_dir)
         .layer(
             CorsLayer::new()
-                .allow_origin(origins)
+                .allow_origin(origins.iter().map(|x| 
+                    HeaderValue::from_str(x.origin().ascii_serialization().as_str()).unwrap()
+                ).collect::<Vec<HeaderValue>>())
                 .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
                 .allow_headers([CONTENT_TYPE, UPGRADE]),
         );
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
 
-    info!("Open http://localhost:3000 in your browser");
+
+    info!("Open {} in your browser", ic.primary_origin);
 
     info!("Starting background tasks");
     // these are separated for easier debugging
@@ -307,12 +324,20 @@ async fn main() -> Result<(), anyhow::Error> {
     });
 
     info!("Starting server");
+
+    let listener = tokio::net::TcpListener::bind(
+        SocketAddr::new("::".parse()?,3000),
+    ).await?;
+
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .with_graceful_shutdown(shutdown_signal())
-    .await?;
+    .await.context(
+        "Failed to start server",
+    
+    )?;
 
     Ok(())
 }

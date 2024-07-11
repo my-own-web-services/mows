@@ -1,4 +1,5 @@
 pub mod config;
+pub mod internal_config;
 pub mod machines;
 pub mod macros;
 pub mod ssh;
@@ -15,6 +16,7 @@ pub mod os {
 pub mod cluster {
     pub mod cluster;
     pub mod db;
+    pub mod ingress;
     pub mod monitoring;
     pub mod network;
     pub mod node;
