@@ -1,5 +1,6 @@
 use crate::{
     config::{Cluster, HelmDeploymentState, VipIp},
+    internal_config::INTERNAL_CONFIG,
     some_or_bail,
     utils::cmd,
 };
@@ -16,12 +17,11 @@ impl ClusterNetwork {
     pub async fn install(cluster: &Cluster) -> anyhow::Result<()> {
         ClusterNetwork::install_network(cluster).await?;
         ClusterNetwork::install_kubevip(&cluster.vip.controlplane).await?;
-        ClusterNetwork::install_local_ingress(cluster).await?;
 
         Ok(())
     }
 
-    pub async fn install_kubevip(cp_vip_config: &VipIp) -> anyhow::Result<()> {
+    async fn install_kubevip(cp_vip_config: &VipIp) -> anyhow::Result<()> {
         let vip = some_or_bail!(
             cp_vip_config.legacy_ip,
             "No control plane legacy vip address set"
@@ -81,81 +81,48 @@ impl ClusterNetwork {
         Ok(())
     }
 
-    pub async fn install_local_ingress(cluster: &Cluster) -> anyhow::Result<()> {
-        let version = "28.3.0";
-        let name = "mows-ingress";
+    async fn install_cilium_resources(namespace: &str) -> anyhow::Result<String> {
+        let ic = &INTERNAL_CONFIG;
 
-        if Cluster::check_helm_deployment_state(name, name).await?
-            != HelmDeploymentState::NotInstalled
-        {
-            return Ok(());
-        }
+        let ip_resources = format!(
+            r#"
+apiVersion: cilium.io/v2alpha1
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: default-pool
+  namespace: {namespace}
+spec:
+  blocks:
+    - start: {}
+      stop: {}
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: default-l2-announcement-policy
+  namespace: {namespace}
+spec:
+  externalIPs: true
+  loadBalancerIPs: true
+        "#,
+            ic.cluster.network.start, ic.cluster.network.end
+        );
 
-        let service_vip = some_or_bail!(&cluster.vip.service.legacy_ip, "No service vip");
+        let mut resources_tempfile =
+            NamedTempFile::new().context("Failed to create temporary file")?;
 
-        debug!("Installing traefik ingress");
-
-        cmd(
-            vec![
-                "helm",
-                "repo",
-                "add",
-                "traefik",
-                "https://traefik.github.io/charts",
-            ],
-            "Failed to add traefik helm repo",
-        )
-        .await?;
-
-        cmd(
-            vec!["helm", "repo", "update"],
-            "Failed to update helm repos",
-        )
-        .await?;
-
-        let values = json!({
-            "additional": {
-                "sendAnonymousUsage": false
-            },
-            "service": {
-                "annotations": {
-                    "io.cilium/lb-ipam-ips": service_vip
-                }
-            }
-        });
-
-        let mut tempfile = NamedTempFile::new().context("Failed to create temporary file ")?;
-        writeln!(tempfile, "{}", &values).context("Failed to write private key")?;
+        writeln!(resources_tempfile, "{}", &ip_resources).context("Failed to write file")?;
 
         cmd(
             vec![
-                "helm",
-                "upgrade",
-                // release
-                name,
-                // chart
-                "traefik/traefik",
-                //
-                "--install",
-                //
-                "--create-namespace",
-                //
-                "--namespace",
-                name,
-                //
-                "--version",
-                version,
-                //
-                "--values",
-                tempfile.path().to_str().unwrap(),
+                "kubectl",
+                "apply",
+                "-f",
+                "/install/cluster-basics/network/resources.yml",
             ],
-            "Failed to install traefik",
+            "Failed to apply cilium network policy",
         )
-        .await?;
-
-        debug!("Traefik ingress installed");
-
-        Ok(())
+        .await
     }
 
     pub async fn install_network(cluster: &Cluster) -> anyhow::Result<()> {
@@ -166,22 +133,15 @@ impl ClusterNetwork {
         if Cluster::check_helm_deployment_state(name, name).await?
             != HelmDeploymentState::NotInstalled
         {
-            cmd(
-                vec![
-                    "kubectl",
-                    "apply",
-                    "-f",
-                    "/install/cluster-basics/network/resources.yml",
-                ],
-                "Failed to apply cilium network policy",
-            )
-            .await?;
+            ClusterNetwork::install_cilium_resources(&name).await?;
+
             return Ok(()); // network is already installed
         }
 
         debug!("Installing cilium network");
 
         let cilium_version = "1.15.0";
+
         cmd(
             vec!["helm", "repo", "add", "cilium", "https://helm.cilium.io/"],
             "Failed to add cilium helm repo",
@@ -195,15 +155,17 @@ impl ClusterNetwork {
         .await?;
 
         let values = json!({
+            /*
             "prometheus": {
-                "enabled": true
-            },
+                "enabled": true,
+            },*/
             "operator": {
                 "replicas": 1,
                 "rollOutPods": true,
+                /*
                 "prometheus": {
                     "enabled": true
-                }
+                }*/
             },
             "hubble": {
                 "relay": {
@@ -213,16 +175,24 @@ impl ClusterNetwork {
                     "enabled": true
                 },
                 "enabled": true,
+                /*
                 "metrics": {
+                    "enableOpenMetrics": true,
+                    "serviceMonitor":{
+                        "enabled": false,
+                    },
+                    "dashboards": {
+                        "enabled": true
+                    },
                     // "{dns,drop,tcp,flow,port-distribution,icmp,httpV2:exemplars=true;labelsContext=source_ip,source_namespace,source_workload,destination_ip,destination_namespace,destination_workload,traffic_direction}"
                     "enabled": ["dns", "drop", "tcp", "flow", "port-distribution", "icmp", "httpV2"]
-                }
+                }*/
             },
             "kubeProxyReplacement": "strict",
             "k8sServiceHost": "127.0.0.1",
             "k8sServicePort": 6443,
             "externalIPs": {
-                "enabled": true
+                "enabled": false
             },
             "cluster": {
                 "name": cluster.id
@@ -244,12 +214,16 @@ impl ClusterNetwork {
             "debug": {
                 "enabled": true
             },
-            "rollOutCiliumPods": true
+            "rollOutCiliumPods": true,
+            "hostFirewall": {
+                "enabled": true
+            },
 
         });
 
-        let mut tempfile = NamedTempFile::new().context("Failed to create temporary file ")?;
-        writeln!(tempfile, "{}", &values).context("Failed to write private key")?;
+        let mut tempfile =
+            NamedTempFile::new().context("Failed to create temporary helm values file ")?;
+        writeln!(tempfile, "{}", &values).context("Failed to write helm values file")?;
 
         cmd(
             vec![
@@ -276,16 +250,7 @@ impl ClusterNetwork {
         )
         .await?;
 
-        cmd(
-            vec![
-                "kubectl",
-                "apply",
-                "-f",
-                "/install/cluster-basics/network/resources.yml",
-            ],
-            "Failed to apply cilium network policy",
-        )
-        .await?;
+        ClusterNetwork::install_cilium_resources(&name).await?;
 
         debug!("Cilium network installed");
 

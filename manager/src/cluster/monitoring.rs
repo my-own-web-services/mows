@@ -17,9 +17,9 @@ impl ClusterMonitoring {
 
         Ok(())
     }
-    pub async fn install_monitoring(cluster: &Cluster) -> anyhow::Result<()> {
+    async fn install_monitoring(cluster: &Cluster) -> anyhow::Result<()> {
         let name = "mows-monitoring";
-        let version = "61.2.0";
+        let version = "61.3.0";
 
         if Cluster::check_helm_deployment_state(name, name).await?
             != HelmDeploymentState::NotInstalled
@@ -28,6 +28,25 @@ impl ClusterMonitoring {
         }
 
         debug!("Installing monitoring");
+
+        // create namespace
+        let _ = cmd(
+            vec!["kubectl", "create", "namespace", name],
+            "Failed to create namespace",
+        )
+        .await;
+
+        // apply additional dashboards
+        cmd(
+            vec![
+                "kubectl",
+                "apply",
+                "-f",
+                "/install/cluster-basics/monitoring/grafana/dashboards",
+            ],
+            "Failed to apply additional dashboards",
+        )
+        .await?;
 
         cmd(
             vec![
@@ -47,15 +66,6 @@ impl ClusterMonitoring {
         )
         .await?;
 
-        /*
-
-             [server]
-        domain = ''
-        root_url = 'http://localhost:8001/api/v1/namespaces/mows-monitoring/services/http:mows-monitoring-grafana:80/proxy/'
-        serve_from_sub_path = true
-
-            */
-
         let root_url="http://localhost:8001/api/v1/namespaces/mows-monitoring/services/http:mows-monitoring-grafana:80/proxy/";
 
         // collect the cluster endpoints as json array of strings of their hostname
@@ -69,33 +79,34 @@ impl ClusterMonitoring {
             "prometheus":{
                 "prometheusSpec": {
                     "logLevel": "debug",
+                    "serviceMonitorSelectorNilUsesHelmValues":false,
                 }
             },
+            "nodeExporter":{
+                "enabled":false // this exposes the node exporter on the host network which is not secure
+            },
+            "prometheus-node-exporter":{
+                "extraArgs":[
+                    "--web.listen-address=127.0.0.1:9100" // port is already in use ?
+                ]
+
+            },
+            "prometheusOperator":{
+                "networkPolicy": {
+                    "enabled": true,
+                    "flavor":"cilium"
+                },
+            },
+            "kubeProxy": {
+                "enabled":false
+            },
             "kubeEtcd": {
-                "enabled": false,
+                "enabled": true,
                 "endpoints": cp_endpoints,
                 "service":{
                     "enabled": true,
                     "port": 2381,
                     "targetPort": 2381
-                },
-                "serviceMonitor": {
-                    "enabled": true,
-                    "https": true,
-                    "insecureSkipVerify": true
-                }
-            },
-            "kubeProxy": {
-                "enabled": false,
-                "endpoints": cp_endpoints,
-            },
-            "kubeScheduler": {
-                "enabled": false,
-                "endpoints": cp_endpoints,
-                "service":{
-                    "enabled": true,
-                    "port": 10259,
-                    "targetPort": 10259
                 },
                 "serviceMonitor": {
                     "enabled": true,
@@ -118,9 +129,12 @@ impl ClusterMonitoring {
                 }
             },
             "kubeAPIServer": {
-                "enabled": false,
+                "enabled": true,
             },
             "grafana": {
+                "enabled": true,
+                "defaultDashboardsEnabled": true,
+                "forceDeployDashboards": true,
                 "grafana.ini": {
                     "server": {
                         "root_url": root_url,

@@ -144,13 +144,14 @@ impl CloudInit {
 
         let mut stages = HashMap::new();
 
-        // LEAVE THIS ALONE, THE FORMATTING MATTERS FOR SOME REASON
+        // LEAVE THIS ALONE, THE FORMATTING MATTERS FOR SOME REASON, TODO: insert gateway?
         let static_ip_config = format!(
             r#"[Match]
 Name=enp1s0
 
 [Network]
 Address={}/24
+Gateway=192.168.112.1
 DHCP=yes
 "#,
             internal_ips.legacy
@@ -259,6 +260,7 @@ impl K3s {
 
         let mut base_args = vec![
             "--flannel-backend=none",
+            "--kube-cloud-controller-manager-arg=webhook-secure-port=0",
             "--disable-network-policy",
             "--disable-kube-proxy",
             "--disable local-storage",

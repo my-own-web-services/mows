@@ -1,11 +1,8 @@
-use std::io::Write;
 use std::net::Ipv4Addr;
-use std::os::fd::{FromRawFd, RawFd};
 use std::process::Stdio;
 use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
 
 use crate::config::{HelmDeploymentState, InternalIps, Vip, VipIp};
-use crate::s;
 use crate::utils::cmd;
 use crate::{
     config::{Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
@@ -27,6 +24,7 @@ use tokio::time::sleep;
 use tracing::debug;
 
 use super::db::ClusterDatabases;
+use super::ingress::ClusterLocalIngress;
 use super::monitoring::ClusterMonitoring;
 use super::network::ClusterNetwork;
 use super::storage::ClusterStorage;
@@ -50,7 +48,7 @@ impl Cluster {
                 ip: None,
             },
             service: VipIp {
-                legacy_ip: Some(Ipv4Addr::new(192, 168, 112, 255)),
+                legacy_ip: Some(Ipv4Addr::new(192, 168, 112, 253)),
                 ip: None,
             },
         };
@@ -439,11 +437,13 @@ impl Cluster {
 
         ClusterNetwork::install(&self).await?;
 
+        ClusterMonitoring::install(&self).await?;
+
+        ClusterLocalIngress::install(&self).await?;
+
         ClusterStorage::install(&self).await?;
 
         ClusterDatabases::install(&self).await?;
-
-        ClusterMonitoring::install(&self).await?;
 
         Ok(())
     }

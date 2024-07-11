@@ -7,8 +7,6 @@ use tokio::sync::RwLock;
 use tracing::trace;
 use utoipa::ToSchema;
 
-use crate::some_or_bail;
-
 #[tracing::instrument]
 pub fn config() -> &'static RwLock<ManagerConfig> {
     static CONFIG: OnceLock<RwLock<ManagerConfig>> = OnceLock::new();

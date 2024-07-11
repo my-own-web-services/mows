@@ -1,3 +1,19 @@
+## ip ranges
+
+192.168.112.
+- gateway: 1
+- mows-manager: 3
+- qemu: 4
+- dhcp: 41-252
+- control-plane-vip: 254
+- service-vip: 253
+
+cluster-cidr: 10.42.0.0/16
+service-cidr: 10.43.0.0/16
+static-internal: 10.41.0.0/24
+
+
+
 -   forward the libvirtd socket to the container
 -   use a debian docker image or similar
 -   use virt-install and virsh to manage the machines
