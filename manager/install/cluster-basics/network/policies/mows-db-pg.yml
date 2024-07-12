@@ -1,0 +1,13 @@
+
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-api-server
+  namespace: mows-db-pg
+spec:
+  endpointSelector:
+    matchLabels:
+      k8s:app.kubernetes.io/name: cloudnative-pg
+  egress:
+    - toEntities:
+        - kube-apiserver

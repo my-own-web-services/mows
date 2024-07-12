@@ -1,0 +1,15 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-k8s-dash-cluster-ingress-api-server-egress
+  namespace: kubernetes-dashboard
+spec:
+  endpointSelector:
+    matchLabels:
+      k8s:app.kubernetes.io/name: kubernetes-dashboard
+  ingress:
+    - fromEntities:
+        - remote-node
+  egress:
+    - toEntities:
+        - kube-apiserver

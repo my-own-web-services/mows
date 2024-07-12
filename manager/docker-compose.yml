@@ -15,7 +15,7 @@ services:
         cap_add:
           - "NET_ADMIN"
         ports:
-            - "::1:3000:3000"
+            - "::1:${WEB_PORT}:3000"
             - "::1:6669:6669"
             - "::1:8001:8001"
             - "::1:53:53"
@@ -25,7 +25,7 @@ services:
             - /etc/resolv.conf.bak:/etc/resolv.conf.bak
             - ./misc/internal-config.yml:/internal-config.yml
         environment:
-            WEB_PORT: 3000
+            WEB_PORT: ${WEB_PORT}
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system
             #- RUST_BACKTRACE=full
             RUST_LOG: main=debug,manager=debug,tower_http=debug,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error

@@ -1,0 +1,15 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-metrics-server-apiserver
+  namespace: kube-system
+spec:
+  endpointSelector:
+    matchLabels:
+      k8s-app: metrics-server
+  ingress:
+    - fromEntities:
+        - kube-apiserver
+  egress:
+    - toEntities:
+        - cluster
