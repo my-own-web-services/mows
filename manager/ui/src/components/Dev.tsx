@@ -31,6 +31,10 @@ const urls = [
         title: "Hubble/Cilium/Network"
     },
     {
+        url: "https://editor.networkpolicy.io/",
+        title: "Cilium Network Policy Editor"
+    },
+    {
         url: "http://localhost:8001/api/v1/namespaces/mows-storage/services/http:longhorn-frontend:http/proxy/",
         title: "Longhorn/Storage"
     },
@@ -49,7 +53,7 @@ const urls = [
     }
 ];
 
-const toastParams: ToastContainerProps = { placement: "bottomEnd", duration: 5000 };
+const toastParams: ToastContainerProps = { placement: "bottomEnd", duration: 10000 };
 
 class Dev extends Component<DevProps, DevState> {
     constructor(props: DevProps) {

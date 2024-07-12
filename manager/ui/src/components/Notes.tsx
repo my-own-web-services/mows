@@ -27,6 +27,15 @@ const defaultNotes: Note[] = [
     {
         content: "kubectl -n kubernetes-dashboard create token admin-user",
         type: "default"
+    },
+    {
+        content:
+            "kubectl delete ciliumclusterwidenetworkpolicy.cilium.io -A --all && kubectl delete ciliumnetworkpolicy.cilium.io -A --all && kubectl apply -f /install/cluster-basics/network/policies/",
+        type: "default"
+    },
+    {
+        content: "kubectl get ciliumendpoints -A",
+        type: "default"
     }
 ];
 // a notes component that persists notes in local storage
