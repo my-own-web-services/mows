@@ -1,0 +1,49 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-metrics-collection
+    namespace: mows-ingress
+spec:
+    endpointSelector:
+        matchLabels:
+            k8s:app.kubernetes.io/name: traefik
+    ingress:
+        - fromEndpoints:
+              - matchLabels:
+                    k8s:app.kubernetes.io/name: prometheus
+                    io.kubernetes.pod.namespace: mows-monitoring
+          toPorts:
+              - ports:
+                    - port: "9100"
+                      protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-public-ingress
+    namespace: mows-ingress
+spec:
+    endpointSelector:
+        matchLabels:
+            k8s:app.kubernetes.io/name: traefik
+    ingress:
+        - fromEntities:
+              - world
+          toPorts:
+              - ports:
+                    - port: "8000"
+                      protocol: TCP
+                    - port: "8443"
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-api-server-access
+    namespace: mows-ingress
+spec:
+    endpointSelector:
+        matchLabels:
+            k8s:app.kubernetes.io/name: traefik
+    egress:
+        - toEntities:
+              - kube-apiserver

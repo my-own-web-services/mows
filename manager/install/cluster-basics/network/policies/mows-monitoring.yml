@@ -1,0 +1,76 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-mows-monitoring-own-namespace
+    namespace: mows-monitoring
+spec:
+    endpointSelector: {}
+    ingress:
+        - fromEndpoints:
+              - {}
+    egress:
+        - toEndpoints:
+              - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-kube-prometheus-stack-operator
+    namespace: mows-monitoring
+spec:
+    endpointSelector:
+        matchLabels:
+            app: kube-prometheus-stack-operator
+    ingress:
+        - toPorts:
+              - ports:
+                    - port: "10250"
+                      protocol: TCP
+    egress:
+        - toEntities:
+              - kube-apiserver
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-mows-monitoring-prometheus-scraping
+    namespace: mows-monitoring
+spec:
+    endpointSelector:
+        matchLabels:
+            k8s:app.kubernetes.io/name: prometheus
+    egress:
+        - toEntities:
+              - cluster
+    ingress:
+        - fromEntities:
+              - kube-apiserver
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-mows-monitoring-kube-state-metrics-kube-apiserver
+    namespace: mows-monitoring
+spec:
+    endpointSelector:
+        matchLabels:
+            k8s:app.kubernetes.io/name: kube-state-metrics
+    egress:
+        - toEntities:
+              - kube-apiserver
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-mows-monitoring-grafana-kube-apiserver
+    namespace: mows-monitoring
+spec:
+    endpointSelector:
+        matchLabels:
+            k8s:app.kubernetes.io/name: grafana
+    egress:
+        - toEntities:
+              - kube-apiserver
+    ingress:
+        - fromEntities:
+              - remote-node

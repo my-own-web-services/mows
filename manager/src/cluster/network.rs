@@ -118,7 +118,18 @@ spec:
                 "kubectl",
                 "apply",
                 "-f",
-                "/install/cluster-basics/network/resources.yml",
+                "/install/cluster-basics/network/ip-pool.yml",
+            ],
+            "Failed to apply cilium ip pool",
+        )
+        .await?;
+
+        cmd(
+            vec![
+                "kubectl",
+                "apply",
+                "-f",
+                "/install/cluster-basics/network/policies/",
             ],
             "Failed to apply cilium network policy",
         )

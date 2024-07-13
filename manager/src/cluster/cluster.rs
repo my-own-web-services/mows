@@ -430,8 +430,32 @@ impl Cluster {
         Ok(())
     }
 
+    pub async fn create_namespaces() -> anyhow::Result<()> {
+        let namespaces = vec![
+            "mows-network",
+            "mows-monitoring",
+            "mows-storage",
+            "mows-vip",
+            "mows-ingress",
+            "mows-db-pg",
+            "kubernetes-dashboard",
+        ];
+
+        for namespace in namespaces {
+            let _ = cmd(
+                vec!["kubectl", "create", "namespace", namespace],
+                "Failed to create namespace",
+            )
+            .await;
+        }
+
+        Ok(())
+    }
+
     pub async fn install_basics(&self) -> anyhow::Result<()> {
         self.write_local_kubeconfig().await?;
+
+        Self::create_namespaces().await?;
 
         self.install_dashboard().await?;
 
