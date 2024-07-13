@@ -223,19 +223,21 @@ impl ClusterPolicy {
                 }
             },
             "config":{
+                //"resourceFiltersIncludeNamespaces":["mows-network","mows-storage","mows-vip"],
                 "webhooks":[
                     {
                         "namespaceSelector":{
                             "matchExpressions":[
                                 {
-                                    "key":"mows-core-apis-disable-kyverno",
+                                    "key":"mows.cloud/core-apis-disable-kyverno",
                                     "operator":"NotIn",
                                     "values":["true"]
                                 }
                             ]
                         },
                     }
-                ]
+                ],
+
             },
         });
 

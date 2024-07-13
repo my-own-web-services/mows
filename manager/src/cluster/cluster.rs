@@ -590,8 +590,8 @@ kind: Namespace
 metadata:
     name: {}
     labels:
-        mows-api: {}
-        mows-core-apis-disable-kyverno: "{}"
+        mows.cloud/api-type: {}
+        mows.cloud/core-apis-disable-kyverno: "{}"
 "#,
             name, mows_api_type, disable_policy_enforcement
         );
