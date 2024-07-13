@@ -1,11 +1,11 @@
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
 metadata:
-  name: deny-all
-  namespace: mows-network
+    name: deny-all
+    namespace: mows-network
 spec:
-  endpointSelector: {}
-  ingress:
-    - {}
-  egress:
-    - {}
+    endpointSelector: {}
+    ingress:
+        - {}
+    egress:
+        - {}

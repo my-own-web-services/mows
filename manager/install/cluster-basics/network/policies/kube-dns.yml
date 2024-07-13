@@ -1,42 +1,83 @@
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
 metadata:
-  name: allow-kube-dns-ingress-egress
-  namespace: mows-network
+    name: allow-kube-dns-ingress-egress
+    namespace: mows-network
 spec:
-  endpointSelector:
-    matchLabels:
-      io.kubernetes.pod.namespace: kube-system
-      k8s-app: kube-dns
-  ingress:
-  - fromEndpoints:
-    - {}
-    toPorts:
-    - ports:
-      - port: "53"
-        protocol: UDP
-  egress:
-    - toEntities:
-      - cluster
+    endpointSelector:
+        matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+    ingress:
+        - fromEndpoints:
+              - {}
+          toPorts:
+              - ports:
+                    - port: "53"
+                      protocol: UDP
+    egress:
+        - toEntities:
+              - cluster
 ---
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
 metadata:
-  name: allow-everyone-kube-dns
-  namespace: mows-network
+    name: allow-everyone-kube-dns
+    namespace: mows-network
 spec:
-  endpointSelector: {}
-  ingress:
-    - {}
-  egress:
-    - toEndpoints:
-        - matchLabels:
+    endpointSelector: {}
+    ingress:
+        - {}
+    egress:
+        - toEndpoints:
+              - matchLabels:
+                    io.kubernetes.pod.namespace: kube-system
+                    k8s-app: kube-dns
+          toPorts:
+              - ports:
+                    - port: "53"
+                      protocol: UDP
+                rules:
+                    dns:
+                        - matchPattern: "*"
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-prometheus-9153
+    namespace: kube-system
+spec:
+    endpointSelector:
+        matchLabels:
             io.kubernetes.pod.namespace: kube-system
             k8s-app: kube-dns
-      toPorts:
-        - ports:
-            - port: "53"
-              protocol: UDP
-          rules:
-            dns:
-              - matchPattern: "*"
+    ingress:
+        - fromEndpoints:
+              - matchLabels:
+                    k8s:app.kubernetes.io/name: prometheus
+                    io.kubernetes.pod.namespace: mows-monitoring
+          toPorts:
+              - ports:
+                    - port: "9153"
+                      protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-dns-egress
+    namespace: kube-system
+spec:
+    endpointSelector:
+        matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+    egress:
+        - toEntities:
+              - world
+          toPorts:
+              - ports:
+                    - port: "53"
+                      protocol: UDP
+                rules:
+                    dns:
+                        - matchPattern: "*"

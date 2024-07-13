@@ -40,9 +40,9 @@ services:
             context: "."
             dockerfile: docker/qemu.Dockerfile
         ports:
-            - "127.0.0.1:16509:16509"
-            - "127.0.0.1:5900-5999:5900-5999" # spice
-            - "127.0.0.1:5700-5799:5700-5799" # vnc websocket 
+            - "::1:16509:16509"
+            - "::1:5900-5999:5900-5999" # spice
+            - "::1:5700-5799:5700-5799" # vnc websocket 
 
         cap_add:
           - "NET_ADMIN"

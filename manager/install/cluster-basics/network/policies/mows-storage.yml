@@ -1,28 +1,28 @@
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: allow-mows-storage-own-namespace-and-api-server
-  namespace: mows-storage
+    name: allow-mows-storage-own-namespace-and-api-server
+    namespace: mows-storage
 spec:
-  endpointSelector: {}
-  ingress:
-    - fromEndpoints:
-        - {}
-  egress:
-    - toEndpoints:
-        - {}
-    - toEntities:
-        - kube-apiserver
+    endpointSelector: {}
+    ingress:
+        - fromEndpoints:
+              - {}
+    egress:
+        - toEndpoints:
+              - {}
+        - toEntities:
+              - kube-apiserver
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: allow-storage-dashboard-ingress
-  namespace: mows-storage
+    name: allow-storage-dashboard-ingress
+    namespace: mows-storage
 spec:
-  endpointSelector:
-    matchLabels:
-      k8s:app: longhorn-ui
-  ingress:
-    - fromEntities:
-        - remote-node
+    endpointSelector:
+        matchLabels:
+            k8s:app: longhorn-ui
+    ingress:
+        - fromEntities:
+              - remote-node

@@ -1,16 +1,28 @@
-
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: allow-mows-network-to-self-and-cluster
-  namespace: mows-network
+    name: allow-mows-network-to-self-and-cluster
+    namespace: mows-network
 spec:
-  endpointSelector: {}
-  ingress:
-    - fromEndpoints:
-        - {}
-  egress:
-    - toEndpoints:
-        - {}
-    - toEntities:
-        - cluster
+    endpointSelector: {}
+    ingress:
+        - fromEndpoints:
+              - {}
+    egress:
+        - toEndpoints:
+              - {}
+        - toEntities:
+              - cluster
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+    name: allow-hubble-ui-ingress
+    namespace: mows-network
+spec:
+    endpointSelector:
+        matchLabels:
+            k8s:app.kubernetes.io/name: hubble-ui
+    ingress:
+        - fromEntities:
+              - remote-node

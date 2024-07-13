@@ -23,7 +23,7 @@ ARG DEBCONF_NONINTERACTIVE_SEEN "true"
 
 RUN set -eu && \
     apt-get update && \
-    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less jq
 
 # install pixiecore
 RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add - && \
@@ -48,7 +48,7 @@ RUN curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --d
     apt-get clean
 
 
-# download k9s https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd64.deb
+# install k9s
 RUN wget https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd64.deb -O /tmp/k9s.deb && \
     dpkg -i /tmp/k9s.deb && \
     rm /tmp/k9s.deb && \
@@ -76,7 +76,7 @@ RUN set -x; cd "$(mktemp -d)" && \
 RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg
 
 
-# colored bash
+# colored bash & other bash stuff
 # https://bash-prompt-generator.org/
 COPY ./misc/.bashrc /root/.bashrc
 
