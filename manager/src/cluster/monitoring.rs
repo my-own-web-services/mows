@@ -42,7 +42,7 @@ impl ClusterMonitoring {
                 "kubectl",
                 "apply",
                 "-f",
-                "/install/cluster-basics/monitoring/grafana/dashboards",
+                "/install/core-apis/monitoring/grafana/dashboards",
             ],
             "Failed to apply additional dashboards",
         )
@@ -156,7 +156,7 @@ impl ClusterMonitoring {
         });
 
         let mut tempfile = NamedTempFile::new().context("Failed to create temporary file ")?;
-        writeln!(tempfile, "{}", &values).context("Failed to write private key")?;
+        writeln!(tempfile, "{}", &values).context("Failed to write helm values file")?;
 
         cmd(
             vec![

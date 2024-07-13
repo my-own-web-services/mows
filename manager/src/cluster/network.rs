@@ -34,7 +34,7 @@ impl ClusterNetwork {
         debug!("Installing kube-vip");
 
         let template_manifest =
-            fs::read_to_string("/install/cluster-basics/kube-vip/manifest.yml").await?;
+            fs::read_to_string("/install/core-apis/kube-vip/manifest.yml").await?;
 
         let mut manifest_tempfile =
             NamedTempFile::new().context("Failed to create temporary file")?;
@@ -59,7 +59,7 @@ impl ClusterNetwork {
                 "kubectl",
                 "apply",
                 "-f",
-                "/install/cluster-basics/kube-vip/cluster-role.yml",
+                "/install/core-apis/kube-vip/cluster-role.yml",
             ],
             "Failed to install kube-vip cluster role",
         )
@@ -81,7 +81,7 @@ impl ClusterNetwork {
         Ok(())
     }
 
-    async fn install_cilium_resources(namespace: &str) -> anyhow::Result<String> {
+    async fn install_cilium_resources(namespace: &str) -> anyhow::Result<()> {
         let ic = &INTERNAL_CONFIG;
 
         let ip_resources = format!(
@@ -118,22 +118,28 @@ spec:
                 "kubectl",
                 "apply",
                 "-f",
-                "/install/cluster-basics/network/ip-pool.yml",
+                "/install/core-apis/network/ip-pool.yml",
             ],
             "Failed to apply cilium ip pool",
         )
         .await?;
 
-        cmd(
-            vec![
-                "kubectl",
-                "apply",
-                "-f",
-                "/install/cluster-basics/network/policies/",
-            ],
-            "Failed to apply cilium network policy",
-        )
-        .await
+        if INTERNAL_CONFIG.dev.enabled && INTERNAL_CONFIG.dev.skip_network_policy_install {
+            debug!("Skipping network policy installation");
+        } else {
+            cmd(
+                vec![
+                    "kubectl",
+                    "apply",
+                    "-f",
+                    "/install/core-apis/network/policies/",
+                ],
+                "Failed to apply cilium network policy",
+            )
+            .await?;
+        }
+
+        Ok(())
     }
 
     pub async fn install_network(cluster: &Cluster) -> anyhow::Result<()> {

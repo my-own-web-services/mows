@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::net::Ipv4Addr;
 use std::process::Stdio;
 use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
@@ -17,6 +18,7 @@ use kube::{
     config::{KubeConfigOptions, Kubeconfig},
     Api,
 };
+use tempfile::NamedTempFile;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
@@ -27,6 +29,7 @@ use super::db::ClusterDatabases;
 use super::ingress::ClusterLocalIngress;
 use super::monitoring::ClusterMonitoring;
 use super::network::ClusterNetwork;
+use super::policy::ClusterPolicy;
 use super::storage::ClusterStorage;
 
 impl Cluster {
@@ -382,7 +385,7 @@ impl Cluster {
                 "kubectl",
                 "apply",
                 "-f",
-                "/install/cluster-basics/dashboard/dashboard-admin.yml",
+                "/install/core-apis/dashboard/dashboard-admin.yml",
             ],
             "Failed to apply clusterrolebindings for dashboard",
         )
@@ -431,23 +434,18 @@ impl Cluster {
     }
 
     pub async fn create_namespaces() -> anyhow::Result<()> {
-        let namespaces = vec![
-            "mows-network",
-            "mows-monitoring",
-            "mows-storage",
-            "mows-vip",
-            "mows-ingress",
-            "mows-db-pg",
-            "kubernetes-dashboard",
-        ];
+        debug!("Creating namespaces");
 
-        for namespace in namespaces {
-            let _ = cmd(
-                vec!["kubectl", "create", "namespace", namespace],
-                "Failed to create namespace",
-            )
-            .await;
-        }
+        Namespace::new("mows-network", true, "core").await?;
+        Namespace::new("mows-monitoring", false, "core").await?;
+        Namespace::new("mows-storage", true, "core").await?;
+        Namespace::new("mows-vip", true, "core").await?;
+        Namespace::new("mows-ingress", false, "core").await?;
+        Namespace::new("mows-db-pg", false, "core").await?;
+        Namespace::new("kubernetes-dashboard", false, "dev").await?;
+        Namespace::new("mows-police", false, "core").await?;
+
+        debug!("Namespaces created");
 
         Ok(())
     }
@@ -462,6 +460,8 @@ impl Cluster {
         ClusterNetwork::install(&self).await?;
 
         ClusterMonitoring::install(&self).await?;
+
+        ClusterPolicy::install().await?;
 
         ClusterLocalIngress::install(&self).await?;
 
@@ -567,6 +567,45 @@ Host {}
             "Failed to stop kubectl proxy",
         )
         .await?;
+        Ok(())
+    }
+}
+
+pub struct Namespace {
+    pub name: String,
+    pub disable_policy_enforcement: bool,
+    pub core: bool,
+}
+
+impl Namespace {
+    pub async fn new(
+        name: &str,
+        disable_policy_enforcement: bool,
+        mows_api_type: &str,
+    ) -> anyhow::Result<()> {
+        let content = format!(
+            r#"
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: {}
+    labels:
+        mows-api: {}
+        mows-core-apis-disable-kyverno: "{}"
+"#,
+            name, mows_api_type, disable_policy_enforcement
+        );
+
+        let mut tempfile = NamedTempFile::new().context("Failed to create temporary file")?;
+
+        writeln!(tempfile, "{}", content).context("Failed to write namespace file")?;
+
+        cmd(
+            vec!["kubectl", "apply", "-f", tempfile.path().to_str().unwrap()],
+            "Failed to create namespace",
+        )
+        .await?;
+
         Ok(())
     }
 }

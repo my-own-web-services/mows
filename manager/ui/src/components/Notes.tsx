@@ -30,7 +30,7 @@ const defaultNotes: Note[] = [
     },
     {
         content:
-            "kubectl delete ciliumclusterwidenetworkpolicy.cilium.io -A --all && kubectl delete ciliumnetworkpolicy.cilium.io -A --all && kubectl apply -f /install/cluster-basics/network/policies/",
+            "kubectl delete ciliumclusterwidenetworkpolicy.cilium.io -A --all && kubectl delete ciliumnetworkpolicy.cilium.io -A --all && kubectl apply -f /install/core-apis/network/policies/",
         type: "default"
     },
     {
