@@ -7,7 +7,7 @@ export KVVERSION=$1
 
 export VIP=192.168.122.99
 export INTERFACE=enp1s0
-export MANIFEST_PATH="./install/cluster-basics/kube-vip/manifest.yml"
+export MANIFEST_PATH="./install/core-apis/kube-vip/manifest.yml"
 
 docker run --rm ghcr.io/kube-vip/kube-vip:v$KVVERSION manifest daemonset \
     --interface $INTERFACE \

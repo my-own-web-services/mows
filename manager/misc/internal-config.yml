@@ -14,8 +14,9 @@ dhcp:
     lease_time: "1h"
 dev:
     enabled: true
-    allow_origins: 
+    allow_origins:
         - "http://localhost:5173"
+    skip_network_policy_install: true
 
 log:
     dnsmasq:

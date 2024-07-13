@@ -21,6 +21,7 @@ pub mod cluster {
     pub mod network;
     pub mod node;
     pub mod storage;
+    pub mod policy;
 }
 
 pub mod api {

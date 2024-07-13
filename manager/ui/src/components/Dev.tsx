@@ -50,6 +50,10 @@ const urls = [
     {
         url: "http://localhost:8001/api/v1/namespaces/mows-monitoring/services/http:mows-monitoring-kube-prome-prometheus:9090/proxy/",
         title: "Prometheus"
+    },
+    {
+        url: "http://localhost:8001/api/v1/namespaces/mows-police/services/http:policy-reporter-ui:http/proxy/",
+        title: "Policy Reporter"
     }
 ];
 

@@ -1,35 +1,35 @@
 {
     "restoreTerminals.terminals": [
         {
-          "splitTerminals": [
-            {
-              "name": "frontend dev server",
-              "commands": ["cd ui","pnpm dev"],
-            },
-            {
-              "name": "frontend",
-              "commands": ["cd ui"]
-            }
-          ]
+            "splitTerminals": [
+                {
+                    "name": "frontend dev server",
+                    "commands": ["cd ui", "pnpm dev"]
+                },
+                {
+                    "name": "frontend",
+                    "commands": ["cd ui"]
+                }
+            ]
         },
         {
-          "splitTerminals": [
-            {
-              "name": "backend-peripherals",
-              "commands": []
-            },
-          ]
+            "splitTerminals": [
+                {
+                    "name": "backend-peripherals",
+                    "commands": []
+                }
+            ]
         },
         {
-          "splitTerminals": [
-            {
-              "name": "backend",
-              "commands": []
-            },
-          ]
-        },
-      ],
-      "cSpell.words": [
+            "splitTerminals": [
+                {
+                    "name": "backend",
+                    "commands": []
+                }
+            ]
+        }
+    ],
+    "cSpell.words": [
         "apiserver",
         "autoupdate",
         "Chrono",
@@ -63,6 +63,7 @@
         "kubevirt",
         "kustomization",
         "kustomize",
+        "kyverno",
         "leaderelection",
         "leaseduration",
         "leasefile",
@@ -84,6 +85,7 @@
         "PBKDF",
         "pixieboot",
         "Pixiecore",
+        "pkill",
         "plndr",
         "pubkey",
         "qcow",
@@ -108,5 +110,5 @@
         "virt",
         "virtio",
         "websecure"
-      ],
+    ]
 }
