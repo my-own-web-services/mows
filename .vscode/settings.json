@@ -27,6 +27,7 @@
         "pubkey",
         "qcow",
         "squashfs",
+        "tailwindcss",
         "thiserror",
         "tikv",
         "traefik",
