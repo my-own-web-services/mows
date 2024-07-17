@@ -13,12 +13,16 @@ services:
         dns:
             - "192.168.112.3"
         cap_add:
-          - "NET_ADMIN"
+            - "NET_ADMIN"
+        env_file:
+            - .env
+            - secrets.env
         ports:
-            - "::1:${WEB_PORT}:3000"
-            - "::1:6669:6669"
-            - "::1:8001:8001"
-            - "::1:53:53"
+            - "::1:${WEB_PORT}:3000" # web ui
+            - "::1:6669:6669" #tokio console
+            - "::1:8001:8001" # kubectl proxy
+            - "::1:8080:8080" # helm dashboard
+            - "::1:53:53" # dns
         volumes:
             - ./temp/:/temp/
             - ./install:/install
@@ -40,25 +44,24 @@ services:
             context: "."
             dockerfile: docker/qemu.Dockerfile
         ports:
-            - "::1:16509:16509"
-            - "::1:5900-5999:5900-5999" # spice
-            - "::1:5700-5799:5700-5799" # vnc websocket 
+            - "::1:16509:16509" # qemu monitor/control
+            #- "::1:5900-5999:5900-5999" # spice
+            - "::1:5700-5799:5700-5799" # vnc websocket
 
         cap_add:
-          - "NET_ADMIN"
+            - "NET_ADMIN"
         devices:
-          - "/dev/kvm"
+            - "/dev/kvm"
         networks:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.4"
             # we need two networks because the pxe network is bridged
             mows-manager:
 
-
 networks:
     mows-manager:
         name: mows-manager
-        
+
     mows-manager-pxe:
         name: mows-manager-pxe
         driver: bridge
@@ -70,5 +73,3 @@ networks:
         driver_opts:
             com.docker.network.bridge.name: pxe
             com.docker.network.container_iface_prefix: pxe
-        
-

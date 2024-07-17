@@ -259,7 +259,7 @@ impl ClusterStorage {
 
         nodes
             .patch(
-                &node.hostname,
+                &node.machine_id,
                 &kube::api::PatchParams::default(),
                 &Patch::Merge(&patch),
             )

@@ -17,25 +17,37 @@ interface Note {
     id?: string;
     content: string;
     type: "default" | "custom";
+    description?: string;
 }
 
 const defaultNotes: Note[] = [
     {
         content: "sudo journalctl -u k3s -b",
-        type: "default"
+        type: "default",
+        description: "View k3s logs"
     },
     {
         content: "kubectl -n kubernetes-dashboard create token admin-user",
-        type: "default"
+        type: "default",
+        description: "Create a token for the kubernetes-dashboard"
     },
     {
         content:
             "kubectl delete ciliumclusterwidenetworkpolicy.cilium.io -A --all && kubectl delete ciliumnetworkpolicy.cilium.io -A --all && kubectl apply -f /install/core-apis/network/policies/",
-        type: "default"
+        type: "default",
+        description:
+            "Re-apply network policies from install directory, omit the last part to just delete all policies"
     },
     {
         content: "kubectl get ciliumendpoints -A",
-        type: "default"
+        type: "default",
+        description: "List cilium endpoints"
+    },
+    {
+        content:
+            "helm plugin install https://github.com/komodorio/helm-dashboard.git ; helm dashboard --bind=0.0.0.0",
+        type: "default",
+        description: "Install and run helm dashboard"
     }
 ];
 // a notes component that persists notes in local storage
@@ -84,7 +96,7 @@ export default class Notes extends Component<NotesProps, NotesState> {
                 <div className={"flex flex-col gap-4"}>
                     {notes.map((note, index) => (
                         <div key={index} className={"flex justify-between gap-2"}>
-                            <pre>{note.content}</pre>
+                            <pre title={note.description}>{note.content}</pre>
                             {note.type === "custom" && (
                                 <Button
                                     onClick={() => this.removeNote(note.id)}

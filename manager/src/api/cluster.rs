@@ -1,6 +1,7 @@
 use crate::{
     config::{Cluster, ClusterInstallState},
     dev_mode_disabled, get_current_config_cloned,
+    machines::MachineType,
     types::{ApiResponse, ApiResponseStatus},
     write_config,
 };
@@ -22,7 +23,17 @@ pub async fn dev_create_cluster_from_all_machines_in_inventory(
 ) -> Json<ApiResponse<()>> {
     dev_mode_disabled!();
 
-    match Cluster::new().await {
+    let cfg = get_current_config_cloned!();
+
+    // get the ids of all machines that are LocalQemu
+    let machine_ids: Vec<String> = cfg
+        .machines
+        .iter()
+        .filter(|(_, machine)| machine.machine_type == MachineType::LocalQemu)
+        .map(|(id, _)| id.clone())
+        .collect();
+
+    match Cluster::new(&machine_ids).await {
         Ok(_) => Json(ApiResponse {
             message: "Cluster creation started...".to_string(),
             status: ApiResponseStatus::Success,

@@ -275,3 +275,8 @@ impl ClusterPolicy {
         Ok(())
     }
 }
+
+// at toot for mastodon
+/*
+The development of the MOWS Manager (The Cluster Installer) is going well. This week we added cilium network policies as well as Kyverno policy management to prevent the most obvious security issues.
+*/

@@ -8,4 +8,5 @@ netboot
 ui/node_modules
 ui/dist
 scripts
+docker-compose.yml
 

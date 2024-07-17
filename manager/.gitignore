@@ -2,3 +2,4 @@ target
 kcrypt-challenger
 netboot
 temp
+secrets.env

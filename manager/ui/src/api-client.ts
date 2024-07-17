@@ -37,7 +37,8 @@ export interface Cluster {
   install_state?: ClusterInstallState | null;
   k3s_token: string;
   kubeconfig?: string | null;
-  public_ip_config?: PublicIpConfig | null;
+  public_ip_config?: null;
+  vip: any;
 }
 
 export type ClusterCreationConfig = object;
@@ -49,35 +50,21 @@ export enum ClusterInstallState {
 }
 
 export interface ClusterNode {
-  hostname: string;
+  internal_ips: any;
   machine_id: string;
-  ssh: SshAccess;
 }
 
-export interface ExternalHetznerConfig {
+export interface ExternalMachineProviderHcloudConfig {
+  location: string;
   server_type: string;
 }
-
-export type ExternalProviderIpOptions =
-  | {
-      Hetzner: ExternalProviderIpOptionsHetzner;
-    }
-  | "Own";
 
 export interface ExternalProviderIpOptionsHetzner {
   server_id: string;
   ssh_access?: SshAccess | null;
 }
 
-export interface ExternalProviders {
-  hetzner?: ExternalProvidersHetzner | null;
-}
-
-export interface ExternalProvidersHetzner {
-  api_token: string;
-}
-
-export interface LocalQemuConfig {
+export interface LocalMachineProviderQemuConfig {
   /**
    * @format int32
    * @min 0
@@ -96,17 +83,22 @@ export interface Machine {
   install?: null;
   mac?: string | null;
   machine_type: MachineType;
+  ssh: SshAccess;
 }
 
-export type MachineCreationReqBody =
+export interface MachineCreationReqBody {
+  machines: MachineCreationReqType[];
+}
+
+export type MachineCreationReqType =
   | {
-      LocalQemu: LocalQemuConfig;
+      LocalQemu: LocalMachineProviderQemuConfig;
     }
   | {
       Local: string[];
     }
   | {
-      ExternalHetzner: ExternalHetznerConfig;
+      ExternalHcloud: ExternalMachineProviderHcloudConfig;
     };
 
 export interface MachineDeleteReqBody {
@@ -148,12 +140,12 @@ export interface MachineStatus {
 export enum MachineType {
   LocalQemu = "LocalQemu",
   Local = "Local",
-  ExternalHetzner = "ExternalHetzner",
+  ExternalHcloud = "ExternalHcloud",
 }
 
 export interface ManagerConfig {
   clusters: Record<string, Cluster>;
-  external_providers: ExternalProviders;
+  external_provider_config?: null;
   machines: Record<string, Machine>;
 }
 
@@ -163,16 +155,8 @@ export interface PixiecoreBootConfig {
   kernel: string;
 }
 
-export interface PublicIpConfig {
-  ips: Record<string, PublicIpConfigSingleIp>;
-}
-
-export interface PublicIpConfigSingleIp {
-  ip: any;
-  provider: ExternalProviderIpOptions;
-}
-
 export interface SshAccess {
+  remote_hostname?: string | null;
   remote_public_key?: string | null;
   ssh_passphrase: string;
   ssh_password: string;
@@ -465,15 +449,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags crate
-     * @name DevCreateMachines
-     * @request POST:/api/dev/machines/create
+     * @name DevDeleteAllMachines
+     * @request DELETE:/api/dev/machines/delete_all
      */
-    devCreateMachines: (data: MachineCreationReqBody, params: RequestParams = {}) =>
+    devDeleteAllMachines: (params: RequestParams = {}) =>
       this.request<ApiResponse, any>({
-        path: `/api/dev/machines/create`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
+        path: `/api/dev/machines/delete_all`,
+        method: "DELETE",
         format: "json",
         ...params,
       }),
@@ -482,13 +464,15 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags crate
-     * @name DevDeleteAllMachines
-     * @request DELETE:/api/dev/machines/delete_all
+     * @name CreateMachines
+     * @request POST:/api/machines/create
      */
-    devDeleteAllMachines: (params: RequestParams = {}) =>
+    createMachines: (data: MachineCreationReqBody, params: RequestParams = {}) =>
       this.request<ApiResponse, any>({
-        path: `/api/dev/machines/delete_all`,
-        method: "DELETE",
+        path: `/api/machines/create`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -554,20 +538,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     getMachineStatus: (params: RequestParams = {}) =>
       this.request<any, any>({
         path: `/api/machines/status`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags crate
-     * @name DockerTerminal
-     * @request GET:/api/terminal/docker/{id}
-     */
-    dockerTerminal: (id: string, params: RequestParams = {}) =>
-      this.request<string, any>({
-        path: `/api/terminal/docker/${id}`,
         method: "GET",
         ...params,
       }),

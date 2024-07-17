@@ -4,15 +4,17 @@ use axum::http::header::{CONTENT_TYPE, UPGRADE};
 use axum::http::{HeaderValue, Method};
 use axum::routing::{delete, get, post, put};
 use axum::Router;
-use bollard::Docker;
 use manager::api::boot::*;
 use manager::api::cluster::*;
 use manager::api::config::*;
 use manager::api::direct_terminal::*;
-use manager::api::docker_terminal::*;
 use manager::api::machines::*;
-use manager::internal_config::{  INTERNAL_CONFIG};
-use manager::{config::{self, *}};
+use manager::api::public_ip::*;
+use manager::config::{self, *};
+use manager::internal_config::INTERNAL_CONFIG;
+use manager::machines::MachineType;
+use manager::providers::hcloud::machine::ExternalMachineProviderHcloudConfig;
+use manager::providers::qemu::machine::LocalMachineProviderQemuConfig;
 use manager::tasks::{
     apply_environment, get_cluster_kubeconfig, install_cluster_basics, start_cluster_proxy,
     update_machine_install_state,
@@ -50,13 +52,12 @@ static GLOBAL: Jemalloc = Jemalloc;
 #[tracing::instrument]
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-
     #[derive(OpenApi)]
     #[openapi(
         paths(
             update_config,
             get_config,
-            dev_create_machines,
+            create_machines,
             signal_machine,
             dev_create_cluster_from_all_machines_in_inventory,
             get_boot_config_by_mac,
@@ -64,9 +65,9 @@ async fn main() -> Result<(), anyhow::Error> {
             get_machine_info,
             get_machine_status,
             dev_delete_all_machines,
-            docker_terminal,
             direct_terminal,
-            dev_install_cluster_basics
+            dev_install_cluster_basics,
+            create_public_ip_web
         ),
         components(
             schemas(
@@ -76,18 +77,14 @@ async fn main() -> Result<(), anyhow::Error> {
                 Cluster,
                 ClusterNode,
                 BackupNode,
-                ExternalProviders,
-                ExternalProvidersHetzner,
-                PublicIpConfig,
-                PublicIpConfigSingleIp,
-                ExternalProviderIpOptions,
                 ExternalProviderIpOptionsHetzner,
                 SshAccess,
                 MachineType,
+                MachineCreationReqType,
                 Machine,
                 MachineCreationReqBody,
-                LocalQemuConfig,
-                ExternalHetznerConfig,
+                LocalMachineProviderQemuConfig,
+                ExternalMachineProviderHcloudConfig,
                 ClusterCreationConfig,
                 PixiecoreBootConfig,
                 MachineInstallState,
@@ -98,7 +95,8 @@ async fn main() -> Result<(), anyhow::Error> {
                 MachineInfoReqBody,
                 MachineInfoResBody,
                 MachineStatus,
-                
+                PublicIpCreationConfig,
+                PublicIpCreationConfigType,
             )
         ),
         tags(
@@ -108,9 +106,7 @@ async fn main() -> Result<(), anyhow::Error> {
     struct ApiDoc;
 
     let ic = &INTERNAL_CONFIG;
-    
 
-    
     //let _ = Docker::connect_with_local_defaults();
     let console_layer = console_subscriber::ConsoleLayer::builder()
         .server_addr((Ipv6Addr::from_str("::")?, 6669))
@@ -151,78 +147,95 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let serve_dir = ServeDir::new("ui").not_found_service(ServeFile::new("ui/index.html"));
 
-
-
-
     info!("Starting pixiecore server");
 
     Command::new("pixiecore")
-        .args(["api", "http://localhost:3000", "-l", &ic.own_addresses.legacy.to_string(), "--dhcp-no-bind"])
-        .stdout(if ic.log.pixiecore.stdout { Stdio::inherit() } else { Stdio::null() })
-        .stderr(if ic.log.pixiecore.stderr { Stdio::inherit() } else { Stdio::null() })
+        .args([
+            "api",
+            "http://localhost:3000",
+            "-l",
+            &ic.own_addresses.legacy.to_string(),
+            "--dhcp-no-bind",
+        ])
+        .stdout(if ic.log.pixiecore.stdout {
+            Stdio::inherit()
+        } else {
+            Stdio::null()
+        })
+        .stderr(if ic.log.pixiecore.stderr {
+            Stdio::inherit()
+        } else {
+            Stdio::null()
+        })
         .spawn()
         .context("Failed to start pixiecore server")?;
-
-
-
 
     info!("Starting dnsmasq server");
 
     // start dnsmasq: dnsmasq -a 192.168.112.3 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h --domain-needed --bogus-priv --dhcp-authoritative
 
-    let resolv_bak= fs::read_to_string("/etc/resolv.conf.bak").await?;
+    if ic.dev.edit_local_dns_config {
+        let resolv_bak = fs::read_to_string("/etc/resolv.conf.bak").await?;
 
-    let docker_server="nameserver 127.0.0.11";
+        let docker_server = "nameserver 127.0.0.11";
 
-    fs::write("/etc/resolv.dnsmasq.conf", format!(
-        "{}\n{}",
-        docker_server,
-        resolv_bak
-
-    )).await?;
+        fs::write(
+            "/etc/resolv.dnsmasq.conf",
+            format!("{}\n{}", docker_server, resolv_bak),
+        )
+        .await?;
+    };
 
     // the directory for the manually created dns entries
     tokio::fs::create_dir_all("/hosts").await?;
 
-    let args=["--no-daemon",
-    "--log-queries",
-    "--dhcp-alternate-port=67",
-    &format!("--dhcp-range={},{},{}",ic.dhcp.dhcp_range_start, ic.dhcp.dhcp_range_end, ic.dhcp.lease_time),
-    "--domain-needed",
-    "--bogus-priv",
-    "--dhcp-authoritative",
-    "--hostsdir","/hosts/", 
-    "--resolv-file=/etc/resolv.dnsmasq.conf",
-    "--dhcp-leasefile=/temp/dnsmasq/leases",
+    let args = [
+        "--no-daemon",
+        "--log-queries",
+        "--dhcp-alternate-port=67",
+        &format!(
+            "--dhcp-range={},{},{}",
+            ic.dhcp.dhcp_range_start, ic.dhcp.dhcp_range_end, ic.dhcp.lease_time
+        ),
+        "--domain-needed",
+        "--bogus-priv",
+        "--dhcp-authoritative",
+        "--hostsdir",
+        "/hosts/",
+        "--resolv-file=/etc/resolv.dnsmasq.conf",
+        "--dhcp-leasefile=/temp/dnsmasq/leases",
     ];
 
     tokio::fs::create_dir_all("/temp/dnsmasq").await?;
     // enable everyone to delete the folder
     tokio::fs::set_permissions("/temp/dnsmasq", std::fs::Permissions::from_mode(0o777)).await?;
 
+    Command::new("dnsmasq")
+        .args(args)
+        .stdout(if ic.log.dnsmasq.stdout {
+            Stdio::inherit()
+        } else {
+            Stdio::null()
+        })
+        .stderr(if ic.log.dnsmasq.stderr {
+            Stdio::inherit()
+        } else {
+            Stdio::null()
+        })
+        .spawn()
+        .context("Failed to start the dnsmasq server")?;
 
-   Command::new("dnsmasq")
-    .args(args)
-    .stdout(if ic.log.dnsmasq.stdout { Stdio::inherit() } else { Stdio::null() })
-    .stderr(if ic.log.dnsmasq.stderr { Stdio::inherit() } else { Stdio::null() })    
-    .spawn()
-    .context("Failed to start the dnsmasq server")?;
-   
     let mut origins = vec![&ic.primary_origin];
 
     if ic.dev.enabled {
-        let _ =&ic.dev.allow_origins.iter().for_each(|x| origins.push(x));
-
+        let _ = &ic.dev.allow_origins.iter().for_each(|x| origins.push(x));
     }
-
-  
-
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/config", put(update_config))
         .route("/api/config", get(get_config))
-        .route("/api/dev/machines/create", post(dev_create_machines))
+        .route("/api/machines/create", post(create_machines))
         .route("/api/machines/signal", post(signal_machine))
         .route("/api/machines/delete", delete(delete_machine))
         .route("/api/machines/info", post(get_machine_info))
@@ -231,6 +244,7 @@ async fn main() -> Result<(), anyhow::Error> {
             "/api/dev/machines/delete_all",
             delete(dev_delete_all_machines),
         )
+        .route("/api/public_ip/create", post(create_public_ip_web))
         .route(
             "/api/dev/cluster/create_from_all_machines_in_inventory",
             post(dev_create_cluster_from_all_machines_in_inventory),
@@ -240,19 +254,22 @@ async fn main() -> Result<(), anyhow::Error> {
             post(dev_install_cluster_basics),
         )
         .route("/api/terminal/direct/:id", get(direct_terminal))
-        .route("/api/terminal/docker/:id", get(docker_terminal))
         .route("/v1/boot/:mac_addr", get(get_boot_config_by_mac))
         .nest_service("/", serve_dir)
         .layer(
             CorsLayer::new()
-                .allow_origin(origins.iter().map(|x| 
-                    HeaderValue::from_str(x.origin().ascii_serialization().as_str()).unwrap()
-                ).collect::<Vec<HeaderValue>>())
+                .allow_origin(
+                    origins
+                        .iter()
+                        .map(|x| {
+                            HeaderValue::from_str(x.origin().ascii_serialization().as_str())
+                                .unwrap()
+                        })
+                        .collect::<Vec<HeaderValue>>(),
+                )
                 .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
                 .allow_headers([CONTENT_TYPE, UPGRADE]),
         );
-
-
 
     info!("Open {} in your browser", ic.primary_origin);
 
@@ -295,20 +312,20 @@ async fn main() -> Result<(), anyhow::Error> {
     });
 
     tokio::spawn(async {
-        let mut proxy_running_for_cluster:Option<String> = None;
+        let mut proxy_running_for_cluster: Option<String> = None;
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
 
-            if let Some(cluster_id) = &proxy_running_for_cluster{
+            if let Some(cluster_id) = &proxy_running_for_cluster {
                 // the proxy is running... check if the cluster still exists else stop the proxy and allow the next iteration to start a new proxy
                 let cfg1 = config::config().read().await.clone();
-                if cfg1.clusters.get(&cluster_id.clone()).is_none(){
-                    if let Err(e)=Cluster::stop_proxy().await{
+                if cfg1.clusters.get(&cluster_id.clone()).is_none() {
+                    if let Err(e) = Cluster::stop_proxy().await {
                         error!("Could not stop cluster proxy: {:?}", e);
                     }
                     proxy_running_for_cluster = None;
-                }else{
-                continue;
+                } else {
+                    continue;
                 }
             };
 
@@ -325,19 +342,15 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Starting server");
 
-    let listener = tokio::net::TcpListener::bind(
-        SocketAddr::new("::".parse()?,3000),
-    ).await?;
+    let listener = tokio::net::TcpListener::bind(SocketAddr::new("::".parse()?, 3000)).await?;
 
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .with_graceful_shutdown(shutdown_signal())
-    .await.context(
-        "Failed to start server",
-    
-    )?;
+    .await
+    .context("Failed to start server")?;
 
     Ok(())
 }

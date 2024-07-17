@@ -1,11 +1,16 @@
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::path::Path;
 use std::sync::OnceLock;
 use std::{collections::HashMap, net::IpAddr};
 use tokio::fs;
 use tokio::sync::RwLock;
 use tracing::trace;
 use utoipa::ToSchema;
+
+use crate::machines::MachineType;
+use crate::providers::hcloud::index::ExternalProviderConfigHcloud;
 
 #[tracing::instrument]
 pub fn config() -> &'static RwLock<ManagerConfig> {
@@ -81,12 +86,71 @@ impl ManagerConfig {
     }
 
     pub async fn setup_local_ssh_access(&self) -> anyhow::Result<()> {
-        for (i, cluster) in self.clusters.values().enumerate() {
-            cluster.setup_local_ssh_access().await?;
-            if i > 0 {
-                todo!("This only works for one cluster at a time")
-            }
+        let ssh_config_path = Path::new("/root/.ssh/");
+        let known_hosts_path = Path::new("/root/.ssh/");
+
+        let mut known_hosts_file = String::new();
+        let mut ssh_config_file = String::new();
+
+        for machine in self.machines.values() {
+            let remote_pub_key = match &machine.ssh.remote_public_key {
+                Some(key) => key.clone(),
+                None => match machine.ssh.get_remote_pub_key().await {
+                    Ok(key) => key,
+                    Err(e) => {
+                        tracing::trace!("Failed to get remote public key: {:?}", e);
+                        continue;
+                    }
+                },
+            };
+
+            machine
+                .ssh
+                .add_ssh_key_to_local_agent()
+                .await
+                .context(format!(
+                    "Failed to add ssh key to local agent for node {}",
+                    machine.id
+                ))?;
+
+            let hostname = machine
+                .ssh
+                .remote_hostname
+                .clone()
+                .unwrap_or(machine.id.clone());
+
+            let val = format!(
+                r#"
+Host {}
+    User {}
+    IdentityFile /id/{}
+    "#,
+                hostname, machine.ssh.ssh_username, machine.id
+            );
+
+            ssh_config_file.push_str(&val);
+
+            let val = format!("{} ssh-ed25519 {}\n", hostname, remote_pub_key);
+
+            known_hosts_file.push_str(&val);
         }
+
+        fs::create_dir_all(ssh_config_path)
+            .await
+            .context("Failed to create ssh config directory")?;
+
+        fs::write(ssh_config_path.join("config"), ssh_config_file)
+            .await
+            .context("Failed to write ssh config")?;
+
+        fs::create_dir_all(known_hosts_path)
+            .await
+            .context("Failed to create known_hosts directory")?;
+
+        fs::write(known_hosts_path.join("known_hosts"), known_hosts_file)
+            .await
+            .context("Failed to write known_hosts")?;
+
         Ok(())
     }
 }
@@ -94,8 +158,13 @@ impl ManagerConfig {
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
 pub struct ManagerConfig {
     pub clusters: HashMap<String, Cluster>,
-    pub external_providers: ExternalProviders,
+    pub external_provider_config: Option<ExternalProviderConfigMap>,
     pub machines: HashMap<String, Machine>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
+pub struct ExternalProviderConfigMap {
+    pub hcloud: Option<ExternalProviderConfigHcloud>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
@@ -107,9 +176,21 @@ pub struct Cluster {
     pub k3s_token: String,
     pub encryption_key: Option<String>,
     pub backup_nodes: HashMap<String, BackupNode>,
-    pub public_ip_config: Option<PublicIpConfig>,
+    pub public_ip_config: HashMap<String, PublicIpConfig>,
     pub cluster_backup_wg_private_key: Option<String>,
     pub install_state: Option<ClusterInstallState>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
+pub struct PublicIpVmProxy {
+    pub machine_id: String,
+    pub ip: Ipv6Addr,
+    pub legacy_ip: Ipv4Addr,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
+pub enum PublicIpConfig {
+    MachineProxy(PublicIpVmProxy),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
@@ -117,8 +198,8 @@ pub struct Vip {
     pub service: VipIp,
     pub controlplane: VipIp,
 }
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct VipIp {
     pub legacy_ip: Option<Ipv4Addr>,
     pub ip: Option<Ipv6Addr>,
@@ -126,10 +207,12 @@ pub struct VipIp {
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct Machine {
+    // unique hostname
     pub id: String,
     pub machine_type: MachineType,
-    pub mac: Option<String>,
     pub install: Option<MachineInstall>,
+    pub mac: Option<String>,
+    pub ssh: SshAccess,
 }
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct MachineInstall {
@@ -159,19 +242,9 @@ pub struct PixiecoreBootConfig {
     pub cmdline: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
-pub enum MachineType {
-    #[default]
-    LocalQemu,
-    Local,
-    ExternalHetzner,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct ClusterNode {
     pub machine_id: String,
-    pub hostname: String,
-    pub ssh: SshAccess,
     pub internal_ips: InternalIps,
 }
 
@@ -189,33 +262,6 @@ pub struct BackupNode {
     pub backup_wg_private_key: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
-pub struct ExternalProviders {
-    pub hetzner: Option<ExternalProvidersHetzner>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
-pub struct ExternalProvidersHetzner {
-    pub api_token: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
-pub struct PublicIpConfig {
-    pub ips: HashMap<String, PublicIpConfigSingleIp>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
-pub struct PublicIpConfigSingleIp {
-    pub provider: ExternalProviderIpOptions,
-    pub ip: IpAddr,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
-pub enum ExternalProviderIpOptions {
-    Hetzner(ExternalProviderIpOptionsHetzner),
-    Own,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct ExternalProviderIpOptionsHetzner {
     pub server_id: String,
@@ -230,6 +276,7 @@ pub struct SshAccess {
     pub ssh_passphrase: String,
     pub ssh_password: String,
     pub remote_public_key: Option<String>,
+    pub remote_hostname: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, Eq, PartialEq)]

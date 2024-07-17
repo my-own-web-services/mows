@@ -34,7 +34,7 @@ use super::storage::ClusterStorage;
 
 impl Cluster {
     #[tracing::instrument]
-    pub async fn new() -> anyhow::Result<()> {
+    pub async fn new(machine_ids: &Vec<String>) -> anyhow::Result<()> {
         let encryption_key = generate_id(100);
 
         let k3s_token = generate_id(100);
@@ -63,13 +63,18 @@ impl Cluster {
         let cfg1 = get_current_config_cloned!();
 
         let mut primary_hostname: Option<String> = None;
+        // get all machines from the machine_ids variable
+        let machines = cfg1
+            .machines
+            .iter()
+            .filter(|(machine_hostname, _)| machine_ids.contains(machine_hostname))
+            .collect::<HashMap<_, _>>();
 
-        for (i, (machine_name, machine)) in cfg1.machines.iter().enumerate() {
+        for (i, (machine_hostname, machine)) in machines.iter().enumerate() {
             if machine.install.is_some() {
                 continue;
             }
-            let hostname = machine_name.clone().to_lowercase();
-            let ssh_access = SshAccess::new().await?;
+            let hostname = machine_hostname.clone().to_lowercase();
 
             if i == 0 {
                 primary_hostname = Some(hostname.clone());
@@ -86,7 +91,6 @@ impl Cluster {
                     os,
                     &k3s_token,
                     &hostname,
-                    &ssh_access,
                     &primary_hostname.clone().unwrap(),
                     &vip,
                     &internal_ips,
@@ -96,9 +100,7 @@ impl Cluster {
             cluster_nodes.insert(
                 hostname.clone(),
                 ClusterNode {
-                    machine_id: machine_name.clone(),
-                    hostname,
-                    ssh: ssh_access,
+                    machine_id: machine_hostname.to_string(),
                     internal_ips,
                 },
             );
@@ -111,7 +113,7 @@ impl Cluster {
             k3s_token,
             encryption_key: Some(encryption_key),
             backup_nodes: HashMap::new(),
-            public_ip_config: None,
+            public_ip_config: HashMap::new(),
             cluster_backup_wg_private_key: None,
             install_state: None,
             vip,
@@ -135,7 +137,7 @@ impl Cluster {
     pub async fn start_machines(&self, config: &ManagerConfig) -> anyhow::Result<()> {
         debug!("Starting machines");
         for node in self.cluster_nodes.values() {
-            debug!("Starting machine: {}", node.hostname);
+            debug!("Starting machine: {}", node.machine_id);
             sleep(tokio::time::Duration::from_secs(3)).await;
             match config.get_machine_by_id(&node.machine_id) {
                 Some(machine) => machine.start().await?,
@@ -160,14 +162,14 @@ impl Cluster {
                             Ok(kc) => return Ok(kc),
                             Err(e) => debug!(
                                 "Could not get kubeconfig for node: {} {:?}",
-                                node.hostname, e
+                                node.machine_id, e
                             ),
                         }
                     } else {
-                        debug!("Node {} not installed", node.hostname);
+                        debug!("Node {} not installed", node.machine_id);
                     };
                 } else {
-                    debug!("Node {} not installed", node.hostname);
+                    debug!("Node {} not installed", node.machine_id);
                 };
             };
         }
@@ -184,7 +186,7 @@ impl Cluster {
         let hostname = if let Ok(v) = self.controlplane_vip_is_ready().await {
             v
         } else {
-            node.hostname.clone()
+            node.machine_id.clone()
         };
 
         let kubeconfig = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
@@ -220,7 +222,7 @@ impl Cluster {
         let hostname = if let Ok(v) = self.controlplane_vip_is_ready().await {
             v
         } else {
-            node.hostname.clone()
+            node.machine_id.clone()
         };
 
         let kc = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
@@ -468,81 +470,6 @@ impl Cluster {
         ClusterStorage::install(&self).await?;
 
         ClusterDatabases::install(&self).await?;
-
-        Ok(())
-    }
-
-    pub async fn write_known_hosts(&self) -> anyhow::Result<()> {
-        let known_hosts_path = Path::new("/root/.ssh/");
-
-        let mut known_hosts_file = String::new();
-
-        for node in self.cluster_nodes.values() {
-            if let Some(remote_pub_key) = &node.ssh.remote_public_key {
-                let val = format!("{} ssh-ed25519 {}\n", node.hostname, remote_pub_key);
-
-                known_hosts_file.push_str(&val);
-            }
-        }
-
-        fs::create_dir_all(known_hosts_path)
-            .await
-            .context("Failed to create known_hosts directory")?;
-
-        fs::write(known_hosts_path.join("known_hosts"), known_hosts_file)
-            .await
-            .context("Failed to write known_hosts")?;
-
-        Ok(())
-    }
-
-    pub async fn write_local_ssh_config(&self) -> anyhow::Result<()> {
-        let ssh_config_path = Path::new("/root/.ssh/");
-
-        let mut ssh_config_file = String::new();
-
-        for node in self.cluster_nodes.values() {
-            let val = format!(
-                r#"
-Host {}
-    User {}
-    IdentityFile /id/{}
-    "#,
-                node.hostname, node.ssh.ssh_username, node.hostname
-            );
-
-            ssh_config_file.push_str(&val);
-        }
-
-        fs::create_dir_all(ssh_config_path)
-            .await
-            .context("Failed to create ssh config directory")?;
-
-        fs::write(ssh_config_path.join("config"), ssh_config_file)
-            .await
-            .context("Failed to write ssh config")?;
-
-        Ok(())
-    }
-
-    pub async fn setup_local_ssh_access(&self) -> anyhow::Result<()> {
-        for node in self.cluster_nodes.values() {
-            node.ssh
-                .add_ssh_key_to_local_agent()
-                .await
-                .context(format!(
-                    "Failed to add ssh key to local agent for node {}",
-                    node.hostname
-                ))?;
-        }
-
-        self.write_local_ssh_config()
-            .await
-            .context("Failed to write local ssh config")?;
-
-        self.write_known_hosts()
-            .await
-            .context("Failed to write known hosts")?;
 
         Ok(())
     }

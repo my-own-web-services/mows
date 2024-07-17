@@ -1,106 +1,56 @@
 use anyhow::{bail, Context};
-use std::{collections::HashMap, net::IpAddr, process::Stdio};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tokio::process::Command;
 use tracing::debug;
+use utoipa::ToSchema;
 
 use crate::{
-    api::machines::{MachineCreationReqBody, MachineSignal},
+    api::machines::{MachineCreationReqType, MachineSignal},
     config::{
         BackupNode, Cluster, ClusterNode, InternalIps, Machine, MachineInstall,
-        MachineInstallState, MachineType, PixiecoreBootConfig, SshAccess, Vip,
+        MachineInstallState, PixiecoreBootConfig, Vip,
+    },
+    providers::{
+        hcloud::machine::ExternalProviderMachineHcloud, qemu::machine::LocalMachineProviderQemu,
     },
     some_or_bail,
-    utils::{generate_id, get_current_ip_from_mac},
+    utils::generate_id,
     write_config,
 };
 
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
+pub enum MachineType {
+    #[default]
+    LocalQemu,
+    Local,
+    ExternalHcloud,
+}
+
 impl Machine {
-    pub async fn new(machine_creation_config: &MachineCreationReqBody) -> anyhow::Result<Self> {
+    pub async fn new(machine_creation_config: &MachineCreationReqType) -> anyhow::Result<Self> {
+        let machine_name: String = format!("mows-{}", generate_id(8)).to_lowercase();
+
         Ok(match machine_creation_config {
-            MachineCreationReqBody::LocalQemu(cc) => {
-                let machine_name: String = format!("mows-{}", generate_id(8)).to_lowercase();
-
-                let primary_volume_name = format!("{}-ssd", machine_name);
-                let primary_volume_size = 30;
-                let secondary_volume_name = format!("{}-hdd", machine_name);
-                let secondary_volume_size = 30;
-
-                let memory = u32::from(cc.memory) * 1024;
-
-                Command::new("virt-install")
-                    .args([
-                        "--name",
-                        &machine_name,
-                        "--memory",
-                        memory.to_string().as_str(),
-                        "--vcpus",
-                        &cc.cpus.to_string(),
-                        "--os-variant",
-                        "linux2022",
-                        "--machine",
-                        "q35",
-                        "--network",
-                        "network=mows-manager,model=virtio",
-                        "--video",
-                        "qxl",
-                        "--graphics",
-                        "vnc,listen=0.0.0.0,websocket=-1",
-                        "--boot",
-                        "hd,network,menu=on",
-                        "--pxe",
-                        "--noautoconsole",
-                        "--tpm",
-                        "backend.type=emulator,backend.version=2.0,model=tpm-tis",
-                        "--rng",
-                        "/dev/urandom",
-                        "--disk",
-                        &format!(
-                            "path=/var/lib/libvirt/images/{}.qcow2,size={},format=qcow2,bus=virtio",
-                            primary_volume_name, primary_volume_size
-                        ),
-                        "--disk",
-                        &format!(
-                            "path=/var/lib/libvirt/images/{}.qcow2,size={},format=qcow2,bus=virtio",
-                            secondary_volume_name, secondary_volume_size
-                        ),
-                    ])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
-
-                let mac = qemu_get_mac_address(&machine_name).await?;
-
-                let machine = Machine {
-                    id: machine_name.clone(),
-                    mac: Some(mac),
-                    machine_type: MachineType::LocalQemu,
-                    install: None,
-                };
-
-                machine.force_off().await?;
-                machine
+            MachineCreationReqType::LocalQemu(cc) => {
+                LocalMachineProviderQemu::new(cc, &machine_name).await?
             }
-            MachineCreationReqBody::Local(_) => todo!(),
-            MachineCreationReqBody::ExternalHetzner(_) => todo!(),
+            MachineCreationReqType::Local(_) => todo!(),
+            MachineCreationReqType::ExternalHcloud(hc) => {
+                ExternalProviderMachineHcloud::new(hc, &machine_name).await?
+            }
         })
+    }
+
+    pub async fn exec(&self, command: &str, timeout_seconds: u32) -> anyhow::Result<String> {
+        self.ssh.exec(&self, command, timeout_seconds).await
     }
 
     pub async fn get_infos(&self) -> anyhow::Result<serde_json::Value> {
         Ok(match self.machine_type {
-            MachineType::LocalQemu => {
-                let output = Command::new("virsh")
-                    .args(["dumpxml", &self.id])
-                    .output()
-                    .await?;
-                let output = String::from_utf8(output.stdout)?;
-
-                let xml: serde_json::Value = serde_xml_rs::from_str(&output)?;
-
-                xml
-            }
+            MachineType::LocalQemu => LocalMachineProviderQemu::get_infos(&self.id).await?,
             MachineType::Local => todo!(),
-            MachineType::ExternalHetzner => todo!(),
+            MachineType::ExternalHcloud => todo!(),
         })
     }
 
@@ -116,7 +66,7 @@ impl Machine {
                 output
             }
             MachineType::Local => todo!(),
-            MachineType::ExternalHetzner => todo!(),
+            MachineType::ExternalHcloud => todo!(),
         })
     }
 
@@ -124,103 +74,13 @@ impl Machine {
         todo!()
     }
 
-    pub async fn dev_delete_all() -> anyhow::Result<()> {
-        // list all virtual machines
-        let output = Command::new("virsh")
-            .args(["list", "--all"])
-            .output()
-            .await?;
-        let output = String::from_utf8(output.stdout)?;
-
-        let lines: Vec<&str> = output.lines().collect();
-        for line in lines {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() > 1 {
-                let machine_name = parts[1];
-                if machine_name.starts_with("mows-") {
-                    Command::new("virsh")
-                        .args(["destroy", machine_name])
-                        .stdout(Stdio::null())
-                        .spawn()?
-                        .wait()
-                        .await?;
-                    Command::new("virsh")
-                        .args(["undefine", machine_name])
-                        .stdout(Stdio::null())
-                        .spawn()?
-                        .wait()
-                        .await?;
-                    Command::new("virsh")
-                        .args([
-                            "vol-delete",
-                            "--pool",
-                            "default",
-                            &format!("{}-primary.qcow2", machine_name),
-                        ])
-                        .stdout(Stdio::null())
-                        .spawn()?
-                        .wait()
-                        .await?;
-                    Command::new("virsh")
-                        .args([
-                            "vol-delete",
-                            "--pool",
-                            "default",
-                            &format!("{}-secondary.qcow2", machine_name),
-                        ])
-                        .stdout(Stdio::null())
-                        .spawn()?
-                        .wait()
-                        .await?;
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     pub async fn delete(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => {
-                Command::new("virsh")
-                    .args(["destroy", &self.id])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
-                Command::new("virsh")
-                    .args(["undefine", &self.id])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
-
-                Command::new("virsh")
-                    .args([
-                        "vol-delete",
-                        "--pool",
-                        "default",
-                        &format!("{}-primary.qcow2", &self.id),
-                    ])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
-
-                Command::new("virsh")
-                    .args([
-                        "vol-delete",
-                        "--pool",
-                        "default",
-                        &format!("{}-secondary.qcow2", &self.id),
-                    ])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
+                LocalMachineProviderQemu::delete(&self.id).await?;
             }
             MachineType::Local => todo!(),
-            MachineType::ExternalHetzner => todo!(),
+            MachineType::ExternalHcloud => todo!(),
         };
         let mut config_lock = write_config!();
 
@@ -246,86 +106,41 @@ impl Machine {
 
     pub async fn start(&self) -> anyhow::Result<()> {
         match self.machine_type {
-            MachineType::LocalQemu => {
-                Command::new("virsh")
-                    .args(["start", &self.id])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
-
-                Ok(())
-            }
+            MachineType::LocalQemu => LocalMachineProviderQemu::start(&self.id).await,
             MachineType::Local => todo!(),
-            MachineType::ExternalHetzner => todo!(),
+            MachineType::ExternalHcloud => todo!(),
         }
     }
 
     pub async fn reboot(&self) -> anyhow::Result<()> {
         match self.machine_type {
-            MachineType::LocalQemu => {
-                Command::new("virsh")
-                    .args(["reboot", &self.id])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
-
-                Ok(())
-            }
+            MachineType::LocalQemu => LocalMachineProviderQemu::reboot(&self.id).await,
             MachineType::Local => todo!(),
-            MachineType::ExternalHetzner => todo!(),
+            MachineType::ExternalHcloud => todo!(),
         }
     }
 
     pub async fn shutdown(&self) -> anyhow::Result<()> {
         match self.machine_type {
-            MachineType::LocalQemu => {
-                Command::new("virsh")
-                    .args(["shutdown", &self.id])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
-
-                Ok(())
-            }
+            MachineType::LocalQemu => LocalMachineProviderQemu::shutdown(&self.id).await,
             MachineType::Local => todo!(),
-            MachineType::ExternalHetzner => todo!(),
+            MachineType::ExternalHcloud => todo!(),
         }
     }
 
     pub async fn reset(&self) -> anyhow::Result<()> {
         match self.machine_type {
-            MachineType::LocalQemu => {
-                Command::new("virsh")
-                    .args(["reset", &self.id])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
-
-                Ok(())
-            }
+            MachineType::LocalQemu => LocalMachineProviderQemu::reset(&self.id).await,
             MachineType::Local => todo!(),
-            MachineType::ExternalHetzner => todo!(),
+            MachineType::ExternalHcloud => todo!(),
         }
     }
 
     pub async fn force_off(&self) -> anyhow::Result<()> {
         match self.machine_type {
-            MachineType::LocalQemu => {
-                Command::new("virsh")
-                    .args(["destroy", &self.id])
-                    .stdout(Stdio::null())
-                    .spawn()?
-                    .wait()
-                    .await?;
-
-                Ok(())
-            }
+            MachineType::LocalQemu => LocalMachineProviderQemu::force_off(&self.id).await,
             MachineType::Local => todo!(),
-            MachineType::ExternalHetzner => todo!(),
+            MachineType::ExternalHcloud => todo!(),
         }
     }
 
@@ -347,7 +162,6 @@ impl Machine {
         os: &str,
         k3s_token: &str,
         own_hostname: &str,
-        ssh_config: &SshAccess,
         primary_node_hostname: &str,
         vip: &Vip,
         internal_ips: &InternalIps,
@@ -364,7 +178,7 @@ impl Machine {
             os,
             k3s_token,
             own_hostname,
-            ssh_config,
+            &self.ssh,
             primary_node_hostname,
             virt,
             vip,
@@ -418,15 +232,8 @@ impl Machine {
         bail!("No node found")
     }
 
-    pub async fn poll_install_state(
-        &self,
-        clusters: &HashMap<String, Cluster>,
-    ) -> anyhow::Result<()> {
-        let node = &self
-            .get_attached_cluster_node(clusters)
-            .context("Could not find attached cluster node for requested install")?;
-
-        let output = node
+    pub async fn poll_install_state(&self) -> anyhow::Result<()> {
+        let output = &self
             .exec(&format!("sudo systemctl status k3s"), 1)
             .await
             .context("Could not get node status.")?;
@@ -437,31 +244,4 @@ impl Machine {
             bail!("Node not ready")
         }
     }
-
-    pub async fn get_current_ip(&self) -> anyhow::Result<IpAddr> {
-        if let Some(mac) = &self.mac {
-            if let Ok(ip_from_mac) = get_current_ip_from_mac(mac).await {
-                if let Ok(ip_from_mac_parsed) = ip_from_mac.parse() {
-                    return Ok(ip_from_mac_parsed);
-                }
-            }
-        };
-
-        bail!("No IP found")
-    }
-}
-
-async fn qemu_get_mac_address(node_name: &str) -> anyhow::Result<String> {
-    let output = Command::new("virsh")
-        .args(["domiflist", node_name])
-        .output()
-        .await?;
-    let output = String::from_utf8(output.stdout)?;
-
-    let lines: Vec<&str> = output.lines().collect();
-    let mac_line = some_or_bail!(lines.get(2), "No MAC address found: mac_line");
-    let parts: Vec<&str> = mac_line.split_whitespace().collect();
-    let mac_address = some_or_bail!(parts.get(4), "No MAC address found: mac_address");
-
-    Ok(mac_address.to_string())
 }

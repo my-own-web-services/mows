@@ -235,7 +235,11 @@ spec:
             "hostFirewall": {
                 "enabled": true
             },
-
+            "encryption":{
+                "enabled": true,
+                "type":"wireguard",
+                "nodeEncryption":true
+            }
         });
 
         let mut tempfile =
