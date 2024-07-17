@@ -76,15 +76,15 @@ async fn run_command(
 
     if id != "local" {
         let config = get_current_config_cloned!();
-        let (_, selected_node) = config
-            .clusters
-            .iter()
-            .flat_map(|(_, cluster)| cluster.cluster_nodes.iter())
-            .find(|(node_id, _)| **node_id == id)
-            .ok_or(anyhow::anyhow!(
-                "Failed to find node with id {id} in the current config"
-            ))?;
-        let pw = &selected_node.ssh.ssh_password;
+
+        let machine = config.get_machine_by_id(&id).ok_or(anyhow::anyhow!(
+            "Failed to find machine with id {} in the current config",
+            id
+        ))?;
+
+        let ssh = &machine.ssh;
+
+        let pw = &ssh.ssh_password;
         writeln!(tempfile, "{pw}")?;
 
         let pw_path = tempfile.path().to_str().ok_or(anyhow::anyhow!(
@@ -94,7 +94,9 @@ async fn run_command(
 
         let command_str = format!(
             "sshpass -f {} ssh {}@{}",
-            pw_path, selected_node.ssh.ssh_username, selected_node.hostname
+            pw_path,
+            machine.ssh.ssh_username,
+            ssh.remote_hostname.clone().unwrap_or(machine.id.clone())
         );
 
         debug!("Running command: {command_str}");

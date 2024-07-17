@@ -87,6 +87,8 @@ pub struct DevConfig {
     pub enabled: bool,
     pub allow_origins: Vec<Url>,
     pub skip_network_policy_install: bool,
+    #[serde(default = "bool::default")]
+    pub edit_local_dns_config: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

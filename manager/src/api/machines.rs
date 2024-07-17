@@ -15,26 +15,36 @@ use utoipa::ToSchema;
 use crate::{
     config::{config, Machine, ManagerConfig},
     dev_mode_disabled, get_current_config_cloned,
+    providers::{
+        hcloud::machine::ExternalMachineProviderHcloudConfig,
+        qemu::machine::{LocalMachineProviderQemu, LocalMachineProviderQemuConfig},
+    },
     types::{ApiResponse, ApiResponseStatus},
     write_config,
 };
 
 #[utoipa::path(
     post,
-    path = "/api/dev/machines/create",
+    path = "/api/machines/create",
     request_body = MachineCreationReqBody,
     responses(
         (status = 200, description = "Created machines", body = ApiResponse<()>),
     )
 )]
-pub async fn dev_create_machines(
+pub async fn create_machines(
     Json(machine_creation_config): Json<MachineCreationReqBody>,
 ) -> Json<ApiResponse<()>> {
-    dev_mode_disabled!();
-
     spawn(async move {
-        if let Err(e) = dev_create_3_machines(machine_creation_config).await {
-            error!("Failed to create machine: {:?}", e);
+        for machine_creation_req in machine_creation_config.machines {
+            let machine = match Machine::new(&machine_creation_req).await {
+                Ok(machine) => machine,
+                Err(e) => {
+                    error!("Failed to create machine: {:?}", e);
+                    continue;
+                }
+            };
+            let mut config_locked = write_config!();
+            config_locked.machines.insert(machine.id.clone(), machine);
         }
     });
 
@@ -43,17 +53,6 @@ pub async fn dev_create_machines(
         status: ApiResponseStatus::Success,
         data: None,
     })
-}
-
-pub async fn dev_create_3_machines(
-    machine_creation_config: MachineCreationReqBody,
-) -> anyhow::Result<()> {
-    for _ in 0..3 {
-        let machine = Machine::new(&machine_creation_config).await?;
-        let mut config_locked = write_config!();
-        config_locked.machines.insert(machine.id.clone(), machine);
-    }
-    Ok(())
 }
 
 #[utoipa::path(
@@ -144,7 +143,7 @@ pub async fn delete_machine(
 pub async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
     dev_mode_disabled!();
 
-    if let Err(e) = Machine::dev_delete_all().await {
+    if let Err(e) = LocalMachineProviderQemu::dev_delete_all().await {
         return Json(ApiResponse {
             message: format!("Failed to delete machines: {}", e),
             status: ApiResponseStatus::Error,
@@ -272,22 +271,13 @@ pub enum MachineSignal {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub enum MachineCreationReqBody {
-    LocalQemu(LocalQemuConfig),
-    Local(Vec<String>),
-    ExternalHetzner(ExternalHetznerConfig),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
-pub struct LocalQemuConfig {
-    /**
-     * Memory in GB
-     */
-    pub memory: u8,
-    pub cpus: u8,
+pub struct MachineCreationReqBody {
+    pub machines: Vec<MachineCreationReqType>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct ExternalHetznerConfig {
-    pub server_type: String,
+pub enum MachineCreationReqType {
+    LocalQemu(LocalMachineProviderQemuConfig),
+    Local(Vec<String>),
+    ExternalHcloud(ExternalMachineProviderHcloudConfig),
 }

@@ -8,11 +8,12 @@ use std::time::Duration;
 use tempfile::NamedTempFile;
 use tokio::{io::AsyncWriteExt, process::Command};
 
-use crate::write_config;
+use crate::config::Machine;
 use crate::{
     config::{ClusterNode, SshAccess},
     utils::generate_id,
 };
+use crate::{some_or_bail, write_config};
 
 struct SshPubAndPrivKey {
     pub pub_key: String,
@@ -20,8 +21,11 @@ struct SshPubAndPrivKey {
 }
 
 impl SshAccess {
-    pub async fn new() -> anyhow::Result<Self> {
-        let ssh_username = "kairos".to_string();
+    pub async fn new(
+        remote_hostname: Option<String>,
+        ssh_username: Option<&str>,
+    ) -> anyhow::Result<Self> {
+        let ssh_username = ssh_username.unwrap_or("kairos").to_string();
         let ssh_password = generate_id(100);
         let ssh_passphrase = generate_id(100);
 
@@ -34,6 +38,7 @@ impl SshAccess {
             ssh_passphrase,
             ssh_password,
             remote_public_key: None,
+            remote_hostname,
         })
     }
 
@@ -58,8 +63,9 @@ impl SshAccess {
         Ok(keys)
     }
 
-    pub async fn get_remote_pub_key(&self, hostname: &str) -> anyhow::Result<String> {
-        let output = Command::new("ssh-keyscan").arg(hostname).output().await?;
+    pub async fn get_remote_pub_key(&self) -> anyhow::Result<String> {
+        let hostname = some_or_bail!(self.remote_hostname.as_ref(), "No remote hostname");
+        let output = Command::new("ssh-keyscan").arg(&hostname).output().await?;
 
         let pub_key = if output.status.success() {
             String::from_utf8_lossy(&output.stdout).to_string()
@@ -81,16 +87,14 @@ impl SshAccess {
         bail!("Failed to get remote public key: {:?}", pub_key)
     }
 
-    pub async fn set_remote_pub_key(&self, current_node: &ClusterNode) -> anyhow::Result<String> {
-        let pub_key = self.get_remote_pub_key(&current_node.hostname).await?;
+    pub async fn set_remote_pub_key(&self, current_machine: &Machine) -> anyhow::Result<String> {
+        let pub_key = self.get_remote_pub_key().await?;
 
         let mut config = write_config!();
-        for cluster in config.clusters.values_mut() {
-            for node in cluster.cluster_nodes.values_mut() {
-                if node.hostname == current_node.hostname {
-                    node.ssh.remote_public_key = Some(pub_key.clone());
-                    return Ok(pub_key);
-                }
+
+        for machine in config.machines.values_mut() {
+            if machine.id == current_machine.id {
+                machine.ssh.remote_public_key = Some(pub_key.clone());
             }
         }
         Ok(pub_key)
@@ -98,13 +102,13 @@ impl SshAccess {
 
     pub async fn exec(
         &self,
-        node: &ClusterNode,
+        machine: &Machine,
         command: &str,
         _timeout_seconds: u32,
     ) -> anyhow::Result<String> {
         let remote_pub_key = match &self.remote_public_key {
             Some(pk) => pk.clone(),
-            None => self.set_remote_pub_key(node).await?.clone(),
+            None => self.set_remote_pub_key(machine).await?.clone(),
         };
 
         let auth_method = AuthMethod::with_key(&self.ssh_private_key, Some(&self.ssh_passphrase));
@@ -113,7 +117,7 @@ impl SshAccess {
         ssh_config.inactivity_timeout = Some(Duration::from_secs(2));
 
         let client = Client::connect_with_config(
-            (node.hostname.clone(), 22),
+            (machine.id.clone(), 22),
             &self.ssh_username,
             auth_method,
             ServerCheckMethod::PublicKey(remote_pub_key),

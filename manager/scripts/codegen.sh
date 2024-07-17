@@ -5,7 +5,7 @@ set -euo pipefail
 docker build -t mows-manager . -f docker/manager.Dockerfile
 docker remove mows-manager-codegen-server --force
 docker network create mows-codegen || true
-docker run -d --rm -p 3001:3000 --network=mows-codegen --name mows-manager-codegen-server mows-manager 
+docker run -d --rm -p 3001:3000 -v "./misc/internal-config.yml:/internal-config.yml" -e EDIT_LOCAL_DNS_CONFIG=false -e WEB_PORT=3000 --network=mows-codegen --name mows-manager-codegen-server mows-manager 
 
 sleep 2
 

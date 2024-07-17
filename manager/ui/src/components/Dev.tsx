@@ -7,6 +7,8 @@ import {
     ApiResponseStatus,
     Cluster,
     HttpResponse,
+    MachineCreationReqBody,
+    MachineCreationReqType,
     ManagerConfig
 } from "../api-client";
 import { configSignal } from "../config";
@@ -94,10 +96,25 @@ class Dev extends Component<DevProps, DevState> {
             });
     };
 
-    createMachines = async () => {
-        await this.handleApiCall(() =>
-            this.props.client.api.devCreateMachines({ LocalQemu: { memory: 4, cpus: 2 } })
-        );
+    devCreateMachines = async () => {
+        let machines: MachineCreationReqType[] = Array(3).fill({
+            LocalQemu: { memory: 4, cpus: 2 }
+        });
+        let creation_config: MachineCreationReqBody = {
+            machines
+        };
+        await this.handleApiCall(() => this.props.client.api.createMachines(creation_config));
+    };
+
+    devCreateHcloudMachine = async () => {
+        let creation_config: MachineCreationReqBody = {
+            machines: [
+                {
+                    ExternalHcloud: { server_type: "cx22", location: "nbg1" }
+                }
+            ]
+        };
+        await this.handleApiCall(() => this.props.client.api.createMachines(creation_config));
     };
 
     devCreateClusterFromAllMachinesInInventory = async () => {
@@ -166,7 +183,7 @@ class Dev extends Component<DevProps, DevState> {
                             title="Delete all VMs with the mows- prefix as well as their storage"
                             onClick={this.deleteAllMowsMachines}
                         >
-                            Delete all MOWS virtual machines
+                            Delete all MOWS local vms
                         </Button>
                         <div className={"flex w-[200px] gap-2"}>
                             <Input
@@ -177,9 +194,9 @@ class Dev extends Component<DevProps, DevState> {
                             />
                             <Button onClick={this.setConfig}>Set config</Button>
                         </div>
-                        <Button onClick={this.createMachines}>Create virtual machines</Button>
+                        <Button onClick={this.devCreateMachines}>Create 3 local vms</Button>
                         <Button onClick={this.devCreateClusterFromAllMachinesInInventory}>
-                            Create cluster from all machines in inventory
+                            Create cluster from all local machines in inventory
                         </Button>
                         <Button onClick={this.installClusterBasics}>Install Cluster Basics</Button>
                         <Button
@@ -193,6 +210,12 @@ class Dev extends Component<DevProps, DevState> {
                             onClick={this.saveConfigToLocalStorage}
                         >
                             Save config to LS
+                        </Button>
+                        <Button
+                            title="Create a machine on hcloud, HCLOUD_API_TOKEN must be set in secrets.env"
+                            onClick={this.devCreateHcloudMachine}
+                        >
+                            Create hcloud machine
                         </Button>
                     </div>
                     <div className={"flex h-[400px] items-stretch gap-2 pt-4"}>

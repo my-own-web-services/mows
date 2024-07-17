@@ -14,7 +14,7 @@ pub async fn update_machine_install_state() -> anyhow::Result<()> {
         if let Some(install) = &machine.install {
             if install.state == Some(MachineInstallState::Requested) {
                 debug!("Checking Machine {} install state", machine.id);
-                match machine.poll_install_state(&cfg1.clusters).await {
+                match machine.poll_install_state().await {
                     Ok(_) => (),
                     Err(e) => {
                         trace!("Machine not installed yet: {:?}", e);

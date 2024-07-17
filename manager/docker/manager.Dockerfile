@@ -23,7 +23,7 @@ ARG DEBCONF_NONINTERACTIVE_SEEN "true"
 
 RUN set -eu && \
     apt-get update && \
-    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less jq
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less jq tcpdump wireguard
 
 # install pixiecore
 RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add - && \
@@ -74,6 +74,22 @@ RUN set -x; cd "$(mktemp -d)" && \
     tar zxvf "${KREW}.tar.gz" && \
     ./"${KREW}" install krew
 RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg
+
+
+# install helmfile https://github.com/helmfile/helmfile/releases/download/v1.0.0-rc.2/helmfile_1.0.0-rc.2_linux_amd64.tar.gz
+RUN wget https://github.com/helmfile/helmfile/releases/download/v1.0.0-rc.2/helmfile_1.0.0-rc.2_linux_amd64.tar.gz -O /tmp/helmfile.tar.gz && \
+    tar -xvf /tmp/helmfile.tar.gz -C /usr/local/bin && \
+    chmod +x /usr/local/bin/helmfile && \
+    rm /tmp/helmfile.tar.gz
+
+
+# install helm plugins
+RUN helm plugin install https://github.com/databus23/helm-diff && \
+    helm plugin install https://github.com/hypnoglow/helm-s3.git && \
+    helm plugin install https://github.com/jkroepke/helm-secrets && \
+    helm plugin install https://github.com/aslafy-z/helm-git
+
+
 
 
 # colored bash & other bash stuff
