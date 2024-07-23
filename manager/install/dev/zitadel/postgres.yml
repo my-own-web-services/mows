@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: mows-cloud-apis-zitadel
+    labels:
+        mows.cloud/api-type: cloud
+        mows.cloud/core-apis-disable-kyverno: "false"
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+    name: zitadel-postgres
+    namespace: mows-cloud-apis-zitadel
+spec:
+    instances: 2
+    storage:
+        size: 2Gi
+    primaryUpdateStrategy: unsupervised
+    enableSuperuserAccess: true
+    superuserSecret:
+        name: cluster-example-superuser
+---
+apiVersion: v1
+data:
+    password: dU4zaTFIaDBiWWJDYzRUeVZBYWNCaG1TemdxdHpxeG1PVmpBbjBRSUNoc0pyU211OVBZMmZ3MnE4RUtLTHBaOQ==
+    username: cG9zdGdyZXM=
+kind: Secret
+metadata:
+    name: cluster-example-superuser
+    namespace: mows-cloud-apis-zitadel
+type: kubernetes.io/basic-auth
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+    name: zitadel
+    namespace: mows-cloud-apis-zitadel
+spec:
+    entryPoints:
+        - web
+    routes:
+        - kind: Rule
+          match: PathPrefix(`/`)
+          services:
+              - kind: Service
+                namespace: mows-cloud-apis-zitadel
+                name: mows-cloud-apis-zitadel
+                port: 8080

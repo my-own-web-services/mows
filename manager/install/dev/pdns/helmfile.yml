@@ -1,0 +1,32 @@
+repositories:
+    - name: halkeye
+      url: https://halkeye.github.io/helm-charts/
+
+releases:
+    - name: mows-cloud-apis-pdns
+      namespace: mows-cloud-apis-pdns
+      chart: halkeye/powerdns
+      createNamespace: true
+      version: 0.4.0
+      values:
+          - powerdns:
+                postgres:
+                    host: pdns-postgres-rw
+                    port: 5432
+                    database: app
+                    username: postgres
+                    password: uN3i1Hh0bYbCc4TyVAacBhmSzgqtzqxmOVjAn0QIChsJrSmu9PY2fw2q8EKKLpZ9
+    - name: mows-cloud-apis-pdns-admin
+      namespace: mows-cloud-apis-pdns
+      chart: halkeye/powerdnsadmin
+      createNamespace: true
+      version: 0.3.1
+      values:
+          - db:
+                type: postgres
+                host: pdns-postgres-rw
+                port: 5432
+                database: app
+                username: postgres
+                password: uN3i1Hh0bYbCc4TyVAacBhmSzgqtzqxmOVjAn0QIChsJrSmu9PY2fw2q8EKKLpZ9
+# http://localhost:8001/api/v1/namespaces/mows-cloud-apis-pdns/services/http:mows-cloud-apis-pdns-admin-powerdnsadmin:http/proxy/login

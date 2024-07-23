@@ -1,0 +1,11 @@
+apiVersion: tor.k8s.io/v1alpha1
+kind: OnionService
+metadata:
+    name: basic-onion-service
+spec:
+    version: 2
+    selector:
+        app: example
+    ports:
+        - publicPort: 80
+          targetPort: 80

@@ -1,0 +1,15 @@
+services:
+    wg-test:
+        image: wg-test
+        container_name: wg-test
+        build:
+            context: "whoami"
+            dockerfile: Dockerfile
+        volumes:
+            - ./wg0.conf:/etc/wireguard/wg0.conf
+        cap_add:
+            - NET_ADMIN
+            - SYS_MODULE
+        sysctls:
+            - net.ipv4.conf.all.src_valid_mark=1
+            - net.ipv4.ip_forward=1

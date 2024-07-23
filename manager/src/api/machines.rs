@@ -15,6 +15,7 @@ use utoipa::ToSchema;
 use crate::{
     config::{config, Machine, ManagerConfig},
     dev_mode_disabled, get_current_config_cloned,
+    machines::MachineType,
     providers::{
         hcloud::machine::ExternalMachineProviderHcloudConfig,
         qemu::machine::{LocalMachineProviderQemu, LocalMachineProviderQemuConfig},
@@ -151,9 +152,23 @@ pub async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
         });
     }
 
+    let config = get_current_config_cloned!();
+
+    let machine_vec: Vec<(&String, &Machine)> = config
+        .machines
+        .iter()
+        .filter(|(_, machine)| match machine.machine_type {
+            MachineType::LocalQemu => true,
+            _ => false,
+        })
+        .collect();
     let mut config = write_config!();
 
-    *config = ManagerConfig::default();
+    for (id, _) in machine_vec {
+        config.machines.remove(id);
+    }
+
+    config.clusters.clear();
 
     Json(ApiResponse {
         message: "Machines deleted".to_string(),
@@ -215,11 +230,11 @@ pub async fn handle_get_machine_status(mut socket: WebSocket) {
         let config = get_current_config_cloned!();
 
         for machine in config.machines.values() {
-            let infos = machine.get_status().await.unwrap();
+            let status = machine.get_status().await.unwrap_or("Unknown".to_string());
 
             let status = MachineStatus {
                 id: machine.id.clone(),
-                status: infos,
+                status,
             };
 
             let message = Message::Text(serde_json::to_string(&status).unwrap());

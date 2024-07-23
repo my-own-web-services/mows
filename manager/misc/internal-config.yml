@@ -17,7 +17,6 @@ dev:
     allow_origins:
         - "http://localhost:5173"
     skip_network_policy_install: true
-    edit_local_dns_config: $EDIT_LOCAL_DNS_CONFIG
 
 log:
     dnsmasq:

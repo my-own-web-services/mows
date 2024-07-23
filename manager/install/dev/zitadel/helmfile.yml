@@ -1,0 +1,46 @@
+repositories:
+    - name: zitadel
+      url: https://charts.zitadel.com
+
+releases:
+    - name: mows-cloud-apis-zitadel
+      namespace: mows-cloud-apis-zitadel
+      chart: zitadel/zitadel
+      createNamespace: true
+      version: 8.0.0
+      values:
+          - replicaCount: 1
+            zitadel:
+                masterkey: "huiwerfuhiewuihefwhuiiuihefwhuii"
+                configmapConfig:
+                    TLS:
+                        Enabled: false
+                    ExternalSecure: false
+                    ExternalDomain: svc.rhv36zxe
+                    ExternalPort: 80
+                    Database:
+                        postgres:
+                            Host: zitadel-postgres-rw
+                            Port: 5432
+                            Database: app
+                            MaxOpenConns: 25
+                            MaxIdleConns: 10
+                            MaxConnLifetime: 1h
+                            MaxConnIdleTime: 5m
+                            Options:
+                            User:
+                                Username: YXBw
+                                Password: GyvhcHqzBw17szJOJ3OvfGGhbyOSxSG6VNtzx9vofxcNXIED8W4N5E2rp3abdaiO
+                                SSL:
+                                    Mode: disable
+                                    RootCert:
+                                    Cert:
+                                    Key:
+                            Admin:
+                                Username: postgres
+                                Password: uN3i1Hh0bYbCc4TyVAacBhmSzgqtzqxmOVjAn0QIChsJrSmu9PY2fw2q8EKKLpZ9
+                                SSL:
+                                    Mode: disable
+                                    RootCert:
+                                    Cert:
+                                    Key:

@@ -48,12 +48,16 @@ export default class VNC extends Component<VNCProps, VNCState> {
     }
 
     loadMachineInfo = async () => {
-        const res = await this.client.api.getMachineInfo({
-            machine_id: this.props.machine.id
-        });
+        const res = await this.client.api
+            .getMachineInfo({
+                machine_id: this.props.machine.id
+            })
+            .catch((e) => {
+                console.error(e);
+            });
 
         //@ts-ignore
-        const machine_infos: MachineInfoResBody = res.data?.data?.machine_infos;
+        const machine_infos: MachineInfoResBody = res?.data?.data?.machine_infos;
         this.setState({ machine_infos: null }, () => {
             this.setState({ machine_infos });
         });

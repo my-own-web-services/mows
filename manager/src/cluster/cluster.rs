@@ -19,7 +19,6 @@ use kube::{
     Api,
 };
 use tempfile::NamedTempFile;
-use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tokio::time::sleep;
@@ -74,7 +73,7 @@ impl Cluster {
             if machine.install.is_some() {
                 continue;
             }
-            let hostname = machine_hostname.clone().to_lowercase();
+            let hostname = machine_hostname.to_lowercase();
 
             if i == 0 {
                 primary_hostname = Some(hostname.clone());

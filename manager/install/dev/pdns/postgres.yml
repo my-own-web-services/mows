@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: mows-cloud-apis-pdns
+    labels:
+        mows.cloud/api-type: cloud
+        mows.cloud/core-apis-disable-kyverno: "false"
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+    name: pdns-postgres
+    namespace: mows-cloud-apis-pdns
+spec:
+    instances: 2
+    storage:
+        size: 2Gi
+    primaryUpdateStrategy: unsupervised
+    enableSuperuserAccess: true
+    superuserSecret:
+        name: cluster-example-superuser
+---
+apiVersion: v1
+data:
+    password: dU4zaTFIaDBiWWJDYzRUeVZBYWNCaG1TemdxdHpxeG1PVmpBbjBRSUNoc0pyU211OVBZMmZ3MnE4RUtLTHBaOQ==
+    username: cG9zdGdyZXM=
+kind: Secret
+metadata:
+    name: cluster-example-superuser
+    namespace: mows-cloud-apis-pdns
+type: kubernetes.io/basic-auth
