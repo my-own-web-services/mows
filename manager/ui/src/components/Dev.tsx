@@ -9,7 +9,9 @@ import {
     HttpResponse,
     MachineCreationReqBody,
     MachineCreationReqType,
-    ManagerConfig
+    MachineType,
+    ManagerConfig,
+    PublicIpCreationConfig
 } from "../api-client";
 import { configSignal } from "../config";
 import { withToasterHook } from "../utils"; // Ensure the path is correct
@@ -166,6 +168,33 @@ class Dev extends Component<DevProps, DevState> {
         }
     };
 
+    devCreateStaticIp = async () => {
+        const machines = configSignal.value?.machines;
+        if (!machines) {
+            return;
+        }
+        const machine_id = Object.entries(machines).filter(
+            ([_, machine]) => machine.machine_type === MachineType.ExternalHcloud
+        )[0][0];
+
+        const clusters = configSignal.value?.clusters;
+
+        if (!clusters) {
+            return;
+        }
+
+        const cluster = Object.entries(clusters)[0][1];
+
+        const creation_config: PublicIpCreationConfig = {
+            cluster_id: cluster.id,
+            creation_type: {
+                MachineProxy: machine_id
+            }
+        };
+
+        await this.handleApiCall(() => this.props.client.api.createPublicIp(creation_config));
+    };
+
     render = () => {
         return (
             <div className="Dev h-full w-full">
@@ -178,7 +207,7 @@ class Dev extends Component<DevProps, DevState> {
                         ))}
                         {this.clusterServiceUrl(configSignal.value?.clusters)}
                     </div>
-                    <div className="flex flex-row gap-4">
+                    <div className="flex flex-row flex-wrap gap-4">
                         <Button
                             title="Delete all VMs with the mows- prefix as well as their storage"
                             onClick={this.deleteAllMowsMachines}
@@ -216,6 +245,12 @@ class Dev extends Component<DevProps, DevState> {
                             onClick={this.devCreateHcloudMachine}
                         >
                             Create hcloud machine
+                        </Button>
+                        <Button
+                            title="Create a machine on hcloud, HCLOUD_API_TOKEN must be set in secrets.env"
+                            onClick={this.devCreateStaticIp}
+                        >
+                            Create static ip from hcloud machine
                         </Button>
                     </div>
                     <div className={"flex h-[400px] items-stretch gap-2 pt-4"}>

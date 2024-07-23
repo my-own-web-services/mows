@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+    name: default-issuer
+spec:
+    acme:
+        solvers:
+            - dns01:
+                  webhook:
+                      groupName: $WEBHOOK_GROUP_NAME
+                      solverName: $WEBHOOK_SOLVER_NAME
+                      config: <webhook-specific-configuration>

@@ -1,15 +1,131 @@
+use std::{os::unix::fs::PermissionsExt, process::Stdio};
+
 use anyhow::{bail, Context};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-use tokio::process::Command;
+use tokio::{process::Command, signal};
 
 use crate::{
+    internal_config::INTERNAL_CONFIG,
     some_or_bail,
     types::{ApiResponse, ApiResponseStatus},
 };
+
+pub async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+}
+
+pub async fn start_pixiecore() -> anyhow::Result<()> {
+    let ic = &INTERNAL_CONFIG;
+    tracing::info!("Starting pixiecore server");
+
+    Command::new("pixiecore")
+        .args([
+            "api",
+            "http://localhost:3000",
+            "-l",
+            &ic.own_addresses.legacy.to_string(),
+            "--dhcp-no-bind",
+        ])
+        .stdout(if ic.log.pixiecore.stdout {
+            Stdio::inherit()
+        } else {
+            Stdio::null()
+        })
+        .stderr(if ic.log.pixiecore.stderr {
+            Stdio::inherit()
+        } else {
+            Stdio::null()
+        })
+        .spawn()
+        .context("Failed to start pixiecore server")?;
+
+    Ok(())
+}
+
+pub async fn start_dnsmasq() -> anyhow::Result<()> {
+    let ic = &INTERNAL_CONFIG;
+    tracing::info!("Starting dnsmasq server");
+
+    // start dnsmasq: dnsmasq -a 192.168.112.3 --no-daemon --log-queries --dhcp-alternate-port=67 --dhcp-range=192.168.112.5,192.168.112.30,12h --domain-needed --bogus-priv --dhcp-authoritative
+
+    // the directory for the manually created dns entries
+    tokio::fs::create_dir_all("/hosts").await?;
+
+    let dhcp_range = format!(
+        "--dhcp-range={},{},{}",
+        ic.dhcp.dhcp_range_start, ic.dhcp.dhcp_range_end, ic.dhcp.lease_time
+    );
+
+    //combine the host resolv conf with the default one
+    let resolv_conf = tokio::fs::read_to_string("/etc/resolv.conf").await?;
+
+    let host_resolv_conf = tokio::fs::read_to_string("/etc/host-resolv.conf").await?;
+
+    tokio::fs::write(
+        "/tmp/resolv.conf",
+        format!("{}\n{}", resolv_conf, host_resolv_conf),
+    )
+    .await?;
+
+    let args = vec![
+        "--no-daemon",
+        "--log-queries",
+        "--dhcp-alternate-port=67",
+        &dhcp_range,
+        "--domain-needed",
+        "--bogus-priv",
+        "--dhcp-authoritative",
+        "--hostsdir",
+        "/hosts/",
+        "--dhcp-leasefile=/temp/dnsmasq/leases",
+        "--resolv-file=/tmp/resolv.conf",
+    ];
+
+    tokio::fs::create_dir_all("/temp/dnsmasq").await?;
+    // enable everyone to delete the folder
+    tokio::fs::set_permissions("/temp/dnsmasq", std::fs::Permissions::from_mode(0o777)).await?;
+
+    Command::new("dnsmasq")
+        .args(args)
+        .stdout(if ic.log.dnsmasq.stdout {
+            Stdio::inherit()
+        } else {
+            Stdio::null()
+        })
+        .stderr(if ic.log.dnsmasq.stderr {
+            Stdio::inherit()
+        } else {
+            Stdio::null()
+        })
+        .spawn()
+        .context("Failed to start the dnsmasq server")?;
+
+    Ok(())
+}
 
 pub fn generate_id(length: usize) -> String {
     use rand::Rng;

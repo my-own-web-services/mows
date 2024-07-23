@@ -1,3 +1,5 @@
+use std::net::{Ipv4Addr, Ipv6Addr};
+
 use anyhow::bail;
 use hcloud::{
     apis::{
@@ -70,18 +72,32 @@ impl ExternalProviderMachineHcloud {
             };
 
         ssh_config.remote_hostname = Some(
-            some_or_bail!(res.server.public_net.ipv4, "No IP address")
+            some_or_bail!(res.server.public_net.ipv4.clone(), "No IP address")
                 .ip
                 .to_string(),
         );
 
         debug!("Created VM on Hetzner Cloud");
+
         Ok(Machine {
             id: machine_name.to_string(),
             machine_type: crate::machines::MachineType::ExternalHcloud,
             install: None,
             mac: None,
             ssh: ssh_config,
+            public_ip: res
+                .server
+                .public_net
+                .ipv6
+                .map(|ip| ip.ip.to_string().parse::<Ipv6Addr>().ok())
+                .flatten(),
+
+            public_legacy_ip: res
+                .server
+                .public_net
+                .ipv4
+                .map(|ip| ip.ip.to_string().parse::<Ipv4Addr>().ok())
+                .flatten(),
         })
     }
 

@@ -117,7 +117,10 @@ impl SshAccess {
         ssh_config.inactivity_timeout = Some(Duration::from_secs(2));
 
         let client = Client::connect_with_config(
-            (machine.id.clone(), 22),
+            (
+                self.remote_hostname.clone().unwrap_or(machine.id.clone()),
+                22,
+            ),
             &self.ssh_username,
             auth_method,
             ServerCheckMethod::PublicKey(remote_pub_key),

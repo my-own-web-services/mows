@@ -1,0 +1,15 @@
+repositories:
+    - name: jetstack
+      url: https://charts.jetstack.io
+releases:
+    - name: mows-core-cert-manager
+      namespace: mows-core-cert-manager
+      chart: jetstack/cert-manager
+      createNamespace: true
+      version: 1.15.1
+      values:
+          - crds:
+                enabled: true
+            prometheus:
+                servicemonitor:
+                    enabled: true

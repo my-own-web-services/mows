@@ -26,7 +26,7 @@ services:
         volumes:
             - ./temp/:/temp/
             - ./install:/install
-            - /etc/resolv.conf.bak:/etc/resolv.conf.bak
+            - /etc/resolv.conf:/etc/host-resolv.conf:ro
             - ./misc/internal-config.yml:/internal-config.yml
         environment:
             WEB_PORT: ${WEB_PORT}

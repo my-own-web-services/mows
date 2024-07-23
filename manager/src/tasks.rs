@@ -1,10 +1,86 @@
+use std::time::Duration;
+
 use anyhow::Context;
-use tracing::{debug, info, trace};
+use tracing::{debug, error, info, trace};
 
 use crate::{
     config::{Cluster, ClusterInstallState, MachineInstallState},
-    get_current_config_cloned, some_or_bail, write_config,
+    get_current_config_cloned,
+    internal_config::INTERNAL_CONFIG,
+    some_or_bail, write_config,
 };
+
+pub async fn start_background_tasks() -> anyhow::Result<()> {
+    info!("Starting background tasks");
+
+    // these are separated for easier debugging
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if let Err(e) = update_machine_install_state().await {
+                trace!("Could not update machine install state: {:?}", e);
+            };
+        }
+    });
+
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if let Err(e) = apply_environment().await {
+                trace!("Failed to apply environment: {:?}", e);
+            };
+        }
+    });
+
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if let Err(e) = get_cluster_kubeconfig().await {
+                trace!("Could not get cluster config: {:?}", e);
+            };
+        }
+    });
+
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if let Err(e) = install_cluster_basics().await {
+                error!("Could not install cluster basics: {:?}", e);
+            };
+        }
+    });
+
+    tokio::spawn(async {
+        let mut proxy_running_for_cluster: Option<String> = None;
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+
+            if let Some(cluster_id) = &proxy_running_for_cluster {
+                // the proxy is running... check if the cluster still exists else stop the proxy and allow the next iteration to start a new proxy
+                let cfg1 = get_current_config_cloned!();
+                if cfg1.clusters.get(&cluster_id.clone()).is_none() {
+                    if let Err(e) = Cluster::stop_proxy().await {
+                        error!("Could not stop cluster proxy: {:?}", e);
+                    }
+                    proxy_running_for_cluster = None;
+                } else {
+                    continue;
+                }
+            };
+
+            match start_cluster_proxy().await {
+                Ok(cluster_id) => {
+                    proxy_running_for_cluster = cluster_id;
+                }
+                Err(e) => {
+                    error!("Could not start cluster proxy: {:?}", e);
+                }
+            };
+        }
+    });
+
+    Ok(())
+}
 
 #[tracing::instrument]
 pub async fn update_machine_install_state() -> anyhow::Result<()> {

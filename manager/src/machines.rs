@@ -1,5 +1,6 @@
 use anyhow::{bail, Context};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
 use tokio::process::Command;
 use tracing::debug;
@@ -49,8 +50,8 @@ impl Machine {
     pub async fn get_infos(&self) -> anyhow::Result<serde_json::Value> {
         Ok(match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::get_infos(&self.id).await?,
-            MachineType::Local => todo!(),
-            MachineType::ExternalHcloud => todo!(),
+            MachineType::Local => bail!("Not implemented"),
+            MachineType::ExternalHcloud => json!({}),
         })
     }
 
@@ -65,8 +66,8 @@ impl Machine {
 
                 output
             }
-            MachineType::Local => todo!(),
-            MachineType::ExternalHcloud => todo!(),
+            MachineType::Local => bail!("Not implemented"),
+            MachineType::ExternalHcloud => bail!("Not implemented"),
         })
     }
 
@@ -79,8 +80,8 @@ impl Machine {
             MachineType::LocalQemu => {
                 LocalMachineProviderQemu::delete(&self.id).await?;
             }
-            MachineType::Local => todo!(),
-            MachineType::ExternalHcloud => todo!(),
+            MachineType::Local => bail!("Not implemented"),
+            MachineType::ExternalHcloud => bail!("Not implemented"),
         };
         let mut config_lock = write_config!();
 
@@ -107,40 +108,40 @@ impl Machine {
     pub async fn start(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::start(&self.id).await,
-            MachineType::Local => todo!(),
-            MachineType::ExternalHcloud => todo!(),
+            MachineType::Local => bail!("Not implemented"),
+            MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }
 
     pub async fn reboot(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::reboot(&self.id).await,
-            MachineType::Local => todo!(),
-            MachineType::ExternalHcloud => todo!(),
+            MachineType::Local => bail!("Not implemented"),
+            MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }
 
     pub async fn shutdown(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::shutdown(&self.id).await,
-            MachineType::Local => todo!(),
-            MachineType::ExternalHcloud => todo!(),
+            MachineType::Local => bail!("Not implemented"),
+            MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }
 
     pub async fn reset(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::reset(&self.id).await,
-            MachineType::Local => todo!(),
-            MachineType::ExternalHcloud => todo!(),
+            MachineType::Local => bail!("Not implemented"),
+            MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }
 
     pub async fn force_off(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::force_off(&self.id).await,
-            MachineType::Local => todo!(),
-            MachineType::ExternalHcloud => todo!(),
+            MachineType::Local => bail!("Not implemented"),
+            MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }
 

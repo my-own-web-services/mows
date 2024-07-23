@@ -37,7 +37,7 @@ export interface Cluster {
   install_state?: ClusterInstallState | null;
   k3s_token: string;
   kubeconfig?: string | null;
-  public_ip_config?: null;
+  public_ip_config: Record<string, any>;
   vip: any;
 }
 
@@ -83,6 +83,8 @@ export interface Machine {
   install?: null;
   mac?: string | null;
   machine_type: MachineType;
+  public_ip?: null;
+  public_legacy_ip?: null;
   ssh: SshAccess;
 }
 
@@ -154,6 +156,15 @@ export interface PixiecoreBootConfig {
   initrd: string[];
   kernel: string;
 }
+
+export interface PublicIpCreationConfig {
+  cluster_id: string;
+  creation_type: PublicIpCreationConfigType;
+}
+
+export type PublicIpCreationConfigType = {
+  MachineProxy: string;
+};
 
 export interface SshAccess {
   remote_hostname?: string | null;
@@ -539,6 +550,23 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       this.request<any, any>({
         path: `/api/machines/status`,
         method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
+     * @name CreatePublicIp
+     * @request POST:/api/public_ip/create
+     */
+    createPublicIp: (data: PublicIpCreationConfig, params: RequestParams = {}) =>
+      this.request<ApiResponse, any>({
+        path: `/api/public_ip/create`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
         ...params,
       }),
 

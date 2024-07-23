@@ -86,6 +86,8 @@ impl LocalMachineProviderQemu {
             install: None,
             mac: Some(mac),
             ssh,
+            public_ip: None,
+            public_legacy_ip: None,
         };
 
         machine.force_off().await?;

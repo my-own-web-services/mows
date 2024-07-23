@@ -11,6 +11,7 @@ use utoipa::ToSchema;
 
 use crate::machines::MachineType;
 use crate::providers::hcloud::index::ExternalProviderConfigHcloud;
+use crate::public_ip::WgKeys;
 
 #[tracing::instrument]
 pub fn config() -> &'static RwLock<ManagerConfig> {
@@ -184,8 +185,9 @@ pub struct Cluster {
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct PublicIpVmProxy {
     pub machine_id: String,
-    pub ip: Ipv6Addr,
-    pub legacy_ip: Ipv4Addr,
+    pub ip: Option<Ipv6Addr>,
+    pub legacy_ip: Option<Ipv4Addr>,
+    pub wg_keys: WgKeys,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
@@ -213,6 +215,8 @@ pub struct Machine {
     pub install: Option<MachineInstall>,
     pub mac: Option<String>,
     pub ssh: SshAccess,
+    pub public_ip: Option<Ipv6Addr>,
+    pub public_legacy_ip: Option<Ipv4Addr>,
 }
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct MachineInstall {
