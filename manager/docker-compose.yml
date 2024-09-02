@@ -32,6 +32,7 @@ services:
             - /etc/resolv.conf:/etc/host-resolv.conf:ro
             - ./misc/internal-config.yml:/internal-config.yml
             - /dev:/dev
+            - /run/udev:/run/udev:ro
         environment:
             WEB_PORT: ${WEB_PORT}
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system

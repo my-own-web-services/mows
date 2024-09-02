@@ -147,5 +147,3 @@ pub async fn handle_local_boot_request(mac_addr: &str) -> Result<(), anyhow::Err
 
     Ok(())
 }
-
-// ustreamer -d /dev/video0 --host=0.0.0.0 --port=10001 -q 90 -r 1280x720

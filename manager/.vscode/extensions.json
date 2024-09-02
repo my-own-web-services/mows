@@ -1,0 +1,15 @@
+{
+    "recommendations": [
+        "streetsidesoftware.code-spell-checker",
+        "serayuzgur.crates",
+        "ms-azuretools.vscode-docker",
+        "mikestead.dotenv",
+        "tamasfe.even-better-toml",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "esbenp.prettier-vscode",
+        "ethansk.restore-terminals",
+        "rust-lang.rust-analyzer",
+        "bradlc.vscode-tailwindcss",
+        "redhat.vscode-yaml"
+    ]
+}

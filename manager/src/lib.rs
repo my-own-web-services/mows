@@ -19,6 +19,7 @@ pub mod providers {
     }
     pub mod local_physical {
         pub mod machine;
+        pub mod video;
     }
 }
 pub mod os {
