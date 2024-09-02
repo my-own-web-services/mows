@@ -2,6 +2,7 @@ import { Component } from "preact";
 import { CSSProperties } from "react";
 import HashNavLink from "../../../../components/HashNavLink";
 import { removeNonAlphaNumericCharacters } from "../../../../utils/utils";
+import Image from "../../../../components/Image";
 
 interface Capability {
     readonly title: string;
@@ -61,7 +62,7 @@ const capabilities: Capability[] = [
     {
         title: "Wifi everywhere!",
         description:
-            "Ditch the ISP's router and run your own, with better security, more features, and less spying. Use your cluster nodes as wifi access points, and roam freely without losing connection or buying another device. Provide free wifi to everyone around and profit from everyone else when you're out and about. Everything secured, encrypted and private, of course.",
+            "Ditch the ISP's router and run your own, with better security, more features, and less spying. Use your cluster nodes as wifi access points, and roam freely without losing connection or buying another device. Provide free wifi to everyone around and profit from everyone else when you're out and about.",
         image: "wifi.webp"
     },
     {
@@ -106,10 +107,15 @@ export default class Possibilities extends Component<PossibilitiesProps, Possibi
                     <h1>Endless possibilities...</h1>
                 </HashNavLink>
                 <h3 className={"hl1 -mt-4"}>What can you do with your own cloud?</h3>
-                <p className={"largeText"}>
+                <p className={"largeText w-full"}>
                     Here are some examples of what you can do with your own cloud, MOWS primary goal
                     is to develop a solid platform that makes it easy to run, use and develop
-                    services like these.
+                    services like these. These are just <b>ideas</b> of what could be made, not 
+                    promises of what will be included in MOWS.
+                    <br /> <br />
+                    The images in this section (and some more below) 
+                    are AI generated, these images only serve as decoration to make the page look less text-heavy. 
+                    All AI generated images are marked as such with a small red dot.
                 </p>
                 <div className={"mt-16"}>
                     {capabilities.map((capability, index) => {
@@ -130,14 +136,14 @@ export default class Possibilities extends Component<PossibilitiesProps, Possibi
                                     <p className={"largeText"}>{capability.description}</p>
                                 </div>
                                 {capability.image && (
-                                    <img
-                                        width={1024}
-                                        height={1024}
-                                        loading={"lazy"}
-                                        src={`/assets/what/${capability.image}`}
+                                    <Image
+                                        image={{width: 1024, height: 1024, src: `/assets/what/${capability.image}`}}                              
                                         alt={capability.title}
-                                        className={"-mt-10 lg:w-2/5 lg:mt-5 lg:-ml-10 rounded-2xl"}
-                                    />
+                                        figClassName={"-mt-10 lg:w-2/5 lg:mt-5 lg:-ml-10"}
+                                        imgClassName={"rounded-2xl"}
+                                        aiGenerated={true}
+                                    ></Image>
+                                
                                 )}
                             </div>
                         );

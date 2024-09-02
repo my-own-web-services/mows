@@ -4,24 +4,32 @@ own_addresses:
     legacy: "192.168.112.3"
     ip: null
 
+os_config:
+    kairos_version: "v3.0.14"
+    k3s_version: "k3sv1.29.3+k3s1"
+    os: "opensuse-tumbleweed"
+
 cluster:
     network:
         start: "192.168.112.253"
         end: "192.168.112.253"
 dhcp:
-    dhcp_range_start: "192.168.112.41"
-    dhcp_range_end: "192.168.112.252"
-    lease_time: "1h"
+    ranges:
+        - "192.168.112.41,192.168.112.252,1h"
+        - "192.168.113.41,192.168.113.252,1h"
+
 dev:
     enabled: true
     allow_origins:
         - "http://localhost:5173"
     skip_network_policy_install: true
+    install_k8s_dashboard: true
+    send_default_netboot_config_if_mac_unknown: false
 
 log:
     dnsmasq:
-        stdout: false
-        stderr: false
+        stdout: true
+        stderr: true
     pixiecore:
-        stdout: false
-        stderr: false
+        stdout: true
+        stderr: true

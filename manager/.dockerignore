@@ -9,4 +9,4 @@ ui/node_modules
 ui/dist
 scripts
 docker-compose.yml
-
+misc/internal-config.yml

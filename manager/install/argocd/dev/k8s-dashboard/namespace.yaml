@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: mows-dev-k8s-dashboard
+    labels:
+        mows.cloud/api-type: dev
+        mows.cloud/core-apis-disable-kyverno: "true"

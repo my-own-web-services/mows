@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+    - namespace.yaml
+
+helmCharts:
+    - name: cloudnative-pg
+      repo: https://cloudnative-pg.github.io/charts
+      version: 0.21.5
+      releaseName: "mows-db-pg"
+      namespace: mows-db-pg"
+      valuesFile: values.yaml

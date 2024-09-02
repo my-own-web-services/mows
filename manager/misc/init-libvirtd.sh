@@ -59,9 +59,15 @@ virsh net-start mows-manager
 #ip link set dev virbr0 up
 
 
+pxe_interface_ip=192.168.112.4
+# get the name of the interface with the pxe_interface_ip
+
+pxe_interface=$(ip a | grep $pxe_interface_ip | awk '{print $7}')
+
+echo "Using interface '$pxe_interface' for pxe"
 
 ip link add name br0 type bridge
-ip link set pxe0 master br0
+ip link set $pxe_interface master br0
 ip link set br0 up
 ip address add dev br0 192.168.0.90/24
 

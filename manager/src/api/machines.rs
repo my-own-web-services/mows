@@ -18,6 +18,7 @@ use crate::{
     machines::MachineType,
     providers::{
         hcloud::machine::ExternalMachineProviderHcloudConfig,
+        local_physical::machine::LocalMachineProviderPhysicalConfig,
         qemu::machine::{LocalMachineProviderQemu, LocalMachineProviderQemuConfig},
     },
     types::{ApiResponse, ApiResponseStatus},
@@ -293,6 +294,6 @@ pub struct MachineCreationReqBody {
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub enum MachineCreationReqType {
     LocalQemu(LocalMachineProviderQemuConfig),
-    Local(Vec<String>),
+    LocalPhysical(LocalMachineProviderPhysicalConfig),
     ExternalHcloud(ExternalMachineProviderHcloudConfig),
 }

@@ -4,6 +4,7 @@ use std::process::Stdio;
 use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
 
 use crate::config::{HelmDeploymentState, InternalIps, Vip, VipIp};
+use crate::internal_config::INTERNAL_CONFIG;
 use crate::utils::cmd;
 use crate::{
     config::{Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
@@ -24,23 +25,15 @@ use tokio::process::Command;
 use tokio::time::sleep;
 use tracing::debug;
 
-use super::db::ClusterDatabases;
-use super::ingress::ClusterLocalIngress;
-use super::monitoring::ClusterMonitoring;
 use super::network::ClusterNetwork;
-use super::policy::ClusterPolicy;
 use super::storage::ClusterStorage;
 
 impl Cluster {
     #[tracing::instrument]
-    pub async fn new(machine_ids: &Vec<String>) -> anyhow::Result<()> {
+    pub async fn new() -> anyhow::Result<Cluster> {
         let encryption_key = generate_id(100);
 
         let k3s_token = generate_id(100);
-
-        let kairos_version = "v3.0.14";
-        let k3s_version = "k3sv1.29.3+k3s1";
-        let os = "opensuse-tumbleweed";
 
         let cluster_id = generate_id(8).to_lowercase();
 
@@ -55,59 +48,11 @@ impl Cluster {
             },
         };
 
-        let mut cluster_nodes = HashMap::new();
-
         debug!("Creating cluster: {}", cluster_id);
 
-        let cfg1 = get_current_config_cloned!();
-
-        let mut primary_hostname: Option<String> = None;
-        // get all machines from the machine_ids variable
-        let machines = cfg1
-            .machines
-            .iter()
-            .filter(|(machine_hostname, _)| machine_ids.contains(machine_hostname))
-            .collect::<HashMap<_, _>>();
-
-        for (i, (machine_hostname, machine)) in machines.iter().enumerate() {
-            if machine.install.is_some() {
-                continue;
-            }
-            let hostname = machine_hostname.to_lowercase();
-
-            if i == 0 {
-                primary_hostname = Some(hostname.clone());
-            }
-
-            let internal_ips = InternalIps {
-                legacy: Ipv4Addr::new(10, 41, 0, 1 + i as u8),
-            };
-
-            machine
-                .configure_install(
-                    kairos_version,
-                    k3s_version,
-                    os,
-                    &k3s_token,
-                    &hostname,
-                    &primary_hostname.clone().unwrap(),
-                    &vip,
-                    &internal_ips,
-                )
-                .await?;
-
-            cluster_nodes.insert(
-                hostname.clone(),
-                ClusterNode {
-                    machine_id: machine_hostname.to_string(),
-                    internal_ips,
-                },
-            );
-        }
-
-        let cluster = Self {
+        Ok(Self {
             id: cluster_id.clone(),
-            cluster_nodes,
+            cluster_nodes: HashMap::new(),
             kubeconfig: None,
             k3s_token,
             encryption_key: Some(encryption_key),
@@ -116,24 +61,10 @@ impl Cluster {
             cluster_backup_wg_private_key: None,
             install_state: None,
             vip,
-        };
-
-        let mut config = write_config!();
-
-        config.clusters.insert(cluster_id.clone(), cluster.clone());
-
-        drop(config);
-
-        tokio::spawn(async move {
-            let config = get_current_config_cloned!();
-            cluster.start_machines(&config).await.unwrap();
-            debug!("Cluster {} was created", cluster_id);
-        });
-
-        Ok(())
+        })
     }
 
-    pub async fn start_machines(&self, config: &ManagerConfig) -> anyhow::Result<()> {
+    pub async fn start_all_machines(&self, config: &ManagerConfig) -> anyhow::Result<()> {
         debug!("Starting machines");
         for node in self.cluster_nodes.values() {
             debug!("Starting machine: {}", node.machine_id);
@@ -310,100 +241,19 @@ impl Cluster {
     }
 
     pub async fn install_dashboard(&self) -> anyhow::Result<()> {
-        let version = "6.0.8";
-        let name = "kubernetes-dashboard";
+        Self::install_with_kustomize("/install/argocd/dev/k8s-dashboard/").await?;
 
-        if Cluster::check_helm_deployment_state(name, name).await?
-            != HelmDeploymentState::NotInstalled
-        {
-            return Ok(());
-        }
-
-        debug!("Installing kubernetes-dashboard");
-
-        cmd(
-            vec![
-                "helm",
-                "repo",
-                "add",
-                "kubernetes-dashboard",
-                "https://kubernetes.github.io/dashboard/",
-            ],
-            "Failed to add kubernetes-dashboard helm repo",
-        )
-        .await?;
-
-        cmd(
-            vec!["helm", "repo", "update"],
-            "Failed to update helm repos",
-        )
-        .await?;
-
-        cmd(
-            vec![
-                "helm",
-                "upgrade",
-                // release
-                name,
-                // chart
-                "kubernetes-dashboard/kubernetes-dashboard",
-                //
-                "--install",
-                //
-                "--create-namespace",
-                //
-                "--namespace",
-                name,
-                //
-                "--version",
-                version,
-                //
-                "--set",
-                "metrics-server.enabled=false",
-                //
-                "--set",
-                "cert-manager.enabled=true",
-                //
-                "--set",
-                "app.ingress.enabled=true",
-            ],
-            "Failed to install kubernetes-dashboard",
-        )
-        .await?;
-
-        let _ = cmd(
-            vec![
-                "kubectl",
-                "delete",
-                "clusterrolebindings.rbac.authorization.k8s.io kubernetes-dashboard",
-            ],
-            "Failed to delete kubernetes-dashboard clusterrolebindings",
-        )
-        .await;
-
-        cmd(
-            vec![
-                "kubectl",
-                "apply",
-                "-f",
-                "/install/core-apis/dashboard/dashboard-admin.yml",
-            ],
-            "Failed to apply clusterrolebindings for dashboard",
-        )
-        .await?;
-
-        debug!("Kubernetes dashboard installed");
+        Ok(())
+    }
+    pub async fn install_dev(&self) -> anyhow::Result<()> {
+        Self::install_with_kustomize("/install/argocd/dev/").await?;
 
         Ok(())
     }
 
-    pub async fn install_with_kustomize(&self, generation: u8) -> anyhow::Result<()> {
+    pub async fn install_with_kustomize(path: &str) -> anyhow::Result<()> {
         let output = Command::new("kubectl")
-            .args(vec![
-                "kustomize",
-                "--enable-helm",
-                &format!("/install/{}/network/", generation),
-            ])
+            .args(vec!["kustomize", "--enable-helm", &path])
             .output()
             .await
             .context("Failed to run kubectl kustomize")?;
@@ -434,41 +284,28 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn create_namespaces() -> anyhow::Result<()> {
-        debug!("Creating namespaces");
-
-        Namespace::new("mows-network", true, "core").await?;
-        Namespace::new("mows-monitoring", false, "core").await?;
-        Namespace::new("mows-storage", true, "core").await?;
-        Namespace::new("mows-vip", true, "core").await?;
-        Namespace::new("mows-ingress", false, "core").await?;
-        Namespace::new("mows-db-pg", false, "core").await?;
-        Namespace::new("kubernetes-dashboard", false, "dev").await?;
-        Namespace::new("mows-police", false, "core").await?;
-
-        debug!("Namespaces created");
-
-        Ok(())
-    }
-
     pub async fn install_basics(&self) -> anyhow::Result<()> {
+        let ic = &INTERNAL_CONFIG;
+
         self.write_local_kubeconfig().await?;
 
-        Self::create_namespaces().await?;
-
-        self.install_dashboard().await?;
+        if ic.dev.install_k8s_dashboard {
+            self.install_dashboard().await?;
+        }
 
         ClusterNetwork::install(&self).await?;
 
-        ClusterMonitoring::install(&self).await?;
-
-        ClusterPolicy::install().await?;
-
-        ClusterLocalIngress::install(&self).await?;
-
         ClusterStorage::install(&self).await?;
 
-        ClusterDatabases::install(&self).await?;
+        //ClusterMonitoring::install(&self).await?;
+
+        //ClusterPolicy::install().await?;
+
+        //ClusterLocalIngress::install(&self).await?;
+
+        //ClusterStorage::install(&self).await?;
+
+        //ClusterDatabases::install(&self).await?;
 
         Ok(())
     }

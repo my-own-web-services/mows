@@ -27,7 +27,7 @@ const defaultNotes: Note[] = [
         description: "View k3s logs"
     },
     {
-        content: "kubectl -n kubernetes-dashboard create token admin-user",
+        content: "kubectl -n mows-dev-k8s-dashboard create token admin-user",
         type: "default",
         description: "Create a token for the kubernetes-dashboard"
     },
@@ -48,6 +48,16 @@ const defaultNotes: Note[] = [
             "helm plugin install https://github.com/komodorio/helm-dashboard.git ; helm dashboard --bind=0.0.0.0",
         type: "default",
         description: "Install and run helm dashboard"
+    },
+    {
+        content: "kubectl port-forward service/my-argo-cd-argocd-server 8080:80 --address=0.0.0.0",
+        type: "default",
+        description: "Forward argo-cd service to https://localhost:8080"
+    },
+    {
+        content: "kubectl kustomize --enable-helm /install/argocd/ | kubectl apply -f -",
+        type: "default",
+        description: "Apply kustomize resources"
     }
 ];
 // a notes component that persists notes in local storage

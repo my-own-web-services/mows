@@ -12,6 +12,7 @@ use kube::{
 use serde_json::json;
 use std::io::Write;
 use tempfile::NamedTempFile;
+use tracing::debug;
 
 use crate::{
     config::{Cluster, ClusterNode, HelmDeploymentState},
@@ -149,66 +150,11 @@ impl ClusterStorage {
     }
 
     pub async fn install_longhorn() -> anyhow::Result<()> {
-        if Cluster::check_helm_deployment_state("mows-storage", "mows-storage").await?
-            != HelmDeploymentState::NotInstalled
-        {
-            return Ok(()); // network is already installed
-        }
-        let longhorn_version = "1.6.2";
-        cmd(
-            vec![
-                "helm",
-                "repo",
-                "add",
-                "longhorn",
-                "https://charts.longhorn.io",
-            ],
-            "Failed to add storage/longhorn helm repo",
-        )
-        .await?;
+        debug!("Installing longhorn storage");
 
-        cmd(
-            vec!["helm", "repo", "update"],
-            "Failed to update helm repos",
-        )
-        .await?;
+        Cluster::install_with_kustomize("/install/argocd/core/storage/longhorn/").await?;
 
-        let values = json!({
-            "defaultSettings": {
-                "createDefaultDiskLabeledNodes": true,
-                "allowCollectingLonghornUsageMetrics": false,
-                "defaultLonghornStaticStorageClass": "longhorn-static"
-            }
-        });
-
-        let mut tempfile = NamedTempFile::new().context("Failed to create temporary file ")?;
-        writeln!(tempfile, "{}", &values).context("Failed to write private key")?;
-
-        cmd(
-            vec![
-                "helm",
-                "upgrade",
-                // release
-                "mows-storage",
-                // chart
-                "longhorn/longhorn",
-                //
-                "--install",
-                //
-                "--create-namespace",
-                //
-                "--namespace",
-                "mows-storage",
-                //
-                "--version",
-                longhorn_version,
-                //
-                "--values",
-                tempfile.path().to_str().unwrap(),
-            ],
-            "Failed to install storage/longhorn",
-        )
-        .await?;
+        debug!("Longhorn storage installed");
 
         Ok(())
     }

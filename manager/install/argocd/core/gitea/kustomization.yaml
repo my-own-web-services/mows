@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+    - postgres.yaml
+    - namespace.yaml
+    - secret.yaml
+
+helmCharts:
+    - name: gitea
+      repo: https://dl.gitea.io/charts
+      version: 10.4.0
+      releaseName: mows-gitea
+      namespace: mows-gitea
+      valuesFile: values.yaml

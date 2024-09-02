@@ -1,11 +1,11 @@
-use std::{os::unix::fs::PermissionsExt, path::Path};
+use std::{net::Ipv4Addr, os::unix::fs::PermissionsExt, path::Path};
 
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tracing::debug;
 
 use crate::{
-    config::{InternalIps, PixiecoreBootConfig, SshAccess, Vip},
+    config::{InternalIps, PixiecoreBootConfig, SshAccess, Vip, VipIp},
     some_or_bail,
     utils::generate_id,
 };
@@ -68,6 +68,45 @@ impl PixiecoreBootConfig {
         })
     }
 
+    pub async fn new_default() -> anyhow::Result<Self> {
+        let kairos_version = "v3.0.14";
+        let k3s_version = "k3sv1.29.3+k3s1";
+        let os = "opensuse-tumbleweed";
+        let k3s_token = generate_id(100);
+        let hostname = "default_netboot_system";
+
+        let internal_ips = InternalIps {
+            legacy: Ipv4Addr::new(10, 41, 0, 1),
+        };
+
+        let vip = Vip {
+            controlplane: VipIp {
+                legacy_ip: Some(Ipv4Addr::new(192, 168, 112, 254)),
+                ip: None,
+            },
+            service: VipIp {
+                legacy_ip: Some(Ipv4Addr::new(192, 168, 112, 253)),
+                ip: None,
+            },
+        };
+
+        let ssh_config = &SshAccess::new(Some(hostname.to_string()), Some("kairos")).await?;
+
+        Self::new(
+            &kairos_version,
+            &k3s_version,
+            &os,
+            &k3s_token,
+            &hostname,
+            ssh_config,
+            hostname,
+            false,
+            &vip,
+            &internal_ips,
+        )
+        .await
+    }
+
     fn get_command_line(
         kairos_version: &str,
         k3s_version: &str,
@@ -76,7 +115,7 @@ impl PixiecoreBootConfig {
     ) -> anyhow::Result<String> {
         let squashfs_path = Self::get_artifact_path(".squashfs", kairos_version, k3s_version, os)?;
 
-        Ok(format!("rd.neednet=1 rd.live.overlay.overlayfs=1 ip=dhcp rd.cos.disable root=live:{{{{ URL \"file://{squashfs_path}\" }}}} netboot nodepair.enable config_url={{{{ URL \"file://{cloud_init_path}\" }}}} console=tty1 console=ttyS0 console=tty0"))
+        Ok(format!("rd.neednet=1 rd.live.overlay.overlayfs=1 ip=single-dhcp rd.cos.disable root=live:{{{{ URL \"file://{squashfs_path}\" }}}} netboot nodepair.enable config_url={{{{ URL \"file://{cloud_init_path}\" }}}} console=tty1 console=ttyS0 console=tty0"))
     }
 
     async fn download_os_images(
