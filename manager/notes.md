@@ -1,6 +1,10 @@
 ## tesseract command
 
-tesseract snapshot.jpeg content --user-words bios-words.txt
+`tesseract snapshot.jpeg content --user-words bios-words.txt`
+
+`ustreamer -d /dev/video0 --host=0.0.0.0 --port=10001 -q 90 -r 1280x720 --drop-same-frames=120`
+
+`v4l2-ctl --device /dev/video0 --info --concise --verbose`
 
 ## ip ranges
 
@@ -18,10 +22,6 @@ service-cidr: 10.43.0.0/16
 static-internal: 10.41.0.0/24
 
 tokio-console
-
-# BUGS
-
--   virt-manager can't connect to local spice server, https://github.com/virt-manager/virt-manager/issues/592 use remote-viewer/virt-viewer
 
 # hardware netboot bios
 
