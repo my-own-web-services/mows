@@ -1,0 +1,4 @@
+defaultSettings:
+    createDefaultDiskLabeledNodes: true,
+    allowCollectingLonghornUsageMetrics: false,
+    defaultLonghornStaticStorageClass: "longhorn-static"

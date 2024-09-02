@@ -57,6 +57,14 @@ pub struct InternalConfig {
     pub log: LogConfig,
     pub cluster: LocalClusterConfig,
     pub primary_origin: Url,
+    pub os_config: OsConfig,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub struct OsConfig {
+    pub kairos_version: String,
+    pub k3s_version: String,
+    pub os: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -87,6 +95,8 @@ pub struct DevConfig {
     pub enabled: bool,
     pub allow_origins: Vec<Url>,
     pub skip_network_policy_install: bool,
+    pub install_k8s_dashboard: bool,
+    pub send_default_netboot_config_if_mac_unknown: bool,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
@@ -103,7 +113,5 @@ pub struct Addresses {
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct DhcpConfig {
-    pub dhcp_range_start: Ipv4Addr,
-    pub dhcp_range_end: Ipv4Addr,
-    pub lease_time: String,
+    pub ranges: Vec<String>,
 }

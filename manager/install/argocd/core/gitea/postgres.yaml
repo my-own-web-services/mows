@@ -1,0 +1,13 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+    name: gitea-postgres
+    namespace: mows-gitea
+spec:
+    instances: 2
+    storage:
+        size: 2Gi
+    primaryUpdateStrategy: unsupervised
+    enableSuperuserAccess: true
+    superuserSecret:
+        name: gitea-db-secret

@@ -13,7 +13,9 @@ use crate::{
         MachineInstallState, PixiecoreBootConfig, Vip,
     },
     providers::{
-        hcloud::machine::ExternalProviderMachineHcloud, qemu::machine::LocalMachineProviderQemu,
+        hcloud::machine::ExternalProviderMachineHcloud,
+        local_physical::machine::LocalMachineProviderPhysical,
+        qemu::machine::LocalMachineProviderQemu,
     },
     some_or_bail,
     utils::generate_id,
@@ -24,7 +26,7 @@ use crate::{
 pub enum MachineType {
     #[default]
     LocalQemu,
-    Local,
+    LocalPhysical,
     ExternalHcloud,
 }
 
@@ -36,7 +38,9 @@ impl Machine {
             MachineCreationReqType::LocalQemu(cc) => {
                 LocalMachineProviderQemu::new(cc, &machine_name).await?
             }
-            MachineCreationReqType::Local(_) => todo!(),
+            MachineCreationReqType::LocalPhysical(cc) => {
+                LocalMachineProviderPhysical::new(cc, &machine_name).await?
+            }
             MachineCreationReqType::ExternalHcloud(hc) => {
                 ExternalProviderMachineHcloud::new(hc, &machine_name).await?
             }
@@ -50,7 +54,7 @@ impl Machine {
     pub async fn get_infos(&self) -> anyhow::Result<serde_json::Value> {
         Ok(match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::get_infos(&self.id).await?,
-            MachineType::Local => bail!("Not implemented"),
+            MachineType::LocalPhysical => bail!("Not implemented"),
             MachineType::ExternalHcloud => json!({}),
         })
     }
@@ -66,7 +70,7 @@ impl Machine {
 
                 output
             }
-            MachineType::Local => bail!("Not implemented"),
+            MachineType::LocalPhysical => bail!("Not implemented"),
             MachineType::ExternalHcloud => bail!("Not implemented"),
         })
     }
@@ -80,7 +84,7 @@ impl Machine {
             MachineType::LocalQemu => {
                 LocalMachineProviderQemu::delete(&self.id).await?;
             }
-            MachineType::Local => bail!("Not implemented"),
+            MachineType::LocalPhysical => bail!("Not implemented"),
             MachineType::ExternalHcloud => bail!("Not implemented"),
         };
         let mut config_lock = write_config!();
@@ -108,7 +112,7 @@ impl Machine {
     pub async fn start(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::start(&self.id).await,
-            MachineType::Local => bail!("Not implemented"),
+            MachineType::LocalPhysical => bail!("Not implemented"),
             MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }
@@ -116,7 +120,7 @@ impl Machine {
     pub async fn reboot(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::reboot(&self.id).await,
-            MachineType::Local => bail!("Not implemented"),
+            MachineType::LocalPhysical => bail!("Not implemented"),
             MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }
@@ -124,7 +128,7 @@ impl Machine {
     pub async fn shutdown(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::shutdown(&self.id).await,
-            MachineType::Local => bail!("Not implemented"),
+            MachineType::LocalPhysical => bail!("Not implemented"),
             MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }
@@ -132,7 +136,7 @@ impl Machine {
     pub async fn reset(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::reset(&self.id).await,
-            MachineType::Local => bail!("Not implemented"),
+            MachineType::LocalPhysical => bail!("Not implemented"),
             MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }
@@ -140,7 +144,7 @@ impl Machine {
     pub async fn force_off(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::force_off(&self.id).await,
-            MachineType::Local => bail!("Not implemented"),
+            MachineType::LocalPhysical => bail!("Not implemented"),
             MachineType::ExternalHcloud => bail!("Not implemented"),
         }
     }

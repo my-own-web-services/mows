@@ -8,9 +8,12 @@ interface ImageProps {
         width: number;
         height: number;
     };
-    alt: string;
-    readonly caption: JSX.Element | string;
+    readonly alt: string;
+    readonly caption?: JSX.Element | string;
     readonly style?: CSSProperties;
+    readonly aiGenerated?: boolean;
+    readonly imgClassName?: string;
+    readonly figClassName?: string;
 }
 interface ImageState {}
 export default class Image extends Component<ImageProps, ImageState> {
@@ -21,8 +24,10 @@ export default class Image extends Component<ImageProps, ImageState> {
             <figure
                 style={{
                     ...this.props.style,
-                    width: "100%"
                 }}
+                className={`Image ${this.props.figClassName ?? ""} relative`}
+                title={this.props.aiGenerated ? "This image is AI generated" : ""}
+                
             >
                 <img
                     loading={"lazy"}
@@ -30,10 +35,21 @@ export default class Image extends Component<ImageProps, ImageState> {
                     alt={this.props.alt}
                     width={i.width}
                     height={i.height}
+                    className={`${this.props.imgClassName ?? ""}`}
                 />
+                {this.props.aiGenerated && (
+                    <div className={"absolute bottom-0 right-0"}>
+                        <div  className={"bg-[red] w-2 h-2 rounded-full"}>
+                        </div>
+                    </div>
+                )}
+                {this.props.caption && (
                 <figcaption className={"mt-2 text-sm w-full text-center text-primaryDim"}>
                     {this.props.caption}
                 </figcaption>
+                )}
+
+
             </figure>
         );
     };

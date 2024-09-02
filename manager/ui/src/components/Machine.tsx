@@ -69,6 +69,7 @@ export default class MachineComponent extends Component<
                         </h1>
 
                         <VNC machine={this.props.machine} />
+
                         <div className={"flex flex-col gap-1 pt-2"}>
                             <Button className="w-8" title="Toggle SSH" onClick={this.toggleSSH}>
                                 <div className={"scale-100"}>

@@ -14,7 +14,7 @@ import {
     PublicIpCreationConfig
 } from "../api-client";
 import { configSignal } from "../config";
-import { withToasterHook } from "../utils"; // Ensure the path is correct
+import { withToasterHook } from "../utils";
 import MachineComponent from "./Machine";
 import Notes from "./Notes";
 import TerminalComponent from "./Terminal";
@@ -43,7 +43,7 @@ const urls = [
         title: "Longhorn/Storage"
     },
     {
-        url: "http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:443/proxy/",
+        url: "http://localhost:8001/api/v1/namespaces/mows-dev-k8s-dashboard/services/https:kubernetes-dashboard:443/proxy/",
         title: "K8s Dashboard"
     },
     {

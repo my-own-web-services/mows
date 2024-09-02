@@ -43,13 +43,7 @@ pub async fn start_pixiecore() -> anyhow::Result<()> {
     tracing::info!("Starting pixiecore server");
 
     Command::new("pixiecore")
-        .args([
-            "api",
-            "http://localhost:3000",
-            "-l",
-            &ic.own_addresses.legacy.to_string(),
-            "--dhcp-no-bind",
-        ])
+        .args(["api", "http://localhost:3000", "--dhcp-no-bind"])
         .stdout(if ic.log.pixiecore.stdout {
             Stdio::inherit()
         } else {
@@ -75,11 +69,6 @@ pub async fn start_dnsmasq() -> anyhow::Result<()> {
     // the directory for the manually created dns entries
     tokio::fs::create_dir_all("/hosts").await?;
 
-    let dhcp_range = format!(
-        "--dhcp-range={},{},{}",
-        ic.dhcp.dhcp_range_start, ic.dhcp.dhcp_range_end, ic.dhcp.lease_time
-    );
-
     //combine the host resolv conf with the default one
     let resolv_conf = tokio::fs::read_to_string("/etc/resolv.conf").await?;
 
@@ -91,11 +80,10 @@ pub async fn start_dnsmasq() -> anyhow::Result<()> {
     )
     .await?;
 
-    let args = vec![
+    let mut args = vec![
         "--no-daemon",
         "--log-queries",
         "--dhcp-alternate-port=67",
-        &dhcp_range,
         "--domain-needed",
         "--bogus-priv",
         "--dhcp-authoritative",
@@ -104,6 +92,14 @@ pub async fn start_dnsmasq() -> anyhow::Result<()> {
         "--dhcp-leasefile=/temp/dnsmasq/leases",
         "--resolv-file=/tmp/resolv.conf",
     ];
+
+    let mut dhcp_args = vec![];
+
+    for range in &ic.dhcp.ranges {
+        dhcp_args.push(format!("--dhcp-range={}", range));
+    }
+
+    dhcp_args.iter().for_each(|arg| args.push(arg));
 
     tokio::fs::create_dir_all("/temp/dnsmasq").await?;
     // enable everyone to delete the folder

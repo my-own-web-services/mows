@@ -1,0 +1,16 @@
+gitea:
+    config:
+        database:
+            DB_TYPE: postgres
+            HOST: gitea-postgres
+            NAME: gitea
+            USER: root
+            PASSWD: gitea
+    additionalConfigSources:
+        - secret:
+              secretName: gitea-db-secret
+
+postgresql:
+    enabled: false
+postgresql-ha:
+    enabled: false

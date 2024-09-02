@@ -44,14 +44,6 @@ const faq: FAQItem[] = [
     {
         question: "How can I run a mail server on a dynamic IP at home?",
         answer: "You can't as most mail providers will block it. You need a static IP to run a mail server. As most ISPs are absolute garbage, they don't even offer you an option to get a static IP without switching to a business contract. Currently, our best option, besides voting against big oligopolies that all offer the same garbage contracts, is to rent a cheap virtual server with a static IP and use it as a relay (L3). This is also mostly automated by MOWS. Your data still resides on your own hardware and the company behind the relay server can only read the metadata of the connection (as your ISP can too). The provider of the IP can also be easily switched out. At some point, we would just like to have a service that offers you a static IP for a fair price and without the need to switch to a business contract. This is a political issue that we would like to address in the future."
-    },
-    {
-        question: "Is this the future?",
-        answer: "We don't know, but we would like to think so. The current cloud providers are getting more and more powerful and are starting to control more and more of our lives. We believe that we need to take back control of our data and our lives. We believe that we need to build a better internet that isn't controlled by a few large companies. No matter what device comes after the smartphone, there will always be a need for a cloud service. We believe that MOWS is the best way to build that service. We believe that MOWS is the future."
-    },
-    {
-        question: "What about Web3?",
-        answer: "The idea of decentralization is great, but it is absurd to believe that a complicated ecosystem with so much legacy code could be replaced solely by some version of a blockchain. However, Blockchain and similar technologies may very well be part of the future and the solution to some problems that we want to solve with MOWS. Some form of decentralized payment system will be required for a true sovereign private and independent World Wide Web. Such a system will be included in the API stack at some point."
     }
 ];
 

@@ -10,6 +10,7 @@ services:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.3"
             mows-manager:
+            mows-manager-local-pxe:
         dns:
             - "192.168.112.3"
         cap_add:
@@ -21,13 +22,16 @@ services:
             - "::1:${WEB_PORT}:3000" # web ui
             - "::1:6669:6669" #tokio console
             - "::1:8001:8001" # kubectl proxy
-            - "::1:8080:8080" # helm dashboard
+            - "::1:8080:8080" # helm dashboard or other manually forwarded ui
             - "::1:53:53" # dns
+            - "::1:10000-10009:10000-10009" # ustreamer
+        privileged: true
         volumes:
             - ./temp/:/temp/
             - ./install:/install
             - /etc/resolv.conf:/etc/host-resolv.conf:ro
             - ./misc/internal-config.yml:/internal-config.yml
+            - /dev:/dev
         environment:
             WEB_PORT: ${WEB_PORT}
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system
@@ -47,7 +51,6 @@ services:
             - "::1:16509:16509" # qemu monitor/control
             #- "::1:5900-5999:5900-5999" # spice
             - "::1:5700-5799:5700-5799" # vnc websocket
-
         cap_add:
             - "NET_ADMIN"
         devices:
@@ -61,7 +64,6 @@ services:
 networks:
     mows-manager:
         name: mows-manager
-
     mows-manager-pxe:
         name: mows-manager-pxe
         driver: bridge
@@ -73,3 +75,6 @@ networks:
         driver_opts:
             com.docker.network.bridge.name: pxe
             com.docker.network.container_iface_prefix: pxe
+    mows-manager-local-pxe:
+        name: mows-manager-local-pxe
+        external: true

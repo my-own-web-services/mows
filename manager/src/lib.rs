@@ -17,6 +17,9 @@ pub mod providers {
     pub mod qemu {
         pub mod machine;
     }
+    pub mod local_physical {
+        pub mod machine;
+    }
 }
 pub mod os {
     pub mod cloud_init;

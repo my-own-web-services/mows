@@ -250,6 +250,7 @@ pub struct PixiecoreBootConfig {
 pub struct ClusterNode {
     pub machine_id: String,
     pub internal_ips: InternalIps,
+    pub primary: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
