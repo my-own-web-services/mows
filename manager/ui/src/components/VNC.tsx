@@ -92,6 +92,7 @@ export default class VNC extends Component<VNCProps, VNCState> {
     render = () => {
         const buttonSize = "sm";
         const machineStatus = machineStatusSignal.value[this.props.machine.id];
+        console.log(machineStatus);
 
         return (
             <div style={{ ...this.props.style }} className={`VNC ${this.props.className ?? ""}`}>

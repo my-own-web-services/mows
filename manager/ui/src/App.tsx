@@ -2,10 +2,10 @@ import "@fontsource-variable/inter";
 import { Component } from "preact/compat";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 import { CustomProvider } from "rsuite";
-import "rsuite/dist/rsuite.min.css";
 import { Api } from "./api-client";
+import CustomNavbar from "./components/CustomNavbar";
 import Dev from "./components/Dev";
-import Navbar from "./components/Navbar";
+import Home from "./components/Home";
 import { handleConfigUpdate, handleMachineStatusUpdate } from "./config";
 import "./index.scss";
 
@@ -33,14 +33,19 @@ export default class App extends Component<AppProps, AppState> {
             <div className="App">
                 <CustomProvider theme={"dark"}>
                     <BrowserRouter>
-                        <Navbar />
-                        <span className="Page">
-                            <Switch>
-                                <Route path="/dev/">
-                                    <Dev client={this.client} />
-                                </Route>
-                            </Switch>
-                        </span>
+                        <div className={"flex"}>
+                            <CustomNavbar />
+                            <span className="Page w-full p-4 pl-[76px]">
+                                <Switch>
+                                    <Route exact path="/">
+                                        <Home></Home>
+                                    </Route>
+                                    <Route exact path="/devtools/">
+                                        <Dev client={this.client} />
+                                    </Route>
+                                </Switch>
+                            </span>
+                        </div>
                     </BrowserRouter>
                 </CustomProvider>
             </div>
