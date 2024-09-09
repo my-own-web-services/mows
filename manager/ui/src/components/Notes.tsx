@@ -1,7 +1,5 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
-import { IoTrash } from "react-icons/io5";
-import { Button, Input } from "rsuite";
 
 interface NotesProps {
     readonly className?: string;
@@ -101,41 +99,21 @@ export default class Notes extends Component<NotesProps, NotesState> {
         return (
             <div
                 style={{ ...this.props.style }}
-                className={`Notes w-full rounded-lg bg-[black] p-4 ${this.props.className ?? ""}`}
+                className={`Notes w-full ${this.props.className ?? ""}`}
             >
-                <div className={"flex flex-col gap-4"}>
+                <div className={"flex h-full flex-col gap-2 overflow-y-auto"}>
                     {notes.map((note, index) => (
                         <div key={index} className={"flex justify-between gap-2"}>
-                            <pre title={note.description}>{note.content}</pre>
-                            {note.type === "custom" && (
-                                <Button
-                                    onClick={() => this.removeNote(note.id)}
-                                    size="xs"
-                                    appearance="default"
-                                    color="red"
-                                >
-                                    <IoTrash />
-                                </Button>
-                            )}
+                            <pre
+                                className={
+                                    "w-full max-w-full whitespace-pre-wrap break-words rounded-lg bg-[black] p-2"
+                                }
+                                title={note.description}
+                            >
+                                {note.content}
+                            </pre>
                         </div>
                     ))}
-                </div>
-
-                <div className={"flex gap-2 pt-4"}>
-                    <Input
-                        onChange={(value) => {
-                            this.setState({ newNote: value });
-                        }}
-                        placeholder={"New Note"}
-                        value={this.state.newNote}
-                    />
-                    <Button
-                        onClick={this.addNote}
-                        appearance={"primary"}
-                        className={"flex-shrink-0"}
-                    >
-                        Add
-                    </Button>
                 </div>
             </div>
         );

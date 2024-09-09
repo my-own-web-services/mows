@@ -35,15 +35,11 @@ html,
     }
 }
 
-@media (prefers-color-scheme: light) {
-    :root {
-        color: #000000;
-        background-color: #ffffff;
-    }
-    a:hover {
-        color: #747bff;
-    }
-    button {
-        background-color: #f9f9f9;
+nav a {
+    border-left: transparent 2px solid;
+    border-right: transparent 2px solid;
+    &.active {
+        color: #0199ff !important;
+        border-left: #0199ff 2px solid;
     }
 }
