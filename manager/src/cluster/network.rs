@@ -8,7 +8,7 @@ use anyhow::Context;
 use serde_json::json;
 use std::io::Write;
 use tempfile::NamedTempFile;
-use tokio::fs;
+use tokio::{fs, time::sleep};
 use tracing::debug;
 
 pub struct ClusterNetwork;
@@ -92,9 +92,13 @@ spec:
     }
 
     pub async fn install_network() -> anyhow::Result<()> {
-        let name = "mows-network";
-
         debug!("Installing cilium network");
+
+        Cluster::install_with_kustomize("/install/argocd/core/network/cilium/").await?;
+
+        // we need to run this a second time as the crds are not installed in the first run
+
+        sleep(std::time::Duration::from_secs(5)).await;
 
         Cluster::install_with_kustomize("/install/argocd/core/network/cilium/").await?;
 

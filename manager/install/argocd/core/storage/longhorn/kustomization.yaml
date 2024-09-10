@@ -4,6 +4,9 @@ kind: Kustomization
 resources:
     - namespace.yaml
 
+helmGlobals:
+    chartHome: /tmp/helm-charts
+
 helmCharts:
     - name: longhorn
       repo: https://charts.longhorn.io

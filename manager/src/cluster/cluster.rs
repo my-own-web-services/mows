@@ -260,7 +260,7 @@ impl Cluster {
 
         // kubectl apply -f -
         let mut kubectl_apply = Command::new("kubectl")
-            .args(vec!["apply", "-f", "-"])
+            .args(vec!["apply", "--server-side", "-f", "-"])
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
             .spawn()

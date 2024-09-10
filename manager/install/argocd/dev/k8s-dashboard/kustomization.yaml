@@ -5,6 +5,9 @@ resources:
     - namespace.yaml
     - account.yaml
 
+helmGlobals:
+    chartHome: /tmp/helm-charts
+
 helmCharts:
     - name: kubernetes-dashboard
       repo: https://kubernetes.github.io/dashboard/

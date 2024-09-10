@@ -161,7 +161,7 @@ DHCP=yes
             s!("initramfs"),
             vec![
                 Task {
-                    name: Some(s!("Mount the partition p0")),
+                    name: Some(s!("Mount the partitions")),
                     commands: Some(vec![
                         s!("mkdir -p /var/lib/longhorn/drives/p0"),
                         s!("mount -o rw /dev/disk/by-partlabel/p0 /var/lib/longhorn/drives/p0"),

@@ -1,5 +1,5 @@
 operator:
-    replicas: 1
+    replicas: 2
     rollOutPods: true
 hubble:
     relay:
@@ -7,7 +7,7 @@ hubble:
     ui:
         enabled: true
     enabled: true
-kubeProxyReplacement: strict
+kubeProxyReplacement: true
 k8sServiceHost: 127.0.0.1
 k8sServicePort: 6443
 externalIPs:

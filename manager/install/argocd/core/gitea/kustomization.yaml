@@ -6,6 +6,11 @@ resources:
     - namespace.yaml
     - secret.yaml
 
+helmGlobals:
+    chartHome: /tmp/helm-charts
+
+namespace: mows-gitea
+
 helmCharts:
     - name: gitea
       repo: https://dl.gitea.io/charts

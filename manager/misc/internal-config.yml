@@ -5,8 +5,8 @@ own_addresses:
     ip: null
 
 os_config:
-    kairos_version: "v3.0.14"
-    k3s_version: "k3sv1.29.3+k3s1"
+    kairos_version: "v3.1.2"
+    k3s_version: "k3sv1.30.4+k3s1"
     os: "opensuse-tumbleweed"
 
 cluster:
@@ -28,8 +28,8 @@ dev:
 
 log:
     dnsmasq:
-        stdout: true
-        stderr: true
+        stdout: false
+        stderr: false
     pixiecore:
-        stdout: true
-        stderr: true
+        stdout: false
+        stderr: false

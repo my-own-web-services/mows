@@ -6,10 +6,13 @@ resources:
     - ip-pool.yaml
     - namespace.yaml
 
+helmGlobals:
+    chartHome: /tmp/helm-charts
+
 helmCharts:
     - name: cilium
       repo: https://helm.cilium.io
-      version: 1.15.0
+      version: 1.16.1
       releaseName: mows-network
       includeCRDs: true
       namespace: mows-network
