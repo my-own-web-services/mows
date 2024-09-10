@@ -237,11 +237,11 @@ export default withToasterHook(
                         <div className={"flex h-[400px] items-stretch gap-2 pt-4"}>
                             <div className={"flex w-1/5 flex-col gap-2 overflow-hidden"}>
                                 <div className={"flex-grow overflow-auto"}>
-                                    <pre className="box-border max-h-full w-full resize-none break-words rounded-lg bg-[black] p-2">
+                                    <pre className="box-border h-full max-h-full w-full resize-none break-words rounded-lg bg-[black] p-2">
                                         {JSON.stringify(configSignal.value, null, 2)}
                                     </pre>
                                 </div>
-                                <div className={"flex h-[100px] flex-col gap-2"}>
+                                <div className={"flex flex-col gap-2"}>
                                     <div className={"flex flex-grow gap-2"}>
                                         <Button
                                             title="Load the last saved cluster config from the browsers local storage and set it on the manager"
@@ -313,7 +313,7 @@ export default withToasterHook(
                         </div>
                         <div className="flex flex-row flex-wrap gap-2">
                             <Button
-                                title="Delete all VMs with the mows- prefix as well as their storage"
+                                title="Delete all VMs with the 'mows-' prefix as well as their storage"
                                 onClick={this.deleteAllMowsMachines}
                                 size={size}
                             >

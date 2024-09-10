@@ -4,10 +4,13 @@ kind: Kustomization
 resources:
     - namespace.yaml
 
+helmGlobals:
+    chartHome: /tmp/helm-charts
+
 helmCharts:
     - name: argo-cd
       repo: https://argoproj.github.io/argo-helm
       version: 7.3.9
-      releaseName: "mows-argocd"
+      releaseName: mows-argocd
       namespace: mows-argocd
       valuesFile: values.yaml

@@ -53,7 +53,8 @@ const defaultNotes: Note[] = [
         description: "Forward argo-cd service to https://localhost:8080"
     },
     {
-        content: "kubectl kustomize --enable-helm /install/argocd/ | kubectl apply -f -",
+        content:
+            "kubectl kustomize --enable-helm /install/argocd/ | kubectl apply --server-side -f -",
         type: "default",
         description: "Apply kustomize resources"
     }
