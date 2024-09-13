@@ -10,7 +10,7 @@ helmGlobals:
 helmCharts:
     - name: longhorn
       repo: https://charts.longhorn.io
-      version: 1.6.2
+      version: 1.7.1
       releaseName: mows-storage
       namespace: mows-storage
       valuesFile: values.yaml

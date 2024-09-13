@@ -3,14 +3,13 @@ use std::net::Ipv4Addr;
 use std::process::Stdio;
 use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
 
-use crate::config::{HelmDeploymentState, InternalIps, Vip, VipIp};
+use crate::config::{HelmDeploymentState, Vip, VipIp};
 use crate::internal_config::INTERNAL_CONFIG;
 use crate::utils::cmd;
 use crate::{
-    config::{Cluster, ClusterNode, MachineInstallState, ManagerConfig, SshAccess},
+    config::{Cluster, MachineInstallState, ManagerConfig},
     get_current_config_cloned, some_or_bail,
     utils::generate_id,
-    write_config,
 };
 use anyhow::{bail, Context};
 use k8s_openapi::api::core::v1::Node;
@@ -241,12 +240,11 @@ impl Cluster {
     }
 
     pub async fn install_dashboard(&self) -> anyhow::Result<()> {
+        debug!("Installing k8s dashboard");
+
         Self::install_with_kustomize("/install/argocd/dev/k8s-dashboard/").await?;
 
-        Ok(())
-    }
-    pub async fn install_dev(&self) -> anyhow::Result<()> {
-        Self::install_with_kustomize("/install/argocd/dev/").await?;
+        debug!("K8s dashboard installed");
 
         Ok(())
     }

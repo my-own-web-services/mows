@@ -2,3 +2,7 @@ defaultSettings:
     createDefaultDiskLabeledNodes: true
     allowCollectingLonghornUsageMetrics: false
     defaultLonghornStaticStorageClass: "longhorn-static"
+    defaultReplicaCount: 2
+
+persistence:
+    defaultClass: false
