@@ -5,6 +5,7 @@ resources:
     - postgres.yaml
     - namespace.yaml
     - secret.yaml
+    - secret2.yaml
 
 helmGlobals:
     chartHome: /tmp/helm-charts
