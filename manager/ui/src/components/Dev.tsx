@@ -77,6 +77,17 @@ const urls: Url[] = [
         url: "http://localhost:8001/api/v1/namespaces/mows-police/services/http:policy-reporter-ui:http/proxy/",
         title: "Policy Reporter",
         category: ["cluster"]
+    },
+    {
+        url: "http://localhost:8001/api/v1/namespaces/mows-gitea/services/http:mows-gitea-http:http/proxy/",
+        title: "Gitea",
+        category: ["cluster"]
+    },
+    {
+        url: "http://localhost:8001/api/v1/namespaces/mows-argocd/services/https:mows-argocd-server:https/proxy/",
+        title: "ArgoCD",
+        category: ["cluster"],
+        notes: "user: admin, password: can be found with command in notes"
     }
 ];
 

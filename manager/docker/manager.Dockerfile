@@ -25,6 +25,9 @@ RUN set -eu && \
     apt-get update && \
     apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less jq tcpdump wireguard ustreamer tesseract-ocr systemd
 
+
+RUN mkdir -p /etc/bash_completion.d
+
 # install pixiecore
 RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add - && \
     echo "deb https://packagecloud.io/danderson/pixiecore/debian/ stretch main" > /etc/apt/sources.list.d/pixiecore.list && \
@@ -43,7 +46,6 @@ RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/
 # install kubectl
 RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
-    mkdir -p /etc/bash_completion.d && \
     kubectl completion bash > /etc/bash_completion.d/kubectl
 
 
@@ -61,8 +63,8 @@ RUN wget https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd
 # install cilium cli
 RUN wget https://github.com/cilium/cilium-cli/releases/download/v0.16.11/cilium-linux-amd64.tar.gz && \
     tar -xvf cilium-linux-amd64.tar.gz -C /usr/local/bin && \
-    chmod +x /usr/local/bin/cilium
-
+    chmod +x /usr/local/bin/cilium  && \
+    cilium completion bash > /etc/bash_completion.d/cilium
 
 
 # install krew
@@ -92,7 +94,11 @@ RUN helm plugin install https://github.com/databus23/helm-diff && \
     helm plugin install https://github.com/jkroepke/helm-secrets && \
     helm plugin install https://github.com/aslafy-z/helm-git
 
-
+# install argocd-cli
+RUN VERSION=$(curl --silent "https://api.github.com/repos/argoproj/argo-cd/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/') && \
+    curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/$VERSION/argocd-linux-amd64 && \
+    chmod +x /usr/local/bin/argocd && \
+    argocd completion bash > /etc/bash_completion.d/argocd
 
 
 # colored bash & other bash stuff
@@ -100,7 +106,7 @@ RUN helm plugin install https://github.com/databus23/helm-diff && \
 COPY ./misc/.bashrc /root/.bashrc
 
 
-# TODO: this should not be set globally
+# TODO: this should not be set globally?
 ENV TERM=xterm
 
 WORKDIR /app
@@ -111,5 +117,4 @@ RUN groupadd -g 50001 mows-manager
 
 USER root
 STOPSIGNAL SIGKILL 
-# run it 
 CMD ["./mows-manager"]
