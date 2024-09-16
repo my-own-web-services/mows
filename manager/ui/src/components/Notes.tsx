@@ -22,22 +22,22 @@ const defaultNotes: Note[] = [
     {
         content: "sudo journalctl -u k3s -b",
         type: "default",
-        description: "View k3s logs"
+        description: "View k3s logs, run it on the node not in the manager"
     },
     {
-        content: "kubectl -n mows-dev-k8s-dashboard create token admin-user",
+        content: "k -n mows-dev-k8s-dashboard create token admin-user",
         type: "default",
         description: "Create a token for the kubernetes-dashboard"
     },
     {
         content:
-            "kubectl delete ciliumclusterwidenetworkpolicy.cilium.io -A --all && kubectl delete ciliumnetworkpolicy.cilium.io -A --all && kubectl apply -f /install/core-apis/network/policies/",
+            "k delete ciliumclusterwidenetworkpolicy.cilium.io -A --all && k delete ciliumnetworkpolicy.cilium.io -A --all && k apply -f /install/core-apis/network/policies/",
         type: "default",
         description:
             "Re-apply network policies from install directory, omit the last part to just delete all policies"
     },
     {
-        content: "kubectl get ciliumendpoints -A",
+        content: "k get ciliumendpoints -A",
         type: "default",
         description: "List cilium endpoints"
     },
@@ -48,15 +48,25 @@ const defaultNotes: Note[] = [
         description: "Install and run helm dashboard"
     },
     {
-        content: "kubectl port-forward service/my-argo-cd-argocd-server 8080:80 --address=0.0.0.0",
+        content: "k port-forward service/my-argo-cd-argocd-server 8080:80 --address=0.0.0.0",
         type: "default",
         description: "Forward argo-cd service to https://localhost:8080"
     },
     {
-        content:
-            "kubectl kustomize --enable-helm /install/argocd/ | kubectl apply --server-side -f -",
+        content: "k kustomize --enable-helm /install/argocd/ | kubectl apply --server-side -f -",
         type: "default",
         description: "Apply kustomize resources"
+    },
+    {
+        content: "k logs POD -n NAMESPACE -c CONTAINER_IN_POD ",
+        type: "default",
+        description:
+            "get logs from a specific container in a pod, useful for failing init containers"
+    },
+    {
+        content: `k -n mows-argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d ; echo`,
+        type: "default",
+        description: "Get the argocd admin password"
     }
 ];
 // a notes component that persists notes in local storage

@@ -1,0 +1,4 @@
+# http://localhost:8001/api/v1/namespaces/mows-argocd/services/http:mows-argocd-server:8080/proxy/
+
+dex:
+    enabled: false

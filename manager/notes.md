@@ -1,3 +1,7 @@
+# repo url
+
+http://mows-gitea-http.mows-gitea:3000/gitea_admin/test.git
+
 ## tesseract command
 
 `tesseract snapshot.jpeg content --user-words bios-words.txt`
