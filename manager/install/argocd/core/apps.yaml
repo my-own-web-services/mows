@@ -52,3 +52,13 @@ spec:
         path: manager/install/core/db/postgres
     destination:
         namespace: mows-db-postgres
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+    name: mows-gitea
+spec:
+    source:
+        path: manager/install/core/gitea
+    destination:
+        namespace: mows-gitea
