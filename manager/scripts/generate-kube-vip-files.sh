@@ -24,8 +24,8 @@ sed -i "s/${VIP}/\$\$\$VIP\$\$\$/g" $MANIFEST_PATH
 # replace the interface with $$$VIP_INTERFACE$$$
 sed -i "s/${INTERFACE}/\$\$\$VIP_INTERFACE\$\$\$/g" $MANIFEST_PATH
 
-# replace the namespace: kube-system with mows-vip
-sed -i "s/namespace: kube-system/namespace: mows-vip/g" $MANIFEST_PATH
+# replace the namespace: kube-system with mows-core-network-kubevip
+sed -i "s/namespace: kube-system/namespace: mows-core-network-kubevip/g" $MANIFEST_PATH
 
 echo "you might have to add this manually to $MANIFEST_PATH"
 

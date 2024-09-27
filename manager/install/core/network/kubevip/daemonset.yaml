@@ -5,7 +5,7 @@ metadata:
         app.kubernetes.io/name: kube-vip-ds
         app.kubernetes.io/version: v0.8.1
     name: kube-vip-ds
-    namespace: mows-vip
+    namespace: mows-core-network-kubevip
 spec:
     selector:
         matchLabels:

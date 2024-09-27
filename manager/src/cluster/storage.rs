@@ -21,7 +21,7 @@ use crate::{
 
 pub struct ClusterStorage;
 
-const LONGHORN_STORAGE_CLASS_NAME: &str = " mows-core-storage-longhorn-static";
+const LONGHORN_STORAGE_CLASS_NAME: &str = "mows-core-storage-longhorn-static";
 
 impl ClusterStorage {
     pub async fn install(cluster: &Cluster) -> anyhow::Result<()> {

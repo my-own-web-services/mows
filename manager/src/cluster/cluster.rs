@@ -242,9 +242,19 @@ impl Cluster {
     pub async fn install_dashboard(&self) -> anyhow::Result<()> {
         debug!("Installing k8s dashboard");
 
-        Self::install_with_kustomize("/install/argocd/dev/k8s-dashboard/").await?;
+        Self::install_with_kustomize("/install/dev/k8s-dashboard/").await?;
 
         debug!("K8s dashboard installed");
+
+        Ok(())
+    }
+
+    pub async fn install_argocd(&self) -> anyhow::Result<()> {
+        debug!("Installing argocd");
+
+        Self::install_with_kustomize("/install/core/argocd/").await?;
+
+        debug!("Argocd installed");
 
         Ok(())
     }
@@ -295,15 +305,7 @@ impl Cluster {
 
         ClusterStorage::install(&self).await?;
 
-        //ClusterMonitoring::install(&self).await?;
-
-        //ClusterPolicy::install().await?;
-
-        //ClusterLocalIngress::install(&self).await?;
-
-        //ClusterStorage::install(&self).await?;
-
-        //ClusterDatabases::install(&self).await?;
+        Self::install_argocd(&self).await?;
 
         Ok(())
     }

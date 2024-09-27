@@ -223,7 +223,7 @@ impl ClusterPolicy {
                 }
             },
             "config":{
-                //"resourceFiltersIncludeNamespaces":["mows-network","mows-storage","mows-vip"],
+                //"resourceFiltersIncludeNamespaces":["mows-network","mows-storage","mows-core-network-kubevip"],
                 "webhooks":[
                     {
                         "namespaceSelector":{

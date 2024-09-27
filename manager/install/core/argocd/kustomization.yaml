@@ -12,5 +12,5 @@ helmCharts:
       repo: https://argoproj.github.io/argo-helm
       version: 7.3.9
       releaseName: mows-core-argocd
-      namespace: mows-argocd
+      namespace: mows-core-argocd
       valuesFile: values.yaml
