@@ -1,3 +1,23 @@
+1. manually install argo, cilium kubevip and longhorn with manager
+2. add argo app definitions, install vault and eso
+3. setup and unseal vault, save the tokens into the manager config
+4. configure eso to work with vault
+5. this should be everything for the core apis, the mows operator should take it from there
+
+operator with gitWeb or directly gitea?
+
+cloud apis
+
+-   pg
+-   gitea
+-   prometheus
+-   grafana
+-   kyverno
+-   ingress
+-   cert manager
+-   dns
+-   zitadel
+
 # repo url
 
 http://mows-core-gitea-http.mows-core-gitea:3000/gitea_admin/test.git
