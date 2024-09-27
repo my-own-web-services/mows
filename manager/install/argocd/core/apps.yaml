@@ -60,18 +60,18 @@ spec:
         path: manager/install/core/argocd
     destination:
         namespace: mows-core-argocd
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-    name: mows-core-db-postgres
-    annotations:
-        argocd.argoproj.io/sync-wave: "2"
-spec:
-    source:
-        path: manager/install/core/db/postgres
-    destination:
-        namespace: mows-core-db-postgres
+# ---
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#     name: mows-core-db-postgres
+#     annotations:
+#         argocd.argoproj.io/sync-wave: "2"
+# spec:
+#     source:
+#         path: manager/install/core/db/postgres
+#     destination:
+#         namespace: mows-core-db-postgres
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -96,15 +96,15 @@ spec:
         path: manager/install/core/secrets/eso
     destination:
         namespace: mows-core-secrets-eso
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-    name: mows-core-gitea
-    annotations:
-        argocd.argoproj.io/sync-wave: "3"
-spec:
-    source:
-        path: manager/install/core/gitea
-    destination:
-        namespace: mows-core-gitea
+# ---
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#     name: mows-core-gitea
+#     annotations:
+#         argocd.argoproj.io/sync-wave: "3"
+# spec:
+#     source:
+#         path: manager/install/core/gitea
+#     destination:
+#         namespace: mows-core-gitea
