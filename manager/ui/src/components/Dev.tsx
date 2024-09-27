@@ -43,7 +43,7 @@ const urls: Url[] = [
         category: ["manager"]
     },
     {
-        url: "http://localhost:8001/api/v1/namespaces/mows-network/services/http:hubble-ui:http/proxy/",
+        url: "http://localhost:8001/api/v1/namespaces/mows-core-network-cilium/services/http:hubble-ui:http/proxy/",
         title: "Hubble/Cilium/Network",
         category: ["cluster"]
     },
@@ -53,7 +53,7 @@ const urls: Url[] = [
         category: ["cluster"]
     },
     {
-        url: "http://localhost:8001/api/v1/namespaces/mows-storage/services/http:longhorn-frontend:http/proxy/",
+        url: "http://localhost:8001/api/v1/namespaces/mows-core-storage-longhorn/services/http:longhorn-frontend:http/proxy/",
         title: "Longhorn/Storage",
         category: ["cluster"]
     },
@@ -79,12 +79,12 @@ const urls: Url[] = [
         category: ["cluster"]
     },
     {
-        url: "http://localhost:8001/api/v1/namespaces/mows-gitea/services/http:mows-gitea-http:http/proxy/",
+        url: "http://localhost:8001/api/v1/namespaces/mows-core-gitea/services/http:mows-core-gitea-http:http/proxy/",
         title: "Gitea",
         category: ["cluster"]
     },
     {
-        url: "http://localhost:8001/api/v1/namespaces/mows-argocd/services/https:mows-argocd-server:https/proxy/",
+        url: "http://localhost:8001/api/v1/namespaces/mows-core-argocd/services/https:mows-core-argocd-server:https/proxy/",
         title: "ArgoCD",
         category: ["cluster"],
         notes: "user: admin, password: can be found with command in notes"

@@ -10,12 +10,12 @@ resources:
 helmGlobals:
     chartHome: /tmp/helm-charts
 
-namespace: mows-gitea
+namespace: mows-core-gitea
 
 helmCharts:
     - name: gitea
       repo: https://dl.gitea.io/charts
       version: 10.4.0
-      releaseName: mows-gitea
-      namespace: mows-gitea
+      releaseName: mows-core-gitea
+      namespace: mows-core-gitea
       valuesFile: values.yaml

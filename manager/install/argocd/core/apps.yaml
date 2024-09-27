@@ -4,7 +4,7 @@ metadata:
     name: mows-core
 spec:
     sourceRepos:
-        - https://github.com/my-own-web-services/mows
+        - https://git.vindelicum.eu/firstdorsal/mows.git
     clusterResourceWhitelist:
         - group: "*"
           kind: "*"
@@ -16,83 +16,83 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-    name: mows-network
+    name: mows-core-network-cilium
     annotations:
         argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/network/cilium
     destination:
-        namespace: mows-network
+        namespace: mows-core-network-cilium
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-    name: mows-storage
+    name: mows-core-storage-longhorn
     annotations:
         argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/storage/longhorn
     destination:
-        namespace: mows-storage
+        namespace: mows-core-storage-longhorn
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-    name: mows-argocd
+    name: mows-core-argocd
     annotations:
         argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/argocd
     destination:
-        namespace: mows-argocd
+        namespace: mows-core-argocd
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-    name: mows-db-postgres
+    name: mows-core-db-postgres
     annotations:
         argocd.argoproj.io/sync-wave: "2"
 spec:
     source:
         path: manager/install/core/db/postgres
     destination:
-        namespace: mows-db-postgres
+        namespace: mows-core-db-postgres
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-    name: mows-vault
+    name: mows-core-secrets-vault
     annotations:
         argocd.argoproj.io/sync-wave: "2"
 spec:
     source:
         path: manager/install/core/secrets/vault
     destination:
-        namespace: mows-vault
+        namespace: mows-core-secrets-vault
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-    name: mows-eso
+    name: mows-core-secrets-eso
     annotations:
         argocd.argoproj.io/sync-wave: "2"
 spec:
     source:
         path: manager/install/core/secrets/eso
     destination:
-        namespace: mows-eso
+        namespace: mows-core-secrets-eso
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-    name: mows-gitea
+    name: mows-core-gitea
     annotations:
         argocd.argoproj.io/sync-wave: "3"
 spec:
     source:
         path: manager/install/core/gitea
     destination:
-        namespace: mows-gitea
+        namespace: mows-core-gitea

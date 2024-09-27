@@ -5,7 +5,7 @@ metadata:
 spec:
     project: mows-core
     source:
-        repoURL: https://github.com/my-own-web-services/mows
+        repoURL: https://git.vindelicum.eu/firstdorsal/mows.git
         targetRevision: HEAD
     destination:
         name: in-cluster

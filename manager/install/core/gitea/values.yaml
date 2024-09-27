@@ -2,11 +2,11 @@ gitea:
     config:
         database:
             DB_TYPE: postgres
-            HOST: mows-gitea-postgres-rw
+            HOST: mows-core-gitea-postgres-rw
             NAME: gitea
     additionalConfigSources:
         - secret:
-              secretName: mows-gitea-postgres-secret-gitea
+              secretName: mows-core-gitea-postgres-secret-gitea
 
 postgresql:
     enabled: false

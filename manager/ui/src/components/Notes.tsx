@@ -48,12 +48,7 @@ const defaultNotes: Note[] = [
         description: "Install and run helm dashboard"
     },
     {
-        content: "k port-forward service/my-argo-cd-argocd-server 8080:80 --address=0.0.0.0",
-        type: "default",
-        description: "Forward argo-cd service to https://localhost:8080"
-    },
-    {
-        content: "k kustomize --enable-helm /install/argocd/ | kubectl apply --server-side -f -",
+        content: "k kustomize --enable-helm /install/core/ | kubectl apply --server-side -f -",
         type: "default",
         description: "Apply kustomize resources"
     },
@@ -64,13 +59,13 @@ const defaultNotes: Note[] = [
             "get logs from a specific container in a pod, useful for failing init containers"
     },
     {
-        content: `k -n mows-argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d ; echo`,
+        content: `k -n mows-core-argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d ; echo`,
         type: "default",
         description: "Get the argocd admin password"
     },
     {
         content:
-            "kubectl port-forward -n mows-vault service/mows-vault-ui --address 0.0.0.0 8080:http",
+            "kubectl port-forward -n mows-core-secrets-vault service/mows-vault-ui --address 0.0.0.0 8080:http",
         type: "default",
         description: "Forward vault ui to http://localhost:8080/ui/"
     }

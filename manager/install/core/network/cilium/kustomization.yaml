@@ -13,7 +13,7 @@ helmCharts:
     - name: cilium
       repo: https://helm.cilium.io
       version: 1.16.1
-      releaseName: mows-network
+      releaseName: mows-core-network-cilium
       includeCRDs: true
-      namespace: mows-network
+      namespace: mows-core-network-cilium
       valuesFile: values.yaml
