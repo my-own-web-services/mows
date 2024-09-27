@@ -17,6 +17,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-network
+    annotations:
+        argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/network/cilium
@@ -27,6 +29,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-storage
+    annotations:
+        argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/storage/longhorn
@@ -37,6 +41,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-argocd
+    annotations:
+        argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/argocd
@@ -47,6 +53,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-db-postgres
+    annotations:
+        argocd.argoproj.io/sync-wave: "2"
 spec:
     source:
         path: manager/install/core/db/postgres
@@ -56,7 +64,33 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
+    name: mows-vault
+    annotations:
+        argocd.argoproj.io/sync-wave: "2"
+spec:
+    source:
+        path: manager/install/core/secrets/vault
+    destination:
+        namespace: mows-vault
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+    name: mows-eso
+    annotations:
+        argocd.argoproj.io/sync-wave: "2"
+spec:
+    source:
+        path: manager/install/core/secrets/eso
+    destination:
+        namespace: mows-eso
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
     name: mows-gitea
+    annotations:
+        argocd.argoproj.io/sync-wave: "3"
 spec:
     source:
         path: manager/install/core/gitea
