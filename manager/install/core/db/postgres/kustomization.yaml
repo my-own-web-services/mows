@@ -14,5 +14,5 @@ helmCharts:
       repo: https://cloudnative-pg.github.io/charts
       version: 0.22.0
       releaseName: mows-core-db-postgres
-      namespace: mows-db-postgres
+      namespace: mows-core-db-postgres
       valuesFile: values.yaml
