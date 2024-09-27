@@ -1,7 +1,6 @@
 defaultSettings:
     createDefaultDiskLabeledNodes: true
     allowCollectingLonghornUsageMetrics: false
-    defaultLonghornStaticStorageClass: "mows-static"
     defaultReplicaCount: 2
 
 persistence:
