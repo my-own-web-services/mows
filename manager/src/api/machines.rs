@@ -242,7 +242,7 @@ pub async fn handle_get_machine_status(mut socket: WebSocket) {
             match socket.send(message).await {
                 Ok(_) => continue,
                 Err(e) => {
-                    error!("Failed to send message: {:?}", e);
+                    //error!("Failed to send message: {:?}", e);
                     break 'outer;
                 }
             }

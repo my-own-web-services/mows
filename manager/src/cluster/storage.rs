@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use anyhow::{bail, Context};
+use anyhow::bail;
 use k8s_openapi::api::{
     core::v1::{Node, Secret},
     storage::v1::StorageClass,
@@ -10,18 +10,18 @@ use kube::{
     Api, Client,
 };
 use serde_json::json;
-use std::io::Write;
-use tempfile::NamedTempFile;
+
 use tracing::debug;
-use tracing_subscriber::field::debug;
 
 use crate::{
-    config::{Cluster, ClusterNode, HelmDeploymentState},
+    config::{Cluster, ClusterNode},
     s,
-    utils::{cmd, generate_id},
+    utils::generate_id,
 };
 
 pub struct ClusterStorage;
+
+const LONGHORN_STORAGE_CLASS_NAME: &str = "mows-static";
 
 impl ClusterStorage {
     pub async fn install(cluster: &Cluster) -> anyhow::Result<()> {
@@ -97,6 +97,39 @@ impl ClusterStorage {
         res
     }
 
+    async fn check_storage_class_exists_and_has_params(
+        cluster: &Cluster,
+        sc_name: &str,
+        params: &BTreeMap<String, String>,
+    ) -> anyhow::Result<bool> {
+        let kc = cluster.get_kubeconfig_struct().await?;
+
+        let client = kube::client::Client::try_from(kc.clone())?;
+
+        let sc_api: kube::Api<StorageClass> = kube::Api::all(client.clone());
+
+        let sc = match sc_api.get(sc_name).await {
+            Ok(sc) => sc,
+            Err(e) => {
+                if e.to_string().contains("not found") {
+                    return Ok(false);
+                } else {
+                    bail!(e);
+                }
+            }
+        };
+
+        let sc_params = sc.parameters.unwrap();
+
+        for (k, v) in params {
+            if sc_params.get(k).unwrap() != v {
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
+    }
+
     async fn create_storage_class(cluster: &Cluster) -> anyhow::Result<()> {
         debug!("Creating storage class");
 
@@ -139,7 +172,7 @@ impl ClusterStorage {
 
         let sc = StorageClass {
             metadata: ObjectMeta {
-                name: Some(s!("longhorn-static")),
+                name: Some(s!(LONGHORN_STORAGE_CLASS_NAME)),
                 annotations: Some(annotations),
                 ..ObjectMeta::default()
             },
@@ -147,18 +180,21 @@ impl ClusterStorage {
             allow_volume_expansion: Some(true),
             reclaim_policy: Some(s!("Delete")),
             volume_binding_mode: Some(s!("Immediate")),
-            parameters: Some(params_map),
+            parameters: Some(params_map.clone()),
             ..StorageClass::default()
         };
 
-        dbg!(sc.clone());
+        //dbg!(sc.clone());
 
         let sc_api: kube::Api<StorageClass> = kube::Api::all(client);
 
         // delete it if it already exists
 
         let _ = sc_api
-            .delete(&s!("longhorn-static"), &kube::api::DeleteParams::default())
+            .delete(
+                &s!(LONGHORN_STORAGE_CLASS_NAME),
+                &kube::api::DeleteParams::default(),
+            )
             .await;
 
         let res = match sc_api.create(&kube::api::PostParams::default(), &sc).await {
@@ -172,6 +208,14 @@ impl ClusterStorage {
             }
         };
 
+        // check if storage class was correctly created
+        ClusterStorage::check_storage_class_exists_and_has_params(
+            cluster,
+            LONGHORN_STORAGE_CLASS_NAME,
+            &params_map,
+        )
+        .await?;
+
         debug!("Storage class created");
 
         res
@@ -180,7 +224,7 @@ impl ClusterStorage {
     pub async fn install_longhorn() -> anyhow::Result<()> {
         debug!("Installing longhorn storage");
 
-        Cluster::install_with_kustomize("/install/argocd/core/storage/longhorn/").await?;
+        Cluster::install_with_kustomize("/install/core/storage/longhorn/").await?;
 
         debug!("Longhorn storage installed");
 

@@ -67,9 +67,17 @@ const defaultNotes: Note[] = [
         content: `k -n mows-argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d ; echo`,
         type: "default",
         description: "Get the argocd admin password"
+    },
+    {
+        content:
+            "kubectl port-forward -n mows-vault service/mows-vault-ui --address 0.0.0.0 8080:http",
+        type: "default",
+        description: "Forward vault ui to http://localhost:8080/ui/"
     }
 ];
 // a notes component that persists notes in local storage
+
+//hvs.it0SZYVxyvUhoBY9Mm0VuLyh F+l5Jh/wtjFGJcXRZLLbPn2vdHgldo1/kcNcDru6QsAB a8+EJc8zihMNdHPGiP+bSxE2TEeV61XwoQd4oLlxYvfm
 
 export default class Notes extends Component<NotesProps, NotesState> {
     constructor(props: NotesProps) {
