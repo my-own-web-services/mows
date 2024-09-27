@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+    name: mows-core
+spec:
+    sourceRepos:
+        - https://github.com/my-own-web-services/mows
+    clusterResourceWhitelist:
+        - group: "*"
+          kind: "*"
+    destinations:
+        - namespace: "*"
+          server: "*"
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+    name: mows-network
+spec:
+    source:
+        path: manager/install/core/network/cilium
+    destination:
+        namespace: mows-network
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+    name: mows-storage
+spec:
+    source:
+        path: manager/install/core/storage/longhorn
+    destination:
+        namespace: mows-storage
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+    name: mows-argocd
+spec:
+    source:
+        path: manager/install/core/argocd
+    destination:
+        namespace: mows-argocd
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+    name: mows-db-postgres
+spec:
+    source:
+        path: manager/install/core/db/postgres
+    destination:
+        namespace: mows-db-postgres

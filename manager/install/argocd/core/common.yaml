@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+    name: required-for-kustomize-but-not-used
+spec:
+    project: mows-core
+    source:
+        repoURL: https://github.com/my-own-web-services/mows
+        targetRevision: HEAD
+    destination:
+        name: in-cluster
+    syncPolicy:
+        automated:
+            prune: true
+            selfHeal: true
