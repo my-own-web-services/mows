@@ -58,7 +58,7 @@ const urls: Url[] = [
         category: ["cluster"]
     },
     {
-        url: "http://localhost:8001/api/v1/namespaces/mows-dev-k8s-dashboard/services/https:kubernetes-dashboard:443/proxy/",
+        url: "http://localhost:8001/api/v1/namespaces/mows-dev-k8s-dashboard/services/https:mows-dev-k8s-dashboard-kubernetes-dashboard:443/proxy/",
         title: "K8s Dashboard",
         category: ["cluster"]
     },

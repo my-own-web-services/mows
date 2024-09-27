@@ -194,7 +194,7 @@ impl Cluster {
     ) -> anyhow::Result<HelmDeploymentState> {
         match cmd(
             vec!["helm", "status", deployment, "-n", namespace],
-            "Failed to check if cilium is installed",
+            "Failed to check if deployment is installed",
         )
         .await
         {

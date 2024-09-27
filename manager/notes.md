@@ -6,7 +6,7 @@ http://mows-gitea-http.mows-gitea:3000/gitea_admin/test.git
 
 `tesseract snapshot.jpeg content --user-words bios-words.txt`
 
-`ustreamer -d /dev/video0 --host=0.0.0.0 --port=10001 -q 90 -r 1280x720 --drop-same-frames=120`
+`ustreamer -d /dev/video0 --host=0.0.0.0 --port=10000 -q 90 -r 1280x720 --drop-same-frames=120`
 
 `v4l2-ctl --device /dev/video0 --info --concise --verbose`
 

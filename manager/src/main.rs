@@ -1,5 +1,4 @@
 use anyhow::Context;
-use axum::error_handling::HandleErrorLayer;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
 use axum::http::{HeaderValue, Method};
 use axum::routing::{delete, get, post, put};
@@ -10,37 +9,19 @@ use manager::api::config::*;
 use manager::api::direct_terminal::*;
 use manager::api::machines::*;
 use manager::api::public_ip::*;
-use manager::config::{self, *};
+use manager::config::*;
 use manager::internal_config::INTERNAL_CONFIG;
 use manager::machines::MachineType;
 use manager::providers::hcloud::machine::ExternalMachineProviderHcloudConfig;
 use manager::providers::qemu::machine::LocalMachineProviderQemuConfig;
-use manager::tasks::{
-    apply_environment, get_cluster_kubeconfig, install_cluster_basics, start_background_tasks,
-    start_cluster_proxy, update_machine_install_state,
-};
+use manager::tasks::start_background_tasks;
 use manager::tracing::start_tracing;
 use manager::types::*;
-
 use manager::utils::{shutdown_signal, start_dnsmasq, start_pixiecore};
-use tracing_subscriber::fmt::time;
-use tracing_subscriber::util::SubscriberInitExt;
-
-use std::fs::read_to_string;
-use std::net::{IpAddr, Ipv6Addr, SocketAddr};
-use std::os::unix::fs::PermissionsExt;
-use std::process::Stdio;
-use std::str::FromStr;
-use std::time::Duration;
-use tokio::process::Command;
-use tokio::{fs, signal};
-use tower::ServiceBuilder;
+use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
-use tower_http::trace::TraceLayer;
-use tracing::{error, info, trace};
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::Layer;
+use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 /*
