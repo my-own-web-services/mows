@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
     - namespace.yaml
+    - StorageClass.yaml
 
 helmGlobals:
     chartHome: /tmp/helm-charts
