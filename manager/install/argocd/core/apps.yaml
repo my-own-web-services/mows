@@ -28,6 +28,18 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
+    name: mows-core-network-kubevip
+    annotations:
+        argocd.argoproj.io/sync-wave: "1"
+spec:
+    source:
+        path: manager/install/core/network/kubevip
+    destination:
+        namespace: mows-core-network-kubevip
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
     name: mows-core-storage-longhorn
     annotations:
         argocd.argoproj.io/sync-wave: "1"
