@@ -21,7 +21,7 @@ use crate::{
 
 pub struct ClusterStorage;
 
-const LONGHORN_STORAGE_CLASS_NAME: &str = "mows-static";
+const LONGHORN_STORAGE_CLASS_NAME: &str = " mows-core-storage-longhorn-static";
 
 impl ClusterStorage {
     pub async fn install(cluster: &Cluster) -> anyhow::Result<()> {
@@ -135,8 +135,8 @@ impl ClusterStorage {
 
         let mut params_map = BTreeMap::new();
 
-        let secret_name = "mows-storage-secret";
-        let namespace = "mows-storage";
+        let secret_name = "mows-core-storage-longhorn-secret";
+        let namespace = "mows-core-storage-longhorn";
 
         let kc = cluster.get_kubeconfig_struct().await?;
 

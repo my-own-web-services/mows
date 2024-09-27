@@ -2,7 +2,7 @@ apiVersion: cilium.io/v2alpha1
 kind: CiliumL2AnnouncementPolicy
 metadata:
     name: default-l2-announcement-policy
-    namespace: mows-network
+    namespace: mows-network-cilium
 spec:
     externalIPs: true
     loadBalancerIPs: true

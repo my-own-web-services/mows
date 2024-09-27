@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-    name: mows-network
+    name: mows-core-network-cilium
     labels:
         mows.cloud/api-type: core
         mows.cloud/core-apis-disable-kyverno: "true"

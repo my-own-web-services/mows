@@ -1,6 +1,6 @@
 # repo url
 
-http://mows-gitea-http.mows-gitea:3000/gitea_admin/test.git
+http://mows-core-gitea-http.mows-core-gitea:3000/gitea_admin/test.git
 
 ## tesseract command
 

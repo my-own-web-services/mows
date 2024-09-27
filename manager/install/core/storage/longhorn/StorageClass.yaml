@@ -4,6 +4,7 @@ metadata:
     name: mows-storage-static
     annotations:
         storageclass.kubernetes.io/is-default-class: "true"
+    namespace: mows-core-storage-longhorn
 provisioner: driver.longhorn.io
 allowVolumeExpansion: true
 reclaimPolicy: Delete
@@ -13,9 +14,9 @@ parameters:
     fsType: "ext4"
     encrypted: "true"
     dataLocality: best-effort
-    csi.storage.k8s.io/provisioner-secret-name: mows-storage-secret
-    csi.storage.k8s.io/provisioner-secret-namespace: mows-storage
-    csi.storage.k8s.io/node-publish-secret-name: mows-storage-secret
-    csi.storage.k8s.io/node-publish-secret-namespace: mows-storage
-    csi.storage.k8s.io/node-stage-secret-name: mows-storage-secret
-    csi.storage.k8s.io/node-stage-secret-namespace: mows-storage
+    csi.storage.k8s.io/provisioner-secret-name: mows-core-storage-longhorn-secret
+    csi.storage.k8s.io/provisioner-secret-namespace: mows-core-storage-longhorn
+    csi.storage.k8s.io/node-publish-secret-name: mows-core-storage-longhorn-secret
+    csi.storage.k8s.io/node-publish-secret-namespace: mows-core-storage-longhorn
+    csi.storage.k8s.io/node-stage-secret-name: mows-core-storage-longhorn-secret
+    csi.storage.k8s.io/node-stage-secret-namespace: mows-core-storage-longhorn
