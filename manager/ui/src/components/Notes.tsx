@@ -65,7 +65,7 @@ const defaultNotes: Note[] = [
     },
     {
         content:
-            "kubectl port-forward -n mows-core-secrets-vault service/mows-vault-ui --address 0.0.0.0 8080:http",
+            "kubectl port-forward -n mows-core-secrets-vault service/mows-core-secrets-vault-ui --address 0.0.0.0 8080:http",
         type: "default",
         description: "Forward vault ui to http://localhost:8080/ui/"
     }

@@ -25,6 +25,7 @@ use tokio::time::sleep;
 use tracing::debug;
 
 use super::network::ClusterNetwork;
+use super::secrets::ClusterSecrets;
 use super::storage::ClusterStorage;
 
 impl Cluster {
@@ -60,6 +61,7 @@ impl Cluster {
             cluster_backup_wg_private_key: None,
             install_state: None,
             vip,
+            vault_secrets: None,
         })
     }
 
@@ -292,7 +294,7 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn install_basics(&self) -> anyhow::Result<()> {
+    pub async fn install_core_cloud_system(&self) -> anyhow::Result<()> {
         let ic = &INTERNAL_CONFIG;
 
         self.write_local_kubeconfig().await?;
@@ -307,10 +309,21 @@ impl Cluster {
 
         Self::install_argocd(&self).await?;
 
+        Self::install_core_with_argo(&self).await?;
+
+        ClusterSecrets::setup(&self).await?;
+
         Ok(())
     }
 
-    pub async fn start_proxy() -> anyhow::Result<()> {
+    pub async fn install_core_with_argo(&self) -> anyhow::Result<()> {
+        debug!("Installing core apps");
+        Self::install_with_kustomize("/install/argocd/core").await?;
+        debug!("Core apps installed");
+        Ok(())
+    }
+
+    pub async fn start_kubectl_proxy() -> anyhow::Result<()> {
         debug!("Starting kubectl proxy");
 
         Command::new("kubectl")
@@ -323,11 +336,59 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn stop_proxy() -> anyhow::Result<()> {
+    pub async fn stop_kubectl_proxy() -> anyhow::Result<()> {
         debug!("Stopping kubectl proxy");
         cmd(
             vec!["pkill", "-f", "kubectl proxy"],
             "Failed to stop kubectl proxy",
+        )
+        .await?;
+        Ok(())
+    }
+
+    pub async fn start_kubectl_port_forward(
+        namespace: &str,
+        // target is the pod or service name prefixed service/NAME_OF_SERVICE
+        target: &str,
+        local_port: u16,
+        remote_port: u16,
+        exposed_outside_container: bool,
+    ) -> anyhow::Result<()> {
+        debug!("Starting kubectl port-forward");
+
+        Command::new("kubectl")
+            .args(vec![
+                "port-forward",
+                target,
+                "-n",
+                namespace,
+                &format!("{}:{}", local_port, remote_port),
+                &format!(
+                    "--address={}",
+                    if exposed_outside_container {
+                        "0.0.0.0"
+                    } else {
+                        "127.0.0.1"
+                    }
+                ),
+            ])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .context("Failed to start kubectl port-forward")?;
+
+        Ok(())
+    }
+
+    pub async fn stop_kubectl_port_forward(namespace: &str, target: &str) -> anyhow::Result<()> {
+        debug!("Stopping kubectl port-forward");
+        cmd(
+            vec![
+                "pkill",
+                "-f",
+                &format!("kubectl port-forward {} -n {}", target, namespace),
+            ],
+            "Failed to stop kubectl port-forward",
         )
         .await?;
         Ok(())

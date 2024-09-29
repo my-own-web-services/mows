@@ -29,12 +29,9 @@ pub mod os {
 
 pub mod cluster {
     pub mod cluster;
-    pub mod db;
-    pub mod ingress;
-    pub mod monitoring;
     pub mod network;
     pub mod node;
-    pub mod policy;
+    pub mod secrets;
     pub mod storage;
 }
 
