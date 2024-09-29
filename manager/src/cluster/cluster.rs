@@ -311,7 +311,13 @@ impl Cluster {
 
         Self::install_core_with_argo(&self).await?;
 
-        ClusterSecrets::setup(&self).await?;
+        if let Err(e) = ClusterSecrets::setup(&self).await {
+            if !e.to_string().contains("Vault is already initialized") {
+                bail!(e);
+            }
+        }
+
+        ClusterSecrets::start_proxy_and_setup_eso(&self).await?;
 
         Ok(())
     }
@@ -373,7 +379,6 @@ impl Cluster {
                 ),
             ])
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
             .spawn()
             .context("Failed to start kubectl port-forward")?;
 
