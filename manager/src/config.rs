@@ -1,17 +1,16 @@
+use crate::machines::MachineType;
+use crate::providers::hcloud::index::ExternalProviderConfigHcloud;
+use crate::public_ip::WgKeys;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::Path;
 use std::sync::OnceLock;
-use std::{collections::HashMap, net::IpAddr};
 use tokio::fs;
 use tokio::sync::RwLock;
 use tracing::trace;
 use utoipa::ToSchema;
-
-use crate::machines::MachineType;
-use crate::providers::hcloud::index::ExternalProviderConfigHcloud;
-use crate::public_ip::WgKeys;
 
 #[tracing::instrument]
 pub fn config() -> &'static RwLock<ManagerConfig> {
@@ -180,6 +179,13 @@ pub struct Cluster {
     pub public_ip_config: HashMap<String, PublicIpConfig>,
     pub cluster_backup_wg_private_key: Option<String>,
     pub install_state: Option<ClusterInstallState>,
+    pub vault_secrets: Option<VaultSecrets>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
+pub struct VaultSecrets {
+    pub root_token: String,
+    pub unseal_key: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]

@@ -5,9 +5,7 @@ use tracing::{debug, error, info, trace};
 
 use crate::{
     config::{Cluster, ClusterInstallState, MachineInstallState},
-    get_current_config_cloned,
-    internal_config::INTERNAL_CONFIG,
-    some_or_bail, write_config,
+    get_current_config_cloned, some_or_bail, write_config,
 };
 
 pub async fn start_background_tasks() -> anyhow::Result<()> {
@@ -59,7 +57,7 @@ pub async fn start_background_tasks() -> anyhow::Result<()> {
                 // the proxy is running... check if the cluster still exists else stop the proxy and allow the next iteration to start a new proxy
                 let cfg1 = get_current_config_cloned!();
                 if cfg1.clusters.get(&cluster_id.clone()).is_none() {
-                    if let Err(e) = Cluster::stop_proxy().await {
+                    if let Err(e) = Cluster::stop_kubectl_proxy().await {
                         error!("Could not stop cluster proxy: {:?}", e);
                     }
                     proxy_running_for_cluster = None;
@@ -155,7 +153,7 @@ pub async fn install_cluster_basics() -> anyhow::Result<()> {
             && cluster.install_state == Some(ClusterInstallState::Kubernetes)
         {
             info!("Installing basics for cluster {}", cluster.id);
-            cluster.install_basics().await?;
+            cluster.install_core_cloud_system().await?;
             info!("Installed basics for cluster {}", cluster.id);
 
             let mut config_locked2 = write_config!();
@@ -176,7 +174,7 @@ pub async fn start_cluster_proxy() -> anyhow::Result<Option<String>> {
     for cluster in cfg1.clusters.values() {
         if cluster.kubeconfig.is_some() {
             info!("Starting proxy for cluster {}", cluster.id);
-            Cluster::start_proxy().await?;
+            Cluster::start_kubectl_proxy().await?;
             info!("Started proxy for cluster {}", cluster.id);
             return Ok(Some(cluster.id.clone()));
         }

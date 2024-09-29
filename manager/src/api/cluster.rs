@@ -123,7 +123,7 @@ pub async fn dev_install_cluster_basics() -> Json<ApiResponse<()>> {
     for cluster in config.clusters.values() {
         if cluster.kubeconfig.is_some() {
             info!("Installing basics for cluster {}", cluster.id);
-            if let Err(e) = cluster.install_basics().await {
+            if let Err(e) = cluster.install_core_cloud_system().await {
                 return Json(ApiResponse {
                     message: format!("Failed to install basics for cluster {}: {}", cluster.id, e),
                     status: ApiResponseStatus::Error,
