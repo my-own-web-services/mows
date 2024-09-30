@@ -1,16 +1,17 @@
-use anyhow::{bail, Context};
-use k8s_openapi::api::core::v1::Secret;
-use tracing::debug;
-use vaultrs::{
-    client::{VaultClient, VaultClientSettingsBuilder},
-    kv2, sys,
-};
-
 use crate::{
     config::{Cluster, VaultSecrets},
     some_or_bail, write_config,
 };
-
+use anyhow::{bail, Context};
+use k8s_openapi::api::core::v1::Secret;
+use serde_yaml::Value;
+use std::string::String;
+use tracing::debug;
+use vaultrs::{
+    api::auth::kubernetes::requests::ConfigureKubernetesAuthRequestBuilder,
+    client::{VaultClient, VaultClientSettingsBuilder},
+    kv2, sys, token,
+};
 pub struct ClusterSecrets;
 
 impl ClusterSecrets {
@@ -107,25 +108,63 @@ impl ClusterSecrets {
 
         let vault_secrets = some_or_bail!(&cluster.vault_secrets, "Vault secrets not found");
 
+        // create the vault kv2 engine with path mows-core-secrets-eso
+
+        let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token)).await?;
+
+        vaultrs::sys::mount::enable(&vault_client, "mows-core-secrets-eso", "kv-v2", None)
+            .await
+            .context("Failed to create eso kv engine in Vault")?;
+
+        vaultrs::sys::auth::enable(&vault_client, "mows-core-secrets-eso", "kubernetes", None)
+            .await
+            .context("Failed to create eso kubernetes auth engine in Vault")?;
+
+        let kube_api_addr = "https://127.0.0.1:6443";
+
+        let kubeconfig_yaml: Value =
+            serde_yaml::from_str(&some_or_bail!(&cluster.kubeconfig, "Missing kubeconfig"))?;
+
+        let kubernetes_ca_cert = some_or_bail!(
+            kubeconfig_yaml["clusters"][0]["cluster"]["certificate-authority-data"].as_str(),
+            "Missing certificate-authority-data"
+        );
+
+        // wtf
         let kc = cluster.get_kubeconfig_struct().await?;
         let kube_client = kube::client::Client::try_from(kc.clone())?;
 
         let secret_api: kube::Api<Secret> =
             kube::Api::namespaced(kube_client.clone(), "mows-core-secrets-eso");
 
-        if let Ok(_) = secret_api.get("mows-core-secrets-eso-token").await {
-            debug!("ESO secret already exists");
-            return Ok(());
-        }
+        let secret = secret_api
+            .get("mows-core-secrets-eso")
+            .await
+            .context("Failed to fetch eso secret")?;
+        let data = some_or_bail!(
+            secret.data,
+            "Token not found in secret mows-core-secrets-eso"
+        );
+        let token_bytes = some_or_bail!(
+            data.get("token"),
+            "Token not found in secret mows-core-secrets-eso"
+        );
 
-        // create the vault kv2 engine with path mows-core-secrets-eso
+        let token_bas64 = String::from_utf8(token_bytes.0.clone())?;
+        let token = String::from_utf8(data_encoding::BASE64.decode(token_bas64.as_bytes())?)?;
 
-        let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token)).await?;
-
-        vaultrs::sys::mount::enable(&vault_client, "mows-core-secrets-eso", "kv-v2", None).await?;
-
-        // enable kubernetes auth
-        vaultrs::sys::auth::enable(&vault_client, "kubernetes", "kubernetes", None).await?;
+        vaultrs::auth::kubernetes::configure(
+            &vault_client,
+            "mows-core-secrets-eso",
+            kube_api_addr,
+            Some(
+                &mut ConfigureKubernetesAuthRequestBuilder::default()
+                    .kubernetes_host(kube_api_addr)
+                    .kubernetes_ca_cert(kubernetes_ca_cert)
+                    .issuer(token),
+            ),
+        )
+        .await?;
 
         debug!("ESO vault engine created");
 
@@ -137,7 +176,7 @@ impl ClusterSecrets {
 
         Cluster::start_kubectl_port_forward(
             "mows-core-secrets-vault",
-            "service/mows-core-secrets-vault",
+            "service/mows-core-secrets-vault-active",
             8200,
             8200,
             false,
@@ -157,7 +196,7 @@ impl ClusterSecrets {
 
         Cluster::stop_kubectl_port_forward(
             "mows-core-secrets-vault",
-            "service/mows-core-secrets-vault",
+            "service/mows-core-secrets-vault-active",
         )
         .await?;
 
