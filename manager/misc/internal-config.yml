@@ -28,8 +28,6 @@ dev:
     skip_core_components_install:
         - "storage"
         - "network"
-        - "argocd"
-        - "vault"
 
 log:
     dnsmasq:
