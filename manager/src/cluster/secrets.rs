@@ -135,7 +135,7 @@ impl ClusterSecrets {
                 .await
                 .context("Failed to create eso kubernetes auth engine in Vault")?;
         }
-        let kube_api_addr = "https://127.0.0.1:6443";
+        let kube_api_addr = "https://kubernetes.default.svc";
 
         let kubeconfig_yaml: Value =
             serde_yaml::from_str(&some_or_bail!(&cluster.kubeconfig, "Missing kubeconfig"))?;
@@ -148,27 +148,29 @@ impl ClusterSecrets {
         let kubernetes_ca_cert =
             String::from_utf8(data_encoding::BASE64.decode(kubernetes_ca_cert_base64.as_bytes())?)?;
 
-        // wtf
-        let kc = cluster.get_kubeconfig_struct().await?;
-        let kube_client = kube::client::Client::try_from(kc.clone())?;
+        // // wtf
+        // let kc = cluster.get_kubeconfig_struct().await?;
+        // let kube_client = kube::client::Client::try_from(kc.clone())?;
 
-        let secret_api: kube::Api<Secret> =
-            kube::Api::namespaced(kube_client.clone(), "mows-core-secrets-eso");
+        // let secret_api: kube::Api<Secret> =
+        //     kube::Api::namespaced(kube_client.clone(), "mows-core-secrets-eso");
 
-        let secret = secret_api
-            .get("mows-core-secrets-eso")
-            .await
-            .context("Failed to fetch eso secret")?;
-        let data = some_or_bail!(
-            secret.data,
-            "Data not found in secret mows-core-secrets-eso"
-        );
-        let token_bytes = some_or_bail!(
-            data.get("token"),
-            "Token not found in secret mows-core-secrets-eso"
-        );
+        // let secret = secret_api
+        //     .get("mows-core-secrets-eso")
+        //     .await
+        //     .context("Failed to fetch eso secret")?;
+        // let data = some_or_bail!(
+        //     secret.data,
+        //     "Data not found in secret mows-core-secrets-eso"
+        // );
+        // let token_bytes = some_or_bail!(
+        //     data.get("token"),
+        //     "Token not found in secret mows-core-secrets-eso"
+        // );
 
-        let token = String::from_utf8(token_bytes.0.clone())?;
+        // let token = String::from_utf8(token_bytes.0.clone())?;
+
+        // adding the token is currently not supported by vaultrs
 
         vaultrs::auth::kubernetes::configure(
             &vault_client,
@@ -176,12 +178,20 @@ impl ClusterSecrets {
             kube_api_addr,
             Some(
                 &mut ConfigureKubernetesAuthRequestBuilder::default()
-                    .kubernetes_host(kube_api_addr)
                     .kubernetes_ca_cert(kubernetes_ca_cert),
             ),
         )
         .await
         .context("Failed to configure kubernetes auth for eso in Vault")?;
+
+        // TODO create a role for the service account in vault
+
+        // create a acl policy for the role
+
+        // path "mows-core-secrets-eso/*"
+        // {
+        // capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+        // }
 
         debug!("ESO vault engine created");
 
@@ -191,9 +201,11 @@ impl ClusterSecrets {
     pub async fn start_vault_proxy() -> anyhow::Result<()> {
         debug!("Starting Vault proxy");
 
+        // TODO switch this to service/mows-core-secrets-vault-active once vault is initialized
+
         Cluster::start_kubectl_port_forward(
             "mows-core-secrets-vault",
-            "service/mows-core-secrets-vault-active",
+            "service/mows-core-secrets-vault",
             8200,
             8200,
             false,
@@ -213,7 +225,7 @@ impl ClusterSecrets {
 
         Cluster::stop_kubectl_port_forward(
             "mows-core-secrets-vault",
-            "service/mows-core-secrets-vault-active",
+            "service/mows-core-secrets-vault",
         )
         .await?;
 
