@@ -1974,6 +1974,7 @@ dependencies = [
  "bollard",
  "bytes",
  "console-subscriber",
+ "data-encoding",
  "futures",
  "futures-util",
  "hcloud",
