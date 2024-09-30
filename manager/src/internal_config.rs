@@ -97,6 +97,7 @@ pub struct DevConfig {
     pub skip_network_policy_install: bool,
     pub install_k8s_dashboard: bool,
     pub send_default_netboot_config_if_mac_unknown: bool,
+    pub skip_core_components_install: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

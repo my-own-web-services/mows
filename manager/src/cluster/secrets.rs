@@ -8,13 +8,13 @@ use vaultrs::{
 
 use crate::{
     config::{Cluster, VaultSecrets},
-    get_current_config_cloned, some_or_bail, write_config,
+    some_or_bail, write_config,
 };
 
 pub struct ClusterSecrets;
 
 impl ClusterSecrets {
-    pub async fn setup(cluster: &Cluster) -> anyhow::Result<()> {
+    pub async fn setup_vault(cluster: &Cluster) -> anyhow::Result<()> {
         Self::start_vault_proxy().await?;
         let secrets = match Self::init_vault().await {
             Ok(v) => v,
@@ -101,7 +101,7 @@ impl ClusterSecrets {
         res
     }
 
-    pub async fn setup_eso(cluster: &Cluster) -> anyhow::Result<()> {
+    async fn setup_eso(cluster: &Cluster) -> anyhow::Result<()> {
         // first check if the secret is already present in kubernetes
         // name: mows-core-secrets-eso-token namespace: mows-core-secrets-eso
 

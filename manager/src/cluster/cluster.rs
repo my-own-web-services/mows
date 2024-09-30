@@ -5,6 +5,7 @@ use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, p
 
 use crate::config::{HelmDeploymentState, Vip, VipIp};
 use crate::internal_config::INTERNAL_CONFIG;
+use crate::s;
 use crate::utils::cmd;
 use crate::{
     config::{Cluster, MachineInstallState, ManagerConfig},
@@ -303,17 +304,25 @@ impl Cluster {
             self.install_dashboard().await?;
         }
 
-        ClusterNetwork::install(&self).await?;
+        if !ic.dev.skip_core_components_install.contains(&s!("network")) {
+            ClusterNetwork::install(&self).await?;
+        }
 
-        ClusterStorage::install(&self).await?;
+        if !ic.dev.skip_core_components_install.contains(&s!("storage")) {
+            ClusterStorage::install(&self).await?;
+        }
 
-        Self::install_argocd(&self).await?;
+        if !ic.dev.skip_core_components_install.contains(&s!("argocd")) {
+            Self::install_argocd(&self).await?;
 
-        Self::install_core_with_argo(&self).await?;
+            Self::install_core_with_argo(&self).await?;
+        }
 
-        if let Err(e) = ClusterSecrets::setup(&self).await {
-            if !e.to_string().contains("Vault is already initialized") {
-                bail!(e);
+        if !ic.dev.skip_core_components_install.contains(&s!("vault")) {
+            if let Err(e) = ClusterSecrets::setup_vault(&self).await {
+                if !e.to_string().contains("Vault is already initialized") {
+                    bail!(e);
+                }
             }
         }
 
