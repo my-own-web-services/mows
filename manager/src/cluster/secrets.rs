@@ -110,25 +110,43 @@ impl ClusterSecrets {
 
         // create the vault kv2 engine with path mows-core-secrets-eso
 
-        let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token)).await?;
-
-        vaultrs::sys::mount::enable(&vault_client, "mows-core-secrets-eso", "kv-v2", None)
+        let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token))
             .await
-            .context("Failed to create eso kv engine in Vault")?;
+            .context("Failed to create vault client with root token for setting up eso")?;
 
-        vaultrs::sys::auth::enable(&vault_client, "mows-core-secrets-eso", "kubernetes", None)
+        // check if the engine is already created
+        let current_secret_engines = sys::mount::list(&vault_client)
             .await
-            .context("Failed to create eso kubernetes auth engine in Vault")?;
+            .context("Failed to list secret engines in Vault")?;
 
+        if !current_secret_engines.contains_key(&"mows-core-secrets-eso/".to_string()) {
+            vaultrs::sys::mount::enable(&vault_client, "mows-core-secrets-eso", "kv-v2", None)
+                .await
+                .context("Failed to create eso kv engine in Vault")?;
+        }
+
+        // check if the auth engine is already created
+        let current_auth_engines = sys::auth::list(&vault_client)
+            .await
+            .context("Failed to list auth engines in Vault")?;
+
+        if !current_auth_engines.contains_key(&"mows-core-secrets-eso/".to_string()) {
+            vaultrs::sys::auth::enable(&vault_client, "mows-core-secrets-eso", "kubernetes", None)
+                .await
+                .context("Failed to create eso kubernetes auth engine in Vault")?;
+        }
         let kube_api_addr = "https://127.0.0.1:6443";
 
         let kubeconfig_yaml: Value =
             serde_yaml::from_str(&some_or_bail!(&cluster.kubeconfig, "Missing kubeconfig"))?;
 
-        let kubernetes_ca_cert = some_or_bail!(
+        let kubernetes_ca_cert_base64 = some_or_bail!(
             kubeconfig_yaml["clusters"][0]["cluster"]["certificate-authority-data"].as_str(),
             "Missing certificate-authority-data"
         );
+
+        let kubernetes_ca_cert =
+            String::from_utf8(data_encoding::BASE64.decode(kubernetes_ca_cert_base64.as_bytes())?)?;
 
         // wtf
         let kc = cluster.get_kubeconfig_struct().await?;
@@ -143,15 +161,14 @@ impl ClusterSecrets {
             .context("Failed to fetch eso secret")?;
         let data = some_or_bail!(
             secret.data,
-            "Token not found in secret mows-core-secrets-eso"
+            "Data not found in secret mows-core-secrets-eso"
         );
         let token_bytes = some_or_bail!(
             data.get("token"),
             "Token not found in secret mows-core-secrets-eso"
         );
 
-        let token_bas64 = String::from_utf8(token_bytes.0.clone())?;
-        let token = String::from_utf8(data_encoding::BASE64.decode(token_bas64.as_bytes())?)?;
+        let token = String::from_utf8(token_bytes.0.clone())?;
 
         vaultrs::auth::kubernetes::configure(
             &vault_client,
@@ -160,11 +177,11 @@ impl ClusterSecrets {
             Some(
                 &mut ConfigureKubernetesAuthRequestBuilder::default()
                     .kubernetes_host(kube_api_addr)
-                    .kubernetes_ca_cert(kubernetes_ca_cert)
-                    .issuer(token),
+                    .kubernetes_ca_cert(kubernetes_ca_cert),
             ),
         )
-        .await?;
+        .await
+        .context("Failed to configure kubernetes auth for eso in Vault")?;
 
         debug!("ESO vault engine created");
 
