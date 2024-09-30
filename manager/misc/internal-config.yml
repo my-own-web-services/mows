@@ -25,6 +25,11 @@ dev:
     skip_network_policy_install: true
     install_k8s_dashboard: true
     send_default_netboot_config_if_mac_unknown: false
+    skip_core_components_install:
+        - "storage"
+        - "network"
+        - "argocd"
+        - "vault"
 
 log:
     dnsmasq:
