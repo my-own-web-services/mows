@@ -5,6 +5,7 @@ service:
         io.cilium/lb-ipam-ips: "192.168.112.253"
 metrics:
     prometheus:
+        enabled: false
         serviceMonitor:
             enabled: false
         prometheusRule:
