@@ -12,7 +12,7 @@ helmGlobals:
 helmCharts:
     - name: traefik
       repo: https://traefik.github.io/charts
-      version: 28.3.0
+      version: 32.0.0
       releaseName: mows-core-network-ingress
       includeCRDs: true
       namespace: mows-core-network-ingress
