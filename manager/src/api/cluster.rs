@@ -1,7 +1,7 @@
 use std::{collections::HashMap, net::Ipv4Addr};
 
 use crate::{
-    config::{Cluster, ClusterInstallState, ClusterNode, InternalIps, Machine},
+    config::{Cluster, ClusterInstallState, ClusterNode, InternalIps},
     dev_mode_disabled, get_current_config_cloned,
     internal_config::INTERNAL_CONFIG,
     machines::MachineType,

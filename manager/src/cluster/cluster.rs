@@ -23,7 +23,7 @@ use tempfile::NamedTempFile;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tokio::time::sleep;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use super::network::ClusterNetwork;
 use super::secrets::ClusterSecrets;
@@ -300,25 +300,33 @@ impl Cluster {
 
         self.write_local_kubeconfig().await?;
 
-        if ic.dev.install_k8s_dashboard {
+        if ic.dev.enabled && ic.dev.install_k8s_dashboard {
             self.install_dashboard().await?;
         }
 
-        if !ic.dev.skip_core_components_install.contains(&s!("network")) {
-            ClusterNetwork::install(&self).await?;
+        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("network")) {
+            warn!("Skipping network install as configured in internal config");
+        } else {
+            ClusterNetwork::install().await?;
         }
 
-        if !ic.dev.skip_core_components_install.contains(&s!("storage")) {
+        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("storage")) {
+            warn!("Skipping storage install as configured in internal config");
+        } else {
             ClusterStorage::install(&self).await?;
         }
 
-        if !ic.dev.skip_core_components_install.contains(&s!("argocd")) {
+        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("argocd")) {
+            warn!("Skipping argocd install as configured in internal config");
+        } else {
             Self::install_argocd(&self).await?;
 
             Self::install_core_with_argo(&self).await?;
         }
 
-        if !ic.dev.skip_core_components_install.contains(&s!("vault")) {
+        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("vault")) {
+            warn!("Skipping vault install as configured in internal config");
+        } else {
             if let Err(e) = ClusterSecrets::setup_vault(&self).await {
                 if !e.to_string().contains("Vault is already initialized") {
                     bail!(e);
@@ -326,7 +334,11 @@ impl Cluster {
             }
         }
 
-        ClusterSecrets::start_proxy_and_setup_eso(&self).await?;
+        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("eso")) {
+            warn!("Skipping eso install as configured in internal config");
+        } else {
+            ClusterSecrets::start_proxy_and_setup_eso(&self).await?;
+        }
 
         Ok(())
     }

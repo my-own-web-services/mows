@@ -17,8 +17,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-core-network-cilium
-    annotations:
-        argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/network/cilium
@@ -29,8 +27,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-core-network-kubevip
-    annotations:
-        argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/network/kubevip
@@ -41,8 +37,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-core-storage-longhorn
-    annotations:
-        argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/storage/longhorn
@@ -53,32 +47,16 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-core-argocd
-    annotations:
-        argocd.argoproj.io/sync-wave: "1"
 spec:
     source:
         path: manager/install/core/argocd
     destination:
         namespace: mows-core-argocd
-# ---
-# apiVersion: argoproj.io/v1alpha1
-# kind: Application
-# metadata:
-#     name: mows-core-db-postgres
-#     annotations:
-#         argocd.argoproj.io/sync-wave: "2"
-# spec:
-#     source:
-#         path: manager/install/core/db/postgres
-#     destination:
-#         namespace: mows-core-db-postgres
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-core-secrets-vault
-    annotations:
-        argocd.argoproj.io/sync-wave: "2"
 spec:
     source:
         path: manager/install/core/secrets/vault
@@ -89,22 +67,18 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
     name: mows-core-secrets-eso
-    annotations:
-        argocd.argoproj.io/sync-wave: "2"
 spec:
     source:
         path: manager/install/core/secrets/eso
     destination:
         namespace: mows-core-secrets-eso
-# ---
-# apiVersion: argoproj.io/v1alpha1
-# kind: Application
-# metadata:
-#     name: mows-core-gitea
-#     annotations:
-#         argocd.argoproj.io/sync-wave: "3"
-# spec:
-#     source:
-#         path: manager/install/core/gitea
-#     destination:
-#         namespace: mows-core-gitea
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+    name: mows-core-network-ingress
+spec:
+    source:
+        path: manager/install/core/network/ingress
+    destination:
+        namespace: mows-core-network-ingress

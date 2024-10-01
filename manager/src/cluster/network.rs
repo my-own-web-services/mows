@@ -1,20 +1,12 @@
-use crate::{
-    config::{Cluster, HelmDeploymentState, VipIp},
-    internal_config::INTERNAL_CONFIG,
-    some_or_bail,
-    utils::cmd,
-};
-use anyhow::Context;
-use serde_json::json;
-use std::io::Write;
-use tempfile::NamedTempFile;
-use tokio::{fs, time::sleep};
+use crate::config::Cluster;
+
+use tokio::time::sleep;
 use tracing::debug;
 
 pub struct ClusterNetwork;
 
 impl ClusterNetwork {
-    pub async fn install(cluster: &Cluster) -> anyhow::Result<()> {
+    pub async fn install() -> anyhow::Result<()> {
         ClusterNetwork::install_network().await?;
         ClusterNetwork::install_kubevip().await?;
         Ok(())

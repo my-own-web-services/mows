@@ -1,16 +1,17 @@
 use crate::{
     config::{Cluster, VaultSecrets},
-    some_or_bail, write_config,
+    s, some_or_bail, write_config,
 };
 use anyhow::{bail, Context};
-use k8s_openapi::api::core::v1::Secret;
 use serde_yaml::Value;
 use std::string::String;
 use tracing::debug;
 use vaultrs::{
-    api::auth::kubernetes::requests::ConfigureKubernetesAuthRequestBuilder,
+    api::auth::kubernetes::requests::{
+        ConfigureKubernetesAuthRequestBuilder, CreateKubernetesRoleRequestBuilder,
+    },
     client::{VaultClient, VaultClientSettingsBuilder},
-    kv2, sys, token,
+    sys,
 };
 pub struct ClusterSecrets;
 
@@ -184,14 +185,33 @@ impl ClusterSecrets {
         .await
         .context("Failed to configure kubernetes auth for eso in Vault")?;
 
-        // TODO create a role for the service account in vault
-
         // create a acl policy for the role
 
-        // path "mows-core-secrets-eso/*"
-        // {
-        // capabilities = ["create", "read", "update", "delete", "list", "sudo"]
-        // }
+        vaultrs::sys::policy::set(
+            &vault_client,
+            "mows-core-secrets-eso",
+            r#"path "mows-core-secrets-eso/*" {
+                capabilities = ["create", "read", "update", "delete", "list"]
+            }"#,
+        )
+        .await
+        .context("Failed to create policy for eso in Vault")?;
+
+        // TODO create a role for the service account in vault
+
+        vaultrs::auth::kubernetes::role::create(
+            &vault_client,
+            "mows-core-secrets-eso",
+            "mows-core-secrets-eso",
+            Some(
+                &mut CreateKubernetesRoleRequestBuilder::default()
+                    .bound_service_account_names(vec![s!("mows-core-secrets-eso")])
+                    .bound_service_account_namespaces(vec![s!("mows-core-secrets-eso")])
+                    .token_policies(vec![s!("mows-core-secrets-eso")]),
+            ),
+        )
+        .await
+        .context("Failed to create role for eso in Vault")?;
 
         debug!("ESO vault engine created");
 

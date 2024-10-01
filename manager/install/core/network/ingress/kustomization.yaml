@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: mows-core-network-ingress
+
+resources:
+    - "namespace.yaml"
+
+helmGlobals:
+    chartHome: /tmp/helm-charts
+
+helmCharts:
+    - name: traefik
+      repo: https://traefik.github.io/charts
+      version: 28.3.0
+      releaseName: mows-core-network-ingress
+      includeCRDs: true
+      namespace: mows-core-network-ingress
+      valuesFile: values.yaml
