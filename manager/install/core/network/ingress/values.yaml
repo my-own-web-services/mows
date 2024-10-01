@@ -8,4 +8,4 @@ metrics:
         serviceMonitor:
             enabled: false
         prometheusRule:
-            enabled: true
+            enabled: false
