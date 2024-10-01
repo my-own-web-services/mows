@@ -1,17 +1,15 @@
-use core::time;
-use std::{any, net::Ipv6Addr, str::FromStr};
-
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
     runtime,
-    trace::{BatchConfig, RandomIdGenerator, Sampler, Tracer},
+    trace::{BatchConfig, RandomIdGenerator, Sampler, TracerProvider},
     Resource,
 };
 use opentelemetry_semantic_conventions::{
-    resource::{DEPLOYMENT_ENVIRONMENT, SERVICE_NAME, SERVICE_VERSION},
+    resource::{DEPLOYMENT_ENVIRONMENT_NAME, SERVICE_NAME, SERVICE_VERSION},
     SCHEMA_URL,
 };
+use std::{net::Ipv6Addr, str::FromStr};
 use tracing_subscriber::{
     fmt::time::ChronoLocal, layer::SubscriberExt, util::SubscriberInitExt, Layer,
 };
@@ -61,14 +59,14 @@ fn resource() -> Resource {
         [
             KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
             KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
-            KeyValue::new(DEPLOYMENT_ENVIRONMENT, "develop"),
+            KeyValue::new(DEPLOYMENT_ENVIRONMENT_NAME, "develop"),
         ],
         SCHEMA_URL,
     )
 }
 
-pub fn init_tracer(exporter_endpoint: &str) -> Tracer {
-    opentelemetry_otlp::new_pipeline()
+pub fn init_tracer(exporter_endpoint: &str) -> TracerProvider {
+    let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_trace_config(
             opentelemetry_sdk::trace::Config::default()
@@ -87,5 +85,7 @@ pub fn init_tracer(exporter_endpoint: &str) -> Tracer {
                 .with_endpoint(exporter_endpoint),
         )
         .install_batch(runtime::Tokio)
-        .unwrap()
+        .unwrap();
+
+    tracer
 }

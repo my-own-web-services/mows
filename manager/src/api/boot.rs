@@ -2,9 +2,7 @@ use std::net::Ipv4Addr;
 
 use anyhow::bail;
 use axum::{extract::Path, Json};
-use tower_http::trace;
 use tracing::{debug, info};
-use utoipa::openapi::info;
 
 use crate::{
     config::{
@@ -18,7 +16,7 @@ use crate::{
     write_config,
 };
 
-use super::{config, machines::MachineCreationReqType};
+use super::machines::MachineCreationReqType;
 
 #[utoipa::path(
     get,

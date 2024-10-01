@@ -13,7 +13,7 @@ use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
-    config::{config, Machine, ManagerConfig},
+    config::{config, Machine},
     dev_mode_disabled, get_current_config_cloned,
     machines::MachineType,
     providers::{
@@ -241,7 +241,7 @@ pub async fn handle_get_machine_status(mut socket: WebSocket) {
             let message = Message::Text(serde_json::to_string(&status).unwrap());
             match socket.send(message).await {
                 Ok(_) => continue,
-                Err(e) => {
+                Err(_e) => {
                     //error!("Failed to send message: {:?}", e);
                     break 'outer;
                 }
