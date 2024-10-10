@@ -165,6 +165,11 @@ impl Cluster {
         Ok(kube::Config::from_custom_kubeconfig(kc, &KubeConfigOptions::default()).await?)
     }
 
+    pub async fn get_kube_client(&self) -> anyhow::Result<kube::client::Client> {
+        let kc = self.get_kubeconfig_struct().await?;
+        Ok(kube::client::Client::try_from(kc)?)
+    }
+
     pub async fn are_nodes_ready(&self) -> anyhow::Result<bool> {
         let kc = self.get_kubeconfig_struct().await?;
         let client = kube::client::Client::try_from(kc)?;

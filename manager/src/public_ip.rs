@@ -1,16 +1,22 @@
 use std::{
-    net::{Ipv4Addr, Ipv6Addr},
+    collections::{BTreeMap, HashMap},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
     path::Path,
     str::FromStr,
 };
 
 use anyhow::{bail, Context, Ok};
+use data_encoding::BASE64;
+use k8s_openapi::{
+    api::core::v1::Namespace, apimachinery::pkg::api::resource::Quantity, ByteString,
+};
+use kube::api::ObjectMeta;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
     api::public_ip::PublicIpCreationConfigType,
-    config::{Machine, PublicIpConfig, PublicIpVmProxy},
+    config::{Cluster, Machine, PublicIpConfig, PublicIpVmProxy},
     get_current_config_cloned, s, some_or_bail,
     utils::cmd,
 };
@@ -19,11 +25,16 @@ pub async fn create_public_ip_handler(
     creation_config: PublicIpCreationConfigType,
 ) -> anyhow::Result<PublicIpConfig> {
     match creation_config {
-        PublicIpCreationConfigType::MachineProxy(id) => create_public_ip_from_machine(&id).await,
+        PublicIpCreationConfigType::MachineProxy(remote_machine_id, local_cluster_id) => {
+            create_machine_proxy_public_ip(&remote_machine_id, &local_cluster_id).await
+        }
     }
 }
 
-pub async fn create_public_ip_from_machine(machine_id: &str) -> anyhow::Result<PublicIpConfig> {
+pub async fn create_machine_proxy_public_ip(
+    machine_id: &str,
+    cluster_id: &str,
+) -> anyhow::Result<PublicIpConfig> {
     let config = get_current_config_cloned!();
 
     let (_, machine) = some_or_bail!(
@@ -31,13 +42,22 @@ pub async fn create_public_ip_from_machine(machine_id: &str) -> anyhow::Result<P
         format!("Could not find machine with id {}", machine_id)
     );
 
+    let (_, cluster) = some_or_bail!(
+        config.clusters.iter().find(|c| c.1.id == cluster_id),
+        format!("Could not find cluster with id {}", cluster_id)
+    );
+
     let keys = generate_wg_keys()
         .await
         .context("Failed to generate WireGuard keys for the machine.")?;
 
-    install_wireguard(machine, &keys)
+    install_remote_wireguard(machine, &keys)
         .await
-        .context("Failed to install WireGuard on the machine.")?;
+        .context("Failed to install WireGuard on remote machine.")?;
+
+    install_local_wireguard(cluster, &keys, machine.public_ip, machine.public_legacy_ip)
+        .await
+        .context("Failed to install WireGuard on local cluster.")?;
 
     Ok(PublicIpConfig::MachineProxy(PublicIpVmProxy {
         machine_id: machine.id.clone(),
@@ -47,7 +67,161 @@ pub async fn create_public_ip_from_machine(machine_id: &str) -> anyhow::Result<P
     }))
 }
 
-pub async fn install_wireguard(machine: &Machine, keys: &WgKeys) -> anyhow::Result<()> {
+pub async fn install_local_wireguard(
+    cluster: &Cluster,
+    wg_keys: &WgKeys,
+    remote_ip: Option<Ipv6Addr>,
+    remote_legacy_ip: Option<Ipv4Addr>,
+) -> anyhow::Result<()> {
+    let mut service_map: HashMap<u16, String> = HashMap::new();
+
+    let ingress_service_name = s!("mows-core-network-ingress-traefik.mows-core-network-ingress");
+
+    service_map.insert(80, ingress_service_name.clone());
+    service_map.insert(443, ingress_service_name);
+
+    let local_wg_config =
+        create_local_wg_config(wg_keys, remote_ip, remote_legacy_ip, &service_map)
+            .await
+            .context("Failed to generate local WireGuard configuration for the cluster.")?;
+
+    let ns_name = "mows-core-network-public-ip";
+
+    let kube_client = cluster.get_kube_client().await?;
+
+    // create the namespace
+
+    let namespace_api: kube::Api<Namespace> = kube::Api::all(kube_client.clone());
+
+    let namespace = Namespace {
+        metadata: ObjectMeta {
+            name: Some(ns_name.to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    // only create the namespace if it doesn't exist
+
+    if namespace_api.get(ns_name).await.is_err() {
+        namespace_api
+            .create(&kube::api::PostParams::default(), &namespace)
+            .await
+            .context("Failed to create namespace for WireGuard configuration.")?;
+    }
+    // create the wireguard configuration as secret
+    let secrets_api: kube::Api<k8s_openapi::api::core::v1::Secret> =
+        kube::Api::namespaced(kube_client.clone(), ns_name);
+
+    let mut secret_data = BTreeMap::new();
+
+    secret_data.insert(
+        s!("wg0.conf"),
+        ByteString(local_wg_config.as_bytes().to_vec()),
+    );
+
+    let secret = k8s_openapi::api::core::v1::Secret {
+        metadata: ObjectMeta {
+            name: Some(s!("mows-core-network-public-ip-wg")),
+            ..Default::default()
+        },
+        data: Some(secret_data),
+        ..Default::default()
+    };
+
+    if secrets_api
+        .get("mows-core-network-public-ip-wg")
+        .await
+        .is_ok()
+    {
+        secrets_api
+            .replace(
+                "mows-core-network-public-ip-wg",
+                &Default::default(),
+                &secret,
+            )
+            .await
+            .context("Failed to replace secret for WireGuard configuration.")?;
+    } else {
+        secrets_api
+            .create(&kube::api::PostParams::default(), &secret)
+            .await
+            .context("Failed to create secret for WireGuard configuration.")?;
+    }
+    // create the wireguard pod
+    let pod_api: kube::Api<k8s_openapi::api::core::v1::Pod> =
+        kube::Api::namespaced(kube_client.clone(), ns_name);
+
+    // TODO create a smaller image
+    let wg_client_image="docker.io/firstdorsal/tunnel-cluster-client@sha256:12dd911500341d241e31a5d46d930d8c3d81f367e9f4d55a852c1e09b3b5f7b5";
+
+    let start_cmd = "wg-quick up wg0 && sleep infinity";
+
+    let mut pod_limits = BTreeMap::new();
+
+    pod_limits.insert(s!("cpu"), Quantity(s!("500m")));
+    pod_limits.insert(s!("memory"), Quantity(s!("128Mi")));
+
+    let pod = k8s_openapi::api::core::v1::Pod {
+        metadata: ObjectMeta {
+            name: Some(s!("mows-core-network-public-ip")),
+            ..Default::default()
+        },
+        spec: Some(k8s_openapi::api::core::v1::PodSpec {
+            containers: vec![k8s_openapi::api::core::v1::Container {
+                name: s!("mows-core-network-public-ip"),
+                image: Some(s!(wg_client_image)),
+                command: Some(vec![s!("bash"), s!("-c"), s!(start_cmd)]),
+                security_context: Some(k8s_openapi::api::core::v1::SecurityContext {
+                    capabilities: Some(k8s_openapi::api::core::v1::Capabilities {
+                        add: Some(vec![s!("NET_ADMIN")]),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
+                volume_mounts: Some(vec![k8s_openapi::api::core::v1::VolumeMount {
+                    name: s!("wg0-conf"),
+                    mount_path: s!("/etc/wireguard"),
+                    ..Default::default()
+                }]),
+                resources: Some(k8s_openapi::api::core::v1::ResourceRequirements {
+                    limits: Some(pod_limits),
+                    ..Default::default()
+                }),
+
+                ..Default::default()
+            }],
+            volumes: Some(vec![k8s_openapi::api::core::v1::Volume {
+                name: s!("wg0-conf"),
+                secret: Some(k8s_openapi::api::core::v1::SecretVolumeSource {
+                    secret_name: Some(s!("mows-core-network-public-ip-wg")),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }]),
+            restart_policy: Some(s!("Always")),
+
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    if pod_api.get("mows-core-network-public-ip").await.is_ok() {
+        pod_api
+            .replace("mows-core-network-public-ip", &Default::default(), &pod)
+            .await
+            .context("Failed to replace pod for WireGuard configuration.")?;
+    } else {
+        pod_api
+            .create(&kube::api::PostParams::default(), &pod)
+            .await
+            .context("Failed to create pod for WireGuard configuration.")?;
+    }
+    // k logs mows-core-network-public-ip -n mows-core-network-public-ip -c mows-core-network-public-ip
+    Ok(())
+}
+
+pub async fn install_remote_wireguard(machine: &Machine, keys: &WgKeys) -> anyhow::Result<()> {
     let remote_wg_config =
         create_remote_wg_config(keys, "eth0", machine.public_ip, machine.public_legacy_ip)
             .await
@@ -68,6 +242,7 @@ EOF
         "sysctl --system",
         &wg_config_command,
         "systemctl enable --now wg-quick@wg0",
+        "systemctl restart --now wg-quick@wg0",
     ];
 
     for command in commands {
@@ -78,6 +253,73 @@ EOF
     }
 
     Ok(())
+}
+
+pub async fn create_local_wg_config(
+    wg_keys: &WgKeys,
+    ip: Option<Ipv6Addr>,
+    legacy_ip: Option<Ipv4Addr>,
+    service_map: &HashMap<u16, String>,
+) -> anyhow::Result<String> {
+    let WgKeys {
+        local_wg_private_key,
+        remote_wg_public_key,
+        ..
+    } = wg_keys;
+
+    let legacy_service_prefix = "10.43.0.0/16";
+
+    let local_internal_ip = Ipv6Addr::from_str("fd00::2").unwrap();
+    let local_internal_legacy_ip = Ipv4Addr::new(10, 99, 0, 2);
+
+    let local_internal_ip_str = match (ip, legacy_ip) {
+        (Some(_), None) => format!("{}/128", local_internal_ip),
+        (None, Some(_)) => format!("{}/32", local_internal_legacy_ip),
+        (Some(_), Some(_)) => format!("{}/128, {}/32", local_internal_ip, local_internal_legacy_ip),
+        (None, None) => bail!("No IP provided"),
+    };
+
+    let remote_ip = match ip {
+        Some(i) => IpAddr::V6(i),
+        None => IpAddr::V4(some_or_bail!(legacy_ip, "No IP provided")),
+    };
+
+    let ip_up = String::new();
+    let ip_down = String::new();
+    let mut legacy_ip_up = String::new();
+    let mut legacy_ip_down = String::new();
+
+    for (port, service_address) in service_map.iter() {
+        if legacy_ip.is_some() {
+            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route add {legacy_service_prefix} dev eth0 || true
+            "));
+
+            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route del {legacy_service_prefix} dev eth0 || true
+            "));
+        }
+    }
+
+    let local_wg_config = format!(
+        r#"[Interface]
+PrivateKey = {local_wg_private_key}
+Address = {local_internal_ip_str}
+
+{ip_up}
+
+{ip_down}
+
+{legacy_ip_up}
+
+{legacy_ip_down}
+
+[Peer]
+PublicKey = {remote_wg_public_key}
+PersistentKeepalive = 25
+AllowedIPs = 0.0.0.0/0, ::/0
+Endpoint = {remote_ip}:55107"#,
+    );
+
+    Ok(local_wg_config)
 }
 
 pub async fn create_remote_wg_config(
@@ -95,7 +337,7 @@ pub async fn create_remote_wg_config(
     } = wg_keys;
 
     let remote_internal_ip = Ipv6Addr::from_str("fd00::1").unwrap();
-    let remote_internal_legacy_ip = Ipv4Addr::new(10, 0, 0, 1);
+    let remote_internal_legacy_ip = Ipv4Addr::new(10, 99, 0, 1);
 
     let remote_internal_ip_str = match (ip, legacy_ip) {
         (Some(_), None) => format!("{}/128", remote_internal_ip),
@@ -108,7 +350,7 @@ pub async fn create_remote_wg_config(
     };
 
     let local_internal_ip = Ipv6Addr::from_str("fd00::2").unwrap();
-    let local_internal_legacy_ip = Ipv4Addr::new(10, 0, 0, 2);
+    let local_internal_legacy_ip = Ipv4Addr::new(10, 99, 0, 2);
 
     let local_internal_ip_str = match (ip, legacy_ip) {
         (Some(_), None) => format!("{}/128", local_internal_ip),
@@ -165,9 +407,7 @@ Address = {remote_internal_ip_str}
 
 [Peer]
 PublicKey = {local_wg_public_key}
-AllowedIPs = {local_internal_ip_str}
-
-"#,
+AllowedIPs = {local_internal_ip_str}"#,
     );
 
     Ok(remote_wg_config)
