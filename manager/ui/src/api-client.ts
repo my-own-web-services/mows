@@ -38,6 +38,7 @@ export interface Cluster {
   k3s_token: string;
   kubeconfig?: string | null;
   public_ip_config: Record<string, any>;
+  vault_secrets?: null;
   vip: any;
 }
 
@@ -52,6 +53,7 @@ export enum ClusterInstallState {
 export interface ClusterNode {
   internal_ips: any;
   machine_id: string;
+  primary: boolean;
 }
 
 export interface ExternalMachineProviderHcloudConfig {
@@ -97,7 +99,7 @@ export type MachineCreationReqType =
       LocalQemu: LocalMachineProviderQemuConfig;
     }
   | {
-      Local: string[];
+      LocalPhysical: any;
     }
   | {
       ExternalHcloud: ExternalMachineProviderHcloudConfig;
@@ -141,7 +143,7 @@ export interface MachineStatus {
 
 export enum MachineType {
   LocalQemu = "LocalQemu",
-  Local = "Local",
+  LocalPhysical = "LocalPhysical",
   ExternalHcloud = "ExternalHcloud",
 }
 
@@ -163,7 +165,11 @@ export interface PublicIpCreationConfig {
 }
 
 export type PublicIpCreationConfigType = {
-  MachineProxy: string;
+  /**
+   * @maxItems 2
+   * @minItems 2
+   */
+  MachineProxy: string[];
 };
 
 export interface SshAccess {
@@ -274,9 +280,9 @@ export class HttpClient<SecurityDataType = unknown> {
     [ContentType.Json]: (input: any) =>
       input !== null && (typeof input === "object" || typeof input === "string") ? JSON.stringify(input) : input,
     [ContentType.Text]: (input: any) => (input !== null && typeof input !== "string" ? JSON.stringify(input) : input),
-    [ContentType.FormData]: (input: FormData) =>
-      (Array.from(input.keys()) || []).reduce((formData, key) => {
-        const property = input.get(key);
+    [ContentType.FormData]: (input: any) =>
+      Object.keys(input || {}).reduce((formData, key) => {
+        const property = input[key];
         formData.append(
           key,
           property instanceof Blob

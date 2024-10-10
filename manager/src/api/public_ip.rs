@@ -66,5 +66,5 @@ pub struct PublicIpCreationConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub enum PublicIpCreationConfigType {
-    MachineProxy(String),
+    MachineProxy(String, String),
 }

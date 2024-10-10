@@ -219,7 +219,7 @@ export default withToasterHook(
             const creation_config: PublicIpCreationConfig = {
                 cluster_id: cluster.id,
                 creation_type: {
-                    MachineProxy: machine_id
+                    MachineProxy: [machine_id, cluster.id]
                 }
             };
 
