@@ -25,7 +25,7 @@ const defaultNotes: Note[] = [
         description: "View k3s logs, run it on the node not in the manager"
     },
     {
-        content: "k -n mows-dev-k8s-dashboard create token admin-user --duration 600m",
+        content: "k -n mows-dev-k8s-dashboard create token admin-user --duration 488h",
         type: "default",
         description: "Create a token for the kubernetes-dashboard"
     },

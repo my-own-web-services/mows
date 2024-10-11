@@ -6,7 +6,6 @@ use std::{
 };
 
 use anyhow::{bail, Context, Ok};
-use data_encoding::BASE64;
 use k8s_openapi::{
     api::core::v1::Namespace, apimachinery::pkg::api::resource::Quantity, ByteString,
 };
@@ -73,17 +72,26 @@ pub async fn install_local_wireguard(
     remote_ip: Option<Ipv6Addr>,
     remote_legacy_ip: Option<Ipv4Addr>,
 ) -> anyhow::Result<()> {
-    let mut service_map: HashMap<u16, String> = HashMap::new();
+    let mut tcp_service_map: HashMap<u16, String> = HashMap::new();
+
+    let mut udp_service_map: HashMap<u16, String> = HashMap::new();
 
     let ingress_service_name = s!("mows-core-network-ingress-traefik.mows-core-network-ingress");
 
-    service_map.insert(80, ingress_service_name.clone());
-    service_map.insert(443, ingress_service_name);
+    tcp_service_map.insert(80, ingress_service_name.clone());
+    tcp_service_map.insert(443, ingress_service_name.clone());
 
-    let local_wg_config =
-        create_local_wg_config(wg_keys, remote_ip, remote_legacy_ip, &service_map)
-            .await
-            .context("Failed to generate local WireGuard configuration for the cluster.")?;
+    udp_service_map.insert(443, ingress_service_name);
+
+    let local_wg_config = create_local_wg_config(
+        wg_keys,
+        remote_ip,
+        remote_legacy_ip,
+        &tcp_service_map,
+        &udp_service_map,
+    )
+    .await
+    .context("Failed to generate local WireGuard configuration for the cluster.")?;
 
     let ns_name = "mows-core-network-public-ip";
 
@@ -161,6 +169,8 @@ pub async fn install_local_wireguard(
 
     pod_limits.insert(s!("cpu"), Quantity(s!("500m")));
     pod_limits.insert(s!("memory"), Quantity(s!("128Mi")));
+
+    // TODO maybe turn this into a deployment
 
     let pod = k8s_openapi::api::core::v1::Pod {
         metadata: ObjectMeta {
@@ -259,7 +269,8 @@ pub async fn create_local_wg_config(
     wg_keys: &WgKeys,
     ip: Option<Ipv6Addr>,
     legacy_ip: Option<Ipv4Addr>,
-    service_map: &HashMap<u16, String>,
+    tcp_service_map: &HashMap<u16, String>,
+    udp_service_map: &HashMap<u16, String>,
 ) -> anyhow::Result<String> {
     let WgKeys {
         local_wg_private_key,
@@ -289,15 +300,29 @@ pub async fn create_local_wg_config(
     let mut legacy_ip_up = String::new();
     let mut legacy_ip_down = String::new();
 
-    for (port, service_address) in service_map.iter() {
+    legacy_ip_up.push_str(&format!(
+        "PreUp = ip route add {legacy_service_prefix} dev eth0 || true \n\n",
+        legacy_service_prefix = legacy_service_prefix
+    ));
+
+    legacy_ip_down.push_str(&format!(
+        "PostDown = ip route del {legacy_service_prefix} dev eth0 || true \n\n",
+        legacy_service_prefix = legacy_service_prefix
+    ));
+
+    for (port, service_address) in tcp_service_map.iter() {
         if legacy_ip.is_some() {
-            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route add {legacy_service_prefix} dev eth0 || true
+            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local) ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE \n\n"));
 
-"));
+            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local) ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE \n\n"));
+        }
+    }
 
-            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route del {legacy_service_prefix} dev eth0 || true
+    for (port, service_address) in udp_service_map.iter() {
+        if legacy_ip.is_some() {
+            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -i wg0 -p udp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local) ; iptables -t nat -A POSTROUTING -p udp --dport {port} -j MASQUERADE \n\n"));
 
-"));
+            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -i wg0 -p udp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local) ; iptables -t nat -A POSTROUTING -p udp --dport {port} -j MASQUERADE \n\n"));
         }
     }
 
