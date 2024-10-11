@@ -12,4 +12,6 @@ gateway:
 
 logs:
     general:
-        level: TRACE
+        level: DEBUG
+    access:
+        enabled: true
