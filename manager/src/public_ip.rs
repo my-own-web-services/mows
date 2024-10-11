@@ -291,10 +291,12 @@ pub async fn create_local_wg_config(
 
     for (port, service_address) in service_map.iter() {
         if legacy_ip.is_some() {
-            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route add {legacy_service_prefix} dev eth0 || true
+            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route add {legacy_service_prefix} dev eth0 || true
+
 "));
 
-            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route del {legacy_service_prefix} dev eth0 || true
+            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route del {legacy_service_prefix} dev eth0 || true
+
 "));
         }
     }
@@ -303,6 +305,7 @@ pub async fn create_local_wg_config(
         r#"[Interface]
 PrivateKey = {local_wg_private_key}
 Address = {local_internal_ip_str}
+MTU = 1384
 
 {ip_up}
 
@@ -316,7 +319,8 @@ Address = {local_internal_ip_str}
 PublicKey = {remote_wg_public_key}
 PersistentKeepalive = 25
 AllowedIPs = 0.0.0.0/0, ::/0
-Endpoint = {remote_ip}:55107"#,
+Endpoint = {remote_ip}:55107
+"#
     );
 
     Ok(local_wg_config)
@@ -396,6 +400,7 @@ PostDown = iptables -t nat -D PREROUTING -p udp -i {wan_interface} '!' --dport {
 PrivateKey = {remote_wg_private_key}
 ListenPort = {wg_listen_port}
 Address = {remote_internal_ip_str}
+MTU = 1420
 
 {ip_post_up}
 
