@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: myapp
+spec:
+    selector:
+        matchLabels:
+            app: myapp
+    template:
+        metadata:
+            labels:
+                app: myapp
+        spec:
+            volumes:
+                - name: wgconf
+                  configMap:
+                      name: wgconf
+
+            containers:
+                - name: myapp
+                  image: docker.io/firstdorsal/tunnel-cluster-client@sha256:12dd911500341d241e31a5d46d930d8c3d81f367e9f4d55a852c1e09b3b5f7b5
+                  resources:
+                      limits:
+                          memory: "128Mi"
+                          cpu: "500m"
+                  securityContext:
+                      privileged: true
+                      capabilities:
+                          add:
+                              - NET_ADMIN
+                              - SYS_MODULE
+                  volumeMounts:
+                      - name: wgconf
+                        mountPath: /etc/wireguard/
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: wgconf
+data:
+    wg0.conf: |
+        [Interface]
+        PrivateKey = 
+        Address = 10.99.0.2/32
+
+        PostUp = iptables -t nat -A PREROUTING -p tcp --dport 80 -j DNAT --to-destination 10.43.114.98:80; iptables -t nat -A POSTROUTING -p tcp --dport 80 -j MASQUERADE ; ip route add 10.43.0.0/16 dev eth0
+        PostDown = iptables -t nat -D PREROUTING -p tcp --dport 80 -j DNAT --to-destination 10.43.114.98:80; iptables -t nat -D POSTROUTING -p tcp --dport 80 -j MASQUERADE ; ip route del 10.43.0.0/16 dev eth0
+
+        [Peer]
+        PublicKey = 
+        AllowedIPs = 0.0.0.0/0
+        Endpoint = 188.245.179.110:55107
+        PersistentKeepalive = 25
+
+# kubectl apply -f /install/old/tunnel/local/cluster-client/Deployment.yaml

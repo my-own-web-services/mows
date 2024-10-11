@@ -4,10 +4,11 @@ service:
     annotations:
         io.cilium/lb-ipam-ips: "192.168.112.253"
 
-listeners:
-    websecure:
-        port: 8443
-        protocol: HTTPS
+gateway:
+    listeners:
+        websecure:
+            port: 8443
+            protocol: HTTPS
 
 logs:
     general:
