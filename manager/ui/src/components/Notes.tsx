@@ -68,11 +68,14 @@ const defaultNotes: Note[] = [
             "kubectl port-forward -n mows-core-secrets-vault service/mows-core-secrets-vault-ui --address 0.0.0.0 8080:http",
         type: "default",
         description: "Forward vault ui to http://localhost:8080/ui/"
+    },
+    {
+        content:
+            "kubectl port-forward -n mows-core-network-cilium service/hubble-ui --address 0.0.0.0 8080:http",
+        type: "default",
+        description: "Forward cilium/hubble ui to http://localhost:8080/ui/"
     }
 ];
-// a notes component that persists notes in local storage
-
-//hvs.it0SZYVxyvUhoBY9Mm0VuLyh F+l5Jh/wtjFGJcXRZLLbPn2vdHgldo1/kcNcDru6QsAB a8+EJc8zihMNdHPGiP+bSxE2TEeV61XwoQd4oLlxYvfm
 
 export default class Notes extends Component<NotesProps, NotesState> {
     constructor(props: NotesProps) {

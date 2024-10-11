@@ -82,3 +82,7 @@ spec:
         path: manager/install/core/network/ingress
     destination:
         namespace: mows-core-network-ingress
+    ignoreDifferences:
+        - kind: Service
+          jqPathExpressions:
+              - ".status.loadBalancer.ingress[].ipMode"

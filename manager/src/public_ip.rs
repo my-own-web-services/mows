@@ -292,10 +292,10 @@ pub async fn create_local_wg_config(
     for (port, service_address) in service_map.iter() {
         if legacy_ip.is_some() {
             legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route add {legacy_service_prefix} dev eth0 || true
-            "));
+"));
 
             legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local):{port} ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE ; ip route del {legacy_service_prefix} dev eth0 || true
-            "));
+"));
         }
     }
 
