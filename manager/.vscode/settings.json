@@ -30,6 +30,7 @@
         }
     ],
     "cSpell.words": [
+        "apimachinery",
         "apiserver",
         "argocd",
         "argoproj",
