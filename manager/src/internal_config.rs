@@ -2,6 +2,7 @@ use anyhow::bail;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     fs::read_to_string,
     net::{IpAddr, Ipv4Addr, Ipv6Addr},
 };
@@ -66,6 +67,16 @@ pub struct OsConfig {
     pub k3s_version: String,
     pub os: String,
 }
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+
+pub struct K3SRegistries {
+    pub mirrors: Option<HashMap<String, K3SMirror>>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub struct K3SMirror {
+    pub endpoint: Vec<String>,
+}
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct LocalClusterConfig {
@@ -98,6 +109,7 @@ pub struct DevConfig {
     pub install_k8s_dashboard: bool,
     pub send_default_netboot_config_if_mac_unknown: bool,
     pub skip_core_components_install: Vec<String>,
+    pub k3s_registries_file: Option<K3SRegistries>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

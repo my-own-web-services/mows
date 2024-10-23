@@ -1,5 +1,6 @@
 use std::{net::Ipv4Addr, os::unix::fs::PermissionsExt, path::Path};
 
+use anyhow::Context;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tracing::debug;
@@ -179,7 +180,8 @@ impl PixiecoreBootConfig {
             k3s_token,
             vip,
             internal_ips,
-        );
+        )
+        .context("Failed to create cloud init")?;
 
         let cloud_init_str = "#cloud-config\n".to_string() + &serde_yaml::to_string(&cloud_init)?;
 

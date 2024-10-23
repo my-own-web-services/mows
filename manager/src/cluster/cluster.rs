@@ -345,6 +345,12 @@ impl Cluster {
             ClusterSecrets::start_proxy_and_setup_eso(&self).await?;
         }
 
+        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("vrc")) {
+            warn!("Skipping vrc install as configured in internal config");
+        } else {
+            ClusterSecrets::start_proxy_and_setup_vrc(&self).await?;
+        }
+
         Ok(())
     }
 

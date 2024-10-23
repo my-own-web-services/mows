@@ -26,6 +26,12 @@ dev:
     install_k8s_dashboard: true
     send_default_netboot_config_if_mac_unknown: false
     skip_core_components_install: []
+    # https://docs.k3s.io/installation/private-registry
+    k3s_registries_file:
+        mirrors:
+            192.168.112.5:5000:
+                endpoint:
+                    - "http://192.168.112.5:5000"
 
 log:
     dnsmasq:

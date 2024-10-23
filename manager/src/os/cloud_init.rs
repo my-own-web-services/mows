@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
     config::{InternalIps, SshAccess, Vip},
+    internal_config::INTERNAL_CONFIG,
     s,
 };
 
@@ -131,7 +133,9 @@ impl CloudInit {
         k3s_token: &str,
         vip: &Vip,
         internal_ips: &InternalIps,
-    ) -> CloudInit {
+    ) -> anyhow::Result<CloudInit> {
+        let ic = &INTERNAL_CONFIG;
+
         let todo = "http://192.168.122.216:30000";
 
         // variables https://github.com/zcalusic/sysinfo#sample-output
@@ -157,6 +161,14 @@ DHCP=yes
             internal_ips.legacy
         );
 
+        let mut k3s_registries_yaml_string = String::new();
+        if ic.dev.enabled {
+            if let Some(k3s_registries) = &ic.dev.k3s_registries_file {
+                k3s_registries_yaml_string = serde_yaml::to_string(&k3s_registries)
+                    .context("Failed to serialize the k3s registries into a yaml string")?;
+            }
+        }
+
         stages.insert(
             s!("initramfs"),
             vec![
@@ -176,6 +188,15 @@ DHCP=yes
                         path: s!("/etc/systemd/network/01-man.network"),
                         permissions: 644,
                         content: static_ip_config,
+                    }]),
+                    ..Task::default()
+                },
+                Task {
+                    name: Some(s!("Set up the registry file")),
+                    files: Some(vec![CloudInitFile {
+                        path: s!("/etc/rancher/k3s/registries.yaml"),
+                        permissions: 644,
+                        content: k3s_registries_yaml_string,
                     }]),
                     ..Task::default()
                 },
@@ -206,7 +227,7 @@ DHCP=yes
             }],
         );
 
-        CloudInit {
+        Ok(CloudInit {
             debug,
             users: vec![user],
             k3s: K3s::new(
@@ -219,7 +240,7 @@ DHCP=yes
             install: Install::new(&get_device_string(virt, 0)),
             kcrypt: Kcrypt::new(todo),
             stages: Some(stages),
-        }
+        })
     }
 }
 

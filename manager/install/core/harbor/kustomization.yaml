@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+    - namespace.yaml
+
+namespace: mows-core-harbor
+
+helmGlobals:
+    chartHome: /tmp/helm-charts
+
+helmCharts:
+    - name: harbor
+      repo: https://helm.goharbor.io
+      version: 1.15.1
+      releaseName: mows-core-harbor
+      namespace: mows-core-harbor
+      valuesFile: values.yaml

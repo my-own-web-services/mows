@@ -57,7 +57,7 @@ pub async fn get_boot_config(mac_addr: String) -> Result<PixiecoreBootConfig, an
         }
         drop(config);
 
-        if ic.dev.send_default_netboot_config_if_mac_unknown {
+        if ic.dev.enabled && ic.dev.send_default_netboot_config_if_mac_unknown {
             info!("DEV: Sending default boot config because mac is unknown");
             return Ok(PixiecoreBootConfig::new_default().await?);
         }

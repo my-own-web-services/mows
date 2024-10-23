@@ -91,6 +91,98 @@ impl ClusterSecrets {
         Ok(())
     }
 
+    pub async fn start_proxy_and_setup_vrc(cluster: &Cluster) -> anyhow::Result<()> {
+        debug!("Setting up Vault Resource Controller");
+
+        Self::start_vault_proxy().await?;
+
+        let res = Self::setup_vrc(cluster).await;
+
+        Self::stop_vault_proxy().await?;
+
+        res
+    }
+
+    pub async fn setup_vrc(cluster: &Cluster) -> anyhow::Result<()> {
+        let vault_secrets = some_or_bail!(&cluster.vault_secrets, "Vault secrets not found");
+
+        let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token))
+            .await
+            .context("Failed to create vault client with root token for setting up vrc")?;
+
+        // check if the auth engine is already created
+        let current_auth_engines = sys::auth::list(&vault_client)
+            .await
+            .context("Failed to list auth engines in Vault")?;
+
+        if !current_auth_engines.contains_key(&"mows-core-secrets-vrc/".to_string()) {
+            vaultrs::sys::auth::enable(&vault_client, "mows-core-secrets-vrc", "kubernetes", None)
+                .await
+                .context("Failed to create vrc kubernetes auth engine in Vault")?;
+        }
+
+        let kube_api_addr = "https://kubernetes.default.svc";
+
+        let kubeconfig_yaml: Value =
+            serde_yaml::from_str(&some_or_bail!(&cluster.kubeconfig, "Missing kubeconfig"))?;
+
+        let kubernetes_ca_cert_base64 = some_or_bail!(
+            kubeconfig_yaml["clusters"][0]["cluster"]["certificate-authority-data"].as_str(),
+            "Missing certificate-authority-data"
+        );
+
+        let kubernetes_ca_cert =
+            String::from_utf8(data_encoding::BASE64.decode(kubernetes_ca_cert_base64.as_bytes())?)?;
+
+        vaultrs::auth::kubernetes::configure(
+            &vault_client,
+            "mows-core-secrets-vrc",
+            kube_api_addr,
+            Some(
+                &mut ConfigureKubernetesAuthRequestBuilder::default()
+                    .kubernetes_ca_cert(kubernetes_ca_cert),
+            ),
+        )
+        .await
+        .context("Failed to configure kubernetes auth for vrc in Vault")?;
+
+        vaultrs::sys::policy::set(
+            &vault_client,
+            "mows-core-secrets-vrc",
+            r#"path "sys/mounts/mows-core-secrets-vrc/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+
+path "sys/auth/mows-core-secrets-vrc/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+
+path "sys/policies/acl/*" {
+  capabilities = ["create"]
+}"#,
+        )
+        .await
+        .context("Failed to create policy for vrc in Vault")?;
+
+        vaultrs::auth::kubernetes::role::create(
+            &vault_client,
+            "mows-core-secrets-vrc",
+            "mows-core-secrets-vrc",
+            Some(
+                &mut CreateKubernetesRoleRequestBuilder::default()
+                    .bound_service_account_names(vec![s!("mows-core-secrets-vrc")])
+                    .bound_service_account_namespaces(vec![s!("mows-core-secrets-vrc")])
+                    .token_policies(vec![s!("mows-core-secrets-vrc")]),
+            ),
+        )
+        .await
+        .context("Failed to create role for vrc in Vault")?;
+
+        debug!("Vault Resource Controller was created");
+
+        Ok(())
+    }
+
     pub async fn start_proxy_and_setup_eso(cluster: &Cluster) -> anyhow::Result<()> {
         debug!("Setting up ESO");
 
@@ -191,8 +283,8 @@ impl ClusterSecrets {
             &vault_client,
             "mows-core-secrets-eso",
             r#"path "mows-core-secrets-eso/*" {
-                capabilities = ["create", "read", "update", "delete", "list"]
-            }"#,
+capabilities = ["create", "read", "update", "delete", "list"]
+}"#,
         )
         .await
         .context("Failed to create policy for eso in Vault")?;

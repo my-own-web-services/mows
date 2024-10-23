@@ -37,6 +37,7 @@ http://mows-core-gitea-http.mows-core-gitea:3000/gitea_admin/test.git
 -   gateway: 1
 -   mows-manager: 3
 -   qemu: 4
+-   registry 5
 -   dhcp: 41-252
 -   control-plane-vip: 254
 -   service-vip: 253
