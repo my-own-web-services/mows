@@ -38,39 +38,52 @@ spec:
             properties:
               AuthEngine:
                 properties:
-                  engineName:
+                  engineId:
                     type: string
                   engineType:
                     enum:
                     - kubernetes
                     type: string
                 required:
-                - engineName
+                - engineId
                 - engineType
                 type: object
               EngineAccessPolicy:
                 properties:
-                  capabilities:
-                    items:
-                      enum:
-                      - read
-                      - create
-                      - update
-                      - delete
-                      - list
-                      type: string
-                    type: array
-                  engineName:
-                    type: string
                   policyId:
                     type: string
-                  subPath:
-                    type: string
+                  subPolicies:
+                    items:
+                      properties:
+                        capabilities:
+                          items:
+                            enum:
+                            - read
+                            - create
+                            - update
+                            - delete
+                            - list
+                            type: string
+                          type: array
+                        engineId:
+                          type: string
+                        engineType:
+                          enum:
+                          - auth
+                          - secret
+                          type: string
+                        subPath:
+                          type: string
+                      required:
+                      - capabilities
+                      - engineId
+                      - engineType
+                      - subPath
+                      type: object
+                    type: array
                 required:
-                - capabilities
-                - engineName
                 - policyId
-                - subPath
+                - subPolicies
                 type: object
               K8sAuthRole:
                 properties:
@@ -90,20 +103,20 @@ spec:
                 type: object
               KvSecretEngineValue:
                 properties:
-                  engineName:
+                  engineId:
                     type: string
                   key:
                     type: string
                   value:
                     type: string
                 required:
-                - engineName
+                - engineId
                 - key
                 - value
                 type: object
               SecretEngine:
                 properties:
-                  engineName:
+                  engineId:
                     type: string
                   engineType:
                     enum:
@@ -111,7 +124,7 @@ spec:
                     - transit
                     type: string
                 required:
-                - engineName
+                - engineId
                 - engineType
                 type: object
             type: object

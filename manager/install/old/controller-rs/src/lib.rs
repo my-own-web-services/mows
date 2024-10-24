@@ -31,7 +31,7 @@ pub use crate::controller::*;
 /// Log and trace integrations
 pub mod telemetry;
 
-pub mod own;
+pub mod handle_resources;
 
 /// Metrics
 mod metrics;

@@ -36,9 +36,6 @@ impl ClusterSecrets {
             }
         };
 
-        Self::join_raft_and_unseal("mows-core-secrets-vault-1", secrets.clone()).await?;
-        Self::join_raft_and_unseal("mows-core-secrets-vault-2", secrets.clone()).await?;
-
         Self::stop_vault_proxy().await?;
 
         let mut config = write_config!();
@@ -48,9 +45,12 @@ impl ClusterSecrets {
             "Cluster not found in config"
         );
 
-        mut_cluster.vault_secrets = Some(secrets);
+        mut_cluster.vault_secrets = Some(secrets.clone());
 
         drop(config);
+
+        Self::join_raft_and_unseal("mows-core-secrets-vault-1", secrets.clone()).await?;
+        Self::join_raft_and_unseal("mows-core-secrets-vault-2", secrets.clone()).await?;
 
         Ok(())
     }
@@ -62,6 +62,8 @@ impl ClusterSecrets {
             vec![
                 "kubectl",
                 "exec",
+                "-n",
+                "mows-core-secrets-vault",
                 "-ti",
                 pod_name,
                 "--",
@@ -79,6 +81,8 @@ impl ClusterSecrets {
             vec![
                 "kubectl",
                 "exec",
+                "-n",
+                "mows-core-secrets-vault",
                 "-ti",
                 pod_name,
                 "--",
@@ -162,10 +166,15 @@ impl ClusterSecrets {
             .await
             .context("Failed to list auth engines in Vault")?;
 
-        if !current_auth_engines.contains_key(&"mows-core-secrets-vrc/".to_string()) {
-            vaultrs::sys::auth::enable(&vault_client, "mows-core-secrets-vrc", "kubernetes", None)
-                .await
-                .context("Failed to create vrc kubernetes auth engine in Vault")?;
+        if !current_auth_engines.contains_key(&"mows-core-secrets-vrc-sys/".to_string()) {
+            vaultrs::sys::auth::enable(
+                &vault_client,
+                "mows-core-secrets-vrc-sys",
+                "kubernetes",
+                None,
+            )
+            .await
+            .context("Failed to create vrc kubernetes auth engine in Vault")?;
         }
 
         let kube_api_addr = "https://kubernetes.default.svc";
@@ -183,7 +192,7 @@ impl ClusterSecrets {
 
         vaultrs::auth::kubernetes::configure(
             &vault_client,
-            "mows-core-secrets-vrc",
+            "mows-core-secrets-vrc-sys",
             kube_api_addr,
             Some(
                 &mut ConfigureKubernetesAuthRequestBuilder::default()
@@ -196,24 +205,44 @@ impl ClusterSecrets {
         vaultrs::sys::policy::set(
             &vault_client,
             "mows-core-secrets-vrc",
-            r#"path "sys/mounts/mows-core-secrets-vrc/*" {
-  capabilities = ["create", "read", "update", "delete", "list"]
+            r#"# creating of secret engines
+path "sys/mounts/mows-core-secrets-vrc/*" {
+  capabilities = ["create","update"]
 }
 
+# listing secret engines
+path "mows-core-secrets-vrc/*" {
+  capabilities = [ "read"]
+}
+path "sys/mounts" {
+  capabilities = [ "read"]
+}
+
+# listing auth engines
+path "sys/auth" {
+  capabilities = [ "read"]
+}
+
+# creating auth engines
 path "sys/auth/mows-core-secrets-vrc/*" {
-  capabilities = ["create", "read", "update", "delete", "list"]
+  capabilities = ["create", "update","sudo"]
 }
 
-path "sys/policies/acl/*" {
-  capabilities = ["create"]
-}"#,
+# create and list policies
+path "sys/policy/mows-core-secrets-vrc/*" {
+  capabilities = ["create","update"]
+}
+path "sys/policy" {
+  capabilities = ["list","read"]
+}
+"#,
         )
         .await
         .context("Failed to create policy for vrc in Vault")?;
 
         vaultrs::auth::kubernetes::role::create(
             &vault_client,
-            "mows-core-secrets-vrc",
+            "mows-core-secrets-vrc-sys",
             "mows-core-secrets-vrc",
             Some(
                 &mut CreateKubernetesRoleRequestBuilder::default()

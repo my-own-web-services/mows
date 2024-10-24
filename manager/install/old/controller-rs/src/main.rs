@@ -1,7 +1,7 @@
 #![allow(unused_imports, unused_variables)]
 use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::Context;
-use controller::own::create_vault_client;
+use controller::handle_resources::create_vault_client;
 pub use controller::{self, telemetry, State};
 
 #[get("/metrics")]

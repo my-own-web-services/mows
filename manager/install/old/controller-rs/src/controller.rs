@@ -1,4 +1,4 @@
-use crate::{own::reconcile_resource, telemetry, Error, Metrics, Result};
+use crate::{handle_resources::reconcile_resource, telemetry, Error, Metrics, Result};
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use kube::{
@@ -43,13 +43,13 @@ pub enum VaultResourceSpec {
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultSecretEngine {
-    pub engine_name: String,
+    pub engine_id: String,
     pub engine_type: VaultSecretEngineType,
 }
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultAuthEngine {
-    pub engine_name: String,
+    pub engine_id: String,
     pub engine_type: VaultAuthEngineType,
 }
 
@@ -58,12 +58,26 @@ pub struct VaultAuthEngine {
 #[serde(rename_all = "camelCase")]
 pub struct VaultEngineAccessPolicy {
     pub policy_id: String,
-    pub engine_name: String,
+    pub sub_policies: Vec<VaultEngineAccessPolicySubPolicy>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VaultEngineAccessPolicySubPolicy {
+    pub engine_id: String,
+    pub engine_type: VaultEngineAccessPolicyType,
     pub sub_path: String,
     pub capabilities: Vec<VaultPolicyCapability>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum VaultEngineAccessPolicyType {
+    Auth,
+    Secret,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum VaultPolicyCapability {
     Read,
@@ -85,7 +99,7 @@ pub struct K8sAuthRole {
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultKvSecretEngineValue {
-    pub engine_name: String,
+    pub engine_id: String,
     pub key: String,
     pub value: String,
 }
@@ -93,7 +107,6 @@ pub struct VaultKvSecretEngineValue {
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum VaultAuthEngineType {
-    #[serde(rename = "kubernetes")]
     Kubernetes,
 }
 
