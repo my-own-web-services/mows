@@ -28,3 +28,12 @@ path "sys/policy/mows-core-secrets-vrc/*" {
 path "sys/policy" {
   capabilities = ["list","read"]
 }
+
+# give full access to all own engines
+path "auth/mows-core-secrets-vrc/*" {
+  capabilities = ["list","read","create","update"]
+}
+
+path "mows-core-secrets-vrc/*" {
+  capabilities = ["list","read","create","update"]
+}

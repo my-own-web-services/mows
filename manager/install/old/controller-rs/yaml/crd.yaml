@@ -31,22 +31,43 @@ spec:
               - AuthEngine
             - required:
               - EngineAccessPolicy
-            - required:
-              - K8sAuthRole
-            - required:
-              - KvSecretEngineValue
             properties:
               AuthEngine:
                 properties:
+                  engine:
+                    oneOf:
+                    - required:
+                      - kubernetes
+                    properties:
+                      kubernetes:
+                        properties:
+                          roles:
+                            additionalProperties:
+                              properties:
+                                namespace:
+                                  nullable: true
+                                  type: string
+                                policyIds:
+                                  description: The vault policy id to attach to the service account without namespace
+                                  items:
+                                    type: string
+                                  type: array
+                                serviceAccountName:
+                                  type: string
+                              required:
+                              - policyIds
+                              - serviceAccountName
+                              type: object
+                            type: object
+                        required:
+                        - roles
+                        type: object
+                    type: object
                   engineId:
                     type: string
-                  engineType:
-                    enum:
-                    - kubernetes
-                    type: string
                 required:
+                - engine
                 - engineId
-                - engineType
                 type: object
               EngineAccessPolicy:
                 properties:
@@ -84,35 +105,6 @@ spec:
                 required:
                 - policyId
                 - subPolicies
-                type: object
-              K8sAuthRole:
-                properties:
-                  attachedPolicyId:
-                    description: The vault policy id to attach to the service account without namespace
-                    type: string
-                  boundServiceAccountNamespaces:
-                    items:
-                      type: string
-                    type: array
-                  serviceAccountName:
-                    type: string
-                required:
-                - attachedPolicyId
-                - boundServiceAccountNamespaces
-                - serviceAccountName
-                type: object
-              KvSecretEngineValue:
-                properties:
-                  engineId:
-                    type: string
-                  key:
-                    type: string
-                  value:
-                    type: string
-                required:
-                - engineId
-                - key
-                - value
                 type: object
               SecretEngine:
                 properties:

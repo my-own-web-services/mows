@@ -2,7 +2,7 @@ use crate::{handle_resources::reconcile_resource, telemetry, Error, Metrics, Res
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use kube::{
-    api::{Api, ListParams, Patch, PatchParams, ResourceExt},
+    api::{Api, ListParams, ResourceExt},
     client::Client,
     runtime::{
         controller::{Action, Controller},
@@ -14,8 +14,7 @@ use kube::{
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
 
@@ -36,8 +35,6 @@ pub enum VaultResourceSpec {
     SecretEngine(VaultSecretEngine),
     AuthEngine(VaultAuthEngine),
     EngineAccessPolicy(VaultEngineAccessPolicy),
-    K8sAuthRole(K8sAuthRole),
-    KvSecretEngineValue(VaultKvSecretEngineValue),
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -50,7 +47,7 @@ pub struct VaultSecretEngine {
 #[serde(rename_all = "camelCase")]
 pub struct VaultAuthEngine {
     pub engine_id: String,
-    pub engine_type: VaultAuthEngineType,
+    pub engine: VaultAuthEngineType,
 }
 
 // policies will be named mows-core-secrets-vrc/namespace/policy_id
@@ -71,29 +68,20 @@ pub struct VaultEngineAccessPolicySubPolicy {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "camelCase")]
 pub enum VaultEngineAccessPolicyType {
     Auth,
     Secret,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "camelCase")]
 pub enum VaultPolicyCapability {
     Read,
     Create,
     Update,
     Delete,
     List,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct K8sAuthRole {
-    pub service_account_name: String,
-    pub bound_service_account_namespaces: Vec<String>,
-    /// The vault policy id to attach to the service account without namespace
-    pub attached_policy_id: String,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -105,9 +93,24 @@ pub struct VaultKvSecretEngineValue {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "camelCase")]
 pub enum VaultAuthEngineType {
-    Kubernetes,
+    Kubernetes(KubernetesAuthEngineParams),
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct KubernetesAuthEngineParams {
+    pub roles: HashMap<String, KubernetesAuthEngineRole>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct KubernetesAuthEngineRole {
+    pub service_account_name: String,
+    pub namespace: Option<String>,
+    /// The vault policy id to attach to the service account without namespace
+    pub policy_ids: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, Default)]
