@@ -1,6 +1,8 @@
 use crate::{
     config::{Cluster, VaultSecrets},
-    s, some_or_bail, write_config,
+    s, some_or_bail,
+    utils::cmd,
+    write_config,
 };
 use anyhow::{bail, Context};
 use serde_yaml::Value;
@@ -33,6 +35,10 @@ impl ClusterSecrets {
                 bail!("Failed to unseal vault: {:?}", e);
             }
         };
+
+        Self::join_raft_and_unseal("mows-core-secrets-vault-1", secrets.clone()).await?;
+        Self::join_raft_and_unseal("mows-core-secrets-vault-2", secrets.clone()).await?;
+
         Self::stop_vault_proxy().await?;
 
         let mut config = write_config!();
@@ -45,6 +51,47 @@ impl ClusterSecrets {
         mut_cluster.vault_secrets = Some(secrets);
 
         drop(config);
+
+        Ok(())
+    }
+
+    pub async fn join_raft_and_unseal(pod_name: &str, secrets: VaultSecrets) -> anyhow::Result<()> {
+        debug!("Joining Vault to Raft");
+
+        cmd(
+            vec![
+                "kubectl",
+                "exec",
+                "-ti",
+                pod_name,
+                "--",
+                "vault",
+                "operator",
+                "raft",
+                "join",
+                "http://mows-core-secrets-vault-0.mows-core-secrets-vault-internal:8200",
+            ],
+            &format!("Failed to join raft cluster with vault pod: {pod_name}"),
+        )
+        .await?;
+
+        cmd(
+            vec![
+                "kubectl",
+                "exec",
+                "-ti",
+                pod_name,
+                "--",
+                "vault",
+                "operator",
+                "unseal",
+                secrets.unseal_key.as_str(),
+            ],
+            &format!("Failed to unseal secondary vault pod: {pod_name}"),
+        )
+        .await?;
+
+        debug!("Vault joined to Raft");
 
         Ok(())
     }
