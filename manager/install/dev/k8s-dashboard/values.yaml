@@ -5,3 +5,5 @@ cert-manager:
 app:
     ingress:
         enabled: true
+extraArgs:
+    - --token-ttl=86400

@@ -20,7 +20,7 @@ services:
             - secrets.env
         ports:
             - "::1:${WEB_PORT}:3000" # web ui
-            - "::1:6669:6669" #tokio console
+            - "::1:6669:6669" # tokio console
             - "::1:8001:8001" # kubectl proxy
             - "::1:8080:8080" # helm dashboard or other manually forwarded ui
             - "::1:53:53" # dns
@@ -28,9 +28,10 @@ services:
         privileged: true
         volumes:
             - ./temp/:/temp/
+            - ../operators/:/operators/
             - ./install:/install
-            - /etc/resolv.conf:/etc/host-resolv.conf:ro
             - ./misc/internal-config.yml:/internal-config.yml
+            - /etc/resolv.conf:/etc/host-resolv.conf:ro
             - /dev:/dev
             - /run/udev:/run/udev:ro
         environment:

@@ -1,4 +1,10 @@
-use crate::{handle_resources::reconcile_resource, telemetry, Error, Metrics, Result};
+use crate::{
+    reconcile::{
+        auth::handle_auth_engine, policy::handle_engine_access_policy, secret::handle_secret_engine,
+    },
+    telemetry, Error, Metrics, Result,
+};
+use anyhow::{bail, Context as anyhow_context};
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use kube::{
@@ -17,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
+use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
 pub static DOCUMENT_FINALIZER: &str = "vaultresources.k8s.mows.cloud";
 
@@ -31,30 +38,17 @@ pub static DOCUMENT_FINALIZER: &str = "vaultresources.k8s.mows.cloud";
     namespaced
 )]
 #[kube(status = "VaultResourceStatus", shortname = "vres")]
+#[serde(rename_all = "camelCase")]
 pub enum VaultResourceSpec {
     SecretEngine(VaultSecretEngine),
     AuthEngine(VaultAuthEngine),
     EngineAccessPolicy(VaultEngineAccessPolicy),
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct VaultSecretEngine {
-    pub engine_id: String,
-    pub engine_type: VaultSecretEngineType,
-}
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct VaultAuthEngine {
-    pub engine_id: String,
-    pub engine: VaultAuthEngineType,
-}
-
 // policies will be named mows-core-secrets-vrc/namespace/policy_id
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultEngineAccessPolicy {
-    pub policy_id: String,
     pub sub_policies: Vec<VaultEngineAccessPolicySubPolicy>,
 }
 
@@ -86,15 +80,7 @@ pub enum VaultPolicyCapability {
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct VaultKvSecretEngineValue {
-    pub engine_id: String,
-    pub key: String,
-    pub value: String,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub enum VaultAuthEngineType {
+pub enum VaultAuthEngine {
     Kubernetes(KubernetesAuthEngineParams),
 }
 
@@ -113,13 +99,82 @@ pub struct KubernetesAuthEngineRole {
     pub policy_ids: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, Default)]
-pub enum VaultSecretEngineType {
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+pub enum VaultSecretEngine {
     #[serde(rename = "kv-v2")]
-    #[default]
-    KV2,
+    KV2(KV2SecretEngineParams),
     #[serde(rename = "transit")]
-    Transit,
+    Transit(TransitSecretEngineParams),
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TransitSecretEngineParams {}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct KV2SecretEngineParams {
+    pub kv_data: HashMap<String, String>,
+}
+
+pub async fn create_vault_client() -> anyhow::Result<VaultClient> {
+    let mut client_builder = VaultClientSettingsBuilder::default();
+
+    client_builder.address("http://mows-core-secrets-vault-active.mows-core-secrets-vault:8200");
+
+    let vc = VaultClient::new(client_builder.build().context("Failed to create vault client")?)?;
+
+    let service_account_jwt = std::fs::read_to_string("/var/run/secrets/kubernetes.io/serviceaccount/token")
+        .context("Failed to read service account token")?;
+
+    let vault_auth = vaultrs::auth::kubernetes::login(
+        &vc,
+        "mows-core-secrets-vrc-sys",
+        "mows-core-secrets-vrc",
+        &service_account_jwt,
+    )
+    .await?;
+
+    let vc = VaultClient::new(
+        client_builder
+            .token(&vault_auth.client_token)
+            .build()
+            .context("Failed to create vault client")?,
+    )?;
+
+    dbg!(&vault_auth.client_token);
+
+    //vc.settings.token = vault_auth.client_token;
+
+    Ok(vc)
+}
+
+pub async fn reconcile_resource(vault_resource: &VaultResource) -> anyhow::Result<()> {
+    let vc = create_vault_client()
+        .await
+        .context("Failed to create vault client")?;
+
+    let resource_namespace = vault_resource.metadata.namespace.as_deref().unwrap_or("default");
+
+    let resource_name = match vault_resource.metadata.name.as_deref() {
+        Some(v) => v,
+        None => bail!("Failed to get name from resource"),
+    };
+
+    match &vault_resource.spec {
+        VaultResourceSpec::SecretEngine(vault_secret_engine) => {
+            handle_secret_engine(&vc, resource_namespace, resource_name, vault_secret_engine).await?
+        }
+        VaultResourceSpec::AuthEngine(vault_auth_engine) => {
+            handle_auth_engine(&vc, resource_namespace, resource_name, vault_auth_engine).await?
+        }
+        VaultResourceSpec::EngineAccessPolicy(vault_engine_access_policy) => {
+            handle_engine_access_policy(&vc, resource_namespace, resource_name, vault_engine_access_policy)
+                .await?
+        }
+    }
+
+    Ok(())
 }
 
 /// The status object of `Document`

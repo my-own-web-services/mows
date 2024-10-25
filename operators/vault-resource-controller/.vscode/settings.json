@@ -6,6 +6,7 @@
         "opentelemetry",
         "schemars",
         "vaultresources",
+        "vaultrs",
         "vres"
     ]
 }

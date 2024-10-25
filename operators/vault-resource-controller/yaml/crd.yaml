@@ -26,13 +26,13 @@ spec:
               This provides a hook for generating the CRD yaml (in crdgen.rs) vault.k8s.mows.cloud
             oneOf:
             - required:
-              - SecretEngine
+              - secretEngine
             - required:
-              - AuthEngine
+              - authEngine
             - required:
-              - EngineAccessPolicy
+              - engineAccessPolicy
             properties:
-              AuthEngine:
+              authEngine:
                 properties:
                   engine:
                     oneOf:
@@ -69,7 +69,7 @@ spec:
                 - engine
                 - engineId
                 type: object
-              EngineAccessPolicy:
+              engineAccessPolicy:
                 properties:
                   policyId:
                     type: string
@@ -106,18 +106,32 @@ spec:
                 - policyId
                 - subPolicies
                 type: object
-              SecretEngine:
+              secretEngine:
                 properties:
+                  engine:
+                    oneOf:
+                    - required:
+                      - kv-v2
+                    - required:
+                      - transit
+                    properties:
+                      kv-v2:
+                        properties:
+                          kvData:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        required:
+                        - kvData
+                        type: object
+                      transit:
+                        type: object
+                    type: object
                   engineId:
                     type: string
-                  engineType:
-                    enum:
-                    - kv-v2
-                    - transit
-                    type: string
                 required:
+                - engine
                 - engineId
-                - engineType
                 type: object
             type: object
           status:
