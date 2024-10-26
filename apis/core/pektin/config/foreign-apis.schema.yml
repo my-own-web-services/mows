@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+properties:
+    gandi:
+        $ref: "#/$defs/ForeignApiInfo"
+    ovh:
+        $ref: "#/$defs/ForeignApiInfo"
+    powerdns:
+        $ref: "#/$defs/ForeignApiInfo"
+
+$defs:
+    ForeignApiInfo:
+        type: object
+        additionalProperties: false
+        properties:
+            storage:
+                $ref: "#/$defs/ForeignApiInfo"
+            secrets:
+                type: object
+                additionalProperties: false
+
+    StorageOption:
+        type: string
+        enum: [vault, ccc]

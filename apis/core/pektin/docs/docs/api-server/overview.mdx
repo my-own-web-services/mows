@@ -1,0 +1,15 @@
+---
+sidebar_position: 10
+---
+
+# Pektin API Server
+
+import { Header } from "../../src/components/Header";
+
+<Header name="pektin-api" />
+
+## Overview
+
+-   Written in async [Rust](https://www.rust-lang.org/) using [Tokio](https://tokio.rs/) and [Actix](https://actix.rs/)
+-   Using [Trust-DNS](https://github.com/bluejekyll/trust-dns) for validation
+-   Thin layer, wrapping Keydb, to validate data and to request signing records with Vault

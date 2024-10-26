@@ -33,46 +33,36 @@ spec:
               - engineAccessPolicy
             properties:
               authEngine:
+                oneOf:
+                - required:
+                  - kubernetes
                 properties:
-                  engine:
-                    oneOf:
-                    - required:
-                      - kubernetes
+                  kubernetes:
                     properties:
-                      kubernetes:
-                        properties:
-                          roles:
-                            additionalProperties:
-                              properties:
-                                namespace:
-                                  nullable: true
-                                  type: string
-                                policyIds:
-                                  description: The vault policy id to attach to the service account without namespace
-                                  items:
-                                    type: string
-                                  type: array
-                                serviceAccountName:
-                                  type: string
-                              required:
-                              - policyIds
-                              - serviceAccountName
-                              type: object
-                            type: object
-                        required:
-                        - roles
+                      roles:
+                        additionalProperties:
+                          properties:
+                            namespace:
+                              nullable: true
+                              type: string
+                            policyIds:
+                              description: The vault policy id to attach to the service account without namespace
+                              items:
+                                type: string
+                              type: array
+                            serviceAccountName:
+                              type: string
+                          required:
+                          - policyIds
+                          - serviceAccountName
+                          type: object
                         type: object
+                    required:
+                    - roles
                     type: object
-                  engineId:
-                    type: string
-                required:
-                - engine
-                - engineId
                 type: object
               engineAccessPolicy:
                 properties:
-                  policyId:
-                    type: string
                   subPolicies:
                     items:
                       properties:
@@ -103,35 +93,28 @@ spec:
                       type: object
                     type: array
                 required:
-                - policyId
                 - subPolicies
                 type: object
               secretEngine:
+                oneOf:
+                - required:
+                  - kv-v2
+                - required:
+                  - transit
                 properties:
-                  engine:
-                    oneOf:
-                    - required:
-                      - kv-v2
-                    - required:
-                      - transit
+                  kv-v2:
                     properties:
-                      kv-v2:
-                        properties:
-                          kvData:
-                            additionalProperties:
-                              type: string
-                            type: object
-                        required:
-                        - kvData
+                      kvData:
+                        additionalProperties:
+                          additionalProperties:
+                            type: string
+                          type: object
                         type: object
-                      transit:
-                        type: object
+                    required:
+                    - kvData
                     type: object
-                  engineId:
-                    type: string
-                required:
-                - engine
-                - engineId
+                  transit:
+                    type: object
                 type: object
             type: object
           status:

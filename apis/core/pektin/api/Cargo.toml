@@ -1,0 +1,77 @@
+[package]
+edition = "2021"
+name = "pektin-api"
+version = "0.1.0"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[lib]
+name = "pektin_api"
+path = "src/lib.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+cast_sign_loss = "deny"
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_lossless = "deny"
+indexing_slicing = "deny"
+
+[dependencies]
+actix-web = "4.0.1"
+actix-cors = "0.7.0"
+anyhow = "1.0"
+chrono = "0.4"
+data-encoding = "2.3"
+env_logger = "0.11.5"
+idna = "1.0.2"
+lazy_static = "1.4"
+log = { version = "0.4", features = ["release_max_level_warn"] }
+moka = { version = "0.12.8", features = ["future"] }
+mime = "0.3"
+opentelemetry = { version = "0.26.0" }
+opentelemetry-jaeger = { version = "0.22.0", features = [
+    "rt-tokio",
+    "collector_client",
+    "reqwest_collector_client",
+] }
+opentelemetry-jaeger-propagator = "0.26.0"
+opentelemetry_sdk = { version = "0.26.0", features = ["rt-tokio"] }
+p256 = { version = "0.13.2", features = ["pem"] }
+parking_lot = "0.12"
+pektin-common = { path = "../common" }
+rand = "0.8"
+ring = "0.17.8"
+reqwest = { version = "0.12.8", default-features = false, features = [
+    "blocking",
+    "json",
+    "rustls-tls",
+] }
+rust-crypto = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+thiserror = "1.0"
+tokio = { version = "1.17", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-opentelemetry = "0.27.0"
+opentelemetry-otlp = "0.26.0"
+
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.6.0"
+
+
+[profile.release]
+codegen-units = 1
+debug = false
+debug-assertions = false
+lto = true
+opt-level = 3
+rpath = false

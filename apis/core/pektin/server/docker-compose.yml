@@ -1,0 +1,20 @@
+version: "3.7"
+services:
+    pektin:
+        build:
+            context: "."
+        restart: always
+        environment:
+            DB_URI: redis://db:6379
+            BIND_ADDRESS: 0.0.0.0
+            BIND_PORT: 53
+        ports:
+            - "127.0.0.1:53:$BIND_PORT/udp"
+        networks:
+            - pektin
+    #db:
+    #    image: db:alpine
+    #    restart: always
+networks:
+    pektin:
+        name: pektin-ui_default

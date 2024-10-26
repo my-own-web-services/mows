@@ -1,0 +1,38 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: Pektin config item meta object
+description: A meta object that holds implementation info and safeguards
+type: object
+additionalProperties: false
+required:
+    - updatable
+properties:
+    updatable:
+        type: boolean
+    use:
+        type: array
+        items:
+            type: object
+            required:
+                - place
+                - comments
+            properties:
+                place:
+                    type: array
+                    items:
+                        type: string
+                comments:
+                    type: string
+    links:
+        type: array
+        items:
+            type: object
+            required:
+                - key
+                - description
+            properties:
+                key:
+                    type: array
+                    items:
+                        type: string
+                description:
+                    type: string

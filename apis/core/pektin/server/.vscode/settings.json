@@ -1,0 +1,22 @@
+{
+  "window.title": "🕴️ ${rootName}",
+  "cSpell.words": [
+    "additionals",
+    "chrono",
+    "deadpool",
+    "dnssec",
+    "Edns",
+    "iocompat",
+    "NSEC",
+    "proto",
+    "rdata",
+    "rrset",
+    "RRSIG",
+    "Serv",
+    "SERVFAIL",
+    "SIGINT",
+    "SIGTERM",
+    "thiserror",
+    "xfer"
+  ]
+}

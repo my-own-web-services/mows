@@ -1,0 +1,54 @@
+[package]
+edition = "2021"
+name = "pektin-server"
+version = "0.1.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+cast_sign_loss = "deny"
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_lossless = "deny"
+indexing_slicing = "deny"
+
+
+[dependencies]
+actix-cors = "0.7.0"
+actix-web = "4.9.0"
+anyhow = "1.0.91"
+chrono = "0.4.38"
+data-encoding = "2.6.0"
+env_logger = "0.11.5"
+futures-util = "0.3.31"
+log = { version = "0.4.22", features = ["release_max_level_warn"] }
+parking_lot = "0.12.3"
+pektin-common = { path = "../common" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.132"
+thiserror = "1.0.65"
+tokio = { version = "1.41.0", features = ["full"] }
+hickory-server = "0.24.1"
+url = { version = "2.2", features = ["serde"] }
+
+[lib]
+name = "pektin_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.6.0"
+
+[profile.release]
+codegen-units = 1
+debug = false
+debug-assertions = false
+lto = true
+opt-level = 3
+rpath = false

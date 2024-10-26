@@ -1,0 +1,25 @@
+{
+    "client_username": "admin--UP4dywnPb3aKg",
+    "confidant_password": "c.ncMzYPfURzV3H7hr9lEt_qP0xbDVpqWmas3L0yTQxFxzkQlUOYCC4hMmr2NY0jgPlBlrW7Wjjejcq6tlV6FpcigK0M2OYbkOxBmutxXF442B86CrPfPbYjn7gCYMuznVHamtLw",
+    "records": [
+        {
+            "name": "_acme-challenge.y.gy.:SOA",
+            "rr_set": [
+                {
+                    "ttl": 3600,
+                    "value": {
+                        "SOA": {
+                            "mname": "deine.mutter.",
+                            "rname": "hostmaster.deine.mutter.",
+                            "refresh": 0,
+                            "retry": 0,
+                            "serial": 0,
+                            "expire": 0,
+                            "minimum": 0
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

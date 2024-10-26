@@ -1,0 +1,60 @@
+[package]
+name = "zertificat"
+version = "0.1.0"
+edition = "2021"
+
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+cast_sign_loss = "deny"
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_lossless = "deny"
+indexing_slicing = "deny"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.213", features = [
+    "derive",
+    "std",
+], default-features = false }
+serde_json = { version = "1.0.132" }
+anyhow = "1.0.91"
+tokio = { version = "1.41.0", default-features = false, features = [
+    "rt-multi-thread",
+    "macros",
+    "signal",
+] }
+data-encoding = "2.6.0"
+reqwest = { version = "0.12.8", default-features = false, features = [
+    "rustls-tls",
+] }
+acme-rs = { path = "../acme-rs", features = [
+    "acmeRsStd",
+], default-features = false }
+rand_core = { version = "0.6.4", default-features = false, features = [
+    "getrandom",
+] }
+p256 = { version = "0.13.2", default-features = false, features = [
+    "std",
+    "ecdsa",
+] }
+chrono = "0.4.38"
+
+[profile.release]
+codegen-units = 1
+debug = false
+debug-assertions = false
+lto = true
+opt-level = 3
+rpath = false

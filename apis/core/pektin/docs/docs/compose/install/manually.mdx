@@ -1,0 +1,469 @@
+import Tabs from "@theme/Tabs";
+
+# Manually
+
+:::caution
+Only Linux systems are supported
+:::
+
+## Required software/commands
+
+-   git
+-   docker
+-   docker-compose
+-   bash
+-   cd, echo, mkdir, rm
+
+## On your main node/server
+
+### Navigate to a folder where to store the config for your setup in.
+
+```shell
+cd /opt/
+```
+
+### Clone the Compose repo
+
+<Tabs groupId="git-type">
+
+<TabItem value="gitlab" label="GitLab" default>
+
+```shell
+git clone https://gitlab.com/pektin/pektin-compose
+```
+
+</TabItem>
+
+<TabItem value="github" label="GitHub">
+
+```shell
+git clone https://github.com/pektin-dns/pektin-compose
+```
+
+</TabItem>
+
+<TabItem value="git.y.gy" label="git.y.gy">
+
+```shell
+git clone https://git.y.gy/pektin/pektin-compose
+```
+
+</TabItem>
+
+</Tabs>
+
+```shell
+cd /opt/pektin-compose
+```
+
+### Edit the pektin-config.json to your liking
+
+If you are using vscode you should get intellisense for that.
+The JSON schema can be found [here](https://git.y.gy/pektin/pektin-config/-/raw/main/pektin-config.schema.json)
+The config has to contain all keys and values. (No optionals/hidden defaults)
+
+<Tabs groupId="config-type">
+
+<TabItem value="comments" label="Comments">
+
+```json
+{
+    // The services you want to use
+    "services": {
+        "server": {
+            "enabled": true,
+            "logging": "main,pektin_server",
+            "build": {
+                "enabled": true,
+                "path": "/home/paul/Documents/pektin/pektin-server",
+                "dockerfile": "dev.Dockerfile"
+            }
+        },
+        "ui": {
+            "enabled": true,
+            "domain": "pektin.club",
+            "subDomain": "ui",
+            "build": {
+                "enabled": false,
+                "path": "/home/paul/Documents/pektin/pektin-ui",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "api": {
+            "domain": "pektin.club",
+            "subDomain": "api",
+            "logging": "main,pektin_api",
+            "perimeterAuth": false,
+            "build": {
+                "enabled": true,
+                "path": "/home/paul/Documents/pektin/pektin-api",
+                "dockerfile": "dev.Dockerfile"
+            }
+        },
+        "vault": {
+            "domain": "pektin.club",
+            "subDomain": "vault",
+            "perimeterAuth": false,
+            "build": {
+                "enabled": false,
+                "path": "",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "verkehr": {
+            "enabled": true,
+            "build": {
+                "enabled": true,
+                "path": "/home/paul/Documents/pektin/pektin-verkehr",
+                "dockerfile": "Dockerfile"
+            },
+            /*  whether to use domain, local or minikube routing
+                domain is used for production
+            */
+            "routing": "local",
+            "tls": true,
+            "tempZone": {
+                "enabled": false,
+                "provider": "pektin.zone",
+                "routing": "local"
+            },
+            "external": {
+                "domain": "pektin.club",
+                "subDomain": "pektin-proxy",
+                "enabled": true,
+                "services": [
+                    {
+                        "name": "gandi",
+                        "enabled": true,
+                        "domain": "api.gandi.net",
+                        "accessControlAllowMethods": ["OPTIONS", "POST", "GET", "DELETE", "PUT"],
+                        "accessControlAllowHeaders": ["Content-Type", "Authorization"]
+                    },
+                    {
+                        "name": "crt",
+                        "enabled": true,
+                        "domain": "crt.sh",
+                        "accessControlAllowMethods": ["OPTIONS", "GET"],
+                        "accessControlAllowHeaders": []
+                    },
+                    {
+                        "name": "mx.y.gy",
+                        "enabled": true,
+                        "domain": "mx.y.gy",
+                        "accessControlAllowMethods": ["OPTIONS", "GET", "POST", "PUT", "DELETE"],
+                        "accessControlAllowHeaders": ["Content-Type", "X-Api-Key"]
+                    }
+                ]
+            }
+        },
+        "zertificat": {
+            "enabled": true,
+            "build": {
+                "enabled": true,
+                "path": "/home/paul/Documents/pektin/pektin-zertificat",
+                "dockerfile": "dev.Dockerfile"
+            },
+            "acmeEmail": "letsencrypt@y.gy",
+            "acmeEndpoint": "https://acme-staging-v02.api.letsencrypt.org/directory",
+            "usePebble": true
+        },
+        "tnt": {
+            "enabled": true,
+            "domain": "pektin.club",
+            "subDomain": "tnt",
+            "build": {
+                "enabled": true,
+                "path": "/home/paul/Documents/pektin/pektin-tnt",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "ribston": {
+            "enabled": true,
+            "build": {
+                "enabled": false,
+                "path": "/home/paul/Documents/pektin/pektin-ribston",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "opa": {
+            "enabled": false,
+            "build": {
+                "enabled": false,
+                "path": "",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "jaeger": {
+            "enabled": true,
+            "build": {
+                "enabled": false,
+                "path": "",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "prometheus": {
+            "enabled": true,
+            "build": {
+                "enabled": false,
+                "path": "",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "grafana": {
+            "enabled": true,
+            "domain": "pektin.club",
+            "subDomain": "grafana",
+            "build": {
+                "enabled": false,
+                "path": "",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "alert": {
+            "enabled": false,
+            "build": {
+                "enabled": false,
+                "path": "",
+                "dockerfile": "Dockerfile"
+            }
+        }
+    },
+    // The nodes/machines you want to install pektin on
+    // The main node is the one with the API
+    // YES it is also possible to only use one node
+    "nodes": [
+        {
+            "main": true,
+            "name": "balduin",
+            "ips": ["2a01:4f9:c01f:80::"]
+        },
+        {
+            "name": "gustav",
+            "ips": ["2a01:4f9:c01f:80::"],
+            // The setup on the main node will generate a script/files that are used to setup the arbeiter/worker/secondary nodes
+            "setup": {
+                "system": "ubuntu",
+                "root": {
+                    "disableSystemdResolved": true,
+                    "installDocker": true
+                },
+                "cloneRepo": true,
+                "setup": true,
+                "start": true
+            }
+        }
+    ],
+    // The nameservers you want to use for your primary server
+    // This will setup the default domain right away
+    "nameservers": [
+        {
+            "subDomain": "ns1",
+            "domain": "pektin.club",
+            "node": "balduin",
+            "main": true
+        },
+        {
+            "subDomain": "ns2",
+            "domain": "pektin.club",
+            "node": "gustav"
+        }
+    ],
+    "usePolicies": "ribston"
+}
+```
+
+</TabItem>
+
+<TabItem value="no-comments" label="No Comments">
+
+```json
+{
+    "services": {
+        "server": {
+            "enabled": true,
+            "logging": "main,pektin_server",
+            "build": {
+                "enabled": true,
+                "path": "/home/paul/Documents/pektin/pektin-server",
+                "dockerfile": "dev.Dockerfile"
+            }
+        },
+        "ui": {
+            "enabled": true,
+            "domain": "pektin.club",
+            "subDomain": "ui",
+            "build": {
+                "enabled": false,
+                "path": "/home/paul/Documents/pektin/pektin-ui",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "api": {
+            "domain": "pektin.club",
+            "subDomain": "api",
+            "logging": "main,pektin_api",
+            "perimeterAuth": false,
+            "build": {
+                "enabled": true,
+                "path": "/home/paul/Documents/pektin/pektin-api",
+                "dockerfile": "dev.Dockerfile"
+            }
+        },
+        "vault": {
+            "domain": "pektin.club",
+            "subDomain": "vault",
+            "perimeterAuth": false,
+            "build": {
+                "enabled": false,
+                "path": "",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "tnt": {
+            "enabled": true,
+            "domain": "pektin.club",
+            "subDomain": "tnt",
+            "build": {
+                "enabled": true,
+                "path": "/home/paul/Documents/pektin/pektin-tnt",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "ribston": {
+            "enabled": true,
+            "build": {
+                "enabled": false,
+                "path": "/home/paul/Documents/pektin/pektin-ribston",
+                "dockerfile": "Dockerfile"
+            }
+        },
+        "opa": {
+            "enabled": false,
+            "build": {
+                "enabled": false,
+                "path": "",
+                "dockerfile": "Dockerfile"
+            }
+        }
+    },
+    "nodes": [
+        {
+            "main": true,
+            "name": "balduin",
+            "ips": ["2a01:4f9:c01f:80::"]
+        },
+        {
+            "name": "gustav",
+            "ips": ["2a01:4f9:c01f:80::"],
+            "setup": {
+                "system": "ubuntu",
+                "root": {
+                    "disableSystemdResolved": true,
+                    "installDocker": true
+                },
+                "cloneRepo": true,
+                "setup": true,
+                "start": true
+            }
+        }
+    ],
+    "nameservers": [
+        {
+            "subDomain": "ns1",
+            "domain": "pektin.club",
+            "node": "balduin",
+            "main": true
+        },
+        {
+            "subDomain": "ns2",
+            "domain": "pektin.club",
+            "node": "gustav"
+        }
+    ],
+    "letsencrypt": {
+        "enabled": true,
+        "letsencryptEmail": "test@pektin.club"
+    },
+    "usePolicies": "ribston",
+    "reverseProxy": {
+        "createTraefik": true,
+        "routing": "local",
+        "tls": false,
+        "tempZone": {
+            "enabled": true,
+            "provider": "pektin.zone",
+            "routing": "local"
+        },
+        "traefikUi": {
+            "enabled": true,
+            "domain": "pektin.club",
+            "subDomain": "traefik"
+        },
+        "external": {
+            "domain": "pektin.club",
+            "subDomain": "pektin-proxy",
+            "enabled": true,
+            "services": [
+                {
+                    "name": "gandi",
+                    "enabled": true,
+                    "domain": "api.gandi.net",
+                    "accessControlAllowMethods": ["OPTIONS", "POST", "GET", "DELETE"]
+                },
+                {
+                    "name": "crt",
+                    "enabled": true,
+                    "domain": "crt.sh",
+                    "accessControlAllowMethods": ["OPTIONS", "GET"]
+                }
+            ]
+        }
+    }
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+### Run the install script
+
+This will setup the config for Vault, Keydb etc., create secrets and scripts to administrate the compose setup
+
+```shell
+bash setup.sh
+```
+
+### Run the server
+
+```shell
+bash start.sh
+```
+
+## On arbeiter/worker/secondary nodes/servers
+
+The install on the main node will create the installer scripts/files for the other nodes.
+
+They can be found in the `arbeiter` folder
+
+This will create two options:
+
+### Single Script
+
+A single script that installs everything on the other named node: `arbeiter/<NODE_NAME>.sh`
+
+You can copy paste this as a .sh file to the other node.
+
+For example in `/opt/<NODE_NAME>.sh` this will create `/opt/pektin-compose` and install docker, docker compose etc. and setup all the secrets.
+
+:::caution
+You could also just copy paste the script directly into the shell but this may be not **as** secure as it contains secrets.
+:::
+
+### Secrets/Scripts folder
+
+You can also copy all the files from the folder: `arbeiter/<NODE_NAME>/` over to the arbeiter node
+
+1. Clone the `pektin-compose` repo to the arbeiter node
+2. Copy the script files and secrets folder in the pektin-compose folder on the arbeiter node
+3. Run `bash setup.sh` and `bash start.sh`

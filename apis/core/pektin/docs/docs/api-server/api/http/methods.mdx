@@ -1,0 +1,339 @@
+---
+sidebar_position: 30
+---
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+# Methods
+
+:::note
+**All** methods are using **POST** requests to keep the HTTP shenanigans to a minimum. <br/>
+This is to cause less confusion and errors.<br/>
+Everything is transmitted through the body in JSON. No path parameters, queries or custom headers.<br/>
+The content type **must** be set to "application/json".<br/>
+:::
+_The Key/Keys word refers to the name/keyword of an entry in Keydb in this context._
+
+## /get
+
+Performs a lookup for a value in Keydb using the exact key.<br/>
+The keys must be provided in an array.
+
+<Tabs groupId="code-type">
+
+<TabItem value="json" label="JSON" default>
+
+```json
+{
+    "confidant_password": "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+    "client_username": "admin-SY6B09EHzlheEg",
+    "records": [
+        {
+            "name": "pektin.club.",
+            "rr_type": "SOA"
+        }
+    ]
+}
+```
+
+</TabItem>
+
+<TabItem value="js" label="JS">
+
+```js
+// in a ES module with top level await
+
+const res = await fetch(endpoint + "/get", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        confidant_password: "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+        client_username: "admin-SY6B09EHzlheEg",
+        records: [
+            {
+                name: "pektin.club.",
+                rr_type: "SOA"
+            }
+        ]
+    })
+}).catch(e => {
+    console.log(e);
+});
+console.log(res);
+```
+
+</TabItem>
+</Tabs>
+
+## /set
+
+Performs a validity check on the provided record and then sets it in Keydb.
+
+#### Look [here](./record-types) for the Record Types
+
+<Tabs groupId="code-type">
+
+<TabItem value="json" label="JSON" default>
+
+```json
+{
+    "confidant_password": "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+    "client_username": "admin-SY6B09EHzlheEg",
+    "records": [
+        {
+            "name": "pektin.club.",
+            "rr_type": "SOA",
+            "ttl": 3600,
+            "rr_set": [
+                {
+                    "mname": "ns1.example.com.",
+                    "rname": "hostmaster.example.com.",
+                    "refresh": 0,
+                    "retry": 0,
+                    "serial": 0,
+                    "expire": 0,
+                    "minimum": 0
+                }
+            ]
+        },
+        {
+            "name": "pektin.club.",
+            "rr_type": "AAAA",
+            "ttl": 3600,
+            "rr_set": [
+                {
+                    "value": "1::1"
+                }
+            ]
+        }
+    ]
+}
+```
+
+</TabItem>
+
+<TabItem value="js" label="JS">
+
+```js
+// in a ES module with top level await
+
+const res = await fetch(endpoint + "/set", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        confidant_password: "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+        client_username: "admin-SY6B09EHzlheEg",
+        records: [
+            {
+                name: "pektin.club.",
+                rr_type: "SOA",
+                ttl: 3600,
+                rr_set: [
+                    {
+                        mname: "ns1.example.com.",
+                        rname: "hostmaster.example.com.",
+                        refresh: 0,
+                        retry: 0,
+                        serial: 0,
+                        expire: 0,
+                        minimum: 0
+                    }
+                ]
+            },
+            {
+                name: "pektin.club.",
+                rr_type: "AAAA",
+                ttl: 3600,
+                rr_set: [
+                    {
+                        value: "1::1"
+                    }
+                ]
+            }
+        ]
+    })
+}).catch(e => {
+    console.log(e);
+});
+console.log(res);
+```
+
+</TabItem>
+</Tabs>
+
+## /delete
+
+Deletes key and value for an exact key.<br/>
+The keys must be provided in an array.
+
+<Tabs groupId="code-type">
+
+<TabItem value="json" label="JSON" default>
+
+```json
+{
+    "confidant_password": "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+    "client_username": "admin-SY6B09EHzlheEg",
+    "records": [
+        {
+            "name": "pektin.club.",
+            "rr_type": "SOA"
+        }
+    ]
+}
+```
+
+</TabItem>
+
+<TabItem value="js" label="JS">
+
+```js
+// in a ES module with top level await
+
+const res = await fetch(endpoint + "/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        confidant_password: "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+        client_username: "admin-SY6B09EHzlheEg",
+        records: [
+            {
+                name: "pektin.club.",
+                rr_type: "SOA"
+            }
+        ]
+    })
+}).catch(e => {
+    console.log(e);
+});
+console.log(res);
+```
+
+</TabItem>
+</Tabs>
+
+## /search
+
+Performs a Keydb search using the KEYS command. <br/>
+This does **NOT** support regex instead using a [glob pattern search](<https://en.wikipedia.org/wiki/Glob_(programming)>).
+
+<Tabs groupId="code-type">
+
+<TabItem value="json" label="JSON" default>
+
+```json
+{
+    "confidant_password": "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+    "client_username": "admin-SY6B09EHzlheEg",
+    "globs": [
+        {
+            "name_glob": "*",
+            "rr_type_glob": "SOA"
+        }
+    ]
+}
+```
+
+</TabItem>
+
+<TabItem value="js" label="JS">
+
+```js
+// in a ES module with top level await
+
+const res = await fetch(endpoint + "/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        confidant_password: "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+        client_username: "admin-SY6B09EHzlheEg",
+        globs: [
+            {
+                name_glob: "*",
+                rr_type_glob: "SOA"
+            }
+        ]
+    })
+}).catch(e => {
+    console.log(e);
+});
+console.log(res);
+```
+
+</TabItem>
+</Tabs>
+
+## /get-zone-records
+
+<Tabs groupId="code-type">
+
+<TabItem value="json" label="JSON" default>
+
+```json
+{
+    "confidant_password": "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+    "client_username": "admin-SY6B09EHzlheEg",
+    "names": ["pektin.club."]
+}
+```
+
+</TabItem>
+
+<TabItem value="js" label="JS">
+
+```js
+// in a ES module with top level await
+
+const res = await fetch(endpoint + "/get-zone-records", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        confidant_password: "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+        client_username: "admin-SY6B09EHzlheEg",
+        names: ["pektin.club."]
+    })
+}).catch(e => {
+    console.log(e);
+});
+console.log(res);
+```
+
+</TabItem>
+</Tabs>
+
+## /health
+
+<Tabs groupId="code-type">
+
+<TabItem value="json" label="JSON" default>
+
+```json
+{
+    "confidant_password": "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+    "client_username": "admin-SY6B09EHzlheEg"
+}
+```
+
+</TabItem>
+
+<TabItem value="js" label="JS">
+
+```js
+// in a ES module with top level await
+
+const res = await fetch(endpoint + "/health", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        confidant_password: "c.cJUAlvMk4pG4dIf67pCHOkZ9...",
+        client_username: "admin-SY6B09EHzlheEg"
+    })
+}).catch(e => {
+    console.log(e);
+});
+console.log(res);
+```
+
+</TabItem>
+</Tabs>

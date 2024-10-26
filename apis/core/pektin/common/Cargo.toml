@@ -1,0 +1,36 @@
+[package]
+name = "pektin-common"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+cast_sign_loss = "deny"
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_lossless = "deny"
+indexing_slicing = "deny"
+
+[dependencies]
+base64 = "0.22.1"
+deadpool-redis = "0.18.0"
+hex = "0.4"
+serde = { version = "1.0.213", features = ["derive"] }
+serde_json = "1.0.132"
+serde_repr = "0.1.19"
+thiserror = "1.0.65"
+tracing = "0.1.40"
+hickory-proto = { version = "0.24.1", features = [
+    "dnssec-ring",
+    "serde-config",
+] }
+url = "2.5.2"
+
+[lib]
+name = "pektin_common"
+path = "src/lib.rs"

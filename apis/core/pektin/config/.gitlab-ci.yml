@@ -1,0 +1,10 @@
+include:
+    - project: pektin/pektin-dist
+      ref: main
+      file:
+          - scripts/npm-build-and-publish.yml
+
+image: alpine
+
+stages:
+    - npm-build-and-publish

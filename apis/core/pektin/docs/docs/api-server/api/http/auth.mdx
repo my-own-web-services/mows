@@ -1,0 +1,216 @@
+---
+sidebar_position: 20
+---
+
+# Auth
+
+:::tip
+You might not need to go through the manual process of handling this.
+Look [here](../client-libraries/overview) to see if there's a client library available for your language. Or if there is none **please** check out the section on helper functions that abstract away the most common pitfalls.
+:::
+
+Like always, the first part of working with any real API is getting some information to authenticate with it. <br/>
+
+## Concept
+
+### Pektin Client Connection Config (PC3)
+
+Similar to mechanisms like kubeconfig for Kubernetes all auth information is stored in one _File_ or basically a json string that could be stored in a password manager or similar.
+
+From now on, we will refer to this Auth blob as **PC3**
+
+It looks something like this but may contain more/less key value pairs.
+A username and some password should always be present.
+
+```json
+{
+    "username": "admin-p1nn9_c-BYIrzg",
+    "managerPassword": "m.F_WYw1vUKw0MhyU6drt0ma8PimYade6zJnSQs_jDiOJlGkAWXLBWA1LCvDKABXR4HMi_FUbv9rGoVqi3aH6TDZqrgKqnuvVrmurEGL2Xp3q_msq1UIS4Q9jPU3_BRMXpvzuYAw",
+    "confidantPassword": "c.inBH48RZTJk_DFT5QROepN37QohGh0jQtAkTU4hiEmYTeN6w6FwhgDVkF5Ljtz5AMPm3P2wf_EAeblwC3l4tblnyHbEeL-zJw2DebRxfgtKVAbTk2O9IA6WfFq-cmt7cy9K79A",
+    "vaultEndpoint": "http://vault.pektin.club.localhost"
+}
+```
+
+### Discovery
+
+The default method of finding the Pektin API servers endpoint is to ask Vault for it. This is done because some clients like the UI may want to not only access the API but also other services. Also this keeps everything in sync.
+
+Alternatively you can save/override the endpoint in your PC3:
+
+```json
+{
+    "username": "acme-mWdPGzybV-x98Q",
+    "confidantPassword": "c.AyPqq754J6-sDTpERcncbpLQfIJG2MFapf6ipI4bPeMp7B9GPlRSS0PgacELx1O4IDVkbDUw2VtE52zC-uujDMv__mhrceKyFg18baAViS3t8qseBncEuHfeDpJ9HaWC7XGbWQ",
+    "override": { "pektinApiEndpoint": "http://api.pektin.club.localhost" }
+}
+```
+
+## Basic Code Example
+
+:::caution
+
+Normaly you should NEVER store your credentials in a code file but use something
+like a .env file. Have a look at [dotenv](https://www.npmjs.com/package/dotenv) for Node.js.
+
+:::
+
+:::note
+The following examples will be using ES modules with top level await and asume that
+fetch is available in the global scope (Browser / Deno / Node.js > v18)
+
+For use with Node.js < v18 you can use [cross-fetch](https://www.npmjs.com/package/cross-fetch)
+:::
+
+### Get the Vault token
+
+```js
+// in a ES module with top level await
+const pc3 = {
+    username: "admin-SY6B09EHzlheEg",
+    managerPassword:
+        "m.rx8u9sURdFcFRm0shHhxu1fHl2HqnHzmWacHB3Kb34I8TOTAd_I2aRx4V3ZonbFrQvt6gtO-cuLpEm6JXH_BaTLXkP3kZ-8qMfvgBuWueRlPsEFBNSn8U5l5IUoCr1l_xbkGTA",
+    confidantPassword:
+        "c.cJUAlvMk4pG4dIf67pCHOkZ9KS_yOTvpWRHBe1xpgqjtVWcrST-Jp1rKTQwS8EEjryYxN5NSVQNa2EMX-_ODPmbUD35bBx20ho5-LO-saoRcPj3MCxgfvJiCvbLgV3sklIK19w",
+    vaultEndpoint: "http://vault.pektin.club.localhost"
+};
+
+// send a http POST request to vault to get the temporary access token that vault wants for anything else
+const vaultTokenRes = await fetch(
+    `${pc3.vaultEndpoint}/v1/auth/userpass/login/pektin-client-confidant-${pc3.username}`,
+    {
+        method: "POST",
+        body: JSON.stringify({
+            password: pc3.confidantPassword
+        })
+    }
+);
+
+// parse the json from the response body
+const vaultTokenJson = await vaultTokenRes.json();
+
+console.log(vaultTokenJson); // if this logs  { errors: [ "Vault is sealed" ] } you have to unlock vault first
+const token = vaultTokenJson.auth.client_token;
+```
+
+### Get the Pektin config
+
+Instead of statically coding the Pektin API endpoint and other informations about your deployment directly into your app you can obtain the Pektin config/api endpoint by asking Vault for it.
+
+```js
+// in a ES module with top level await
+
+// send a http GET request to vault to get the pektin config
+const pektinConfigRes = await fetch(`${pc3.vaultEndpoint}/v1/pektin-kv/data/pektin-config`, {
+    headers: {
+        "X-Vault-Token": token
+    }
+});
+
+// parse the json from the response body
+const pektinConfigJson = await pektinConfigRes.json();
+const pektinConfig = pektinConfigJson.data.data;
+```
+
+### Use it
+
+Now that we have the api endpoint we can call the API to search Keydb.
+
+```js
+// in a ES module with top level await
+
+// construct the api endpoint for the request
+const endpoint =
+    "http://" +
+    pektinConfig.services.api.subDomain +
+    "." +
+    pektinConfig.services.api.domain +
+    ".localhost";
+
+// request to get all records keys that are of type SOA
+const res = await fetch(endpoint + "/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        confidant_password: pc3.confidantPassword,
+        client_username: pc3.username,
+        globs: [
+            {
+                name_glob: "*.",
+                rr_type_glob: "SOA"
+            }
+        ]
+    })
+}).catch(e => {
+    console.log(e);
+});
+console.log(JSON.stringify(await res.json()));
+```
+
+### All together
+
+```js
+// in a ES module with top level await
+const pc3 = {
+    username: "admin-SY6B09EHzlheEg",
+    managerPassword:
+        "m.rx8u9sURdFcFRm0shHhxu1fHl2HqnHzmWacHB3Kb34I8TOTAd_I2aRx4V3ZonbFrQvt6gtO-cuLpEm6JXH_BaTLXkP3kZ-8qMfvgBuWueRlPsEFBNSn8U5l5IUoCr1l_xbkGTA",
+    confidantPassword:
+        "c.cJUAlvMk4pG4dIf67pCHOkZ9KS_yOTvpWRHBe1xpgqjtVWcrST-Jp1rKTQwS8EEjryYxN5NSVQNa2EMX-_ODPmbUD35bBx20ho5-LO-saoRcPj3MCxgfvJiCvbLgV3sklIK19w",
+    vaultEndpoint: "http://vault.pektin.club.localhost"
+};
+
+// send a http POST request to vault to get the temporary access token that vault wants for anything else
+const vaultTokenRes = await fetch(
+    `${pc3.vaultEndpoint}/v1/auth/userpass/login/pektin-client-confidant-${pc3.username}`,
+    {
+        method: "POST",
+        body: JSON.stringify({
+            password: pc3.confidantPassword
+        })
+    }
+);
+
+// parse the json from the response body
+const vaultTokenJson = await vaultTokenRes.json();
+
+console.log(vaultTokenJson); // if this logs  { errors: [ "Vault is sealed" ] } you have to unlock vault first
+const token = vaultTokenJson.auth.client_token;
+
+// send a http GET request to vault to get the pektin config
+const pektinConfigRes = await fetch(`${pc3.vaultEndpoint}/v1/pektin-kv/data/pektin-config`, {
+    headers: {
+        "X-Vault-Token": token
+    }
+});
+
+// parse the json from the response body
+const pektinConfigJson = await pektinConfigRes.json();
+const pektinConfig = pektinConfigJson.data.data;
+
+// construct the api endpoint for the request
+const endpoint =
+    "http://" +
+    pektinConfig.services.api.subDomain +
+    "." +
+    pektinConfig.services.api.domain +
+    ".localhost";
+
+// request to get all records keys that are of type SOA
+const res = await fetch(endpoint + "/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        confidant_password: pc3.confidantPassword,
+        client_username: pc3.username,
+        globs: [
+            {
+                name_glob: "*.",
+                rr_type_glob: "SOA"
+            }
+        ]
+    })
+}).catch(e => {
+    console.log(e);
+});
+console.log(JSON.stringify(await res.json()));
+```

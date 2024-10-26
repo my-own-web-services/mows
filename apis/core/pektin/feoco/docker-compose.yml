@@ -1,0 +1,13 @@
+version: "3.7"
+services:
+    ws-prod:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: pektin/feoco
+        ports:
+            - "3050:80"
+        environment:
+            - CSP_CONNECT_SRC=*
+        volumes:
+            - /home/paul/Documents/pektin/pektin-ui/build:/public/

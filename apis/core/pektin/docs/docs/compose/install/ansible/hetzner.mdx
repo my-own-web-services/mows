@@ -1,0 +1,90 @@
+---
+sidebar_position: 10
+---
+
+import Tabs from "@theme/Tabs";
+
+# Hetzner Cloud
+
+This is meant to be a one click install on Hetzner Cloud.
+(Provided you don't need to login/register)
+
+:::caution
+This will cost money! The hcloud plugin will auto buy/rent the necessary servers.
+The basic setup will rent 1 virtual server and cost you `4.15€` per month.
+:::
+
+:::tip
+By signing up at Hetzner Cloud using [our referral link](https://hetzner.cloud/?ref=fw5W56UYuYvy) you will get 20€
+in cloud credits to tinker around with. If you like their service and stick arround to spend at
+least 10€ of actual money we will get 10€ in cloud credits ourselves.
+:::
+
+## Installation
+
+### Required software
+
+-   docker
+-   bash
+-   ssh-keygen
+
+:::tip
+Ansible itself is not required as we run it in docker
+:::
+
+1. Clone the pektin-compose-ansible repo:
+
+<Tabs groupId="git-type">
+
+<TabItem value="gitlab" label="GitLab" default>
+
+```shell
+git clone https://gitlab.com/pektin/pektin-compose-ansible
+```
+
+</TabItem>
+
+<TabItem value="github" label="GitHub">
+
+```shell
+git clone https://github.com/pektin-dns/pektin-compose-ansible
+```
+
+</TabItem>
+
+<TabItem value="git.y.gy" label="git.y.gy">
+
+```shell
+git clone https://git.y.gy/pektin/pektin-compose-ansible
+```
+
+</TabItem>
+
+</Tabs>
+
+2. Create the new file `pektin-compose-ansible/playbooks/hcloud.yml`
+   and paste the following content into it:
+
+```yaml
+plugin: hcloud
+token: REPLACE_THIS_WITH_YOUR_TOKEN
+keyed_groups:
+    - key: labels
+      prefix: hcloud_labels
+```
+
+3. Create a new Project in Hetzner Cloud
+
+4. Go to: `your new project > security > api-tokens > create new token > select read-write`
+
+5. Copy the token and paste it into the `pektin-compose-ansible/playbooks/hcloud.yml` file
+
+6. Adjust the `pektin-config.json`
+
+    6.1 Give a name to your public key under `ansible.sshPubKeyName`
+
+7. Edit the `setup.sh` file and replace the value/path of `YOUR_SSH_PUB_KEY=/home/paul/.ssh/blackbox.pub` with the path to your public key. This will add your public key to all the machines Pektin is getting installed on so that you can ssh into them later.
+
+8. If this is your first time running the playbook run `bash create-keys.sh` to create some new SSH keys used for the installation
+
+9. Run `bash setup.sh` to start the installation

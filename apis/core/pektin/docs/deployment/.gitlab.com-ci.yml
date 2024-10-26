@@ -1,0 +1,12 @@
+image: alpine
+stages:
+    - pages
+pages:
+    stage: pages
+    script:
+        - mkdir ../public
+        - cp -r ./ ../public
+        - cp -r ../public ./
+    artifacts:
+        paths:
+            - public

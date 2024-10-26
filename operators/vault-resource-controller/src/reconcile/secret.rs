@@ -44,10 +44,10 @@ pub async fn handle_kv2_engine(
     mount_path: &str,
     kv2_secret_engine_params: &KV2SecretEngineParams,
 ) -> anyhow::Result<()> {
-    for secret in kv2_secret_engine_params.kv_data.iter() {
-        vaultrs::kv2::set(vault_client, mount_path, &secret.0, &secret.1)
+    for (secret_path, secret_kv_data) in kv2_secret_engine_params.kv_data.iter() {
+        vaultrs::kv2::set(vault_client, mount_path, secret_path, &secret_kv_data)
             .await
-            .context(format!("Failed to create secret {} in Vault", secret.0))?;
+            .context(format!("Failed to create secret {:?} in Vault", secret_kv_data))?;
     }
 
     Ok(())

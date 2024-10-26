@@ -1,0 +1,29 @@
+server_tokens off;
+add_header x-frame-options DENY;
+add_header x-content-type-options nosniff;
+add_header x-permitted-cross-domain-policies none;
+add_header x-download-options noopen;
+add_header x-xss-protection "1; mode=block";
+add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; manifest-src 'self'; img-src 'self'; font-src 'self';";
+
+add_header Strict-Transport-Security "max-age=315360000; includeSubdomains; preload";
+add_header referrer-policy no-referrer;
+add_header permissions-policy "camera 'none';microphone 'none';payment 'none';usb 'none';geolocation 'none'";
+
+server {
+
+  listen 80;
+
+  location / {
+    root   /usr/share/nginx/html;
+    index  index.html;
+    try_files $uri $uri/ /index.html;
+  }
+
+  error_page 500 502 503 504 /50x.html;
+
+  location = /50x.html {
+      root /usr/share/nginx/html;
+  }
+
+}

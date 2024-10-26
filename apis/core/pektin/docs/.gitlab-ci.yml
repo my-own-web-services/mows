@@ -1,0 +1,60 @@
+include:
+    - project: pektin/pektin-dist
+      ref: main
+      file:
+          - scripts/docker-build-and-publish.yml
+
+image: alpine
+
+variables:
+    IMAGE_NAME: docs
+
+stages:
+    - gitlab-pages
+    - github-pages
+    - docker-build-and-publish
+
+github-pages:
+    stage: github-pages
+    image: node:16.13.0
+    script:
+        - MAIN_URL=https://pektin.y.gy.
+        - URL=https://pektin-dns.github.io/
+        - USERNAME=pektin-dolly
+        - git config --global user.email "pektin-dolly@y.gy"
+        - git config --global user.name "pektin-dolly"
+        - sed -i "s|$MAIN_URL|$URL|g" ./docusaurus.config.js
+        - yarn
+        - yarn build
+        - sed -i -e "s|<head>|<head>$(cat deployment/csp.html | sed 's|"|\x22|g' | sed "s|'|\\\x27|g" | tr -d '\n')|g" ./build/index.html
+        - cat deployment/README_GITHUB.md > build/README.md
+        - cp -r build/ /
+        - cd /build/
+        - git init
+        - git add -A
+        - git commit -m "🐑 build docs"
+        - git remote add origin https://${USERNAME}:${GITHUB_TOKEN}@github.com/pektin-dns/docs.git
+        - git push --set-upstream origin HEAD:refs/heads/main -f || true
+
+gitlab-pages:
+    stage: gitlab-pages
+    image: node:16.13.0
+    script:
+        - MAIN_URL=https://pektin.y.gy.
+        - URL=https://pektin-dns.github.io/
+        - USERNAME=pektin-dolly
+        - git config --global user.email "pektin-dolly@y.gy"
+        - git config --global user.name "pektin-dolly"
+        - sed -i "s|$MAIN_URL|$URL|g" ./docusaurus.config.js
+        - yarn
+        - yarn build
+        - sed -i -e "s|<head>|<head>$(cat deployment/csp.html | sed 's|"|\x22|g' | sed "s|'|\\\x27|g" | tr -d '\n')|g" ./build/index.html
+        - cat deployment/README_GITLAB.md > build/README.md
+        - cat deployment/.gitlab.com-ci.yml > build/.gitlab-ci.yml
+        - cp -r build/ /
+        - cd /build/
+        - git init
+        - git add -A
+        - git commit -m "🐑 build docs"
+        - git remote add origin https://${USERNAME}:${GITLAB_TOKEN}@gitlab.com/pektin/docs.git
+        - git push --set-upstream origin HEAD:refs/heads/main -f || true

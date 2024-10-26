@@ -5,7 +5,7 @@ metadata:
     namespace: default
 spec:
     secretEngine:
-        transit:
+        transit: {}
 # should create a secret engine of type transit at the path mows-core-secrets-vrc/pektin/dns-signing
 ---
 apiVersion: vault.k8s.mows.cloud/v1
@@ -17,7 +17,8 @@ spec:
     secretEngine:
         kv-v2:
             kvData:
-                pektin-zertificat: "hello world"
+                some_path:
+                    pektin-zertificat: "hello world"
 ---
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource

@@ -114,7 +114,7 @@ pub struct TransitSecretEngineParams {}
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct KV2SecretEngineParams {
-    pub kv_data: HashMap<String, String>,
+    pub kv_data: HashMap<String, HashMap<String, String>>,
 }
 
 pub async fn create_vault_client() -> anyhow::Result<VaultClient> {

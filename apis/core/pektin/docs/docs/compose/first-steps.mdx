@@ -1,0 +1,64 @@
+---
+sidebar_position: 40
+---
+
+# First Steps
+
+If the install was successful you should get a prompt similar to this:
+
+```sh
+💻 UI: http://ui.pektin.club.localhost
+🤖 API: http://api.pektin.club.localhost
+You can find the admin credentials at ./secrets/server-admin.pc3.json
+
+🔐 Vault: http://vault.pektin.club.localhost
+Vault key and root token can be found here: ./secrets/.env
+
+🌳 Tnt: http://tnt.pektin.club.localhost
+The tnt basic auth username and password can be found in Vault at
+http://vault.pektin.club.localhost/ui/vault/secrets/pektin-kv/show/tnt-auth
+
+These infos are also available in the just created file ./your-infos.md
+```
+
+Have a look into the UI and see what you can do!
+
+## Management
+
+To manage the server your should use the scripts instead of directly using `docker-compose`
+
+### Start
+
+Similar to `docker-compose up -d` but applies your chosen services from the config.
+
+```
+bash start.sh
+```
+
+### Stop
+
+Similar to `docker-compose down`
+
+```
+bash stop.sh
+```
+
+### Reset
+
+:::warning
+
+This will reset/delete everything! Delete the secrets folder, pektins volumes, containers etc.
+
+:::
+
+```sh
+bash reset.sh
+```
+
+### Update
+
+This will update your pektin server setup to the latest version.
+
+```
+bash update.sh
+```

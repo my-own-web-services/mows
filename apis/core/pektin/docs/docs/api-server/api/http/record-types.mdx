@@ -1,0 +1,187 @@
+# Record Types
+
+# Simple Records
+
+## AAAA
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "AAAA",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "value": "1::1"
+        }
+    ]
+}
+```
+
+## A
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "AAAA",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "value": "127.0.0.1"
+        }
+    ]
+}
+```
+
+## NS
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "NS",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "value": "ns1.pektin.xyz."
+        }
+    ]
+}
+```
+
+## CNAME
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "CNAME",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "value": "CNAME": "pektin.xyz."
+        }
+    ]
+}
+```
+
+## TXT
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "TXT",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "value": "this is some text"
+        }
+    ]
+}
+```
+
+## OPENPGPKEY
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "OPENPGPKEY",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "value": "some openpgp public key"
+        }
+    ]
+}
+```
+
+# Complex Records
+
+Called complex because they have extra fields instead of one string.
+
+## MX
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "MX",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "preference": 10,
+            "exchange": "mx.pektin.xyz."
+        }
+    ]
+}
+```
+
+## SRV
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "SRV",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "priority": 1,
+            "weight": 1,
+            "port": 443,
+            "target": "mx.pektin.xyz."
+        }
+    ]
+}
+```
+
+## CAA
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "CAA",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "issuer_critical": false,
+            "tag": "issue",
+            "value": "letsencrypt.org"
+        }
+    ]
+}
+```
+
+## TLSA
+
+```json
+{
+    "name": "pektin.xyz.",
+    "rr_type": "TLSA",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "usage": 3,
+            "selector": 1,
+            "matching_type": 1,
+            "data": "50c1ab1e11feb0a75..."
+        }
+    ]
+}
+```
+
+## SOA
+
+```json
+{
+    "name": "pektin.xyz.:SOA",
+    "rr_type": "SOA",
+    "ttl": 3600,
+    "rr_set": [
+        {
+            "mname": "ns1.pektin.xyz.",
+            "rname": "hostmaster.pektin.xyz.",
+            "refresh": 0,
+            "retry": 0,
+            "serial": 0,
+            "expire": 0,
+            "minimum": 0
+        }
+    ]
+}
+```

@@ -1,0 +1,174 @@
+---
+sidebar_position: 10
+---
+
+# Overview
+
+The following Libraries are currently available:
+
+-   [JavaScript/TypeScript](./js-ts)
+
+# Create your own
+
+:::note
+If you want to or have created your own please contact us if you want to get it listed here.
+:::
+
+## Basic Abstractions
+
+The Pektin setup may come along to your client in various configurations. To handle these without loosing your mind, this section will tell you more about some basic abstractions that are implemented in the reference client [JavaScript/TypeScript](./js-ts) and should be implemented by other clients as well.
+
+### Important Helper Functions
+
+#### absoluteName
+
+In DNS most of the times "absolute domain names" are used.
+This means they end in a dot.
+
+**Absolute**
+`pektin.club.`
+
+**Not Absolute**
+`pektin.club`
+
+This function should always return a absolute name no matter the input.
+
+```ts
+export const absoluteName = (name: string) => {
+    if (typeof name !== `string`) return name;
+    if (name.endsWith(`.`)) {
+        return name;
+    }
+    return name + `.`;
+};
+```
+
+#### deAbsolute
+
+Same as above but ensuring the name is **NOT** absolute
+
+```ts
+export const deAbsolute = (name: string) => {
+    if (name.endsWith(`.`)) {
+        return name.substring(0, name.length - 1);
+    }
+    return name;
+};
+```
+
+#### isAbsolute
+
+Simple function that checks if a name is absolute or not returning a boolean
+
+```ts
+export const isAbsolute = (name: string): boolean => name.endsWith(`.`);
+```
+
+#### concatDomain
+
+A function that takes a domain and subDomain and concats them.
+This should correct for absolute or non absolute domain names.
+
+```ts
+export const concatDomain = (domain: string, subDomain?: string) => {
+    if (subDomain === undefined) return domain;
+    return `${deAbsolute(subDomain)}.${domain}`;
+};
+```
+
+### Get Endpoints from Pektin Config
+
+The first argument takes a PektinConfig object.
+
+The second argument takes the endpoint you want to get from the config file.
+
+The third argument is an optional boolean that defaults to false. If it is set to true the internal container endpoints shall be used.
+
+```ts
+// get the pektin endpoints from the pektin config
+export const getPektinEndpoint = (
+    c: PektinConfig,
+    endpointType: `api` | `vault` | `ui` | `recursor` | `proxy`,
+    useInternal = false
+): string => {
+    if (useInternal) {
+        if (endpointType === `api`) return `http://pektin-api`;
+        if (endpointType === `vault`) return `http://pektin-vault`;
+        if (endpointType === `ui`) return `http://pektin-ui`;
+        if (endpointType === `recursor`) return `http://pektin-recursor`;
+    }
+    let domain = ``;
+
+    if (endpointType === `proxy`) {
+        domain = concatDomain(c.reverseProxy.external.domain, c.reverseProxy.external.subDomain);
+    } else {
+        domain = concatDomain(c.services[endpointType].domain, c.services[endpointType].subDomain);
+    }
+    const protocol = c.reverseProxy.tls ? `https` : `http`;
+    let host = ``;
+    if (c.reverseProxy.routing === `local`) {
+        host = concatDomain(`localhost`, domain);
+    } else if (c.reverseProxy.routing === `minikube`) {
+        host = concatDomain(`minikube`, domain);
+    } else if (c.reverseProxy.routing === `domain`) {
+        host = domain;
+    }
+
+    return `${protocol}://${host}`;
+};
+```
+
+### Get Value from Vault
+
+:::note
+The **fetch** function refers to the javascript fetch _HTTP client_.
+:::
+
+```ts
+// obtain the vault token by sending username and password to the vault endpoint
+export const vaultLoginUserpass = async (
+    vaultEndpoint: string,
+    vaultUsername: string,
+    vaultPassword: string
+): Promise<string> => {
+    const res = await fetch(`${vaultEndpoint}/v1/auth/userpass/login/${vaultUsername}`, {
+        method: `POST`,
+        body: JSON.stringify({
+            password: vaultPassword
+        })
+    }).catch(e => {
+        throw Error(`Couldn't fetch: ` + e);
+    });
+
+    // try to parse the http response body as JSON
+    const json = await res.json().catch(e => {
+        throw Error(`Couldn't parse JSON response: ` + e);
+    });
+
+    return json.auth.client_token;
+};
+```
+
+```ts
+// get value for a key from vault
+export const getVaultValue = async (
+    endpoint: string,
+    token: string,
+    key: string,
+    kvEngine: string
+) => {
+    const res = await fetch(`${endpoint}/v1/${kvEngine}/data/${key}`, {
+        headers: {
+            "X-Vault-Token": token
+        }
+    }).catch(e => {
+        throw Error(`Couldn't fetch: ` + e);
+    });
+
+    const json = await res.json().catch(e => {
+        throw Error(`Couldn't parse JSON response: ` + e);
+    });
+
+    return json?.data?.data;
+};
+```

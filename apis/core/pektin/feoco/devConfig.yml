@@ -1,0 +1,8 @@
+variablePrefix: "$"
+headers:
+    # on every resource
+    all: {}
+    # only on the document
+    document: {}
+# prevent all matching paths from beeing served from memory and read them from disk instead; if the path is included it is matched
+noMemory: ["/volume/images/", ".jpg"]

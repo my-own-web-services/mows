@@ -1,0 +1,7 @@
+version: "3.7"
+services:
+    swagger-editor:
+        image: swaggerapi/swagger-editor
+        restart: always
+        ports:
+            - 9999:8080
