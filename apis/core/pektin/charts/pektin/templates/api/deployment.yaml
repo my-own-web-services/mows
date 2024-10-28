@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.api.name }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.api.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.api.name }}
+    spec:
+      serviceAccountName: {{ .Values.api.name }}
+
+      containers:
+        - name: {{ .Values.api.name }}
+          image: "{{ .Values.api.image }}"
+          imagePullPolicy: {{ .Values.api.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            limits:
+              memory: 128Mi
+              cpu: 500m
+

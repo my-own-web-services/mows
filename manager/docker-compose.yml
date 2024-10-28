@@ -29,6 +29,7 @@ services:
         volumes:
             - ./temp/:/temp/
             - ../operators/:/operators/
+            - ../apis/:/apis/
             - ./install:/install
             - ./misc/internal-config.yml:/internal-config.yml
             - /etc/resolv.conf:/etc/host-resolv.conf:ro

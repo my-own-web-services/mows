@@ -1,0 +1,20 @@
+api:
+  enabled: true
+  image: docker.io/pektin/api:latest
+  imagePullPolicy: Always
+  name: pektin-api
+  replicaCount: 1
+
+server:
+  enabled: true
+  image: docker.io/pektin/server:latest
+  imagePullPolicy: Always
+  name: pektin-server
+  replicaCount: 1
+
+zertificat:
+  enabled: true
+  image: docker.io/pektin/zertificat:latest
+  imagePullPolicy: Always
+  name: pektin-zertificat
+  replicaCount: 1

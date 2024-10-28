@@ -1,0 +1,24 @@
+apiVersion: redis.redis.opstreelabs.in/v1beta1
+kind: RedisReplication
+metadata:
+  name:  pektin-db
+spec:
+  clusterSize: 3
+  securityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+  kubernetesConfig: 
+    image: docker.io/eqalpha/keydb:alpine
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+  storage:
+    volumeClaimTemplate:
+      spec:
+        # storageClassName: standard
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

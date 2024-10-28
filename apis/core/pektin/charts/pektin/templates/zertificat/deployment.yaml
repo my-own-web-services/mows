@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.zertificat.name }}
+spec:
+  replicas: {{ .Values.zertificat.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.zertificat.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.zertificat.name }}
+    spec:
+      serviceAccountName: {{ .Values.zertificat.name }}
+      securityContext:
+      containers:
+        - name: {{ .Values.zertificat.name }}
+          image: "{{ .Values.zertificat.image }}"
+          imagePullPolicy: {{ .Values.zertificat.imagePullPolicy }}
+          resources:
+            limits:
+              memory: 128Mi
+              cpu: 500m
+
