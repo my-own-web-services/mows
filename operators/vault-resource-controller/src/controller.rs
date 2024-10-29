@@ -117,6 +117,7 @@ pub struct KV2SecretEngineParams {
     pub kv_data: HashMap<String, HashMap<String, String>>,
 }
 
+
 pub async fn create_vault_client() -> anyhow::Result<VaultClient> {
     let mut client_builder = VaultClientSettingsBuilder::default();
 

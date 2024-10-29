@@ -268,25 +268,25 @@ path "mows-core-secrets-vrc/*" {
         Ok(())
     }
 
-    pub async fn start_proxy_and_setup_eso(cluster: &Cluster) -> anyhow::Result<()> {
-        debug!("Setting up ESO");
+    pub async fn start_proxy_and_setup_vso(cluster: &Cluster) -> anyhow::Result<()> {
+        debug!("Setting up VSO");
 
         Self::start_vault_proxy().await?;
 
-        let res = Self::setup_eso(cluster).await;
+        let res = Self::setup_vso(cluster).await;
 
         Self::stop_vault_proxy().await?;
 
         res
     }
 
-    async fn setup_eso(cluster: &Cluster) -> anyhow::Result<()> {
+    async fn setup_vso(cluster: &Cluster) -> anyhow::Result<()> {
         // first check if the secret is already present in kubernetes
-        // name: mows-core-secrets-eso-token namespace: mows-core-secrets-eso
+        // name: mows-core-secrets-vso-token namespace: mows-core-secrets-vso
 
         let vault_secrets = some_or_bail!(&cluster.vault_secrets, "Vault secrets not found");
 
-        // create the vault kv2 engine with path mows-core-secrets-eso
+        // create the vault kv2 engine with path mows-core-secrets-vso
 
         let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token))
             .await
@@ -297,10 +297,10 @@ path "mows-core-secrets-vrc/*" {
             .await
             .context("Failed to list secret engines in Vault")?;
 
-        if !current_secret_engines.contains_key(&"mows-core-secrets-eso/".to_string()) {
-            vaultrs::sys::mount::enable(&vault_client, "mows-core-secrets-eso", "kv-v2", None)
+        if !current_secret_engines.contains_key(&"mows-core-secrets-vso/".to_string()) {
+            vaultrs::sys::mount::enable(&vault_client, "mows-core-secrets-vso", "kv-v2", None)
                 .await
-                .context("Failed to create eso kv engine in Vault")?;
+                .context("Failed to create vso kv engine in Vault")?;
         }
 
         // check if the auth engine is already created
@@ -308,10 +308,10 @@ path "mows-core-secrets-vrc/*" {
             .await
             .context("Failed to list auth engines in Vault")?;
 
-        if !current_auth_engines.contains_key(&"mows-core-secrets-eso/".to_string()) {
-            vaultrs::sys::auth::enable(&vault_client, "mows-core-secrets-eso", "kubernetes", None)
+        if !current_auth_engines.contains_key(&"mows-core-secrets-vso/".to_string()) {
+            vaultrs::sys::auth::enable(&vault_client, "mows-core-secrets-vso", "kubernetes", None)
                 .await
-                .context("Failed to create eso kubernetes auth engine in Vault")?;
+                .context("Failed to create vso kubernetes auth engine in Vault")?;
         }
         let kube_api_addr = "https://kubernetes.default.svc";
 
@@ -352,7 +352,7 @@ path "mows-core-secrets-vrc/*" {
 
         vaultrs::auth::kubernetes::configure(
             &vault_client,
-            "mows-core-secrets-eso",
+            "mows-core-secrets-vso",
             kube_api_addr,
             Some(
                 &mut ConfigureKubernetesAuthRequestBuilder::default()
@@ -360,37 +360,37 @@ path "mows-core-secrets-vrc/*" {
             ),
         )
         .await
-        .context("Failed to configure kubernetes auth for eso in Vault")?;
+        .context("Failed to configure kubernetes auth for vso in Vault")?;
 
         // create a acl policy for the role
 
         vaultrs::sys::policy::set(
             &vault_client,
-            "mows-core-secrets-eso",
-            r#"path "mows-core-secrets-eso/*" {
-capabilities = ["create", "read", "update", "delete", "list"]
+            "mows-core-secrets-vso",
+            r#"path "mows-core-secrets-vso/*" {
+capabilities = ["read"]
 }"#,
         )
         .await
-        .context("Failed to create policy for eso in Vault")?;
+        .context("Failed to create policy for vso in Vault")?;
 
         // TODO create a role for the service account in vault
 
         vaultrs::auth::kubernetes::role::create(
             &vault_client,
-            "mows-core-secrets-eso",
-            "mows-core-secrets-eso",
+            "mows-core-secrets-vso",
+            "mows-core-secrets-vso",
             Some(
                 &mut CreateKubernetesRoleRequestBuilder::default()
-                    .bound_service_account_names(vec![s!("mows-core-secrets-eso")])
-                    .bound_service_account_namespaces(vec![s!("mows-core-secrets-eso")])
-                    .token_policies(vec![s!("mows-core-secrets-eso")]),
+                    .bound_service_account_names(vec![s!("mows-core-secrets-vso")])
+                    .bound_service_account_namespaces(vec![s!("mows-core-secrets-vso")])
+                    .token_policies(vec![s!("mows-core-secrets-vso")]),
             ),
         )
         .await
-        .context("Failed to create role for eso in Vault")?;
+        .context("Failed to create role for vso in Vault")?;
 
-        debug!("ESO vault engine created");
+        debug!("VSO vault engine created");
 
         Ok(())
     }
