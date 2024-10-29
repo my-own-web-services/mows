@@ -5,7 +5,7 @@ resources:
     - namespace.yaml
 
 helmGlobals:
-    chartHome: /tmp/helm-charts
+    chartHome: /tmp/
 
 helmCharts:
     - name: argo-cd
