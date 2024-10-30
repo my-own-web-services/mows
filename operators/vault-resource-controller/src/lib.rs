@@ -84,6 +84,7 @@ pub mod reconcile {
     pub mod auth;
     pub mod policy;
     pub mod secret_engine;
+    pub mod secret_sync;
 }
 
 pub mod templating {

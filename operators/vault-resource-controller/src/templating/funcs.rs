@@ -831,7 +831,7 @@ fn sha1sum(args: &[Value]) -> Result<Value, FuncError> {
 
     let digest = Sha1::digest(to_be_hashed);
 
-    let digest_hex_string = str::from_utf8(digest.as_slice()).unwrap();
+    let digest_hex_string = format!("{:x}", digest);
 
     Ok(Value::from(digest_hex_string))
 }
@@ -848,7 +848,7 @@ fn sha256sum(args: &[Value]) -> Result<Value, FuncError> {
     // hash with sha2 crate
     let digest = Sha256::digest(to_be_hashed);
 
-    let digest_hex_string = str::from_utf8(digest.as_slice()).unwrap();
+    let digest_hex_string = format!("{:x}", digest);
 
     Ok(Value::from(digest_hex_string))
 }
@@ -864,7 +864,7 @@ fn sha512sum(args: &[Value]) -> Result<Value, FuncError> {
 
     let digest = Sha512::digest(to_be_hashed);
 
-    let digest_hex_string = str::from_utf8(digest.as_slice()).unwrap();
+    let digest_hex_string = format!("{:x}", digest);
 
     Ok(Value::from(digest_hex_string))
 }
@@ -876,13 +876,11 @@ fn md5sum(args: &[Value]) -> Result<Value, FuncError> {
     ))?;
 
     let to_be_hashed = to_be_hashed.to_string();
-    let to_be_hashed = to_be_hashed.as_bytes();
 
-    let digest = md5::compute(to_be_hashed).to_ascii_lowercase();
-
-    let digest_hex_string = str::from_utf8(&digest).unwrap();
-
-    Ok(Value::from(digest_hex_string))
+    Ok(Value::from(format!(
+        "{:x}",
+        md5::compute(to_be_hashed.as_bytes())
+    )))
 }
 
 // TODO adler32sum
@@ -900,7 +898,8 @@ fn htpasswd(args: &[Value]) -> Result<Value, FuncError> {
     ))?;
     let password = password.to_string();
 
-    let hashed = bcrypt::hash(password, DEFAULT_COST).unwrap();
+    let hashed = bcrypt::hash(password, DEFAULT_COST)
+        .map_err(|_| FuncError::Generic("Invalid password".to_string()))?;
     Ok(Value::from(format!("{}:{}", username, hashed)))
 }
 

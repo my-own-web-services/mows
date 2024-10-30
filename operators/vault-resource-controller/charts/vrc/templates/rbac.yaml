@@ -28,6 +28,10 @@ rules:
   - apiGroups: ["events.k8s.io"]
     resources: ["events"]
     verbs: ["create"]
+  # allow to create secrets
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create","patch", "update","get"]
 
 ---
 # Binding the role to the account

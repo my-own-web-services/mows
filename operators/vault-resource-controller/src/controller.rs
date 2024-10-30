@@ -1,6 +1,7 @@
 use crate::{
     reconcile::{
         auth::handle_auth_engine, policy::handle_engine_access_policy, secret_engine::handle_secret_engine,
+        secret_sync::handle_secret_sync,
     },
     telemetry, Error, Metrics, Result,
 };
@@ -22,7 +23,7 @@ use kube::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, hash::Hash, sync::Arc};
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
@@ -45,6 +46,27 @@ pub enum VaultResourceSpec {
     SecretEngine(VaultSecretEngine),
     AuthEngine(VaultAuthEngine),
     EngineAccessPolicy(VaultEngineAccessPolicy),
+    SecretSync(VaultSecretSync),
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VaultSecretSync {
+    pub kv_mapping: HashMap<String, SecretSyncKvMapping>,
+    pub targets: HashMap<String, SecretSyncTarget>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SecretSyncTarget {
+    pub template: String,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SecretSyncKvMapping {
+    pub engine: String,
+    pub path: String,
 }
 
 // policies will be named mows-core-secrets-vrc/namespace/policy_id
@@ -122,7 +144,7 @@ pub struct KV2SecretEngineParams {
 pub async fn create_vault_client() -> Result<VaultClient, Error> {
     let mut client_builder = VaultClientSettingsBuilder::default();
 
-    client_builder.address("http://mows-core-secrets-vault-active.mows-core-secrets-vault:8200");
+    client_builder.address("http://mows-core-secrets-vault.mows-core-secrets-vault:8200");
 
     let vc =
         VaultClient::new(client_builder.build().map_err(|_| {
@@ -154,7 +176,10 @@ pub async fn create_vault_client() -> Result<VaultClient, Error> {
     Ok(vc)
 }
 
-pub async fn reconcile_resource(vault_resource: &VaultResource) -> Result<(), Error> {
+pub async fn reconcile_resource(
+    vault_resource: &VaultResource,
+    kube_client: &kube::Client,
+) -> Result<(), Error> {
     let vc = create_vault_client().await?;
 
     let resource_namespace = vault_resource.metadata.namespace.as_deref().unwrap_or("default");
@@ -178,6 +203,16 @@ pub async fn reconcile_resource(vault_resource: &VaultResource) -> Result<(), Er
         VaultResourceSpec::EngineAccessPolicy(vault_engine_access_policy) => {
             handle_engine_access_policy(&vc, resource_namespace, resource_name, vault_engine_access_policy)
                 .await?
+        }
+        VaultResourceSpec::SecretSync(vault_secret_sync) => {
+            handle_secret_sync(
+                &vc,
+                resource_namespace,
+                resource_name,
+                vault_secret_sync,
+                kube_client,
+            )
+            .await?
         }
     }
 
@@ -240,13 +275,13 @@ fn error_policy(vault_resource: Arc<VaultResource>, error: &Error, ctx: Arc<Cont
 impl VaultResource {
     // Reconcile (for non-finalizer related changes)
     async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
-        let client = ctx.client.clone();
-        let recorder = ctx.diagnostics.read().await.recorder(client.clone(), self);
+        let kube_client = ctx.client.clone();
+        let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);
         let ns = self.namespace().unwrap();
         let name = self.name_any();
-        let vault_resources: Api<VaultResource> = Api::namespaced(client, &ns);
+        let vault_resources: Api<VaultResource> = Api::namespaced(kube_client.clone(), &ns);
 
-        match reconcile_resource(self).await {
+        match reconcile_resource(self, &kube_client).await {
             Ok(_) => {
                 info!("Reconcile successful");
                 let new_status = Patch::Apply(json!({
@@ -300,6 +335,7 @@ impl VaultResource {
                     })
                     .await
                     .map_err(Error::KubeError)?;
+                return Err(e);
             }
         }
 

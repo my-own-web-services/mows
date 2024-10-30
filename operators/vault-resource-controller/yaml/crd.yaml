@@ -31,6 +31,8 @@ spec:
               - authEngine
             - required:
               - engineAccessPolicy
+            - required:
+              - secretSync
             properties:
               authEngine:
                 oneOf:
@@ -115,6 +117,33 @@ spec:
                     type: object
                   transit:
                     type: object
+                type: object
+              secretSync:
+                properties:
+                  kvMapping:
+                    additionalProperties:
+                      properties:
+                        engine:
+                          type: string
+                        path:
+                          type: string
+                      required:
+                      - engine
+                      - path
+                      type: object
+                    type: object
+                  targets:
+                    additionalProperties:
+                      properties:
+                        template:
+                          type: string
+                      required:
+                      - template
+                      type: object
+                    type: object
+                required:
+                - kvMapping
+                - targets
                 type: object
             type: object
           status:

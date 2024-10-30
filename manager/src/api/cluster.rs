@@ -67,7 +67,7 @@ pub async fn handle_dev_create_cluster_from_all_machines_in_inventory() -> anyho
         }
 
         let internal_ips = InternalIps {
-            legacy: Ipv4Addr::new(10, 41, 0, 1 + i as u8),
+            legacy: Ipv4Addr::new(10, 41, 0, 1 + u8::try_from(i)?),
         };
 
         machine

@@ -19,24 +19,17 @@ pub async fn handle_secret_engine(
 
     let current_secret_engines = vaultrs::sys::mount::list(vault_client).await?;
 
-    if current_secret_engines.contains_key(&format!("{mount_path}/")) {
-        return Ok(());
+    if !current_secret_engines.contains_key(&format!("{mount_path}/")) {
+        vaultrs::sys::mount::enable(
+            vault_client,
+            &mount_path,
+            to_variant_name(&vault_secret_engine).unwrap(),
+            None,
+        )
+        .await?;
     }
 
-    debug!(
-        "Creating
-          
-            secret engine at {:?} in Vault",
-        mount_path
-    );
-
-    vaultrs::sys::mount::enable(
-        vault_client,
-        &mount_path,
-        to_variant_name(&vault_secret_engine).unwrap(),
-        None,
-    )
-    .await?;
+    debug!("Creating secret engine at {:?} in Vault", mount_path);
 
     debug!("Created secret engine at {:?} in Vault", mount_path);
 

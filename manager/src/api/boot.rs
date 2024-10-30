@@ -93,7 +93,7 @@ pub async fn handle_local_boot_request(mac_addr: &str) -> Result<(), anyhow::Err
         let cluster_node_count = cluster.cluster_nodes.len();
 
         let internal_ips = InternalIps {
-            legacy: Ipv4Addr::new(10, 41, 0, 1 + cluster_node_count as u8),
+            legacy: Ipv4Addr::new(10, 41, 0, 1 + u8::try_from(cluster_node_count)?),
         };
 
         cluster.cluster_nodes.insert(

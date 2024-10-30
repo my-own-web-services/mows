@@ -49,8 +49,8 @@ impl ClusterSecrets {
 
         drop(config);
 
-        Self::join_raft_and_unseal("mows-core-secrets-vault-1", secrets.clone()).await?;
-        Self::join_raft_and_unseal("mows-core-secrets-vault-2", secrets.clone()).await?;
+        //Self::join_raft_and_unseal("mows-core-secrets-vault-1", secrets.clone()).await?;
+        //Self::join_raft_and_unseal("mows-core-secrets-vault-2", secrets.clone()).await?;
 
         Ok(())
     }
@@ -180,7 +180,7 @@ impl ClusterSecrets {
         let kube_api_addr = "https://kubernetes.default.svc";
 
         let kubeconfig_yaml: Value =
-            serde_yaml::from_str(&some_or_bail!(&cluster.kubeconfig, "Missing kubeconfig"))?;
+            serde_yaml::from_str(some_or_bail!(&cluster.kubeconfig, "Missing kubeconfig"))?;
 
         let kubernetes_ca_cert_base64 = some_or_bail!(
             kubeconfig_yaml["clusters"][0]["cluster"]["certificate-authority-data"].as_str(),
