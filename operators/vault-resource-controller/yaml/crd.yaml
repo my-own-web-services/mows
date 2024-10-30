@@ -118,7 +118,7 @@ spec:
                 type: object
             type: object
           status:
-            description: The status object of `Document`
+            description: The status object of `VaultResource`
             nullable: true
             properties:
               created:

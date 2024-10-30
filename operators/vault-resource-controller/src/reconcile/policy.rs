@@ -18,7 +18,10 @@ pub async fn handle_engine_access_policy(
         .await
         .context("Failed to list policies in Vault")?;
 
-    if current_policies_res.policies.contains(&format!("{policy_name}")) {
+    if current_policies_res
+        .policies
+        .contains(&"{policy_name}".to_string())
+    {
         return Ok(());
     }
 

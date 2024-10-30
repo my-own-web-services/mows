@@ -1,3 +1,7 @@
+use gtmpl::{
+    error::{ExecError, ParseError},
+    FuncError,
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -14,13 +18,55 @@ pub enum Error {
     FinalizerError(#[source] Box<kube::runtime::finalizer::Error<Error>>),
 
     #[error("VaultError: {0}")]
-    VaultError(#[source] anyhow::Error),
+    VaultError(#[source] vaultrs::error::ClientError),
+
+    #[error("Generic: {0}")]
+    GenericError(String),
+
+    #[error("TemplateParseError: {0}")]
+    TemplateParseError(#[source] ParseError),
+
+    #[error("TemplateFuncError: {0}")]
+    TemplateFuncError(#[source] FuncError),
+
+    #[error("TemplateExecError: {0}")]
+    TemplateExecError(#[source] ExecError),
 }
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 impl Error {
     pub fn metric_label(&self) -> String {
         format!("{self:?}").to_lowercase()
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(error: ParseError) -> Self {
+        Error::TemplateParseError(error)
+    }
+}
+
+impl From<ExecError> for Error {
+    fn from(error: ExecError) -> Self {
+        Error::TemplateExecError(error)
+    }
+}
+
+impl From<FuncError> for Error {
+    fn from(error: FuncError) -> Self {
+        Error::TemplateFuncError(error)
+    }
+}
+
+impl From<vaultrs::error::ClientError> for Error {
+    fn from(error: vaultrs::error::ClientError) -> Self {
+        Error::VaultError(error)
+    }
+}
+
+impl From<anyhow::Error> for Error {
+    fn from(error: anyhow::Error) -> Self {
+        Error::GenericError(error.to_string())
     }
 }
 
@@ -37,5 +83,9 @@ pub use metrics::Metrics;
 pub mod reconcile {
     pub mod auth;
     pub mod policy;
-    pub mod secret;
+    pub mod secret_engine;
+}
+
+pub mod templating {
+    pub mod funcs;
 }

@@ -1,6 +1,6 @@
 use crate::{
     reconcile::{
-        auth::handle_auth_engine, policy::handle_engine_access_policy, secret::handle_secret_engine,
+        auth::handle_auth_engine, policy::handle_engine_access_policy, secret_engine::handle_secret_engine,
     },
     telemetry, Error, Metrics, Result,
 };
@@ -8,8 +8,9 @@ use anyhow::{bail, Context as anyhow_context};
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use kube::{
-    api::{Api, ListParams, ResourceExt},
+    api::{Api, ListParams, Patch, PatchParams, ResourceExt},
     client::Client,
+    core::ErrorResponse,
     runtime::{
         controller::{Action, Controller},
         events::{Event, EventType, Recorder, Reporter},
@@ -20,12 +21,13 @@ use kube::{
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
-pub static DOCUMENT_FINALIZER: &str = "vaultresources.k8s.mows.cloud";
+pub static VAULT_RESOURCES_FINALIZER: &str = "vaultresources.k8s.mows.cloud";
 
 /// Generate the Kubernetes wrapper struct `Document` from our Spec and Status struct
 ///
@@ -117,13 +119,15 @@ pub struct KV2SecretEngineParams {
     pub kv_data: HashMap<String, HashMap<String, String>>,
 }
 
-
-pub async fn create_vault_client() -> anyhow::Result<VaultClient> {
+pub async fn create_vault_client() -> Result<VaultClient, Error> {
     let mut client_builder = VaultClientSettingsBuilder::default();
 
     client_builder.address("http://mows-core-secrets-vault-active.mows-core-secrets-vault:8200");
 
-    let vc = VaultClient::new(client_builder.build().context("Failed to create vault client")?)?;
+    let vc =
+        VaultClient::new(client_builder.build().map_err(|_| {
+            Error::GenericError("Failed to create vault client settings builder".to_string())
+        })?)?;
 
     let service_account_jwt = std::fs::read_to_string("/var/run/secrets/kubernetes.io/serviceaccount/token")
         .context("Failed to read service account token")?;
@@ -150,16 +154,18 @@ pub async fn create_vault_client() -> anyhow::Result<VaultClient> {
     Ok(vc)
 }
 
-pub async fn reconcile_resource(vault_resource: &VaultResource) -> anyhow::Result<()> {
-    let vc = create_vault_client()
-        .await
-        .context("Failed to create vault client")?;
+pub async fn reconcile_resource(vault_resource: &VaultResource) -> Result<(), Error> {
+    let vc = create_vault_client().await?;
 
     let resource_namespace = vault_resource.metadata.namespace.as_deref().unwrap_or("default");
 
     let resource_name = match vault_resource.metadata.name.as_deref() {
         Some(v) => v,
-        None => bail!("Failed to get name from resource"),
+        None => {
+            return Err(Error::GenericError(
+                "Failed to get resource name from VaultResource metadata".to_string(),
+            ))
+        }
     };
 
     match &vault_resource.spec {
@@ -178,7 +184,7 @@ pub async fn reconcile_resource(vault_resource: &VaultResource) -> anyhow::Resul
     Ok(())
 }
 
-/// The status object of `Document`
+/// The status object of `VaultResource`
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
 pub struct VaultResourceStatus {
     pub created: bool,
@@ -197,31 +203,37 @@ pub struct Context {
     pub metrics: Arc<Metrics>,
 }
 
-#[instrument(skip(ctx, doc), fields(trace_id))]
-async fn reconcile(doc: Arc<VaultResource>, ctx: Arc<Context>) -> Result<Action> {
+#[instrument(skip(ctx, vault_resource), fields(trace_id))]
+async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Result<Action> {
     let trace_id = telemetry::get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
     let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
     ctx.diagnostics.write().await.last_event = Utc::now();
-    let ns = doc.namespace().unwrap(); // doc is namespace scoped
-    let docs: Api<VaultResource> = Api::namespaced(ctx.client.clone(), &ns);
+    let ns = vault_resource.namespace().unwrap(); // vault resources are namespace scoped
+    let vault_resources: Api<VaultResource> = Api::namespaced(ctx.client.clone(), &ns);
 
-    info!("Reconciling Document \"{}\" in {}", doc.name_any(), ns);
-    finalizer(&docs, DOCUMENT_FINALIZER, doc, |event| async {
-        match event {
-            Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
-            Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
-        }
-    })
+    info!("Reconciling Document \"{}\" in {}", vault_resource.name_any(), ns);
+    finalizer(
+        &vault_resources,
+        VAULT_RESOURCES_FINALIZER,
+        vault_resource,
+        |event| async {
+            match event {
+                Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
+                Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
+            }
+        },
+    )
     .await
     .map_err(|e| Error::FinalizerError(Box::new(e)))
 }
 
-fn error_policy(doc: Arc<VaultResource>, error: &Error, ctx: Arc<Context>) -> Action {
+fn error_policy(vault_resource: Arc<VaultResource>, error: &Error, ctx: Arc<Context>) -> Action {
     warn!("reconcile failed: {:?}", error);
-    ctx.metrics.reconcile.set_failure(&doc, error);
+    ctx.metrics.reconcile.set_failure(&vault_resource, error);
+
     Action::requeue(Duration::from_secs(5 * 60))
 }
 
@@ -232,45 +244,64 @@ impl VaultResource {
         let recorder = ctx.diagnostics.read().await.recorder(client.clone(), self);
         let ns = self.namespace().unwrap();
         let name = self.name_any();
-        let docs: Api<VaultResource> = Api::namespaced(client, &ns);
+        let vault_resources: Api<VaultResource> = Api::namespaced(client, &ns);
 
-        if let Err(e) = reconcile_resource(&self).await {
-            return Err(Error::VaultError(e));
-        }
+        match reconcile_resource(self).await {
+            Ok(_) => {
+                info!("Reconcile successful");
+                let new_status = Patch::Apply(json!({
+                    "apiVersion": "vault.k8s.mows.cloud/v1",
+                    "kind": "VaultResource",
+                    "status": VaultResourceStatus {
+                        created: true
+                    }
+                }));
 
-        /*
-        let should_hide = self.spec.hide;
-        if !self.was_hidden() && should_hide {
-            // send an event once per hide
-            recorder
-                .publish(Event {
-                    type_: EventType::Normal,
-                    reason: "HideRequested".into(),
-                    note: Some(format!("Hiding `{name}`")),
-                    action: "Hiding".into(),
-                    secondary: None,
-                })
-                .await
-                .map_err(Error::KubeError)?;
-        }
-        if name == "illegal" {
-            return Err(Error::IllegalDocument); // error names show up in metrics
-        }
-        // always overwrite status object with what we saw
-        let new_status = Patch::Apply(json!({
-            "apiVersion": "vault.k8s.mows.cloud/v1",
-            "kind": "VaultResource",
-            "status": VaultResourceStatus {
-                hidden: should_hide,
+                let ps = PatchParams::apply("cntrlr").force();
+                let _o = vault_resources
+                    .patch_status(&name, &ps, &new_status)
+                    .await
+                    .map_err(Error::KubeError)?;
+
+                recorder
+                    .publish(Event {
+                        type_: EventType::Normal,
+                        reason: "ObjectCreated".into(),
+                        note: Some(format!("Object Created: `{name}`")),
+                        action: "Object Created".into(),
+                        secondary: None,
+                    })
+                    .await
+                    .map_err(Error::KubeError)?;
             }
-        }));
-        let ps = PatchParams::apply("cntrlr").force();
-        let _o = docs
-            .patch_status(&name, &ps, &new_status)
-            .await
-            .map_err(Error::KubeError)?;
+            Err(e) => {
+                error!("Reconcile failed: {:?}", e);
+                let new_status = Patch::Apply(json!({
+                    "apiVersion": "vault.k8s.mows.cloud/v1",
+                    "kind": "VaultResource",
+                    "status": VaultResourceStatus {
+                        created: false
+                    }
+                }));
 
-        */
+                let ps = PatchParams::apply("cntrlr").force();
+                let _o = vault_resources
+                    .patch_status(&name, &ps, &new_status)
+                    .await
+                    .map_err(Error::KubeError)?;
+
+                recorder
+                    .publish(Event {
+                        type_: EventType::Warning,
+                        reason: "ObjectCreationFailed".into(),
+                        note: Some(format!("Object Failed: `{name}`")),
+                        action: "Object Failed".into(),
+                        secondary: None,
+                    })
+                    .await
+                    .map_err(Error::KubeError)?;
+            }
+        }
 
         // If no events were received, check back every 5 minutes
         Ok(Action::requeue(Duration::from_secs(5 * 60)))

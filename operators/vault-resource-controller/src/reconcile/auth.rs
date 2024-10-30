@@ -14,7 +14,7 @@ pub async fn handle_auth_engine(
     resource_namespace: &str,
     resource_name: &str,
     vault_auth_engine: &VaultAuthEngine,
-) -> anyhow::Result<()> {
+) -> Result<(), crate::Error> {
     let mount_path = format!("mows-core-secrets-vrc/{}/{}", resource_namespace, resource_name);
 
     let current_auth_engines = vaultrs::sys::auth::list(vault_client)
@@ -28,7 +28,7 @@ pub async fn handle_auth_engine(
     vaultrs::sys::auth::enable(
         vault_client,
         &mount_path,
-        &to_variant_name(&vault_auth_engine).unwrap(),
+        to_variant_name(&vault_auth_engine).unwrap(),
         None,
     )
     .await
@@ -38,7 +38,7 @@ pub async fn handle_auth_engine(
         VaultAuthEngine::Kubernetes(k8s_auth_engine_config) => handle_k8s_auth_engine(
             vault_client,
             &mount_path,
-            &resource_namespace,
+            resource_namespace,
             k8s_auth_engine_config,
         )
         .await
@@ -55,7 +55,7 @@ pub async fn handle_k8s_auth_engine(
     mount_path: &str,
     resource_namespace: &str,
     k8s_auth_engine_config: &KubernetesAuthEngineParams,
-) -> anyhow::Result<()> {
+) -> Result<(), crate::Error> {
     let kubernetes_ca_cert = std::fs::read_to_string("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
         .context("Failed to read kubernetes ca cert")?;
 
@@ -83,7 +83,7 @@ pub async fn handle_k8s_auth_role(
     resource_namespace: &str,
     role_name: &str,
     role: &KubernetesAuthEngineRole,
-) -> anyhow::Result<()> {
+) -> Result<(), crate::Error> {
     let namespace = role.namespace.clone().unwrap_or(resource_namespace.to_string());
 
     let policy_ids = role
@@ -95,8 +95,8 @@ pub async fn handle_k8s_auth_role(
 
     vaultrs::auth::kubernetes::role::create(
         vault_client,
-        &mount_path,
-        &role_name,
+        mount_path,
+        role_name,
         Some(
             &mut CreateKubernetesRoleRequestBuilder::default()
                 .bound_service_account_names(vec![role.service_account_name.clone()])
