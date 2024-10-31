@@ -4,17 +4,19 @@ use std::{
 };
 
 use gtmpl_derive::Gtmpl;
-use k8s_openapi::api::core::v1::Secret;
+use k8s_openapi::api::core::v1::{ConfigMap, Secret};
 use kube::api::{ObjectMeta, Patch};
 use tracing::debug;
 use vaultrs::client::VaultClient;
 
-use crate::{VaultSecretSync, VAULT_RESOURCES_FINALIZER};
+use crate::{SecretSyncTargetResource, VaultSecretSync, VAULT_RESOURCES_FINALIZER};
 
 #[derive(Gtmpl)]
 struct Context {
     secrets: HashMap<String, HashMap<String, String>>,
 }
+
+const MANAGED_BY_KEY: &str = "mows.cloud/managed-by";
 
 pub async fn handle_secret_sync(
     vault_client: &VaultClient,
@@ -45,7 +47,7 @@ pub async fn handle_secret_sync(
     let mut rendered_secrets: HashMap<String, String> = HashMap::new();
 
     let mut template_creator = gtmpl::Template::default();
-    template_creator.add_funcs(&crate::templating::funcs::TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&crate::templating::functions::TEMPLATE_FUNCTIONS);
 
     let context = gtmpl::Context::from(Context {
         secrets: fetched_secrets.clone(),
@@ -58,65 +60,170 @@ pub async fn handle_secret_sync(
 
     debug!("Rendered secrets: {:?}", rendered_secrets);
 
-    // create secrets in k8s
-    let secret_api: kube::Api<Secret> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
-
     let mut labels = BTreeMap::new();
 
-    labels.insert(
-        "app.kubernetes.io/managed-by".to_string(),
-        VAULT_RESOURCES_FINALIZER.to_string(),
-    );
+    labels.insert(MANAGED_BY_KEY.to_string(), VAULT_RESOURCES_FINALIZER.to_string());
 
-    for (secret_name, secret) in rendered_secrets {
-        let mut secret_map = BTreeMap::new();
+    labels.insert("created-from".to_string(), resource_name.to_string());
 
-        secret_map.insert("data".to_string(), secret);
+    for (secret_name, secret_data) in rendered_secrets {
+        let target = vault_secret_sync
+            .targets
+            .get(&secret_name)
+            .ok_or(crate::Error::GenericError(format!(
+                "Secret {} not found in targets",
+                secret_name
+            )))?
+            .clone();
 
-        let secret = Secret {
-            metadata: ObjectMeta {
-                name: Some(secret_name.clone()),
-                namespace: Some(resource_namespace.to_string()),
-                labels: Some(labels.clone()),
-                ..Default::default()
-            },
-            string_data: Some(secret_map),
+        match target.resource_type {
+            SecretSyncTargetResource::ConfigMap => {
+                create_configmap_in_k8s(
+                    kube_client,
+                    resource_namespace,
+                    secret_name,
+                    secret_data,
+                    labels.clone(),
+                    target.resource_map_key,
+                )
+                .await?
+            }
+            SecretSyncTargetResource::Secret => {
+                create_secret_in_k8s(
+                    kube_client,
+                    resource_namespace,
+                    secret_name,
+                    secret_data,
+                    labels.clone(),
+                    target.resource_map_key,
+                )
+                .await?
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn create_configmap_in_k8s(
+    kube_client: &kube::Client,
+    resource_namespace: &str,
+    secret_name: String,
+    secret_data: String,
+    labels: BTreeMap<String, String>,
+    resource_data_key: Option<String>,
+) -> Result<(), crate::Error> {
+    let configmap_api: kube::Api<ConfigMap> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
+
+    let mut configmap_data = BTreeMap::new();
+
+    configmap_data.insert(resource_data_key.unwrap_or("data".to_string()), secret_data);
+
+    let configmap = ConfigMap {
+        metadata: ObjectMeta {
+            name: Some(secret_name.clone()),
+            namespace: Some(resource_namespace.to_string()),
+            labels: Some(labels.clone()),
+
             ..Default::default()
-        };
+        },
+        data: Some(configmap_data),
+        ..Default::default()
+    };
 
-        let secret_exists = secret_api
-            .get_opt(&secret_name)
+    let configmap_exists = configmap_api
+        .get_opt(&secret_name)
+        .await
+        .map_err(crate::Error::KubeError)?;
+
+    if let Some(configmap) = &configmap_exists {
+        if let Some(labels) = &configmap.metadata.labels {
+            if let Some(managed_by) = labels.get(MANAGED_BY_KEY) {
+                if managed_by != VAULT_RESOURCES_FINALIZER {
+                    return Err(crate::Error::GenericError(format!(
+                        "ConfigMap {} is not managed by vrc",
+                        secret_name
+                    )));
+                }
+            } else {
+                return Err(crate::Error::GenericError(format!(
+                    "ConfigMap {} is not managed by vrc",
+                    secret_name
+                )));
+            }
+        }
+        let patch_params = kube::api::PatchParams::default();
+        configmap_api
+            .patch(&secret_name, &patch_params, &Patch::Merge(configmap))
             .await
             .map_err(crate::Error::KubeError)?;
+    } else {
+        configmap_api
+            .create(&kube::api::PostParams::default(), &configmap)
+            .await
+            .map_err(crate::Error::KubeError)?;
+    }
 
-        if let Some(secret) = &secret_exists {
-            if let Some(labels) = &secret.metadata.labels {
-                if let Some(managed_by) = labels.get("app.kubernetes.io/managed-by") {
-                    if managed_by != VAULT_RESOURCES_FINALIZER {
-                        return Err(crate::Error::GenericError(format!(
-                            "Secret {} is not managed by vrc",
-                            secret_name
-                        )));
-                    }
-                } else {
+    Ok(())
+}
+
+pub async fn create_secret_in_k8s(
+    kube_client: &kube::Client,
+    resource_namespace: &str,
+    secret_name: String,
+    secret_data: String,
+    labels: BTreeMap<String, String>,
+    resource_data_key: Option<String>,
+) -> Result<(), crate::Error> {
+    let secret_api: kube::Api<Secret> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
+
+    let mut secret_map = BTreeMap::new();
+
+    secret_map.insert(resource_data_key.unwrap_or("data".to_string()), secret_data);
+
+    let secret = Secret {
+        metadata: ObjectMeta {
+            name: Some(secret_name.clone()),
+            namespace: Some(resource_namespace.to_string()),
+            labels: Some(labels.clone()),
+
+            ..Default::default()
+        },
+        string_data: Some(secret_map),
+        ..Default::default()
+    };
+
+    let secret_exists = secret_api
+        .get_opt(&secret_name)
+        .await
+        .map_err(crate::Error::KubeError)?;
+
+    if let Some(secret) = &secret_exists {
+        if let Some(labels) = &secret.metadata.labels {
+            if let Some(managed_by) = labels.get(MANAGED_BY_KEY) {
+                if managed_by != VAULT_RESOURCES_FINALIZER {
                     return Err(crate::Error::GenericError(format!(
                         "Secret {} is not managed by vrc",
                         secret_name
                     )));
                 }
+            } else {
+                return Err(crate::Error::GenericError(format!(
+                    "Secret {} is not managed by vrc",
+                    secret_name
+                )));
             }
-            let mut patch_params = kube::api::PatchParams::default();
-            patch_params.field_manager = Some(VAULT_RESOURCES_FINALIZER.to_string());
-            secret_api
-                .patch(&secret_name, &patch_params, &Patch::Apply(secret))
-                .await
-                .map_err(crate::Error::KubeError)?;
-        } else {
-            secret_api
-                .create(&kube::api::PostParams::default(), &secret)
-                .await
-                .map_err(crate::Error::KubeError)?;
         }
+        let patch_params = kube::api::PatchParams::default();
+        secret_api
+            .patch(&secret_name, &patch_params, &Patch::Merge(secret))
+            .await
+            .map_err(crate::Error::KubeError)?;
+    } else {
+        secret_api
+            .create(&kube::api::PostParams::default(), &secret)
+            .await
+            .map_err(crate::Error::KubeError)?;
     }
 
     Ok(())

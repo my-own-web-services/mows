@@ -13,6 +13,13 @@ spec:
         app: {{ .Values.api.name }}
     spec:
       serviceAccountName: {{ .Values.api.name }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: pektin-api-config
+            items:
+              - key: config
+                path: config.yaml
 
       containers:
         - name: {{ .Values.api.name }}
@@ -26,4 +33,17 @@ spec:
             limits:
               memory: 128Mi
               cpu: 500m
+          volumeMounts:
+            - name: config-volume
+              mountPath: /
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-pektin-api-password
+                  key: data
+            - name: VAULT_URI
+              value: "http://mows-core-secrets-vault.mows-core-secrets-vault:8200"
+          
+            
 

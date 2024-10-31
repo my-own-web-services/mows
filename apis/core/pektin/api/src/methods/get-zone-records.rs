@@ -30,7 +30,7 @@ pub async fn get_zone_records(
             req_body.clone().into(),
             state.deref(),
             &req_body.client_username,
-            &req_body.confidant_password,
+            &req_body.client_token,
         )
         .await;
         if auth.success {

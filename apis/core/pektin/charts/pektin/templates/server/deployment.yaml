@@ -32,4 +32,11 @@ spec:
             limits:
               memory: 128Mi
               cpu: 500m
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-pektin-server-password
+                  key: data
+
 

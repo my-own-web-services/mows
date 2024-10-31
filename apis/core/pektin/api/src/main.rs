@@ -1,6 +1,7 @@
 use opentelemetry::global;
 use opentelemetry_otlp::{new_pipeline, WithExportConfig};
 use opentelemetry_sdk::trace::{BatchConfig, Tracer, TracerProvider};
+use pektin_api::get_current_config_cloned;
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
 
@@ -12,6 +13,7 @@ use actix_cors::Cors;
 use actix_web::{http, web, App, HttpServer};
 use anyhow::{bail, Context};
 use chrono::Duration;
+use pektin_api::config;
 use pektin_api::signing_task::signing_task;
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{debug, info};
@@ -20,7 +22,6 @@ use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::EnvFilter;
 
-use pektin_api::config::Config;
 use pektin_api::delete::delete;
 use pektin_api::errors_and_responses::json_error_handler;
 use pektin_api::get::get;
@@ -39,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
     init_tracing();
 
     println!("Loading config...");
-    let config = Config::from_env().context("Failed to load config")?;
+    let config = get_current_config_cloned!();
     println!("Config loaded successfully.\n");
 
     // the db pool needs to be created in the HttpServer::new closure because of trait bounds.
@@ -96,8 +97,6 @@ async fn main() -> anyhow::Result<()> {
         db_pool_dnssec,
         vault_uri: config.vault_uri.clone(),
         ribston_uri: config.ribston_uri.clone(),
-        vault_password: config.vault_password.clone(),
-        vault_user_name: config.vault_user_name.clone(),
         skip_auth: config.skip_auth.clone(),
     };
 

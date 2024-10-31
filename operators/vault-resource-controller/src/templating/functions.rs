@@ -884,7 +884,6 @@ fn md5sum(args: &[Value]) -> Result<Value, FuncError> {
 }
 
 // TODO adler32sum
-// TODO htpasswd
 
 fn htpasswd(args: &[Value]) -> Result<Value, FuncError> {
     let username = &args.first().ok_or(FuncError::ExactlyXArgs(

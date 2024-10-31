@@ -135,9 +135,18 @@ spec:
                   targets:
                     additionalProperties:
                       properties:
+                        resourceMapKey:
+                          nullable: true
+                          type: string
+                        resourceType:
+                          enum:
+                          - ConfigMap
+                          - Secret
+                          type: string
                         template:
                           type: string
                       required:
+                      - resourceType
                       - template
                       type: object
                     type: object

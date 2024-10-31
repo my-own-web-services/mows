@@ -1,13 +1,10 @@
-use std::{borrow::BorrowMut, collections::HashMap, hash::Hash};
-
-use anyhow::Context;
+use std::collections::HashMap;
 
 use serde_variant::to_variant_name;
 use tracing::debug;
-use tracing_subscriber::field::debug;
 use vaultrs::client::VaultClient;
 
-use crate::{templating::funcs::TEMPLATE_FUNCTIONS, Error, KV2SecretEngineParams, VaultSecretEngine};
+use crate::{templating::functions::TEMPLATE_FUNCTIONS, Error, KV2SecretEngineParams, VaultSecretEngine};
 
 pub async fn handle_secret_engine(
     vault_client: &VaultClient,

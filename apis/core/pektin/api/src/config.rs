@@ -1,9 +1,55 @@
-use pektin_common::load_env;
+use std::{fs::read_to_string, sync::OnceLock};
 
-use crate::errors_and_responses::PektinApiResult;
+use anyhow::bail;
+use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Config {
+const CONFIG_PATH: &str = "/config.yaml";
+const DEV_CONFIG_PATH: &str = "dev/config.yaml";
+
+pub fn config() -> &'static RwLock<ApiConfig> {
+    static API_CONFIG: OnceLock<RwLock<ApiConfig>> = OnceLock::new();
+    API_CONFIG.get_or_init(|| RwLock::new(read_config().unwrap()))
+}
+
+pub fn read_config() -> anyhow::Result<ApiConfig> {
+    let config_file = match read_to_string(CONFIG_PATH) {
+        Ok(file) => file,
+        Err(_) => match {
+            println!("Config file not found trying dev path");
+            read_to_string(DEV_CONFIG_PATH)
+        } {
+            Ok(file) => file,
+            Err(_) => bail!("Config file not found"),
+        },
+    };
+
+    let config_file = replace_variables(config_file)?;
+    let config: ApiConfig = serde_yaml::from_str(&config_file)?;
+    Ok(config)
+}
+
+pub fn replace_variables(mut config_file: String) -> anyhow::Result<String> {
+    let first_config: ConfigVariablePrefix = serde_yaml::from_str(&config_file)?;
+    for (key, value) in std::env::vars() {
+        config_file = config_file.replace(
+            format!("{}{}", first_config.variable_prefix, key).as_str(),
+            &value,
+        );
+    }
+
+    Ok(config_file)
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ConfigVariablePrefix {
+    pub variable_prefix: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiConfig {
     pub bind_address: String,
     pub bind_port: u16,
     pub db_hostname: String,
@@ -12,31 +58,10 @@ pub struct Config {
     pub db_port: u16,
     pub vault_uri: String,
     pub ribston_uri: String,
-    pub vault_password: String,
-    pub vault_user_name: String,
     pub skip_auth: String,
     pub use_policies: String,
-}
-
-impl Config {
-    pub fn from_env() -> PektinApiResult<Self> {
-        Ok(Self {
-            bind_address: load_env("::", "BIND_ADDRESS", false)?,
-            bind_port: load_env("80", "BIND_PORT", false)?
-                .parse()
-                .map_err(|_| pektin_common::PektinCommonError::InvalidEnvVar("BIND_PORT".into()))?,
-            db_hostname: load_env("pektin-db", "DB_HOSTNAME", false)?,
-            db_port: load_env("6379", "DB_PORT", false)?
-                .parse()
-                .map_err(|_| pektin_common::PektinCommonError::InvalidEnvVar("DB_PORT".into()))?,
-            db_username: load_env("db-pektin-api", "DB_USERNAME", false)?,
-            db_password: load_env("", "DB_PASSWORD", true)?,
-            vault_uri: load_env("http://pektin-vault:80", "VAULT_URI", false)?,
-            ribston_uri: load_env("http://pektin-ribston:80", "RIBSTON_URI", false)?,
-            vault_password: load_env("", "V_PEKTIN_API_PASSWORD", true)?,
-            vault_user_name: load_env("", "V_PEKTIN_API_USER_NAME", false)?,
-            use_policies: load_env("ribston", "USE_POLICIES", false)?,
-            skip_auth: load_env("false", "SKIP_AUTH", false)?,
-        })
-    }
+    pub service_account_token_path: String,
+    pub vault_kubernetes_auth_path: String,
+    pub vault_kubernetes_auth_role: String,
+    pub policy_vault_path: String,
 }

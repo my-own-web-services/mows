@@ -88,5 +88,5 @@ pub mod reconcile {
 }
 
 pub mod templating {
-    pub mod funcs;
+    pub mod functions;
 }

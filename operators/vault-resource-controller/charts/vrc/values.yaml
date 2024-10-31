@@ -2,7 +2,6 @@ replicaCount: 1
 nameOverride: ""
 namespace: "mows-core-secrets-vrc"
 version: "" # pin a specific version
-# helm upgrade --install controller-rs /install/old/controller-rs/charts/doc-controller/
 image:
     repository: 192.168.112.5:5000/controller-rs
     pullPolicy: Always

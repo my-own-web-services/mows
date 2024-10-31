@@ -1,5 +1,5 @@
 
-helm upgrade redis-operator ot-helm/redis-operator --install --namespace redis-operator --create-namespace
+helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/ && helm upgrade redis-operator ot-helm/redis-operator --install --namespace redis-operator --create-namespace
 
 
 kubectl apply -f /operators/vault-resource-controller/yaml/crd.yaml && helm upgrade --install mows-core-secrets-vrc /operators/vault-resource-controller/charts/vrc/ -n mows-core-secrets-vrc --create-namespace

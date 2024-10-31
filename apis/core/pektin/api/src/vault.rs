@@ -1,5 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
+use anyhow::Context;
 use data_encoding::BASE64;
 use lazy_static::lazy_static;
 use moka::future::Cache;
@@ -12,7 +13,10 @@ use sha2::{Digest, Sha256};
 use std::str;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{debug, instrument};
+use vaultrs::api::AuthInfo;
+use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
+use crate::get_current_config_cloned;
 use crate::{
     errors_and_responses::{PektinApiError, PektinApiResult},
     utils::{deabsolute, prettify_json},
@@ -63,63 +67,6 @@ pub async fn get_kv_value(
     debug!("Value for key {} is {:?}", key, value);
 
     Ok(value)
-}
-
-#[derive(Deserialize, Debug)]
-pub struct VaultRes {
-    auth: VaultAuth,
-}
-#[derive(Deserialize, Debug)]
-pub struct VaultAuth {
-    client_token: String,
-    lease_duration: u64,
-    renewable: bool,
-}
-
-// get the vault access token with role and secret id
-#[instrument(skip(endpoint, password))]
-pub async fn login_userpass(
-    endpoint: &str,
-    username: &str,
-    password: &str,
-) -> PektinApiResult<String> {
-    let vault_res = reqwest::Client::new()
-        .post(format!("{endpoint}/v1/auth/userpass/login/{username}"))
-        .timeout(Duration::from_secs(2))
-        .json(&json!({
-            "password": password,
-        }))
-        .send()
-        .await?;
-    let vault_res = vault_res.text().await?;
-    debug!("Login response: {}", prettify_json(&vault_res));
-
-    let vault_res: VaultRes =
-        serde_json::from_str(&vault_res).map_err(|_| PektinApiError::InvalidCredentials)?;
-    Ok(vault_res.auth.client_token)
-}
-
-// get the vault access token with role and secret id
-#[instrument(skip(endpoint, password))]
-pub async fn login_userpass_return_meta(
-    endpoint: &str,
-    username: &str,
-    password: &str,
-) -> PektinApiResult<VaultAuth> {
-    let vault_res = reqwest::Client::new()
-        .post(format!("{endpoint}/v1/auth/userpass/login/{username}"))
-        .timeout(Duration::from_secs(2))
-        .json(&json!({
-            "password": password,
-        }))
-        .send()
-        .await?;
-    let vault_res = vault_res.text().await?;
-    debug!("Login response: {}", prettify_json(&vault_res));
-
-    let vault_res: VaultRes =
-        serde_json::from_str(&vault_res).map_err(|_| PektinApiError::InvalidCredentials)?;
-    Ok(vault_res.auth)
 }
 
 #[instrument(skip(uri))]
@@ -258,66 +205,6 @@ pub async fn sign_with_vault(
     Ok(sig.to_vec())
 }
 
-pub struct ClientTokenCache;
-impl ClientTokenCache {
-    /// # Examples
-    /// ```rs
-    /// let token = ClientTokenCache::get("http://pektin-vault:80", "username", "password").unwrap();
-    /// ```
-    pub async fn get(
-        endpoint: impl AsRef<str>,
-        username: impl AsRef<str>,
-        password: impl AsRef<str>,
-    ) -> PektinApiResult<String> {
-        lazy_static! {
-            static ref TOKEN_CACHE: Cache<String, ApiToken> = Cache::builder()
-                .max_capacity(1024)
-                .time_to_live(Duration::from_secs(5 * 60))
-                .build();
-        }
-
-        let (username, password) = (username.as_ref(), password.as_ref());
-
-        let mut hasher = Sha256::new();
-
-        hasher.update(format!("{}:{}", username, password));
-        let token_key = format!("{:X}", hasher.finalize());
-
-        if let Some(token) = TOKEN_CACHE.get(&token_key).await {
-            let current_time = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
-            if token.leased_until_timestamp > current_time {
-                return Ok(token.client_token);
-            }
-        }
-
-        let token = Self::get_token_from_vault(endpoint.as_ref(), username, password).await?;
-        TOKEN_CACHE.insert(token_key, token.clone());
-        Ok(token.client_token)
-    }
-
-    async fn get_token_from_vault(
-        endpoint: &str,
-        username: &str,
-        password: &str,
-    ) -> PektinApiResult<ApiToken> {
-        let userpass_res = login_userpass_return_meta(endpoint, username, password).await?;
-
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-
-        Ok(ApiToken {
-            client_token: userpass_res.client_token,
-            renewable: userpass_res.renewable,
-            leased_until_timestamp: current_time + userpass_res.lease_duration,
-        })
-    }
-}
-
 pub struct ApiTokenCache;
 
 #[derive(Clone, Debug)]
@@ -332,24 +219,15 @@ impl ApiTokenCache {
     /// ```rs
     /// let token = ApiTokenCache::get("http://pektin-vault:80", "username", "password").unwrap();
     /// ```
-    pub async fn get(
-        endpoint: impl AsRef<str>,
-        username: impl AsRef<str>,
-        password: impl AsRef<str>,
-    ) -> PektinApiResult<String> {
+    pub async fn get() -> PektinApiResult<String> {
         lazy_static! {
             static ref TOKEN_CACHE: Cache<String, ApiToken> =
                 Cache::builder().max_capacity(1).build();
         }
 
-        let (username, password) = (username.as_ref(), password.as_ref());
+        let token_key = "token";
 
-        let mut hasher = Sha256::new();
-
-        hasher.update(format!("{}:{}", username, password));
-        let token_key = format!("{:X}", hasher.finalize());
-
-        if let Some(token) = TOKEN_CACHE.get(&token_key).await {
+        if let Some(token) = TOKEN_CACHE.get(&token_key.to_string()).await {
             let current_time = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
@@ -359,17 +237,13 @@ impl ApiTokenCache {
             }
         }
 
-        let token = Self::get_token_from_vault(endpoint.as_ref(), username, password).await?;
-        TOKEN_CACHE.insert(token_key, token.clone());
+        let token = Self::get_token_from_vault().await?;
+        TOKEN_CACHE.insert(token_key.to_string(), token.clone());
         Ok(token.client_token)
     }
 
-    async fn get_token_from_vault(
-        endpoint: &str,
-        username: &str,
-        password: &str,
-    ) -> PektinApiResult<ApiToken> {
-        let userpass_res = login_userpass_return_meta(endpoint, username, password).await?;
+    async fn get_token_from_vault() -> PektinApiResult<ApiToken> {
+        let login_res = vault_k8s_login().await?;
 
         let current_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -377,9 +251,52 @@ impl ApiTokenCache {
             .as_secs();
 
         Ok(ApiToken {
-            client_token: userpass_res.client_token,
-            renewable: userpass_res.renewable,
-            leased_until_timestamp: current_time + userpass_res.lease_duration,
+            client_token: login_res.client_token,
+            renewable: login_res.renewable,
+            leased_until_timestamp: current_time + login_res.lease_duration,
         })
     }
+}
+
+pub async fn vault_k8s_login() -> PektinApiResult<AuthInfo> {
+    let api_config = get_current_config_cloned!();
+    let mut client_builder = VaultClientSettingsBuilder::default();
+
+    client_builder.address(api_config.vault_uri.clone());
+
+    let vc = VaultClient::new(client_builder.build().map_err(|_| {
+        PektinApiError::GenericError("Failed to create vault client settings builder".to_string())
+    })?)?;
+
+    let service_account_jwt =
+        std::fs::read_to_string(api_config.service_account_token_path.clone()).map_err(|_| {
+            PektinApiError::GenericError("Failed to read service account token".to_string())
+        })?;
+
+    let vault_auth = vaultrs::auth::kubernetes::login(
+        &vc,
+        &api_config.vault_kubernetes_auth_path.clone(),
+        &api_config.vault_kubernetes_auth_role.clone(),
+        &service_account_jwt,
+    )
+    .await?;
+
+    Ok(vault_auth)
+}
+
+pub async fn create_vault_client() -> Result<VaultClient, PektinApiError> {
+    let api_config = get_current_config_cloned!();
+
+    let mut client_builder = VaultClientSettingsBuilder::default();
+
+    client_builder.address(api_config.vault_uri.clone());
+
+    let vc = VaultClient::new(
+        client_builder
+            .token(vault_k8s_login().await?.client_token)
+            .build()
+            .context("Failed to create vault client")?,
+    )?;
+
+    Ok(vc)
 }

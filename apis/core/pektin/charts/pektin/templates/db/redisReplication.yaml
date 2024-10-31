@@ -7,6 +7,8 @@ spec:
   securityContext:
     runAsUser: 1000
     fsGroup: 1000
+  redisConfig:
+    additionalRedisConfig: pektin-db-config
   kubernetesConfig: 
     image: docker.io/eqalpha/keydb:alpine
     imagePullPolicy: IfNotPresent

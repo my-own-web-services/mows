@@ -52,7 +52,7 @@ pub async fn set(
             req_body.clone().into(),
             state.deref(),
             &req_body.client_username,
-            &req_body.confidant_password,
+            &req_body.client_token,
         )
         .await;
         if auth.success {
@@ -83,9 +83,7 @@ pub async fn set(
             unwrap_or_return_if_err!(_soa_check, "Tried to set one or more records for a zone that does not have a SOA record.");
 
             let vault_api_token = match vault::ApiTokenCache::get(
-                &state.vault_uri,
-                &state.vault_user_name,
-                &state.vault_password,
+
             )
             .await
             {

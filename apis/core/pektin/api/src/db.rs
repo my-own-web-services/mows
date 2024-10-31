@@ -17,11 +17,13 @@ pub async fn get_or_mget_records(
     // using only low-level commands.
     if keys.len() == 1 {
         debug!("using GET command");
-        match deadpool_redis::redis::cmd("GET")
+
+        let res: Result<String, _> = deadpool_redis::redis::cmd("GET")
             .arg(&keys[0])
-            .query_async::<_, String>(con)
-            .await
-        {
+            .query_async(con)
+            .await;
+
+        match res {
             Ok(s) => match DbEntry::deserialize_from_db(&keys[0], &s) {
                 Ok(data) => Ok(vec![Some(data)]),
                 Err(e) => Err(e),
@@ -30,11 +32,13 @@ pub async fn get_or_mget_records(
         }
     } else {
         debug!("using MGET command");
-        match deadpool_redis::redis::cmd("MGET")
+
+        let res: Result<Vec<Value>, _> = deadpool_redis::redis::cmd("MGET")
             .arg(&keys)
-            .query_async::<_, Vec<Value>>(con)
-            .await
-        {
+            .query_async(con)
+            .await;
+
+        match res {
             Ok(v) => {
                 let parsed_opt: Result<Vec<_>, _> = keys
                     .iter()

@@ -5,13 +5,12 @@ use crate::{
     },
     telemetry, Error, Metrics, Result,
 };
-use anyhow::{bail, Context as anyhow_context};
+use anyhow::Context as anyhow_context;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use kube::{
     api::{Api, ListParams, Patch, PatchParams, ResourceExt},
     client::Client,
-    core::ErrorResponse,
     runtime::{
         controller::{Action, Controller},
         events::{Event, EventType, Recorder, Reporter},
@@ -60,6 +59,14 @@ pub struct VaultSecretSync {
 #[serde(rename_all = "camelCase")]
 pub struct SecretSyncTarget {
     pub template: String,
+    pub resource_type: SecretSyncTargetResource,
+    pub resource_map_key: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+pub enum SecretSyncTargetResource {
+    ConfigMap,
+    Secret,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -168,10 +175,6 @@ pub async fn create_vault_client() -> Result<VaultClient, Error> {
             .build()
             .context("Failed to create vault client")?,
     )?;
-
-    dbg!(&vault_auth.client_token);
-
-    //vc.settings.token = vault_auth.client_token;
 
     Ok(vc)
 }
@@ -373,7 +376,7 @@ impl Default for Diagnostics {
     fn default() -> Self {
         Self {
             last_event: Utc::now(),
-            reporter: "doc-controller".into(),
+            reporter: "vault-resource-controller".into(),
         }
     }
 }

@@ -26,28 +26,28 @@ pub enum RequestBody {
 #[derive(Deserialize, Debug, Clone)]
 pub struct GetRequestBody {
     pub client_username: String,
-    pub confidant_password: String,
+    pub client_token: String,
     pub records: Vec<RecordIdentifier>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct GetZoneRecordsRequestBody {
     pub client_username: String,
-    pub confidant_password: String,
+    pub client_token: String,
     pub names: Vec<Name>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SetRequestBody {
     pub client_username: String,
-    pub confidant_password: String,
+    pub client_token: String,
     pub records: Vec<DbEntry>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct DeleteRequestBody {
     pub client_username: String,
-    pub confidant_password: String,
+    pub client_token: String,
     pub records: Vec<RecordIdentifier>,
 }
 
@@ -59,7 +59,7 @@ pub struct Glob {
 #[derive(Deserialize, Debug, Clone)]
 pub struct SearchRequestBody {
     pub client_username: String,
-    pub confidant_password: String,
+    pub client_token: String,
     pub globs: Vec<Glob>,
 }
 
@@ -75,8 +75,6 @@ pub struct AppState {
     pub db_pool_dnssec: Pool,
     pub vault_uri: String,
     pub ribston_uri: String,
-    pub vault_password: String,
-    pub vault_user_name: String,
     pub skip_auth: String,
 }
 

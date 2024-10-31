@@ -138,7 +138,26 @@ pub enum PektinApiError {
     GetCombinedPassword,
     #[error("Failed to get ribston policy")]
     GetRibstonPolicy,
+
+    #[error("VaultError: {0}")]
+    VaultError(#[source] vaultrs::error::ClientError),
+
+    #[error("Generic: {0}")]
+    GenericError(String),
 }
+
+impl From<vaultrs::error::ClientError> for PektinApiError {
+    fn from(error: vaultrs::error::ClientError) -> Self {
+        PektinApiError::VaultError(error)
+    }
+}
+
+impl From<anyhow::Error> for PektinApiError {
+    fn from(error: anyhow::Error) -> Self {
+        PektinApiError::GenericError(error.to_string())
+    }
+}
+
 pub type PektinApiResult<T> = Result<T, PektinApiError>;
 
 pub fn response(rtype: ResponseType, msg: impl Serialize) -> impl Serialize {

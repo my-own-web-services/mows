@@ -40,12 +40,7 @@ async fn signing_task_run(state: &AppState, threshold: Duration) -> PektinApiRes
 
     let mut con = state.db_pool.get().await?;
     let mut dnssec_con = state.db_pool_dnssec.get().await?;
-    let vault_api_token = crate::vault::ApiTokenCache::get(
-        &state.vault_uri,
-        &state.vault_user_name,
-        &state.vault_password,
-    )
-    .await?;
+    let vault_api_token = crate::vault::ApiTokenCache::get().await?;
 
     let authoritative_zones: Vec<_> = get_authoritative_zones(&mut con)
         .await?

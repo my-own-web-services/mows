@@ -1,40 +1,51 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    collections::HashMap,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use actix_web::HttpRequest;
+use anyhow::Context;
 use tracing::{debug, instrument};
+use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
 use crate::{
+    get_current_config_cloned,
     macros::return_if_err,
     ribston::{self, RibstonRequestData},
     types::{AppState, AuthAnswer, RequestBody},
-    vault,
+    vault::{self, create_vault_client},
 };
 
-#[instrument(skip(
-    vault_endpoint,
-    vault_api_pw,
-    vault_user_name,
-    ribston_endpoint,
-    confidant_password,
-    ribston_request_data
-))]
+#[instrument(skip(ribston_endpoint, client_token, ribston_request_data))]
 pub async fn auth(
-    vault_endpoint: &str,
-    vault_api_pw: &str,
-    vault_user_name: &str,
     ribston_endpoint: &str,
     client_username: &str,
-    confidant_password: &str,
+    client_token: &str,
     ribston_request_data: RibstonRequestData,
 ) -> AuthAnswer {
+    let api_config = get_current_config_cloned!();
     // TODO reuse reqwest::Client, caching, await concurrently where possible
 
     // cache until restart
     // transparently renew it if it's expired
-    let api_token = return_if_err!(
-        vault::ApiTokenCache::get(vault_endpoint, vault_user_name, vault_api_pw).await,
+
+    let mut client_builder = VaultClientSettingsBuilder::default();
+
+    client_builder.address(api_config.vault_uri.clone());
+
+    let builder = return_if_err!(
+        client_builder
+            .token(client_token)
+            .build()
+            .context("Failed to create vault client"),
         err,
-        format!("Could not get Vault token for pektin-api: {}", err)
+        format!("Could not create Vault client: {}", err)
+    );
+
+    let vc = return_if_err!(
+        VaultClient::new(builder),
+        err,
+        format!("Could not create Vault client: {}", err)
     );
 
     /*
@@ -49,20 +60,19 @@ pub async fn auth(
     // cache for some amount of time (10min-30min)
     // if we want to cache this we will have to check the validity of the clients password ourselves
     // keeping a hash of the clients password in memory to check against
-    let confidant_token = return_if_err!(
-        vault::ClientTokenCache::get(
-            vault_endpoint,
-            &format!("pektin-client-{}-confidant", client_username),
-            confidant_password
-        )
-        .await,
-        err,
-        format!("Could not get Vault token for confidant: {}", err)
-    );
 
     // cache until restart
+    let client_policy: HashMap<String, String> = return_if_err!(
+        vaultrs::kv2::read(&vc, &api_config.policy_vault_path, client_username).await,
+        err,
+        format!("Could not get client policy: {}", err)
+    );
+
     let client_policy = return_if_err!(
-        vault::get_policy(vault_endpoint, &api_token, client_username).await,
+        client_policy
+            .get("policy")
+            .cloned()
+            .ok_or("No policy found"),
         err,
         format!("Could not get client policy: {}", err)
     );
@@ -93,13 +103,13 @@ pub async fn auth(
     }
 }
 
-#[instrument(skip(req, request_body, state, confidant_password))]
+#[instrument(skip(req, request_body, state, client_token))]
 pub async fn auth_ok(
     req: &HttpRequest,
     request_body: RequestBody,
     state: &AppState,
     client_username: &str,
-    confidant_password: &str,
+    client_token: &str,
 ) -> AuthAnswer {
     if "yes, I really want to disable authentication" == state.skip_auth {
         debug!("Skipping authentication");
@@ -132,12 +142,9 @@ pub async fn auth_ok(
         .realip_remote_addr()
         .map(|s| s.to_string());
     let res = auth(
-        &state.vault_uri,
-        &state.vault_password,
-        &state.vault_user_name,
         &state.ribston_uri,
         client_username,
-        confidant_password,
+        client_token,
         RibstonRequestData {
             api_method,
             ip,

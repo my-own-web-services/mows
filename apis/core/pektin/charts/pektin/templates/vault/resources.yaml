@@ -10,7 +10,6 @@ apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
     name: pektin-policies
-    namespace: default
 spec:
     secretEngine:
         kv-v2:

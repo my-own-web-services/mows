@@ -1,9 +1,11 @@
+use base64::prelude::*;
 pub use deadpool_redis;
+pub use hickory_proto as proto;
+use hickory_proto::rr::rdata;
 use proto::rr::dnssec;
 use proto::rr::dnssec::rdata::{DNSSECRData, DNSKEY, NSEC3, NSEC3PARAM, SIG};
 use proto::rr::rdata::{caa, tlsa, MX, OPENPGPKEY, SOA, SRV, TXT};
 use proto::rr::{Name, RData, RecordType};
-pub use trust_dns_proto as proto;
 
 use deadpool_redis::redis::AsyncCommands;
 use deadpool_redis::Connection;
@@ -325,9 +327,9 @@ impl From<DnssecAlgorithm> for dnssec::Algorithm {
 }
 
 impl DbEntry {
-    /// Tries to convert the entry to a vector of TrustDNS's [`Record`](trust_dns_proto::rr::Record)
+    /// Tries to convert the entry to a vector of TrustDNS's [`Record`](hickory_proto::rr::Record)
     /// type.
-    pub fn convert(self) -> Result<Vec<trust_dns_proto::rr::Record>, String> {
+    pub fn convert(self) -> Result<Vec<hickory_proto::rr::Record>, String> {
         self.try_into()
     }
 
@@ -379,19 +381,29 @@ impl DbEntry {
     }
 }
 
-impl TryFrom<DbEntry> for Vec<trust_dns_proto::rr::Record> {
+impl TryFrom<DbEntry> for Vec<hickory_proto::rr::Record> {
     type Error = String;
     fn try_from(entry: DbEntry) -> Result<Self, String> {
-        use trust_dns_proto::rr::Record;
+        use hickory_proto::rr::Record;
         match entry.rr_set {
             RrSet::A { rr_set } => Ok(rr_set
                 .into_iter()
-                .map(|data| Record::from_rdata(entry.name.clone(), entry.ttl, RData::A(data.value)))
+                .map(|data| {
+                    Record::from_rdata(
+                        entry.name.clone(),
+                        entry.ttl,
+                        RData::A(rdata::A(data.value)),
+                    )
+                })
                 .collect()),
             RrSet::AAAA { rr_set } => Ok(rr_set
                 .into_iter()
                 .map(|data| {
-                    Record::from_rdata(entry.name.clone(), entry.ttl, RData::AAAA(data.value))
+                    Record::from_rdata(
+                        entry.name.clone(),
+                        entry.ttl,
+                        RData::AAAA(rdata::AAAA(data.value)),
+                    )
                 })
                 .collect()),
             RrSet::CAA { rr_set } => {
@@ -432,7 +444,11 @@ impl TryFrom<DbEntry> for Vec<trust_dns_proto::rr::Record> {
             RrSet::CNAME { rr_set } => Ok(rr_set
                 .into_iter()
                 .map(|data| {
-                    Record::from_rdata(entry.name.clone(), entry.ttl, RData::CNAME(data.value))
+                    Record::from_rdata(
+                        entry.name.clone(),
+                        entry.ttl,
+                        RData::CNAME(rdata::CNAME(data.value)),
+                    )
                 })
                 .collect()),
             RrSet::DNSKEY { rr_set } => {
@@ -445,7 +461,8 @@ impl TryFrom<DbEntry> for Vec<trust_dns_proto::rr::Record> {
                             record.secure_entry_point,
                             record.revoked,
                             record.algorithm.into(),
-                            base64::decode(&record.key)
+                            BASE64_STANDARD
+                                .decode(&record.key)
                                 .map_err(|_| "DNSKEY key not valid base64 (a-zA-Z0-9/+)")?,
                         ))),
                     ))
@@ -461,7 +478,11 @@ impl TryFrom<DbEntry> for Vec<trust_dns_proto::rr::Record> {
             RrSet::NS { rr_set } => Ok(rr_set
                 .into_iter()
                 .map(|data| {
-                    Record::from_rdata(entry.name.clone(), entry.ttl, RData::NS(data.value))
+                    Record::from_rdata(
+                        entry.name.clone(),
+                        entry.ttl,
+                        RData::NS(rdata::NS(data.value)),
+                    )
                 })
                 .collect()),
             RrSet::NSEC3 { rr_set } => {
