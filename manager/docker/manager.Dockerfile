@@ -1,17 +1,18 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+FROM clux/muslrust:stable AS builder
+# build deps
+USER root
 WORKDIR /app
+RUN apt-get update && apt-get install upx -y
 
-FROM chef AS planner
-COPY ./Cargo.toml ./Cargo.lock ./
-RUN cargo chef prepare --recipe-path recipe.json
+RUN cargo install cargo-build-deps
+COPY Cargo.toml Cargo.lock ./
+RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps --release
 
-FROM chef AS builder 
-COPY --from=planner /app/recipe.json recipe.json
-# Build dependencies - this is the caching Docker layer!
-RUN RUSTFLAGS="--cfg tokio_unstable" cargo chef cook --recipe-path recipe.json
-# Build application
-COPY . .
-RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --bin main
+# build
+COPY --chown=root:root src src
+RUN RUSTFLAGS="--cfg tokio_unstable" cargo build  --release --bin main
+RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
+
 
 
 # 1. RUNTIME STAGE
@@ -111,7 +112,7 @@ ENV TERM=xterm
 
 WORKDIR /app
 
-COPY --from=builder --chown=mows-manager:mows-manager /app/target/debug/main ./mows-manager
+COPY --from=builder --chown=mows-manager:mows-manager /app/target/x86_64-unknown-linux-musl/release/main ./mows-manager
 RUN useradd -u 50001 -N mows-manager
 RUN groupadd -g 50001 mows-manager
 

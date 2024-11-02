@@ -1,6 +1,6 @@
 api:
   enabled: true
-  image: docker.io/pektin/api:latest
+  image: 192.168.112.5:5000/pektin-api #docker.io/pektin/api:latest
   imagePullPolicy: Always
   name: pektin-api
   replicaCount: 1
@@ -17,4 +17,25 @@ zertificat:
   image: docker.io/pektin/zertificat:latest
   imagePullPolicy: Always
   name: pektin-zertificat
+  replicaCount: 1
+
+db:
+  enabled: true
+  image: docker.io/eqalpha/keydb:alpine
+  imagePullPolicy: Always
+  name: pektin-db
+  replicaCount: 1
+
+ui:
+  enabled: true
+  image: docker.io/pektin/ui:latest
+  imagePullPolicy: Always
+  name: pektin-ui
+  replicaCount: 1
+
+ribston:
+  enabled: true
+  image: 192.168.112.5:5000/pektin-ribston
+  imagePullPolicy: Always
+  name: pektin-ribston
   replicaCount: 1

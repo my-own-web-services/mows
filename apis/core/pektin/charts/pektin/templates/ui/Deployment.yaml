@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.ui.name }}
+spec:
+  replicas: {{ .Values.ui.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.ui.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.ui.name }}
+    spec:
+      serviceAccountName: {{ .Values.ui.name }}
+      containers:
+        - name: {{ .Values.ui.name }}
+          image: "{{ .Values.ui.image }}"
+          imagePullPolicy: {{ .Values.ui.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 50003
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            limits:
+              memory: 128Mi
+              cpu: 500m
+
+
+          
+            
+

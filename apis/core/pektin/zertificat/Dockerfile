@@ -1,11 +1,15 @@
 # 0. BUILD STAGE
-FROM ekidd/rust-musl-builder AS build
+FROM clux/muslrust:stable AS builder
 # build deps
 USER root
+WORKDIR /app
+
 RUN apt-get update && apt-get install upx -y
 RUN cargo install cargo-build-deps
 
 COPY Cargo.toml Cargo.lock ./
+COPY ./common-temp /common
+COPY ./acme-rs-temp /acme-rs
 RUN cargo build-deps --release
 RUN rm -f target/x86_64-unknown-linux-musl/release/deps/zertificat*
 # build
@@ -18,8 +22,8 @@ RUN useradd -u 50001 -N zertificat
 # 1. APP STAGE
 FROM scratch
 WORKDIR /app
-COPY --from=build /home/rust/src/target/x86_64-unknown-linux-musl/release/main ./zertificat
-COPY --from=build /etc/passwd /etc/passwd
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/main ./zertificat
+COPY --from=builder /etc/passwd /etc/passwd
 USER zertificat
 STOPSIGNAL SIGKILL
 # run it 

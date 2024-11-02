@@ -13,11 +13,16 @@ spec:
         app: {{ .Values.server.name }}
     spec:
       serviceAccountName: {{ .Values.server.name }}
-      securityContext:
+
       containers:
         - name: {{ .Values.server.name }}
           image: "{{ .Values.server.image }}"
           imagePullPolicy: {{ .Values.server.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 50003
           ports:
             - name: http
               containerPort: 80
@@ -36,7 +41,7 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db-pektin-server-password
+                  name: pektin-db-server-password
                   key: data
 
 

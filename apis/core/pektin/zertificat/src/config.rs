@@ -1,76 +1,49 @@
-use std::env;
+use std::sync::OnceLock;
 
-use anyhow::bail;
-use data_encoding::BASE64;
+use pektin_common::load_env;
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
+
+pub fn config() -> &'static RwLock<ZertificatConfig> {
+    static API_CONFIG: OnceLock<RwLock<ZertificatConfig>> = OnceLock::new();
+    API_CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Config {
-    pub mode: String,
-    pub url: String,
-    pub password: String,
-    pub username: String,
-    pub pektin_auth: Pc3,
-}
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Pc3 {
-    pub username: String,
-    #[serde(rename = "confidantPassword")]
-    pub confidant_password: String,
-    #[serde(rename = "override")]
-    pub override_params: OverrideParams,
-    #[serde(rename = "perimeterAuth")]
-    pub perimeter_auth: String,
-}
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct OverrideParams {
-    #[serde(rename = "pektinApiEndpoint")]
+pub struct ZertificatConfig {
+    pub vault_uri: String,
+    pub service_account_token_path: String,
+    pub vault_kubernetes_auth_path: String,
+    pub vault_kubernetes_auth_role: String,
     pub pektin_api_endpoint: String,
+    pub pektin_username: String,
+    pub acme_email: String,
+    pub acme_url: String,
+    pub use_local_pebble: bool,
 }
 
-pub fn get_config() -> anyhow::Result<Config> {
-    let env = env::vars();
-    let mut mode: Option<String> = None;
-    let mut url: Option<String> = None;
-    let mut username: Option<String> = None;
-    let mut password: Option<String> = None;
-    let mut pektin_auth_b64: Option<String> = None;
-
-    for (k, v) in env {
-        if k == "MODE" {
-            mode = Some(v);
-        } else if k == "URL" {
-            url = Some(v);
-        } else if k == "USERNAME" {
-            username = Some(v);
-        } else if k == "PASSWORD" {
-            password = Some(v);
-        } else if k == "PEKTIN_AUTH" {
-            pektin_auth_b64 = Some(v);
-        }
-    }
-    if url.is_none()
-        || username.is_none()
-        || password.is_none()
-        || mode.is_none()
-        || pektin_auth_b64.is_none()
-    {
-        bail!("MODE, URL, USERNAME and PASSWORD must be provided as environment variables");
-    }
-
-    let pektin_auth = BASE64.decode(pektin_auth_b64.unwrap().as_bytes())?;
-    let pektin_auth: Pc3 = match serde_json::from_str(std::str::from_utf8(&pektin_auth)?) {
-        Ok(v) => v,
-        Err(e) => {
-            bail!("failed to parse pektin auth: {:?} {}", pektin_auth, e);
-        }
-    };
-
-    Ok(Config {
-        mode: mode.unwrap(),
-        url: url.unwrap(),
-        username: username.unwrap(),
-        password: password.unwrap(),
-        pektin_auth,
+pub fn from_env() -> anyhow::Result<ZertificatConfig> {
+    Ok(ZertificatConfig {
+        vault_uri: load_env(
+            "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
+            "VAULT_URI",
+            false,
+        )?,
+        service_account_token_path: load_env(
+            "/var/run/secrets/kubernetes.io/serviceaccount/token",
+            "SERVICE_ACCOUNT_TOKEN_PATH",
+            false,
+        )?,
+        vault_kubernetes_auth_path: load_env(
+            "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes",
+            "VAULT_KUBERNETES_AUTH_PATH",
+            false,
+        )?,
+        vault_kubernetes_auth_role: load_env("pektin-api", "VAULT_KUBERNETES_AUTH_ROLE", false)?,
+        pektin_api_endpoint: load_env("http://pektin-api", "PEKTIN_API_ENDPOINT", false)?,
+        pektin_username: load_env("pektin-zertificat", "PEKTIN_USERNAME", false)?,
+        acme_email: load_env("admin@pektin", "ACME_EMAIL", false)?,
+        acme_url: load_env("http://acme:14000", "ACME_URL", false)?,
+        use_local_pebble: load_env("false", "USE_LOCAL_PEBBLE", false)? == "true",
     })
 }

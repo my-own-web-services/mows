@@ -27,9 +27,9 @@ pub enum PektinCommonError {
     InvalidEnvVar(String),
     #[error("Couldn't read file based environment variable: {0} from path: {1} \n {2}")]
     InvalidEnvVarFilePath(String, String, String),
-    #[error("Error contacting Db")]
+    #[error("Error contacting database: {0}")]
     Db(#[from] deadpool_redis::redis::RedisError),
-    #[error("Could not (de)serialize JSON")]
+    #[error("Could not (de)serialize JSON: {0}")]
     Json(#[from] serde_json::Error),
 }
 

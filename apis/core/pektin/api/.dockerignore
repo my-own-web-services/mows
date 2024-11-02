@@ -3,3 +3,6 @@ old/
 .vscode/
 .git/
 .env/
+
+common-temp/target
+Dockerfile

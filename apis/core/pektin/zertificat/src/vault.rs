@@ -1,10 +1,14 @@
 use std::time::Duration;
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use serde::Deserialize;
 use serde_json::{json, Value};
+use vaultrs::{
+    api::AuthInfo,
+    client::{VaultClient, VaultClientSettingsBuilder},
+};
 
-use crate::types::VaultCert;
+use crate::{get_current_config_cloned, types::VaultCert};
 
 pub async fn get_kv_value(
     endpoint: &str,
@@ -74,37 +78,46 @@ pub async fn update_kv_value(
     Ok(())
 }
 
-// get the vault access token with role and secret id
-pub async fn login_userpass(
-    endpoint: &str,
-    username: &str,
-    password: &str,
-) -> anyhow::Result<String> {
-    #[derive(Deserialize, Debug)]
-    pub struct VaultRes {
-        auth: VaultAuth,
-    }
-    #[derive(Deserialize, Debug)]
-    pub struct VaultAuth {
-        client_token: String,
-    }
+pub async fn vault_k8s_login() -> anyhow::Result<AuthInfo> {
+    let api_config = get_current_config_cloned!();
+    let mut client_builder = VaultClientSettingsBuilder::default();
 
-    let vault_res = reqwest::Client::new()
-        .post(format!("{endpoint}/v1/auth/userpass/login/{username}"))
-        .timeout(Duration::from_secs(2))
-        .body(
-            json!({
-                "password": password,
-            })
-            .to_string(),
-        )
-        .send()
-        .await?;
-    let vault_res = vault_res.text().await?;
+    client_builder.address(api_config.vault_uri.clone());
 
-    let vault_res: VaultRes = match serde_json::from_str(&vault_res) {
-        Ok(vault_res) => vault_res,
-        Err(err) => bail!("Failed to parse VaultRes while logging into account: {username} {err}"),
-    };
-    Ok(vault_res.auth.client_token)
+    let vc = VaultClient::new(
+        client_builder
+            .build()
+            .context("Failed to create vault client")?,
+    )?;
+
+    let service_account_jwt =
+        std::fs::read_to_string(api_config.service_account_token_path.clone())
+            .context("Failed to read service account token file")?;
+
+    let vault_auth = vaultrs::auth::kubernetes::login(
+        &vc,
+        &api_config.vault_kubernetes_auth_path.clone(),
+        &api_config.vault_kubernetes_auth_role.clone(),
+        &service_account_jwt,
+    )
+    .await?;
+
+    Ok(vault_auth)
+}
+
+pub async fn create_vault_client() -> anyhow::Result<VaultClient> {
+    let api_config = get_current_config_cloned!();
+
+    let mut client_builder = VaultClientSettingsBuilder::default();
+
+    client_builder.address(api_config.vault_uri.clone());
+
+    let vc = VaultClient::new(
+        client_builder
+            .token(vault_k8s_login().await?.client_token)
+            .build()
+            .context("Failed to create vault client")?,
+    )?;
+
+    Ok(vc)
 }

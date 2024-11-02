@@ -17,7 +17,14 @@ spec:
                 pektin-zertificat:
                     data: |- {{ range .Files.Lines "policies/ribston/acme.ribston.js" }}
                         {{ . }}{{ end }}
-                         
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: pektin-zertificat
+spec:
+    secretEngine:
+        kv-v2:
 ---
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
@@ -34,7 +41,18 @@ spec:
               engineType: secret
               subPath: "*"
               capabilities: ["read"]
-
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: pektin-zertificat-policy
+spec:
+    engineAccessPolicy:
+        subPolicies:
+            - engineId: pektin-zertificat
+              engineType: secret
+              subPath: "*"
+              capabilities: ["update", "read","create","delete"]
 ---
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
@@ -47,4 +65,7 @@ spec:
                 pektin-api:
                     serviceAccountName: pektin-api
                     policyIds: ["pektin-api-policy"]
+                pektin-zertificat:
+                    serviceAccountName: pektin-zertificat
+                    policyIds: ["pektin-zertificat-policy"]
 

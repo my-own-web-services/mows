@@ -9,14 +9,17 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::vec;
 use zertificat::{
-    config::{get_config, Config, Pc3},
+    config::ZertificatConfig,
+    get_current_config_cloned,
     types::{MaybeVaultCert, PektinConfig, VaultCert, VaultCertInfo},
-    vault::{get_kv_value, login_userpass, update_kv_value},
+    vault::{get_kv_value, update_kv_value, vault_k8s_login},
 };
+
+use zertificat::config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let config = get_config()?;
+    let config = get_current_config_cloned!();
 
     // TODO: option to send a wake up call to run the procedure
 
@@ -34,29 +37,19 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
-async fn run_procedure(config: &Config) -> anyhow::Result<()> {
-    if config.mode == "vault" {
-        Ok(run_vault_procedure(config).await?)
-    } else {
-        bail!("mode not implemented");
-    }
-}
-
-async fn run_vault_procedure(config: &Config) -> anyhow::Result<()> {
+async fn run_procedure(config: &ZertificatConfig) -> anyhow::Result<()> {
     // get certificate config from vault
-    let domains = get_pektin_domains(&config.pektin_auth).await?;
-    let vault_token = login_userpass(&config.url, &config.username, &config.password).await?;
+    let vault_token = vault_k8s_login().await?.client_token;
+    let domains = get_pektin_domains(&vault_token).await?;
     let certificates = get_certificates(&domains, config, &vault_token).await?;
-    let pektin_config =
-        get_kv_value(&config.url, &vault_token, "pektin-kv", "pektin-config").await?;
     // check certificate presence in vault
     for cert in certificates {
         if cert.cert.is_none() || cert.key.is_none() || cert.info.is_none() {
             // generate new certificate
-            let cert = generate_certificate(&cert.domain, config, &pektin_config).await?;
+            let cert = generate_certificate(&cert.domain, config, &vault_token).await?;
             // set cert in vault
             update_kv_value(
-                &config.url,
+                &config.vault_uri,
                 &vault_token,
                 "pektin-zertificat",
                 &cert.domain,
@@ -81,10 +74,10 @@ async fn run_vault_procedure(config: &Config) -> anyhow::Result<()> {
             // check if certificate has expired
             if current_time > cert.info.created + sixty_days_secs {
                 // generate new certificate
-                let cert = generate_certificate(&cert.domain, config, &pektin_config).await?;
+                let cert = generate_certificate(&cert.domain, config, &vault_token).await?;
                 // set cert in vault
                 update_kv_value(
-                    &config.url,
+                    &config.vault_uri,
                     &vault_token,
                     "pektin-zertificat",
                     &cert.domain,
@@ -100,26 +93,19 @@ async fn run_vault_procedure(config: &Config) -> anyhow::Result<()> {
 
 pub async fn generate_certificate(
     domain: &str,
-    config: &Config,
-    pektin_config: &Value,
+    config: &ZertificatConfig,
+    vault_token: &str,
 ) -> anyhow::Result<VaultCert> {
     println!("generating certificate for {}", domain);
     let communication_signing_key = SigningKey::random(&mut OsRng);
-    let mut pc: PektinConfig = match serde_json::from_value(pektin_config.clone()) {
-        Ok(pc) => pc,
-        Err(e) => bail!("could not deserialize pektin config: {}", e),
+
+    let acme_url = match config.use_local_pebble {
+        true => "http://pektin-pebble:14000/dir",
+        false => &config.acme_url,
     };
 
-    if pc.services.zertificat.use_pebble {
-        pc.services.zertificat.acme_endpoint = "https://pektin-pebble:14000/dir".to_string();
-    }
-
-    let mut client = AcmeClient::new(
-        &pc.services.zertificat.acme_endpoint,
-        &communication_signing_key,
-        &pc.services.zertificat.acme_email,
-    )
-    .await?;
+    let mut client =
+        AcmeClient::new(&acme_url, &communication_signing_key, &config.acme_email).await?;
 
     let identifiers = vec![
         Identifier {
@@ -136,7 +122,7 @@ pub async fn generate_certificate(
 
     let signed_cert = client
         .sign_certificate(&cert, &identifiers, |user_challenges| {
-            handle_challenges_with_pektin(user_challenges, &config.pektin_auth)
+            handle_challenges_with_pektin(user_challenges, &vault_token)
         })
         .await?;
     let current_time = chrono::offset::Utc::now().timestamp_millis() / 1000;
@@ -152,12 +138,12 @@ pub async fn generate_certificate(
 
 pub async fn handle_challenges_with_pektin(
     user_challenges: UserChallenges,
-    pektin_auth: &Pc3,
+    vault_token: &str,
 ) -> anyhow::Result<Vec<String>> {
     println!("setting following challenges to pektin");
     println!("{:#?}", user_challenges);
 
-    set_pektin_record(pektin_auth, &user_challenges).await?;
+    set_pektin_record(vault_token, &user_challenges).await?;
     let mut fulfilled = Vec::new();
     for challenge in user_challenges.dns {
         fulfilled.push(challenge.url.to_string());
@@ -166,19 +152,17 @@ pub async fn handle_challenges_with_pektin(
     Ok(fulfilled)
 }
 
-async fn set_pektin_record(pektin_auth: &Pc3, challenge: &UserChallenges) -> anyhow::Result<()> {
+async fn set_pektin_record(vault_token: &str, challenge: &UserChallenges) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
+    let config = get_current_config_cloned!();
     let resp = client
-        .post(format!(
-            "{}/set",
-            pektin_auth.override_params.pektin_api_endpoint
-        ))
-        .header("Authorization", &pektin_auth.perimeter_auth)
+        .post(format!("{}/set", config.pektin_api_endpoint))
+        //.header("Authorization", &pektin_auth.perimeter_auth)
         .header("content-type", "application/json")
         .body(
             json!({
-                "client_username": pektin_auth.username,
-                "confidant_password": pektin_auth.confidant_password,
+                "client_username": config.pektin_username,
+                "client_token": vault_token,
                 "records": [
                     {
                         "name": challenge.dns[0].name,
@@ -208,12 +192,12 @@ async fn set_pektin_record(pektin_auth: &Pc3, challenge: &UserChallenges) -> any
 
 async fn get_certificates(
     domains: &Vec<String>,
-    config: &Config,
+    config: &ZertificatConfig,
     vault_token: &str,
 ) -> anyhow::Result<Vec<MaybeVaultCert>> {
     let mut certificates = vec![];
     for domain in domains {
-        match get_kv_value(&config.url, vault_token, "pektin-zertificat", domain).await {
+        match get_kv_value(&config.vault_uri, vault_token, "pektin-zertificat", domain).await {
             Ok(cert_res) => {
                 let cert = cert_res.get("cert").cloned();
                 let key = cert_res.get("key").cloned();
@@ -238,19 +222,17 @@ async fn get_certificates(
     Ok(certificates)
 }
 
-async fn get_pektin_domains(pektin_auth: &Pc3) -> anyhow::Result<Vec<String>> {
+async fn get_pektin_domains(vault_token: &str) -> anyhow::Result<Vec<String>> {
     let client = reqwest::Client::new();
+    let config = get_current_config_cloned!();
     let resp = client
-        .post(format!(
-            "{}/search",
-            pektin_auth.override_params.pektin_api_endpoint
-        ))
-        .header("Authorization", &pektin_auth.perimeter_auth)
+        .post(format!("{}/search", config.pektin_api_endpoint))
+        //.header("Authorization", &pektin_auth.perimeter_auth)
         .header("content-type", "application/json")
         .body(
             json!({
-                "client_username": pektin_auth.username,
-                "confidant_password": pektin_auth.confidant_password,
+                "client_username": config.pektin_username,
+                "client_token": vault_token,
                 "globs": [
                         {
                             "name_glob": "*",

@@ -24,19 +24,19 @@ indexing_slicing = "deny"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1.0.213", features = [
+serde = { version = "1.0.214", features = [
     "derive",
     "std",
 ], default-features = false }
 serde_json = { version = "1.0.132" }
-anyhow = "1.0.91"
+anyhow = "1.0.92"
 tokio = { version = "1.41.0", default-features = false, features = [
     "rt-multi-thread",
     "macros",
     "signal",
 ] }
 data-encoding = "2.6.0"
-reqwest = { version = "0.12.8", default-features = false, features = [
+reqwest = { version = "0.12.9", default-features = false, features = [
     "rustls-tls",
 ] }
 acme-rs = { path = "../acme-rs", features = [
@@ -50,6 +50,11 @@ p256 = { version = "0.13.2", default-features = false, features = [
     "ecdsa",
 ] }
 chrono = "0.4.38"
+pektin-common = { path = "../common" }
+vaultrs = "0.7.2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-opentelemetry = "0.27.0"
 
 [profile.release]
 codegen-units = 1

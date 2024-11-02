@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.ribston.name }}
+spec:
+  replicas: {{ .Values.ribston.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.ribston.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.ribston.name }}
+    spec:
+      serviceAccountName: {{ .Values.ribston.name }}
+      containers:
+        - name: {{ .Values.ribston.name }}
+          image: "{{ .Values.ribston.image }}"
+          imagePullPolicy: {{ .Values.ribston.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 500m
+        
+
+
+          
+            
+

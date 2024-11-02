@@ -1,50 +1,51 @@
-use std::{fs::read_to_string, sync::OnceLock};
+use std::{env, sync::OnceLock};
 
 use anyhow::bail;
+use pektin_common::load_env;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
-const CONFIG_PATH: &str = "/config.yaml";
-const DEV_CONFIG_PATH: &str = "dev/config.yaml";
+use crate::errors_and_responses::PektinApiResult;
 
 pub fn config() -> &'static RwLock<ApiConfig> {
     static API_CONFIG: OnceLock<RwLock<ApiConfig>> = OnceLock::new();
-    API_CONFIG.get_or_init(|| RwLock::new(read_config().unwrap()))
+    API_CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))
 }
 
-pub fn read_config() -> anyhow::Result<ApiConfig> {
-    let config_file = match read_to_string(CONFIG_PATH) {
-        Ok(file) => file,
-        Err(_) => match {
-            println!("Config file not found trying dev path");
-            read_to_string(DEV_CONFIG_PATH)
-        } {
-            Ok(file) => file,
-            Err(_) => bail!("Config file not found"),
-        },
-    };
+pub fn from_env() -> PektinApiResult<ApiConfig> {
+    Ok(ApiConfig {
+        bind_address: load_env("::", "BIND_ADDRESS", false)?,
+        bind_port: load_env("80", "BIND_PORT", false)?
+            .parse()
+            .map_err(|_| pektin_common::PektinCommonError::InvalidEnvVar("BIND_PORT".into()))?,
+        db_hostname: load_env("pektin-db", "DB_HOSTNAME", false)?,
+        db_port: load_env("6379", "DB_PORT", false)?
+            .parse()
+            .map_err(|_| pektin_common::PektinCommonError::InvalidEnvVar("DB_PORT".into()))?,
+        db_username: load_env("pektin-api", "DB_USERNAME", false)?,
+        db_password: load_env("", "DB_PASSWORD", true)?,
+        vault_uri: load_env(
+            "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
+            "VAULT_URI",
+            false,
+        )?,
+        ribston_uri: load_env("http://pektin-ribston:80", "RIBSTON_URI", false)?,
 
-    let config_file = replace_variables(config_file)?;
-    let config: ApiConfig = serde_yaml::from_str(&config_file)?;
-    Ok(config)
-}
-
-pub fn replace_variables(mut config_file: String) -> anyhow::Result<String> {
-    let first_config: ConfigVariablePrefix = serde_yaml::from_str(&config_file)?;
-    for (key, value) in std::env::vars() {
-        config_file = config_file.replace(
-            format!("{}{}", first_config.variable_prefix, key).as_str(),
-            &value,
-        );
-    }
-
-    Ok(config_file)
-}
-
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct ConfigVariablePrefix {
-    pub variable_prefix: String,
+        use_policies: load_env("ribston", "USE_POLICIES", false)?,
+        skip_auth: load_env("false", "SKIP_AUTH", false)?,
+        policy_vault_path: load_env("data", "POLICY_VAULT_PATH", false)?,
+        service_account_token_path: load_env(
+            "/var/run/secrets/kubernetes.io/serviceaccount/token",
+            "SERVICE_ACCOUNT_TOKEN_PATH",
+            false,
+        )?,
+        vault_kubernetes_auth_path: load_env(
+            "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes",
+            "VAULT_KUBERNETES_AUTH_PATH",
+            false,
+        )?,
+        vault_kubernetes_auth_role: load_env("pektin-api", "VAULT_KUBERNETES_AUTH_ROLE", false)?,
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]

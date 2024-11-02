@@ -174,7 +174,7 @@ pub async fn set(
             match rrsig_records {
                 Err(e) => return internal_err(e.to_string()),
                 Ok(rrsig_records) if !rrsig_records.is_empty() => {
-                    if let Err(e) = dnssec_con.set_multiple::<_, _, ()>(&rrsig_records).await {
+                    if let Err(e) = dnssec_con.mset::<_, _, ()>(&rrsig_records).await {
                         return internal_err(PektinCommonError::from(e).to_string());
                     }
                 }
@@ -185,7 +185,7 @@ pub async fn set(
 
             let res = match entries {
                 Err(e) => internal_err(e.to_string()),
-                Ok(entries) => match con.set_multiple(&entries).await {
+                Ok(entries) => match con.mset(&entries).await {
                     Ok(()) => {
                         let messages = entries[0..entries_length]
                             .iter()

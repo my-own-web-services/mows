@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.db.name }}
+spec:
+  replicas: {{ .Values.db.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.db.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.db.name }}
+    spec:
+      serviceAccountName: {{ .Values.db.name }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Values.db.name }}-config
+        - name: aclfile
+          configMap:
+            name: pektin-db-acl
+      containers:
+        - name: {{ .Values.db.name }}
+          image: "{{ .Values.db.image }}"
+          imagePullPolicy: {{ .Values.db.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          resources:
+            limits:
+              memory: 128Mi
+              cpu: 500m
+          command:
+            - "keydb-server"
+            - "/config/db.conf"
+          volumeMounts:
+            - name: config
+              mountPath: /config/db.conf
+              subPath: data
+            - name: aclfile
+              mountPath: /config/users.acl
+              subPath: data
+
+
+
+          
+            
+

@@ -1,0 +1,551 @@
+
+retries: 20
+parallel: 20
+min: 500
+workers: 3
+┌───────┬──────────┬───────────┬────────────────┬────────┐
+│ (idx) │ requests │ totalTime │ timePerRequest │ answer │
+├───────┼──────────┼───────────┼────────────────┼────────┤
+│     0 │        1 │      14.1 │           14.1 │ true   │
+│     1 │        2 │      18.9 │           9.47 │ true   │
+│     2 │        3 │      21.2 │           7.07 │ true   │
+│     3 │        4 │      25.2 │           6.29 │ true   │
+│     4 │        5 │      29.7 │           5.95 │ true   │
+│     5 │        6 │      33.6 │           5.59 │ true   │
+│     6 │        7 │      35.6 │           5.08 │ true   │
+│     7 │        8 │        40 │              5 │ true   │
+│     8 │        9 │      42.9 │           4.76 │ true   │
+│     9 │       10 │      46.7 │           4.67 │ true   │
+│    10 │       11 │      50.6 │            4.6 │ true   │
+│    11 │       12 │      52.8 │            4.4 │ true   │
+│    12 │       13 │      53.8 │           4.14 │ true   │
+│    13 │       14 │      57.1 │           4.08 │ true   │
+│    14 │       15 │      60.5 │           4.03 │ true   │
+│    15 │       16 │      62.8 │           3.93 │ true   │
+│    16 │       17 │      67.4 │           3.97 │ true   │
+│    17 │       18 │      70.4 │           3.91 │ true   │
+│    18 │       19 │      75.1 │           3.95 │ true   │
+│    19 │       20 │      87.3 │           4.36 │ true   │
+└───────┴──────────┴───────────┴────────────────┴────────┘
+[{"requests":1,"totalTime":14.1,"timePerRequest":14.1,"answer":true},{"requests":2,"totalTime":18.9,"timePerRequest":9.47,"answer":true},{"requests":3,"totalTime":21.2,"timePerRequest":7.07,"answer":true},{"requests":4,"totalTime":25.2,"timePerRequest":6.29,"answer":true},{"requests":5,"totalTime":29.7,"timePerRequest":5.95,"answer":true},{"requests":6,"totalTime":33.6,"timePerRequest":5.59,"answer":true},{"requests":7,"totalTime":35.6,"timePerRequest":5.08,"answer":true},{"requests":8,"totalTime":40,"timePerRequest":5,"answer":true},{"requests":9,"totalTime":42.9,"timePerRequest":4.76,"answer":true},{"requests":10,"totalTime":46.7,"timePerRequest":4.67,"answer":true},{"requests":11,"totalTime":50.6,"timePerRequest":4.6,"answer":true},{"requests":12,"totalTime":52.8,"timePerRequest":4.4,"answer":true},{"requests":13,"totalTime":53.8,"timePerRequest":4.14,"answer":true},{"requests":14,"totalTime":57.1,"timePerRequest":4.08,"answer":true},{"requests":15,"totalTime":60.5,"timePerRequest":4.03,"answer":true},{"requests":16,"totalTime":62.8,"timePerRequest":3.93,"answer":true},{"requests":17,"totalTime":67.4,"timePerRequest":3.97,"answer":true},{"requests":18,"totalTime":70.4,"timePerRequest":3.91,"answer":true},{"requests":19,"totalTime":75.1,"timePerRequest":3.95,"answer":true},{"requests":20,"totalTime":87.3,"timePerRequest":4.36,"answer":true}]
+Sum of all times per request:  109.35
+
+
+
+retries: 20
+parallel: 20
+min: 500
+workers: 0
+┌───────┬──────────┬───────────┬────────────────┬────────┐
+│ (idx) │ requests │ totalTime │ timePerRequest │ answer │
+├───────┼──────────┼───────────┼────────────────┼────────┤
+│     0 │        1 │      14.4 │           14.4 │ true   │
+│     1 │        2 │      19.9 │           9.97 │ true   │
+│     2 │        3 │      20.9 │           6.96 │ true   │
+│     3 │        4 │      25.6 │            6.4 │ true   │
+│     4 │        5 │      28.9 │           5.78 │ true   │
+│     5 │        6 │      32.6 │           5.44 │ true   │
+│     6 │        7 │      34.1 │           4.87 │ true   │
+│     7 │        8 │        36 │            4.5 │ true   │
+│     8 │        9 │      40.5 │            4.5 │ true   │
+│     9 │       10 │      40.2 │           4.02 │ true   │
+│    10 │       11 │      44.8 │           4.07 │ true   │
+│    11 │       12 │      45.3 │           3.77 │ true   │
+│    12 │       13 │      49.5 │           3.81 │ true   │
+│    13 │       14 │      48.9 │           3.49 │ true   │
+│    14 │       15 │        54 │            3.6 │ true   │
+│    15 │       16 │      57.9 │           3.62 │ true   │
+│    16 │       17 │        58 │           3.41 │ true   │
+│    17 │       18 │        64 │           3.56 │ true   │
+│    18 │       19 │      63.9 │           3.36 │ true   │
+│    19 │       20 │      66.7 │           3.34 │ true   │
+└───────┴──────────┴───────────┴────────────────┴────────┘
+[{"requests":1,"totalTime":14.4,"timePerRequest":14.4,"answer":true},{"requests":2,"totalTime":19.9,"timePerRequest":9.97,"answer":true},{"requests":3,"totalTime":20.9,"timePerRequest":6.96,"answer":true},{"requests":4,"totalTime":25.6,"timePerRequest":6.4,"answer":true},{"requests":5,"totalTime":28.9,"timePerRequest":5.78,"answer":true},{"requests":6,"totalTime":32.6,"timePerRequest":5.44,"answer":true},{"requests":7,"totalTime":34.1,"timePerRequest":4.87,"answer":true},{"requests":8,"totalTime":36,"timePerRequest":4.5,"answer":true},{"requests":9,"totalTime":40.5,"timePerRequest":4.5,"answer":true},{"requests":10,"totalTime":40.2,"timePerRequest":4.02,"answer":true},{"requests":11,"totalTime":44.8,"timePerRequest":4.07,"answer":true},{"requests":12,"totalTime":45.3,"timePerRequest":3.77,"answer":true},{"requests":13,"totalTime":49.5,"timePerRequest":3.81,"answer":true},{"requests":14,"totalTime":48.9,"timePerRequest":3.49,"answer":true},{"requests":15,"totalTime":54,"timePerRequest":3.6,"answer":true},{"requests":16,"totalTime":57.9,"timePerRequest":3.62,"answer":true},{"requests":17,"totalTime":58,"timePerRequest":3.41,"answer":true},{"requests":18,"totalTime":64,"timePerRequest":3.56,"answer":true},{"requests":19,"totalTime":63.9,"timePerRequest":3.36,"answer":true},{"requests":20,"totalTime":66.7,"timePerRequest":3.34,"answer":true}]
+Sum of all times per request:  102.86999999999999
+
+
+retries: 20
+parallel: 20
+min: 500
+workers: 500
+┌───────┬──────────┬───────────┬────────────────┬────────┐
+│ (idx) │ requests │ totalTime │ timePerRequest │ answer │
+├───────┼──────────┼───────────┼────────────────┼────────┤
+│     0 │        1 │      8.45 │           8.45 │ true   │
+│     1 │        2 │      12.2 │           6.11 │ true   │
+│     2 │        3 │      18.4 │           6.12 │ true   │
+│     3 │        4 │      22.5 │           5.62 │ true   │
+│     4 │        5 │      27.6 │           5.53 │ true   │
+│     5 │        6 │        35 │           5.84 │ true   │
+│     6 │        7 │        39 │           5.58 │ true   │
+│     7 │        8 │      43.2 │            5.4 │ true   │
+│     8 │        9 │      48.9 │           5.43 │ true   │
+│     9 │       10 │      53.1 │           5.31 │ true   │
+│    10 │       11 │      58.4 │           5.31 │ true   │
+│    11 │       12 │      64.3 │           5.36 │ true   │
+│    12 │       13 │      68.9 │            5.3 │ true   │
+│    13 │       14 │      74.5 │           5.32 │ true   │
+│    14 │       15 │      78.7 │           5.25 │ true   │
+│    15 │       16 │      87.7 │           5.48 │ true   │
+│    16 │       17 │        90 │           5.29 │ true   │
+│    17 │       18 │      94.3 │           5.24 │ true   │
+│    18 │       19 │       101 │            5.3 │ true   │
+│    19 │       20 │       105 │           5.25 │ true   │
+└───────┴──────────┴───────────┴────────────────┴────────┘
+[{"requests":1,"totalTime":8.45,"timePerRequest":8.45,"answer":true},{"requests":2,"totalTime":12.2,"timePerRequest":6.11,"answer":true},{"requests":3,"totalTime":18.4,"timePerRequest":6.12,"answer":true},{"requests":4,"totalTime":22.5,"timePerRequest":5.62,"answer":true},{"requests":5,"totalTime":27.6,"timePerRequest":5.53,"answer":true},{"requests":6,"totalTime":35,"timePerRequest":5.84,"answer":true},{"requests":7,"totalTime":39,"timePerRequest":5.58,"answer":true},{"requests":8,"totalTime":43.2,"timePerRequest":5.4,"answer":true},{"requests":9,"totalTime":48.9,"timePerRequest":5.43,"answer":true},{"requests":10,"totalTime":53.1,"timePerRequest":5.31,"answer":true},{"requests":11,"totalTime":58.4,"timePerRequest":5.31,"answer":true},{"requests":12,"totalTime":64.3,"timePerRequest":5.36,"answer":true},{"requests":13,"totalTime":68.9,"timePerRequest":5.3,"answer":true},{"requests":14,"totalTime":74.5,"timePerRequest":5.32,"answer":true},{"requests":15,"totalTime":78.7,"timePerRequest":5.25,"answer":true},{"requests":16,"totalTime":87.7,"timePerRequest":5.48,"answer":true},{"requests":17,"totalTime":90,"timePerRequest":5.29,"answer":true},{"requests":18,"totalTime":94.3,"timePerRequest":5.24,"answer":true},{"requests":19,"totalTime":101,"timePerRequest":5.3,"answer":true},{"requests":20,"totalTime":105,"timePerRequest":5.25,"answer":true}]
+Sum of all times per request:  112.49000000000001
+
+
+
+
+
+
+
+
+retries: 10
+parallel: 100
+min: 500
+workers: 10
+┌───────┬──────────┬───────────┬────────────────┬────────┐
+│ (idx) │ requests │ totalTime │ timePerRequest │ answer │
+├───────┼──────────┼───────────┼────────────────┼────────┤
+│     0 │        1 │      8.23 │           8.23 │ true   │
+│     1 │        2 │      17.5 │           8.76 │ true   │
+│     2 │        3 │      17.9 │           5.97 │ true   │
+│     3 │        4 │      27.8 │           6.95 │ true   │
+│     4 │        5 │      29.5 │            5.9 │ true   │
+│     5 │        6 │      35.1 │           5.86 │ true   │
+│     6 │        7 │      36.8 │           5.25 │ true   │
+│     7 │        8 │      44.5 │           5.57 │ true   │
+│     8 │        9 │      47.8 │           5.32 │ true   │
+│     9 │       10 │        49 │            4.9 │ true   │
+│    10 │       11 │      55.2 │           5.02 │ true   │
+│    11 │       12 │      62.9 │           5.24 │ true   │
+│    12 │       13 │      63.8 │           4.91 │ true   │
+│    13 │       14 │      69.4 │           4.96 │ true   │
+│    14 │       15 │      75.5 │           5.03 │ true   │
+│    15 │       16 │      81.4 │           5.09 │ true   │
+│    16 │       17 │      86.5 │           5.09 │ true   │
+│    17 │       18 │      87.9 │           4.88 │ true   │
+│    18 │       19 │      91.1 │           4.79 │ true   │
+│    19 │       20 │      97.8 │           4.89 │ true   │
+│    20 │       21 │       107 │           5.09 │ true   │
+│    21 │       22 │       108 │           4.93 │ true   │
+│    22 │       23 │       116 │           5.03 │ true   │
+│    23 │       24 │       123 │           5.11 │ true   │
+│    24 │       25 │       122 │           4.88 │ true   │
+│    25 │       26 │       129 │           4.98 │ true   │
+│    26 │       27 │       137 │           5.06 │ true   │
+│    27 │       28 │       151 │           5.39 │ true   │
+│    28 │       29 │       158 │           5.45 │ true   │
+│    29 │       30 │       187 │           6.24 │ true   │
+│    30 │       31 │       178 │           5.73 │ true   │
+│    31 │       32 │       170 │            5.3 │ true   │
+│    32 │       33 │       178 │           5.39 │ true   │
+│    33 │       34 │       183 │           5.38 │ true   │
+│    34 │       35 │       185 │           5.29 │ true   │
+│    35 │       36 │       193 │           5.35 │ true   │
+│    36 │       37 │       213 │           5.76 │ true   │
+│    37 │       38 │       183 │           4.83 │ true   │
+│    38 │       39 │       218 │            5.6 │ true   │
+│    39 │       40 │       211 │           5.28 │ true   │
+│    40 │       41 │       212 │           5.16 │ true   │
+│    41 │       42 │       235 │            5.6 │ true   │
+│    42 │       43 │       225 │           5.24 │ true   │
+│    43 │       44 │       240 │           5.46 │ true   │
+│    44 │       45 │       228 │           5.07 │ true   │
+│    45 │       46 │       227 │           4.94 │ true   │
+│    46 │       47 │       245 │           5.21 │ true   │
+│    47 │       48 │       259 │           5.41 │ true   │
+│    48 │       49 │       265 │           5.42 │ true   │
+│    49 │       50 │       258 │           5.15 │ true   │
+│    50 │       51 │       254 │           4.97 │ true   │
+│    51 │       52 │       261 │           5.02 │ true   │
+│    52 │       53 │       268 │           5.06 │ true   │
+│    53 │       54 │       273 │           5.06 │ true   │
+│    54 │       55 │       277 │           5.04 │ true   │
+│    55 │       56 │       277 │           4.95 │ true   │
+│    56 │       57 │       285 │           5.01 │ true   │
+│    57 │       58 │       287 │           4.95 │ true   │
+│    58 │       59 │       295 │           5.01 │ true   │
+│    59 │       60 │       301 │           5.01 │ true   │
+│    60 │       61 │       306 │           5.01 │ true   │
+│    61 │       62 │       347 │            5.6 │ true   │
+│    62 │       63 │       328 │            5.2 │ true   │
+│    63 │       64 │       351 │           5.49 │ true   │
+│    64 │       65 │       347 │           5.35 │ true   │
+│    65 │       66 │       348 │           5.27 │ true   │
+│    66 │       67 │       371 │           5.53 │ true   │
+│    67 │       68 │       386 │           5.68 │ true   │
+│    68 │       69 │       422 │           6.12 │ true   │
+│    69 │       70 │       422 │           6.03 │ true   │
+│    70 │       71 │       349 │           4.92 │ true   │
+│    71 │       72 │       379 │           5.26 │ true   │
+│    72 │       73 │       395 │           5.41 │ true   │
+│    73 │       74 │       405 │           5.47 │ true   │
+│    74 │       75 │       394 │           5.25 │ true   │
+│    75 │       76 │       381 │           5.01 │ true   │
+│    76 │       77 │       429 │           5.57 │ true   │
+│    77 │       78 │       390 │              5 │ true   │
+│    78 │       79 │       418 │           5.29 │ true   │
+│    79 │       80 │       421 │           5.26 │ true   │
+│    80 │       81 │       422 │           5.21 │ true   │
+│    81 │       82 │       425 │           5.18 │ true   │
+│    82 │       83 │       446 │           5.38 │ true   │
+│    83 │       84 │       428 │           5.09 │ true   │
+│    84 │       85 │       444 │           5.22 │ true   │
+│    85 │       86 │       465 │           5.41 │ true   │
+│    86 │       87 │       446 │           5.12 │ true   │
+│    87 │       88 │       456 │           5.18 │ true   │
+│    88 │       89 │       495 │           5.57 │ true   │
+│    89 │       90 │       463 │           5.15 │ true   │
+│    90 │       91 │       458 │           5.04 │ true   │
+│    91 │       92 │       501 │           5.44 │ true   │
+│    92 │       93 │       483 │           5.19 │ true   │
+│    93 │       94 │       500 │           5.31 │ true   │
+│    94 │       95 │       486 │           5.11 │ true   │
+│    95 │       96 │       523 │           5.45 │ true   │
+│    96 │       97 │       489 │           5.04 │ true   │
+│    97 │       98 │       512 │           5.23 │ true   │
+│    98 │       99 │       530 │           5.35 │ true   │
+│    99 │      100 │       519 │           5.19 │ true   │
+└───────┴──────────┴───────────┴────────────────┴────────┘
+[{"requests":1,"totalTime":8.23,"timePerRequest":8.23,"answer":true},{"requests":2,"totalTime":17.5,"timePerRequest":8.76,"answer":true},{"requests":3,"totalTime":17.9,"timePerRequest":5.97,"answer":true},{"requests":4,"totalTime":27.8,"timePerRequest":6.95,"answer":true},{"requests":5,"totalTime":29.5,"timePerRequest":5.9,"answer":true},{"requests":6,"totalTime":35.1,"timePerRequest":5.86,"answer":true},{"requests":7,"totalTime":36.8,"timePerRequest":5.25,"answer":true},{"requests":8,"totalTime":44.5,"timePerRequest":5.57,"answer":true},{"requests":9,"totalTime":47.8,"timePerRequest":5.32,"answer":true},{"requests":10,"totalTime":49,"timePerRequest":4.9,"answer":true},{"requests":11,"totalTime":55.2,"timePerRequest":5.02,"answer":true},{"requests":12,"totalTime":62.9,"timePerRequest":5.24,"answer":true},{"requests":13,"totalTime":63.8,"timePerRequest":4.91,"answer":true},{"requests":14,"totalTime":69.4,"timePerRequest":4.96,"answer":true},{"requests":15,"totalTime":75.5,"timePerRequest":5.03,"answer":true},{"requests":16,"totalTime":81.4,"timePerRequest":5.09,"answer":true},{"requests":17,"totalTime":86.5,"timePerRequest":5.09,"answer":true},{"requests":18,"totalTime":87.9,"timePerRequest":4.88,"answer":true},{"requests":19,"totalTime":91.1,"timePerRequest":4.79,"answer":true},{"requests":20,"totalTime":97.8,"timePerRequest":4.89,"answer":true},{"requests":21,"totalTime":107,"timePerRequest":5.09,"answer":true},{"requests":22,"totalTime":108,"timePerRequest":4.93,"answer":true},{"requests":23,"totalTime":116,"timePerRequest":5.03,"answer":true},{"requests":24,"totalTime":123,"timePerRequest":5.11,"answer":true},{"requests":25,"totalTime":122,"timePerRequest":4.88,"answer":true},{"requests":26,"totalTime":129,"timePerRequest":4.98,"answer":true},{"requests":27,"totalTime":137,"timePerRequest":5.06,"answer":true},{"requests":28,"totalTime":151,"timePerRequest":5.39,"answer":true},{"requests":29,"totalTime":158,"timePerRequest":5.45,"answer":true},{"requests":30,"totalTime":187,"timePerRequest":6.24,"answer":true},{"requests":31,"totalTime":178,"timePerRequest":5.73,"answer":true},{"requests":32,"totalTime":170,"timePerRequest":5.3,"answer":true},{"requests":33,"totalTime":178,"timePerRequest":5.39,"answer":true},{"requests":34,"totalTime":183,"timePerRequest":5.38,"answer":true},{"requests":35,"totalTime":185,"timePerRequest":5.29,"answer":true},{"requests":36,"totalTime":193,"timePerRequest":5.35,"answer":true},{"requests":37,"totalTime":213,"timePerRequest":5.76,"answer":true},{"requests":38,"totalTime":183,"timePerRequest":4.83,"answer":true},{"requests":39,"totalTime":218,"timePerRequest":5.6,"answer":true},{"requests":40,"totalTime":211,"timePerRequest":5.28,"answer":true},{"requests":41,"totalTime":212,"timePerRequest":5.16,"answer":true},{"requests":42,"totalTime":235,"timePerRequest":5.6,"answer":true},{"requests":43,"totalTime":225,"timePerRequest":5.24,"answer":true},{"requests":44,"totalTime":240,"timePerRequest":5.46,"answer":true},{"requests":45,"totalTime":228,"timePerRequest":5.07,"answer":true},{"requests":46,"totalTime":227,"timePerRequest":4.94,"answer":true},{"requests":47,"totalTime":245,"timePerRequest":5.21,"answer":true},{"requests":48,"totalTime":259,"timePerRequest":5.41,"answer":true},{"requests":49,"totalTime":265,"timePerRequest":5.42,"answer":true},{"requests":50,"totalTime":258,"timePerRequest":5.15,"answer":true},{"requests":51,"totalTime":254,"timePerRequest":4.97,"answer":true},{"requests":52,"totalTime":261,"timePerRequest":5.02,"answer":true},{"requests":53,"totalTime":268,"timePerRequest":5.06,"answer":true},{"requests":54,"totalTime":273,"timePerRequest":5.06,"answer":true},{"requests":55,"totalTime":277,"timePerRequest":5.04,"answer":true},{"requests":56,"totalTime":277,"timePerRequest":4.95,"answer":true},{"requests":57,"totalTime":285,"timePerRequest":5.01,"answer":true},{"requests":58,"totalTime":287,"timePerRequest":4.95,"answer":true},{"requests":59,"totalTime":295,"timePerRequest":5.01,"answer":true},{"requests":60,"totalTime":301,"timePerRequest":5.01,"answer":true},{"requests":61,"totalTime":306,"timePerRequest":5.01,"answer":true},{"requests":62,"totalTime":347,"timePerRequest":5.6,"answer":true},{"requests":63,"totalTime":328,"timePerRequest":5.2,"answer":true},{"requests":64,"totalTime":351,"timePerRequest":5.49,"answer":true},{"requests":65,"totalTime":347,"timePerRequest":5.35,"answer":true},{"requests":66,"totalTime":348,"timePerRequest":5.27,"answer":true},{"requests":67,"totalTime":371,"timePerRequest":5.53,"answer":true},{"requests":68,"totalTime":386,"timePerRequest":5.68,"answer":true},{"requests":69,"totalTime":422,"timePerRequest":6.12,"answer":true},{"requests":70,"totalTime":422,"timePerRequest":6.03,"answer":true},{"requests":71,"totalTime":349,"timePerRequest":4.92,"answer":true},{"requests":72,"totalTime":379,"timePerRequest":5.26,"answer":true},{"requests":73,"totalTime":395,"timePerRequest":5.41,"answer":true},{"requests":74,"totalTime":405,"timePerRequest":5.47,"answer":true},{"requests":75,"totalTime":394,"timePerRequest":5.25,"answer":true},{"requests":76,"totalTime":381,"timePerRequest":5.01,"answer":true},{"requests":77,"totalTime":429,"timePerRequest":5.57,"answer":true},{"requests":78,"totalTime":390,"timePerRequest":5,"answer":true},{"requests":79,"totalTime":418,"timePerRequest":5.29,"answer":true},{"requests":80,"totalTime":421,"timePerRequest":5.26,"answer":true},{"requests":81,"totalTime":422,"timePerRequest":5.21,"answer":true},{"requests":82,"totalTime":425,"timePerRequest":5.18,"answer":true},{"requests":83,"totalTime":446,"timePerRequest":5.38,"answer":true},{"requests":84,"totalTime":428,"timePerRequest":5.09,"answer":true},{"requests":85,"totalTime":444,"timePerRequest":5.22,"answer":true},{"requests":86,"totalTime":465,"timePerRequest":5.41,"answer":true},{"requests":87,"totalTime":446,"timePerRequest":5.12,"answer":true},{"requests":88,"totalTime":456,"timePerRequest":5.18,"answer":true},{"requests":89,"totalTime":495,"timePerRequest":5.57,"answer":true},{"requests":90,"totalTime":463,"timePerRequest":5.15,"answer":true},{"requests":91,"totalTime":458,"timePerRequest":5.04,"answer":true},{"requests":92,"totalTime":501,"timePerRequest":5.44,"answer":true},{"requests":93,"totalTime":483,"timePerRequest":5.19,"answer":true},{"requests":94,"totalTime":500,"timePerRequest":5.31,"answer":true},{"requests":95,"totalTime":486,"timePerRequest":5.11,"answer":true},{"requests":96,"totalTime":523,"timePerRequest":5.45,"answer":true},{"requests":97,"totalTime":489,"timePerRequest":5.04,"answer":true},{"requests":98,"totalTime":512,"timePerRequest":5.23,"answer":true},{"requests":99,"totalTime":530,"timePerRequest":5.35,"answer":true},{"requests":100,"totalTime":519,"timePerRequest":5.19,"answer":true}]
+Sum of all times per request:  534.0000000000001
+
+retries: 10
+parallel: 100
+min: 500
+workers: 0
+┌───────┬──────────┬───────────┬────────────────┬────────┐
+│ (idx) │ requests │ totalTime │ timePerRequest │ answer │
+├───────┼──────────┼───────────┼────────────────┼────────┤
+│     0 │        1 │      16.8 │           16.8 │ true   │
+│     1 │        2 │      19.5 │           9.75 │ true   │
+│     2 │        3 │      25.2 │            8.4 │ true   │
+│     3 │        4 │      28.8 │            7.2 │ true   │
+│     4 │        5 │      28.7 │           5.74 │ true   │
+│     5 │        6 │      31.7 │           5.28 │ true   │
+│     6 │        7 │      32.6 │           4.66 │ true   │
+│     7 │        8 │      37.9 │           4.73 │ true   │
+│     8 │        9 │      41.2 │           4.58 │ true   │
+│     9 │       10 │        39 │            3.9 │ true   │
+│    10 │       11 │      46.4 │           4.22 │ true   │
+│    11 │       12 │      49.5 │           4.13 │ true   │
+│    12 │       13 │      51.1 │           3.93 │ true   │
+│    13 │       14 │      55.2 │           3.95 │ true   │
+│    14 │       15 │      55.2 │           3.68 │ true   │
+│    15 │       16 │      55.7 │           3.48 │ true   │
+│    16 │       17 │      60.8 │           3.58 │ true   │
+│    17 │       18 │        62 │           3.44 │ true   │
+│    18 │       19 │      65.7 │           3.46 │ true   │
+│    19 │       20 │      66.8 │           3.34 │ true   │
+│    20 │       21 │      70.3 │           3.35 │ true   │
+│    21 │       22 │      68.9 │           3.13 │ true   │
+│    22 │       23 │      73.3 │           3.19 │ true   │
+│    23 │       24 │      76.9 │           3.21 │ true   │
+│    24 │       25 │      80.7 │           3.23 │ true   │
+│    25 │       26 │      81.3 │           3.13 │ true   │
+│    26 │       27 │      83.4 │           3.09 │ true   │
+│    27 │       28 │      86.4 │           3.09 │ true   │
+│    28 │       29 │      88.4 │           3.05 │ true   │
+│    29 │       30 │      94.1 │           3.14 │ true   │
+│    30 │       31 │      90.3 │           2.91 │ true   │
+│    31 │       32 │      93.5 │           2.92 │ true   │
+│    32 │       33 │       101 │           3.06 │ true   │
+│    33 │       34 │       100 │           2.94 │ true   │
+│    34 │       35 │       105 │           2.99 │ true   │
+│    35 │       36 │       103 │           2.86 │ true   │
+│    36 │       37 │       107 │           2.89 │ true   │
+│    37 │       38 │       108 │           2.85 │ true   │
+│    38 │       39 │       116 │           2.97 │ true   │
+│    39 │       40 │       115 │           2.87 │ true   │
+│    40 │       41 │       115 │           2.81 │ true   │
+│    41 │       42 │       117 │           2.78 │ true   │
+│    42 │       43 │       119 │           2.77 │ true   │
+│    43 │       44 │       123 │           2.79 │ true   │
+│    44 │       45 │       126 │            2.8 │ true   │
+│    45 │       46 │       128 │           2.79 │ true   │
+│    46 │       47 │       124 │           2.65 │ true   │
+│    47 │       48 │       142 │           2.97 │ true   │
+│    48 │       49 │       125 │           2.55 │ true   │
+│    49 │       50 │       139 │           2.77 │ true   │
+│    50 │       51 │       144 │           2.83 │ true   │
+│    51 │       52 │       140 │           2.69 │ true   │
+│    52 │       53 │       146 │           2.76 │ true   │
+│    53 │       54 │       145 │           2.68 │ true   │
+│    54 │       55 │       152 │           2.77 │ true   │
+│    55 │       56 │       152 │           2.72 │ true   │
+│    56 │       57 │       162 │           2.85 │ true   │
+│    57 │       58 │       152 │           2.62 │ true   │
+│    58 │       59 │       158 │           2.67 │ true   │
+│    59 │       60 │       163 │           2.71 │ true   │
+│    60 │       61 │       166 │           2.72 │ true   │
+│    61 │       62 │       169 │           2.73 │ true   │
+│    62 │       63 │       179 │           2.84 │ true   │
+│    63 │       64 │       173 │            2.7 │ true   │
+│    64 │       65 │       178 │           2.74 │ true   │
+│    65 │       66 │       177 │           2.68 │ true   │
+│    66 │       67 │       181 │           2.71 │ true   │
+│    67 │       68 │       184 │            2.7 │ true   │
+│    68 │       69 │       192 │           2.79 │ true   │
+│    69 │       70 │       198 │           2.82 │ true   │
+│    70 │       71 │       188 │           2.64 │ true   │
+│    71 │       72 │       200 │           2.78 │ true   │
+│    72 │       73 │       200 │           2.74 │ true   │
+│    73 │       74 │       211 │           2.86 │ true   │
+│    74 │       75 │       206 │           2.74 │ true   │
+│    75 │       76 │       204 │           2.68 │ true   │
+│    76 │       77 │       234 │           3.04 │ true   │
+│    77 │       78 │       206 │           2.64 │ true   │
+│    78 │       79 │       228 │           2.89 │ true   │
+│    79 │       80 │       219 │           2.74 │ true   │
+│    80 │       81 │       218 │           2.69 │ true   │
+│    81 │       82 │       229 │            2.8 │ true   │
+│    82 │       83 │       233 │           2.81 │ true   │
+│    83 │       84 │       232 │           2.76 │ true   │
+│    84 │       85 │       245 │           2.89 │ true   │
+│    85 │       86 │       237 │           2.75 │ true   │
+│    86 │       87 │       254 │           2.92 │ true   │
+│    87 │       88 │       229 │           2.61 │ true   │
+│    88 │       89 │       259 │           2.91 │ true   │
+│    89 │       90 │       249 │           2.77 │ true   │
+│    90 │       91 │       260 │           2.86 │ true   │
+│    91 │       92 │       242 │           2.63 │ true   │
+│    92 │       93 │       270 │            2.9 │ true   │
+│    93 │       94 │       258 │           2.74 │ true   │
+│    94 │       95 │       271 │           2.85 │ true   │
+│    95 │       96 │       266 │           2.77 │ true   │
+│    96 │       97 │       266 │           2.75 │ true   │
+│    97 │       98 │       259 │           2.64 │ true   │
+│    98 │       99 │       287 │            2.9 │ true   │
+│    99 │      100 │       280 │            2.8 │ true   │
+└───────┴──────────┴───────────┴────────────────┴────────┘
+[{"requests":1,"totalTime":16.8,"timePerRequest":16.8,"answer":true},{"requests":2,"totalTime":19.5,"timePerRequest":9.75,"answer":true},{"requests":3,"totalTime":25.2,"timePerRequest":8.4,"answer":true},{"requests":4,"totalTime":28.8,"timePerRequest":7.2,"answer":true},{"requests":5,"totalTime":28.7,"timePerRequest":5.74,"answer":true},{"requests":6,"totalTime":31.7,"timePerRequest":5.28,"answer":true},{"requests":7,"totalTime":32.6,"timePerRequest":4.66,"answer":true},{"requests":8,"totalTime":37.9,"timePerRequest":4.73,"answer":true},{"requests":9,"totalTime":41.2,"timePerRequest":4.58,"answer":true},{"requests":10,"totalTime":39,"timePerRequest":3.9,"answer":true},{"requests":11,"totalTime":46.4,"timePerRequest":4.22,"answer":true},{"requests":12,"totalTime":49.5,"timePerRequest":4.13,"answer":true},{"requests":13,"totalTime":51.1,"timePerRequest":3.93,"answer":true},{"requests":14,"totalTime":55.2,"timePerRequest":3.95,"answer":true},{"requests":15,"totalTime":55.2,"timePerRequest":3.68,"answer":true},{"requests":16,"totalTime":55.7,"timePerRequest":3.48,"answer":true},{"requests":17,"totalTime":60.8,"timePerRequest":3.58,"answer":true},{"requests":18,"totalTime":62,"timePerRequest":3.44,"answer":true},{"requests":19,"totalTime":65.7,"timePerRequest":3.46,"answer":true},{"requests":20,"totalTime":66.8,"timePerRequest":3.34,"answer":true},{"requests":21,"totalTime":70.3,"timePerRequest":3.35,"answer":true},{"requests":22,"totalTime":68.9,"timePerRequest":3.13,"answer":true},{"requests":23,"totalTime":73.3,"timePerRequest":3.19,"answer":true},{"requests":24,"totalTime":76.9,"timePerRequest":3.21,"answer":true},{"requests":25,"totalTime":80.7,"timePerRequest":3.23,"answer":true},{"requests":26,"totalTime":81.3,"timePerRequest":3.13,"answer":true},{"requests":27,"totalTime":83.4,"timePerRequest":3.09,"answer":true},{"requests":28,"totalTime":86.4,"timePerRequest":3.09,"answer":true},{"requests":29,"totalTime":88.4,"timePerRequest":3.05,"answer":true},{"requests":30,"totalTime":94.1,"timePerRequest":3.14,"answer":true},{"requests":31,"totalTime":90.3,"timePerRequest":2.91,"answer":true},{"requests":32,"totalTime":93.5,"timePerRequest":2.92,"answer":true},{"requests":33,"totalTime":101,"timePerRequest":3.06,"answer":true},{"requests":34,"totalTime":100,"timePerRequest":2.94,"answer":true},{"requests":35,"totalTime":105,"timePerRequest":2.99,"answer":true},{"requests":36,"totalTime":103,"timePerRequest":2.86,"answer":true},{"requests":37,"totalTime":107,"timePerRequest":2.89,"answer":true},{"requests":38,"totalTime":108,"timePerRequest":2.85,"answer":true},{"requests":39,"totalTime":116,"timePerRequest":2.97,"answer":true},{"requests":40,"totalTime":115,"timePerRequest":2.87,"answer":true},{"requests":41,"totalTime":115,"timePerRequest":2.81,"answer":true},{"requests":42,"totalTime":117,"timePerRequest":2.78,"answer":true},{"requests":43,"totalTime":119,"timePerRequest":2.77,"answer":true},{"requests":44,"totalTime":123,"timePerRequest":2.79,"answer":true},{"requests":45,"totalTime":126,"timePerRequest":2.8,"answer":true},{"requests":46,"totalTime":128,"timePerRequest":2.79,"answer":true},{"requests":47,"totalTime":124,"timePerRequest":2.65,"answer":true},{"requests":48,"totalTime":142,"timePerRequest":2.97,"answer":true},{"requests":49,"totalTime":125,"timePerRequest":2.55,"answer":true},{"requests":50,"totalTime":139,"timePerRequest":2.77,"answer":true},{"requests":51,"totalTime":144,"timePerRequest":2.83,"answer":true},{"requests":52,"totalTime":140,"timePerRequest":2.69,"answer":true},{"requests":53,"totalTime":146,"timePerRequest":2.76,"answer":true},{"requests":54,"totalTime":145,"timePerRequest":2.68,"answer":true},{"requests":55,"totalTime":152,"timePerRequest":2.77,"answer":true},{"requests":56,"totalTime":152,"timePerRequest":2.72,"answer":true},{"requests":57,"totalTime":162,"timePerRequest":2.85,"answer":true},{"requests":58,"totalTime":152,"timePerRequest":2.62,"answer":true},{"requests":59,"totalTime":158,"timePerRequest":2.67,"answer":true},{"requests":60,"totalTime":163,"timePerRequest":2.71,"answer":true},{"requests":61,"totalTime":166,"timePerRequest":2.72,"answer":true},{"requests":62,"totalTime":169,"timePerRequest":2.73,"answer":true},{"requests":63,"totalTime":179,"timePerRequest":2.84,"answer":true},{"requests":64,"totalTime":173,"timePerRequest":2.7,"answer":true},{"requests":65,"totalTime":178,"timePerRequest":2.74,"answer":true},{"requests":66,"totalTime":177,"timePerRequest":2.68,"answer":true},{"requests":67,"totalTime":181,"timePerRequest":2.71,"answer":true},{"requests":68,"totalTime":184,"timePerRequest":2.7,"answer":true},{"requests":69,"totalTime":192,"timePerRequest":2.79,"answer":true},{"requests":70,"totalTime":198,"timePerRequest":2.82,"answer":true},{"requests":71,"totalTime":188,"timePerRequest":2.64,"answer":true},{"requests":72,"totalTime":200,"timePerRequest":2.78,"answer":true},{"requests":73,"totalTime":200,"timePerRequest":2.74,"answer":true},{"requests":74,"totalTime":211,"timePerRequest":2.86,"answer":true},{"requests":75,"totalTime":206,"timePerRequest":2.74,"answer":true},{"requests":76,"totalTime":204,"timePerRequest":2.68,"answer":true},{"requests":77,"totalTime":234,"timePerRequest":3.04,"answer":true},{"requests":78,"totalTime":206,"timePerRequest":2.64,"answer":true},{"requests":79,"totalTime":228,"timePerRequest":2.89,"answer":true},{"requests":80,"totalTime":219,"timePerRequest":2.74,"answer":true},{"requests":81,"totalTime":218,"timePerRequest":2.69,"answer":true},{"requests":82,"totalTime":229,"timePerRequest":2.8,"answer":true},{"requests":83,"totalTime":233,"timePerRequest":2.81,"answer":true},{"requests":84,"totalTime":232,"timePerRequest":2.76,"answer":true},{"requests":85,"totalTime":245,"timePerRequest":2.89,"answer":true},{"requests":86,"totalTime":237,"timePerRequest":2.75,"answer":true},{"requests":87,"totalTime":254,"timePerRequest":2.92,"answer":true},{"requests":88,"totalTime":229,"timePerRequest":2.61,"answer":true},{"requests":89,"totalTime":259,"timePerRequest":2.91,"answer":true},{"requests":90,"totalTime":249,"timePerRequest":2.77,"answer":true},{"requests":91,"totalTime":260,"timePerRequest":2.86,"answer":true},{"requests":92,"totalTime":242,"timePerRequest":2.63,"answer":true},{"requests":93,"totalTime":270,"timePerRequest":2.9,"answer":true},{"requests":94,"totalTime":258,"timePerRequest":2.74,"answer":true},{"requests":95,"totalTime":271,"timePerRequest":2.85,"answer":true},{"requests":96,"totalTime":266,"timePerRequest":2.77,"answer":true},{"requests":97,"totalTime":266,"timePerRequest":2.75,"answer":true},{"requests":98,"totalTime":259,"timePerRequest":2.64,"answer":true},{"requests":99,"totalTime":287,"timePerRequest":2.9,"answer":true},{"requests":100,"totalTime":280,"timePerRequest":2.8,"answer":true}]
+Sum of all times per request:  335.03000000000003
+
+
+
+retries: 10
+parallel: 100
+min: 500
+workers: 500
+┌───────┬──────────┬───────────┬────────────────┬────────┐
+│ (idx) │ requests │ totalTime │ timePerRequest │ answer │
+├───────┼──────────┼───────────┼────────────────┼────────┤
+│     0 │        1 │      8.34 │           8.34 │ true   │
+│     1 │        2 │      12.9 │           6.45 │ true   │
+│     2 │        3 │      18.2 │           6.06 │ true   │
+│     3 │        4 │        23 │           5.74 │ true   │
+│     4 │        5 │      28.3 │           5.66 │ true   │
+│     5 │        6 │      32.6 │           5.43 │ true   │
+│     6 │        7 │      38.2 │           5.46 │ true   │
+│     7 │        8 │      42.7 │           5.34 │ true   │
+│     8 │        9 │      49.7 │           5.52 │ true   │
+│     9 │       10 │      57.2 │           5.72 │ true   │
+│    10 │       11 │      59.1 │           5.37 │ true   │
+│    11 │       12 │      63.7 │           5.31 │ true   │
+│    12 │       13 │      69.8 │           5.37 │ true   │
+│    13 │       14 │      74.3 │            5.3 │ true   │
+│    14 │       15 │      79.9 │           5.33 │ true   │
+│    15 │       16 │      84.4 │           5.28 │ true   │
+│    16 │       17 │      90.7 │           5.33 │ true   │
+│    17 │       18 │      97.3 │           5.41 │ true   │
+│    18 │       19 │       101 │           5.31 │ true   │
+│    19 │       20 │       106 │           5.31 │ true   │
+│    20 │       21 │       111 │            5.3 │ true   │
+│    21 │       22 │       118 │           5.38 │ true   │
+│    22 │       23 │       121 │           5.26 │ true   │
+│    23 │       24 │       127 │           5.28 │ true   │
+│    24 │       25 │       131 │           5.25 │ true   │
+│    25 │       26 │       138 │           5.32 │ true   │
+│    26 │       27 │       142 │           5.26 │ true   │
+│    27 │       28 │       146 │           5.22 │ true   │
+│    28 │       29 │       152 │           5.25 │ true   │
+│    29 │       30 │       157 │           5.25 │ true   │
+│    30 │       31 │       163 │           5.27 │ true   │
+│    31 │       32 │       167 │           5.23 │ true   │
+│    32 │       33 │       173 │           5.25 │ true   │
+│    33 │       34 │       179 │           5.26 │ true   │
+│    34 │       35 │       186 │           5.32 │ true   │
+│    35 │       36 │       189 │           5.25 │ true   │
+│    36 │       37 │       195 │           5.26 │ true   │
+│    37 │       38 │       201 │           5.28 │ true   │
+│    38 │       39 │       203 │           5.21 │ true   │
+│    39 │       40 │       210 │           5.24 │ true   │
+│    40 │       41 │       216 │           5.27 │ true   │
+│    41 │       42 │       224 │           5.35 │ true   │
+│    42 │       43 │       227 │           5.29 │ true   │
+│    43 │       44 │       237 │            5.4 │ true   │
+│    44 │       45 │       243 │           5.39 │ true   │
+│    45 │       46 │       241 │           5.24 │ true   │
+│    46 │       47 │       248 │           5.28 │ true   │
+│    47 │       48 │       251 │           5.23 │ true   │
+│    48 │       49 │       257 │           5.25 │ true   │
+│    49 │       50 │       264 │           5.28 │ true   │
+│    50 │       51 │       267 │           5.23 │ true   │
+│    51 │       52 │       273 │           5.25 │ true   │
+│    52 │       53 │       278 │           5.24 │ true   │
+│    53 │       54 │       284 │           5.26 │ true   │
+│    54 │       55 │       289 │           5.25 │ true   │
+│    55 │       56 │       295 │           5.27 │ true   │
+│    56 │       57 │       298 │           5.23 │ true   │
+│    57 │       58 │       304 │           5.25 │ true   │
+│    58 │       59 │       314 │           5.32 │ true   │
+│    59 │       60 │       313 │           5.22 │ true   │
+│    60 │       61 │       326 │           5.34 │ true   │
+│    61 │       62 │       326 │           5.25 │ true   │
+│    62 │       63 │       340 │            5.4 │ true   │
+│    63 │       64 │       337 │           5.27 │ true   │
+│    64 │       65 │       340 │           5.23 │ true   │
+│    65 │       66 │       346 │           5.24 │ true   │
+│    66 │       67 │       353 │           5.27 │ true   │
+│    67 │       68 │       355 │           5.22 │ true   │
+│    68 │       69 │       364 │           5.27 │ true   │
+│    69 │       70 │       366 │           5.23 │ true   │
+│    70 │       71 │       373 │           5.26 │ true   │
+│    71 │       72 │       379 │           5.26 │ true   │
+│    72 │       73 │       384 │           5.26 │ true   │
+│    73 │       74 │       388 │           5.24 │ true   │
+│    74 │       75 │       393 │           5.24 │ true   │
+│    75 │       76 │       399 │           5.24 │ true   │
+│    76 │       77 │       405 │           5.27 │ true   │
+│    77 │       78 │       412 │           5.29 │ true   │
+│    78 │       79 │       415 │           5.26 │ true   │
+│    79 │       80 │       419 │           5.24 │ true   │
+│    80 │       81 │       427 │           5.27 │ true   │
+│    81 │       82 │       430 │           5.25 │ true   │
+│    82 │       83 │       436 │           5.25 │ true   │
+│    83 │       84 │       439 │           5.23 │ true   │
+│    84 │       85 │       446 │           5.24 │ true   │
+│    85 │       86 │       450 │           5.23 │ true   │
+│    86 │       87 │       457 │           5.26 │ true   │
+│    87 │       88 │       461 │           5.24 │ true   │
+│    88 │       89 │       467 │           5.25 │ true   │
+│    89 │       90 │       473 │           5.25 │ true   │
+│    90 │       91 │       482 │           5.29 │ true   │
+│    91 │       92 │       491 │           5.34 │ true   │
+│    92 │       93 │       494 │           5.31 │ true   │
+│    93 │       94 │       495 │           5.26 │ true   │
+│    94 │       95 │       502 │           5.29 │ true   │
+│    95 │       96 │       507 │           5.29 │ true   │
+│    96 │       97 │       509 │           5.25 │ true   │
+│    97 │       98 │       522 │           5.32 │ true   │
+│    98 │       99 │       522 │           5.28 │ true   │
+│    99 │      100 │       526 │           5.26 │ true   │
+└───────┴──────────┴───────────┴────────────────┴────────┘
+[{"requests":1,"totalTime":8.34,"timePerRequest":8.34,"answer":true},{"requests":2,"totalTime":12.9,"timePerRequest":6.45,"answer":true},{"requests":3,"totalTime":18.2,"timePerRequest":6.06,"answer":true},{"requests":4,"totalTime":23,"timePerRequest":5.74,"answer":true},{"requests":5,"totalTime":28.3,"timePerRequest":5.66,"answer":true},{"requests":6,"totalTime":32.6,"timePerRequest":5.43,"answer":true},{"requests":7,"totalTime":38.2,"timePerRequest":5.46,"answer":true},{"requests":8,"totalTime":42.7,"timePerRequest":5.34,"answer":true},{"requests":9,"totalTime":49.7,"timePerRequest":5.52,"answer":true},{"requests":10,"totalTime":57.2,"timePerRequest":5.72,"answer":true},{"requests":11,"totalTime":59.1,"timePerRequest":5.37,"answer":true},{"requests":12,"totalTime":63.7,"timePerRequest":5.31,"answer":true},{"requests":13,"totalTime":69.8,"timePerRequest":5.37,"answer":true},{"requests":14,"totalTime":74.3,"timePerRequest":5.3,"answer":true},{"requests":15,"totalTime":79.9,"timePerRequest":5.33,"answer":true},{"requests":16,"totalTime":84.4,"timePerRequest":5.28,"answer":true},{"requests":17,"totalTime":90.7,"timePerRequest":5.33,"answer":true},{"requests":18,"totalTime":97.3,"timePerRequest":5.41,"answer":true},{"requests":19,"totalTime":101,"timePerRequest":5.31,"answer":true},{"requests":20,"totalTime":106,"timePerRequest":5.31,"answer":true},{"requests":21,"totalTime":111,"timePerRequest":5.3,"answer":true},{"requests":22,"totalTime":118,"timePerRequest":5.38,"answer":true},{"requests":23,"totalTime":121,"timePerRequest":5.26,"answer":true},{"requests":24,"totalTime":127,"timePerRequest":5.28,"answer":true},{"requests":25,"totalTime":131,"timePerRequest":5.25,"answer":true},{"requests":26,"totalTime":138,"timePerRequest":5.32,"answer":true},{"requests":27,"totalTime":142,"timePerRequest":5.26,"answer":true},{"requests":28,"totalTime":146,"timePerRequest":5.22,"answer":true},{"requests":29,"totalTime":152,"timePerRequest":5.25,"answer":true},{"requests":30,"totalTime":157,"timePerRequest":5.25,"answer":true},{"requests":31,"totalTime":163,"timePerRequest":5.27,"answer":true},{"requests":32,"totalTime":167,"timePerRequest":5.23,"answer":true},{"requests":33,"totalTime":173,"timePerRequest":5.25,"answer":true},{"requests":34,"totalTime":179,"timePerRequest":5.26,"answer":true},{"requests":35,"totalTime":186,"timePerRequest":5.32,"answer":true},{"requests":36,"totalTime":189,"timePerRequest":5.25,"answer":true},{"requests":37,"totalTime":195,"timePerRequest":5.26,"answer":true},{"requests":38,"totalTime":201,"timePerRequest":5.28,"answer":true},{"requests":39,"totalTime":203,"timePerRequest":5.21,"answer":true},{"requests":40,"totalTime":210,"timePerRequest":5.24,"answer":true},{"requests":41,"totalTime":216,"timePerRequest":5.27,"answer":true},{"requests":42,"totalTime":224,"timePerRequest":5.35,"answer":true},{"requests":43,"totalTime":227,"timePerRequest":5.29,"answer":true},{"requests":44,"totalTime":237,"timePerRequest":5.4,"answer":true},{"requests":45,"totalTime":243,"timePerRequest":5.39,"answer":true},{"requests":46,"totalTime":241,"timePerRequest":5.24,"answer":true},{"requests":47,"totalTime":248,"timePerRequest":5.28,"answer":true},{"requests":48,"totalTime":251,"timePerRequest":5.23,"answer":true},{"requests":49,"totalTime":257,"timePerRequest":5.25,"answer":true},{"requests":50,"totalTime":264,"timePerRequest":5.28,"answer":true},{"requests":51,"totalTime":267,"timePerRequest":5.23,"answer":true},{"requests":52,"totalTime":273,"timePerRequest":5.25,"answer":true},{"requests":53,"totalTime":278,"timePerRequest":5.24,"answer":true},{"requests":54,"totalTime":284,"timePerRequest":5.26,"answer":true},{"requests":55,"totalTime":289,"timePerRequest":5.25,"answer":true},{"requests":56,"totalTime":295,"timePerRequest":5.27,"answer":true},{"requests":57,"totalTime":298,"timePerRequest":5.23,"answer":true},{"requests":58,"totalTime":304,"timePerRequest":5.25,"answer":true},{"requests":59,"totalTime":314,"timePerRequest":5.32,"answer":true},{"requests":60,"totalTime":313,"timePerRequest":5.22,"answer":true},{"requests":61,"totalTime":326,"timePerRequest":5.34,"answer":true},{"requests":62,"totalTime":326,"timePerRequest":5.25,"answer":true},{"requests":63,"totalTime":340,"timePerRequest":5.4,"answer":true},{"requests":64,"totalTime":337,"timePerRequest":5.27,"answer":true},{"requests":65,"totalTime":340,"timePerRequest":5.23,"answer":true},{"requests":66,"totalTime":346,"timePerRequest":5.24,"answer":true},{"requests":67,"totalTime":353,"timePerRequest":5.27,"answer":true},{"requests":68,"totalTime":355,"timePerRequest":5.22,"answer":true},{"requests":69,"totalTime":364,"timePerRequest":5.27,"answer":true},{"requests":70,"totalTime":366,"timePerRequest":5.23,"answer":true},{"requests":71,"totalTime":373,"timePerRequest":5.26,"answer":true},{"requests":72,"totalTime":379,"timePerRequest":5.26,"answer":true},{"requests":73,"totalTime":384,"timePerRequest":5.26,"answer":true},{"requests":74,"totalTime":388,"timePerRequest":5.24,"answer":true},{"requests":75,"totalTime":393,"timePerRequest":5.24,"answer":true},{"requests":76,"totalTime":399,"timePerRequest":5.24,"answer":true},{"requests":77,"totalTime":405,"timePerRequest":5.27,"answer":true},{"requests":78,"totalTime":412,"timePerRequest":5.29,"answer":true},{"requests":79,"totalTime":415,"timePerRequest":5.26,"answer":true},{"requests":80,"totalTime":419,"timePerRequest":5.24,"answer":true},{"requests":81,"totalTime":427,"timePerRequest":5.27,"answer":true},{"requests":82,"totalTime":430,"timePerRequest":5.25,"answer":true},{"requests":83,"totalTime":436,"timePerRequest":5.25,"answer":true},{"requests":84,"totalTime":439,"timePerRequest":5.23,"answer":true},{"requests":85,"totalTime":446,"timePerRequest":5.24,"answer":true},{"requests":86,"totalTime":450,"timePerRequest":5.23,"answer":true},{"requests":87,"totalTime":457,"timePerRequest":5.26,"answer":true},{"requests":88,"totalTime":461,"timePerRequest":5.24,"answer":true},{"requests":89,"totalTime":467,"timePerRequest":5.25,"answer":true},{"requests":90,"totalTime":473,"timePerRequest":5.25,"answer":true},{"requests":91,"totalTime":482,"timePerRequest":5.29,"answer":true},{"requests":92,"totalTime":491,"timePerRequest":5.34,"answer":true},{"requests":93,"totalTime":494,"timePerRequest":5.31,"answer":true},{"requests":94,"totalTime":495,"timePerRequest":5.26,"answer":true},{"requests":95,"totalTime":502,"timePerRequest":5.29,"answer":true},{"requests":96,"totalTime":507,"timePerRequest":5.29,"answer":true},{"requests":97,"totalTime":509,"timePerRequest":5.25,"answer":true},{"requests":98,"totalTime":522,"timePerRequest":5.32,"answer":true},{"requests":99,"totalTime":522,"timePerRequest":5.28,"answer":true},{"requests":100,"totalTime":526,"timePerRequest":5.26,"answer":true}]
+Sum of all times per request:  534.52
+
+
+
+retries: 10
+parallel: 100
+min: 500
+workers: 4
+┌───────┬──────────┬───────────┬────────────────┬────────┐
+│ (idx) │ requests │ totalTime │ timePerRequest │ answer │
+├───────┼──────────┼───────────┼────────────────┼────────┤
+│     0 │        1 │        14 │             14 │ true   │
+│     1 │        2 │      18.4 │           9.18 │ true   │
+│     2 │        3 │      20.5 │           6.84 │ true   │
+│     3 │        4 │      25.8 │           6.45 │ true   │
+│     4 │        5 │      29.6 │           5.93 │ true   │
+│     5 │        6 │      27.9 │           4.64 │ true   │
+│     6 │        7 │      38.2 │           5.46 │ true   │
+│     7 │        8 │      37.8 │           4.72 │ true   │
+│     8 │        9 │      43.2 │            4.8 │ true   │
+│     9 │       10 │      45.2 │           4.52 │ true   │
+│    10 │       11 │      52.5 │           4.77 │ true   │
+│    11 │       12 │      53.9 │           4.49 │ true   │
+│    12 │       13 │      60.8 │           4.68 │ true   │
+│    13 │       14 │      55.8 │           3.98 │ true   │
+│    14 │       15 │      61.7 │           4.11 │ true   │
+│    15 │       16 │      63.9 │              4 │ true   │
+│    16 │       17 │      70.1 │           4.12 │ true   │
+│    17 │       18 │      74.6 │           4.14 │ true   │
+│    18 │       19 │      77.9 │            4.1 │ true   │
+│    19 │       20 │      79.9 │           3.99 │ true   │
+│    20 │       21 │      80.4 │           3.83 │ true   │
+│    21 │       22 │        89 │           4.04 │ true   │
+│    22 │       23 │      95.1 │           4.13 │ true   │
+│    23 │       24 │       113 │           4.71 │ true   │
+│    24 │       25 │       106 │           4.25 │ true   │
+│    25 │       26 │       101 │           3.88 │ true   │
+│    26 │       27 │       114 │           4.22 │ true   │
+│    27 │       28 │       122 │           4.34 │ true   │
+│    28 │       29 │       118 │           4.05 │ true   │
+│    29 │       30 │       119 │           3.96 │ true   │
+│    30 │       31 │       128 │           4.12 │ true   │
+│    31 │       32 │       132 │           4.11 │ true   │
+│    32 │       33 │       137 │           4.15 │ true   │
+│    33 │       34 │       134 │           3.95 │ true   │
+│    34 │       35 │       135 │           3.87 │ true   │
+│    35 │       36 │       147 │           4.09 │ true   │
+│    36 │       37 │       159 │            4.3 │ true   │
+│    37 │       38 │       157 │           4.13 │ true   │
+│    38 │       39 │       158 │           4.05 │ true   │
+│    39 │       40 │       159 │           3.97 │ true   │
+│    40 │       41 │       171 │           4.17 │ true   │
+│    41 │       42 │       159 │           3.78 │ true   │
+│    42 │       43 │       178 │           4.14 │ true   │
+│    43 │       44 │       165 │           3.75 │ true   │
+│    44 │       45 │       190 │           4.22 │ true   │
+│    45 │       46 │       171 │           3.72 │ true   │
+│    46 │       47 │       189 │           4.02 │ true   │
+│    47 │       48 │       191 │           3.98 │ true   │
+│    48 │       49 │       194 │           3.96 │ true   │
+│    49 │       50 │       198 │           3.97 │ true   │
+│    50 │       51 │       203 │           3.98 │ true   │
+│    51 │       52 │       202 │           3.88 │ true   │
+│    52 │       53 │       231 │           4.36 │ true   │
+│    53 │       54 │       237 │           4.39 │ true   │
+│    54 │       55 │       224 │           4.08 │ true   │
+│    55 │       56 │       244 │           4.36 │ true   │
+│    56 │       57 │       241 │           4.22 │ true   │
+│    57 │       58 │       227 │           3.91 │ true   │
+│    58 │       59 │       238 │           4.03 │ true   │
+│    59 │       60 │       250 │           4.17 │ true   │
+│    60 │       61 │       252 │           4.13 │ true   │
+│    61 │       62 │       252 │           4.07 │ true   │
+│    62 │       63 │       241 │           3.82 │ true   │
+│    63 │       64 │       245 │           3.83 │ true   │
+│    64 │       65 │       254 │           3.91 │ true   │
+│    65 │       66 │       249 │           3.77 │ true   │
+│    66 │       67 │       260 │           3.88 │ true   │
+│    67 │       68 │       252 │           3.71 │ true   │
+│    68 │       69 │       278 │           4.03 │ true   │
+│    69 │       70 │       285 │           4.08 │ true   │
+│    70 │       71 │       300 │           4.22 │ true   │
+│    71 │       72 │       285 │           3.96 │ true   │
+│    72 │       73 │       286 │           3.92 │ true   │
+│    73 │       74 │       286 │           3.87 │ true   │
+│    74 │       75 │       299 │           3.98 │ true   │
+│    75 │       76 │       281 │           3.69 │ true   │
+│    76 │       77 │       314 │           4.08 │ true   │
+│    77 │       78 │       292 │           3.75 │ true   │
+│    78 │       79 │       307 │           3.88 │ true   │
+│    79 │       80 │       311 │           3.89 │ true   │
+│    80 │       81 │       328 │           4.05 │ true   │
+│    81 │       82 │       345 │           4.21 │ true   │
+│    82 │       83 │       343 │           4.14 │ true   │
+│    83 │       84 │       336 │              4 │ true   │
+│    84 │       85 │       329 │           3.87 │ true   │
+│    85 │       86 │       343 │           3.99 │ true   │
+│    86 │       87 │       360 │           4.14 │ true   │
+│    87 │       88 │       328 │           3.73 │ true   │
+│    88 │       89 │       347 │            3.9 │ true   │
+│    89 │       90 │       351 │            3.9 │ true   │
+│    90 │       91 │       349 │           3.84 │ true   │
+│    91 │       92 │       370 │           4.02 │ true   │
+│    92 │       93 │       373 │           4.01 │ true   │
+│    93 │       94 │       393 │           4.18 │ true   │
+│    94 │       95 │       358 │           3.77 │ true   │
+│    95 │       96 │       378 │           3.94 │ true   │
+│    96 │       97 │       385 │           3.97 │ true   │
+│    97 │       98 │       392 │              4 │ true   │
+│    98 │       99 │       391 │           3.95 │ true   │
+│    99 │      100 │       400 │              4 │ true   │
+└───────┴──────────┴───────────┴────────────────┴────────┘
+[{"requests":1,"totalTime":14,"timePerRequest":14,"answer":true},{"requests":2,"totalTime":18.4,"timePerRequest":9.18,"answer":true},{"requests":3,"totalTime":20.5,"timePerRequest":6.84,"answer":true},{"requests":4,"totalTime":25.8,"timePerRequest":6.45,"answer":true},{"requests":5,"totalTime":29.6,"timePerRequest":5.93,"answer":true},{"requests":6,"totalTime":27.9,"timePerRequest":4.64,"answer":true},{"requests":7,"totalTime":38.2,"timePerRequest":5.46,"answer":true},{"requests":8,"totalTime":37.8,"timePerRequest":4.72,"answer":true},{"requests":9,"totalTime":43.2,"timePerRequest":4.8,"answer":true},{"requests":10,"totalTime":45.2,"timePerRequest":4.52,"answer":true},{"requests":11,"totalTime":52.5,"timePerRequest":4.77,"answer":true},{"requests":12,"totalTime":53.9,"timePerRequest":4.49,"answer":true},{"requests":13,"totalTime":60.8,"timePerRequest":4.68,"answer":true},{"requests":14,"totalTime":55.8,"timePerRequest":3.98,"answer":true},{"requests":15,"totalTime":61.7,"timePerRequest":4.11,"answer":true},{"requests":16,"totalTime":63.9,"timePerRequest":4,"answer":true},{"requests":17,"totalTime":70.1,"timePerRequest":4.12,"answer":true},{"requests":18,"totalTime":74.6,"timePerRequest":4.14,"answer":true},{"requests":19,"totalTime":77.9,"timePerRequest":4.1,"answer":true},{"requests":20,"totalTime":79.9,"timePerRequest":3.99,"answer":true},{"requests":21,"totalTime":80.4,"timePerRequest":3.83,"answer":true},{"requests":22,"totalTime":89,"timePerRequest":4.04,"answer":true},{"requests":23,"totalTime":95.1,"timePerRequest":4.13,"answer":true},{"requests":24,"totalTime":113,"timePerRequest":4.71,"answer":true},{"requests":25,"totalTime":106,"timePerRequest":4.25,"answer":true},{"requests":26,"totalTime":101,"timePerRequest":3.88,"answer":true},{"requests":27,"totalTime":114,"timePerRequest":4.22,"answer":true},{"requests":28,"totalTime":122,"timePerRequest":4.34,"answer":true},{"requests":29,"totalTime":118,"timePerRequest":4.05,"answer":true},{"requests":30,"totalTime":119,"timePerRequest":3.96,"answer":true},{"requests":31,"totalTime":128,"timePerRequest":4.12,"answer":true},{"requests":32,"totalTime":132,"timePerRequest":4.11,"answer":true},{"requests":33,"totalTime":137,"timePerRequest":4.15,"answer":true},{"requests":34,"totalTime":134,"timePerRequest":3.95,"answer":true},{"requests":35,"totalTime":135,"timePerRequest":3.87,"answer":true},{"requests":36,"totalTime":147,"timePerRequest":4.09,"answer":true},{"requests":37,"totalTime":159,"timePerRequest":4.3,"answer":true},{"requests":38,"totalTime":157,"timePerRequest":4.13,"answer":true},{"requests":39,"totalTime":158,"timePerRequest":4.05,"answer":true},{"requests":40,"totalTime":159,"timePerRequest":3.97,"answer":true},{"requests":41,"totalTime":171,"timePerRequest":4.17,"answer":true},{"requests":42,"totalTime":159,"timePerRequest":3.78,"answer":true},{"requests":43,"totalTime":178,"timePerRequest":4.14,"answer":true},{"requests":44,"totalTime":165,"timePerRequest":3.75,"answer":true},{"requests":45,"totalTime":190,"timePerRequest":4.22,"answer":true},{"requests":46,"totalTime":171,"timePerRequest":3.72,"answer":true},{"requests":47,"totalTime":189,"timePerRequest":4.02,"answer":true},{"requests":48,"totalTime":191,"timePerRequest":3.98,"answer":true},{"requests":49,"totalTime":194,"timePerRequest":3.96,"answer":true},{"requests":50,"totalTime":198,"timePerRequest":3.97,"answer":true},{"requests":51,"totalTime":203,"timePerRequest":3.98,"answer":true},{"requests":52,"totalTime":202,"timePerRequest":3.88,"answer":true},{"requests":53,"totalTime":231,"timePerRequest":4.36,"answer":true},{"requests":54,"totalTime":237,"timePerRequest":4.39,"answer":true},{"requests":55,"totalTime":224,"timePerRequest":4.08,"answer":true},{"requests":56,"totalTime":244,"timePerRequest":4.36,"answer":true},{"requests":57,"totalTime":241,"timePerRequest":4.22,"answer":true},{"requests":58,"totalTime":227,"timePerRequest":3.91,"answer":true},{"requests":59,"totalTime":238,"timePerRequest":4.03,"answer":true},{"requests":60,"totalTime":250,"timePerRequest":4.17,"answer":true},{"requests":61,"totalTime":252,"timePerRequest":4.13,"answer":true},{"requests":62,"totalTime":252,"timePerRequest":4.07,"answer":true},{"requests":63,"totalTime":241,"timePerRequest":3.82,"answer":true},{"requests":64,"totalTime":245,"timePerRequest":3.83,"answer":true},{"requests":65,"totalTime":254,"timePerRequest":3.91,"answer":true},{"requests":66,"totalTime":249,"timePerRequest":3.77,"answer":true},{"requests":67,"totalTime":260,"timePerRequest":3.88,"answer":true},{"requests":68,"totalTime":252,"timePerRequest":3.71,"answer":true},{"requests":69,"totalTime":278,"timePerRequest":4.03,"answer":true},{"requests":70,"totalTime":285,"timePerRequest":4.08,"answer":true},{"requests":71,"totalTime":300,"timePerRequest":4.22,"answer":true},{"requests":72,"totalTime":285,"timePerRequest":3.96,"answer":true},{"requests":73,"totalTime":286,"timePerRequest":3.92,"answer":true},{"requests":74,"totalTime":286,"timePerRequest":3.87,"answer":true},{"requests":75,"totalTime":299,"timePerRequest":3.98,"answer":true},{"requests":76,"totalTime":281,"timePerRequest":3.69,"answer":true},{"requests":77,"totalTime":314,"timePerRequest":4.08,"answer":true},{"requests":78,"totalTime":292,"timePerRequest":3.75,"answer":true},{"requests":79,"totalTime":307,"timePerRequest":3.88,"answer":true},{"requests":80,"totalTime":311,"timePerRequest":3.89,"answer":true},{"requests":81,"totalTime":328,"timePerRequest":4.05,"answer":true},{"requests":82,"totalTime":345,"timePerRequest":4.21,"answer":true},{"requests":83,"totalTime":343,"timePerRequest":4.14,"answer":true},{"requests":84,"totalTime":336,"timePerRequest":4,"answer":true},{"requests":85,"totalTime":329,"timePerRequest":3.87,"answer":true},{"requests":86,"totalTime":343,"timePerRequest":3.99,"answer":true},{"requests":87,"totalTime":360,"timePerRequest":4.14,"answer":true},{"requests":88,"totalTime":328,"timePerRequest":3.73,"answer":true},{"requests":89,"totalTime":347,"timePerRequest":3.9,"answer":true},{"requests":90,"totalTime":351,"timePerRequest":3.9,"answer":true},{"requests":91,"totalTime":349,"timePerRequest":3.84,"answer":true},{"requests":92,"totalTime":370,"timePerRequest":4.02,"answer":true},{"requests":93,"totalTime":373,"timePerRequest":4.01,"answer":true},{"requests":94,"totalTime":393,"timePerRequest":4.18,"answer":true},{"requests":95,"totalTime":358,"timePerRequest":3.77,"answer":true},{"requests":96,"totalTime":378,"timePerRequest":3.94,"answer":true},{"requests":97,"totalTime":385,"timePerRequest":3.97,"answer":true},{"requests":98,"totalTime":392,"timePerRequest":4,"answer":true},{"requests":99,"totalTime":391,"timePerRequest":3.95,"answer":true},{"requests":100,"totalTime":400,"timePerRequest":4,"answer":true}]
+Sum of all times per request:  430.2399999999999

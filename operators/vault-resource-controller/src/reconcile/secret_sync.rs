@@ -119,7 +119,7 @@ pub async fn create_configmap_in_k8s(
 
     configmap_data.insert(resource_data_key.unwrap_or("data".to_string()), secret_data);
 
-    let configmap = ConfigMap {
+    let mut new_configmap = ConfigMap {
         metadata: ObjectMeta {
             name: Some(secret_name.clone()),
             namespace: Some(resource_namespace.to_string()),
@@ -136,8 +136,8 @@ pub async fn create_configmap_in_k8s(
         .await
         .map_err(crate::Error::KubeError)?;
 
-    if let Some(configmap) = &configmap_exists {
-        if let Some(labels) = &configmap.metadata.labels {
+    if let Some(old_configmap) = &configmap_exists {
+        if let Some(labels) = &old_configmap.metadata.labels {
             if let Some(managed_by) = labels.get(MANAGED_BY_KEY) {
                 if managed_by != VAULT_RESOURCES_FINALIZER {
                     return Err(crate::Error::GenericError(format!(
@@ -152,14 +152,17 @@ pub async fn create_configmap_in_k8s(
                 )));
             }
         }
-        let patch_params = kube::api::PatchParams::default();
+        let patch_params = kube::api::PostParams::default();
+
+        new_configmap.metadata.resource_version = old_configmap.metadata.resource_version.clone();
+
         configmap_api
-            .patch(&secret_name, &patch_params, &Patch::Merge(configmap))
+            .replace(&secret_name, &patch_params, &new_configmap)
             .await
             .map_err(crate::Error::KubeError)?;
     } else {
         configmap_api
-            .create(&kube::api::PostParams::default(), &configmap)
+            .create(&kube::api::PostParams::default(), &new_configmap)
             .await
             .map_err(crate::Error::KubeError)?;
     }
@@ -181,7 +184,7 @@ pub async fn create_secret_in_k8s(
 
     secret_map.insert(resource_data_key.unwrap_or("data".to_string()), secret_data);
 
-    let secret = Secret {
+    let mut new_secret = Secret {
         metadata: ObjectMeta {
             name: Some(secret_name.clone()),
             namespace: Some(resource_namespace.to_string()),
@@ -198,8 +201,8 @@ pub async fn create_secret_in_k8s(
         .await
         .map_err(crate::Error::KubeError)?;
 
-    if let Some(secret) = &secret_exists {
-        if let Some(labels) = &secret.metadata.labels {
+    if let Some(old_secret) = &secret_exists {
+        if let Some(labels) = &old_secret.metadata.labels {
             if let Some(managed_by) = labels.get(MANAGED_BY_KEY) {
                 if managed_by != VAULT_RESOURCES_FINALIZER {
                     return Err(crate::Error::GenericError(format!(
@@ -214,14 +217,16 @@ pub async fn create_secret_in_k8s(
                 )));
             }
         }
-        let patch_params = kube::api::PatchParams::default();
+        let patch_params = kube::api::PostParams::default();
+
+        new_secret.metadata.resource_version = old_secret.metadata.resource_version.clone();
         secret_api
-            .patch(&secret_name, &patch_params, &Patch::Merge(secret))
+            .replace(&secret_name, &patch_params, &new_secret)
             .await
             .map_err(crate::Error::KubeError)?;
     } else {
         secret_api
-            .create(&kube::api::PostParams::default(), &secret)
+            .create(&kube::api::PostParams::default(), &new_secret)
             .await
             .map_err(crate::Error::KubeError)?;
     }

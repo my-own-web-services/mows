@@ -47,13 +47,27 @@ pub async fn handle_kv2_engine(
     kv2_secret_engine_params: &KV2SecretEngineParams,
 ) -> Result<(), Error> {
     for (secret_path, secret_kv_data) in kv2_secret_engine_params.kv_data.iter() {
-        let mut rendered_secret_kv_data = HashMap::new();
+        let mut rendered_secret_kv_data: HashMap<String, String> =
+            vaultrs::kv2::read(vault_client, mount_path, secret_path)
+                .await
+                .unwrap_or_default();
+
+        debug!(
+            "Secret {:?} in Vault at {:?} has data {:?}",
+            secret_path, mount_path, rendered_secret_kv_data
+        );
 
         for (key, value) in secret_kv_data.iter() {
+            // update the secret values only if they are not already present in the secret
+            if rendered_secret_kv_data.contains_key(key) {
+                continue;
+            }
+
             let mut template = gtmpl::Template::default();
             template.add_funcs(&TEMPLATE_FUNCTIONS);
             template.parse(value.clone().replace("{%", "{{").replace("%}", "}}"))?;
-            rendered_secret_kv_data.insert(key, template.render(&gtmpl::Context::empty())?);
+
+            rendered_secret_kv_data.insert(key.to_string(), template.render(&gtmpl::Context::empty())?);
         }
 
         debug!(

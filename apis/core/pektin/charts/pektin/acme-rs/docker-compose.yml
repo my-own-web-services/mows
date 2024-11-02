@@ -1,0 +1,13 @@
+version: "3"
+services:
+    pebble:
+        restart: always
+        image: letsencrypt/pebble
+        command: pebble
+        ports:
+            - 14000:14000 # ACME port
+            - 15000:15000 # Management port
+        environment:
+            - PEBBLE_VA_NOSLEEP=1
+            #- PEBBLE_VA_ALWAYS_VALID=1
+            #- PEBBLE_WFE_NONCEREJECT=50
