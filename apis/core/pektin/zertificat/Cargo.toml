@@ -53,8 +53,9 @@ chrono = "0.4.38"
 pektin-common = { path = "../common" }
 vaultrs = "0.7.2"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
 tracing-opentelemetry = "0.27.0"
+
 
 [profile.release]
 codegen-units = 1

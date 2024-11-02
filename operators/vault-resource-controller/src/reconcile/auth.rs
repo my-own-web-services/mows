@@ -21,18 +21,16 @@ pub async fn handle_auth_engine(
         .await
         .context("Failed to list auth engines in Vault")?;
 
-    if current_auth_engines.contains_key(&format!("{mount_path}/")) {
-        return Ok(());
+    if !current_auth_engines.contains_key(&format!("{mount_path}/")) {
+        vaultrs::sys::auth::enable(
+            vault_client,
+            &mount_path,
+            to_variant_name(&vault_auth_engine).unwrap(),
+            None,
+        )
+        .await
+        .context(format!("Failed to create auth engine {mount_path} in Vault"))?;
     }
-
-    vaultrs::sys::auth::enable(
-        vault_client,
-        &mount_path,
-        to_variant_name(&vault_auth_engine).unwrap(),
-        None,
-    )
-    .await
-    .context(format!("Failed to create auth engine {mount_path} in Vault"))?;
 
     match &vault_auth_engine {
         VaultAuthEngine::Kubernetes(k8s_auth_engine_config) => handle_k8s_auth_engine(

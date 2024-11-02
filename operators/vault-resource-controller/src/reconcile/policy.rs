@@ -14,6 +14,7 @@ pub async fn handle_engine_access_policy(
 ) -> anyhow::Result<()> {
     let policy_name = format!("mows-core-secrets-vrc/{}/{}", resource_namespace, resource_name);
 
+    /*
     let current_policies_res = vaultrs::sys::policy::list(vault_client)
         .await
         .context("Failed to list policies in Vault")?;
@@ -23,7 +24,7 @@ pub async fn handle_engine_access_policy(
         .contains(&"{policy_name}".to_string())
     {
         return Ok(());
-    }
+    }*/
 
     let mut policy = String::new();
 

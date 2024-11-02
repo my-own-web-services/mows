@@ -23,7 +23,15 @@ spec:
               memory: 128Mi
               cpu: 500m
           env:
-            - name: MODE
-              value: vault
+            - name: VAULT_KUBERNETES_AUTH_PATH
+              value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes"
+            - name: VAULT_URI
+              value: "http://mows-core-secrets-vault.mows-core-secrets-vault:8200"
+            - name: VAULT_KUBERNETES_AUTH_ROLE
+              value: "pektin-zertificat"
+            - name: ACME_URL
+              value: https://acme-staging-v02.api.letsencrypt.org/directory
+            - name: ACME_EMAIL
+              value: pektin-zertificat@vindelicum.eu
               
 

@@ -3,6 +3,7 @@ use std::time::Duration;
 use anyhow::{bail, Context};
 use serde::Deserialize;
 use serde_json::{json, Value};
+use tracing::debug;
 use vaultrs::{
     api::AuthInfo,
     client::{VaultClient, VaultClientSettingsBuilder},

@@ -33,7 +33,7 @@ pub fn from_env() -> PektinApiResult<ApiConfig> {
 
         use_policies: load_env("ribston", "USE_POLICIES", false)?,
         skip_auth: load_env("false", "SKIP_AUTH", false)?,
-        policy_vault_path: load_env("data", "POLICY_VAULT_PATH", false)?,
+        policy_vault_path: load_env("", "POLICY_VAULT_PATH", false)?,
         service_account_token_path: load_env(
             "/var/run/secrets/kubernetes.io/serviceaccount/token",
             "SERVICE_ACCOUNT_TOKEN_PATH",

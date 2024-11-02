@@ -39,7 +39,11 @@ pub fn from_env() -> anyhow::Result<ZertificatConfig> {
             "VAULT_KUBERNETES_AUTH_PATH",
             false,
         )?,
-        vault_kubernetes_auth_role: load_env("pektin-api", "VAULT_KUBERNETES_AUTH_ROLE", false)?,
+        vault_kubernetes_auth_role: load_env(
+            "pektin-zertificat",
+            "VAULT_KUBERNETES_AUTH_ROLE",
+            false,
+        )?,
         pektin_api_endpoint: load_env("http://pektin-api", "PEKTIN_API_ENDPOINT", false)?,
         pektin_username: load_env("pektin-zertificat", "PEKTIN_USERNAME", false)?,
         acme_email: load_env("admin@pektin", "ACME_EMAIL", false)?,

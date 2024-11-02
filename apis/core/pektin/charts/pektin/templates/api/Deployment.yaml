@@ -37,11 +37,13 @@ spec:
                   name: pektin-db-api-password
                   key: data
             - name: RUST_LOG
-              value: "main,pektin_api,pektin_common"
+              value: "main=debug,pektin_api=debug,pektin_common=debug"
             - name: VAULT_KUBERNETES_AUTH_PATH
               value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes"
             - name: VAULT_URI
               value: "http://mows-core-secrets-vault.mows-core-secrets-vault:8200"
+            - name: POLICY_VAULT_PATH
+              value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-policies"
             - name: DB_USERNAME
               value: "db-pektin-api"
             - name: DB_HOSTNAME

@@ -42,6 +42,8 @@ pub async fn auth(
         format!("Could not create Vault client: {}", err)
     );
 
+    debug!("Creating Vault client with client token: {}", client_token);
+
     let vc = return_if_err!(
         VaultClient::new(builder),
         err,
@@ -65,16 +67,16 @@ pub async fn auth(
     let client_policy: HashMap<String, String> = return_if_err!(
         vaultrs::kv2::read(&vc, &api_config.policy_vault_path, client_username).await,
         err,
-        format!("Could not get client policy: {}", err)
+        format!("Could not get client policy from vault: {}", err)
     );
 
     let client_policy = return_if_err!(
         client_policy
-            .get("policy")
+            .get("ribston-policy")
             .cloned()
             .ok_or("No policy found"),
         err,
-        format!("Could not get client policy: {}", err)
+        format!("Could not get client policy from vault response: {}", err)
     );
 
     if client_policy.contains("@skip-policy-check") {

@@ -14,7 +14,7 @@ server:
 
 zertificat:
   enabled: true
-  image: docker.io/pektin/zertificat:latest
+  image: 192.168.112.5:5000/pektin-zertificat
   imagePullPolicy: Always
   name: pektin-zertificat
   replicaCount: 1

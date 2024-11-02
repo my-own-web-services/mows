@@ -11,6 +11,7 @@ use std::vec;
 use zertificat::{
     config::ZertificatConfig,
     get_current_config_cloned,
+    tracing::start_tracing,
     types::{MaybeVaultCert, PektinConfig, VaultCert, VaultCertInfo},
     vault::{get_kv_value, update_kv_value, vault_k8s_login},
 };
@@ -22,6 +23,8 @@ async fn main() -> anyhow::Result<()> {
     let config = get_current_config_cloned!();
 
     // TODO: option to send a wake up call to run the procedure
+
+    start_tracing().await?;
 
     // daily procedure to see if there is something to do
     loop {
