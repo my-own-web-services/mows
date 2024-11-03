@@ -3,10 +3,12 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use anyhow::bail;
 use hcloud::{
     apis::{
-        configuration::Configuration, servers_api::CreateServerParams,
+        configuration::Configuration,
+        primary_ips_api::{list_primary_ips, ListPrimaryIpsParams},
+        servers_api::CreateServerParams,
         ssh_keys_api::CreateSshKeyParams,
     },
-    models::{CreateServerRequest, CreateSshKeyRequest},
+    models::{primary_ip, CreateServerRequest, CreateServerRequestPublicNet, CreateSshKeyRequest},
 };
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -38,6 +40,38 @@ impl ExternalProviderMachineHcloud {
 
         let mut ssh_config = SshAccess::new(None, Some("root")).await?;
 
+        let primary_ip_id = list_primary_ips(
+            &configuration,
+            ListPrimaryIpsParams {
+                name: Some(
+                    std::env::var("HCLOUD_PRIMARY_IP_NAME")
+                        .map_err(|_| anyhow::anyhow!("HCLOUD_PRIMARY_IP_NAME not set"))?,
+                ),
+                ..Default::default()
+            },
+        )
+        .await?
+        .primary_ips
+        .first()
+        .map(|ip| ip.id.clone())
+        .ok_or_else(|| anyhow::anyhow!("No primary IP found"))?;
+
+        let primary_legacy_ip_id = list_primary_ips(
+            &configuration,
+            ListPrimaryIpsParams {
+                name: Some(
+                    std::env::var("HCLOUD_PRIMARY_LEGACY_IP_NAME")
+                        .map_err(|_| anyhow::anyhow!("HCLOUD_PRIMARY_LEGACY_IP_NAME not set"))?,
+                ),
+                ..Default::default()
+            },
+        )
+        .await?
+        .primary_ips
+        .first()
+        .map(|ip| ip.id.clone())
+        .ok_or_else(|| anyhow::anyhow!("No primary legacy IP found"))?;
+
         hcloud::apis::ssh_keys_api::create_ssh_key(
             &configuration,
             CreateSshKeyParams {
@@ -57,6 +91,16 @@ impl ExternalProviderMachineHcloud {
                 ssh_keys: Some(vec![machine_name.to_string()]),
                 name: machine_name.to_string(),
                 image: "ubuntu-24.04".to_string(),
+                public_net: Some(Box::new(CreateServerRequestPublicNet {
+                    enable_ipv6: Some(true),
+                    enable_ipv4: Some(true),
+                    ipv6: Some(Some(primary_ip_id.try_into().map_err(|e| {
+                        anyhow::anyhow!("Failed to convert primary IP ID to u32: {}", e)
+                    })?)),
+                    ipv4: Some(Some(primary_legacy_ip_id.try_into().map_err(|e| {
+                        anyhow::anyhow!("Failed to convert primary IP ID to u32: {}", e)
+                    })?)),
+                })),
                 ..Default::default()
             }),
         };

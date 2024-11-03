@@ -47,8 +47,8 @@ impl Machine {
         })
     }
 
-    pub async fn exec(&self, command: &str, timeout_seconds: u32) -> anyhow::Result<String> {
-        self.ssh.exec(&self, command, timeout_seconds).await
+    pub async fn exec(&self, command: &str, inactivity_timeout: u64) -> anyhow::Result<String> {
+        self.ssh.exec(&self, command, inactivity_timeout).await
     }
 
     pub async fn get_infos(&self) -> anyhow::Result<serde_json::Value> {

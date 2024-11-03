@@ -60,6 +60,8 @@ spec:
               subPath: "data/pektin-zertificat"
               capabilities: ["read"]
 ---
+# TODO the pektin clients need a dedicated auth engine for pektin-api so that pektin-api cannot access other secrets they might have access to, this is because we are sending our vault token to the api, this protects against a rogue api server
+
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:

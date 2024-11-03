@@ -83,6 +83,11 @@ pub async fn install_local_wireguard(
 
     udp_service_map.insert(443, ingress_service_name);
 
+    let dns_service_name = s!("pektin-server.mows-core-dns-pektin");
+
+    tcp_service_map.insert(53, dns_service_name.clone());
+    udp_service_map.insert(53, dns_service_name);
+
     let local_wg_config = create_local_wg_config(
         wg_keys,
         remote_ip,
@@ -256,7 +261,7 @@ EOF
     ];
 
     for command in commands {
-        machine.exec(command, 10).await.context(format!(
+        machine.exec(command, 20).await.context(format!(
             "Failed to install WireGuard on the machine. Failed at command: {}",
             &command
         ))?;

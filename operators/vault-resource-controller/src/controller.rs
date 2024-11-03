@@ -113,6 +113,7 @@ pub enum VaultPolicyCapability {
 #[serde(rename_all = "camelCase")]
 pub enum VaultAuthEngine {
     Kubernetes(KubernetesAuthEngineParams),
+    //Userpass(UserpassAuthEngineParams),
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]

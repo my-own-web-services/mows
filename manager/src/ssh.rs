@@ -104,7 +104,7 @@ impl SshAccess {
         &self,
         machine: &Machine,
         command: &str,
-        _timeout_seconds: u32,
+        inactivity_timeout_secs: u64,
     ) -> anyhow::Result<String> {
         let remote_pub_key = match &self.remote_public_key {
             Some(pk) => pk.clone(),
@@ -114,7 +114,7 @@ impl SshAccess {
         let auth_method = AuthMethod::with_key(&self.ssh_private_key, Some(&self.ssh_passphrase));
 
         let mut ssh_config = Config::default();
-        ssh_config.inactivity_timeout = Some(Duration::from_secs(2));
+        ssh_config.inactivity_timeout = Some(Duration::from_secs(inactivity_timeout_secs));
 
         let client = Client::connect_with_config(
             (
