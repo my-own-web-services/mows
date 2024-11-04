@@ -77,11 +77,11 @@ ip address add dev br0 192.168.0.90/24
 # Stop libvirtd
 killall libvirtd
 
-
+sleep 2
 
 
 # Bring libvirtd to the foreground
-/usr/sbin/libvirtd --config /etc/libvirt/libvirtd.conf --listen
+/usr/sbin/libvirtd --config /etc/libvirt/libvirtd.conf --listen 
 
 
 # # Ensure directories exist

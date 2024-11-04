@@ -8,4 +8,4 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 bash $SCRIPT_DIR/create-local-net.sh
 
-docker compose down qemu; docker compose up qemu --build --force-recreate
+docker compose down qemu ; docker compose up qemu --build -d

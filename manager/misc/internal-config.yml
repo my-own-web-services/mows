@@ -5,8 +5,8 @@ own_addresses:
     ip: null
 
 os_config:
-    kairos_version: "v3.1.2"
-    k3s_version: "k3sv1.30.4+k3s1"
+    kairos_version: "v3.2.1"
+    k3s_version: "k3sv1.31.1+k3s1"
     os: "opensuse-tumbleweed"
 
 cluster:
@@ -32,6 +32,21 @@ dev:
             192.168.112.5:5000:
                 endpoint:
                     - "http://192.168.112.5:5000"
+            docker.io:
+                endpoint:
+                    - "http://192.168.112.6:5000"
+            quay.io:
+                endpoint:
+                    - "http://192.168.112.7:5000"
+            gcr.io:
+                endpoint:
+                    - "http://192.168.112.8:5000"
+            registry.k8s.io:
+                endpoint:
+                    - "http://192.168.112.9:5000"
+            ghcr.io:
+                endpoint:
+                    - "http://192.168.112.10:5000"
 
 log:
     dnsmasq:

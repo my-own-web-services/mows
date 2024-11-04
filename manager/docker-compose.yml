@@ -27,7 +27,7 @@ services:
             - "::1:10000-10009:10000-10009" # ustreamer
         privileged: true
         volumes:
-            - ./temp/:/temp/
+            - ./temp/manager:/temp/
             - ../operators/:/operators/
             - ../apis/:/apis/
             - ./install:/install
@@ -70,10 +70,65 @@ services:
         ports:
             - "::1:5000:5000"
         volumes:
-            - mows-dev-local-registry:/var/lib/registry
+            - ./temp/registries/local:/var/lib/registry
         networks:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.5"
+    mows-dev-pull-through-cache-docker:
+        image: registry:2
+        container_name: mows-dev-pull-through-cache-docker
+        restart: always
+        environment:
+            - REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io
+        networks:
+            mows-manager-pxe:
+                ipv4_address: "192.168.112.6"
+        volumes:
+            - ./temp/registries/docker:/var/lib/registry
+    mows-dev-pull-through-cache-quay:
+        image: registry:2
+        container_name: mows-dev-pull-through-cache-quay
+        restart: always
+        environment:
+            - REGISTRY_PROXY_REMOTEURL=https://quay.io
+        networks:
+            mows-manager-pxe:
+                ipv4_address: "192.168.112.7"
+        volumes:
+            - ./temp/registries/quay:/var/lib/registry
+    mows-dev-pull-through-cache-gcr:
+        image: registry:2
+        container_name: mows-dev-pull-through-cache-gcr
+        restart: always
+        environment:
+            - REGISTRY_PROXY_REMOTEURL=https://gcr.io
+        networks:
+            mows-manager-pxe:
+                ipv4_address: "192.168.112.8"
+        volumes:
+            - ./temp/registries/gcr:/var/lib/registry
+    mows-dev-pull-through-cache-k8s:
+        image: registry:2
+        container_name: mows-dev-pull-through-cache-k8s
+        restart: always
+        environment:
+            - REGISTRY_PROXY_REMOTEURL=https://k8s.gcr.io
+        networks:
+            mows-manager-pxe:
+                ipv4_address: "192.168.112.9"
+        volumes:
+            - ./temp/registries/k8s:/var/lib/registry
+    mows-dev-pull-through-cache-ghcr:
+        image: registry:2
+        container_name: mows-dev-pull-through-cache-ghcr
+        restart: always
+        environment:
+            - REGISTRY_PROXY_REMOTEURL=https://ghcr.io
+        networks:
+            mows-manager-pxe:
+                ipv4_address: "192.168.112.10"
+        volumes:
+            - ./temp/registries/ghcr:/var/lib/registry
 
 volumes:
     mows-dev-local-registry:

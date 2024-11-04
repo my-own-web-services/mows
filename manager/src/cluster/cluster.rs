@@ -359,7 +359,13 @@ impl Cluster {
         debug!("Starting kubectl proxy");
 
         Command::new("kubectl")
-            .args(vec!["proxy", "--address", "0.0.0.0"])
+            .args(vec![
+                "proxy",
+                "--address",
+                "0.0.0.0",
+                "--insecure-skip-tls-verify", // TODO is this a problem?
+                "true",
+            ])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
