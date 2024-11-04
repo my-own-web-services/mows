@@ -1,1 +1,0 @@
-# compile schema before pushing!

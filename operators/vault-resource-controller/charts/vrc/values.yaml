@@ -3,7 +3,7 @@ nameOverride: ""
 namespace: "mows-core-secrets-vrc"
 version: "" # pin a specific version
 image:
-    repository: 192.168.112.5:5000/controller-rs
+    repository: 192.168.112.5:5000/vault-resource-controller
     pullPolicy: Always
 
 imagePullSecrets: []

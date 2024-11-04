@@ -9,34 +9,35 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@babel/plugin-transform-react-jsx": "^7.24.6",
-        "@fontsource-variable/inter": "^5.0.17",
-        "@img/sharp-linuxmusl-x64": "^0.33.4",
-        "@preact/signals": "^1.2.3",
+        "@babel/plugin-transform-react-jsx": "^7.25.9",
+        "@fontsource-variable/inter": "^5.1.0",
+        "@img/sharp-linuxmusl-x64": "^0.33.5",
+        "@preact/signals": "^1.3.0",
         "@types/animejs": "^3.1.12",
-        "@types/react-router-dom": "5",
+        "@types/react-router-dom": "^5.3.3",
         "animejs": "^3.2.2",
-        "autoprefixer": "^10.4.19",
-        "chart.js": "^4.4.3",
+        "autoprefixer": "^10.4.20",
+        "chart.js": "^4.4.6",
         "imagetools-core": "^6.0.4",
-        "postcss": "^8.4.38",
-        "preact": "^10.19.6",
-        "react": "npm:@preact/compat",
+        "postcss": "^8.4.47",
+        "preact": "^10.24.3",
+        "react": "npm:@preact/compat@^18.3.1",
         "react-chartjs-2": "^5.2.0",
-        "react-dom": "npm:@preact/compat",
-        "react-icons": "^5.1.0",
-        "react-router-dom": "5",
+        "react-dom": "npm:@preact/compat@^18.3.1",
+        "react-icons": "^5.3.0",
+        "react-router-dom": "^5.3.4",
         "react-virtualized-auto-sizer": "^1.0.24",
-        "sass": "^1.72.0",
-        "sharp": "^0.33.4",
-        "tailwindcss": "^3.4.3",
-        "vite-imagetools": "^7.0.0"
+        "sass": "^1.80.6",
+        "sharp": "^0.33.5",
+        "tailwindcss": "^3.4.14",
+        "vite-imagetools": "^7.0.4"
     },
     "devDependencies": {
-        "@preact/preset-vite": "^2.8.2",
-        "@vite-pwa/assets-generator": "^0.2.4",
-        "typescript": "^5.2.2",
-        "vite": "^5.2.0",
-        "vite-plugin-pwa": "^0.20.0"
-    }
+        "@preact/preset-vite": "^2.9.1",
+        "@vite-pwa/assets-generator": "^0.2.6",
+        "typescript": "^5.6.3",
+        "vite": "^5.4.10",
+        "vite-plugin-pwa": "^0.20.5"
+    },
+    "packageManager": "pnpm@9.1.3+sha1.6110a47202a78d07d0bf8c9f4f4c63cc83bb833a"
 }
