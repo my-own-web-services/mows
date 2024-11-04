@@ -9,6 +9,7 @@ use tracing::{info_span, Instrument};
 use crate::db::get_zone_dnskey_records;
 use crate::dnssec::create_nsec3_chain;
 use crate::utils::find_authoritative_zone;
+use crate::vault::create_signer_if_not_existent;
 use crate::{
     auth::auth_ok,
     dnssec::{get_dnskey_for_zone, sign_db_entry},
@@ -82,9 +83,7 @@ pub async fn set(
                 };
             unwrap_or_return_if_err!(_soa_check, "Tried to set one or more records for a zone that does not have a SOA record.");
 
-            let vault_api_token = match vault::ApiTokenCache::get(
-
-            )
+            let vault_api_token = match vault::ApiTokenCache::get()
             .await
             {
                 Ok(t) => t,
@@ -106,7 +105,8 @@ pub async fn set(
 
             let mut dnskeys_for_new_zones = Vec::with_capacity(new_authoritative_zones.len());
             for zone in &new_authoritative_zones {
-                let dnskey = get_dnskey_for_zone(zone, &state.vault_uri, &vault_api_token).await;
+                let _= create_signer_if_not_existent(zone, &vault_api_token).await;
+                let dnskey = get_dnskey_for_zone(zone, &vault_api_token).await;
                 dnskeys_for_new_zones.push(dnskey.map(|d| (zone.clone(), d)));
             }
             unwrap_or_return_if_err!(dnskeys_for_new_zones, "Couldn't set DNSKEY for one or more newly created zones because Vault has no signer for this zone.");
@@ -140,7 +140,6 @@ pub async fn set(
                     &record_zone,
                     record.clone(),
                     dnskey,
-                    &state.vault_uri,
                     &vault_api_token,
                 )
                 .await;

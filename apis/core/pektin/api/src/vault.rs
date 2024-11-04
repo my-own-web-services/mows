@@ -1,5 +1,3 @@
-use std::{collections::HashMap, time::Duration};
-
 use anyhow::Context;
 use data_encoding::BASE64;
 use lazy_static::lazy_static;
@@ -8,11 +6,15 @@ use p256::ecdsa::Signature;
 use pektin_common::proto::rr::{dnssec::TBS, Name};
 use reqwest::{self};
 use serde::Deserialize;
-use serde_json::json;
-use sha2::{Digest, Sha256};
+use std::path::Path;
 use std::str;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::{collections::HashMap, time::Duration};
 use tracing::{debug, instrument};
+use vaultrs::api::transit::requests::{
+    CreateKeyRequest, CreateKeyRequestBuilder, SignDataRequestBuilder,
+};
+use vaultrs::api::transit::{HashAlgorithm, KeyType};
 use vaultrs::api::AuthInfo;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
@@ -82,15 +84,53 @@ pub async fn get_health(uri: &str) -> u16 {
     health_code
 }
 
+pub async fn create_signer_if_not_existent(zone: &Name, vault_token: &str) -> PektinApiResult<()> {
+    let api_config = get_current_config_cloned!();
+
+    let vault_client = create_vault_client_with_token(vault_token).await?;
+
+    let crypto_key_name = get_crypto_key_name_from_zone(&zone);
+
+    // check first if the signer exists in vault if not create it
+
+    let signer_res = vaultrs::transit::key::read(
+        &vault_client,
+        &api_config.vault_signer_secret_mount_path,
+        &crypto_key_name,
+    )
+    .await;
+
+    if signer_res.is_err() {
+        let mut create_key_request_builder = CreateKeyRequestBuilder::default();
+        create_key_request_builder
+            .key_type(KeyType::EcdsaP256)
+            .exportable(false);
+
+        vaultrs::transit::key::create(
+            &vault_client,
+            &api_config.vault_signer_secret_mount_path,
+            &crypto_key_name,
+            Some(&mut create_key_request_builder),
+        )
+        .await?;
+    }
+
+    Ok(())
+}
+
+pub fn get_crypto_key_name_from_zone(zone: &Name) -> String {
+    let zone = zone.to_string();
+    let zone = deabsolute(&zone);
+    let zone = idna::domain_to_ascii(zone).expect("Failed to encode");
+    format!("{zone}-zsk")
+}
+
 /// returns all keys for the zone in PEM format, sorted in the order of their index in the vault response
 ///
 /// you probably want to use the last of the returned keys
-#[instrument(skip(vault_uri, vault_token))]
-pub async fn get_zone_dnssec_keys(
-    zone: &Name,
-    vault_uri: &str,
-    vault_token: &str,
-) -> PektinApiResult<Vec<String>> {
+#[instrument(skip(vault_token))]
+pub async fn get_zone_dnssec_keys(zone: &Name, vault_token: &str) -> PektinApiResult<Vec<String>> {
+    let api_config = get_current_config_cloned!();
     #[derive(Deserialize, Debug)]
     struct VaultRes {
         data: VaultData,
@@ -104,14 +144,20 @@ pub async fn get_zone_dnssec_keys(
         /// in PEM format
         public_key: String,
     }
-    let crypto_key_type = "zsk";
-    let zone = zone.to_string();
-    let zone = deabsolute(&zone);
-    let zone = idna::domain_to_ascii(zone).expect("Failed to encode");
 
-    let target_url = format!("{vault_uri}/v1/pektin-transit/keys/{zone}-{crypto_key_type}",);
+    let crypto_key_name = get_crypto_key_name_from_zone(&zone);
+
+    let target_path = Path::new(&api_config.vault_uri)
+        .join("v1")
+        .join(&api_config.vault_signer_secret_mount_path)
+        .join(&crypto_key_name);
+
+    let target_path_str = target_path.to_str().ok_or(PektinApiError::GenericError(
+        "Failed to convert path to string".to_string(),
+    ))?;
+
     let vault_res = reqwest::Client::new()
-        .get(target_url)
+        .get(target_path_str)
         .timeout(Duration::from_secs(2))
         .header("X-Vault-Token", vault_token)
         .send()
@@ -144,59 +190,32 @@ pub async fn get_zone_dnssec_keys(
 
 /// take a base64 ([`data_encoding::BASE64`](https://docs.rs/data-encoding/2.3.2/data_encoding/constant.BASE64.html)) record and sign it with vault
 /// `zone` SHOULD NOT end with '.', if it does, the trailing '.' will be silently removed
-#[instrument(skip(tbs, vault_uri, vault_token))]
+#[instrument(skip(to_be_signed, vault_client))]
 pub async fn sign_with_vault(
-    tbs: &TBS,
+    to_be_signed: &TBS,
     zone: &Name,
-    vault_uri: &str,
-    vault_token: &str,
+    vault_client: &VaultClient,
 ) -> PektinApiResult<Vec<u8>> {
-    #[derive(Deserialize, Debug)]
-    struct VaultRes {
-        data: VaultData,
-    }
+    let api_config = get_current_config_cloned!();
+    let crypto_key_name = get_crypto_key_name_from_zone(&zone);
+    let to_be_signed_base64 = BASE64.encode(to_be_signed.as_ref());
 
-    // TODO BATCH SIGN
-    #[derive(Deserialize, Debug)]
-    struct VaultBatchData {
-        batch_results: Vec<VaultBatchDataSigWrapper>,
-    }
-    #[derive(Deserialize, Debug)]
-    struct VaultBatchDataSigWrapper {
-        signature: String, //this is in base64 with the need to trim off the vault:v1: prefix
-    }
+    let mut sign_data_request_builder = SignDataRequestBuilder::default();
+    sign_data_request_builder.hash_algorithm(HashAlgorithm::Sha2_256);
 
-    #[derive(Deserialize, Debug)]
-    struct VaultData {
-        signature: String,
-    }
-    let crypto_key_type = "zsk";
+    let vault_res = vaultrs::transit::data::sign(
+        vault_client,
+        &api_config.vault_signer_secret_mount_path,
+        &crypto_key_name,
+        &to_be_signed_base64,
+        Some(&mut sign_data_request_builder),
+    )
+    .await?;
 
-    let zone = zone.to_string();
-    let zone = deabsolute(&zone);
-    let zone = idna::domain_to_ascii(zone).expect("Failed to encode");
-    let tbs_base64 = BASE64.encode(tbs.as_ref());
-    let post_target =
-        format!("{vault_uri}/v1/pektin-transit/sign/{zone}-{crypto_key_type}/sha2-256");
-    debug!("Posting signing request to vault at {}", post_target);
-
-    let vault_res: String = reqwest::Client::new()
-        .post(post_target)
-        .timeout(Duration::from_secs(2))
-        .header("X-Vault-Token", vault_token)
-        .json(&json!({
-            "input": tbs_base64,
-        }))
-        .send()
-        .await?
-        .text()
-        .await?;
-    debug!("Signing response: {}", prettify_json(&vault_res));
-
-    let vault_res = serde_json::from_str::<VaultRes>(&vault_res)?;
+    debug!("Signing response: {}", vault_res.signature);
 
     // each signature from vault starts with "vault:v1:", which we don't want
-    let sig_bytes = BASE64.decode(&vault_res.data.signature.as_bytes()[9..])?;
+    let sig_bytes = BASE64.decode(&vault_res.signature.as_bytes()[9..])?;
 
     // vault returns the signature encoded as ASN.1 DER, but we want the raw encoded point
     // coordinates
@@ -284,7 +303,7 @@ pub async fn vault_k8s_login() -> PektinApiResult<AuthInfo> {
     Ok(vault_auth)
 }
 
-pub async fn create_vault_client() -> Result<VaultClient, PektinApiError> {
+pub async fn create_vault_client_with_k8s_login() -> Result<VaultClient, PektinApiError> {
     let api_config = get_current_config_cloned!();
 
     let mut client_builder = VaultClientSettingsBuilder::default();
@@ -294,6 +313,23 @@ pub async fn create_vault_client() -> Result<VaultClient, PektinApiError> {
     let vc = VaultClient::new(
         client_builder
             .token(vault_k8s_login().await?.client_token)
+            .build()
+            .context("Failed to create vault client")?,
+    )?;
+
+    Ok(vc)
+}
+
+pub async fn create_vault_client_with_token(token: &str) -> Result<VaultClient, PektinApiError> {
+    let api_config = get_current_config_cloned!();
+
+    let mut client_builder = VaultClientSettingsBuilder::default();
+
+    client_builder.address(api_config.vault_uri.clone());
+
+    let vc = VaultClient::new(
+        client_builder
+            .token(token)
             .build()
             .context("Failed to create vault client")?,
     )?;

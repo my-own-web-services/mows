@@ -2,7 +2,7 @@ use opentelemetry::global;
 use opentelemetry_otlp::{new_pipeline, WithExportConfig};
 use opentelemetry_sdk::trace::{BatchConfig, Tracer, TracerProvider};
 use pektin_api::get_current_config_cloned;
-use pektin_api::vault::create_vault_client;
+use pektin_api::vault::create_vault_client_with_k8s_login;
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
 
@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
     debug!("Connecting to db at {}", db_uri);
 
     // check if connection with vault works
-    create_vault_client().await?;
+    create_vault_client_with_k8s_login().await?;
 
     let db_uri_dnssec = format!(
         "redis://{}:{}@{}:{}/1",

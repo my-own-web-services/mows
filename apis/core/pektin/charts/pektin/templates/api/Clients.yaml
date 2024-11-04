@@ -1,0 +1,40 @@
+# auth engine for clients to authenticate with the pektin api, clients send tokens from this auth engine to vault these tokens should only have access to their own pektin-policy
+
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: pektin-kubernetes-api-clients
+spec:
+    authEngine:
+        kubernetes:
+            roles:
+                pektin-zertificat:
+                    serviceAccountName: pektin-zertificat
+                    policyIds: ["pektin-api-client-zertificat-policy"]
+                pektin-controller:
+                    serviceAccountName: pektin-controller
+                    policyIds: ["pektin-api-client-controller-policy"]
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: pektin-api-client-zertificat-policy
+spec:
+    engineAccessPolicy:
+        subPolicies:
+            - engineId: pektin-policies
+              engineType: secret
+              subPath: "data/pektin-zertificat"
+              capabilities: ["read"]
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: pektin-api-client-controller-policy
+spec:
+    engineAccessPolicy:
+        subPolicies:
+            - engineId: pektin-policies
+              engineType: secret
+              subPath: "data/pektin-zertificat"
+              capabilities: ["read"]

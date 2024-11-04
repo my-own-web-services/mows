@@ -17,6 +17,9 @@ spec:
                 pektin-zertificat:
                     ribston-policy: |- {{ range .Files.Lines "policies/ribston/acme.ribston.js" }}
                         {{ . }}{{ end }}
+                pektin-controller:
+                    ribston-policy: |- {{ range .Files.Lines "policies/ribston/allow-everything.ribston.js" }}
+                        {{ . }}{{ end }}
 ---
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
@@ -38,12 +41,11 @@ spec:
             - engineId: pektin-signing
               engineType: secret
               subPath: "*"
-              capabilities: ["update", "read"]
-            - engineId: pektin-policies
-              engineType: secret
-              subPath: "*"
-              capabilities: ["read", "list"]
+              capabilities: ["update", "read", "create"]
+
 ---
+# allow zertificat access to its engine to store TLS certificates
+
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -55,13 +57,10 @@ spec:
               engineType: secret
               subPath: "*"
               capabilities: ["update", "read", "create", "delete", "list"]
-            - engineId: pektin-policies
-              engineType: secret
-              subPath: "data/pektin-zertificat"
-              capabilities: ["read"]
----
-# TODO the pektin clients need a dedicated auth engine for pektin-api so that pektin-api cannot access other secrets they might have access to, this is because we are sending our vault token to the api, this protects against a rogue api server
 
+---
+
+# create the auth engine for general authentication
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -76,4 +75,3 @@ spec:
                 pektin-zertificat:
                     serviceAccountName: pektin-zertificat
                     policyIds: ["pektin-zertificat-policy"]
-

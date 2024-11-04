@@ -1,10 +1,22 @@
-1. manually install argo, cilium kubevip and longhorn with manager
-2. add argo app definitions, install vault and eso
-3. setup and unseal vault, save the tokens into the manager config
-4. configure eso to work with vault
-5. this should be everything for the core apis, the mows operator should take it from there
+# primary domain setup
 
-operator with gitWeb or directly gitea?
+create userpass auth method for the manager to control pektin
+
+## on request to add a domain
+
+create pektin signer for domain with manager vault root token
+enable manager to have full access to pektin
+enable primary domain to be created from manager
+
+pektin api should create the signer for a domain itself
+
+# create pektin controller
+
+# create public ip controller
+
+cr that can create any dns entry in pektin and could also configure pihole for multicast dns
+
+#
 
 cloud apis
 

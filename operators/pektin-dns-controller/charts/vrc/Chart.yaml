@@ -1,0 +1,6 @@
+apiVersion: v2
+name: mows-core-secrets-vrc
+description: controller to create Vault resources
+type: application
+version: 0.1.0
+appVersion: latest

@@ -13,7 +13,7 @@ use crate::{
     macros::return_if_err,
     ribston::{self, RibstonRequestData},
     types::{AppState, AuthAnswer, RequestBody},
-    vault::{self, create_vault_client},
+    vault::{self, create_vault_client_with_k8s_login, create_vault_client_with_token},
 };
 
 #[instrument(skip(ribston_endpoint, client_token, ribston_request_data))]
@@ -29,23 +29,10 @@ pub async fn auth(
     // cache until restart
     // transparently renew it if it's expired
 
-    let mut client_builder = VaultClientSettingsBuilder::default();
-
-    client_builder.address(api_config.vault_uri.clone());
-
-    let builder = return_if_err!(
-        client_builder
-            .token(client_token)
-            .build()
-            .context("Failed to create vault client"),
-        err,
-        format!("Could not create Vault client: {}", err)
-    );
-
     debug!("Creating Vault client with client token: {}", client_token);
 
     let vc = return_if_err!(
-        VaultClient::new(builder),
+        create_vault_client_with_token(client_token).await,
         err,
         format!("Could not create Vault client: {}", err)
     );
@@ -79,11 +66,13 @@ pub async fn auth(
         format!("Could not get client policy from vault response: {}", err)
     );
 
-    if client_policy.contains("@skip-policy-check") {
-        return AuthAnswer {
-            success: true,
-            message: "Skipped evaluating policy".into(),
-        };
+    if let Some(first_line) = client_policy.lines().next() {
+        if first_line.contains("@skip-policy-check") {
+            return AuthAnswer {
+                success: true,
+                message: "Skipped evaluating policy".into(),
+            };
+        }
     }
 
     let ribston_answer = return_if_err!(

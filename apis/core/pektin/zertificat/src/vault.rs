@@ -1,15 +1,12 @@
-use std::time::Duration;
-
+use crate::{get_current_config_cloned, types::VaultCert};
 use anyhow::{bail, Context};
 use serde::Deserialize;
-use serde_json::{json, Value};
-use tracing::debug;
+use serde_json::Value;
+use std::time::Duration;
 use vaultrs::{
     api::AuthInfo,
     client::{VaultClient, VaultClientSettingsBuilder},
 };
-
-use crate::{get_current_config_cloned, types::VaultCert};
 
 pub async fn get_kv_value(
     endpoint: &str,
@@ -79,7 +76,7 @@ pub async fn update_kv_value(
     Ok(())
 }
 
-pub async fn vault_k8s_login() -> anyhow::Result<AuthInfo> {
+pub async fn vault_k8s_login(token_for_pektin_api_use: bool) -> anyhow::Result<AuthInfo> {
     let api_config = get_current_config_cloned!();
     let mut client_builder = VaultClientSettingsBuilder::default();
 
@@ -95,30 +92,19 @@ pub async fn vault_k8s_login() -> anyhow::Result<AuthInfo> {
         std::fs::read_to_string(api_config.service_account_token_path.clone())
             .context("Failed to read service account token file")?;
 
+    let mount_path = if token_for_pektin_api_use {
+        api_config.vault_kubernetes_api_auth_path.clone()
+    } else {
+        api_config.vault_kubernetes_auth_path.clone()
+    };
+
     let vault_auth = vaultrs::auth::kubernetes::login(
         &vc,
-        &api_config.vault_kubernetes_auth_path.clone(),
+        &mount_path,
         &api_config.vault_kubernetes_auth_role.clone(),
         &service_account_jwt,
     )
     .await?;
 
     Ok(vault_auth)
-}
-
-pub async fn create_vault_client() -> anyhow::Result<VaultClient> {
-    let api_config = get_current_config_cloned!();
-
-    let mut client_builder = VaultClientSettingsBuilder::default();
-
-    client_builder.address(api_config.vault_uri.clone());
-
-    let vc = VaultClient::new(
-        client_builder
-            .token(vault_k8s_login().await?.client_token)
-            .build()
-            .context("Failed to create vault client")?,
-    )?;
-
-    Ok(vc)
 }

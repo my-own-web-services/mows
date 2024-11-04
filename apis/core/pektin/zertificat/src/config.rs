@@ -15,6 +15,7 @@ pub struct ZertificatConfig {
     pub service_account_token_path: String,
     pub vault_kubernetes_auth_path: String,
     pub vault_kubernetes_auth_role: String,
+    pub vault_kubernetes_api_auth_path: String,
     pub pektin_api_endpoint: String,
     pub pektin_username: String,
     pub acme_email: String,
@@ -37,6 +38,11 @@ pub fn from_env() -> anyhow::Result<ZertificatConfig> {
         vault_kubernetes_auth_path: load_env(
             "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes",
             "VAULT_KUBERNETES_AUTH_PATH",
+            false,
+        )?,
+        vault_kubernetes_api_auth_path: load_env(
+            "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes-api-clients",
+            "VAULT_KUBERNETES_API_AUTH_PATH",
             false,
         )?,
         vault_kubernetes_auth_role: load_env(

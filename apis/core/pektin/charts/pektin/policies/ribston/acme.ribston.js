@@ -174,7 +174,7 @@ POLICY INFORMATION
     "use":"pektin-dns",
     "name": "acme",
     "class": "acme",
-    "contact": "pektin@y.gy"
+    "contact": "pektin@vindelicum.eu"
 }
 */
 const input = {};

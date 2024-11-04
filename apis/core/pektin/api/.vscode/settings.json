@@ -2,14 +2,19 @@
     "window.title": "🤖 ${rootName}",
     "cSpell.words": [
         "actix",
+        "deabsolute",
         "deadpool",
         "dnskey",
         "dnskeys",
         "dnssec",
         "hasher",
+        "idna",
+        "moka",
         "Pektin",
+        "proto",
         "reqwest",
         "ribston",
-        "rrsig"
+        "rrsig",
+        "vaultrs"
     ]
 }
