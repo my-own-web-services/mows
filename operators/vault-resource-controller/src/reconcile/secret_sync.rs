@@ -9,7 +9,7 @@ use kube::api::{ObjectMeta, Patch};
 use tracing::debug;
 use vaultrs::client::VaultClient;
 
-use crate::{SecretSyncTargetResource, VaultSecretSync, VAULT_RESOURCES_FINALIZER};
+use crate::{SecretSyncTargetResource, VaultSecretSync, FINALIZER};
 
 #[derive(Gtmpl)]
 struct Context {
@@ -22,6 +22,7 @@ pub async fn handle_secret_sync(
     vault_client: &VaultClient,
     resource_namespace: &str,
     resource_name: &str,
+    force_target_namespace: Option<String>,
     vault_secret_sync: &VaultSecretSync,
     kube_client: &kube::Client,
 ) -> Result<(), crate::Error> {
@@ -62,9 +63,15 @@ pub async fn handle_secret_sync(
 
     let mut labels = BTreeMap::new();
 
-    labels.insert(MANAGED_BY_KEY.to_string(), VAULT_RESOURCES_FINALIZER.to_string());
+    labels.insert(MANAGED_BY_KEY.to_string(), FINALIZER.to_string());
 
     labels.insert("created-from".to_string(), resource_name.to_string());
+
+    let resource_to_be_created_namespace = if let Some(force_target_namespace_some) = force_target_namespace {
+        force_target_namespace_some
+    } else {
+        resource_namespace.to_string()
+    };
 
     for (secret_name, secret_data) in rendered_secrets {
         let target = vault_secret_sync
@@ -80,7 +87,7 @@ pub async fn handle_secret_sync(
             SecretSyncTargetResource::ConfigMap => {
                 create_configmap_in_k8s(
                     kube_client,
-                    resource_namespace,
+                    &resource_to_be_created_namespace,
                     secret_name,
                     secret_data,
                     labels.clone(),
@@ -91,7 +98,7 @@ pub async fn handle_secret_sync(
             SecretSyncTargetResource::Secret => {
                 create_secret_in_k8s(
                     kube_client,
-                    resource_namespace,
+                    &resource_to_be_created_namespace,
                     secret_name,
                     secret_data,
                     labels.clone(),
@@ -139,7 +146,7 @@ pub async fn create_configmap_in_k8s(
     if let Some(old_configmap) = &configmap_exists {
         if let Some(labels) = &old_configmap.metadata.labels {
             if let Some(managed_by) = labels.get(MANAGED_BY_KEY) {
-                if managed_by != VAULT_RESOURCES_FINALIZER {
+                if managed_by != FINALIZER {
                     return Err(crate::Error::GenericError(format!(
                         "ConfigMap {} is not managed by vrc",
                         secret_name
@@ -204,7 +211,7 @@ pub async fn create_secret_in_k8s(
     if let Some(old_secret) = &secret_exists {
         if let Some(labels) = &old_secret.metadata.labels {
             if let Some(managed_by) = labels.get(MANAGED_BY_KEY) {
-                if managed_by != VAULT_RESOURCES_FINALIZER {
+                if managed_by != FINALIZER {
                     return Err(crate::Error::GenericError(format!(
                         "Secret {} is not managed by vrc",
                         secret_name

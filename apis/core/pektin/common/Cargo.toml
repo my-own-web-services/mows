@@ -5,6 +5,11 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "gen_schema"
+path = "src/gen_schema.rs"
+
+
 [lints.rust]
 unsafe_code = "forbid"
 
@@ -30,6 +35,9 @@ hickory-proto = { version = "0.24.1", features = [
     "serde-config",
 ] }
 url = "2.5.2"
+
+
+schemars = { version = "0.8.12", features = ["chrono"] }
 
 [lib]
 name = "pektin_common"

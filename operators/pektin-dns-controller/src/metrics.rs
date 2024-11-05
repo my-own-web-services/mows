@@ -1,4 +1,4 @@
-use crate::{Error, VaultResource};
+use crate::{Error, PektinDns};
 use kube::ResourceExt;
 use opentelemetry::trace::TraceId;
 use prometheus_client::{
@@ -80,7 +80,7 @@ impl ReconcileMetrics {
         self
     }
 
-    pub fn set_failure(&self, doc: &VaultResource, e: &Error) {
+    pub fn set_failure(&self, doc: &PektinDns, e: &Error) {
         self.failures
             .get_or_create(&ErrorLabels {
                 instance: doc.name_any(),

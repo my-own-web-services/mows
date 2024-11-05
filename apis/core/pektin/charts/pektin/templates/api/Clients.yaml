@@ -11,9 +11,9 @@ spec:
                 pektin-zertificat:
                     serviceAccountName: pektin-zertificat
                     policyIds: ["pektin-api-client-zertificat-policy"]
-                pektin-controller:
-                    serviceAccountName: pektin-controller
-                    policyIds: ["pektin-api-client-controller-policy"]
+                pektin-dns-controller:
+                    serviceAccountName: pektin-dns-controller
+                    policyIds: ["pektin-api-client-pektin-dns-controller-policy"]
 ---
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
@@ -30,11 +30,11 @@ spec:
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
-    name: pektin-api-client-controller-policy
+    name: pektin-api-client-pektin-dns-controller-policy
 spec:
     engineAccessPolicy:
         subPolicies:
             - engineId: pektin-policies
               engineType: secret
-              subPath: "data/pektin-zertificat"
+              subPath: "data/pektin-dns-controller"
               capabilities: ["read"]

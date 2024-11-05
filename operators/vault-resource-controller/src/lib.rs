@@ -80,6 +80,9 @@ pub mod telemetry;
 /// Metrics
 mod metrics;
 pub use metrics::Metrics;
+pub mod config;
+pub mod macros;
+pub mod utils;
 pub mod reconcile {
     pub mod auth;
     pub mod policy;

@@ -1,15 +1,18 @@
 {
     "cSpell.words": [
+        "actix",
         "chrono",
-        "configmap",
+        "cntrlr",
         "crdgen",
-        "Finalizer",
-        "gtmpl",
+        "FINALIZER",
+        "openmetrics",
         "opentelemetry",
+        "pdns",
+        "Pektin",
+        "reqwest",
+        "runtimes",
         "schemars",
-        "templating",
-        "vaultresources",
-        "vaultrs",
-        "vres"
+        "serviceaccount",
+        "vaultrs"
     ]
 }

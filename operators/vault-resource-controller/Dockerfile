@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install upx -y
 
 RUN cargo install cargo-build-deps
 COPY Cargo.toml Cargo.lock ./
+COPY ./common-temp /common
+# replace ../../apis/core/pektin/common in cargo.toml with /common
+RUN sed -i 's/\.\.\/\.\.\/apis\/core\/pektin\/common/\/common/g' Cargo.toml
 RUN cargo build-deps --release
 RUN rm -f target/x86_64-unknown-linux-musl/release/deps/controller*
 # build

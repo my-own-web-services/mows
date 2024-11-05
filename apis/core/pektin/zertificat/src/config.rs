@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 pub fn config() -> &'static RwLock<ZertificatConfig> {
-    static API_CONFIG: OnceLock<RwLock<ZertificatConfig>> = OnceLock::new();
-    API_CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))
+    static CONFIG: OnceLock<RwLock<ZertificatConfig>> = OnceLock::new();
+    CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -16,6 +16,7 @@ pub struct ZertificatConfig {
     pub vault_kubernetes_auth_path: String,
     pub vault_kubernetes_auth_role: String,
     pub vault_kubernetes_api_auth_path: String,
+    pub vault_secret_engine_path: String,
     pub pektin_api_endpoint: String,
     pub pektin_username: String,
     pub acme_email: String,
@@ -48,6 +49,11 @@ pub fn from_env() -> anyhow::Result<ZertificatConfig> {
         vault_kubernetes_auth_role: load_env(
             "pektin-zertificat",
             "VAULT_KUBERNETES_AUTH_ROLE",
+            false,
+        )?,
+        vault_secret_engine_path: load_env(
+            "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-zertificat",
+            "VAULT_SECRET_ENGINE_PATH",
             false,
         )?,
         pektin_api_endpoint: load_env("http://pektin-api", "PEKTIN_API_ENDPOINT", false)?,

@@ -1,3 +1,8 @@
 {
-    "window.title": "😂 ${rootName}"
+    "window.title": "😂 ${rootName}",
+    "cSpell.words": [
+        "Dnskey",
+        "Dnssec",
+        "schemars"
+    ]
 }

@@ -1,10 +1,8 @@
-use gtmpl::{
-    error::{ExecError, ParseError},
-    FuncError,
-};
+use std::fmt::{Debug, Formatter};
+
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
     #[error("SerializationError: {0}")]
     SerializationError(#[source] serde_json::Error),
@@ -23,38 +21,14 @@ pub enum Error {
     #[error("Generic: {0}")]
     GenericError(String),
 
-    #[error("TemplateParseError: {0}")]
-    TemplateParseError(#[source] ParseError),
-
-    #[error("TemplateFuncError: {0}")]
-    TemplateFuncError(#[source] FuncError),
-
-    #[error("TemplateExecError: {0}")]
-    TemplateExecError(#[source] ExecError),
+    #[error("ReqwestError: {0}")]
+    ReqwestError(#[source] reqwest::Error),
 }
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 impl Error {
     pub fn metric_label(&self) -> String {
         format!("{self:?}").to_lowercase()
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Self {
-        Error::TemplateParseError(error)
-    }
-}
-
-impl From<ExecError> for Error {
-    fn from(error: ExecError) -> Self {
-        Error::TemplateExecError(error)
-    }
-}
-
-impl From<FuncError> for Error {
-    fn from(error: FuncError) -> Self {
-        Error::TemplateFuncError(error)
     }
 }
 
@@ -70,6 +44,12 @@ impl From<anyhow::Error> for Error {
     }
 }
 
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Self {
+        Error::ReqwestError(error)
+    }
+}
+
 /// Expose all controller components used by main
 pub mod controller;
 pub use crate::controller::*;
@@ -80,13 +60,10 @@ pub mod telemetry;
 /// Metrics
 mod metrics;
 pub use metrics::Metrics;
+pub mod kube_fix;
 pub mod reconcile {
-    pub mod auth;
-    pub mod policy;
-    pub mod secret_engine;
-    pub mod secret_sync;
+    pub mod plain;
 }
-
-pub mod templating {
-    pub mod functions;
-}
+pub mod config;
+pub mod macros;
+pub mod utils;

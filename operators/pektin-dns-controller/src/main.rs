@@ -1,7 +1,7 @@
 #![allow(unused_imports, unused_variables)]
 use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::Context;
-use controller::create_vault_client;
+use controller::get_vault_token;
 pub use controller::{self, telemetry, State};
 
 #[get("/metrics")]
@@ -27,13 +27,11 @@ async fn index(c: Data<State>, _req: HttpRequest) -> impl Responder {
 async fn main() -> anyhow::Result<()> {
     telemetry::init().await;
 
-    // Initiatilize Kubernetes controller state
+    // Initialize Kubernetes controller state
     let state = State::default();
     let controller = controller::run(state.clone());
 
-    let vc = create_vault_client()
-        .await
-        .context("Failed to create vault client")?;
+    let vc = get_vault_token().await.context("Failed to create vault client")?;
 
     // Start web server
     let server = HttpServer::new(move || {

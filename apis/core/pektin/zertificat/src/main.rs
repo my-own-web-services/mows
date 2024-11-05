@@ -20,15 +20,13 @@ use zertificat::config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let config = get_current_config_cloned!();
-
     // TODO: option to send a wake up call to run the procedure
 
     start_tracing().await?;
 
     // daily procedure to see if there is something to do
     loop {
-        match run_procedure(&config).await {
+        match run_procedure().await {
             Ok(_) => {
                 println!("procedure executed successfully");
             }
@@ -36,40 +34,34 @@ async fn main() -> anyhow::Result<()> {
                 println!("procedure failed:\n{e}");
             }
         };
-        std::thread::sleep(std::time::Duration::from_secs(10));
+        std::thread::sleep(std::time::Duration::from_secs(10 * 60));
     }
 }
 
-async fn run_procedure(config: &ZertificatConfig) -> anyhow::Result<()> {
+async fn run_procedure() -> anyhow::Result<()> {
+    let config = get_current_config_cloned!();
     // get certificate config from vault
     let vault_token = vault_k8s_login(false).await?.client_token;
     let domains = get_pektin_domains().await?;
-    let certificates = get_certificates(&domains, config, &vault_token).await?;
+    let maybe_vault_certificates = get_certificates(&domains, &vault_token).await?;
     // check certificate presence in vault
-    for cert in certificates {
-        if cert.cert.is_none() || cert.key.is_none() || cert.info.is_none() {
+    for maybe_cert in maybe_vault_certificates {
+        if maybe_cert.cert.is_none() || maybe_cert.key.is_none() || maybe_cert.info.is_none() {
             // generate new certificate
-            let cert = generate_certificate(&cert.domain, config).await?;
+            let cert = generate_certificate(&maybe_cert.domain).await?;
             // set cert in vault
-            update_kv_value(
-                &config.vault_uri,
-                &vault_token,
-                "pektin-zertificat",
-                &cert.domain,
-                &cert,
-            )
-            .await?;
+            update_kv_value(&config.vault_uri, &vault_token, &cert.domain, &cert).await?;
         } else {
             let cert = VaultCert {
-                cert: cert.cert.unwrap().to_string(),
-                key: cert.key.unwrap().to_string(),
-                info: match serde_json::from_value(cert.info.unwrap()) {
+                cert: maybe_cert.cert.unwrap().to_string(),
+                key: maybe_cert.key.unwrap().to_string(),
+                info: match serde_json::from_value(maybe_cert.info.unwrap()) {
                     Ok(info) => info,
                     Err(e) => {
                         bail!("failed to deserialize VaultCert info: {}", e);
                     }
                 },
-                domain: cert.domain,
+                domain: maybe_cert.domain,
             };
             let current_time = chrono::offset::Utc::now().timestamp_millis() / 1000;
             let sixty_days_secs = 60 * 60 * 24 * 60;
@@ -77,16 +69,9 @@ async fn run_procedure(config: &ZertificatConfig) -> anyhow::Result<()> {
             // check if certificate has expired
             if current_time > cert.info.created + sixty_days_secs {
                 // generate new certificate
-                let cert = generate_certificate(&cert.domain, config).await?;
+                let cert = generate_certificate(&cert.domain).await?;
                 // set cert in vault
-                update_kv_value(
-                    &config.vault_uri,
-                    &vault_token,
-                    "pektin-zertificat",
-                    &cert.domain,
-                    &cert,
-                )
-                .await?;
+                update_kv_value(&config.vault_uri, &vault_token, &cert.domain, &cert).await?;
             }
         }
     }
@@ -94,11 +79,9 @@ async fn run_procedure(config: &ZertificatConfig) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn generate_certificate(
-    domain: &str,
-    config: &ZertificatConfig,
-) -> anyhow::Result<VaultCert> {
+pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
     println!("generating certificate for {}", domain);
+    let config = get_current_config_cloned!();
     let communication_signing_key = SigningKey::random(&mut OsRng);
 
     let acme_url = match config.use_local_pebble {
@@ -195,12 +178,11 @@ async fn set_pektin_record(vault_token: &str, challenge: &UserChallenges) -> any
 
 async fn get_certificates(
     domains: &Vec<String>,
-    config: &ZertificatConfig,
     vault_token: &str,
 ) -> anyhow::Result<Vec<MaybeVaultCert>> {
     let mut certificates = vec![];
     for domain in domains {
-        match get_kv_value(&config.vault_uri, vault_token, "pektin-zertificat", domain).await {
+        match get_kv_value(vault_token, domain).await {
             Ok(cert_res) => {
                 let cert = cert_res.get("cert").cloned();
                 let key = cert_res.get("key").cloned();

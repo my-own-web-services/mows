@@ -45,8 +45,8 @@ pub fn from_env() -> PektinApiResult<ApiConfig> {
             false,
         )?,
         vault_kubernetes_auth_role: load_env("pektin-api", "VAULT_KUBERNETES_AUTH_ROLE", false)?,
-        vault_signer_secret_mount_path: load_env(
-            "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-signer",
+        vault_signing_secret_mount_path: load_env(
+            "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-signing",
             "VAULT_SIGNER_SECRET_MOUNT_PATH",
             false,
         )?,
@@ -70,5 +70,5 @@ pub struct ApiConfig {
     pub vault_kubernetes_auth_path: String,
     pub vault_kubernetes_auth_role: String,
     pub policy_vault_path: String,
-    pub vault_signer_secret_mount_path: String,
+    pub vault_signing_secret_mount_path: String,
 }

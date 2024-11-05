@@ -33,7 +33,7 @@ anyhow = "1"
 
 rand = "0.8.5"
 
-hcloud = { version = "0.20.0", default-features = false, features = [
+hcloud = { version = "0.20.1", default-features = false, features = [
     "rustls-tls",
 ] }
 

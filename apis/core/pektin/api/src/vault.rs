@@ -84,6 +84,7 @@ pub async fn get_health(uri: &str) -> u16 {
     health_code
 }
 
+#[instrument(skip(vault_token))]
 pub async fn create_signer_if_not_existent(zone: &Name, vault_token: &str) -> PektinApiResult<()> {
     let api_config = get_current_config_cloned!();
 
@@ -95,7 +96,7 @@ pub async fn create_signer_if_not_existent(zone: &Name, vault_token: &str) -> Pe
 
     let signer_res = vaultrs::transit::key::read(
         &vault_client,
-        &api_config.vault_signer_secret_mount_path,
+        &api_config.vault_signing_secret_mount_path,
         &crypto_key_name,
     )
     .await;
@@ -108,7 +109,7 @@ pub async fn create_signer_if_not_existent(zone: &Name, vault_token: &str) -> Pe
 
         vaultrs::transit::key::create(
             &vault_client,
-            &api_config.vault_signer_secret_mount_path,
+            &api_config.vault_signing_secret_mount_path,
             &crypto_key_name,
             Some(&mut create_key_request_builder),
         )
@@ -149,7 +150,8 @@ pub async fn get_zone_dnssec_keys(zone: &Name, vault_token: &str) -> PektinApiRe
 
     let target_path = Path::new(&api_config.vault_uri)
         .join("v1")
-        .join(&api_config.vault_signer_secret_mount_path)
+        .join(&api_config.vault_signing_secret_mount_path)
+        .join("keys")
         .join(&crypto_key_name);
 
     let target_path_str = target_path.to_str().ok_or(PektinApiError::GenericError(
@@ -205,7 +207,7 @@ pub async fn sign_with_vault(
 
     let vault_res = vaultrs::transit::data::sign(
         vault_client,
-        &api_config.vault_signer_secret_mount_path,
+        &api_config.vault_signing_secret_mount_path,
         &crypto_key_name,
         &to_be_signed_base64,
         Some(&mut sign_data_request_builder),

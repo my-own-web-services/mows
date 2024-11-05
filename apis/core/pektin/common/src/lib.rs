@@ -1,14 +1,15 @@
 use base64::prelude::*;
 pub use deadpool_redis;
 pub use hickory_proto as proto;
-use hickory_proto::rr::rdata;
 use proto::rr::dnssec;
 use proto::rr::dnssec::rdata::{DNSSECRData, DNSKEY, NSEC3, NSEC3PARAM, SIG};
+use proto::rr::rdata;
 use proto::rr::rdata::{caa, tlsa, MX, OPENPGPKEY, SOA, SRV, TXT};
 use proto::rr::{Name, RData, RecordType};
 
 use deadpool_redis::redis::AsyncCommands;
 use deadpool_redis::Connection;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::{
@@ -36,25 +37,26 @@ pub enum PektinCommonError {
 // The following type definitions may seem weird (because they are), but they were crafted
 // carefully to make the serialized JSON look nice.
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct ARecord {
     pub value: Ipv4Addr,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct AaaaRecord {
     pub value: Ipv6Addr,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct CaaRecord {
     pub issuer_critical: bool,
     pub tag: Property,
     pub value: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct CnameRecord {
+    #[schemars(with = "String")]
     pub value: Name,
 }
 
@@ -67,14 +69,23 @@ pub struct DnskeyRecord {
     pub key: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct MxRecord {
     #[serde(flatten)]
+    #[schemars(with = "MxRecordJsonDef")]
     pub value: MX,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
+pub struct MxRecordJsonDef {
+    pub preference: u16,
+    #[schemars(with = "String")]
+    pub exchange: Name,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct NsRecord {
+    #[schemars(with = "String")]
     pub value: Name,
 }
 
@@ -88,14 +99,14 @@ pub struct Nsec3Record {
     pub types: Vec<RecordType>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct Nsec3ParamRecord {
     pub hash_algorithm: HashAlgorithm,
     pub iterations: u16,
     pub salt: Option<Vec<u8>>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct OpenpgpkeyRecord {
     pub value: String,
 }
@@ -113,19 +124,43 @@ pub struct RrsigRecord {
     pub signature: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct SoaRecord {
     #[serde(flatten)]
+    #[schemars(with = "SOAJsonDef")]
     pub value: SOA,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
+pub struct SOAJsonDef {
+    #[schemars(with = "String")]
+    pub mname: Name,
+    #[schemars(with = "String")]
+    pub rname: Name,
+    pub serial: u32,
+    pub refresh: i32,
+    pub retry: i32,
+    pub expire: i32,
+    pub minimum: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct SrvRecord {
     #[serde(flatten)]
+    #[schemars(with = "SRVJsonDef")]
     pub value: SRV,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
+struct SRVJsonDef {
+    pub priority: u16,
+    pub weight: u16,
+    pub port: u16,
+    #[schemars(with = "String")]
+    pub target: Name,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct TlsaRecord {
     pub cert_usage: CertUsage,
     pub selector: Selector,
@@ -133,29 +168,63 @@ pub struct TlsaRecord {
     pub cert_data: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct TxtRecord {
     pub value: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 #[serde(tag = "rr_type")]
 pub enum RrSet {
-    A { rr_set: Vec<ARecord> },
-    AAAA { rr_set: Vec<AaaaRecord> },
-    CAA { rr_set: Vec<CaaRecord> },
-    CNAME { rr_set: Vec<CnameRecord> },
-    DNSKEY { rr_set: Vec<DnskeyRecord> },
-    MX { rr_set: Vec<MxRecord> },
-    NS { rr_set: Vec<NsRecord> },
-    NSEC3 { rr_set: Vec<Nsec3Record> },
-    NSEC3PARAM { rr_set: Vec<Nsec3ParamRecord> },
-    OPENPGPKEY { rr_set: Vec<OpenpgpkeyRecord> },
-    RRSIG { rr_set: Vec<RrsigRecord> },
-    SOA { rr_set: Vec<SoaRecord> },
-    SRV { rr_set: Vec<SrvRecord> },
-    TLSA { rr_set: Vec<TlsaRecord> },
-    TXT { rr_set: Vec<TxtRecord> },
+    A {
+        rr_set: Vec<ARecord>,
+    },
+    AAAA {
+        rr_set: Vec<AaaaRecord>,
+    },
+    CAA {
+        rr_set: Vec<CaaRecord>,
+    },
+    CNAME {
+        rr_set: Vec<CnameRecord>,
+    },
+    #[schemars(skip)]
+    DNSKEY {
+        rr_set: Vec<DnskeyRecord>,
+    },
+    MX {
+        rr_set: Vec<MxRecord>,
+    },
+    NS {
+        rr_set: Vec<NsRecord>,
+    },
+    #[schemars(skip)]
+    NSEC3 {
+        rr_set: Vec<Nsec3Record>,
+    },
+    #[schemars(skip)]
+    NSEC3PARAM {
+        rr_set: Vec<Nsec3ParamRecord>,
+    },
+    OPENPGPKEY {
+        rr_set: Vec<OpenpgpkeyRecord>,
+    },
+    #[schemars(skip)]
+    RRSIG {
+        rr_set: Vec<RrsigRecord>,
+    },
+    SOA {
+        rr_set: Vec<SoaRecord>,
+    },
+    SRV {
+        rr_set: Vec<SrvRecord>,
+    },
+    TLSA {
+        rr_set: Vec<TlsaRecord>,
+    },
+    TXT {
+        rr_set: Vec<TxtRecord>,
+    },
 }
 
 macro_rules! rr_set_vec {
@@ -210,8 +279,9 @@ impl RrSet {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub struct DbEntry {
+    #[schemars(with = "String")]
     pub name: Name,
     pub ttl: u32,
     #[serde(default = "default_meta")]
@@ -224,7 +294,7 @@ fn default_meta() -> String {
     "".to_string()
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, JsonSchema)]
 pub enum Property {
     #[serde(rename = "iodef")]
     Iodef,
@@ -244,7 +314,7 @@ impl From<Property> for caa::Property {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr)]
+#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum CertUsage {
     CA = 0,
@@ -264,7 +334,7 @@ impl From<CertUsage> for tlsa::CertUsage {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr)]
+#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum Selector {
     Full = 0,
@@ -280,7 +350,7 @@ impl From<Selector> for tlsa::Selector {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr)]
+#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum Matching {
     Raw = 0,
@@ -298,7 +368,7 @@ impl From<Matching> for tlsa::Matching {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr)]
+#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum HashAlgorithm {
     SHA1 = 1,
@@ -312,7 +382,7 @@ impl From<HashAlgorithm> for dnssec::Nsec3HashAlgorithm {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr)]
+#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum DnssecAlgorithm {
     ECDSAP256SHA256 = 13,

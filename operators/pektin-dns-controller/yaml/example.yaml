@@ -1,0 +1,37 @@
+apiVersion: pektin.k8s.mows.cloud/v1
+kind: PektinDns
+metadata:
+    name: domain-soa
+spec:
+    plain:
+        - name: vindelicorum.eu.
+          meta: ""
+          ttl: 60
+          rr_set:
+            SOA:
+                - mname: ns1.mows.cloud.
+                  rname: hostmaster.mows.cloud.
+                  serial: 0
+                  refresh: 0
+                  retry: 0
+                  expire: 0
+                  minimum: 0
+        - name: vindelicorum.eu.
+          meta: ""
+          ttl: 60
+          rr_set:
+            NS:
+                - value: ns1.mows.cloud.
+                - value: ns2.mows.cloud.
+        - name: ns1.vindelicorum.eu.
+          meta: ""
+          ttl: 60
+          rr_set:
+            A:
+                - value: "116.203.53.54"
+        - name: ns2.vindelicorum.eu.
+          meta: ""
+          ttl: 60
+          rr_set:
+            AAAA:
+                - value: "2a01:4f8:1c1b:b783::1"

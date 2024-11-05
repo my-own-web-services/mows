@@ -4,7 +4,7 @@ use actix_web::{post, web, HttpRequest, Responder};
 use pektin_common::deadpool_redis::redis::AsyncCommands;
 use pektin_common::{DbEntry, PektinCommonError, RrSet};
 use serde_json::json;
-use tracing::{info_span, Instrument};
+use tracing::{debug, info_span, Instrument};
 
 use crate::db::get_zone_dnskey_records;
 use crate::dnssec::create_nsec3_chain;
@@ -87,7 +87,7 @@ pub async fn set(
             .await
             {
                 Ok(t) => t,
-                Err(_) => return internal_err("Couldnt get vault api token"),
+                Err(_) => return internal_err("Couldn't get vault api token"),
             };
 
             let zones_to_fetch_dnskeys_for: Vec<_> = used_zones
@@ -105,7 +105,8 @@ pub async fn set(
 
             let mut dnskeys_for_new_zones = Vec::with_capacity(new_authoritative_zones.len());
             for zone in &new_authoritative_zones {
-                let _= create_signer_if_not_existent(zone, &vault_api_token).await;
+                let res= create_signer_if_not_existent(zone, &vault_api_token).await;
+                debug!(?res, "create_signer_if_not_existent");
                 let dnskey = get_dnskey_for_zone(zone, &vault_api_token).await;
                 dnskeys_for_new_zones.push(dnskey.map(|d| (zone.clone(), d)));
             }

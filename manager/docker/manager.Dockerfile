@@ -10,8 +10,8 @@ RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps --release
 
 # build
 COPY --chown=root:root src src
-RUN RUSTFLAGS="--cfg tokio_unstable" cargo build  --release --bin main
-RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
+RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --release --bin main
+#RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 
 
 

@@ -20,6 +20,9 @@ spec:
         - name: aclfile
           configMap:
             name: pektin-db-acl
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.db.name }}-data
       containers:
         - name: {{ .Values.db.name }}
           image: "{{ .Values.db.image }}"
@@ -47,6 +50,8 @@ spec:
             - name: aclfile
               mountPath: /config/users.acl
               subPath: data
+            - name: data
+              mountPath: /data
 
 
 

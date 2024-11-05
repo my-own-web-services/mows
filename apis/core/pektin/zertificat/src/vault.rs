@@ -8,12 +8,12 @@ use vaultrs::{
     client::{VaultClient, VaultClientSettingsBuilder},
 };
 
-pub async fn get_kv_value(
-    endpoint: &str,
-    token: &str,
-    kv_engine: &str,
-    key: &str,
-) -> anyhow::Result<Value> {
+pub async fn get_kv_value(token: &str, key: &str) -> anyhow::Result<Value> {
+    let config = get_current_config_cloned!();
+    let endpoint = config.vault_uri.clone();
+
+    let kv_engine = config.vault_secret_engine_path.clone();
+
     #[derive(Deserialize, Debug)]
     struct VaultRes {
         data: VaultData,
@@ -45,21 +45,12 @@ pub async fn get_kv_value(
 pub async fn update_kv_value(
     endpoint: &str,
     token: &str,
-    kv_engine: &str,
     key: &str,
     value: &VaultCert,
 ) -> anyhow::Result<()> {
-    // delete the key first
-    let del_req = reqwest::Client::new()
-        .delete(format!("{endpoint}/v1/{kv_engine}/metadata/{key}"))
-        .timeout(Duration::from_secs(2))
-        .header("X-Vault-Token", token)
-        .send()
-        .await?;
+    let config = get_current_config_cloned!();
 
-    if !del_req.status().is_success() {
-        bail!("failed to delete key");
-    }
+    let kv_engine = config.vault_secret_engine_path.clone();
 
     let set_req = reqwest::Client::new()
         .post(format!("{endpoint}/v1/{kv_engine}/data/{key}"))

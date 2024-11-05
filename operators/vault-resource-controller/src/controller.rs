@@ -1,9 +1,12 @@
 use crate::{
+    get_current_config_cloned,
     reconcile::{
         auth::handle_auth_engine, policy::handle_engine_access_policy, secret_engine::handle_secret_engine,
         secret_sync::handle_secret_sync,
     },
-    telemetry, Error, Metrics, Result,
+    telemetry,
+    utils::get_error_type,
+    Error, Metrics, Result,
 };
 use anyhow::Context as anyhow_context;
 use chrono::{DateTime, Utc};
@@ -26,8 +29,7 @@ use std::{collections::HashMap, hash::Hash, sync::Arc};
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
-
-pub static VAULT_RESOURCES_FINALIZER: &str = "vaultresources.k8s.mows.cloud";
+pub static FINALIZER: &str = "vaultresources.k8s.mows.cloud";
 
 /// Generate the Kubernetes wrapper struct `Document` from our Spec and Status struct
 ///
@@ -152,20 +154,22 @@ pub struct KV2SecretEngineParams {
 pub async fn create_vault_client() -> Result<VaultClient, Error> {
     let mut client_builder = VaultClientSettingsBuilder::default();
 
-    client_builder.address("http://mows-core-secrets-vault.mows-core-secrets-vault:8200");
+    let config = get_current_config_cloned!();
+
+    client_builder.address(config.vault_uri);
 
     let vc =
         VaultClient::new(client_builder.build().map_err(|_| {
             Error::GenericError("Failed to create vault client settings builder".to_string())
         })?)?;
 
-    let service_account_jwt = std::fs::read_to_string("/var/run/secrets/kubernetes.io/serviceaccount/token")
+    let service_account_jwt = std::fs::read_to_string(config.service_account_token_path)
         .context("Failed to read service account token")?;
 
     let vault_auth = vaultrs::auth::kubernetes::login(
         &vc,
-        "mows-core-secrets-vrc-sys",
-        "mows-core-secrets-vrc",
+        &config.vault_kubernetes_auth_path,
+        &config.vault_kubernetes_auth_role,
         &service_account_jwt,
     )
     .await?;
@@ -209,10 +213,23 @@ pub async fn reconcile_resource(
                 .await?
         }
         VaultResourceSpec::SecretSync(vault_secret_sync) => {
+            let mut force_target_namespace = None;
+            if let Some(labels) = &vault_resource.metadata.labels {
+                if let Some(force_target_namespace_some) = labels.get("mows.cloud/force-target-namespace") {
+                    if let Some(sudo) = labels.get("k8s.mows.cloud/sudo") {
+                        if sudo == "true" {
+                            force_target_namespace = Some(force_target_namespace_some.clone());
+                        } else {
+                            return Err(Error::GenericError("`mows.cloud/force-target-namespace` label is only allowed with `mows.cloud/sudo` label set to `true`".to_string()));
+                        };
+                    }
+                };
+            };
             handle_secret_sync(
                 &vc,
                 resource_namespace,
                 resource_name,
+                force_target_namespace,
                 vault_secret_sync,
                 kube_client,
             )
@@ -254,17 +271,12 @@ async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Res
     let vault_resources: Api<VaultResource> = Api::namespaced(ctx.client.clone(), &ns);
 
     info!("Reconciling Document \"{}\" in {}", vault_resource.name_any(), ns);
-    finalizer(
-        &vault_resources,
-        VAULT_RESOURCES_FINALIZER,
-        vault_resource,
-        |event| async {
-            match event {
-                Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
-                Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
-            }
-        },
-    )
+    finalizer(&vault_resources, FINALIZER, vault_resource, |event| async {
+        match event {
+            Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
+            Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
+        }
+    })
     .await
     .map_err(|e| Error::FinalizerError(Box::new(e)))
 }
@@ -307,7 +319,7 @@ impl VaultResource {
                         type_: EventType::Normal,
                         reason: "ObjectCreated".into(),
                         note: Some(format!("Object Created: `{name}`")),
-                        action: "Object Created".into(),
+                        action: "CreateObject".into(),
                         secondary: None,
                     })
                     .await
@@ -329,12 +341,14 @@ impl VaultResource {
                     .await
                     .map_err(Error::KubeError)?;
 
+                let reason = get_error_type(&e);
+
                 recorder
                     .publish(Event {
                         type_: EventType::Warning,
-                        reason: "ObjectCreationFailed".into(),
-                        note: Some(format!("Object Failed: `{name}`")),
-                        action: "Object Failed".into(),
+                        reason,
+                        note: Some(e.to_string()),
+                        action: "CreateObject".into(),
                         secondary: None,
                     })
                     .await

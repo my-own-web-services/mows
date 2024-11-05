@@ -64,6 +64,9 @@ sha1 = "0.10.6"
 data-encoding = { version = "2.6.0" }
 
 
+pektin-common = { path = "../../apis/core/pektin/common" }
+
+
 [dependencies.kube]
 features = ["runtime", "client", "derive"]
 version = "0.96.0"

@@ -1193,9 +1193,9 @@ dependencies = [
 
 [[package]]
 name = "hcloud"
-version = "0.20.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e66c9b71970f15d3daa07815461f39f6a42e155969226a97ddfba41224158c0c"
+checksum = "509767a51b7e337a95f62fb239ab065f6225fc7b0ad0b569cab4e697ba57d845"
 dependencies = [
  "reqwest 0.12.8",
  "serde",

@@ -17,7 +17,7 @@ spec:
                 pektin-zertificat:
                     ribston-policy: |- {{ range .Files.Lines "policies/ribston/acme.ribston.js" }}
                         {{ . }}{{ end }}
-                pektin-controller:
+                pektin-dns-controller:
                     ribston-policy: |- {{ range .Files.Lines "policies/ribston/allow-everything.ribston.js" }}
                         {{ . }}{{ end }}
 ---
