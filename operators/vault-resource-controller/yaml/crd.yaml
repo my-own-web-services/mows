@@ -133,22 +133,21 @@ spec:
                       type: object
                     type: object
                   targets:
-                    additionalProperties:
-                      properties:
-                        resourceMapKey:
-                          nullable: true
-                          type: string
-                        resourceType:
-                          enum:
-                          - ConfigMap
-                          - Secret
-                          type: string
-                        template:
-                          type: string
-                      required:
-                      - resourceType
-                      - template
-                      type: object
+                    properties:
+                      configMaps:
+                        additionalProperties:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        nullable: true
+                        type: object
+                      secrets:
+                        additionalProperties:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        nullable: true
+                        type: object
                     type: object
                 required:
                 - kvMapping

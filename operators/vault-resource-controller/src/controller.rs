@@ -54,15 +54,14 @@ pub enum VaultResourceSpec {
 #[serde(rename_all = "camelCase")]
 pub struct VaultSecretSync {
     pub kv_mapping: HashMap<String, SecretSyncKvMapping>,
-    pub targets: HashMap<String, SecretSyncTarget>,
+    pub targets: VaultSecretSyncTargetTypes,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct SecretSyncTarget {
-    pub template: String,
-    pub resource_type: SecretSyncTargetResource,
-    pub resource_map_key: Option<String>,
+pub struct VaultSecretSyncTargetTypes {
+    pub config_maps: Option<HashMap<String, HashMap<String, String>>>,
+    pub secrets: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -213,14 +212,20 @@ pub async fn reconcile_resource(
                 .await?
         }
         VaultResourceSpec::SecretSync(vault_secret_sync) => {
-            let mut force_target_namespace = None;
+            let force_target_namespace_key = "vault.k8s.mows.cloud/force-target-namespace";
+            let sudo_key = "k8s.mows.cloud/sudo";
+
+            let mut target_namespace = resource_namespace;
             if let Some(labels) = &vault_resource.metadata.labels {
-                if let Some(force_target_namespace_some) = labels.get("mows.cloud/force-target-namespace") {
-                    if let Some(sudo) = labels.get("k8s.mows.cloud/sudo") {
+                if let Some(force_target_namespace_some) = labels.get(force_target_namespace_key) {
+                    if let Some(sudo) = labels.get(sudo_key) {
                         if sudo == "true" {
-                            force_target_namespace = Some(force_target_namespace_some.clone());
+                            target_namespace = force_target_namespace_some;
                         } else {
-                            return Err(Error::GenericError("`mows.cloud/force-target-namespace` label is only allowed with `mows.cloud/sudo` label set to `true`".to_string()));
+                            return Err(Error::GenericError(format!(
+                                "The `{}` label is only allowed with `{}` label set to `true`",
+                                force_target_namespace_key, sudo_key
+                            )));
                         };
                     }
                 };
@@ -229,7 +234,7 @@ pub async fn reconcile_resource(
                 &vc,
                 resource_namespace,
                 resource_name,
-                force_target_namespace,
+                &target_namespace,
                 vault_secret_sync,
                 kube_client,
             )

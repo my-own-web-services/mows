@@ -1,19 +1,21 @@
+use gtmpl_derive::Gtmpl;
+use k8s_openapi::api::core::v1::{ConfigMap, Secret};
+use kube::api::{ObjectMeta, Patch};
 use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
 };
-
-use gtmpl_derive::Gtmpl;
-use k8s_openapi::api::core::v1::{ConfigMap, Secret};
-use kube::api::{ObjectMeta, Patch};
 use tracing::debug;
 use vaultrs::client::VaultClient;
 
-use crate::{SecretSyncTargetResource, VaultSecretSync, FINALIZER};
+use crate::{
+    templating::functions::serde_json_value_to_gtmpl_value, SecretSyncTargetResource, VaultSecretSync,
+    FINALIZER,
+};
 
 #[derive(Gtmpl)]
 struct Context {
-    secrets: HashMap<String, HashMap<String, String>>,
+    secrets: HashMap<String, gtmpl::Value>,
 }
 
 const MANAGED_BY_KEY: &str = "app.kubernetes.io/managed-by";
@@ -22,11 +24,11 @@ pub async fn handle_secret_sync(
     vault_client: &VaultClient,
     resource_namespace: &str,
     resource_name: &str,
-    force_target_namespace: Option<String>,
+    target_namespace: &str,
     vault_secret_sync: &VaultSecretSync,
     kube_client: &kube::Client,
 ) -> Result<(), crate::Error> {
-    let mut fetched_secrets: HashMap<String, HashMap<String, String>> = HashMap::new();
+    let mut fetched_secrets: HashMap<String, gtmpl::Value> = HashMap::new();
 
     for (template_key, fetch_from) in vault_secret_sync.kv_mapping.iter() {
         let vault_engine_path = Path::new("mows-core-secrets-vrc")
@@ -38,14 +40,16 @@ pub async fn handle_secret_sync(
 
         debug!("Fetching secrets from: {:?}", &vault_engine_path);
 
-        let secret: HashMap<String, String> =
+        let secret: serde_json::Value =
             vaultrs::kv2::read(vault_client, &vault_engine_path, &fetch_from.path).await?;
-        fetched_secrets.insert(template_key.clone(), secret);
+        fetched_secrets.insert(template_key.clone(), serde_json_value_to_gtmpl_value(secret));
     }
 
     debug!("Fetched secrets: {:?}", fetched_secrets);
 
-    let mut rendered_secrets: HashMap<String, String> = HashMap::new();
+    let mut rendered_secrets: HashMap<String, BTreeMap<String, String>> = HashMap::new();
+
+    let mut rendered_configmaps: HashMap<String, BTreeMap<String, String>> = HashMap::new();
 
     let mut template_creator = gtmpl::Template::default();
     template_creator.add_funcs(&crate::templating::functions::TEMPLATE_FUNCTIONS);
@@ -54,59 +58,63 @@ pub async fn handle_secret_sync(
         secrets: fetched_secrets.clone(),
     });
 
-    for (target_name, target) in vault_secret_sync.targets.iter() {
-        template_creator.parse(target.template.clone().replace("{%", "{{").replace("%}", "}}"))?;
-        rendered_secrets.insert(target_name.clone(), template_creator.render(&context)?);
+    if let Some(target_secrets) = &vault_secret_sync.targets.secrets {
+        for (target_secret_name, target_secret) in target_secrets.iter() {
+            let mut rendered_secret = BTreeMap::new();
+
+            for (map_name, target) in target_secret.iter() {
+                template_creator.parse(target.clone().replace("{%", "{{").replace("%}", "}}"))?;
+                rendered_secret.insert(map_name.clone(), template_creator.render(&context)?);
+            }
+
+            rendered_secrets.insert(target_secret_name.clone(), rendered_secret);
+        }
+
+        debug!("Rendered secrets: {:?}", rendered_secrets);
     }
 
-    debug!("Rendered secrets: {:?}", rendered_secrets);
+    if let Some(target_configmaps) = &vault_secret_sync.targets.config_maps {
+        for (target_configmap_name, target_configmap) in target_configmaps.iter() {
+            let mut rendered_configmap = BTreeMap::new();
+
+            for (map_name, target) in target_configmap.iter() {
+                template_creator.parse(target.clone().replace("{%", "{{").replace("%}", "}}"))?;
+                rendered_configmap.insert(map_name.clone(), template_creator.render(&context)?);
+            }
+
+            rendered_configmaps.insert(target_configmap_name.clone(), rendered_configmap);
+        }
+    }
 
     let mut labels = BTreeMap::new();
 
     labels.insert(MANAGED_BY_KEY.to_string(), FINALIZER.to_string());
 
-    labels.insert("created-from".to_string(), resource_name.to_string());
-
-    let resource_to_be_created_namespace = if let Some(force_target_namespace_some) = force_target_namespace {
-        force_target_namespace_some
-    } else {
-        resource_namespace.to_string()
-    };
+    labels.insert(
+        "created-from".to_string(),
+        format!("{}.{}", resource_name, resource_namespace),
+    );
 
     for (secret_name, secret_data) in rendered_secrets {
-        let target = vault_secret_sync
-            .targets
-            .get(&secret_name)
-            .ok_or(crate::Error::GenericError(format!(
-                "Secret {} not found in targets",
-                secret_name
-            )))?
-            .clone();
+        create_secret_in_k8s(
+            kube_client,
+            &target_namespace,
+            secret_name,
+            secret_data,
+            labels.clone(),
+        )
+        .await?;
+    }
 
-        match target.resource_type {
-            SecretSyncTargetResource::ConfigMap => {
-                create_configmap_in_k8s(
-                    kube_client,
-                    &resource_to_be_created_namespace,
-                    secret_name,
-                    secret_data,
-                    labels.clone(),
-                    target.resource_map_key,
-                )
-                .await?
-            }
-            SecretSyncTargetResource::Secret => {
-                create_secret_in_k8s(
-                    kube_client,
-                    &resource_to_be_created_namespace,
-                    secret_name,
-                    secret_data,
-                    labels.clone(),
-                    target.resource_map_key,
-                )
-                .await?
-            }
-        }
+    for (configmap_name, configmap_data) in rendered_configmaps {
+        create_configmap_in_k8s(
+            kube_client,
+            &target_namespace,
+            configmap_name,
+            configmap_data,
+            labels.clone(),
+        )
+        .await?;
     }
 
     Ok(())
@@ -115,20 +123,15 @@ pub async fn handle_secret_sync(
 pub async fn create_configmap_in_k8s(
     kube_client: &kube::Client,
     resource_namespace: &str,
-    secret_name: String,
-    secret_data: String,
+    configmap_name: String,
+    configmap_data: BTreeMap<String, String>,
     labels: BTreeMap<String, String>,
-    resource_data_key: Option<String>,
 ) -> Result<(), crate::Error> {
     let configmap_api: kube::Api<ConfigMap> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
 
-    let mut configmap_data = BTreeMap::new();
-
-    configmap_data.insert(resource_data_key.unwrap_or("data".to_string()), secret_data);
-
     let mut new_configmap = ConfigMap {
         metadata: ObjectMeta {
-            name: Some(secret_name.clone()),
+            name: Some(configmap_name.clone()),
             namespace: Some(resource_namespace.to_string()),
             labels: Some(labels.clone()),
 
@@ -139,7 +142,7 @@ pub async fn create_configmap_in_k8s(
     };
 
     let configmap_exists = configmap_api
-        .get_opt(&secret_name)
+        .get_opt(&configmap_name)
         .await
         .map_err(crate::Error::KubeError)?;
 
@@ -149,13 +152,13 @@ pub async fn create_configmap_in_k8s(
                 if managed_by != FINALIZER {
                     return Err(crate::Error::GenericError(format!(
                         "ConfigMap {} is not managed by vrc",
-                        secret_name
+                        configmap_name
                     )));
                 }
             } else {
                 return Err(crate::Error::GenericError(format!(
                     "ConfigMap {} is not managed by vrc",
-                    secret_name
+                    configmap_name
                 )));
             }
         }
@@ -164,7 +167,7 @@ pub async fn create_configmap_in_k8s(
         new_configmap.metadata.resource_version = old_configmap.metadata.resource_version.clone();
 
         configmap_api
-            .replace(&secret_name, &patch_params, &new_configmap)
+            .replace(&configmap_name, &patch_params, &new_configmap)
             .await
             .map_err(crate::Error::KubeError)?;
     } else {
@@ -181,15 +184,10 @@ pub async fn create_secret_in_k8s(
     kube_client: &kube::Client,
     resource_namespace: &str,
     secret_name: String,
-    secret_data: String,
+    secret_map: BTreeMap<String, String>,
     labels: BTreeMap<String, String>,
-    resource_data_key: Option<String>,
 ) -> Result<(), crate::Error> {
     let secret_api: kube::Api<Secret> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
-
-    let mut secret_map = BTreeMap::new();
-
-    secret_map.insert(resource_data_key.unwrap_or("data".to_string()), secret_data);
 
     let mut new_secret = Secret {
         metadata: ObjectMeta {
