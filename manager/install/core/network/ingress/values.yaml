@@ -21,6 +21,5 @@ logs:
     access:
         enabled: true
 
-providers:
-    file:
-        directory: /etc/traefik/dynamic
+additionalArguments:
+    - "--providers.file.directory=/etc/traefik/dynamic"
