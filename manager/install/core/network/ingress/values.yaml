@@ -21,5 +21,8 @@ logs:
     access:
         enabled: true
 
-additionalArguments:
-    - "--providers.file.directory=/etc/traefik/dynamic"
+rbac:
+    secretResourceNames:
+        - traefik-certificates
+#additionalArguments:
+#    - "--providers.file.directory=/etc/traefik/dynamic"

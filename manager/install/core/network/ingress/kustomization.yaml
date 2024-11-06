@@ -5,6 +5,7 @@ namespace: mows-core-network-ingress
 
 resources:
     - "namespace.yaml"
+    - "TLSStore.yaml"
 
 helmGlobals:
     chartHome: /tmp/helm-charts
