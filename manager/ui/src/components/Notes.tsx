@@ -1,5 +1,7 @@
 import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { CSSProperties, useState } from "preact/compat";
+import { IoCopy } from "react-icons/io5";
+import { IconButton } from "rsuite";
 
 interface NotesProps {
     readonly className?: string;
@@ -74,6 +76,11 @@ const defaultNotes: Note[] = [
             "kubectl port-forward -n mows-core-network-cilium service/hubble-ui --address 0.0.0.0 8080:http",
         type: "default",
         description: "Forward cilium/hubble ui to http://localhost:8080/ui/"
+    },
+    {
+        content: `kubectl apply -f /operators/vault-resource-controller/yaml/crd.yaml && helm upgrade --install mows-core-secrets-vrc /operators/vault-resource-controller/charts/vrc/ -n mows-core-secrets-vrc --create-namespace ; helm upgrade mows-core-dns-pektin /apis/core/pektin/charts/pektin --create-namespace --namespace mows-core-dns-pektin --install ; kubectl apply -f /operators/pektin-dns-controller/yaml/crd.yaml && helm upgrade --install mows-core-dns-pektin-controller /operators/pektin-dns-controller/charts/pektin-dns-controller/ -n mows-core-dns-pektin --create-namespace `,
+        description: "Install vault-resource-controller, pektin and pektin-dns-controller",
+        type: "default"
     }
 ];
 
@@ -110,6 +117,24 @@ export default class Notes extends Component<NotesProps, NotesState> {
         this.setState({ notes });
     };
 
+    private static copyToClipboardButton = (content: string) => {
+        // turn the button green when successfully copied
+
+        const [copied, setCopied] = useState(false);
+
+        return (
+            <IconButton
+                className={`max-h-8 ${copied ? "!bg-[#139d3f]" : ""}`}
+                onClick={() => {
+                    navigator.clipboard.writeText(content);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 500);
+                }}
+                icon={<IoCopy />}
+            ></IconButton>
+        );
+    };
+
     render = () => {
         // combine the notes
         const notes = this.getNotes();
@@ -121,6 +146,7 @@ export default class Notes extends Component<NotesProps, NotesState> {
                 <div className={"flex h-full flex-col gap-2 overflow-y-auto"}>
                     {notes.map((note, index) => (
                         <div key={index} className={"flex justify-between gap-2"}>
+                            {Notes.copyToClipboardButton(note.content)}
                             <pre
                                 className={
                                     "w-full max-w-full whitespace-pre-wrap break-words rounded-lg bg-[black] p-2"

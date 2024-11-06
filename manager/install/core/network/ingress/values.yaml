@@ -20,3 +20,7 @@ logs:
         level: DEBUG
     access:
         enabled: true
+
+providers:
+    file:
+        directory: /etc/traefik/dynamic

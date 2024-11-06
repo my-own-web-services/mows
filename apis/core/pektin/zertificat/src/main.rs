@@ -9,7 +9,6 @@ use serde::Deserialize;
 use serde_json::json;
 use std::vec;
 use zertificat::{
-    config::ZertificatConfig,
     get_current_config_cloned,
     tracing::start_tracing,
     types::{MaybeVaultCert, VaultCert, VaultCertInfo},
@@ -22,6 +21,7 @@ use zertificat::config;
 async fn main() -> anyhow::Result<()> {
     // TODO: option to send a wake up call to run the procedure
 
+    let config = get_current_config_cloned!();
     start_tracing().await?;
 
     // daily procedure to see if there is something to do
@@ -34,7 +34,7 @@ async fn main() -> anyhow::Result<()> {
                 println!("procedure failed:\n{e}");
             }
         };
-        std::thread::sleep(std::time::Duration::from_secs(10 * 60));
+        std::thread::sleep(std::time::Duration::from_secs(config.wait_minutes * 60));
     }
 }
 

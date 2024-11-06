@@ -1,7 +1,7 @@
 apiVersion: pektin.k8s.mows.cloud/v1
 kind: PektinDns
 metadata:
-    name: domain-soa
+    name: vindelicorum.eu
 spec:
     plain:
         - name: vindelicorum.eu.

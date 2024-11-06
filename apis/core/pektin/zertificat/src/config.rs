@@ -19,6 +19,7 @@ pub struct ZertificatConfig {
     pub vault_secret_engine_path: String,
     pub pektin_api_endpoint: String,
     pub pektin_username: String,
+    pub wait_minutes: u64,
     pub acme_email: String,
     pub acme_url: String,
     pub use_local_pebble: bool,
@@ -61,5 +62,6 @@ pub fn from_env() -> anyhow::Result<ZertificatConfig> {
         acme_email: load_env("admin@pektin", "ACME_EMAIL", false)?,
         acme_url: load_env("http://acme:14000", "ACME_URL", false)?,
         use_local_pebble: load_env("false", "USE_LOCAL_PEBBLE", false)? == "true",
+        wait_minutes: load_env("5", "WAIT_MINUTES", false)?.parse()?,
     })
 }
