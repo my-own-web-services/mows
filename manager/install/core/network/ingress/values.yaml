@@ -20,9 +20,8 @@ logs:
         level: DEBUG
     access:
         enabled: true
-
-rbac:
-    secretResourceNames:
-        - traefik-certificates
+#rbac:
+#    secretResourceNames:
+#        - traefik-certificates
 #additionalArguments:
 #    - "--providers.file.directory=/etc/traefik/dynamic"
