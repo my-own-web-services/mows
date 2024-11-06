@@ -1,5 +1,5 @@
-additional:
-    sendAnonymousUsage: false
+globalArguments:
+    - "--global.sendanonymoususage=false"
 service:
     annotations:
         io.cilium/lb-ipam-ips: "192.168.112.253"
@@ -22,6 +22,6 @@ logs:
         enabled: true
 #rbac:
 #    secretResourceNames:
-#        - traefik-certificates
+#        - traefik-certificates # this does not work because it cannot list resources this way, without it traefik has access to all secrets on the cluster
 #additionalArguments:
 #    - "--providers.file.directory=/etc/traefik/dynamic"
