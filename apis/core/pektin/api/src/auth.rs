@@ -1,20 +1,16 @@
-use std::{
-    collections::HashMap,
-    time::{SystemTime, UNIX_EPOCH},
-};
-
-use actix_web::HttpRequest;
-use anyhow::Context;
-use tracing::{debug, instrument};
-use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
-
 use crate::{
     get_current_config_cloned,
     macros::return_if_err,
     ribston::{self, RibstonRequestData},
     types::{AppState, AuthAnswer, RequestBody},
-    vault::{self, create_vault_client_with_k8s_login, create_vault_client_with_token},
+    vault::create_vault_client_with_token,
 };
+use actix_web::HttpRequest;
+use std::{
+    collections::HashMap,
+    time::{SystemTime, UNIX_EPOCH},
+};
+use tracing::{debug, instrument};
 
 #[instrument(skip(ribston_endpoint, client_token, ribston_request_data))]
 pub async fn auth(

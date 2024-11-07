@@ -30,7 +30,7 @@ spec:
             - name: VAULT_KUBERNETES_AUTH_ROLE
               value: "pektin-zertificat"
             - name: ACME_URL
-              value: https://acme-staging-v02.api.letsencrypt.org/directory
+              value: https://acme-v02.api.letsencrypt.org/directory #https://acme-staging-v02.api.letsencrypt.org/directory
             - name: ACME_EMAIL
               value: pektin-zertificat@vindelicum.eu
               

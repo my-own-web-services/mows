@@ -1,10 +1,10 @@
 use crate::{
-    get_current_config_cloned,
+    crd::{VaultResource, VaultResourceSpec, VaultResourceStatus},
+    get_current_config_cloned, observability,
     reconcile::{
         auth::handle_auth_engine, policy::handle_engine_access_policy, secret_engine::handle_secret_engine,
         secret_sync::handle_secret_sync,
     },
-    telemetry,
     utils::get_error_type,
     Error, Metrics, Result,
 };
@@ -20,135 +20,15 @@ use kube::{
         finalizer::{finalizer, Event as Finalizer},
         watcher::Config,
     },
-    CustomResource, Resource,
+    Resource,
 };
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
-use std::{collections::HashMap, hash::Hash, sync::Arc};
+use std::sync::Arc;
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 pub static FINALIZER: &str = "vaultresources.k8s.mows.cloud";
-
-/// Generate the Kubernetes wrapper struct `Document` from our Spec and Status struct
-///
-/// This provides a hook for generating the CRD yaml (in crdgen.rs) vault.k8s.mows.cloud
-#[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[kube(
-    kind = "VaultResource",
-    group = "vault.k8s.mows.cloud",
-    version = "v1",
-    namespaced
-)]
-#[kube(status = "VaultResourceStatus", shortname = "vres")]
-#[serde(rename_all = "camelCase")]
-pub enum VaultResourceSpec {
-    SecretEngine(VaultSecretEngine),
-    AuthEngine(VaultAuthEngine),
-    EngineAccessPolicy(VaultEngineAccessPolicy),
-    SecretSync(VaultSecretSync),
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct VaultSecretSync {
-    pub kv_mapping: HashMap<String, SecretSyncKvMapping>,
-    pub targets: VaultSecretSyncTargetTypes,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct VaultSecretSyncTargetTypes {
-    pub config_maps: Option<HashMap<String, HashMap<String, String>>>,
-    pub secrets: Option<HashMap<String, HashMap<String, String>>>,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-pub enum SecretSyncTargetResource {
-    ConfigMap,
-    Secret,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct SecretSyncKvMapping {
-    pub engine: String,
-    pub path: String,
-}
-
-// policies will be named mows-core-secrets-vrc/namespace/policy_id
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct VaultEngineAccessPolicy {
-    pub sub_policies: Vec<VaultEngineAccessPolicySubPolicy>,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct VaultEngineAccessPolicySubPolicy {
-    pub engine_id: String,
-    pub engine_type: VaultEngineAccessPolicyType,
-    pub sub_path: String,
-    pub capabilities: Vec<VaultPolicyCapability>,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub enum VaultEngineAccessPolicyType {
-    Auth,
-    Secret,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[serde(rename_all = "camelCase")]
-pub enum VaultPolicyCapability {
-    Read,
-    Create,
-    Update,
-    Delete,
-    List,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub enum VaultAuthEngine {
-    Kubernetes(KubernetesAuthEngineParams),
-    //Userpass(UserpassAuthEngineParams),
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct KubernetesAuthEngineParams {
-    pub roles: HashMap<String, KubernetesAuthEngineRole>,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct KubernetesAuthEngineRole {
-    pub service_account_name: String,
-    pub namespace: Option<String>,
-    /// The vault policy id to attach to the service account without namespace
-    pub policy_ids: Vec<String>,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-pub enum VaultSecretEngine {
-    #[serde(rename = "kv-v2")]
-    KV2(KV2SecretEngineParams),
-    #[serde(rename = "transit")]
-    Transit(TransitSecretEngineParams),
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct TransitSecretEngineParams {}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct KV2SecretEngineParams {
-    pub kv_data: HashMap<String, HashMap<String, String>>,
-}
 
 pub async fn create_vault_client() -> Result<VaultClient, Error> {
     let mut client_builder = VaultClientSettingsBuilder::default();
@@ -183,6 +63,7 @@ pub async fn create_vault_client() -> Result<VaultClient, Error> {
     Ok(vc)
 }
 
+#[instrument(skip(kube_client))]
 pub async fn reconcile_resource(
     vault_resource: &VaultResource,
     kube_client: &kube::Client,
@@ -245,14 +126,6 @@ pub async fn reconcile_resource(
     Ok(())
 }
 
-/// The status object of `VaultResource`
-#[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
-pub struct VaultResourceStatus {
-    pub created: bool,
-}
-
-impl VaultResource {}
-
 // Context for our reconciler
 #[derive(Clone)]
 pub struct Context {
@@ -266,7 +139,7 @@ pub struct Context {
 
 #[instrument(skip(ctx, vault_resource), fields(trace_id))]
 async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Result<Action> {
-    let trace_id = telemetry::get_trace_id();
+    let trace_id = observability::get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
@@ -295,6 +168,7 @@ fn error_policy(vault_resource: Arc<VaultResource>, error: &Error, ctx: Arc<Cont
 
 impl VaultResource {
     // Reconcile (for non-finalizer related changes)
+    #[instrument(skip(ctx))]
     async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
         let kube_client = ctx.client.clone();
         let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);
@@ -367,6 +241,7 @@ impl VaultResource {
     }
 
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)
+    #[instrument(skip(ctx))]
     async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
         let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
         // Document doesn't have any real cleanup, so we just publish an event

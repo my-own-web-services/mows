@@ -81,6 +81,18 @@ const defaultNotes: Note[] = [
         content: `kubectl apply -f /operators/vault-resource-controller/yaml/crd.yaml && helm upgrade --install mows-core-secrets-vrc /operators/vault-resource-controller/charts/vrc/ -n mows-core-secrets-vrc --create-namespace ; helm upgrade mows-core-dns-pektin /apis/core/pektin/charts/pektin --create-namespace --namespace mows-core-dns-pektin --install ; kubectl apply -f /operators/pektin-dns-controller/yaml/crd.yaml && helm upgrade --install mows-core-dns-pektin-controller /operators/pektin-dns-controller/charts/pektin-dns-controller/ -n mows-core-dns-pektin --create-namespace `,
         description: "Install vault-resource-controller, pektin and pektin-dns-controller",
         type: "default"
+    },
+    {
+        content:
+            "kubectl port-forward -n mows-core-tracing service/mows-core-tracing-jaeger-query --address 0.0.0.0 8080:http-query",
+        description: "Forward jaeger query to http://localhost:8080/",
+        type: "default"
+    },
+    {
+        content:
+            "helm repo add jaegertracing https://jaegertracing.github.io/helm-charts ; helm upgrade mows-core-tracing-jaeger jaegertracing/jaeger -n mows-core-tracing --set allInOne.enabled=true --create-namespace --install --set storage.type=memory --set agent.enabled=false --set collector.enabled=false --set query.enabled=false --set provisionDataStore.cassandra=false",
+        description: "Install jaeger all-in-one",
+        type: "default"
     }
 ];
 

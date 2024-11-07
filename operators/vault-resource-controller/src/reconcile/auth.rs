@@ -1,5 +1,6 @@
 use anyhow::Context;
 use serde_variant::to_variant_name;
+use tracing::instrument;
 use vaultrs::{
     api::auth::kubernetes::requests::{
         ConfigureKubernetesAuthRequestBuilder, CreateKubernetesRoleRequestBuilder,
@@ -7,8 +8,9 @@ use vaultrs::{
     client::VaultClient,
 };
 
-use crate::{KubernetesAuthEngineParams, KubernetesAuthEngineRole, VaultAuthEngine};
+use crate::crd::{KubernetesAuthEngineParams, KubernetesAuthEngineRole, VaultAuthEngine};
 
+#[instrument(skip(vault_client))]
 pub async fn handle_auth_engine(
     vault_client: &VaultClient,
     resource_namespace: &str,
@@ -47,7 +49,7 @@ pub async fn handle_auth_engine(
 
     Ok(())
 }
-
+#[instrument(skip(vault_client))]
 pub async fn handle_k8s_auth_engine(
     vault_client: &VaultClient,
     mount_path: &str,
@@ -74,7 +76,7 @@ pub async fn handle_k8s_auth_engine(
 
     Ok(())
 }
-
+#[instrument(skip(vault_client))]
 pub async fn handle_k8s_auth_role(
     vault_client: &VaultClient,
     mount_path: &str,

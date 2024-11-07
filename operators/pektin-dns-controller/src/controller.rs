@@ -1,6 +1,11 @@
 use crate::{
-    get_current_config_cloned, kube_fix::KubePektinDbEntry, reconcile::plain::handle_plain, telemetry,
-    utils::get_error_type, Error, Metrics, Result,
+    crd::{PektinDns, PektinDnsSpec, PektinDnsStatus},
+    get_current_config_cloned,
+    kube_fix::KubePektinDbEntry,
+    observability,
+    reconcile::plain::handle_plain,
+    utils::get_error_type,
+    Error, Metrics, Result,
 };
 use anyhow::Context as anyhow_context;
 use chrono::{DateTime, Utc};
@@ -16,32 +21,15 @@ use kube::{
     },
     CustomResource, Resource,
 };
-use pektin_common::DbEntry;
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+
+use serde::Serialize;
 use serde_json::json;
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
 pub static FINALIZER: &str = "pektin.k8s.mows.cloud";
-
-/// Generate the Kubernetes wrapper struct `Document` from our Spec and Status struct
-///
-/// This provides a hook for generating the CRD yaml (in crdgen.rs) pektin.k8s.mows.cloud
-#[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[kube(
-    kind = "PektinDns",
-    group = "pektin.k8s.mows.cloud",
-    version = "v1",
-    namespaced
-)]
-#[kube(status = "PektinDnsStatus", shortname = "pdns")]
-#[serde(rename_all = "camelCase")]
-pub enum PektinDnsSpec {
-    Plain(Vec<KubePektinDbEntry>),
-}
 
 pub async fn get_vault_token() -> Result<String, Error> {
     let config = get_current_config_cloned!();
@@ -68,6 +56,7 @@ pub async fn get_vault_token() -> Result<String, Error> {
     Ok(vault_auth.client_token)
 }
 
+#[instrument(skip(kube_client))]
 pub async fn reconcile_resource(pektin_dns: &PektinDns, kube_client: &kube::Client) -> Result<(), Error> {
     let vault_token = get_vault_token().await?;
     let resource_namespace = pektin_dns.metadata.namespace.as_deref().unwrap_or("default");
@@ -88,14 +77,6 @@ pub async fn reconcile_resource(pektin_dns: &PektinDns, kube_client: &kube::Clie
     Ok(())
 }
 
-/// The status object of `PektinDns`
-#[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
-pub struct PektinDnsStatus {
-    pub created: bool,
-}
-
-impl PektinDns {}
-
 // Context for our reconciler
 #[derive(Clone)]
 pub struct Context {
@@ -107,9 +88,9 @@ pub struct Context {
     pub metrics: Arc<Metrics>,
 }
 
-#[instrument(skip(ctx, vault_resource), fields(trace_id))]
+#[instrument(skip(ctx), fields(trace_id))]
 async fn reconcile(vault_resource: Arc<PektinDns>, ctx: Arc<Context>) -> Result<Action> {
-    let trace_id = telemetry::get_trace_id();
+    let trace_id = observability::get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
@@ -138,6 +119,7 @@ fn error_policy(vault_resource: Arc<PektinDns>, error: &Error, ctx: Arc<Context>
 
 impl PektinDns {
     // Reconcile (for non-finalizer related changes)
+    #[instrument(skip(ctx))]
     async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
         let kube_client = ctx.client.clone();
         let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);

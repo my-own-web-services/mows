@@ -1,6 +1,6 @@
 use gtmpl_derive::Gtmpl;
 use k8s_openapi::api::core::v1::{ConfigMap, Secret};
-use kube::api::{ObjectMeta, Patch};
+use kube::api::ObjectMeta;
 use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
@@ -8,10 +8,7 @@ use std::{
 use tracing::debug;
 use vaultrs::client::VaultClient;
 
-use crate::{
-    templating::functions::serde_json_value_to_gtmpl_value, SecretSyncTargetResource, VaultSecretSync,
-    FINALIZER,
-};
+use crate::{crd::VaultSecretSync, templating::functions::serde_json_value_to_gtmpl_value, FINALIZER};
 
 #[derive(Gtmpl)]
 struct Context {

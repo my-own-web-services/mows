@@ -13,6 +13,8 @@ spec:
         app: {{ .Values.db.name }}
     spec:
       serviceAccountName: {{ .Values.db.name }}
+      securityContext:
+          fsGroup: 1000
       volumes:
         - name: config
           configMap:
@@ -32,6 +34,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
+
           ports:
             - name: redis
               containerPort: 6379

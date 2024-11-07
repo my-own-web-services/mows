@@ -1,11 +1,16 @@
 use std::collections::HashMap;
 
 use serde_variant::to_variant_name;
-use tracing::debug;
+use tracing::{debug, instrument};
 use vaultrs::client::VaultClient;
 
-use crate::{templating::functions::TEMPLATE_FUNCTIONS, Error, KV2SecretEngineParams, VaultSecretEngine};
+use crate::{
+    crd::{KV2SecretEngineParams, VaultSecretEngine},
+    templating::functions::TEMPLATE_FUNCTIONS,
+    Error,
+};
 
+#[instrument(skip(vault_client))]
 pub async fn handle_secret_engine(
     vault_client: &VaultClient,
     resource_namespace: &str,
@@ -41,6 +46,7 @@ pub async fn handle_secret_engine(
     Ok(())
 }
 
+#[instrument(skip(vault_client))]
 pub async fn handle_kv2_engine(
     vault_client: &VaultClient,
     mount_path: &str,

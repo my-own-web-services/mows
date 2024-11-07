@@ -75,7 +75,7 @@ pub mod controller;
 pub use crate::controller::*;
 
 /// Log and trace integrations
-pub mod telemetry;
+pub mod observability;
 
 /// Metrics
 mod metrics;
@@ -93,3 +93,4 @@ pub mod reconcile {
 pub mod templating {
     pub mod functions;
 }
+pub mod crd;

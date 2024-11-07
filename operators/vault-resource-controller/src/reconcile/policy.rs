@@ -2,10 +2,12 @@ use std::path::Path;
 
 use anyhow::Context;
 use itertools::Itertools;
+use tracing::instrument;
 use vaultrs::client::VaultClient;
 
-use crate::{VaultEngineAccessPolicy, VaultEngineAccessPolicyType};
+use crate::crd::{VaultEngineAccessPolicy, VaultEngineAccessPolicyType};
 
+#[instrument(skip(vault_client))]
 pub async fn handle_engine_access_policy(
     vault_client: &VaultClient,
     resource_namespace: &str,

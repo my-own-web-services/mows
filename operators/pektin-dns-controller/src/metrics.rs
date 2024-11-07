@@ -1,4 +1,4 @@
-use crate::{Error, PektinDns};
+use crate::{crd::PektinDns, Error};
 use kube::ResourceExt;
 use opentelemetry::trace::TraceId;
 use prometheus_client::{

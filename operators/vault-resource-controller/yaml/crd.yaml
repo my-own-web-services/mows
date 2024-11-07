@@ -20,10 +20,6 @@ spec:
         description: Auto-generated derived type for VaultResourceSpec via `CustomResource`
         properties:
           spec:
-            description: |-
-              Generate the Kubernetes wrapper struct `Document` from our Spec and Status struct
-
-              This provides a hook for generating the CRD yaml (in crdgen.rs) vault.k8s.mows.cloud
             oneOf:
             - required:
               - secretEngine

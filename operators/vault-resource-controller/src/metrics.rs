@@ -1,4 +1,4 @@
-use crate::{Error, VaultResource};
+use crate::{crd::VaultResource, Error};
 use kube::ResourceExt;
 use opentelemetry::trace::TraceId;
 use prometheus_client::{

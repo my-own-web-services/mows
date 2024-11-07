@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 pub fn config() -> &'static RwLock<ControllerConfig> {
-    static API_CONFIG: OnceLock<RwLock<ControllerConfig>> = OnceLock::new();
-    API_CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))
+    static CONFIG: OnceLock<RwLock<ControllerConfig>> = OnceLock::new();
+    CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -15,6 +15,10 @@ pub struct ControllerConfig {
     pub service_account_token_path: String,
     pub vault_kubernetes_auth_path: String,
     pub vault_kubernetes_auth_role: String,
+    pub reconcile_interval_seconds: u64,
+    pub otel_endpoint_url: String,
+    pub log_filter: String,
+    pub tracing_filter: String,
 }
 
 pub fn from_env() -> anyhow::Result<ControllerConfig> {
@@ -40,5 +44,13 @@ pub fn from_env() -> anyhow::Result<ControllerConfig> {
             "VAULT_KUBERNETES_API_AUTH_ROLE",
             false,
         )?,
+        reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false)?.parse()?,
+        otel_endpoint_url: load_env(
+            "http://mows-core-tracing-jaeger-collector.mows-core-tracing:4317",
+            "OTEL_ENDPOINT_URL",
+            false,
+        )?,
+        log_filter: load_env("info", "LOG_FILTER", false)?,
+        tracing_filter: load_env("info", "TRACING_FILTER", false)?,
     })
 }

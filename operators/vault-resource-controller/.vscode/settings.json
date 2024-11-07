@@ -6,6 +6,7 @@
         "Finalizer",
         "gtmpl",
         "opentelemetry",
+        "otel",
         "schemars",
         "templating",
         "vaultresources",

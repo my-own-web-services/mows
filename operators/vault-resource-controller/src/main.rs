@@ -1,8 +1,11 @@
 #![allow(unused_imports, unused_variables)]
-use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{
+    cookie::time::error, get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder,
+};
+use actix_web_opentelemetry::RequestTracing;
 use anyhow::Context;
-use controller::create_vault_client;
-pub use controller::{self, telemetry, State};
+pub use controller::{self, State};
+use controller::{create_vault_client, observability::init_observability};
 
 #[get("/metrics")]
 async fn metrics(c: Data<State>, _req: HttpRequest) -> impl Responder {
@@ -25,19 +28,23 @@ async fn index(c: Data<State>, _req: HttpRequest) -> impl Responder {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    telemetry::init().await;
+    init_observability().await;
 
     // Initiatilize Kubernetes controller state
     let state = State::default();
     let controller = controller::run(state.clone());
 
-    let vc = create_vault_client()
-        .await
-        .context("Failed to create vault client")?;
+    // retry to create vault client if it fails
+
+    while let Err(e) = create_vault_client().await {
+        tracing::error!("Failed to create vault client, retrying in 5 seconds: {:?}", e);
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    }
 
     // Start web server
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(RequestTracing::new())
             .app_data(Data::new(state.clone()))
             .wrap(middleware::Logger::default().exclude("/health"))
             .service(index)

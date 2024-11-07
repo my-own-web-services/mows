@@ -1,7 +1,6 @@
-use opentelemetry::global;
-use opentelemetry_otlp::{new_pipeline, WithExportConfig};
-use opentelemetry_sdk::trace::{BatchConfig, Tracer, TracerProvider};
+use actix_web_opentelemetry::RequestTracing;
 use pektin_api::get_current_config_cloned;
+use pektin_api::observability::init_observability;
 use pektin_api::vault::create_vault_client_with_k8s_login;
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
@@ -18,10 +17,6 @@ use pektin_api::config;
 use pektin_api::signing_task::signing_task;
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{debug, info};
-use tracing_subscriber::filter::LevelFilter;
-use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::EnvFilter;
 
 use pektin_api::delete::delete;
 use pektin_api::errors_and_responses::json_error_handler;
@@ -38,7 +33,7 @@ use std::env;
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
-    init_tracing();
+    init_observability().await;
 
     println!("Loading config...");
     let config = get_current_config_cloned!();
@@ -115,6 +110,7 @@ async fn main() -> anyhow::Result<()> {
     let http_server_state = state.clone();
     let http_server = HttpServer::new(move || {
         App::new()
+            .wrap(RequestTracing::new())
             .wrap(
                 Cors::default()
                     .allow_any_origin()
@@ -158,74 +154,5 @@ async fn main() -> anyhow::Result<()> {
         _ = signing_task => Ok(()),
         _ = sigint.recv() => Ok(()),
         _ = sigterm.recv() => Ok(()),
-    }
-}
-
-fn init_tracing() {
-    // create a filter for what events and spans are recorded.
-    // NOTE: this controls what is sent to Jaeger!
-    // if the RUST_LOG environment variable is set, try to parse it. if the parsing fails or the
-    // variable is not set, construct a filter that will log all events with level INFO or above
-    let env_filter = if let Ok(filter) = EnvFilter::try_from_default_env() {
-        println!(
-            "Value of RUST_LOG environment variable: {}",
-            env::var("RUST_LOG").unwrap()
-        );
-        filter
-    } else {
-        EnvFilter::builder()
-            .with_default_directive(LevelFilter::INFO.into())
-            .parse("")
-            .expect("invalid logging filter string")
-    };
-
-    // create a layer that prints spans and events to stdout
-    let stdout = tracing_subscriber::fmt::layer()
-        .event_format(tracing_subscriber::fmt::format().pretty())
-        .with_target(false)
-        .with_span_events(FmtSpan::ENTER);
-
-    let subscriber = tracing_subscriber::registry()
-        // .with_target(false) disables printing the target of events
-        .with(stdout)
-        .with(env_filter);
-
-    // if the corresponding environment variable is set, add a Jaeger layer to the subscriber.
-    // afterwards, install the subscriber
-    if let Some(tracer_provider) = try_setup_jaeger() {
-        // configure OpenTelemetry to use the Jaeger format
-        opentelemetry::global::set_text_map_propagator(
-            opentelemetry_jaeger_propagator::Propagator::new(),
-        );
-
-        // add the Jaeger layer to the subscriber and install the subscriber
-
-        // TODO figure this out, this is not working
-        global::set_tracer_provider(tracer_provider);
-
-        info!("Initialized tracing (printing to stdout and exporting to Jaeger)");
-    } else {
-        // just install the subscriber as it is (i.e. without Jaeger)
-        tracing::subscriber::set_global_default(subscriber)
-            .expect("setting tracing subscriber failed");
-        info!("Initialized tracing (printing to stdout)");
-    };
-}
-
-/// Checks whether the JAEGER_URI environment variable is set and if so, tries to install the Jaeger
-/// OpenTelemetry pipeline. Returns the Jaeger tracer if successful, `None` otherwise.
-fn try_setup_jaeger() -> Option<TracerProvider> {
-    if let Ok(uri) = env::var("JAEGER_URI") {
-        opentelemetry_otlp::new_pipeline()
-            .tracing()
-            .with_exporter(
-                opentelemetry_otlp::new_exporter()
-                    .tonic()
-                    .with_endpoint(uri),
-            )
-            .install_batch(opentelemetry_sdk::runtime::Tokio)
-            .ok()
-    } else {
-        None
     }
 }

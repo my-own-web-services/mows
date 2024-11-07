@@ -1,7 +1,8 @@
-#![allow(unused_imports)] // some used only for telemetry feature
+use crate::get_current_config_cloned;
 use opentelemetry::trace::{TraceId, TracerProvider};
 use opentelemetry_sdk::{runtime, trace as sdktrace, trace::Config, Resource};
-use tracing_subscriber::{prelude::*, EnvFilter, Registry};
+use std::str::FromStr;
+use tracing_subscriber::{fmt::time::ChronoLocal, prelude::*, Registry};
 
 ///  Fetch an opentelemetry::trace::TraceId as hex through the full tracing stack
 pub fn get_trace_id() -> TraceId {
@@ -24,10 +25,18 @@ fn resource() -> Resource {
 }
 
 #[cfg(feature = "telemetry")]
-fn init_tracer() -> sdktrace::Tracer {
+async fn init_tracer() -> sdktrace::Tracer {
+    let config = get_current_config_cloned!();
+    use opentelemetry::global;
     use opentelemetry_otlp::WithExportConfig;
-    let endpoint = std::env::var("OPENTELEMETRY_ENDPOINT_URL").expect("Needs an otel collector");
-    let exporter = opentelemetry_otlp::new_exporter().tonic().with_endpoint(endpoint);
+    use opentelemetry_sdk::propagation::TraceContextPropagator;
+
+    let endpoint = config.otel_endpoint_url.clone();
+    let exporter = opentelemetry_otlp::new_exporter()
+        .tonic()
+        .with_endpoint(endpoint);
+
+    global::set_text_map_propagator(TraceContextPropagator::new());
 
     let provider = opentelemetry_otlp::new_pipeline()
         .tracing()
@@ -41,38 +50,31 @@ fn init_tracer() -> sdktrace::Tracer {
 }
 
 /// Initialize tracing
-pub async fn init() {
+pub async fn init_observability() {
+    let config = get_current_config_cloned!();
+
+    let tracing_filter = tracing_subscriber::EnvFilter::from_str(&config.tracing_filter).unwrap();
+
     // Setup tracing layers
     #[cfg(feature = "telemetry")]
-    let otel = tracing_opentelemetry::OpenTelemetryLayer::new(init_tracer());
+    let otel = tracing_opentelemetry::OpenTelemetryLayer::new(init_tracer().await)
+        .with_filter(tracing_filter);
 
-    let logger = tracing_subscriber::fmt::layer().compact();
-    let env_filter = EnvFilter::try_from_default_env()
-        .or(EnvFilter::try_new("info"))
-        .unwrap();
+    let log_filter = tracing_subscriber::EnvFilter::from_str(&config.tracing_filter).unwrap();
+
+    let logger = tracing_subscriber::fmt::layer()
+        .with_ansi(true)
+        .with_level(true)
+        .with_timer(ChronoLocal::new("%H:%M:%S".to_string()))
+        .with_file(true)
+        .with_line_number(true)
+        .with_target(false)
+        .with_filter(log_filter);
 
     // Decide on layers
     let reg = Registry::default();
     #[cfg(feature = "telemetry")]
-    reg.with(env_filter).with(logger).with(otel).init();
+    reg.with(logger).with(otel).init();
     #[cfg(not(feature = "telemetry"))]
-    reg.with(env_filter).with(logger).init();
-}
-
-#[cfg(test)]
-mod test {
-    // This test only works when telemetry is initialized fully
-    // and requires OPENTELEMETRY_ENDPOINT_URL pointing to a valid server
-    #[cfg(feature = "telemetry")]
-    #[tokio::test]
-    #[ignore = "requires a trace exporter"]
-    async fn get_trace_id_returns_valid_traces() {
-        use super::*;
-        super::init().await;
-        #[tracing::instrument(name = "test_span")] // need to be in an instrumented fn
-        fn test_trace_id() -> TraceId {
-            get_trace_id()
-        }
-        assert_ne!(test_trace_id(), TraceId::INVALID, "valid trace");
-    }
+    reg.with(logger).init();
 }

@@ -12,6 +12,7 @@
         "idna",
         "moka",
         "nsec",
+        "opentelemetry",
         "Pektin",
         "proto",
         "reqwest",

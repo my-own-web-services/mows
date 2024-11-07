@@ -8,9 +8,10 @@ use rand_core::OsRng;
 use serde::Deserialize;
 use serde_json::json;
 use std::vec;
+use tracing::instrument;
 use zertificat::{
     get_current_config_cloned,
-    tracing::start_tracing,
+    observability::init_observability,
     types::{MaybeVaultCert, VaultCert, VaultCertInfo},
     vault::{get_kv_value, update_kv_value, vault_k8s_login},
 };
@@ -22,7 +23,7 @@ async fn main() -> anyhow::Result<()> {
     // TODO: option to send a wake up call to run the procedure
 
     let config = get_current_config_cloned!();
-    start_tracing().await?;
+    init_observability().await;
 
     // daily procedure to see if there is something to do
     loop {
@@ -38,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
+#[instrument]
 async fn run_procedure() -> anyhow::Result<()> {
     let config = get_current_config_cloned!();
     // get certificate config from vault
@@ -79,6 +81,7 @@ async fn run_procedure() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[instrument]
 pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
     println!("generating certificate for {}", domain);
     let config = get_current_config_cloned!();
@@ -121,6 +124,7 @@ pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
     })
 }
 
+#[instrument]
 pub async fn handle_challenges_with_pektin(
     user_challenges: UserChallenges,
 ) -> anyhow::Result<Vec<String>> {
@@ -138,6 +142,7 @@ pub async fn handle_challenges_with_pektin(
     Ok(fulfilled)
 }
 
+#[instrument(skip(vault_token))]
 async fn set_pektin_record(vault_token: &str, challenge: &UserChallenges) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let config = get_current_config_cloned!();
@@ -171,11 +176,12 @@ async fn set_pektin_record(vault_token: &str, challenge: &UserChallenges) -> any
         .await?;
 
     if !resp.status().is_success() {
-        bail!("failed to set pektin record");
+        bail!("failed to set pektin record: {}", resp.text().await?);
     }
     Ok(())
 }
 
+#[instrument(skip(vault_token))]
 async fn get_certificates(
     domains: &Vec<String>,
     vault_token: &str,

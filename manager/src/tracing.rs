@@ -36,6 +36,7 @@ pub async fn start_tracing() -> anyhow::Result<()> {
         .with_timer(ChronoLocal::new("%H:%M:%S".to_string()))
         .with_file(true)
         .with_line_number(true)
+        .with_target(false)
         .with_filter(log_filter);
     /*
         let tracing_layer = tracing_opentelemetry::OpenTelemetryLayer::new(

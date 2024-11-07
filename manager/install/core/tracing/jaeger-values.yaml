@@ -1,0 +1,12 @@
+provisionDataStore:
+    cassandra: false
+allInOne:
+    enabled: false
+storage:
+    type: memory
+agent:
+    enabled: true
+collector:
+    enabled: true
+query:
+    enabled: true
