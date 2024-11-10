@@ -2,6 +2,7 @@ use actix_web::{
     error::{ErrorBadRequest, JsonPayloadError},
     HttpRequest, HttpResponse,
 };
+use mows_common::reqwest_middleware;
 use serde::Serialize;
 use serde_json::json;
 use thiserror::Error;
@@ -144,11 +145,23 @@ pub enum PektinApiError {
 
     #[error("Generic: {0}")]
     GenericError(String),
+
+    #[error("ReqwestMiddlewareError: {0}")]
+    ReqwestMiddlewareError(#[source] reqwest_middleware::Error),
+
+    #[error("ReqwestError: {0}")]
+    ReqwestError(#[source] reqwest::Error),
 }
 
 impl From<vaultrs::error::ClientError> for PektinApiError {
     fn from(error: vaultrs::error::ClientError) -> Self {
         PektinApiError::VaultError(error)
+    }
+}
+
+impl From<reqwest_middleware::Error> for PektinApiError {
+    fn from(error: reqwest_middleware::Error) -> Self {
+        PektinApiError::ReqwestMiddlewareError(error)
     }
 }
 

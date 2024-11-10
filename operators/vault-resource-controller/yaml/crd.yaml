@@ -139,8 +139,16 @@ spec:
                         type: object
                       secrets:
                         additionalProperties:
-                          additionalProperties:
-                            type: string
+                          properties:
+                            map:
+                              additionalProperties:
+                                type: string
+                              type: object
+                            type:
+                              nullable: true
+                              type: string
+                          required:
+                          - map
                           type: object
                         nullable: true
                         type: object

@@ -2,12 +2,15 @@
 
 set -euo pipefail
 
-rm -rf ./common-temp
+rm -rf ./pektin-common-temp
+rm -rf ./mows-common-temp
 
-cp ../common ./common-temp -r
+cp ../common ./pektin-common-temp -r
+cp ../../../../utils/mows-common ./mows-common-temp -r
 
 docker build . -t localhost:5000/pektin-api -f Dockerfile
 
-rm -rf ./common-temp
+rm -rf ./pektin-common-temp
+rm -rf ./mows-common-temp
 
 docker push localhost:5000/pektin-api 

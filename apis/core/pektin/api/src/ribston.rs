@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use mows_common::reqwest::new_reqwest_client;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
@@ -57,8 +58,11 @@ pub async fn evaluate(
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
     // TODO reuse reqwest::Client
+    let client = new_reqwest_client()
+        .await
+        .map_err(|e| PektinApiError::GenericError(e.to_string()))?;
 
-    let eval_response = reqwest::Client::new()
+    let eval_response = client
         .post(format!("{}{}", ribston_uri, "/eval"))
         .timeout(Duration::from_secs(2))
         .headers(headers)
@@ -84,12 +88,15 @@ pub async fn evaluate(
 }
 
 #[instrument(skip(uri))]
-pub async fn get_health(uri: &str) -> u16 {
-    let res = reqwest::Client::new()
+pub async fn get_health(uri: &str) -> Result<u16, PektinApiError> {
+    let client = new_reqwest_client()
+        .await
+        .map_err(|e| PektinApiError::GenericError(e.to_string()))?;
+    let res = client
         .get(format!("{}{}", uri, "/health"))
         .timeout(Duration::from_secs(2))
         .send()
         .await;
 
-    res.map(|r| r.status().as_u16()).unwrap_or(0)
+    Ok(res.map(|r| r.status().as_u16()).unwrap_or(0))
 }

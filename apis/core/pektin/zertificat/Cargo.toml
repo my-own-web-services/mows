@@ -21,10 +21,6 @@ cast_lossless = "deny"
 indexing_slicing = "deny"
 
 
-[features]
-default = ["telemetry"]
-telemetry = ["opentelemetry-otlp"]
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -33,7 +29,7 @@ serde = { version = "1.0.214", features = [
     "std",
 ], default-features = false }
 serde_json = { version = "1.0.132" }
-anyhow = "1.0.92"
+anyhow = "1.0.93"
 tokio = { version = "1.41.0", default-features = false, features = [
     "rt-multi-thread",
     "macros",
@@ -54,21 +50,13 @@ p256 = { version = "0.13.2", default-features = false, features = [
     "ecdsa",
 ] }
 chrono = "0.4.38"
-pektin-common = { path = "../common" }
 vaultrs = "0.7.2"
 
 
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.18", features = [
-    "json",
-    "env-filter",
-    "chrono",
-] }
-tracing-opentelemetry = "0.27.0"
-opentelemetry = { version = "0.26.0", features = ["trace"] }
-opentelemetry-otlp = { version = "0.26.0", optional = true }
-opentelemetry_sdk = { version = "0.26.0", features = ["rt-tokio"] }
+mows-common = { path = "../../../../utils/mows-common" }
 
+
+tracing = "0.1.37"
 
 [profile.release]
 codegen-units = 1

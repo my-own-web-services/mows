@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use pektin_common::load_env;
+use mows_common::config::load_env;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
@@ -23,9 +23,6 @@ pub struct ZertificatConfig {
     pub acme_email: String,
     pub acme_url: String,
     pub use_local_pebble: bool,
-    pub otel_endpoint_url: String,
-    pub log_filter: String,
-    pub tracing_filter: String,
 }
 
 pub fn from_env() -> anyhow::Result<ZertificatConfig> {
@@ -66,12 +63,5 @@ pub fn from_env() -> anyhow::Result<ZertificatConfig> {
         acme_url: load_env("http://acme:14000", "ACME_URL", false)?,
         use_local_pebble: load_env("false", "USE_LOCAL_PEBBLE", false)? == "true",
         wait_minutes: load_env("5", "WAIT_MINUTES", false)?.parse()?,
-        otel_endpoint_url: load_env(
-            "http://mows-core-tracing-jaeger-collector.mows-core-tracing:4317",
-            "OTEL_ENDPOINT_URL",
-            false,
-        )?,
-        log_filter: load_env("info", "LOG_FILTER", false)?,
-        tracing_filter: load_env("info", "TRACING_FILTER", false)?,
     })
 }

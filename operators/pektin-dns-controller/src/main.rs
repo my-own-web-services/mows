@@ -1,9 +1,10 @@
 #![allow(unused_imports, unused_variables)]
 use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use actix_web_opentelemetry::RequestTracing;
 use anyhow::Context;
-pub use controller::{self, observability, State};
-use controller::{get_vault_token, observability::init_observability};
+use controller::get_vault_token;
+pub use controller::{self, State};
+use mows_common::observability::init_observability;
+use tracing_actix_web::TracingLogger;
 
 #[get("/metrics")]
 async fn metrics(c: Data<State>, _req: HttpRequest) -> impl Responder {
@@ -41,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .app_data(Data::new(state.clone()))
-            .wrap(RequestTracing::new())
+            .wrap(TracingLogger::default())
             .wrap(middleware::Logger::default().exclude("/health"))
             .service(index)
             .service(health)

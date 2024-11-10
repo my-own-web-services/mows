@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use serde_json::json;
-use tracing::{info_span, Instrument};
+use tracing::{info_span, instrument, Instrument};
 
 use crate::{
     auth::auth_ok,
@@ -13,12 +13,13 @@ use crate::{
 };
 
 #[post("/health")]
+#[instrument(skip(state))]
 pub async fn health(
     req: HttpRequest,
     req_body: web::Json<HealthRequestBody>,
     state: web::Data<AppState>,
 ) -> impl Responder {
-    let span = info_span!("health", client_username = %req_body.client_username);
+    let span = info_span!("health", client_username = %req_body.client_username, req_headers = ?req.headers());
     async move {
         let mut auth = auth_ok(
             &req,
@@ -31,7 +32,10 @@ pub async fn health(
         if auth.success {
             let db_con = state.db_pool.get().await;
             let vault_status = vault::get_health(&state.vault_uri).await;
-            let ribston_status = ribston::get_health(&state.ribston_uri).await;
+            let ribston_status = match ribston::get_health(&state.ribston_uri).await {
+                Ok(v) => v,
+                Err(_) => 500,
+            };
 
             let all_ok = db_con.is_ok() && vault_status == 200 && ribston_status == 200;
 

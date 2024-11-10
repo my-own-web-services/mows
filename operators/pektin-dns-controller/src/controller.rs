@@ -1,8 +1,6 @@
 use crate::{
+    config::{self, config},
     crd::{PektinDns, PektinDnsSpec, PektinDnsStatus},
-    get_current_config_cloned,
-    kube_fix::KubePektinDbEntry,
-    observability,
     reconcile::plain::handle_plain,
     utils::get_error_type,
     Error, Metrics, Result,
@@ -19,9 +17,10 @@ use kube::{
         finalizer::{finalizer, Event as Finalizer},
         watcher::Config,
     },
-    CustomResource, Resource,
+    Resource,
 };
 
+use mows_common::{get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -32,7 +31,7 @@ use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 pub static FINALIZER: &str = "pektin.k8s.mows.cloud";
 
 pub async fn get_vault_token() -> Result<String, Error> {
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(config());
     let mut client_builder = VaultClientSettingsBuilder::default();
 
     client_builder.address(config.vault_uri);
@@ -90,7 +89,7 @@ pub struct Context {
 
 #[instrument(skip(ctx), fields(trace_id))]
 async fn reconcile(vault_resource: Arc<PektinDns>, ctx: Arc<Context>) -> Result<Action> {
-    let trace_id = observability::get_trace_id();
+    let trace_id = get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
@@ -114,7 +113,7 @@ fn error_policy(vault_resource: Arc<PektinDns>, error: &Error, ctx: Arc<Context>
     warn!("reconcile failed: {:?}", error);
     ctx.metrics.reconcile.set_failure(&vault_resource, error);
 
-    Action::requeue(Duration::from_secs(5 * 60))
+    Action::requeue(Duration::from_secs(30))
 }
 
 impl PektinDns {
@@ -187,15 +186,19 @@ impl PektinDns {
             }
         }
 
+        let config = get_current_config_cloned!(config());
+
         // If no events were received, check back every 5 minutes
-        Ok(Action::requeue(Duration::from_secs(5 * 60)))
+        Ok(Action::requeue(Duration::from_secs(
+            config.reconcile_interval_seconds,
+        )))
     }
 
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)
     async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
         let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
         // Document doesn't have any real cleanup, so we just publish an event
-        recorder
+        let res = recorder
             .publish(Event {
                 type_: EventType::Normal,
                 reason: "DeleteRequested".into(),
@@ -204,7 +207,10 @@ impl PektinDns {
                 secondary: None,
             })
             .await
-            .map_err(Error::KubeError)?;
+            .map_err(Error::KubeError);
+
+        error!("Failed to publish event: {:?}", res);
+
         Ok(Action::await_change())
     }
 }

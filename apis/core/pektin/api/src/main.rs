@@ -1,6 +1,5 @@
-use actix_web_opentelemetry::RequestTracing;
+use mows_common::observability::init_observability;
 use pektin_api::get_current_config_cloned;
-use pektin_api::observability::init_observability;
 use pektin_api::vault::create_vault_client_with_k8s_login;
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
@@ -11,7 +10,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 use actix_cors::Cors;
 use actix_web::{http, web, App, HttpServer};
-use anyhow::{bail, Context};
+use anyhow::bail;
 use chrono::Duration;
 use pektin_api::config;
 use pektin_api::signing_task::signing_task;
@@ -28,8 +27,7 @@ use pektin_api::set::set;
 use pektin_api::types::AppState;
 use pektin_common::deadpool_redis;
 use pektin_common::deadpool_redis::redis::Client;
-
-use std::env;
+use tracing_actix_web::TracingLogger;
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
@@ -49,7 +47,13 @@ async fn main() -> anyhow::Result<()> {
     debug!("Connecting to db at {}", db_uri);
 
     // check if connection with vault works
-    create_vault_client_with_k8s_login().await?;
+    while let Err(e) = create_vault_client_with_k8s_login().await {
+        tracing::error!(
+            "Failed to create vault client, retrying in 5 seconds: {:?}",
+            e
+        );
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    }
 
     let db_uri_dnssec = format!(
         "redis://{}:{}@{}:{}/1",
@@ -110,7 +114,7 @@ async fn main() -> anyhow::Result<()> {
     let http_server_state = state.clone();
     let http_server = HttpServer::new(move || {
         App::new()
-            .wrap(RequestTracing::new())
+            .wrap(TracingLogger::default())
             .wrap(
                 Cors::default()
                     .allow_any_origin()

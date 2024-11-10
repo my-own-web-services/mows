@@ -5,13 +5,15 @@ set -euo pipefail
 cargo run --bin crdgen > yaml/crd.yaml
 
 
-rm -rf ./common-temp
+rm -rf ./mows-common-temp
 
-cp ../../apis/core/pektin/common ./common-temp -r
+cp ../../utils/mows-common ./mows-common-temp -r
+
 
 docker build . -t localhost:5000/vault-resource-controller -f Dockerfile
 
 
-rm -rf ./common-temp
+rm -rf ./mows-common-temp
+
 
 docker push localhost:5000/vault-resource-controller

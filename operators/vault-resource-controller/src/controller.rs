@@ -1,6 +1,6 @@
 use crate::{
+    config::config,
     crd::{VaultResource, VaultResourceSpec, VaultResourceStatus},
-    get_current_config_cloned, observability,
     reconcile::{
         auth::handle_auth_engine, policy::handle_engine_access_policy, secret_engine::handle_secret_engine,
         secret_sync::handle_secret_sync,
@@ -22,6 +22,7 @@ use kube::{
     },
     Resource,
 };
+use mows_common::{config::common_config, get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -33,7 +34,7 @@ pub static FINALIZER: &str = "vaultresources.k8s.mows.cloud";
 pub async fn create_vault_client() -> Result<VaultClient, Error> {
     let mut client_builder = VaultClientSettingsBuilder::default();
 
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(config());
 
     client_builder.address(config.vault_uri);
 
@@ -139,7 +140,7 @@ pub struct Context {
 
 #[instrument(skip(ctx, vault_resource), fields(trace_id))]
 async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Result<Action> {
-    let trace_id = observability::get_trace_id();
+    let trace_id = get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
@@ -151,8 +152,8 @@ async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Res
     info!("Reconciling Document \"{}\" in {}", vault_resource.name_any(), ns);
     finalizer(&vault_resources, FINALIZER, vault_resource, |event| async {
         match event {
-            Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
-            Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
+            Finalizer::Apply(res) => res.reconcile(ctx.clone()).await,
+            Finalizer::Cleanup(res) => res.cleanup(ctx.clone()).await,
         }
     })
     .await
@@ -187,7 +188,7 @@ impl VaultResource {
                     }
                 }));
 
-                let ps = PatchParams::apply("cntrlr").force();
+                let ps = PatchParams::apply(FINALIZER).force();
                 let _o = vault_resources
                     .patch_status(&name, &ps, &new_status)
                     .await
@@ -214,8 +215,8 @@ impl VaultResource {
                     }
                 }));
 
-                let ps = PatchParams::apply("cntrlr").force();
-                let _o = vault_resources
+                let ps = PatchParams::apply(FINALIZER).force();
+                vault_resources
                     .patch_status(&name, &ps, &new_status)
                     .await
                     .map_err(Error::KubeError)?;
@@ -236,16 +237,20 @@ impl VaultResource {
             }
         }
 
+        let config = get_current_config_cloned!(config());
+
         // If no events were received, check back every 5 minutes
-        Ok(Action::requeue(Duration::from_secs(5 * 60)))
+        Ok(Action::requeue(Duration::from_secs(
+            config.reconcile_interval_seconds,
+        )))
     }
 
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)
     #[instrument(skip(ctx))]
     async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
         let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
-        // Document doesn't have any real cleanup, so we just publish an event
-        recorder
+
+        let res = recorder
             .publish(Event {
                 type_: EventType::Normal,
                 reason: "DeleteRequested".into(),
@@ -254,8 +259,15 @@ impl VaultResource {
                 secondary: None,
             })
             .await
-            .map_err(Error::KubeError)?;
-        Ok(Action::await_change())
+            .map_err(Error::KubeError);
+
+        error!("Failed to publish event: {:?}", res);
+
+        let config = get_current_config_cloned!(config());
+
+        Ok(Action::requeue(Duration::from_secs(
+            config.reconcile_interval_seconds,
+        )))
     }
 }
 

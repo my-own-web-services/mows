@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use actix_web::{post, web, HttpRequest, Responder};
 use serde_json::json;
-use tracing::{info_span, Instrument};
+use tracing::{info_span, instrument, Instrument};
 
 use crate::{
     auth::auth_ok,
@@ -14,6 +14,7 @@ use crate::{
 };
 
 #[post("/get-zone-records")]
+#[instrument(skip(state))]
 pub async fn get_zone_records(
     req: HttpRequest,
     req_body: web::Json<GetZoneRecordsRequestBody>,
@@ -22,7 +23,8 @@ pub async fn get_zone_records(
     let span = info_span!(
         "get-zone-records",
         client_username = %req_body.client_username,
-        names = ?req_body.names
+        names = ?req_body.names,
+        req_headers = ?req.headers()
     );
     async move {
         let mut auth = auth_ok(

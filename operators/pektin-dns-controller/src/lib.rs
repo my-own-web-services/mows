@@ -1,5 +1,6 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 
+use mows_common::reqwest_middleware;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -21,8 +22,14 @@ pub enum Error {
     #[error("Generic: {0}")]
     GenericError(String),
 
+    #[error("ReqwestMiddlewareError: {0}")]
+    ReqwestMiddlewareError(#[source] reqwest_middleware::Error),
+
     #[error("ReqwestError: {0}")]
     ReqwestError(#[source] reqwest::Error),
+
+    #[error("MowsError: {0}")]
+    MowsError(#[source] mows_common::errors::MowsError),
 }
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -32,9 +39,21 @@ impl Error {
     }
 }
 
+impl From<reqwest_middleware::Error> for Error {
+    fn from(error: reqwest_middleware::Error) -> Self {
+        Error::ReqwestMiddlewareError(error)
+    }
+}
+
 impl From<vaultrs::error::ClientError> for Error {
     fn from(error: vaultrs::error::ClientError) -> Self {
         Error::VaultError(error)
+    }
+}
+
+impl From<mows_common::errors::MowsError> for Error {
+    fn from(error: mows_common::errors::MowsError) -> Self {
+        Error::MowsError(error)
     }
 }
 
@@ -55,7 +74,6 @@ pub mod controller;
 pub use crate::controller::*;
 
 /// Log and trace integrations
-pub mod observability;
 
 /// Metrics
 mod metrics;

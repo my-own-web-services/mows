@@ -74,9 +74,6 @@ impl From<anyhow::Error> for Error {
 pub mod controller;
 pub use crate::controller::*;
 
-/// Log and trace integrations
-pub mod observability;
-
 /// Metrics
 mod metrics;
 pub use metrics::Metrics;

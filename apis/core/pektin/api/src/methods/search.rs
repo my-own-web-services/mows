@@ -3,7 +3,7 @@ use std::ops::Deref;
 use actix_web::{post, web, HttpRequest, Responder};
 use pektin_common::deadpool_redis::redis::AsyncCommands;
 use serde_json::json;
-use tracing::{info_span, Instrument};
+use tracing::{info_span, instrument, Instrument};
 
 use crate::{
     auth::auth_ok,
@@ -14,13 +14,13 @@ use crate::{
 };
 
 #[post("/search")]
+#[instrument(skip(state))]
 pub async fn search(
     req: HttpRequest,
     req_body: web::Json<SearchRequestBody>,
     state: web::Data<AppState>,
 ) -> impl Responder {
-    let span =
-        info_span!("search", client_username = %req_body.client_username, globs = ?req_body.globs);
+    let span = info_span!("search", client_username = %req_body.client_username, globs = ?req_body.globs, req_headers = ?req.headers());
     async move {
         let mut auth = auth_ok(
             &req,

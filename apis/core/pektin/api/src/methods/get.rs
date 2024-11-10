@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use actix_web::{post, web, HttpRequest, Responder};
 use serde_json::json;
-use tracing::{info_span, Instrument};
+use tracing::{info_span, instrument, Instrument};
 
 use crate::{
     auth::auth_ok,
@@ -14,13 +14,13 @@ use crate::{
 };
 
 #[post("/get")]
+#[instrument(skip(state))]
 pub async fn get(
     req: HttpRequest,
     req_body: web::Json<GetRequestBody>,
     state: web::Data<AppState>,
 ) -> impl Responder {
-    let span =
-        info_span!("get", client_username = %req_body.client_username, records = ?req_body.records);
+    let span = info_span!("get", client_username = %req_body.client_username, records = ?req_body.records, req_headers = ?req.headers());
     async move {
         let mut auth = auth_ok(
             &req,

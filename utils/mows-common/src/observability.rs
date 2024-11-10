@@ -1,8 +1,12 @@
-use crate::get_current_config_cloned;
+#![allow(unused_imports)]
+use std::str::FromStr;
+
+// some used only for telemetry feature
 use opentelemetry::trace::{TraceId, TracerProvider};
 use opentelemetry_sdk::{runtime, trace as sdktrace, trace::Config, Resource};
-use std::str::FromStr;
-use tracing_subscriber::{fmt::time::ChronoLocal, prelude::*, Registry};
+use tracing_subscriber::{fmt::time::ChronoLocal, prelude::*, EnvFilter, Registry};
+
+use crate::{config::common_config, get_current_config_cloned};
 
 ///  Fetch an opentelemetry::trace::TraceId as hex through the full tracing stack
 pub fn get_trace_id() -> TraceId {
@@ -16,32 +20,38 @@ pub fn get_trace_id() -> TraceId {
 }
 
 #[cfg(feature = "telemetry")]
-fn resource() -> Resource {
+async fn resource() -> Resource {
     use opentelemetry::KeyValue;
+
+    use crate::config::common_config;
+    let config = get_current_config_cloned!(common_config());
     Resource::new([
-        KeyValue::new("service.name", env!("CARGO_PKG_NAME")),
-        KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
+        KeyValue::new("service.name", config.service_name),
+        KeyValue::new("service.version", config.service_version),
     ])
 }
 
 #[cfg(feature = "telemetry")]
 async fn init_tracer() -> sdktrace::Tracer {
-    let config = get_current_config_cloned!();
     use opentelemetry::global;
     use opentelemetry_otlp::WithExportConfig;
     use opentelemetry_sdk::propagation::TraceContextPropagator;
+
+    use crate::{config::common_config, get_current_config_cloned};
+
+    let config = get_current_config_cloned!(common_config());
 
     let endpoint = config.otel_endpoint_url.clone();
     let exporter = opentelemetry_otlp::new_exporter()
         .tonic()
         .with_endpoint(endpoint);
 
-    global::set_text_map_propagator(TraceContextPropagator::new());
+    global::set_text_map_propagator(TraceContextPropagator::default());
 
     let provider = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(exporter)
-        .with_trace_config(Config::default().with_resource(resource()))
+        .with_trace_config(Config::default().with_resource(resource().await))
         .install_batch(runtime::Tokio)
         .expect("valid tracer");
 
@@ -51,7 +61,7 @@ async fn init_tracer() -> sdktrace::Tracer {
 
 /// Initialize tracing
 pub async fn init_observability() {
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(common_config());
 
     let tracing_filter = tracing_subscriber::EnvFilter::from_str(&config.tracing_filter).unwrap();
 

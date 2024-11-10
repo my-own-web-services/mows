@@ -1,12 +1,13 @@
+use mows_common::{get_current_config_cloned, reqwest::new_reqwest_client};
 use serde_json::{json, Value};
 use tracing::{debug, instrument};
 
-use crate::{get_current_config_cloned, kube_fix::KubePektinDbEntry, Error};
+use crate::{config::config, kube_fix::KubePektinDbEntry, Error};
 
 #[instrument(skip(vault_token))]
 pub async fn handle_plain(vault_token: &str, db_entries: &Vec<KubePektinDbEntry>) -> Result<(), Error> {
-    let client = reqwest::Client::new();
-    let config = get_current_config_cloned!();
+    let client = new_reqwest_client().await?;
+    let config = get_current_config_cloned!(config());
 
     let records: Vec<Value> = db_entries
         .iter()

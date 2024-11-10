@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use pektin_common::load_env;
+use mows_common::config::load_env;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
@@ -16,9 +16,6 @@ pub struct ControllerConfig {
     pub vault_kubernetes_auth_path: String,
     pub vault_kubernetes_auth_role: String,
     pub reconcile_interval_seconds: u64,
-    pub otel_endpoint_url: String,
-    pub log_filter: String,
-    pub tracing_filter: String,
 }
 
 pub fn from_env() -> anyhow::Result<ControllerConfig> {
@@ -45,12 +42,5 @@ pub fn from_env() -> anyhow::Result<ControllerConfig> {
             false,
         )?,
         reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false)?.parse()?,
-        otel_endpoint_url: load_env(
-            "http://mows-core-tracing-jaeger-collector.mows-core-tracing:4317",
-            "OTEL_ENDPOINT_URL",
-            false,
-        )?,
-        log_filter: load_env("info", "LOG_FILTER", false)?,
-        tracing_filter: load_env("info", "TRACING_FILTER", false)?,
     })
 }

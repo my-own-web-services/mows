@@ -1,5 +1,6 @@
-use crate::{get_current_config_cloned, types::VaultCert};
+use crate::{config::config, types::VaultCert};
 use anyhow::{bail, Context};
+use mows_common::get_current_config_cloned;
 use serde::Deserialize;
 use serde_json::Value;
 use std::time::Duration;
@@ -9,7 +10,7 @@ use vaultrs::{
 };
 
 pub async fn get_kv_value(token: &str, key: &str) -> anyhow::Result<Value> {
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(config());
     let endpoint = config.vault_uri.clone();
 
     let kv_engine = config.vault_secret_engine_path.clone();
@@ -48,7 +49,7 @@ pub async fn update_kv_value(
     key: &str,
     value: &VaultCert,
 ) -> anyhow::Result<()> {
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(config());
 
     let kv_engine = config.vault_secret_engine_path.clone();
 
@@ -68,7 +69,7 @@ pub async fn update_kv_value(
 }
 
 pub async fn vault_k8s_login(token_for_pektin_api_use: bool) -> anyhow::Result<AuthInfo> {
-    let api_config = get_current_config_cloned!();
+    let api_config = get_current_config_cloned!(config());
     let mut client_builder = VaultClientSettingsBuilder::default();
 
     client_builder.address(api_config.vault_uri.clone());

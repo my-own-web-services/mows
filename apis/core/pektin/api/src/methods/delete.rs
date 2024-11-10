@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use actix_web::{post, web, HttpRequest, Responder};
 use pektin_common::{deadpool_redis::redis::AsyncCommands, proto::rr::RecordType};
-use tracing::{info_span, Instrument};
+use tracing::{info_span, instrument, Instrument};
 
 use crate::{
     auth::auth_ok,
@@ -13,12 +13,13 @@ use crate::{
 };
 
 #[post("/delete")]
+#[instrument(skip(state))]
 pub async fn delete(
     req: HttpRequest,
     req_body: web::Json<DeleteRequestBody>,
     state: web::Data<AppState>,
 ) -> impl Responder {
-    let span = info_span!("delete", client_username = %req_body.client_username, records = ?req_body.records);
+    let span = info_span!("delete", client_username = %req_body.client_username, records = ?req_body.records, req_headers = ?req.headers());
     async move {
         let mut auth = auth_ok(
             &req,

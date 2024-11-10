@@ -3,6 +3,9 @@ use lib::{
     types::{Identifier, UserChallenges},
     AcmeClient,
 };
+use mows_common::{
+    get_current_config_cloned, observability::init_observability, reqwest::new_reqwest_client,
+};
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use serde::Deserialize;
@@ -10,19 +13,16 @@ use serde_json::json;
 use std::vec;
 use tracing::instrument;
 use zertificat::{
-    get_current_config_cloned,
-    observability::init_observability,
+    config::config,
     types::{MaybeVaultCert, VaultCert, VaultCertInfo},
     vault::{get_kv_value, update_kv_value, vault_k8s_login},
 };
-
-use zertificat::config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // TODO: option to send a wake up call to run the procedure
 
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(config());
     init_observability().await;
 
     // daily procedure to see if there is something to do
@@ -41,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
 
 #[instrument]
 async fn run_procedure() -> anyhow::Result<()> {
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(config());
     // get certificate config from vault
     let vault_token = vault_k8s_login(false).await?.client_token;
     let domains = get_pektin_domains().await?;
@@ -84,7 +84,7 @@ async fn run_procedure() -> anyhow::Result<()> {
 #[instrument]
 pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
     println!("generating certificate for {}", domain);
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(config());
     let communication_signing_key = SigningKey::random(&mut OsRng);
 
     let acme_url = match config.use_local_pebble {
@@ -144,8 +144,9 @@ pub async fn handle_challenges_with_pektin(
 
 #[instrument(skip(vault_token))]
 async fn set_pektin_record(vault_token: &str, challenge: &UserChallenges) -> anyhow::Result<()> {
-    let client = reqwest::Client::new();
-    let config = get_current_config_cloned!();
+    let client = new_reqwest_client().await?;
+
+    let config = get_current_config_cloned!(config());
     let resp = client
         .post(format!("{}/set", config.pektin_api_endpoint))
         //.header("Authorization", &pektin_auth.perimeter_auth)
@@ -215,8 +216,8 @@ async fn get_certificates(
 
 async fn get_pektin_domains() -> anyhow::Result<Vec<String>> {
     let vault_token = vault_k8s_login(true).await?.client_token;
-    let client = reqwest::Client::new();
-    let config = get_current_config_cloned!();
+    let client = new_reqwest_client().await?;
+    let config = get_current_config_cloned!(config());
     let resp = client
         .post(format!("{}/search", config.pektin_api_endpoint))
         //.header("Authorization", &pektin_auth.perimeter_auth)

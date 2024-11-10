@@ -17,6 +17,12 @@ struct Context {
 
 const MANAGED_BY_KEY: &str = "app.kubernetes.io/managed-by";
 
+#[derive(Debug)]
+struct RenderedSecret {
+    secret_type: Option<String>,
+    map: BTreeMap<String, String>,
+}
+
 pub async fn handle_secret_sync(
     vault_client: &VaultClient,
     resource_namespace: &str,
@@ -44,7 +50,7 @@ pub async fn handle_secret_sync(
 
     debug!("Fetched secrets: {:?}", fetched_secrets);
 
-    let mut rendered_secrets: HashMap<String, BTreeMap<String, String>> = HashMap::new();
+    let mut rendered_secrets: HashMap<String, RenderedSecret> = HashMap::new();
 
     let mut rendered_configmaps: HashMap<String, BTreeMap<String, String>> = HashMap::new();
 
@@ -59,12 +65,18 @@ pub async fn handle_secret_sync(
         for (target_secret_name, target_secret) in target_secrets.iter() {
             let mut rendered_secret = BTreeMap::new();
 
-            for (map_name, target) in target_secret.iter() {
+            for (map_name, target) in target_secret.map.iter() {
                 template_creator.parse(target.clone().replace("{%", "{{").replace("%}", "}}"))?;
                 rendered_secret.insert(map_name.clone(), template_creator.render(&context)?);
             }
 
-            rendered_secrets.insert(target_secret_name.clone(), rendered_secret);
+            rendered_secrets.insert(
+                target_secret_name.clone(),
+                RenderedSecret {
+                    secret_type: target_secret.secret_type.clone(),
+                    map: rendered_secret,
+                },
+            );
         }
 
         debug!("Rendered secrets: {:?}", rendered_secrets);
@@ -92,13 +104,14 @@ pub async fn handle_secret_sync(
         format!("{}.{}", resource_name, resource_namespace),
     );
 
-    for (secret_name, secret_data) in rendered_secrets {
+    for (secret_name, rendered_secret) in rendered_secrets {
         create_secret_in_k8s(
             kube_client,
             &target_namespace,
             secret_name,
-            secret_data,
+            rendered_secret.map,
             labels.clone(),
+            rendered_secret.secret_type,
         )
         .await?;
     }
@@ -183,6 +196,7 @@ pub async fn create_secret_in_k8s(
     secret_name: String,
     secret_map: BTreeMap<String, String>,
     labels: BTreeMap<String, String>,
+    secret_type: Option<String>,
 ) -> Result<(), crate::Error> {
     let secret_api: kube::Api<Secret> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
 
@@ -194,6 +208,7 @@ pub async fn create_secret_in_k8s(
 
             ..Default::default()
         },
+        type_: secret_type,
         string_data: Some(secret_map),
         ..Default::default()
     };

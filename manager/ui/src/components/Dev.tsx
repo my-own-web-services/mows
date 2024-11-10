@@ -16,6 +16,7 @@ import {
 } from "../api-client";
 import { configSignal } from "../config";
 import { withToasterHook } from "../utils";
+import MachineComponent from "./Machine";
 import Notes from "./Notes";
 import TerminalComponent from "./Terminal";
 
@@ -363,7 +364,7 @@ export default withToasterHook(
                                 Object.entries(configSignal.value?.machines).map(
                                     ([machine_id, machine]) => {
                                         return (
-                                            <div /> //<MachineComponent key={machine_id} machine={machine} /> // this leaks memory like crazy
+                                            <MachineComponent key={machine_id} machine={machine} /> //<div /> // // this leaks memory like crazy
                                         );
                                     }
                                 )}

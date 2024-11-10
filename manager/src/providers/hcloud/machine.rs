@@ -1,7 +1,4 @@
-use std::{
-    net::{Ipv4Addr, Ipv6Addr},
-    str::FromStr,
-};
+use std::net::{Ipv4Addr, Ipv6Addr};
 
 use anyhow::bail;
 use hcloud::{
@@ -11,7 +8,7 @@ use hcloud::{
         servers_api::CreateServerParams,
         ssh_keys_api::CreateSshKeyParams,
     },
-    models::{primary_ip, CreateServerRequest, CreateServerRequestPublicNet, CreateSshKeyRequest},
+    models::{CreateServerRequest, CreateServerRequestPublicNet, CreateSshKeyRequest},
 };
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -108,12 +105,9 @@ impl ExternalProviderMachineHcloud {
             }),
         };
 
-        /*
-
         let res =
             match hcloud::apis::servers_api::create_server(&configuration, create_server_params)
                 .await
-
             {
                 Ok(res) => res,
                 Err(e) => {
@@ -121,22 +115,11 @@ impl ExternalProviderMachineHcloud {
                 }
             };
 
-
-
         ssh_config.remote_hostname = Some(
             some_or_bail!(res.server.public_net.ipv4.clone(), "No IP address")
                 .ip
                 .to_string(),
-        );*/
-
-        let _ =
-            hcloud::apis::servers_api::create_server(&configuration, create_server_params).await;
-
-        ssh_config.remote_hostname = Some("116.203.53.54".to_string());
-
-        debug!("Created VM on Hetzner Cloud");
-
-        // TODO: Fix this https://github.com/HenningHolmDE/hcloud-rust/tree/master
+        );
 
         Ok(Machine {
             id: machine_name.to_string(),
@@ -144,19 +127,19 @@ impl ExternalProviderMachineHcloud {
             install: None,
             mac: None,
             ssh: ssh_config,
-            public_ip: None, /*res
-                             .server
-                             .public_net
-                             .ipv6
-                             .map(|ip| ip.ip.to_string().parse::<Ipv6Addr>().ok())
-                             .flatten()*/
+            public_ip: res
+                .server
+                .public_net
+                .ipv6
+                .map(|ip| ip.ip.to_string().parse::<Ipv6Addr>().ok())
+                .flatten(),
 
-            public_legacy_ip: Some(Ipv4Addr::from_str("116.203.53.54")?), /* res
-                                                                          .server
-                                                                          .public_net
-                                                                          .ipv4
-                                                                          .map(|ip| ip.ip.to_string().parse::<Ipv4Addr>().ok())
-                                                                          .flatten()*/
+            public_legacy_ip: res
+                .server
+                .public_net
+                .ipv4
+                .map(|ip| ip.ip.to_string().parse::<Ipv4Addr>().ok())
+                .flatten(),
         })
     }
 

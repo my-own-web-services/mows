@@ -2,10 +2,11 @@
 use actix_web::{
     cookie::time::error, get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
-use actix_web_opentelemetry::RequestTracing;
 use anyhow::Context;
+use controller::create_vault_client;
 pub use controller::{self, State};
-use controller::{create_vault_client, observability::init_observability};
+use mows_common::observability::init_observability;
+use tracing_actix_web::TracingLogger;
 
 #[get("/metrics")]
 async fn metrics(c: Data<State>, _req: HttpRequest) -> impl Responder {
@@ -44,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
     // Start web server
     let server = HttpServer::new(move || {
         App::new()
-            .wrap(RequestTracing::new())
+            .wrap(TracingLogger::default())
             .app_data(Data::new(state.clone()))
             .wrap(middleware::Logger::default().exclude("/health"))
             .service(index)

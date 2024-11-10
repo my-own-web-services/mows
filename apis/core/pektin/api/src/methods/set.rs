@@ -4,7 +4,7 @@ use actix_web::{post, web, HttpRequest, Responder};
 use pektin_common::deadpool_redis::redis::AsyncCommands;
 use pektin_common::{DbEntry, PektinCommonError, RrSet};
 use serde_json::json;
-use tracing::{debug, info_span, Instrument};
+use tracing::{debug, info_span, instrument, Instrument};
 
 use crate::db::get_zone_dnskey_records;
 use crate::dnssec::create_nsec3_chain;
@@ -37,6 +37,7 @@ macro_rules! unwrap_or_return_if_err {
 }
 
 #[post("/set")]
+#[instrument(skip(state))]
 pub async fn set(
     req: HttpRequest,
     req_body: web::Json<SetRequestBody>,
@@ -45,7 +46,8 @@ pub async fn set(
     let span = info_span!(
         "set",
         client_username = %req_body.client_username,
-        records = ?req_body.records
+        records = ?req_body.records,
+        req_headers = ?req.headers()
     );
     async move {
         let mut auth = auth_ok(

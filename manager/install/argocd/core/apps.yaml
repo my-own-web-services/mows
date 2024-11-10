@@ -66,6 +66,16 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
+    name: mows-core-db-postgres
+spec:
+    source:
+        path: manager/install/core/db/postgres
+    destination:
+        namespace: mows-core-db-postgres
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
     name: mows-core-network-ingress
 spec:
     source:

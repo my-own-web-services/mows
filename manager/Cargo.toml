@@ -29,7 +29,7 @@ tempfile = "3.10.1"
 anyhow = "1.0.93"
 
 rand = "0.8.5"
-hcloud = { version = "0.20.1", default-features = false, features = [
+hcloud = { version = "0.21.0", default-features = false, features = [
     "rustls-tls",
 ] }
 

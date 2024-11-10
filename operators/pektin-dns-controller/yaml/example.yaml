@@ -35,3 +35,9 @@ spec:
           rr_set:
             AAAA:
                 - value: "2a01:4f8:1c1b:b783::1"
+        - name: "*.vindelicorum.eu."
+          meta: ""
+          ttl: 60
+          rr_set:
+            A:
+                - value: "116.203.53.54"
