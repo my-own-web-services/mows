@@ -18,7 +18,30 @@ use crate::{
     config::{Cluster, Machine, PublicIpConfig, PublicIpVmProxy},
     get_current_config_cloned, s, some_or_bail,
     utils::cmd,
+    write_config,
 };
+
+pub async fn remove_public_ip_config_if_exists(machine_id: &str) -> anyhow::Result<()> {
+    let config = get_current_config_cloned!();
+
+    for (_, cluster) in &config.clusters {
+        for (public_ip_id, public_ip) in &cluster.public_ip_config {
+            if let PublicIpConfig::MachineProxy(proxy) = public_ip {
+                if proxy.machine_id == machine_id {
+                    let mut config_locked = write_config!();
+                    config_locked
+                        .clusters
+                        .get_mut(&cluster.id)
+                        .unwrap()
+                        .public_ip_config
+                        .remove(public_ip_id);
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
 
 pub async fn create_public_ip_handler(
     creation_config: PublicIpCreationConfigType,

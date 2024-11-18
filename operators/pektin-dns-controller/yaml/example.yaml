@@ -9,8 +9,8 @@ spec:
           ttl: 60
           rr_set:
             SOA:
-                - mname: ns1.mows.cloud.
-                  rname: hostmaster.mows.cloud.
+                - mname: ns1.vindelicorum.eu.
+                  rname: hostmaster.vindelicorum.eu.
                   serial: 0
                   refresh: 0
                   retry: 0
@@ -21,8 +21,8 @@ spec:
           ttl: 60
           rr_set:
             NS:
-                - value: ns1.mows.cloud.
-                - value: ns2.mows.cloud.
+                - value: ns1.vindelicorum.eu.
+                - value: ns2.vindelicorum.eu.
         - name: ns1.vindelicorum.eu.
           meta: ""
           ttl: 60
@@ -35,9 +35,4 @@ spec:
           rr_set:
             AAAA:
                 - value: "2a01:4f8:1c1b:b783::1"
-        - name: "*.vindelicorum.eu."
-          meta: ""
-          ttl: 60
-          rr_set:
-            A:
-                - value: "116.203.53.54"
+

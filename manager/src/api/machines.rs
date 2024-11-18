@@ -1,7 +1,7 @@
 use axum::{
     extract::{
         ws::{Message, WebSocket},
-        WebSocketUpgrade,
+        Path, WebSocketUpgrade,
     },
     response::IntoResponse,
     Json,
@@ -15,13 +15,13 @@ use utoipa::ToSchema;
 use crate::{
     config::{config, Machine},
     dev_mode_disabled, get_current_config_cloned,
-    machines::MachineType,
+    machines::{MachineStatus, MachineType, VncWebsocket},
     providers::{
         hcloud::machine::ExternalMachineProviderHcloudConfig,
         local_physical::machine::LocalMachineProviderPhysicalConfig,
         qemu::machine::{LocalMachineProviderQemu, LocalMachineProviderQemuConfig},
     },
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     write_config,
 };
 
@@ -30,7 +30,7 @@ use crate::{
     path = "/api/machines/create",
     request_body = MachineCreationReqBody,
     responses(
-        (status = 200, description = "Created machines", body = ApiResponse<()>),
+        (status = 200, description = "Created machines", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn create_machines(
@@ -62,7 +62,7 @@ pub async fn create_machines(
     path = "/api/machines/signal",
     request_body = MachineSignalReqBody,
     responses(
-        (status = 200, description = "Sent signal", body = ApiResponse<()>),
+        (status = 200, description = "Sent signal", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn signal_machine(
@@ -103,7 +103,7 @@ pub async fn signal_machine(
     path = "/api/machines/delete",
     request_body=MachineDeleteReqBody,
     responses(
-        (status = 200, description = "Machine deleted", body = ApiResponse<()>),
+        (status = 200, description = "Machine deleted", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn delete_machine(
@@ -139,7 +139,7 @@ pub async fn delete_machine(
     delete,
     path = "/api/dev/machines/delete_all",
     responses(
-        (status = 200, description = "Machines deleted", body = ApiResponse<()>),
+        (status = 200, description = "Machines deleted", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
@@ -189,7 +189,7 @@ pub async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
 pub async fn get_machine_info(
     Json(machine_info_json): Json<MachineInfoReqBody>,
 ) -> Json<ApiResponse<MachineInfoResBody>> {
-    let config = config().read().await;
+    let config = get_current_config_cloned!();
     let machine = match config.machines.get(&machine_info_json.machine_id) {
         Some(machine) => machine,
         None => {
@@ -218,6 +218,46 @@ pub async fn get_machine_info(
     })
 }
 
+#[
+    utoipa::path(
+        get, 
+        path = "/api/machines/vnc_websocket/:id",
+        responses(
+            (status = 200, description = "Got the websocket information", body =  ApiResponse<VncWebsocket>),
+        )
+    )    
+]
+pub async fn get_vnc_websocket(Path(id): Path<String>) -> impl IntoResponse {
+    let config = get_current_config_cloned!();
+    let machine = match config.machines.get(&id) {
+        Some(machine) => machine,
+        None => {
+            return Json(ApiResponse {
+                message: "Machine not found".to_string(),
+                status: ApiResponseStatus::Error,
+                data: None,
+            })
+        }
+    };
+
+    let vnc_websocket = match machine.get_vnc_websocket().await {
+        Ok(vnc_websocket) => vnc_websocket,
+        Err(e) => {
+            return Json(ApiResponse {
+                message: format!("Failed to get VNC websocket: {}", e),
+                status: ApiResponseStatus::Error,
+                data: None,
+            })
+        }
+    };
+
+    Json(ApiResponse {
+        message: "Got VNC websocket".to_string(),
+        status: ApiResponseStatus::Success,
+        data: Some(vnc_websocket),
+    })
+}
+
 // machine status with socket
 #[utoipa::path(get, path = "/api/machines/status")]
 pub async fn get_machine_status(ws: WebSocketUpgrade) -> impl IntoResponse {
@@ -231,9 +271,9 @@ pub async fn handle_get_machine_status(mut socket: WebSocket) {
         let config = get_current_config_cloned!();
 
         for machine in config.machines.values() {
-            let status = machine.get_status().await.unwrap_or("Unknown".to_string());
+            let status = machine.get_status().await.unwrap_or(MachineStatus::Unknown);
 
-            let status = MachineStatus {
+            let status = MachineStatusResBody {
                 id: machine.id.clone(),
                 status,
             };
@@ -251,9 +291,9 @@ pub async fn handle_get_machine_status(mut socket: WebSocket) {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct MachineStatus {
+pub struct MachineStatusResBody {
     pub id: String,
-    pub status: String,
+    pub status: MachineStatus,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

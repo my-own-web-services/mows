@@ -1,0 +1,11 @@
+server:
+    enabled: true
+    image: stalwartlabs/mail-server
+    imagePullPolicy: Always
+    name: stalwart-server
+    replicaCount: 1
+    defaultHostname: mx.vindelicorum.eu
+db:
+    name: stalwart-db
+    storageSize: 2Gi
+    replicas: 1

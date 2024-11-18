@@ -1,5 +1,5 @@
 import { signal } from "@preact/signals";
-import { MachineStatus, ManagerConfig } from "./api-client";
+import { MachineStatus, MachineStatusResBody, ManagerConfig } from "./api-client";
 
 export const configSignal = signal<ManagerConfig | null>(null);
 
@@ -13,13 +13,13 @@ export const handleConfigUpdate = async () => {
     };
 };
 
-export const machineStatusSignal = signal<Record<string, string>>({});
+export const machineStatusSignal = signal<Record<string, MachineStatus>>({});
 
 export const handleMachineStatusUpdate = async () => {
     const ws = new WebSocket(`ws://localhost:3000/api/machines/status`);
 
     ws.onmessage = (event) => {
-        const machineStatus: MachineStatus = JSON.parse(event.data);
+        const machineStatus: MachineStatusResBody = JSON.parse(event.data);
 
         machineStatusSignal.value[machineStatus.id] = machineStatus.status;
     };

@@ -25,7 +25,7 @@ serde = { version = "1.0.214", features = [
 ], default-features = false }
 serde_yaml = { version = "0.9.33" }
 serde_json = { version = "1.0.132" }
-tempfile = "3.10.1"
+tempfile = "3.14.0"
 anyhow = "1.0.93"
 
 rand = "0.8.5"
@@ -44,8 +44,15 @@ axum = { version = "0.7.5", features = ["ws", "tokio"] }
 tokio-tungstenite = "0.24.0"
 
 futures = "0.3.31"
-utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
-utoipa = { version = "4.2.3", features = ["axum_extras"] }
+
+utoipa-swagger-ui = { version = "8.0.3", features = ["axum"] }
+utoipa = { version = "5.2.0", features = [
+    "axum_extras",
+    "macros",
+    "openapi_extensions",
+] }
+utoipa-axum = "0.1"
+
 tower = { version = "0.5.1", features = ["util", "timeout"] }
 tower-http = { version = "0.6.1", features = [
     "fs",
@@ -77,7 +84,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "std",
 ] }
 async-stream = "0.3.6"
-thiserror = "2.0.0"
+thiserror = "2.0.3"
 tokio-util = "0.7.8"
 serde-xml-rs = "0.6.0"
 
@@ -92,8 +99,9 @@ reqwest = { version = "0.12.9", default-features = false, features = [
 lazy_static = "1.5.0"
 url = { version = "2.5.3", features = ["serde"] }
 
-vaultrs = "0.7.2"
+vaultrs = "0.7.3"
 data-encoding = "2.6.0"
+
 
 # [target.'cfg(not(target_env = "msvc"))'.dependencies]
 # tikv-jemallocator = "0.6.0"

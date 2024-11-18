@@ -14,6 +14,7 @@
         "@fontsource-variable/inter": "^5.0.18",
         "@preact/preset-vite": "^2.8.2",
         "@preact/signals": "^1.2.3",
+        "@types/lodash": "^4.17.13",
         "@xterm/addon-attach": "^0.11.0",
         "@xterm/addon-clipboard": "^0.1.0",
         "@xterm/addon-fit": "^0.10.0",
@@ -23,6 +24,7 @@
         "@xterm/xterm": "^5.5.0",
         "autoprefixer": "^10.4.19",
         "less": "^4.2.0",
+        "lodash": "^4.17.21",
         "postcss": "^8.4.38",
         "preact": "^10.22.0",
         "react-dom": "^18.2.0",
@@ -31,7 +33,8 @@
         "react-vnc": "^2.0.1",
         "rsuite": "^5.54.0",
         "sass": "^1.70.0",
-        "tailwindcss": "^3.4.4"
+        "tailwindcss": "^3.4.4",
+        "ts-pattern": "^5.5.0"
     },
     "devDependencies": {
         "@types/react": "^18.2.55",

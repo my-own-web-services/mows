@@ -1,14 +1,15 @@
 use std::process::Stdio;
 
+use axum::extract::ws;
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use utoipa::ToSchema;
 
 use crate::{
+    api::machines::MachineStatusResBody,
     config::{Machine, SshAccess},
-    machines::MachineType,
+    machines::{MachineStatus, MachineType, VncWebsocket},
     some_or_bail,
-    utils::generate_id,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default)]
@@ -103,14 +104,38 @@ impl LocalMachineProviderQemu {
         Ok(xml)
     }
 
-    pub async fn get_status(id: &str) -> anyhow::Result<String> {
+    pub async fn get_vnc_websocket(id: &str) -> anyhow::Result<VncWebsocket> {
+        let infos = Self::get_infos(id).await?;
+
+        let ws_port = infos
+            .get("devices")
+            .and_then(|devices| devices.get("graphics"))
+            .and_then(|graphics| graphics.get("websocket"))
+            .and_then(|websocket| websocket.as_str())
+            .ok_or_else(|| anyhow::anyhow!("No websocket found"))?;
+
+        if ws_port == "-1" {
+            return Err(anyhow::anyhow!("No websocket found"));
+        }
+
+        Ok(VncWebsocket {
+            url: format!("ws://localhost:{}", ws_port),
+            password: "".to_string(),
+        })
+    }
+
+    pub async fn get_status(id: &str) -> anyhow::Result<MachineStatus> {
         let output = Command::new("virsh")
             .args(["domstate", id])
             .output()
             .await?;
         let output = String::from_utf8(output.stdout)?;
 
-        Ok(output.trim().to_string())
+        Ok(match output.trim() {
+            "running" => MachineStatus::Running,
+            "shut off" => MachineStatus::Stopped,
+            _ => MachineStatus::Unknown,
+        })
     }
 
     pub async fn dev_delete_all() -> anyhow::Result<()> {

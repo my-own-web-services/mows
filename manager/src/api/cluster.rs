@@ -5,7 +5,7 @@ use crate::{
     dev_mode_disabled, get_current_config_cloned,
     internal_config::INTERNAL_CONFIG,
     machines::MachineType,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     write_config,
 };
 use axum::Json;
@@ -18,7 +18,7 @@ use utoipa::ToSchema;
     path = "/api/dev/cluster/create_from_all_machines_in_inventory",
     request_body = ClusterCreationConfig,
     responses(
-        (status = 200, description = "Cluster creation started...", body = ApiResponse),
+        (status = 200,  body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn dev_create_cluster_from_all_machines_in_inventory(
@@ -114,7 +114,7 @@ pub async fn handle_dev_create_cluster_from_all_machines_in_inventory() -> anyho
     post,
     path = "/api/dev/cluster/install_basics",
     responses(
-        (status = 200, description = "Installed basics", body = ApiResponse),
+        (status = 200, description = "Installed basics", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn dev_install_cluster_basics() -> Json<ApiResponse<()>> {

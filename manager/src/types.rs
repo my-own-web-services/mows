@@ -13,3 +13,6 @@ pub struct ApiResponse<T> {
     pub status: ApiResponseStatus,
     pub data: Option<T>,
 }
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct EmptyApiResponse;

@@ -136,9 +136,15 @@ export interface MachineSignalReqBody {
   signal: MachineSignal;
 }
 
-export interface MachineStatus {
+export enum MachineStatus {
+  Running = "Running",
+  Stopped = "Stopped",
+  Unknown = "Unknown",
+}
+
+export interface MachineStatusResBody {
   id: string;
-  status: string;
+  status: MachineStatus;
 }
 
 export enum MachineType {
@@ -180,6 +186,11 @@ export interface SshAccess {
   ssh_private_key: string;
   ssh_public_key: string;
   ssh_username: string;
+}
+
+export interface VncWebsocket {
+  password: string;
+  url: string;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -556,6 +567,21 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       this.request<any, any>({
         path: `/api/machines/status`,
         method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags crate
+     * @name GetVncWebsocket
+     * @request GET:/api/machines/vnc_websocket/:id
+     */
+    getVncWebsocket: (id: string, params: RequestParams = {}) =>
+      this.request<ApiResponse, any>({
+        path: `/api/machines/vnc_websocket/${id}`,
+        method: "GET",
+        format: "json",
         ...params,
       }),
 

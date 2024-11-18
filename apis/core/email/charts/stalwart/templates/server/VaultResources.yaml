@@ -1,0 +1,82 @@
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: {{ .Values.server.name }}-db-passwords
+spec:
+    secretEngine:
+        kv-v2:
+            kvData:
+                db:
+                    user: "{% randAlphaNum 100 %}"
+                    admin: "{% randAlphaNum 100 %}"
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: {{ .Values.server.name }}-db-passwords-sync
+spec:
+    secretSync:
+        kvMapping:
+            db: 
+                engine: {{ .Values.server.name }}-db-passwords
+                path: "db" 
+        targets:
+            secrets:
+                {{ .Values.db.name }}-admin:
+                    type: kubernetes.io/basic-auth
+                    map:
+                        password: "{% .secrets.db.admin  %}"
+                        username: postgres
+                {{ .Values.db.name }}-user:
+                    type: kubernetes.io/basic-auth
+                    map:
+                        password: "{% .secrets.db.user %}"
+                        username: stalwart
+                {{ .Values.server.name }}-config:
+                    map:
+                        config.toml: |
+                            [lookup.default]
+                            hostname = "{{ .Values.server.defaultHostname }}"
+
+                            [server.http]
+                            use-x-forwarded = true
+                            hsts = true
+
+                            [server.listener."http"]
+                            bind = "[::]:8080"
+
+                            [server.listener."smtp"]
+                            bind = "[::]:2500"
+
+                            [server.listener."submission"]
+                            bind = "[::]:5870"
+
+                            [server.listener."smtps"]
+                            bind = "[::]:4650"
+
+                            [server.listener."imap"]
+                            bind = "[::]:1430"
+
+                            [server.listener."imaps"]
+                            bind = "[::]:9930"
+
+                            [server.listener."sieve"]
+                            bind = "[::]:4190"                            
+
+                            [store."postgresql"]
+                            type = "postgresql"
+                            host = "{{ .Values.db.name }}-postgres-rw"
+                            port = 5432
+                            database = "stalwart"
+                            user = "stalwart"
+                            password = "{% .secrets.db.user %}"
+                            timeout = "15s"
+
+                            [certificate."default"]
+                            cert="%{file:/certs/default/tls.crt}%"
+                            key="%{file:/certs/default/tls.key}%"
+                            # TODO handle reloading of certificates
+
+
+
+

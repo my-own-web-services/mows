@@ -17,6 +17,7 @@ use crate::{
         local_physical::machine::LocalMachineProviderPhysical,
         qemu::machine::LocalMachineProviderQemu,
     },
+    public_ip::remove_public_ip_config_if_exists,
     some_or_bail,
     utils::generate_id,
     write_config,
@@ -28,6 +29,19 @@ pub enum MachineType {
     LocalQemu,
     LocalPhysical,
     ExternalHcloud,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
+pub enum MachineStatus {
+    Running,
+    Stopped,
+    Unknown,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
+pub struct VncWebsocket {
+    pub url: String,
+    pub password: String,
 }
 
 impl Machine {
@@ -59,19 +73,13 @@ impl Machine {
         })
     }
 
-    pub async fn get_status(&self) -> anyhow::Result<String> {
+    pub async fn get_status(&self) -> anyhow::Result<MachineStatus> {
         Ok(match self.machine_type {
-            MachineType::LocalQemu => {
-                let output = Command::new("virsh")
-                    .args(["domstate", &self.id])
-                    .output()
-                    .await?;
-                let output = String::from_utf8(output.stdout)?;
-
-                output
-            }
+            MachineType::LocalQemu => LocalMachineProviderQemu::get_status(&self.id).await?,
             MachineType::LocalPhysical => bail!("Not implemented"),
-            MachineType::ExternalHcloud => bail!("Not implemented"),
+            MachineType::ExternalHcloud => {
+                ExternalProviderMachineHcloud::get_status(&self.id).await?
+            }
         })
     }
 
@@ -85,7 +93,16 @@ impl Machine {
                 LocalMachineProviderQemu::delete(&self.id).await?;
             }
             MachineType::LocalPhysical => bail!("Not implemented"),
-            MachineType::ExternalHcloud => bail!("Not implemented"),
+            MachineType::ExternalHcloud => {
+                if let Err(e) = ExternalProviderMachineHcloud::delete(&self.id).await {
+                    match e {
+                        crate::providers::hcloud::machine::HcloudError::ServerToBeDeletedNotFoundAtHcloud => (), // if the server is already deleted at hcloud we ignore the error and continue to remove the machine from the inventory
+                        crate::providers::hcloud::machine::HcloudError::GenericHcloudError(error) => bail!(error)
+                    };
+                };
+
+                remove_public_ip_config_if_exists(&self.id).await?;
+            }
         };
         let mut config_lock = write_config!();
 
@@ -146,6 +163,16 @@ impl Machine {
             MachineType::LocalQemu => LocalMachineProviderQemu::force_off(&self.id).await,
             MachineType::LocalPhysical => bail!("Not implemented"),
             MachineType::ExternalHcloud => bail!("Not implemented"),
+        }
+    }
+
+    pub async fn get_vnc_websocket(&self) -> anyhow::Result<VncWebsocket> {
+        match self.machine_type {
+            MachineType::LocalQemu => LocalMachineProviderQemu::get_vnc_websocket(&self.id).await,
+            MachineType::LocalPhysical => bail!("Not implemented"),
+            MachineType::ExternalHcloud => {
+                ExternalProviderMachineHcloud::get_vnc_websocket(&self.id).await
+            }
         }
     }
 

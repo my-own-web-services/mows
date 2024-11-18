@@ -1,3 +1,6 @@
+1. wildcard records do not work properly in pektin-server?
+2. the traceid of mows-common reqwest is empty, this might be why the traces arent showing up as related in jaeger
+
 # primary domain setup
 
 create userpass auth method for the manager to control pektin

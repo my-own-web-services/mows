@@ -1,21 +1,26 @@
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use hcloud::{
     apis::{
         configuration::Configuration,
         primary_ips_api::{list_primary_ips, ListPrimaryIpsParams},
-        servers_api::CreateServerParams,
+        servers_api::{
+            list_servers, request_console_for_server, CreateServerParams, DeleteServerParams,
+            ListServersParams, RequestConsoleForServerParams,
+        },
         ssh_keys_api::CreateSshKeyParams,
     },
     models::{CreateServerRequest, CreateServerRequestPublicNet, CreateSshKeyRequest},
 };
 use serde::{Deserialize, Serialize};
-use tracing::debug;
+use thiserror::Error;
+use tracing::{debug, info, trace};
 use utoipa::ToSchema;
 
 use crate::{
     config::{Machine, SshAccess},
+    machines::{MachineStatus, VncWebsocket},
     some_or_bail,
 };
 
@@ -28,6 +33,16 @@ pub struct ExternalMachineProviderHcloudConfig {
     pub location: String,
 }
 
+const HCLOUD_API_TOKEN_ENV_NAME: &str = "HCLOUD_API_TOKEN";
+
+#[derive(Debug, Error)]
+pub enum HcloudError {
+    #[error("Server to be deleted not found at hcloud")]
+    ServerToBeDeletedNotFoundAtHcloud,
+    #[error("{0}")]
+    GenericHcloudError(#[from] anyhow::Error),
+}
+
 impl ExternalProviderMachineHcloud {
     pub async fn new(
         hc: &ExternalMachineProviderHcloudConfig,
@@ -36,7 +51,7 @@ impl ExternalProviderMachineHcloud {
         debug!("Creating VM on Hetzner Cloud");
 
         let mut configuration = Configuration::new();
-        configuration.bearer_access_token = std::env::var("HCLOUD_API_TOKEN").ok();
+        configuration.bearer_access_token = std::env::var(HCLOUD_API_TOKEN_ENV_NAME).ok();
 
         let mut ssh_config = SshAccess::new(None, Some("root")).await?;
 
@@ -143,7 +158,113 @@ impl ExternalProviderMachineHcloud {
         })
     }
 
-    pub fn delete_vm(&self) {
-        println!("Deleting VM on Hetzner Cloud");
+    async fn get_hcloud_id_from_mows_id(
+        mows_id: &str,
+        configuration: &Configuration,
+    ) -> anyhow::Result<i64> {
+        debug!("Getting Hetzner Cloud ID from MOWS ID");
+
+        let hcloud_id = list_servers(
+            &configuration,
+            ListServersParams {
+                name: Some(mows_id.to_string()),
+                ..Default::default()
+            },
+        )
+        .await?
+        .servers
+        .first()
+        .map(|s| s.id.clone())
+        .ok_or_else(|| anyhow::anyhow!("Server not found at hcloud"))?;
+
+        Ok(hcloud_id)
+    }
+
+    pub async fn get_vnc_websocket(mows_id: &str) -> anyhow::Result<VncWebsocket> {
+        debug!("Getting VNC websocket URL on Hetzner Cloud");
+
+        let mut configuration = Configuration::new();
+        configuration.bearer_access_token = std::env::var(HCLOUD_API_TOKEN_ENV_NAME).ok();
+
+        let hcloud_id = Self::get_hcloud_id_from_mows_id(mows_id, &configuration).await?;
+
+        let res = request_console_for_server(
+            &configuration,
+            RequestConsoleForServerParams { id: hcloud_id },
+        )
+        .await?;
+
+        Ok(VncWebsocket {
+            url: res.wss_url,
+            password: res.password,
+        })
+    }
+
+    pub async fn get_status(mows_id: &str) -> anyhow::Result<MachineStatus> {
+        trace!("Getting VM status on Hetzner Cloud");
+
+        let mut configuration = Configuration::new();
+        configuration.bearer_access_token = std::env::var(HCLOUD_API_TOKEN_ENV_NAME).ok();
+
+        let hcloud_status = list_servers(
+            &configuration,
+            ListServersParams {
+                name: Some(mows_id.to_string()),
+                ..Default::default()
+            },
+        )
+        .await
+        .map_err(|e| HcloudError::GenericHcloudError(e.into()))?
+        .servers
+        .first()
+        .map(|s| s.status.clone())
+        .ok_or_else(|| anyhow::anyhow!("Server not found at hcloud"))?;
+
+        let machine_status = match hcloud_status {
+            hcloud::models::server::Status::Deleting => MachineStatus::Running,
+            hcloud::models::server::Status::Initializing => MachineStatus::Stopped,
+            hcloud::models::server::Status::Migrating => MachineStatus::Unknown,
+            hcloud::models::server::Status::Off => MachineStatus::Stopped,
+            hcloud::models::server::Status::Running => MachineStatus::Running,
+            hcloud::models::server::Status::Starting => MachineStatus::Stopped,
+            hcloud::models::server::Status::Stopping => MachineStatus::Running,
+            hcloud::models::server::Status::Unknown => MachineStatus::Unknown,
+            _ => MachineStatus::Unknown,
+        };
+
+        Ok(machine_status)
+    }
+
+    pub async fn delete(mows_id: &str) -> Result<(), HcloudError> {
+        info!("Deleting VM on Hetzner Cloud");
+
+        let mut configuration = Configuration::new();
+        configuration.bearer_access_token = std::env::var(HCLOUD_API_TOKEN_ENV_NAME).ok();
+
+        let hcloud_id = list_servers(
+            &configuration,
+            ListServersParams {
+                name: Some(mows_id.to_string()),
+                ..Default::default()
+            },
+        )
+        .await
+        .map_err(|e| HcloudError::GenericHcloudError(e.into()))?
+        .servers
+        .first()
+        .map(|s| s.id.clone())
+        .ok_or_else(|| HcloudError::ServerToBeDeletedNotFoundAtHcloud)?;
+
+        hcloud::apis::servers_api::delete_server(
+            &configuration,
+            DeleteServerParams {
+                id: hcloud_id,
+                ..Default::default()
+            },
+        )
+        .await
+        .context("Failed to run delete_server api call")?;
+
+        Ok(())
     }
 }

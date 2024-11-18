@@ -14,27 +14,11 @@ import {
     ManagerConfig,
     PublicIpCreationConfig
 } from "../api-client";
-import { configSignal } from "../config";
+import { configSignal, machineStatusSignal } from "../config";
 import { withToasterHook } from "../utils";
-import MachineComponent from "./Machine";
 import Notes from "./Notes";
 import TerminalComponent from "./Terminal";
-
-interface DevProps {
-    readonly client: Api<unknown>;
-    readonly toaster: ReturnType<typeof useToaster>;
-}
-
-interface DevState {
-    readonly configToSet: string;
-}
-
-interface Url {
-    url: string;
-    title: string;
-    category: string[];
-    notes?: string;
-}
+import MachineComponent from "./machine/Machine";
 
 const urls: Url[] = [
     {
@@ -90,6 +74,22 @@ const urls: Url[] = [
         notes: "user: admin, password: can be found with command in notes"
     }
 ];
+
+interface DevProps {
+    readonly client: Api<unknown>;
+    readonly toaster: ReturnType<typeof useToaster>;
+}
+
+interface DevState {
+    readonly configToSet: string;
+}
+
+interface Url {
+    url: string;
+    title: string;
+    category: string[];
+    notes?: string;
+}
 
 const toastParams: ToastContainerProps = { placement: "bottomEnd", duration: 10000 };
 
@@ -364,7 +364,13 @@ export default withToasterHook(
                                 Object.entries(configSignal.value?.machines).map(
                                     ([machine_id, machine]) => {
                                         return (
-                                            <MachineComponent key={machine_id} machine={machine} /> //<div /> // // this leaks memory like crazy
+                                            <MachineComponent
+                                                machineStatus={
+                                                    machineStatusSignal.value[machine_id]
+                                                }
+                                                key={machine_id}
+                                                machine={machine}
+                                            />
                                         );
                                     }
                                 )}

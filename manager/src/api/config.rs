@@ -1,6 +1,6 @@
 use crate::{
     config::{config, ManagerConfig},
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     write_config,
 };
 use axum::{
@@ -18,7 +18,7 @@ use tracing::info;
     path = "/api/config",
     request_body = ManagerConfig,
     responses(
-        (status = 200, description = "Config updated", body = ApiResponse),
+        (status = 200, description = "Config updated", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn update_config(Json(posted_config): Json<ManagerConfig>) -> Json<ApiResponse<()>> {

@@ -2,6 +2,7 @@ use crate::machines::MachineType;
 use crate::providers::hcloud::index::ExternalProviderConfigHcloud;
 use crate::public_ip::WgKeys;
 use anyhow::Context;
+use hcloud::models::ipv4;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -10,7 +11,8 @@ use std::sync::OnceLock;
 use tokio::fs;
 use tokio::sync::RwLock;
 use tracing::trace;
-use utoipa::ToSchema;
+use utoipa::openapi::{Object, ObjectBuilder};
+use utoipa::{PartialSchema, ToSchema};
 
 #[tracing::instrument]
 pub fn config() -> &'static RwLock<ManagerConfig> {
@@ -191,7 +193,9 @@ pub struct VaultSecrets {
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct PublicIpVmProxy {
     pub machine_id: String,
+    #[schema(schema_with = ipv6adr_to_schema)]
     pub ip: Option<Ipv6Addr>,
+    #[schema(schema_with = ipv4adr_to_schema)]
     pub legacy_ip: Option<Ipv4Addr>,
     pub wg_keys: WgKeys,
 }
@@ -209,8 +213,10 @@ pub struct Vip {
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
 pub struct VipIp {
-    pub legacy_ip: Option<Ipv4Addr>,
+    #[schema(schema_with = ipv6adr_to_schema)]
     pub ip: Option<Ipv6Addr>,
+    #[schema(schema_with = ipv4adr_to_schema)]
+    pub legacy_ip: Option<Ipv4Addr>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
@@ -221,7 +227,9 @@ pub struct Machine {
     pub install: Option<MachineInstall>,
     pub mac: Option<String>,
     pub ssh: SshAccess,
+    #[schema(schema_with = ipv6adr_to_schema)]
     pub public_ip: Option<Ipv6Addr>,
+    #[schema(schema_with = ipv4adr_to_schema)]
     pub public_legacy_ip: Option<Ipv4Addr>,
 }
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]
@@ -261,6 +269,7 @@ pub struct ClusterNode {
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
 pub struct InternalIps {
+    #[schema(schema_with = ipv4adr_to_schema)]
     pub legacy: Ipv4Addr,
 }
 
@@ -296,4 +305,22 @@ pub enum HelmDeploymentState {
     Requested,
     Installed,
     NotInstalled,
+}
+
+fn ipv4adr_to_schema() -> Object {
+    ObjectBuilder::new()
+        .schema_type(utoipa::openapi::schema::Type::String)
+        .format(Some(utoipa::openapi::SchemaFormat::Custom(
+            "Ipv4Addr".to_string(),
+        )))
+        .build()
+}
+
+fn ipv6adr_to_schema() -> Object {
+    ObjectBuilder::new()
+        .schema_type(utoipa::openapi::schema::Type::String)
+        .format(Some(utoipa::openapi::SchemaFormat::Custom(
+            "Ipv6Addr".to_string(),
+        )))
+        .build()
 }

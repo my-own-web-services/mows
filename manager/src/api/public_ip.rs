@@ -4,7 +4,7 @@ use utoipa::ToSchema;
 
 use crate::{
     public_ip::create_public_ip_handler,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     utils::generate_id,
     write_config,
 };
@@ -13,7 +13,7 @@ use crate::{
     post,
     path = "/api/public_ip/create",
     responses(
-        (status = 200, description = "Created public static ip address", body = ApiResponse),
+        (status = 200, description = "Created public static ip address", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn create_public_ip(
