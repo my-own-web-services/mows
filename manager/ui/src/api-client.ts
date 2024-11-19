@@ -9,15 +9,48 @@
  * ---------------------------------------------------------------
  */
 
-export interface ApiResponse {
-  data?: null;
+export enum ApiResponseStatus {
+  Success = "Success",
+  Error = "Error",
+}
+
+export interface ApiResponseEmptyApiResponse {
+  /** @default null */
+  data?: any;
   message: string;
   status: ApiResponseStatus;
 }
 
-export enum ApiResponseStatus {
-  Success = "Success",
-  Error = "Error",
+export interface ApiResponseHealthResBody {
+  data?: object;
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseMachineInfoResBody {
+  data?: {
+    machine_infos: any;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseMachineStatusResBody {
+  data?: {
+    id: string;
+    status: MachineStatus;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseVncWebsocket {
+  data?: {
+    password: string;
+    url: string;
+  };
+  message: string;
+  status: ApiResponseStatus;
 }
 
 export interface BackupNode {
@@ -34,12 +67,12 @@ export interface Cluster {
   cluster_nodes: Record<string, ClusterNode>;
   encryption_key?: string | null;
   id: string;
-  install_state?: ClusterInstallState | null;
+  install_state?: null | ClusterInstallState;
   k3s_token: string;
   kubeconfig?: string | null;
-  public_ip_config: Record<string, any>;
-  vault_secrets?: null;
-  vip: any;
+  public_ip_config: Record<string, PublicIpConfig>;
+  vault_secrets?: null | VaultSecrets;
+  vip: Vip;
 }
 
 export type ClusterCreationConfig = object;
@@ -51,19 +84,36 @@ export enum ClusterInstallState {
 }
 
 export interface ClusterNode {
-  internal_ips: any;
+  internal_ips: InternalIps;
   machine_id: string;
   primary: boolean;
 }
+
+/** @default null */
+export type EmptyApiResponse = any;
 
 export interface ExternalMachineProviderHcloudConfig {
   location: string;
   server_type: string;
 }
 
-export interface ExternalProviderIpOptionsHetzner {
-  server_id: string;
-  ssh_access?: SshAccess | null;
+export interface ExternalProviderConfigHcloud {
+  api_token: string;
+}
+
+export interface ExternalProviderConfigMap {
+  hcloud?: null | ExternalProviderConfigHcloud;
+}
+
+export type HealthResBody = object;
+
+export interface InternalIps {
+  /** @format Ipv4Addr */
+  legacy: string;
+}
+
+export interface LocalMachineProviderPhysicalConfig {
+  mac_address: string;
 }
 
 export interface LocalMachineProviderQemuConfig {
@@ -73,7 +123,8 @@ export interface LocalMachineProviderQemuConfig {
    */
   cpus: number;
   /**
-   * * Memory in GB
+   *
+   *      * Memory in GB
    * @format int32
    * @min 0
    */
@@ -82,11 +133,13 @@ export interface LocalMachineProviderQemuConfig {
 
 export interface Machine {
   id: string;
-  install?: null;
+  install?: null | MachineInstall;
   mac?: string | null;
   machine_type: MachineType;
-  public_ip?: null;
-  public_legacy_ip?: null;
+  /** @format Ipv6Addr */
+  public_ip?: string;
+  /** @format Ipv4Addr */
+  public_legacy_ip?: string;
   ssh: SshAccess;
 }
 
@@ -99,7 +152,7 @@ export type MachineCreationReqType =
       LocalQemu: LocalMachineProviderQemuConfig;
     }
   | {
-      LocalPhysical: any;
+      LocalPhysical: LocalMachineProviderPhysicalConfig;
     }
   | {
       ExternalHcloud: ExternalMachineProviderHcloudConfig;
@@ -115,6 +168,12 @@ export interface MachineInfoReqBody {
 
 export interface MachineInfoResBody {
   machine_infos: any;
+}
+
+export interface MachineInstall {
+  boot_config?: null | PixiecoreBootConfig;
+  primary: boolean;
+  state?: null | MachineInstallState;
 }
 
 export enum MachineInstallState {
@@ -155,7 +214,7 @@ export enum MachineType {
 
 export interface ManagerConfig {
   clusters: Record<string, Cluster>;
-  external_provider_config?: null;
+  external_provider_config?: null | ExternalProviderConfigMap;
   machines: Record<string, Machine>;
 }
 
@@ -164,6 +223,10 @@ export interface PixiecoreBootConfig {
   initrd: string[];
   kernel: string;
 }
+
+export type PublicIpConfig = {
+  MachineProxy: PublicIpVmProxy;
+};
 
 export interface PublicIpCreationConfig {
   cluster_id: string;
@@ -178,6 +241,15 @@ export type PublicIpCreationConfigType = {
   MachineProxy: string[];
 };
 
+export interface PublicIpVmProxy {
+  /** @format Ipv6Addr */
+  ip?: string;
+  /** @format Ipv4Addr */
+  legacy_ip?: string;
+  machine_id: string;
+  wg_keys: WgKeys;
+}
+
 export interface SshAccess {
   remote_hostname?: string | null;
   remote_public_key?: string | null;
@@ -188,9 +260,33 @@ export interface SshAccess {
   ssh_username: string;
 }
 
+export interface VaultSecrets {
+  root_token: string;
+  unseal_key: string;
+}
+
+export interface Vip {
+  controlplane: VipIp;
+  service: VipIp;
+}
+
+export interface VipIp {
+  /** @format Ipv6Addr */
+  ip?: string;
+  /** @format Ipv4Addr */
+  legacy_ip?: string;
+}
+
 export interface VncWebsocket {
   password: string;
   url: string;
+}
+
+export interface WgKeys {
+  local_wg_private_key: string;
+  local_wg_public_key: string;
+  remote_wg_private_key: string;
+  remote_wg_public_key: string;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -413,7 +509,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name GetConfig
      * @request GET:/api/config
      */
@@ -427,12 +522,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name UpdateConfig
      * @request PUT:/api/config
      */
     updateConfig: (data: ManagerConfig, params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/config`,
         method: "PUT",
         body: data,
@@ -444,12 +538,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name DevCreateClusterFromAllMachinesInInventory
      * @request POST:/api/dev/cluster/create_from_all_machines_in_inventory
      */
     devCreateClusterFromAllMachinesInInventory: (data: ClusterCreationConfig, params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/dev/cluster/create_from_all_machines_in_inventory`,
         method: "POST",
         body: data,
@@ -461,12 +554,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name DevInstallClusterBasics
      * @request POST:/api/dev/cluster/install_basics
      */
     devInstallClusterBasics: (params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/dev/cluster/install_basics`,
         method: "POST",
         format: "json",
@@ -476,14 +568,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
-     * @name DevDeleteAllMachines
-     * @request DELETE:/api/dev/machines/delete_all
+     * @name GetHealth
+     * @request GET:/api/health/
      */
-    devDeleteAllMachines: (params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
-        path: `/api/dev/machines/delete_all`,
-        method: "DELETE",
+    getHealth: (params: RequestParams = {}) =>
+      this.request<ApiResponseHealthResBody, any>({
+        path: `/api/health/`,
+        method: "GET",
         format: "json",
         ...params,
       }),
@@ -491,12 +582,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name CreateMachines
      * @request POST:/api/machines/create
      */
     createMachines: (data: MachineCreationReqBody, params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/machines/create`,
         method: "POST",
         body: data,
@@ -508,12 +598,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name DeleteMachine
      * @request DELETE:/api/machines/delete
      */
     deleteMachine: (data: MachineDeleteReqBody, params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/machines/delete`,
         method: "DELETE",
         body: data,
@@ -525,14 +614,27 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
+     * @name DevDeleteAllMachines
+     * @request DELETE:/api/machines/dev_delete_all
+     */
+    devDeleteAllMachines: (params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, any>({
+        path: `/api/machines/dev_delete_all`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @name GetMachineInfo
-     * @request POST:/api/machines/info
+     * @request GET:/api/machines/info
      */
     getMachineInfo: (data: MachineInfoReqBody, params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
+      this.request<ApiResponseMachineInfoResBody, any>({
         path: `/api/machines/info`,
-        method: "POST",
+        method: "GET",
         body: data,
         type: ContentType.Json,
         format: "json",
@@ -542,12 +644,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name SignalMachine
      * @request POST:/api/machines/signal
      */
     signalMachine: (data: MachineSignalReqBody, params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/machines/signal`,
         method: "POST",
         body: data,
@@ -559,26 +660,25 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name GetMachineStatus
      * @request GET:/api/machines/status
      */
     getMachineStatus: (params: RequestParams = {}) =>
-      this.request<any, any>({
+      this.request<ApiResponseMachineStatusResBody, any>({
         path: `/api/machines/status`,
         method: "GET",
+        format: "json",
         ...params,
       }),
 
     /**
      * No description
      *
-     * @tags crate
      * @name GetVncWebsocket
-     * @request GET:/api/machines/vnc_websocket/:id
+     * @request GET:/api/machines/vnc_websocket/{id}
      */
     getVncWebsocket: (id: string, params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
+      this.request<ApiResponseVncWebsocket, any>({
         path: `/api/machines/vnc_websocket/${id}`,
         method: "GET",
         format: "json",
@@ -588,12 +688,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name CreatePublicIp
      * @request POST:/api/public_ip/create
      */
     createPublicIp: (data: PublicIpCreationConfig, params: RequestParams = {}) =>
-      this.request<ApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/public_ip/create`,
         method: "POST",
         body: data,
@@ -605,7 +704,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name DirectTerminal
      * @request GET:/api/terminal/{id}
      */
@@ -620,7 +718,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags crate
      * @name GetBootConfigByMac
      * @request GET:/v1/boot/{mac_addr}
      */

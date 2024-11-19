@@ -11,6 +11,12 @@ export const handleConfigUpdate = async () => {
         const config = JSON.parse(event.data);
         configSignal.value = config;
     };
+
+    ws.onclose = () => {
+        setTimeout(() => {
+            handleConfigUpdate();
+        }, 1000);
+    };
 };
 
 export const machineStatusSignal = signal<Record<string, MachineStatus>>({});
@@ -22,5 +28,11 @@ export const handleMachineStatusUpdate = async () => {
         const machineStatus: MachineStatusResBody = JSON.parse(event.data);
 
         machineStatusSignal.value[machineStatus.id] = machineStatus.status;
+    };
+
+    ws.onclose = () => {
+        setTimeout(() => {
+            handleMachineStatusUpdate();
+        }, 1000);
     };
 };

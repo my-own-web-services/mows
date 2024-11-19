@@ -16,7 +16,7 @@ use crate::{
     write_config,
 };
 
-use super::machines::MachineCreationReqType;
+use super::machines::machines::MachineCreationReqType;
 
 #[utoipa::path(
     get,

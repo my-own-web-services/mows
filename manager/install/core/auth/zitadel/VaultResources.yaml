@@ -11,6 +11,7 @@ spec:
                     admin: "{% randAlphaNum 100 %}"
                 zitadel:
                     masterkey: "{% randAlphaNum 32 %}"
+                    adminPassword: "{% randAlphaNum 100 %}"
 ---
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
@@ -53,6 +54,10 @@ spec:
                                     IdTokenLifetime: 12h
                                     RefreshTokenIdleExpiration: 720h #30d
                                     RefreshTokenExpiration: 2160h #90d
+                                Org:
+                                    Human:
+                                        UserName: zitadel-admin
+                                        Password: "{% .secrets.zitadel.adminPassword %}"
                             Database:
                                 Postgres:
                                     Host: zitadel-postgres-rw

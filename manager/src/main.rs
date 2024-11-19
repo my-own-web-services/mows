@@ -1,10 +1,15 @@
 use anyhow::Context;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
 use axum::http::{HeaderValue, Method};
+use machines::{
+    MachineCreationReqBody, MachineCreationReqType, MachineDeleteReqBody, MachineInfoReqBody,
+    MachineInfoResBody, MachineSignal, MachineSignalReqBody, MachineStatusResBody,
+};
 use manager::api::boot::*;
 use manager::api::cluster::*;
 use manager::api::config::*;
 use manager::api::direct_terminal::*;
+use manager::api::health::health;
 use manager::api::machines::*;
 use manager::api::public_ip::*;
 use manager::config::*;
@@ -35,39 +40,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
-    components(
-        schemas(
-            ApiResponseStatus,
-            ApiResponse<EmptyApiResponse>,
-            ApiResponse<MachineInfoResBody>,
-            ManagerConfig,
-            Cluster,
-            ClusterNode,
-            BackupNode,
-            ExternalProviderIpOptionsHetzner,
-            SshAccess,
-            MachineType,
-            MachineCreationReqType,
-            Machine,
-            MachineCreationReqBody,
-            LocalMachineProviderQemuConfig,
-            ExternalMachineProviderHcloudConfig,
-            ClusterCreationConfig,
-            PixiecoreBootConfig,
-            MachineInstallState,
-            ClusterInstallState,
-            MachineSignalReqBody,
-            MachineSignal,
-            MachineDeleteReqBody,
-            MachineInfoReqBody,
-            MachineInfoResBody,
-            MachineStatusResBody,
-            PublicIpCreationConfig,
-            PublicIpCreationConfigType,
-            MachineStatus,
-            VncWebsocket,
-        )
-    ),
+    
     tags(
         (name = "mows-manager", description = "Cluster management API")
     )
@@ -78,8 +51,6 @@ struct ApiDoc;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let ic = &INTERNAL_CONFIG;
-
-    //Machine::delete_all_mows_machines().unwrap();
 
     let serve_dir = ServeDir::new("ui").not_found_service(ServeFile::new("ui/index.html"));
 
@@ -97,22 +68,24 @@ async fn main() -> Result<(), anyhow::Error> {
         let _ = &ic.dev.allow_origins.iter().for_each(|x| origins.push(x));
     }
 
-    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .routes(routes!(
-            update_config,
-            get_config,
-            create_machines,
-            signal_machine,
-            delete_machine,
-            get_machine_info,
-            get_machine_status,
-            get_vnc_websocket,
-            dev_delete_all_machines,
+    /*
+
             create_public_ip,
             dev_create_cluster_from_all_machines_in_inventory,
             get_boot_config_by_mac,
             direct_terminal
-        ))
+
+    */
+
+    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+        .nest("/api/machines", machines::router())
+        .nest("/api/config", config_api::router())
+        .nest("/api/health", health::router())
+        .routes(routes!(create_public_ip))
+        .routes(routes!(dev_create_cluster_from_all_machines_in_inventory))
+        .routes(routes!(get_boot_config_by_mac))
+        .routes(routes!(dev_install_cluster_basics))
+        .routes(routes!(direct_terminal))
         .nest_service("/", serve_dir)
         .layer(
             CorsLayer::new()

@@ -162,7 +162,7 @@ impl ExternalProviderMachineHcloud {
         mows_id: &str,
         configuration: &Configuration,
     ) -> anyhow::Result<i64> {
-        debug!("Getting Hetzner Cloud ID from MOWS ID");
+        trace!("Getting Hetzner Cloud ID from MOWS ID");
 
         let hcloud_id = list_servers(
             &configuration,
@@ -181,7 +181,7 @@ impl ExternalProviderMachineHcloud {
     }
 
     pub async fn get_vnc_websocket(mows_id: &str) -> anyhow::Result<VncWebsocket> {
-        debug!("Getting VNC websocket URL on Hetzner Cloud");
+        trace!("Getting VNC websocket URL on Hetzner Cloud");
 
         let mut configuration = Configuration::new();
         configuration.bearer_access_token = std::env::var(HCLOUD_API_TOKEN_ENV_NAME).ok();

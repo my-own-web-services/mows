@@ -4,7 +4,6 @@ import { Button, Input, InputGroup, Message, useToaster } from "rsuite";
 import { ToastContainerProps } from "rsuite/esm/toaster/ToastContainer";
 import {
     Api,
-    ApiResponse,
     ApiResponseStatus,
     Cluster,
     HttpResponse,
@@ -104,7 +103,7 @@ export default withToasterHook(
 
         componentDidMount = async () => {};
 
-        handleApiCall = async (apiCall: () => Promise<HttpResponse<ApiResponse>>) => {
+        handleApiCall = async (apiCall: () => Promise<HttpResponse<any>>) => {
             await apiCall()
                 .then(({ data }) => {
                     this.props.toaster.push(
@@ -298,7 +297,7 @@ export default withToasterHook(
                             </div>
 
                             <div className="h-full w-3/5">
-                                <TerminalComponent id="local" type="direct" />
+                                <TerminalComponent id="manager" />
                             </div>
                             <div className={"h-full w-1/5"}>
                                 <Notes className="h-full" />
@@ -361,8 +360,9 @@ export default withToasterHook(
                         </div>
                         <div className="flex w-full flex-col justify-start gap-4 pt-4">
                             {configSignal.value?.machines &&
-                                Object.entries(configSignal.value?.machines).map(
-                                    ([machine_id, machine]) => {
+                                Object.entries(configSignal.value?.machines)
+                                    .sort()
+                                    .map(([machine_id, machine]) => {
                                         return (
                                             <MachineComponent
                                                 machineStatus={
@@ -372,8 +372,7 @@ export default withToasterHook(
                                                 machine={machine}
                                             />
                                         );
-                                    }
-                                )}
+                                    })}
                         </div>
                     </div>
                 </div>

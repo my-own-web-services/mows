@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+    name: argocd-ingress
+spec:
+    entryPoints:
+        - websecure
+    routes:
+        - kind: Rule
+          match: Host(`argocd.vindelicorum.eu`)
+          services:
+              - kind: Service
+                name: mows-core-argocd-server
+                port: 80

@@ -25,6 +25,11 @@ export default class MachineStatusComp extends Component<
     render = () => {
         return (
             <span
+                title={match(this.props.machineStatus)
+                    .with(MachineStatus.Running, () => "Running")
+                    .with(MachineStatus.Stopped, () => "Stopped")
+                    .with(MachineStatus.Unknown, () => "Unknown")
+                    .otherwise(() => "Unknown")}
                 className={(() => {
                     const classes = ["h-4", "w-4", "rounded-full", "align-middle"];
 

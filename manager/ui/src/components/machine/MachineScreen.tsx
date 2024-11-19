@@ -51,6 +51,11 @@ export default class MachineScreen extends Component<MachineScreenProps, Machine
                 >
                     {this.props.machineStatus === MachineStatus.Running ? (
                         <VncScreen
+                            rfbOptions={{
+                                credentials: {
+                                    password: this.props.vncWebsocket?.password
+                                }
+                            }}
                             url={this.props.vncWebsocket?.url}
                             backgroundColor="#000"
                             loadingUI={<div></div>}

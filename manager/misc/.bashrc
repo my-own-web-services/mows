@@ -5,3 +5,9 @@ alias ll='ls -la --color=auto'
 export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
 alias k=kubectl
+complete -o default -F __start_kubectl k
+
+alias c=clear
+
+
+source /usr/share/bash-completion/bash_completion

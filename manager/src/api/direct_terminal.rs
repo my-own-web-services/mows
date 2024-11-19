@@ -15,7 +15,7 @@ use std::{borrow::Cow, sync::Arc};
 use std::{pin::Pin, time::Duration};
 use tempfile::NamedTempFile;
 use tokio::{io::AsyncWriteExt, sync::Notify, time::sleep};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, trace, warn};
 
 use async_stream::stream;
 use bytes::Bytes;
@@ -35,7 +35,6 @@ use crate::get_current_config_cloned;
     ),
     params(
         ("id" = String, Path, description = "The id of the console to connect to, either the machine id or 'local'"),
-
     )
 )]
 pub async fn direct_terminal(ws: WebSocketUpgrade, Path(id): Path<String>) -> impl IntoResponse {
@@ -43,8 +42,8 @@ pub async fn direct_terminal(ws: WebSocketUpgrade, Path(id): Path<String>) -> im
 }
 
 pub async fn local_shell(mut socket: WebSocket, id: String) {
-    info!("Socket connected");
-    debug!("Waiting for message");
+    trace!("Socket connected");
+    trace!("Waiting for message");
 
     match socket.recv().await {
         Some(Ok(message)) => {
@@ -60,7 +59,7 @@ pub async fn local_shell(mut socket: WebSocket, id: String) {
         _ => (),
     }
 
-    info!("Socket disconnected");
+    trace!("Socket disconnected");
 }
 
 async fn run_command(
@@ -74,7 +73,7 @@ async fn run_command(
 
     let mut command = Command::new("/bin/bash");
 
-    if id != "local" {
+    if id != "manager" {
         let config = get_current_config_cloned!();
 
         let machine = config.get_machine_by_id(&id).ok_or(anyhow::anyhow!(

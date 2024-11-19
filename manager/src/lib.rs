@@ -42,4 +42,5 @@ pub mod api {
     pub mod direct_terminal;
     pub mod machines;
     pub mod public_ip;
+    pub mod health;
 }

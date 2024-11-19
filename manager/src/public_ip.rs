@@ -188,6 +188,21 @@ pub async fn install_local_wireguard(
     let pod_api: kube::Api<k8s_openapi::api::core::v1::Pod> =
         kube::Api::namespaced(kube_client.clone(), ns_name);
 
+    // delete the pod if it exists
+    if pod_api.get("mows-core-network-public-ip").await.is_ok() {
+        pod_api
+            .delete("mows-core-network-public-ip", &Default::default())
+            .await
+            .context("Failed to delete pod for WireGuard configuration.")?;
+    }
+
+    // wait until the pod is deleted
+    loop {
+        if pod_api.get("mows-core-network-public-ip").await.is_err() {
+            break;
+        }
+    }
+
     // TODO create a smaller image
     let wg_client_image="docker.io/firstdorsal/tunnel-cluster-client@sha256:12dd911500341d241e31a5d46d930d8c3d81f367e9f4d55a852c1e09b3b5f7b5";
 

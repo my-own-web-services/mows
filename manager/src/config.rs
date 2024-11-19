@@ -2,7 +2,6 @@ use crate::machines::MachineType;
 use crate::providers::hcloud::index::ExternalProviderConfigHcloud;
 use crate::public_ip::WgKeys;
 use anyhow::Context;
-use hcloud::models::ipv4;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -12,7 +11,7 @@ use tokio::fs;
 use tokio::sync::RwLock;
 use tracing::trace;
 use utoipa::openapi::{Object, ObjectBuilder};
-use utoipa::{PartialSchema, ToSchema};
+use utoipa::ToSchema;
 
 #[tracing::instrument]
 pub fn config() -> &'static RwLock<ManagerConfig> {

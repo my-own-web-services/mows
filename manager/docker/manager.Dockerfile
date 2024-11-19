@@ -21,13 +21,14 @@ FROM debian:trixie-slim AS runtime
 ARG DEBCONF_NOWARNINGS "yes"
 ARG DEBIAN_FRONTEND "noninteractive"
 ARG DEBCONF_NONINTERACTIVE_SEEN "true"
+ARG BASH_COMPLETIONS_DIR="/etc/bash_completion.d/"
 
 RUN set -eu && \
     apt-get update && \
-    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less jq tcpdump wireguard ustreamer tesseract-ocr systemd bpftool
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less jq tcpdump wireguard ustreamer tesseract-ocr systemd bpftool tmux bash-completion
 
 
-RUN mkdir -p /etc/bash_completion.d
+RUN mkdir -p $BASH_COMPLETIONS_DIR
 
 # install pixiecore
 RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add - && \
@@ -47,7 +48,7 @@ RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/
 # install kubectl
 RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
-    kubectl completion bash > /etc/bash_completion.d/kubectl
+    kubectl completion bash > $BASH_COMPLETIONS_DIR/kubectl
 
 
 
@@ -55,8 +56,8 @@ RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/s
 RUN wget https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd64.deb -O /tmp/k9s.deb && \
     dpkg -i /tmp/k9s.deb && \
     rm /tmp/k9s.deb && \
-    mkdir -p /etc/bash_completion.d && \
-    k9s completion bash > /etc/bash_completion.d/k9s && \
+    mkdir -p $BASH_COMPLETIONS_DIR && \
+    k9s completion bash > $BASH_COMPLETIONS_DIR/k9s && \
     apt-get clean
 
 
@@ -65,7 +66,7 @@ RUN wget https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd
 RUN wget https://github.com/cilium/cilium-cli/releases/download/v0.16.11/cilium-linux-amd64.tar.gz && \
     tar -xvf cilium-linux-amd64.tar.gz -C /usr/local/bin && \
     chmod +x /usr/local/bin/cilium  && \
-    cilium completion bash > /etc/bash_completion.d/cilium
+    cilium completion bash > $BASH_COMPLETIONS_DIR/cilium
 
 
 # install krew
@@ -78,15 +79,15 @@ RUN set -x; cd "$(mktemp -d)" && \
     ./"${KREW}" install krew
 
 # install krew plugins
-RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg gadget cert-manager ctx deprecations df-pv doctor exec-as flame get-all graph ice kubescape kurt kyverno ns outdated popeye pv-mounter pv-migrate rbac-tool rbac-lookup resource-capacity retina sniff stern tap trace tree view-secret virt
+RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg gadget cert-manager ctx deprecations df-pv doctor exec-as flame get-all graph ice kubescape kurt kyverno ns outdated popeye pv-mounter pv-migrate rbac-tool rbac-lookup resource-capacity sniff stern tap trace tree view-secret virt
 
 
 
 # install helmfile https://github.com/helmfile/helmfile/releases/download/v1.0.0-rc.2/helmfile_1.0.0-rc.2_linux_amd64.tar.gz
-RUN wget https://github.com/helmfile/helmfile/releases/download/v1.0.0-rc.2/helmfile_1.0.0-rc.2_linux_amd64.tar.gz -O /tmp/helmfile.tar.gz && \
-    tar -xvf /tmp/helmfile.tar.gz -C /usr/local/bin && \
-    chmod +x /usr/local/bin/helmfile && \
-    rm /tmp/helmfile.tar.gz
+#RUN wget https://github.com/helmfile/helmfile/releases/download/v1.0.0-rc.2/helmfile_1.0.0-rc.2_linux_amd64.tar.gz -O /tmp/helmfile.tar.gz && \
+#    tar -xvf /tmp/helmfile.tar.gz -C /usr/local/bin && \
+#    chmod +x /usr/local/bin/helmfile && \
+#    rm /tmp/helmfile.tar.gz
 
 
 # install helm plugins
@@ -99,7 +100,7 @@ RUN helm plugin install https://github.com/databus23/helm-diff && \
 RUN VERSION=$(curl --silent "https://api.github.com/repos/argoproj/argo-cd/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/') && \
     curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/$VERSION/argocd-linux-amd64 && \
     chmod +x /usr/local/bin/argocd && \
-    argocd completion bash > /etc/bash_completion.d/argocd
+    argocd completion bash > $BASH_COMPLETIONS_DIR/argocd
 
 
 # colored bash & other bash stuff
@@ -107,8 +108,8 @@ RUN VERSION=$(curl --silent "https://api.github.com/repos/argoproj/argo-cd/relea
 COPY ./misc/.bashrc /root/.bashrc
 
 
-# TODO: this should not be set globally?
 ENV TERM=xterm
+ENV XDG_CONFIG_HOME=/root/.config
 
 WORKDIR /app
 

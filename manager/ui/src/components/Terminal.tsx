@@ -12,7 +12,6 @@ interface TerminalComponentProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly id: string;
-    readonly type: "docker" | "direct";
 }
 
 interface TerminalComponentState {}
@@ -43,7 +42,7 @@ export default class TerminalComponent extends Component<
         window.removeEventListener("resize", this.fitAddon!.fit);
     };
 
-    getUrl = () => `ws://localhost:3000/api/terminal/${this.props.type}/${this.props.id}`;
+    getUrl = () => `ws://localhost:3000/api/terminal/${this.props.id}`;
 
     checkReady = async (): Promise<boolean> => {
         const ws = new WebSocket(this.getUrl());
@@ -88,16 +87,8 @@ export default class TerminalComponent extends Component<
             this.webLinksAddon = new WebLinksAddon();
             this.webglAddon = new WebglAddon();
             this.clipboardAddon = new ClipboardAddon();
-
-            if (this.props.type === "docker") {
-                this.attachAddon = new AttachAddon(this.ws);
-                this.terminal.loadAddon(this.attachAddon);
-            } else if (this.props.type === "direct") {
-                this.websocketAddon = new WebSocketAddon(this.ws, this.statusBanner.current);
-                this.terminal.loadAddon(this.websocketAddon);
-            } else {
-                throw new Error("Invalid type");
-            }
+            this.websocketAddon = new WebSocketAddon(this.ws, this.statusBanner.current);
+            this.terminal.loadAddon(this.websocketAddon);
             this.terminal.loadAddon(this.fitAddon);
             this.terminal.loadAddon(this.clipboardAddon);
             this.terminal.loadAddon(this.searchAddon);

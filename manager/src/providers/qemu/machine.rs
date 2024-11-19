@@ -1,12 +1,10 @@
 use std::process::Stdio;
 
-use axum::extract::ws;
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use utoipa::ToSchema;
 
 use crate::{
-    api::machines::MachineStatusResBody,
     config::{Machine, SshAccess},
     machines::{MachineStatus, MachineType, VncWebsocket},
     some_or_bail,

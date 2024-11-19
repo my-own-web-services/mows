@@ -7,7 +7,7 @@ use tracing::debug;
 use utoipa::ToSchema;
 
 use crate::{
-    api::machines::{MachineCreationReqType, MachineSignal},
+    api::machines::machines::{MachineCreationReqType, MachineSignal},
     config::{
         BackupNode, Cluster, ClusterNode, InternalIps, Machine, MachineInstall,
         MachineInstallState, PixiecoreBootConfig, Vip,

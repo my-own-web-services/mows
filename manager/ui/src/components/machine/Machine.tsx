@@ -56,7 +56,7 @@ export default class MachineComponent extends Component<
 
     private getVncWebsocket = async () => {
         const ws = (await this.client.api.getVncWebsocket(this.props.machine.id)).data;
-        this.setState({ vncWebsocket: ws });
+        this.setState({ vncWebsocket: ws.data });
     };
 
     private signalMachine = async (signal: MachineSignal) => {
@@ -146,11 +146,7 @@ export default class MachineComponent extends Component<
                     </div>
                     <div className="w-2/3">
                         {this.state.sshOpen ? (
-                            <TerminalComponent
-                                type="direct"
-                                className="w-full"
-                                id={this.props.machine.id}
-                            />
+                            <TerminalComponent className="w-full" id={this.props.machine.id} />
                         ) : (
                             ""
                         )}

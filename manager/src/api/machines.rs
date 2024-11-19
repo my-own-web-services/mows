@@ -1,3 +1,9 @@
+pub mod machines{
+
+
+
+
+
 use axum::{
     extract::{
         ws::{Message, WebSocket},
@@ -11,6 +17,7 @@ use serde_json::Value;
 use tokio::spawn;
 use tracing::error;
 use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     config::{config, Machine},
@@ -25,15 +32,27 @@ use crate::{
     write_config,
 };
 
+
+pub fn router() -> OpenApiRouter {
+    OpenApiRouter::new()
+        .routes(routes!(delete_machine))
+        .routes(routes!(create_machines))
+        .routes(routes!(signal_machine))
+        .routes(routes!(get_machine_info))
+        .routes(routes!(get_vnc_websocket))
+        .routes(routes!(get_machine_status))
+        .routes(routes!(dev_delete_all_machines))
+}
+
 #[utoipa::path(
     post,
-    path = "/api/machines/create",
+    path = "/create",
     request_body = MachineCreationReqBody,
     responses(
         (status = 200, description = "Created machines", body = ApiResponse<EmptyApiResponse>),
     )
 )]
-pub async fn create_machines(
+ async fn create_machines(
     Json(machine_creation_config): Json<MachineCreationReqBody>,
 ) -> Json<ApiResponse<()>> {
     spawn(async move {
@@ -59,13 +78,13 @@ pub async fn create_machines(
 
 #[utoipa::path(
     post,
-    path = "/api/machines/signal",
+    path = "/signal",
     request_body = MachineSignalReqBody,
     responses(
         (status = 200, description = "Sent signal", body = ApiResponse<EmptyApiResponse>),
     )
 )]
-pub async fn signal_machine(
+async fn signal_machine(
     Json(machine_signal): Json<MachineSignalReqBody>,
 ) -> Json<ApiResponse<()>> {
     let config = config().read().await;
@@ -100,13 +119,13 @@ pub async fn signal_machine(
 
 #[utoipa::path(
     delete,
-    path = "/api/machines/delete",
+    path = "/delete",
     request_body=MachineDeleteReqBody,
     responses(
         (status = 200, description = "Machine deleted", body = ApiResponse<EmptyApiResponse>),
     )
 )]
-pub async fn delete_machine(
+async fn delete_machine(
     Json(machine_delete): Json<MachineDeleteReqBody>,
 ) -> Json<ApiResponse<()>> {
     let config = get_current_config_cloned!();
@@ -137,12 +156,12 @@ pub async fn delete_machine(
 
 #[utoipa::path(
     delete,
-    path = "/api/dev/machines/delete_all",
+    path = "/dev_delete_all",
     responses(
         (status = 200, description = "Machines deleted", body = ApiResponse<EmptyApiResponse>),
     )
 )]
-pub async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
+async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
     dev_mode_disabled!();
 
     if let Err(e) = LocalMachineProviderQemu::dev_delete_all().await {
@@ -179,14 +198,14 @@ pub async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
 }
 
 #[utoipa::path(
-    post,
-    path = "/api/machines/info",
-    request_body=MachineInfoReqBody,
+    get,
+    path = "/info",
+    request_body = MachineInfoReqBody,
     responses(
-        (status = 200, description = "Got machine info", body =  ApiResponse<MachineInfoResBody>),
+        (status = 200, description = "Got machine info", body = ApiResponse<MachineInfoResBody>),
     )
 )]
-pub async fn get_machine_info(
+async fn get_machine_info(
     Json(machine_info_json): Json<MachineInfoReqBody>,
 ) -> Json<ApiResponse<MachineInfoResBody>> {
     let config = get_current_config_cloned!();
@@ -218,16 +237,15 @@ pub async fn get_machine_info(
     })
 }
 
-#[
-    utoipa::path(
-        get, 
-        path = "/api/machines/vnc_websocket/:id",
-        responses(
-            (status = 200, description = "Got the websocket information", body =  ApiResponse<VncWebsocket>),
-        )
-    )    
+#[utoipa::path(
+    get, 
+    path = "/vnc_websocket/{id}",
+    responses(
+        (status = 200, description = "Got the websocket information", body =  ApiResponse<VncWebsocket>),
+    )
+)    
 ]
-pub async fn get_vnc_websocket(Path(id): Path<String>) -> impl IntoResponse {
+async fn get_vnc_websocket(Path(id): Path<String>) -> impl IntoResponse {
     let config = get_current_config_cloned!();
     let machine = match config.machines.get(&id) {
         Some(machine) => machine,
@@ -259,12 +277,14 @@ pub async fn get_vnc_websocket(Path(id): Path<String>) -> impl IntoResponse {
 }
 
 // machine status with socket
-#[utoipa::path(get, path = "/api/machines/status")]
-pub async fn get_machine_status(ws: WebSocketUpgrade) -> impl IntoResponse {
+#[utoipa::path(get, path = "/status",responses(
+    (status = 200, description = "Got the machines status", body =  ApiResponse<MachineStatusResBody>),
+))]
+async fn get_machine_status(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_get_machine_status(socket))
 }
 
-pub async fn handle_get_machine_status(mut socket: WebSocket) {
+async fn handle_get_machine_status(mut socket: WebSocket) {
     'outer: loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
@@ -336,4 +356,6 @@ pub enum MachineCreationReqType {
     LocalQemu(LocalMachineProviderQemuConfig),
     LocalPhysical(LocalMachineProviderPhysicalConfig),
     ExternalHcloud(ExternalMachineProviderHcloudConfig),
+}
+
 }

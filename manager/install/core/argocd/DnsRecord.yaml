@@ -1,0 +1,12 @@
+apiVersion: pektin.k8s.mows.cloud/v1
+kind: PektinDns
+metadata:
+    name: argocd-dns
+spec:
+    plain:
+        - name: argocd.vindelicorum.eu.
+          meta: ""
+          ttl: 60
+          rr_set:
+              A:
+                  - value: "116.203.53.54"

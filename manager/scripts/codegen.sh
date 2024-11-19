@@ -10,7 +10,7 @@ docker run -d --rm -p 3001:3000 -v "./misc/internal-config.yml:/internal-config.
 sleep 2
 
 rm -f swagger.json
-curl -o swagger.json http://localhost:3001/api-docs/openapi.json
+curl -o swagger.json http://localhost:3001/apidoc/openapi.json
 
 docker build -t mows-manager-codegen . -f docker/codegen.Dockerfile
 docker run --rm -v ./swagger.json:/app/swagger.json -v ./ui/src:/app/out mows-manager-codegen --name mows-manager-codegen

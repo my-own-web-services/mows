@@ -3,6 +3,8 @@ kind: Kustomization
 
 resources:
     - namespace.yaml
+    - DnsRecord.yaml
+    - IngressRoute.yaml
 
 helmGlobals:
     chartHome: /tmp/helm-charts
