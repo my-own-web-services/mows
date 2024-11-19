@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: argocd-cm
+    namespace: argocd
+    labels:
+        app.kubernetes.io/part-of: argocd
+data:
+    admin.enabled: "true"
+    url: https://argocd.vindelicorum.eu
+    oidc.config: |
+        name: Zitadel
+        issuer: https://auth.example.com
+        clientID: 294508581187813886@argocd-project
+        clientSecret: 8OkhhGBb2Kil0xoLI1BXlj2CA1GbqbYBYuY2EioJee05l4iqxaTUkUM2gE4LehG6
+        requestedScopes:
+          - openid
+          - profile
+          - email
+          - groups
+        logoutURL: https://argocd.vindelicorum.eu/oidc/v1/end_session

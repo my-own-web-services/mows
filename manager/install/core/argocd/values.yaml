@@ -7,3 +7,4 @@ configs:
         kustomize.buildOptions: "--enable-helm"
 global:
     domain: argocd.vindelicorum.eu
+# 294508581187813886 8OkhhGBb2Kil0xoLI1BXlj2CA1GbqbYBYuY2EioJee05l4iqxaTUkUM2gE4LehG6
