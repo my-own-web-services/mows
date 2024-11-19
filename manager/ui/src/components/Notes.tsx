@@ -93,6 +93,11 @@ const defaultNotes: Note[] = [
             "helm repo add jaegertracing https://jaegertracing.github.io/helm-charts ; helm upgrade mows-core-tracing-jaeger jaegertracing/jaeger -n mows-core-tracing --set allInOne.enabled=true --create-namespace --install --set storage.type=memory --set agent.enabled=false --set collector.enabled=false --set query.enabled=false --set provisionDataStore.cassandra=false",
         description: "Install jaeger all-in-one",
         type: "default"
+    },
+    {
+        content: "Zitadel login data: zitadel-admin / Password1!",
+        description: "Zitadel login data",
+        type: "default"
     }
 ];
 

@@ -1,10 +1,33 @@
 # http://localhost:8001/api/v1/namespaces/mows-core-argocd/services/http:mows-core-argocd-server:8080/proxy/
 
 dex:
-    enabled: false
+    enabled: true
 configs:
     cm:
         kustomize.buildOptions: "--enable-helm"
+        admin.enabled: true
+        oidc.config: |
+            name: Zitadel
+            issuer: https://zitadel.vindelicorum.eu
+            clientID: 294508581187813886@argocd-project
+            clientSecret: 8OkhhGBb2Kil0xoLI1BXlj2CA1GbqbYBYuY2EioJee05l4iqxaTUkUM2gE4LehG6 
+            requestedScopes:
+            - openid
+            - profile
+            - email
+            - groups
+            logoutURL: https://argocd.vindelicorum.eu/oidc/v1/end_session
+    rbac:
+        policy.csv: |
+            g, argocd_administrators, role:admin
+            g, argocd_users, role:readonly
+        policy.default: ""
+        scopes: "[groups]"
+
+        # https://argo-cd.readthedocs.io/en/stable/operator-manual/user-management/#sso-further-reading to handle secrets
+
+    params:
+        server.insecure: true
 global:
     domain: argocd.vindelicorum.eu
 # 294508581187813886 8OkhhGBb2Kil0xoLI1BXlj2CA1GbqbYBYuY2EioJee05l4iqxaTUkUM2gE4LehG6
