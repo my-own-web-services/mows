@@ -9,14 +9,13 @@ configs:
         oidc.config: |
             name: Zitadel
             issuer: https://zitadel.vindelicorum.eu
-            clientID: 294508581187813886@argocd-project
-            clientSecret: 8OkhhGBb2Kil0xoLI1BXlj2CA1GbqbYBYuY2EioJee05l4iqxaTUkUM2gE4LehG6 
+            clientID: "294547235306275266"
+            clientSecret: ZaPhzNsYgOF18bcl3eHs5pdKoy1kjourERwTq3KQeIyo1Lof7W422vd2vhvtMc3y
             requestedScopes:
             - openid
             - profile
             - email
             - groups
-            logoutURL: https://argocd.vindelicorum.eu/oidc/v1/end_session
     rbac:
         policy.csv: |
             g, argocd_administrators, role:admin
