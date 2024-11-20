@@ -1,39 +1,50 @@
-1. wildcard records do not work properly in pektin-server?
-2. the traceid of mows-common reqwest is empty, this might be why the traces arent showing up as related in jaeger
+# Methods of deployment
 
-# primary domain setup
+## manual imperative local kubectl or helm
 
-create userpass auth method for the manager to control pektin
+-   no versioning
+-   no safety guarantees but the ones provided by the admission controller (kyverno (can be skipped by labeling the namespace))
 
-## on request to add a domain
+## declarative manual administered argocd
 
-create pektin signer for domain with manager vault root token
-enable manager to have full access to pektin
-enable primary domain to be created from manager
+-   manual commit
+-   manual argocd app definition
+-   commit signing
+-   no safety guarantees but the ones provided by the admission controller (kyverno (can be skipped by labeling the namespace))
 
-pektin api should create the signer for a domain itself
+## mows raw
 
-# create pektin controller
+-   primarily for apps that aren't build for mows directly
+-   allows every resource directly
+-   must comply with mows standards to properly integrate with all other components, won't be checked (maybe warned)
+-   by default completely namespace isolated, network, k8s resources, secrets, namespace resource quotas
+-   everything is possible but must be declared and allowed by the admin to loosen restrictions like network isolation
 
-# create public ip controller
+### deployment process
 
-cr that can create any dns entry in pektin and could also configure pihole for multicast dns
+1. get files from repo or url or fs or similar (helm values, dnsRecord, ingressroute etc.)
+2. render helm
+3. replace variables from vault (domain names, actual service names etc.)
+4. ensure safety (ensure all resource have the correct namespace, confirm mows sudo actions)
+5. commit to git (and sign with admins key)
+6. create argocd app definition and push it to the cluster
+7. sync to cluster with argocd (check signing key)
 
-#
+## mows app
 
-cloud apis
+-   simplified deployment for apps that are build for mows with a custom manifest that then gets expanded to raw k8s resources
+-   automatic setup of internal network policies etc. (app needs a pg-db, db is deployed and network policies that only allow the app talking to the db are applied)
+-   no manual setup of secrets for app and db
+-   automatic resource setup for auth, metrics, tracing etc.
+-   mows app can be rendered into raw resources to be used by more complex apps built with mows raw
 
--   pg
--   gitea
--   prometheus
--   grafana
--   kyverno
--   ingress
--   cert manager
--   dns
--   zitadel
+### deployment process
 
-# repo url
+After creating the raw k8s resources from the mows app manifest, the deployment follows the same process as the raw app
+
+---
+
+# repo url for gitlab
 
 http://mows-core-gitea-http.mows-core-gitea:3000/gitea_admin/test.git
 
