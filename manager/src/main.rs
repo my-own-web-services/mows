@@ -12,14 +12,10 @@ use manager::api::direct_terminal::*;
 use manager::api::health::health;
 use manager::api::machines::*;
 use manager::api::public_ip::*;
-use manager::config::*;
 use manager::internal_config::INTERNAL_CONFIG;
-use manager::machines::*;
-use manager::providers::hcloud::machine::ExternalMachineProviderHcloudConfig;
-use manager::providers::qemu::machine::LocalMachineProviderQemuConfig;
+
 use manager::tasks::start_background_tasks;
 use manager::tracing::start_tracing;
-use manager::types::*;
 use manager::utils::{shutdown_signal, start_dnsmasq, start_pixiecore};
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;

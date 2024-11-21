@@ -5,6 +5,7 @@ use reqwest_tracing::{
     default_on_request_end, reqwest_otel_span, ReqwestOtelSpanBackend, TracingMiddleware,
 };
 
+/*
 pub struct ReqwestTrace;
 
 impl ReqwestOtelSpanBackend for ReqwestTrace {
@@ -19,7 +20,7 @@ impl ReqwestOtelSpanBackend for ReqwestTrace {
     ) {
         default_on_request_end(span, outcome)
     }
-}
+}*/
 
 pub async fn new_reqwest_client() -> Result<ClientWithMiddleware> {
     let config = get_current_config_cloned!(config::common_config());

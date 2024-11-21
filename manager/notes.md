@@ -15,7 +15,7 @@
 ## mows raw
 
 -   primarily for apps that aren't build for mows directly
--   allows every resource directly
+-   allows every k8s resource directly
 -   must comply with mows standards to properly integrate with all other components, won't be checked (maybe warned)
 -   by default completely namespace isolated, network, k8s resources, secrets, namespace resource quotas
 -   everything is possible but must be declared and allowed by the admin to loosen restrictions like network isolation

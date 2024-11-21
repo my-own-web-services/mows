@@ -9,7 +9,7 @@ telemetry = ["opentelemetry-otlp"]
 
 
 [dependencies]
-thiserror = "2.0.0"
+thiserror = "2.0.3"
 
 tokio = { version = "1.41.1", features = ["macros", "rt-multi-thread"] }
 
@@ -32,7 +32,7 @@ reqwest = { version = "0.12.9", default-features = false, features = [
     "rustls-tls",
 ] }
 
-reqwest-tracing = { version = "0.5.3", features = ["opentelemetry_0_24"] }
+reqwest-tracing = { version = "0.5.4", features = ["opentelemetry_0_24"] }
 
-reqwest-middleware = { version = "0.3.3", features = ["json", "rustls-tls"] }
+reqwest-middleware = { version = "0.4.0", features = ["json", "rustls-tls"] }
 http = "1.1.0"

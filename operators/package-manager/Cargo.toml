@@ -1,0 +1,62 @@
+[package]
+name = "package-manager"
+version = "0.1.0"
+edition = "2021"
+
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+cast_sign_loss = "deny"
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_lossless = "deny"
+indexing_slicing = "deny"
+
+[dependencies]
+serde = { version = "1.0.214", features = [
+    "derive",
+    "std",
+], default-features = false }
+serde_yaml = { version = "0.9.33" }
+serde_json = { version = "1.0.132" }
+
+tokio = { version = "1.41.0", default-features = false, features = [
+    "full",
+    "tracing",
+] }
+
+
+axum = { version = "0.7.5", features = ["ws", "tokio"] }
+tokio-tungstenite = "0.24.0"
+
+futures = "0.3.31"
+
+utoipa-swagger-ui = { version = "8.0.3", features = ["axum"] }
+utoipa = { version = "5.2.0", features = [
+    "axum_extras",
+    "macros",
+    "openapi_extensions",
+    "debug",
+] }
+utoipa-axum = { version = "0.1", features = ["debug"] }
+
+tower = { version = "0.5.1", features = ["util", "timeout"] }
+tower-http = { version = "0.6.1", features = [
+    "fs",
+    "cors",
+    "add-extension",
+    "trace",
+] }
+thiserror = "2.0.3"
+anyhow = "1.0.93"
+
+tracing = "0.1.40"
+mows-common = { path = "../../utils/mows-common" }
+url = { version = "2.5.3", features = ["serde"] }
