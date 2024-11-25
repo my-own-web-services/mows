@@ -9,9 +9,28 @@
  * ---------------------------------------------------------------
  */
 
+export interface AddRepositoryReqBody {
+  repositories: NewRepository[];
+}
+
 export enum ApiResponseStatus {
   Success = "Success",
   Error = "Error",
+}
+
+export interface ApiResponseEmptyApiResponse {
+  /** @default null */
+  data?: any;
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseGetRepositoriesResBody {
+  data?: {
+    repositories: Repository[];
+  };
+  message: string;
+  status: ApiResponseStatus;
 }
 
 export interface ApiResponseHealthResBody {
@@ -20,7 +39,24 @@ export interface ApiResponseHealthResBody {
   status: ApiResponseStatus;
 }
 
+/** @default null */
+export type EmptyApiResponse = any;
+
+export interface GetRepositoriesResBody {
+  repositories: Repository[];
+}
+
 export type HealthResBody = object;
+
+export interface NewRepository {
+  url: string;
+}
+
+export interface Repository {
+  /** @format int32 */
+  id: number;
+  url: string;
+}
 
 export type QueryParamsType = Record<string | number, any>;
 export type ResponseFormat = keyof Omit<Body, "body" | "bodyUsed">;
@@ -233,7 +269,7 @@ export class HttpClient<SecurityDataType = unknown> {
 }
 
 /**
- * @title package-manager
+ * @title mows-package-manager
  * @version 0.1.0
  * @license
  */
@@ -243,12 +279,42 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @name GetHealth
-     * @request GET:/api/health/
+     * @request GET:/api/health
      */
     getHealth: (params: RequestParams = {}) =>
       this.request<ApiResponseHealthResBody, any>({
-        path: `/api/health/`,
+        path: `/api/health`,
         method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetRepositories
+     * @request GET:/api/repository
+     */
+    getRepositories: (params: RequestParams = {}) =>
+      this.request<ApiResponseGetRepositoriesResBody, any>({
+        path: `/api/repository`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name AddRepositories
+     * @request POST:/api/repository
+     */
+    addRepositories: (data: AddRepositoryReqBody, params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, any>({
+        path: `/api/repository`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),

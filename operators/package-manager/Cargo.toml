@@ -1,5 +1,5 @@
 [package]
-name = "package-manager"
+name = "mows-package-manager"
 version = "0.1.0"
 edition = "2021"
 
@@ -54,9 +54,18 @@ tower-http = { version = "0.6.1", features = [
     "add-extension",
     "trace",
 ] }
+
+
 thiserror = "2.0.3"
 anyhow = "1.0.93"
 
 tracing = "0.1.40"
 mows-common = { path = "../../utils/mows-common" }
-url = { version = "2.5.3", features = ["serde"] }
+url = { version = "2.5.4", features = ["serde"] }
+
+include_dir = "0.7.3"
+mime_guess = "2.0.5"
+diesel = { version = "2.2.5", default-features = false, features = ["sqlite"] }
+dotenvy = "0.15.7"
+deadpool-diesel = { version = "0.6.1", features = ["sqlite"] }
+diesel_migrations = "2.2.0"

@@ -11,16 +11,16 @@ pub mod health {
     }
 
     #[utoipa::path(
-    get,
-    path = "/",
-    responses(
-        (status = 200, description = "Got health", body = ApiResponse<HealthResBody>),
-    )
-)]
-    pub async fn get_health() -> Json<ApiResponse<HealthResBody>> {
+        get,
+        path = "",
+        responses(
+            (status = 200, description = "Got health", body = ApiResponse<HealthResBody>),
+        )
+    )]
+    async fn get_health() -> Json<ApiResponse<HealthResBody>> {
         Json(ApiResponse {
             status: ApiResponseStatus::Success,
-            message: "Machine is healthy".to_string(),
+            message: "Package Manager is healthy".to_string(),
             data: Some(HealthResBody {}),
         })
     }

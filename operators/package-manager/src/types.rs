@@ -16,10 +16,3 @@ pub struct ApiResponse<T> {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct EmptyApiResponse;
-
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub enum PackageSource {
-    Git,
-    LocalFolder,
-    Tarball,
-}

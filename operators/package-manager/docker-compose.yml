@@ -1,0 +1,12 @@
+services:
+  mows-package-manager:
+    image: mows-package-manager
+    container_name: mows-package-manager
+    environment:
+      - PRIMARY_ORIGIN=http://localhost:3003
+      - DEV_ALLOW_ORIGINS=http://localhost:5174
+      - ENABLE_DEV=true
+      - LOG_FILTER=trace
+      - TRACING_FILTER=info
+    ports:
+      - "3003:80"

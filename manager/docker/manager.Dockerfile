@@ -1,3 +1,13 @@
+FROM node:alpine AS ui-builder
+WORKDIR /build/
+COPY ui/ ./
+RUN npm install -g pnpm
+RUN pnpm install
+RUN pnpm build
+
+
+
+
 FROM clux/muslrust:stable AS builder
 # build deps
 USER root
@@ -10,8 +20,11 @@ RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps --release
 
 # build
 COPY --chown=root:root src src
+COPY --from=ui-builder /build/dist ./ui-build
 RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --release --bin main
 #RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
+
+
 
 
 

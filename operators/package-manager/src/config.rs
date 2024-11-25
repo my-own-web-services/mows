@@ -17,6 +17,7 @@ pub struct PackageManagerConfig {
     pub primary_origin: Url,
     pub enable_dev: bool,
     pub dev_allow_origins: Vec<Url>,
+    pub db_url: String,
 }
 
 pub fn from_env() -> anyhow::Result<PackageManagerConfig> {
@@ -48,5 +49,6 @@ pub fn from_env() -> anyhow::Result<PackageManagerConfig> {
         primary_origin: load_env("", "PRIMARY_ORIGIN", false)?.parse::<Url>()?,
         enable_dev: load_env("false", "ENABLE_DEV", false)?.parse::<bool>()?,
         dev_allow_origins,
+        db_url: load_env("/db/mows-package-manager.db", "DATABASE_URL", false)?,
     })
 }

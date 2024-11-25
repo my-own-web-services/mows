@@ -7,6 +7,7 @@ pub mod ssh;
 pub mod tasks;
 pub mod tracing;
 pub mod types;
+pub mod ui;
 pub mod utils;
 
 pub mod providers {
@@ -40,7 +41,7 @@ pub mod api {
     pub mod cluster;
     pub mod config;
     pub mod direct_terminal;
+    pub mod health;
     pub mod machines;
     pub mod public_ip;
-    pub mod health;
 }

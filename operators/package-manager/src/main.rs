@@ -3,19 +3,26 @@ use axum::http::{
     header::{CONTENT_TYPE, UPGRADE},
     HeaderValue, Method,
 };
+use diesel::{Connection, SqliteConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use mows_common::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
-use package_manager::{api::health::health, config::config, utils::shutdown_signal};
-use std::net::SocketAddr;
-use tower_http::{
-    cors::CorsLayer,
-    services::{ServeDir, ServeFile},
+use mows_package_manager::{
+    api::{health::*, repository::*},
+    config::config,
+    db::db::Db,
+    ui::serve_spa,
+    utils::shutdown_signal,
 };
+use std::net::SocketAddr;
+use tower_http::cors::CorsLayer;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -33,10 +40,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     init_observability().await;
 
-    let serve_dir = ServeDir::new("ui").not_found_service(ServeFile::new("ui/index.html"));
-
     let mut origins = vec![&config.primary_origin];
-
     if config.enable_dev {
         let _ = &config
             .dev_allow_origins
@@ -44,9 +48,29 @@ async fn main() -> Result<(), anyhow::Error> {
             .for_each(|origin| origins.push(origin));
     }
 
+    SqliteConnection::establish(&config.db_url)?;
+    // set up connection pool
+    let manager =
+        deadpool_diesel::sqlite::Manager::new(config.db_url, deadpool_diesel::Runtime::Tokio1);
+    let pool = deadpool_diesel::sqlite::Pool::builder(manager)
+        .build()
+        .unwrap();
+
+    // run the migrations on server startup
+    {
+        let conn = pool.get().await.unwrap();
+        conn.interact(|conn| conn.run_pending_migrations(MIGRATIONS).map(|_| ()))
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    let db = Db::new(pool).await;
+
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest("/api/health", health::router())
-        .nest_service("/", serve_dir)
+        .nest("/api/repository", repository::router().with_state(db))
+        .fallback(serve_spa)
         .layer(
             CorsLayer::new()
                 .allow_origin(

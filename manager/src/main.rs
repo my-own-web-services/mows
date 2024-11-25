@@ -1,10 +1,8 @@
 use anyhow::Context;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
 use axum::http::{HeaderValue, Method};
-use machines::{
-    MachineCreationReqBody, MachineCreationReqType, MachineDeleteReqBody, MachineInfoReqBody,
-    MachineInfoResBody, MachineSignal, MachineSignalReqBody, MachineStatusResBody,
-};
+
+use include_dir::{include_dir, Dir};
 use manager::api::boot::*;
 use manager::api::cluster::*;
 use manager::api::config::*;
@@ -13,19 +11,19 @@ use manager::api::health::health;
 use manager::api::machines::*;
 use manager::api::public_ip::*;
 use manager::internal_config::INTERNAL_CONFIG;
-
 use manager::tasks::start_background_tasks;
 use manager::tracing::start_tracing;
+use manager::ui::serve_spa;
 use manager::utils::{shutdown_signal, start_dnsmasq, start_pixiecore};
+use reqwest::StatusCode;
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
-use tower_http::services::{ServeDir, ServeFile};
+use tower_http::services::ServeFile;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
-
 /*
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
@@ -36,7 +34,6 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
-    
     tags(
         (name = "mows-manager", description = "Cluster management API")
     )
@@ -47,8 +44,6 @@ struct ApiDoc;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let ic = &INTERNAL_CONFIG;
-
-    let serve_dir = ServeDir::new("ui").not_found_service(ServeFile::new("ui/index.html"));
 
     start_tracing().await.context("Failed to start tracing")?;
 
@@ -64,15 +59,6 @@ async fn main() -> Result<(), anyhow::Error> {
         let _ = &ic.dev.allow_origins.iter().for_each(|x| origins.push(x));
     }
 
-    /*
-
-            create_public_ip,
-            dev_create_cluster_from_all_machines_in_inventory,
-            get_boot_config_by_mac,
-            direct_terminal
-
-    */
-
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest("/api/machines", machines::router())
         .nest("/api/config", config_api::router())
@@ -82,7 +68,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(get_boot_config_by_mac))
         .routes(routes!(dev_install_cluster_basics))
         .routes(routes!(direct_terminal))
-        .nest_service("/", serve_dir)
+        .fallback(serve_spa)
         .layer(
             CorsLayer::new()
                 .allow_origin(

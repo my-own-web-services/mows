@@ -1,7 +1,37 @@
-{
+{ "restoreTerminals.terminals": [
+    {
+        "splitTerminals": [
+            {
+                "name": "frontend dev server",
+                "commands": ["cd ui", "pnpm dev"]
+            },
+            {
+                "name": "frontend",
+                "commands": ["cd ui"]
+            }
+        ]
+    },
+    {
+        "splitTerminals": [
+            {
+                "name": "backend-peripherals",
+                "commands": []
+            }
+        ]
+    },
+    {
+        "splitTerminals": [
+            {
+                "name": "backend",
+                "commands": []
+            }
+        ]
+    }
+],
     "cSpell.words": [
         "apidoc",
         "openapi",
-        "serviceaccount"
+        "serviceaccount",
+        "utoipa"
     ]
 }

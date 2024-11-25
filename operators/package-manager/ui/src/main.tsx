@@ -1,5 +1,6 @@
-import { render } from 'preact'
-import './index.scss'
-import App from './App.tsx'
+import { render } from "preact";
+import "./index.less";
 
-render(<App />, document.getElementById('root')!)
+import App from "./App.tsx";
+
+render(<App />, document.getElementById("root")!);

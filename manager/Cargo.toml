@@ -103,6 +103,8 @@ url = { version = "2.5.3", features = ["serde"] }
 vaultrs = "0.7.3"
 data-encoding = "2.6.0"
 
+include_dir = "0.7.3"
+mime_guess = "2.0.5"
 
 # [target.'cfg(not(target_env = "msvc"))'.dependencies]
 # tikv-jemallocator = "0.6.0"
