@@ -3,6 +3,6 @@
 diesel::table! {
     repositories (id) {
         id -> Integer,
-        url -> Text,
+        uri -> Text,
     }
 }

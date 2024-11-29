@@ -8,11 +8,11 @@ use utoipa::ToSchema;
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Repository {
     pub id: i32,
-    pub url: String,
+    pub uri: String,
 }
 
 #[derive(Insertable, Debug, Serialize, Deserialize, ToSchema, Clone)]
 #[diesel(table_name = repositories)]
 pub struct NewRepository {
-    pub url: String,
+    pub uri: String,
 }

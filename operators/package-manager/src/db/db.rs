@@ -34,7 +34,7 @@ impl Db {
         Ok(res)
     }
 
-    pub async fn get_repositories(self) -> Result<Vec<Repository>, PackageManagerErrors> {
+    pub async fn get_all_repositories(self) -> Result<Vec<Repository>, PackageManagerErrors> {
         use crate::db::schema::repositories::dsl::*;
 
         let repos = self

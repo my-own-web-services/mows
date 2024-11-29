@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+    name: zitadel-ingress
+spec:
+    entryPoints:
+        - websecure
+    routes:
+        - kind: Rule
+          match: Host(`zitadel.$MOWS_PRIMARY_CLUSTER_DOMAIN`)
+          services:
+              - kind: Service
+                name: mows-core-auth-zitadel
+                port: 8080

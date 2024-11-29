@@ -16,6 +16,7 @@ pub mod repository {
         OpenApiRouter::new()
             .routes(routes!(add_repositories))
             .routes(routes!(get_repositories))
+            .routes(routes!(render_repositories))
     }
 
     #[utoipa::path(
@@ -57,7 +58,7 @@ pub mod repository {
         ),
     )]
     async fn get_repositories(State(db): State<Db>) -> Json<ApiResponse<GetRepositoriesResBody>> {
-        match db.get_repositories().await {
+        match db.get_all_repositories().await {
             Ok(repositories) => Json(ApiResponse {
                 status: ApiResponseStatus::Success,
                 message: "Repositories fetched successfully".to_string(),
@@ -74,5 +75,58 @@ pub mod repository {
     #[derive(Debug, Serialize, Deserialize, ToSchema)]
     pub struct GetRepositoriesResBody {
         pub repositories: Vec<Repository>,
+    }
+
+    #[utoipa::path(
+        post,
+        path = "/render",
+        request_body = RenderRepositoriesReqBody,
+        responses(
+            (status = 200, description = "Repository rendered", body = ApiResponse<EmptyApiResponse>),
+        ),
+    )]
+    async fn render_repositories(
+        State(db): State<Db>,
+        Json(req_body): Json<RenderRepositoriesReqBody>,
+    ) -> Json<ApiResponse<EmptyApiResponse>> {
+        let repositories = match db.get_all_repositories().await {
+            Ok(repositories) => repositories,
+            Err(e) => {
+                return Json(ApiResponse {
+                    status: ApiResponseStatus::Error,
+                    message: e.to_string(),
+                    data: None,
+                })
+            }
+        };
+
+        let repositories = repositories
+            .into_iter()
+            .filter(|r| req_body.repository_ids.contains(&r.id))
+            .collect::<Vec<Repository>>();
+
+        for repository in repositories {
+            match repository.render().await {
+                Ok(_) => (),
+                Err(e) => {
+                    return Json(ApiResponse {
+                        status: ApiResponseStatus::Error,
+                        message: e.to_string(),
+                        data: None,
+                    })
+                }
+            }
+        }
+
+        Json(ApiResponse {
+            status: ApiResponseStatus::Success,
+            message: "Repositories rendered successfully".to_string(),
+            data: None,
+        })
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    pub struct RenderRepositoriesReqBody {
+        pub repository_ids: Vec<i32>,
     }
 }

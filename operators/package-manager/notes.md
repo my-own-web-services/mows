@@ -18,14 +18,14 @@ name: zitadel
 version: "0.0.1"
 app:
     raw:
-        helmRepo:
-            repository: https://charts.zitadel.com # from /index.yaml we can fetch a list of all chart releases
-            chartName: zitadel
-            digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a # is a sha256sum, we can find the release by searching for this, the we get meta infos as well as the download url for the tgz file, the checksums must match, the we unpack and render the helm chart, similar to kustomizations but with checking the digest
-            valuesFile: values.yaml
-            resources:
-                - DnsRecord.yaml
-                - IngressRoute.yaml
+        helmRepos:
+            -   repository: https://charts.zitadel.com # from /index.yaml we can fetch a list of all chart releases
+                chartName: zitadel
+                digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a # is a sha256sum, we can find the release by searching for this, the we get meta infos as well as the download url for the tgz file, the checksums must match, the we unpack and render the helm chart, similar to kustomizations but with checking the digest
+                valuesFile: values.yaml
+                resources:
+                    - DnsRecord.yaml
+                    - IngressRoute.yaml
 ```
 *values.yaml*
 

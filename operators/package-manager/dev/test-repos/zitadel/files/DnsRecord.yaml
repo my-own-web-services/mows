@@ -1,0 +1,12 @@
+apiVersion: pektin.k8s.mows.cloud/v1
+kind: PektinDns
+metadata:
+    name: zitadel-dns
+spec:
+    plain:
+        - name: zitadel.$MOWS_PRIMARY_CLUSTER_DOMAIN.
+          meta: ""
+          ttl: 60
+          rr_set:
+              A:
+                  - value: "$MOWS_PRIMARY_CLUSTER_LEGACY_IP"

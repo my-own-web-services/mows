@@ -16,3 +16,37 @@ pub struct ApiResponse<T> {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct EmptyApiResponse;
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct MowsManifest {
+    pub manifest_version: String,
+    pub metadata: MowsMetadata,
+    pub spec: MowsSpec,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct MowsMetadata {
+    pub name: String,
+    pub description: Option<String>,
+    pub version: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub enum MowsSpec {
+    Raw(RawSpec),
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub enum RawSpec {
+    HelmRepos(Vec<HelmRepoSpec>),
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct HelmRepoSpec {
+    pub repository: String,
+    pub chart_name: String,
+    /// sha256 digest of the chart
+    pub digest: String,
+    pub values_file: Option<String>,
+    pub resources: Option<Vec<String>>,
+}

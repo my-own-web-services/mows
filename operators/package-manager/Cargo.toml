@@ -44,6 +44,7 @@ utoipa = { version = "5.2.0", features = [
     "macros",
     "openapi_extensions",
     "debug",
+    "url",
 ] }
 utoipa-axum = { version = "0.1", features = ["debug"] }
 
@@ -69,3 +70,6 @@ diesel = { version = "2.2.5", default-features = false, features = ["sqlite"] }
 dotenvy = "0.15.7"
 deadpool-diesel = { version = "0.6.1", features = ["sqlite"] }
 diesel_migrations = "2.2.0"
+semver = { version = "1.0.23", features = ["serde"] }
+sha2 = "0.10.8"
+tar = "0.4.43"

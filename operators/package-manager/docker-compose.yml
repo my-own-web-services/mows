@@ -8,5 +8,7 @@ services:
       - ENABLE_DEV=true
       - LOG_FILTER=trace
       - TRACING_FILTER=info
+    volumes:
+      - ./dev/test-repos/:/test-repos/
     ports:
       - "3003:80"
