@@ -12,6 +12,7 @@ use mows_package_manager::{
     api::{health::*, repository::*},
     config::config,
     db::db::Db,
+    types::MowsManifest,
     ui::serve_spa,
     utils::shutdown_signal,
 };
@@ -39,6 +40,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let _common_config = get_current_config_cloned!(common_config());
 
     init_observability().await;
+
+    //dbg!(MowsManifest::example_yaml_str());
 
     let mut origins = vec![&config.primary_origin];
     if config.enable_dev {

@@ -17,31 +17,36 @@ pub struct ApiResponse<T> {
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct EmptyApiResponse;
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct MowsManifest {
     pub manifest_version: String,
     pub metadata: MowsMetadata,
     pub spec: MowsSpec,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct MowsMetadata {
     pub name: String,
     pub description: Option<String>,
     pub version: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub enum MowsSpec {
     Raw(RawSpec),
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub enum RawSpec {
     HelmRepos(Vec<HelmRepoSpec>),
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct HelmRepoSpec {
     pub repository: String,
     pub chart_name: String,

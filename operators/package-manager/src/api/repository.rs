@@ -1,5 +1,8 @@
 pub mod repository {
+    use std::collections::HashMap;
+
     use axum::{extract::State, Json};
+    use diesel::result;
     use serde::{Deserialize, Serialize};
     use utoipa::ToSchema;
     use utoipa_axum::{router::OpenApiRouter, routes};
@@ -82,13 +85,13 @@ pub mod repository {
         path = "/render",
         request_body = RenderRepositoriesReqBody,
         responses(
-            (status = 200, description = "Repository rendered", body = ApiResponse<EmptyApiResponse>),
+            (status = 200, description = "Repository rendered", body = ApiResponse<RenderRepositoriesResBody>),
         ),
     )]
     async fn render_repositories(
         State(db): State<Db>,
         Json(req_body): Json<RenderRepositoriesReqBody>,
-    ) -> Json<ApiResponse<EmptyApiResponse>> {
+    ) -> Json<ApiResponse<RenderRepositoriesResBody>> {
         let repositories = match db.get_all_repositories().await {
             Ok(repositories) => repositories,
             Err(e) => {
@@ -105,9 +108,11 @@ pub mod repository {
             .filter(|r| req_body.repository_ids.contains(&r.id))
             .collect::<Vec<Repository>>();
 
+        let mut results = HashMap::new();
+
         for repository in repositories {
-            match repository.render().await {
-                Ok(_) => (),
+            let res = match repository.render().await {
+                Ok(v) => v,
                 Err(e) => {
                     return Json(ApiResponse {
                         status: ApiResponseStatus::Error,
@@ -115,18 +120,25 @@ pub mod repository {
                         data: None,
                     })
                 }
-            }
+            };
+
+            results.extend(res);
         }
 
         Json(ApiResponse {
             status: ApiResponseStatus::Success,
             message: "Repositories rendered successfully".to_string(),
-            data: None,
+            data: Some(RenderRepositoriesResBody { results }),
         })
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
     pub struct RenderRepositoriesReqBody {
         pub repository_ids: Vec<i32>,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    pub struct RenderRepositoriesResBody {
+        pub results: HashMap<String, String>,
     }
 }

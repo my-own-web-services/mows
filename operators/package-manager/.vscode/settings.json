@@ -30,9 +30,12 @@
 ],
     "cSpell.words": [
         "apidoc",
+        "hasher",
         "openapi",
         "serviceaccount",
-        "utoipa"
+        "tempfile",
+        "utoipa",
+        "zitadel"
     ],
     "workbench.colorCustomizations": {
         "commandCenter.border": "#e7e7e799",

@@ -1,8 +1,6 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, path::Path};
 
+use flate2::read::GzDecoder;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -14,7 +12,7 @@ use crate::{repository::RepositoryPaths, types::HelmRepoSpec};
 
 impl HelmRepoSpec {
     pub async fn render(&self, repo_paths: &RepositoryPaths) -> Result<(), HelmRepoError> {
-        let chart_output_path = repo_paths.output_path.join("helm").join(&self.chart_name);
+        let chart_output_path = repo_paths.output_path.join("helm");
         let chart_path = repo_paths.source_path.join("charts").join(&self.chart_name);
 
         let mut args = vec![
@@ -64,6 +62,41 @@ impl HelmRepoSpec {
                 "Error rendering Helm: {}",
                 String::from_utf8_lossy(&command.stderr)
             )));
+        }
+
+        self.copy_additional_files(repo_paths).await?;
+
+        Ok(())
+    }
+
+    pub async fn copy_additional_files(
+        &self,
+        repo_paths: &RepositoryPaths,
+    ) -> Result<(), HelmRepoError> {
+        if let Some(resources) = &self.resources {
+            for file_path in resources.iter() {
+                let file_path = Path::new(&file_path);
+                let from = repo_paths.source_path.join(file_path);
+                let to = repo_paths
+                    .output_path
+                    .join("helm")
+                    .join(&self.chart_name)
+                    .join("additional")
+                    .join(file_path.file_name().ok_or_else(|| {
+                        HelmRepoError::RenderHelmError(format!("Error copying file: invalid path"))
+                    })?);
+
+                // create parent directories if they don't exist
+                tokio::fs::create_dir_all(to.parent().unwrap())
+                    .await
+                    .map_err(|e| {
+                        HelmRepoError::RenderHelmError(format!("Error creating directory: {}", e))
+                    })?;
+
+                tokio::fs::copy(from, to).await.map_err(|e| {
+                    HelmRepoError::RenderHelmError(format!("Error copying file: {}", e))
+                })?;
+            }
         }
 
         Ok(())
@@ -159,11 +192,15 @@ impl HelmRepoSpec {
             writer.write_all(&chunk).await.map_err(|e| {
                 HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
             })?;
+
+            writer.flush().await.map_err(|e| {
+                HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
+            })?;
         }
 
-        let digest = format!("{:x}", hasher.finalize());
+        let actual_digest = format!("{:x}", hasher.finalize());
 
-        if digest != self.digest {
+        if actual_digest != self.digest {
             return Err(HelmRepoError::FetchHelmChartError(format!(
                 "Error fetching HelmChart: digest mismatch"
             )));
@@ -171,15 +208,17 @@ impl HelmRepoSpec {
 
         // extract the tempfile to the source directory into a subdirectory named after the chart
 
-        let source_dir = repo_paths.source_path.join("charts").join(&self.chart_name);
+        let chart_target_directory = repo_paths.source_path.join("charts");
 
-        let mut archive = tar::Archive::new(
-            std::fs::File::open(Path::new(&temp_file_path)).map_err(|e| {
-                HelmRepoError::FetchHelmChartError(format!("Error opening file: {}", e))
-            })?,
-        );
+        let archive_file = std::fs::File::open(Path::new(&temp_file_path)).map_err(|e| {
+            HelmRepoError::FetchHelmChartError(format!("Error opening file: {}", e))
+        })?;
 
-        archive.unpack(&source_dir).map_err(|e| {
+        let uncompressed_file = GzDecoder::new(archive_file);
+
+        let mut archive = tar::Archive::new(uncompressed_file);
+
+        archive.unpack(&chart_target_directory).map_err(|e| {
             HelmRepoError::FetchHelmChartError(format!("Error unpacking file: {}", e))
         })?;
 

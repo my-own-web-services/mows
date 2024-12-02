@@ -1,0 +1,5 @@
+replicaCount: 1
+zitadel:
+    masterkeySecretName: "zitadel-masterkey"
+    configSecretName: zitadel-config
+    configSecretKey: config.yaml

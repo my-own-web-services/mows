@@ -1,5 +1,6 @@
 // @ts-ignore
 import "@fontsource-variable/inter";
+import { isEqual } from "lodash";
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 import { Button, CustomProvider, Input } from "rsuite";
@@ -14,6 +15,7 @@ interface AppProps {
 interface AppState {
     readonly repoUrl?: string;
     readonly repositories?: Repository[];
+    readonly renderResult?: Record<string, string>;
 }
 
 export default class App extends Component<AppProps, AppState> {
@@ -31,6 +33,19 @@ export default class App extends Component<AppProps, AppState> {
         this.setState({ repositories: res.data?.repositories });
     };
 
+    renderRepo = async (id: number) => {
+        const res = await this.client.api.renderRepositories({ repository_ids: [id] });
+        this.setState({ renderResult: res.data.data?.results });
+    };
+
+    shouldComponentUpdate = (nextProps: AppProps, nextState: AppState) => {
+        return (
+            this.state.repoUrl !== nextState.repoUrl ||
+            this.state.repositories !== nextState.repositories ||
+            !isEqual(this.state.renderResult, nextState.renderResult)
+        );
+    };
+
     render = () => {
         return (
             <div style={{ ...this.props.style }} className={`App ${this.props.className ?? ""}`}>
@@ -46,7 +61,7 @@ export default class App extends Component<AppProps, AppState> {
                         onClick={async () => {
                             if (this.state.repoUrl) {
                                 const response = await this.client.api.addRepositories({
-                                    repositories: [{ url: this.state.repoUrl }]
+                                    repositories: [{ uri: this.state.repoUrl }]
                                 });
                             }
                         }}
@@ -55,8 +70,20 @@ export default class App extends Component<AppProps, AppState> {
                     </Button>
                     <div>
                         {this.state.repositories?.map((repo) => (
-                            <div key={repo.id}>{repo.url}</div>
+                            <div key={repo.id}>
+                                {repo.uri}
+                                <Button onClick={() => this.renderRepo(repo.id)}>Render</Button>
+                            </div>
                         ))}
+                    </div>
+                    <div className={"flex flex-col gap-10"}>
+                        {this.state.renderResult &&
+                            Object.entries(this.state.renderResult).map(([key, value]) => (
+                                <div key={key} className={"p-4"}>
+                                    <h3 className={"text-lg font-bold"}>{key}</h3>
+                                    <pre className={"rounded-lg bg-nightSky10 p-4"}>{value}</pre>
+                                </div>
+                            ))}
                     </div>
                 </CustomProvider>
             </div>

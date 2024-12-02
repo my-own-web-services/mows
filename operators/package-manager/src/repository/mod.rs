@@ -1,9 +1,14 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
+use anyhow::Context;
+use fs_extra::dir::CopyOptions;
 use mows_common::get_current_config_cloned;
 use raw::RawSpecError;
 
-use crate::{config::config, db::models::Repository, types::MowsManifest};
+use crate::{config::config, db::models::Repository, types::MowsManifest, utils::parse_manifest};
 
 mod raw;
 
@@ -26,6 +31,13 @@ impl RepositoryPaths {
         let manifest_path = source_path.join(MANIFEST_FILE_NAME);
         let output_path = working_path.join("output");
 
+        let _ = tokio::fs::remove_dir_all(&working_path).await.map_err(|e| {
+            tracing::warn!("Error removing working directory: {}", e);
+        });
+
+        tokio::fs::create_dir_all(&source_path).await.unwrap();
+        tokio::fs::create_dir_all(&output_path).await.unwrap();
+
         Self {
             source_path,
             working_path,
@@ -36,23 +48,32 @@ impl RepositoryPaths {
 }
 
 impl Repository {
-    pub async fn render(&self) -> Result<String, RepositoryError> {
+    pub async fn render(&self) -> Result<HashMap<String, String>, RepositoryError> {
         let repo_paths = RepositoryPaths::new(self).await;
 
         let _ = &self.fetch(&repo_paths.source_path).await?;
 
         let mows_manifest = self.get_manifest(&repo_paths.manifest_path).await?;
 
-        match mows_manifest.spec {
-            crate::types::MowsSpec::Raw(raw_spec) => raw_spec.render(&repo_paths).await?,
-        }
+        let namespace = format!("mows-apps-{}", mows_manifest.metadata.name);
 
-        Ok(format!("Repository: {}", self.id))
+        let result = match mows_manifest.spec {
+            crate::types::MowsSpec::Raw(raw_spec) => {
+                raw_spec.render(&repo_paths, &namespace).await?
+            }
+        };
+
+        Ok(result)
     }
 
     pub async fn fetch(&self, target_path: &PathBuf) -> Result<(), FetchMowsRepoError> {
         if self.uri.starts_with("file://") {
-            tokio::fs::copy(&self.uri[7..], target_path).await?;
+            let cp_options = &CopyOptions::new().content_only(true).overwrite(true);
+            fs_extra::dir::copy(&self.uri[7..], target_path, cp_options).context(format!(
+                "Error copying files from {} to {}",
+                &self.uri[7..],
+                target_path.display()
+            ))?;
         } else {
             return Err(FetchMowsRepoError::InvalidUri(self.uri.clone()));
         }
@@ -63,9 +84,15 @@ impl Repository {
         &self,
         manifest_path: &PathBuf,
     ) -> Result<MowsManifest, ManifestError> {
-        let mows_manifest_string = tokio::fs::read_to_string(manifest_path).await?;
+        let mows_manifest_string =
+            tokio::fs::read_to_string(manifest_path)
+                .await
+                .context(format!(
+                    "Error reading manifest file: {}",
+                    manifest_path.display()
+                ))?;
 
-        let mows_manifest = serde_yaml::from_str(&mows_manifest_string)?;
+        let mows_manifest = parse_manifest(&mows_manifest_string).await?;
 
         Ok(mows_manifest)
     }
@@ -79,6 +106,8 @@ pub enum RepositoryError {
     ManifestError(#[from] ManifestError),
     #[error("RawSpec Error: {0}")]
     RawSpecError(#[from] RawSpecError),
+    #[error("IO error: {0}")]
+    IoError(#[from] tokio::io::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -87,6 +116,8 @@ pub enum ManifestError {
     ParsingError(#[from] serde_yaml::Error),
     #[error("IO error: {0}")]
     IoError(#[from] tokio::io::Error),
+    #[error(transparent)]
+    AnyhowError(#[from] anyhow::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -95,4 +126,8 @@ pub enum FetchMowsRepoError {
     InvalidUri(String),
     #[error("IO error: {0}")]
     IoError(#[from] tokio::io::Error),
+    #[error("FS Extra error: {0}")]
+    FsExtraError(#[from] fs_extra::error::Error),
+    #[error(transparent)]
+    AnyhowError(#[from] anyhow::Error),
 }

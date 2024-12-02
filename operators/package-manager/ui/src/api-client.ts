@@ -39,6 +39,14 @@ export interface ApiResponseHealthResBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseRenderRepositoriesResBody {
+  data?: {
+    results: Record<string, string>;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 /** @default null */
 export type EmptyApiResponse = any;
 
@@ -49,13 +57,21 @@ export interface GetRepositoriesResBody {
 export type HealthResBody = object;
 
 export interface NewRepository {
-  url: string;
+  uri: string;
+}
+
+export interface RenderRepositoriesReqBody {
+  repository_ids: number[];
+}
+
+export interface RenderRepositoriesResBody {
+  results: Record<string, string>;
 }
 
 export interface Repository {
   /** @format int32 */
   id: number;
-  url: string;
+  uri: string;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -312,6 +328,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     addRepositories: (data: AddRepositoryReqBody, params: RequestParams = {}) =>
       this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/repository`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name RenderRepositories
+     * @request POST:/api/repository/render
+     */
+    renderRepositories: (data: RenderRepositoriesReqBody, params: RequestParams = {}) =>
+      this.request<ApiResponseRenderRepositoriesResBody, any>({
+        path: `/api/repository/render`,
         method: "POST",
         body: data,
         type: ContentType.Json,

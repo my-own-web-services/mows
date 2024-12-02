@@ -2,6 +2,18 @@ use std::path::{Path, PathBuf};
 
 use tokio::signal;
 
+use crate::types::MowsManifest;
+
+pub async fn parse_manifest(input: &str) -> anyhow::Result<MowsManifest> {
+    // this workaround is needed because serde_yaml does not support nested enums
+
+    let yaml_value: serde_yaml::Value = serde_yaml::from_str(input)?;
+    let json_string = serde_json::to_string(&yaml_value)?;
+    let manifest: MowsManifest = serde_json::from_str(&json_string)?;
+
+    Ok(manifest)
+}
+
 pub async fn shutdown_signal() {
     let ctrl_c = async {
         signal::ctrl_c()
