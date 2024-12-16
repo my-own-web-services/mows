@@ -1,0 +1,15 @@
+manifestVersion: "0.1"
+metadata:
+    name: cilium
+    description: "setup cilium"
+    version: "0.1"
+spec:
+    raw:
+        helmRepos:
+        -   repository: https://helm.cilium.io
+            chartName: cilium
+            digest: 20481d2f5d85ee1b68237aac4210e8e0e1615b037e6ecf3b845fb8bdad254110
+            valuesFile: helm/cilium/values.yaml
+            resources:
+                - announce.yaml
+                - ip-pool.yaml

@@ -12,7 +12,6 @@ use mows_package_manager::{
     api::{health::*, repository::*},
     config::config,
     db::db::Db,
-    types::MowsManifest,
     ui::serve_spa,
     utils::shutdown_signal,
 };

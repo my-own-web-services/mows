@@ -34,8 +34,18 @@ export default class App extends Component<AppProps, AppState> {
     };
 
     renderRepo = async (id: number) => {
-        const res = await this.client.api.renderRepositories({ repository_ids: [id] });
-        this.setState({ renderResult: res.data.data?.results });
+        const res = await this.client.api.renderRepositories({
+            repositories: [
+                {
+                    id,
+                    namespace: "test",
+                    target: {
+                        DryRun: {}
+                    }
+                }
+            ]
+        });
+        this.setState({ renderResult: res.data.data?.results[0] });
     };
 
     shouldComponentUpdate = (nextProps: AppProps, nextState: AppState) => {

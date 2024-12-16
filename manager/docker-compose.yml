@@ -41,6 +41,14 @@ services:
             #- RUST_BACKTRACE=full
             RUST_LOG: main=debug,manager=debug,tower_http=debug,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error
             EDIT_LOCAL_DNS_CONFIG: ${EDIT_LOCAL_DNS_CONFIG}
+    mows-package-manager:
+        image: mows-package-manager
+        container_name: mows-package-manager
+        networks:
+            mows-manager-pxe:
+                ipv4_address: "192.168.112.22"
+        volumes:
+            - ../packages/:/packages/
     qemu:
         image: qemu
         restart: always

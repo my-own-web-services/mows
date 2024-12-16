@@ -41,7 +41,7 @@ export interface ApiResponseHealthResBody {
 
 export interface ApiResponseRenderRepositoriesResBody {
   data?: {
-    results: Record<string, string>;
+    results: Record<string, string>[];
   };
   message: string;
   status: ApiResponseStatus;
@@ -60,12 +60,39 @@ export interface NewRepository {
   uri: string;
 }
 
+export interface RenderRepositoriesRepository {
+  /** @format int32 */
+  id: number;
+  namespace: string;
+  secrets?: object | null;
+  target: RenderRepositoriesTarget;
+}
+
 export interface RenderRepositoriesReqBody {
-  repository_ids: number[];
+  repositories: RenderRepositoriesRepository[];
 }
 
 export interface RenderRepositoriesResBody {
-  results: Record<string, string>;
+  results: Record<string, string>[];
+}
+
+export type RenderRepositoriesTarget =
+  | {
+      DryRun: RenderRepositoriesTargetDryRun;
+    }
+  | {
+      KubectlApply: RenderRepositoriesTargetKubectlApply;
+    }
+  | {
+      Git: RenderRepositoriesTargetGit;
+    };
+
+export type RenderRepositoriesTargetDryRun = object;
+
+export type RenderRepositoriesTargetGit = object;
+
+export interface RenderRepositoriesTargetKubectlApply {
+  kubeconfig: string;
 }
 
 export interface Repository {

@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
+use anyhow::Context;
 use helm::HelmRepoError;
+use serde::Deserialize;
 use serde_yaml::Value;
 
 use crate::{dev::get_cluster_variables, types::RawSpec, utils::get_all_file_paths_recursive};
@@ -31,7 +33,7 @@ impl RawSpec {
         match self {
             RawSpec::HelmRepos(helm_repos) => {
                 for helm_repo in helm_repos {
-                    helm_repo.render(repo_paths).await?;
+                    helm_repo.render(repo_paths, namespace).await?;
                 }
             }
         }
@@ -43,41 +45,25 @@ impl RawSpec {
         let file_paths = get_all_file_paths_recursive(&repo_paths.output_path).await;
 
         for file_path in file_paths {
-            let file_content_string = tokio::fs::read_to_string(&file_path).await?;
+            let input_file_string = tokio::fs::read_to_string(&file_path).await?;
 
-            let mut value: Value = serde_yaml::from_str(&file_content_string)?;
+            let mut output_file_docs = Vec::new();
 
-            match value {
-                Value::Mapping(ref mut map) => {
-                    match map.get_mut(&serde_yaml::Value::String("metadata".to_string())) {
-                        Some(metadata) => {
-                            if let Value::Mapping(ref mut metadata_map) = metadata {
-                                metadata_map.insert(
-                                    serde_yaml::Value::String("namespace".to_string()),
-                                    serde_yaml::Value::String(namespace.to_string()),
-                                );
-                            }
-                        }
-                        None => {
-                            let metadata = serde_yaml::Value::Mapping(serde_yaml::Mapping::new());
-                            map.insert(serde_yaml::Value::String("metadata".to_string()), metadata);
+            for single_document_deserializer in
+                serde_yaml::Deserializer::from_str(&input_file_string)
+            {
+                let mut value: Value = Value::deserialize(single_document_deserializer).context(
+                    format!("Error parsing file: {}", file_path.to_str().unwrap_or("")),
+                )?;
 
-                            if let Value::Mapping(ref mut metadata_map) = map
-                                .get_mut(&serde_yaml::Value::String("metadata".to_string()))
-                                .unwrap()
-                            {
-                                metadata_map.insert(
-                                    serde_yaml::Value::String("namespace".to_string()),
-                                    serde_yaml::Value::String(namespace.to_string()),
-                                );
-                            }
-                        }
-                    }
-                }
-                _ => {}
+                let force_namespace = false;
+
+                Self::transform(&mut value, namespace, force_namespace);
+
+                let single_document_content_string = serde_yaml::to_string(&value)?;
+
+                output_file_docs.push(single_document_content_string);
             }
-
-            let file_content_string = serde_yaml::to_string(&value)?;
 
             let output_path_string = repo_paths
                 .output_path
@@ -92,12 +78,51 @@ impl RawSpec {
                     .map_err(|e| RawSpecError::AnyhowError(anyhow::anyhow!(e)))?
                     .to_string()
                     .replace(output_path_string, ""),
-                file_content_string,
+                output_file_docs.join("---\n"),
             );
         }
 
         Ok(result_files)
     }
+
+    fn transform(value: &mut Value, namespace: &str, force_namespace: bool) {
+        if !force_namespace {
+            return;
+        }
+
+        // TODO when force_namespace is true, we also need to remove the resource kind namespace completely
+
+        match value {
+            Value::Mapping(ref mut map) => {
+                match map.get_mut(&serde_yaml::Value::String("metadata".to_string())) {
+                    Some(metadata) => {
+                        if let Value::Mapping(ref mut metadata_map) = metadata {
+                            metadata_map.insert(
+                                serde_yaml::Value::String("namespace".to_string()),
+                                serde_yaml::Value::String(namespace.to_string()),
+                            );
+                        }
+                    }
+                    None => {
+                        let metadata = serde_yaml::Value::Mapping(serde_yaml::Mapping::new());
+                        map.insert(serde_yaml::Value::String("metadata".to_string()), metadata);
+
+                        if let Value::Mapping(ref mut metadata_map) = map
+                            .get_mut(&serde_yaml::Value::String("metadata".to_string()))
+                            .unwrap()
+                        {
+                            metadata_map.insert(
+                                serde_yaml::Value::String("namespace".to_string()),
+                                serde_yaml::Value::String(namespace.to_string()),
+                            );
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
     pub async fn replace_cluster_variables(
         &self,
         repo_paths: &RepositoryPaths,

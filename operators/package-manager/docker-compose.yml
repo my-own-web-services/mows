@@ -10,5 +10,6 @@ services:
       - TRACING_FILTER=info
     volumes:
       - ./dev/test-repos/:/test-repos/
+      - ../../packages/:/packages/
     ports:
       - "3003:80"

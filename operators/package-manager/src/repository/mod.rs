@@ -48,14 +48,15 @@ impl RepositoryPaths {
 }
 
 impl Repository {
-    pub async fn render(&self) -> Result<HashMap<String, String>, RepositoryError> {
+    pub async fn render(
+        &self,
+        namespace: &str,
+    ) -> Result<HashMap<String, String>, RepositoryError> {
         let repo_paths = RepositoryPaths::new(self).await;
 
         let _ = &self.fetch(&repo_paths.source_path).await?;
 
         let mows_manifest = self.get_manifest(&repo_paths.manifest_path).await?;
-
-        let namespace = format!("mows-apps-{}", mows_manifest.metadata.name);
 
         let result = match mows_manifest.spec {
             crate::types::MowsSpec::Raw(raw_spec) => {

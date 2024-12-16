@@ -11,7 +11,11 @@ use utoipa::ToSchema;
 use crate::{repository::RepositoryPaths, types::HelmRepoSpec};
 
 impl HelmRepoSpec {
-    pub async fn render(&self, repo_paths: &RepositoryPaths) -> Result<(), HelmRepoError> {
+    pub async fn render(
+        &self,
+        repo_paths: &RepositoryPaths,
+        unforced_namespace: &str,
+    ) -> Result<(), HelmRepoError> {
         let chart_output_path = repo_paths.output_path.join("helm");
         let chart_path = repo_paths.source_path.join("charts").join(&self.chart_name);
 
@@ -34,6 +38,8 @@ impl HelmRepoSpec {
                     ))
                 })?
                 .to_string(),
+            "--namespace".to_string(),
+            unforced_namespace.to_string(),
         ];
 
         if let Some(values_file_path_relative) = &self.values_file {
@@ -173,8 +179,10 @@ impl HelmRepoSpec {
 
         let mut hasher = Sha256::new();
 
+        let chart_url = self.get_chart_url(&chart_versions.urls).await?;
+
         let mut byte_stream = reqwest_client
-            .get(chart_versions.urls[0].as_str())
+            .get(chart_url)
             .send()
             .await
             .map_err(|e| {
@@ -230,6 +238,21 @@ impl HelmRepoSpec {
 
         Ok(())
     }
+
+    async fn get_chart_url(&self, urls: &Vec<String>) -> Result<Url, HelmRepoError> {
+        let url = Url::parse(&urls[0]).unwrap_or(
+            Url::parse(&self.repository)
+                .map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!("Error parsing URL: {}", e))
+                })?
+                .join(&urls[0])
+                .map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!("Error joining URL: {}", e))
+                })?,
+        );
+
+        Ok(url)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -254,23 +277,23 @@ pub struct HelmRepositoryIndex {
 pub struct HelmRepositoryIndexEntry {
     pub api_version: String,
     pub app_version: String,
-    pub created: String,
-    pub description: String,
+    pub created: Option<String>,
+    pub description: Option<String>,
     pub digest: String,
-    pub icon: Url,
-    pub kube_version: String,
-    pub maintainers: Vec<HelmRepositoryIndexMaintainer>,
+    pub icon: Option<Url>,
+    pub kube_version: Option<String>,
+    pub maintainers: Option<Vec<HelmRepositoryIndexMaintainer>>,
     pub name: String,
     #[serde(rename = "type")]
-    pub _type: String,
-    pub urls: Vec<Url>,
+    pub _type: Option<String>,
+    pub urls: Vec<String>,
     pub version: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HelmRepositoryIndexMaintainer {
-    pub email: String,
-    pub name: String,
-    pub url: Url,
+    pub email: Option<String>,
+    pub name: Option<String>,
+    pub url: Option<Url>,
 }

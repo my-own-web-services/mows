@@ -1,6 +1,6 @@
-FROM node
-WORKDIR /app
-RUN yarn add swagger-typescript-api
+FROM openapitools/openapi-generator-cli
 
-RUN echo "npx swagger-typescript-api -p ./swagger.json -o ./out/ -n api-client.ts" > gen.sh
-ENTRYPOINT ["sh","gen.sh"]
+COPY docker/codegen.sh /codegen.sh
+
+
+ENTRYPOINT ["bash","/codegen.sh"]

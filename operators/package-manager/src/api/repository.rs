@@ -1,9 +1,7 @@
 pub mod repository {
-    use std::collections::HashMap;
-
     use axum::{extract::State, Json};
-    use diesel::result;
     use serde::{Deserialize, Serialize};
+    use std::collections::HashMap;
     use utoipa::ToSchema;
     use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -103,15 +101,27 @@ pub mod repository {
             }
         };
 
-        let repositories = repositories
-            .into_iter()
-            .filter(|r| req_body.repository_ids.contains(&r.id))
-            .collect::<Vec<Repository>>();
+        let mut results = Vec::new();
 
-        let mut results = HashMap::new();
+        for repository_render_req in req_body.repositories.iter() {
+            let repository = match repositories
+                .iter()
+                .find(|r| r.id == repository_render_req.id)
+            {
+                Some(v) => v,
+                None => {
+                    return Json(ApiResponse {
+                        status: ApiResponseStatus::Error,
+                        message: format!(
+                            "Repository with id {} not found",
+                            repository_render_req.id
+                        ),
+                        data: None,
+                    })
+                }
+            };
 
-        for repository in repositories {
-            let res = match repository.render().await {
+            let render_result = match repository.render(&repository_render_req.namespace).await {
                 Ok(v) => v,
                 Err(e) => {
                     return Json(ApiResponse {
@@ -122,7 +132,7 @@ pub mod repository {
                 }
             };
 
-            results.extend(res);
+            results.push(render_result);
         }
 
         Json(ApiResponse {
@@ -134,11 +144,37 @@ pub mod repository {
 
     #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
     pub struct RenderRepositoriesReqBody {
-        pub repository_ids: Vec<i32>,
+        pub repositories: Vec<RenderRepositoriesRepository>,
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    pub struct RenderRepositoriesRepository {
+        pub id: i32,
+        pub namespace: String,
+        pub target: RenderRepositoriesTarget,
+        pub secrets: Option<HashMap<String, String>>,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    pub enum RenderRepositoriesTarget {
+        DryRun(RenderRepositoriesTargetDryRun),
+        KubectlApply(RenderRepositoriesTargetKubectlApply),
+        Git(RenderRepositoriesTargetGit),
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    pub struct RenderRepositoriesTargetDryRun {}
+
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    pub struct RenderRepositoriesTargetKubectlApply {
+        pub kubeconfig: String,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    pub struct RenderRepositoriesTargetGit {}
+
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
     pub struct RenderRepositoriesResBody {
-        pub results: HashMap<String, String>,
+        pub results: Vec<HashMap<String, String>>,
     }
 }

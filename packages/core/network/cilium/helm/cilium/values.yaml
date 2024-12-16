@@ -1,0 +1,42 @@
+operator:
+    replicas: 2
+    rollOutPods: true
+hubble:
+    relay:
+        enabled: true
+    ui:
+        enabled: true
+    enabled: true
+kubeProxyReplacement: true
+k8sServiceHost: 127.0.0.1
+k8sServicePort: 6443
+localRedirectPolicy: true
+externalIPs:
+    enabled: false
+bgpControlPlane:
+    enabled: true
+l2announcements:
+    enabled: true
+k8sClientRateLimit:
+    qps: 32
+    burst: 64
+gatewayAPI:
+    enabled: true
+    secretsNamespace:
+        name: mows-core-network-cilium-secrets
+enableCiliumEndpointSlice: true
+debug:
+    enabled: true
+rollOutCiliumPods: true
+hostFirewall:
+    enabled: true
+encryption:
+    enabled: true
+    type: wireguard
+    nodeEncryption: true
+envoyConfig:
+    secretsNamespace:
+        name: mows-core-network-cilium-secrets
+ingressController:
+    secretsNamespace:
+        name: mows-core-network-cilium-secrets
