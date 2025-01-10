@@ -298,7 +298,7 @@ async fn handle_get_machine_status(mut socket: WebSocket) {
                 status,
             };
 
-            let message = Message::Text(serde_json::to_string(&status).unwrap());
+            let message = Message::Text(serde_json::to_string(&status).unwrap().into());
             match socket.send(message).await {
                 Ok(_) => continue,
                 Err(_e) => {

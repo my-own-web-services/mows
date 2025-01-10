@@ -16,6 +16,10 @@ RUN apt-get update && apt-get install upx -y
 
 RUN cargo install cargo-build-deps
 COPY Cargo.toml Cargo.lock ./
+# replace "../operators/package-manager/clients/rust" with  "mows-package-manager-client"
+RUN  sed -i 's/\.\.\/operators\/package-manager\/clients\/rust/mows-package-manager-client/g' Cargo.toml
+COPY ./mows-package-manager-client-temp mows-package-manager-client
+
 RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps --release
 
 # build
@@ -24,6 +28,12 @@ COPY --from=ui-builder /build/dist ./ui-build
 RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --release --bin main
 #RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 
+
+
+
+# build pixiecore from go go get go.universe.tf/netboot/cmd/pixiecore
+FROM golang:alpine3.21 AS pixiecore-builder
+RUN go install go.universe.tf/netboot/cmd/pixiecore@latest
 
 
 
@@ -44,10 +54,7 @@ RUN set -eu && \
 RUN mkdir -p $BASH_COMPLETIONS_DIR
 
 # install pixiecore
-RUN curl -L https://packagecloud.io/danderson/pixiecore/gpgkey | apt-key add - && \
-    echo "deb https://packagecloud.io/danderson/pixiecore/debian/ stretch main" > /etc/apt/sources.list.d/pixiecore.list && \
-    apt-get update && \
-    apt-get install -y pixiecore
+COPY --from=pixiecore-builder /go/bin/pixiecore /usr/local/bin/pixiecore
 
 
 # install helm

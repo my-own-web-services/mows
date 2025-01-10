@@ -13,3 +13,5 @@ spec:
             resources:
                 - files/DnsRecord.yaml
                 - files/IngressRoute.yaml
+                - files/vault-resources/password-sync.yaml
+                - files/vault-resources/secrets.yaml

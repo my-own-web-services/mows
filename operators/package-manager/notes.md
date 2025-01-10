@@ -1,4 +1,4 @@
-# User flow
+# flow
 
 ## adding repository (git)
 
@@ -6,6 +6,25 @@
 - in the repo are folders with manifest + additional files
 - the manifests give information about the location and method to get the k8s resource files
 - pull the metadata when indexing the list
+
+
+## generating resources
+- with helm or nix or anything else that we support
+
+## applying resources
+### how to store generated secrets
+1. push helm generated secrets to vault and create a secret sync
+2. apply the secrets to cluster without modification
+
+### target 
+1. git -> argocd/flux
+2. direct kubectl apply -> real state is only stored in kubernetes
+2.1 real eventual consistency (prevent resources that fail to get pushed for some reason, better retry logic), resolve unknown k8s custom resources and install them
+2.2 visual drag and drop k8s resources to play around 
+
+
+
+
 
 
 ---

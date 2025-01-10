@@ -206,9 +206,9 @@ impl HelmRepoSpec {
             })?;
         }
 
-        let actual_digest = format!("{:x}", hasher.finalize());
+        let hex_digest = format!("{:x}", hasher.finalize());
 
-        if actual_digest != self.digest {
+        if hex_digest != self.digest {
             return Err(HelmRepoError::FetchHelmChartError(format!(
                 "Error fetching HelmChart: digest mismatch"
             )));

@@ -67,7 +67,7 @@ pub mod config_api {
         loop {
             let config = config().read().await.clone();
 
-            let message = Message::Text(serde_json::to_string(&config).unwrap());
+            let message = Message::Text(serde_json::to_string(&config).unwrap().into());
             match socket.send(message).await {
                 Ok(_) => {
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
