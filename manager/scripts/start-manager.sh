@@ -11,7 +11,7 @@ cp -r ../operators/package-manager/clients/rust ./mows-package-manager-client-te
 docker compose down mows-manager || true
 
 
-docker compose up mows-manager --build
+docker compose up mows-manager mows-package-manager --build
 
 
 

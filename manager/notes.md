@@ -33,3 +33,11 @@ tokio-console
 
 Advanced Tab > Network Stack Configuration > Network Stack > Enabled
 Advanced Tab > Network Stack Configuration > IPv4 PXE Support > Enabled
+
+# bare minimum install
+
+-   cilium
+-   longhorn
+-   vault
+-   vrc
+-   package-manager

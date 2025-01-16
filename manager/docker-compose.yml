@@ -49,6 +49,14 @@ services:
                 ipv4_address: "192.168.112.22"
         volumes:
             - ../packages/:/packages/
+        environment:
+            - PRIMARY_ORIGIN=http://localhost:3003
+            - DEV_ALLOW_ORIGINS=http://localhost:5174
+            - ENABLE_DEV=true
+            - LOG_FILTER=trace
+            - TRACING_FILTER=info
+        ports:
+            - "::1:3003:80"
     qemu:
         image: qemu
         restart: always

@@ -1,0 +1,7 @@
+defaultSettings:
+    createDefaultDiskLabeledNodes: true
+    allowCollectingLonghornUsageMetrics: false
+    defaultReplicaCount: 2
+
+persistence:
+    defaultClass: false

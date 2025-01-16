@@ -1,0 +1,14 @@
+manifestVersion: "0.1"
+metadata:
+    name: longhorn
+    description: "setup longhorn"
+    version: "0.1"
+spec:
+    raw:
+        helmRepos:
+        -   repository: https://charts.longhorn.io/
+            chartName: longhorn
+            digest: 863c011cdc37dd0ad95595ed52b5ac43ef1394fa6012e607397f86e6b682be6a
+            valuesFile: helm/longhorn/values.yaml
+            resources:
+                - files/StorageClass.yaml

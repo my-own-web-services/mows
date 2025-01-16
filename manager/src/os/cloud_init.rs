@@ -290,7 +290,7 @@ impl K3s {
             "--etcd-expose-metrics=true",
             "--cluster-cidr=10.42.0.0/16", // ,2001:cafe:42::/56 TODO implement ipv6
             "--service-cidr=10.43.0.0/16", // ,2001:cafe:43::/112
-            "--kube-controller-manager-arg=pod-eviction-timeout=30s",
+                                           //"--kube-controller-manager-arg=pod-eviction-timeout=30s",
         ];
 
         if let Some(tls_san) = &tls_san {
