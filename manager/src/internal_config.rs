@@ -50,7 +50,7 @@ pub struct ConfigVariablePrefix {
     pub variable_prefix: String,
 }
 
-#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+#[derive(Deserialize, Debug, Serialize, PartialEq, Clone)]
 pub struct InternalConfig {
     pub own_addresses: Addresses,
     pub dhcp: DhcpConfig,
@@ -59,6 +59,13 @@ pub struct InternalConfig {
     pub cluster: LocalClusterConfig,
     pub primary_origin: Url,
     pub os_config: OsConfig,
+    pub core_repos: Vec<CoreRepo>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub struct CoreRepo {
+    pub uri: String,
+    pub namespace: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

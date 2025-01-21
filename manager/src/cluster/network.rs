@@ -8,7 +8,7 @@ pub struct ClusterNetwork;
 impl ClusterNetwork {
     pub async fn install() -> anyhow::Result<()> {
         ClusterNetwork::install_network().await?;
-        ClusterNetwork::install_kubevip().await?;
+        //ClusterNetwork::install_kubevip().await?;
         Ok(())
     }
 

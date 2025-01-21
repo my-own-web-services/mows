@@ -106,7 +106,9 @@ data-encoding = "2.6.0"
 include_dir = "0.7.3"
 mime_guess = "2.0.5"
 
-mows-package-manager-client-rust = { path = "../operators/package-manager/clients/rust" }
+
+mows-package-manager = { path = "../operators/package-manager" }
+
 
 # [target.'cfg(not(target_env = "msvc"))'.dependencies]
 # tikv-jemallocator = "0.6.0"

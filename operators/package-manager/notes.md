@@ -1,3 +1,8 @@
+# security
+
+1. path traversal attacks ../../
+
+
 # flow
 
 ## adding repository (git)

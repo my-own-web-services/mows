@@ -13,15 +13,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum RenderRepositoriesTarget {
-    RenderRepositoriesTargetOneOf(Box<models::RenderRepositoriesTargetOneOf>),
-    RenderRepositoriesTargetOneOf1(Box<models::RenderRepositoriesTargetOneOf1>),
-    RenderRepositoriesTargetOneOf2(Box<models::RenderRepositoriesTargetOneOf2>),
+pub enum RenderRepositoriesRepositorySelector {
+    RenderRepositoriesRepositorySelectorOneOf(Box<models::RenderRepositoriesRepositorySelectorOneOf>),
+    RenderRepositoriesRepositorySelectorOneOf1(Box<models::RenderRepositoriesRepositorySelectorOneOf1>),
 }
 
-impl Default for RenderRepositoriesTarget {
+impl Default for RenderRepositoriesRepositorySelector {
     fn default() -> Self {
-        Self::RenderRepositoriesTargetOneOf(Default::default())
+        Self::RenderRepositoriesRepositorySelectorOneOf(Default::default())
     }
 }
 

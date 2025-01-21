@@ -13,14 +13,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RenderRepositoriesTargetOneOf {
-    #[serde(rename = "DryRun")]
-    pub dry_run: serde_json::Value,
+    #[serde(rename = "RenderOnly")]
+    pub render_only: serde_json::Value,
 }
 
 impl RenderRepositoriesTargetOneOf {
-    pub fn new(dry_run: serde_json::Value) -> RenderRepositoriesTargetOneOf {
+    pub fn new(render_only: serde_json::Value) -> RenderRepositoriesTargetOneOf {
         RenderRepositoriesTargetOneOf {
-            dry_run,
+            render_only,
         }
     }
 }

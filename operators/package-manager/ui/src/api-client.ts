@@ -61,12 +61,20 @@ export interface NewRepository {
 }
 
 export interface RenderRepositoriesRepository {
-  /** @format int32 */
-  id: number;
   namespace: string;
+  repository_selector: RenderRepositoriesRepositorySelector;
   secrets?: object | null;
   target: RenderRepositoriesTarget;
 }
+
+export type RenderRepositoriesRepositorySelector =
+  | {
+      /** @format int32 */
+      Id: number;
+    }
+  | {
+      Direct: NewRepository;
+    };
 
 export interface RenderRepositoriesReqBody {
   repositories: RenderRepositoriesRepository[];
@@ -78,7 +86,7 @@ export interface RenderRepositoriesResBody {
 
 export type RenderRepositoriesTarget =
   | {
-      DryRun: RenderRepositoriesTargetDryRun;
+      RenderOnly: RenderRepositoriesTargetRenderOnly;
     }
   | {
       KubectlApply: RenderRepositoriesTargetKubectlApply;
@@ -87,13 +95,13 @@ export type RenderRepositoriesTarget =
       Git: RenderRepositoriesTargetGit;
     };
 
-export type RenderRepositoriesTargetDryRun = object;
-
 export type RenderRepositoriesTargetGit = object;
 
 export interface RenderRepositoriesTargetKubectlApply {
   kubeconfig: string;
 }
+
+export type RenderRepositoriesTargetRenderOnly = object;
 
 export interface Repository {
   /** @format int32 */

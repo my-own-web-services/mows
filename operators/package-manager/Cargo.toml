@@ -38,15 +38,15 @@ tokio-tungstenite = "0.24.0"
 
 futures = "0.3.31"
 
-utoipa-swagger-ui = { version = "8.0.3", features = ["axum"] }
+utoipa-swagger-ui = { version = "=8.0.3", features = ["axum"] }
 utoipa = { version = "5.2.0", features = [
     "axum_extras",
     "macros",
     "openapi_extensions",
     "debug",
-    "url",
 ] }
-utoipa-axum = { version = "0.1", features = ["debug"] }
+utoipa-axum = { version = "=0.1.2", features = ["debug"] }
+
 
 tower = { version = "0.5.1", features = ["util", "timeout"] }
 tower-http = { version = "0.6.1", features = [

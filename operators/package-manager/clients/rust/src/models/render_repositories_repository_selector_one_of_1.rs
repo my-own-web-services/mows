@@ -12,15 +12,15 @@ use crate::models;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RenderRepositoriesTargetOneOf {
-    #[serde(rename = "DryRun")]
-    pub dry_run: serde_json::Value,
+pub struct RenderRepositoriesRepositorySelectorOneOf1 {
+    #[serde(rename = "Direct")]
+    pub direct: Box<models::NewRepository>,
 }
 
-impl RenderRepositoriesTargetOneOf {
-    pub fn new(dry_run: serde_json::Value) -> RenderRepositoriesTargetOneOf {
-        RenderRepositoriesTargetOneOf {
-            dry_run,
+impl RenderRepositoriesRepositorySelectorOneOf1 {
+    pub fn new(direct: models::NewRepository) -> RenderRepositoriesRepositorySelectorOneOf1 {
+        RenderRepositoriesRepositorySelectorOneOf1 {
+            direct: Box::new(direct),
         }
     }
 }

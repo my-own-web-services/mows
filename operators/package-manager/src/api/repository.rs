@@ -46,7 +46,7 @@ pub mod repository {
         }
     }
 
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
     pub struct AddRepositoryReqBody {
         pub repositories: Vec<NewRepository>,
     }
@@ -73,7 +73,7 @@ pub mod repository {
         }
     }
 
-    #[derive(Debug, Serialize, Deserialize, ToSchema)]
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
     pub struct GetRepositoriesResBody {
         pub repositories: Vec<Repository>,
     }
@@ -104,21 +104,23 @@ pub mod repository {
         let mut results = Vec::new();
 
         for repository_render_req in req_body.repositories.iter() {
-            let repository = match repositories
-                .iter()
-                .find(|r| r.id == repository_render_req.id)
-            {
-                Some(v) => v,
-                None => {
-                    return Json(ApiResponse {
-                        status: ApiResponseStatus::Error,
-                        message: format!(
-                            "Repository with id {} not found",
-                            repository_render_req.id
-                        ),
-                        data: None,
-                    })
+            let repository = match &repository_render_req.repository_selector {
+                RenderRepositoriesRepositorySelector::Id(id) => {
+                    match repositories.iter().find(|r| r.id == *id) {
+                        Some(v) => v,
+                        None => {
+                            return Json(ApiResponse {
+                                status: ApiResponseStatus::Error,
+                                message: format!("Repository with id {} not found", id),
+                                data: None,
+                            })
+                        }
+                    }
                 }
+                RenderRepositoriesRepositorySelector::Direct(new_repository) => &Repository {
+                    id: 0,
+                    uri: new_repository.uri.clone(),
+                },
             };
 
             let render_result = match repository.render(&repository_render_req.namespace).await {
@@ -142,38 +144,44 @@ pub mod repository {
         })
     }
 
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
     pub struct RenderRepositoriesReqBody {
         pub repositories: Vec<RenderRepositoriesRepository>,
     }
 
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
     pub struct RenderRepositoriesRepository {
-        pub id: i32,
+        pub repository_selector: RenderRepositoriesRepositorySelector,
         pub namespace: String,
         pub target: RenderRepositoriesTarget,
         pub secrets: Option<HashMap<String, String>>,
     }
 
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
+    pub enum RenderRepositoriesRepositorySelector {
+        Id(i32),
+        Direct(NewRepository),
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, PartialOrd, Ord, Eq)]
     pub enum RenderRepositoriesTarget {
-        DryRun(RenderRepositoriesTargetDryRun),
+        RenderOnly(RenderRepositoriesTargetRenderOnly),
         KubectlApply(RenderRepositoriesTargetKubectlApply),
         Git(RenderRepositoriesTargetGit),
     }
 
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-    pub struct RenderRepositoriesTargetDryRun {}
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, PartialOrd, Ord, Eq)]
+    pub struct RenderRepositoriesTargetRenderOnly {}
 
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, PartialOrd, Ord, Eq)]
     pub struct RenderRepositoriesTargetKubectlApply {
         pub kubeconfig: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, PartialOrd, Ord, Eq)]
     pub struct RenderRepositoriesTargetGit {}
 
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
     pub struct RenderRepositoriesResBody {
         pub results: Vec<HashMap<String, String>>,
     }

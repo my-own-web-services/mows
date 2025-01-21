@@ -4,6 +4,12 @@ own_addresses:
     legacy: "192.168.112.3"
     ip: null
 
+core_repos:
+    - uri: file:///packages/core/network/cilium/
+      namespace: mows-core-network-cilium
+    - uri: file:///packages/core/storage/longhorn/
+      namespace: mows-core-storage-longhorn
+
 os_config:
     kairos_version: "v3.2.1"
     k3s_version: "k3sv1.31.1+k3s1"

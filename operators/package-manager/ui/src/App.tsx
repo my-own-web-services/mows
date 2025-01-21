@@ -37,10 +37,12 @@ export default class App extends Component<AppProps, AppState> {
         const res = await this.client.api.renderRepositories({
             repositories: [
                 {
-                    id,
+                    repository_selector: {
+                        Id: id
+                    },
                     namespace: "test",
                     target: {
-                        DryRun: {}
+                        RenderOnly: {}
                     }
                 }
             ]

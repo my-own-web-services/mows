@@ -12,15 +12,15 @@ use crate::models;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-pub struct NewRepository {
-    #[serde(rename = "uri")]
-    pub uri: String,
+pub struct RenderRepositoriesRepositorySelectorOneOf {
+    #[serde(rename = "Id")]
+    pub id: i32,
 }
 
-impl NewRepository {
-    pub fn new(uri: String) -> NewRepository {
-        NewRepository {
-            uri,
+impl RenderRepositoriesRepositorySelectorOneOf {
+    pub fn new(id: i32) -> RenderRepositoriesRepositorySelectorOneOf {
+        RenderRepositoriesRepositorySelectorOneOf {
+            id,
         }
     }
 }

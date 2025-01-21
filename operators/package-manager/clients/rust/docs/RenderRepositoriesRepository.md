@@ -4,8 +4,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**id** | **i32** |  | 
 **namespace** | **String** |  | 
+**repository_selector** | [**models::RenderRepositoriesRepositorySelector**](RenderRepositoriesRepositorySelector.md) |  | 
 **secrets** | Option<**std::collections::HashMap<String, String>**> |  | [optional]
 **target** | [**models::RenderRepositoriesTarget**](RenderRepositoriesTarget.md) |  | 
 

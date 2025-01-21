@@ -1,12 +1,11 @@
-# ApiResponseStatus
+# RenderRepositoriesRepositorySelector
 
 ## Enum Variants
 
-| Name | Value |
+| Name | Description |
 |---- | -----|
-| Success | Success |
-| Error | Error |
-
+| RenderRepositoriesRepositorySelectorOneOf |  |
+| RenderRepositoriesRepositorySelectorOneOf1 |  |
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

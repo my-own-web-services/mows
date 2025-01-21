@@ -15,6 +15,9 @@ docs/DefaultApi.md
 docs/GetRepositoriesResBody.md
 docs/NewRepository.md
 docs/RenderRepositoriesRepository.md
+docs/RenderRepositoriesRepositorySelector.md
+docs/RenderRepositoriesRepositorySelectorOneOf.md
+docs/RenderRepositoriesRepositorySelectorOneOf1.md
 docs/RenderRepositoriesReqBody.md
 docs/RenderRepositoriesResBody.md
 docs/RenderRepositoriesTarget.md
@@ -40,6 +43,9 @@ src/models/get_repositories_res_body.rs
 src/models/mod.rs
 src/models/new_repository.rs
 src/models/render_repositories_repository.rs
+src/models/render_repositories_repository_selector.rs
+src/models/render_repositories_repository_selector_one_of.rs
+src/models/render_repositories_repository_selector_one_of_1.rs
 src/models/render_repositories_req_body.rs
 src/models/render_repositories_res_body.rs
 src/models/render_repositories_target.rs

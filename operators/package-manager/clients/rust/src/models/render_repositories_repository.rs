@@ -13,10 +13,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RenderRepositoriesRepository {
-    #[serde(rename = "id")]
-    pub id: i32,
     #[serde(rename = "namespace")]
     pub namespace: String,
+    #[serde(rename = "repository_selector")]
+    pub repository_selector: Box<models::RenderRepositoriesRepositorySelector>,
     #[serde(rename = "secrets", skip_serializing_if = "Option::is_none")]
     pub secrets: Option<std::collections::HashMap<String, String>>,
     #[serde(rename = "target")]
@@ -24,10 +24,10 @@ pub struct RenderRepositoriesRepository {
 }
 
 impl RenderRepositoriesRepository {
-    pub fn new(id: i32, namespace: String, target: models::RenderRepositoriesTarget) -> RenderRepositoriesRepository {
+    pub fn new(namespace: String, repository_selector: models::RenderRepositoriesRepositorySelector, target: models::RenderRepositoriesTarget) -> RenderRepositoriesRepository {
         RenderRepositoriesRepository {
-            id,
             namespace,
+            repository_selector: Box::new(repository_selector),
             secrets: None,
             target: Box::new(target),
         }

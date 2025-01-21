@@ -280,7 +280,7 @@ pub struct HelmRepositoryIndexEntry {
     pub created: Option<String>,
     pub description: Option<String>,
     pub digest: String,
-    pub icon: Option<Url>,
+    pub icon: Option<String>,
     pub kube_version: Option<String>,
     pub maintainers: Option<Vec<HelmRepositoryIndexMaintainer>>,
     pub name: String,
@@ -295,5 +295,5 @@ pub struct HelmRepositoryIndexEntry {
 pub struct HelmRepositoryIndexMaintainer {
     pub email: Option<String>,
     pub name: Option<String>,
-    pub url: Option<Url>,
+    pub url: Option<String>,
 }
