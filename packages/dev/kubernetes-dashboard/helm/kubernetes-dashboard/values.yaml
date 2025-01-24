@@ -1,0 +1,9 @@
+metrics-server:
+    enabled: false
+cert-manager:
+    enabled: true
+app:
+    ingress:
+        enabled: true
+extraArgs:
+    - --token-ttl=86400

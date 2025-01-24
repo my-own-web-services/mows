@@ -1,7 +1,7 @@
 manifestVersion: "0.1"
 metadata:
     name: longhorn
-    description: "setup longhorn"
+    description: "A distributed block storage system for Kubernetes"
     version: "0.1"
 spec:
     raw:

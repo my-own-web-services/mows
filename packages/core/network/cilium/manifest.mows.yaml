@@ -1,7 +1,7 @@
 manifestVersion: "0.1"
 metadata:
     name: cilium
-    description: "setup cilium"
+    description: "A networking plugin for Kubernetes"
     version: "0.1"
 spec:
     raw:

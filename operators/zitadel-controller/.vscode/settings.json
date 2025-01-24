@@ -1,0 +1,20 @@
+{
+    "cSpell.words": [
+        "actix",
+        "chrono",
+        "cntrlr",
+        "crdgen",
+        "FINALIZER",
+        "openmetrics",
+        "opentelemetry",
+        "otel",
+        "pdns",
+        "Pektin",
+        "reqwest",
+        "runtimes",
+        "schemars",
+        "serviceaccount",
+        "vaultrs",
+        "zitadel"
+    ]
+}
