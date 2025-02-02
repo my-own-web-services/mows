@@ -1,5 +1,5 @@
 [package]
-name = "zitadel-controller"
+name = "controller"
 version = "0.14.0"
 edition = "2021"
 publish = false
@@ -58,8 +58,12 @@ reqwest = { version = "0.12.9", default-features = false, features = [
 reqwest-tracing = "0.5.3"
 tracing-actix-web = "0.7.14"
 
-mows-common = { path = "../../utils/mows-common" }
-zitadel = { version = "5.5.1", features = ["api", "interceptors"] }
+mows-common = { path = "./mows-common" }
+zitadel = { path = "./zitadel-rust", features = [
+    "api",
+    "interceptors",
+    "pbjson",
+] }
 tonic = { version = "0.12.3" }
 
 [dependencies.kube]

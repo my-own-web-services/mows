@@ -1,0 +1,11 @@
+services:
+    pektin-zertificat:
+        build:
+            context: "."
+            dockerfile: Dockerfile
+            tags: 
+                - localhost:5000/pektin-zertificat
+            additional_contexts:
+                mows-common: ../../../../utils/mows-common
+                acme-rs: ../acme-rs
+

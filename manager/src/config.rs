@@ -1,5 +1,5 @@
 use crate::machines::MachineType;
-use crate::providers::hcloud::index::ExternalProviderConfigHcloud;
+use crate::providers::hcloud::ExternalProviderConfigHcloud;
 use crate::public_ip::WgKeys;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};

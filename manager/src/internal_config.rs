@@ -60,6 +60,12 @@ pub struct InternalConfig {
     pub primary_origin: Url,
     pub os_config: OsConfig,
     pub core_repos: Vec<CoreRepo>,
+    pub package_manager: PackageManagerConfig,
+}
+
+#[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]
+pub struct PackageManagerConfig {
+    pub working_dir: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Eq, PartialEq, Clone)]

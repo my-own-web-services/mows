@@ -1,0 +1,11 @@
+services:
+    pektin-dns-controller:
+        build:
+            context: "."
+            dockerfile: Dockerfile
+            tags: 
+                - localhost:5000/pektin-dns-controller
+            additional_contexts:
+                mows-common: ../../utils/mows-common
+                pektin-common: ../../apis/core/pektin/common
+

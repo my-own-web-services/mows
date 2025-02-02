@@ -4,12 +4,6 @@ set -euo pipefail
 
 cargo run --bin crdgen > yaml/crd.yaml
 
-rm -rf ./mows-common-temp
-
-cp ../../utils/mows-common ./mows-common-temp -r
-
-docker build . -t localhost:5000/zitadel-controller -f Dockerfile
-
-rm -rf ./mows-common-temp
+docker buildx bake
 
 docker push localhost:5000/zitadel-controller

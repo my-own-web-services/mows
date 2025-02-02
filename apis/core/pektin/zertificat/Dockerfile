@@ -8,11 +8,9 @@ RUN apt-get update && apt-get install upx -y
 RUN cargo install cargo-build-deps
 
 COPY Cargo.toml Cargo.lock ./
-COPY ./mows-common-temp /mows-common
-# replace ../../../../utils/mows-common with /mows-common
-RUN sed -i 's/\.\.\/\.\.\/\.\.\/\.\.\/utils\/mows-common/\/mows-common/g' Cargo.toml
+COPY --from=mows-common . mows-common
+COPY --from=acme-rs . acme-rs
 
-COPY ./acme-rs-temp /acme-rs
 RUN cargo build-deps --release
 RUN rm -f target/x86_64-unknown-linux-musl/release/deps/zertificat*
 # build

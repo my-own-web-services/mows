@@ -10,6 +10,9 @@ core_repos:
     - uri: file:///packages/core/storage/longhorn/
       namespace: mows-core-storage-longhorn
 
+package_manager:
+    working_dir: /tmp/mows-package-manager
+
 os_config:
     kairos_version: "v3.2.1"
     k3s_version: "k3sv1.31.1+k3s1"

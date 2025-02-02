@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{bail, Context};
 use lib::{
     types::{Identifier, UserChallenges},
     AcmeClient,
@@ -43,16 +43,27 @@ async fn main() -> anyhow::Result<()> {
 async fn run_procedure() -> anyhow::Result<()> {
     let config = get_current_config_cloned!(config());
     // get certificate config from vault
-    let vault_token = vault_k8s_login(false).await?.client_token;
-    let domains = get_pektin_domains().await?;
-    let maybe_vault_certificates = get_certificates(&domains, &vault_token).await?;
+    let vault_token = vault_k8s_login(false)
+        .await
+        .context("failed to login to vault")?
+        .client_token;
+    let domains = get_pektin_domains()
+        .await
+        .context("failed to get pektin domains")?;
+    let maybe_vault_certificates = get_certificates(&domains, &vault_token)
+        .await
+        .context("failed to get certificates from vault")?;
     // check certificate presence in vault
     for maybe_cert in maybe_vault_certificates {
         if maybe_cert.cert.is_none() || maybe_cert.key.is_none() || maybe_cert.info.is_none() {
             // generate new certificate
-            let cert = generate_certificate(&maybe_cert.domain).await?;
+            let cert = generate_certificate(&maybe_cert.domain)
+                .await
+                .context("failed to generate certificate")?;
             // set cert in vault
-            update_kv_value(&config.vault_uri, &vault_token, &cert.domain, &cert).await?;
+            update_kv_value(&config.vault_uri, &vault_token, &cert.domain, &cert)
+                .await
+                .context("failed to update certificate in vault")?;
         } else {
             let cert = VaultCert {
                 cert: maybe_cert.cert.unwrap().to_string(),
@@ -71,9 +82,17 @@ async fn run_procedure() -> anyhow::Result<()> {
             // check if certificate has expired
             if current_time > cert.info.created + sixty_days_secs {
                 // generate new certificate
-                let cert = generate_certificate(&cert.domain).await?;
+                let cert = generate_certificate(&cert.domain).await.context(format!(
+                    "failed to generate certificate for {}",
+                    &cert.domain
+                ))?;
                 // set cert in vault
-                update_kv_value(&config.vault_uri, &vault_token, &cert.domain, &cert).await?;
+                update_kv_value(&config.vault_uri, &vault_token, &cert.domain, &cert)
+                    .await
+                    .context(format!(
+                        "failed to update certificate in vault for {}",
+                        &cert.domain
+                    ))?;
             }
         }
     }
@@ -92,8 +111,12 @@ pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
         false => &config.acme_url,
     };
 
-    let mut client =
-        AcmeClient::new(&acme_url, &communication_signing_key, &config.acme_email).await?;
+    let mut client = AcmeClient::new(&acme_url, &communication_signing_key, &config.acme_email)
+        .await
+        .context(format!(
+            "failed to create acme client for domain: {}",
+            domain
+        ))?;
 
     let identifiers = vec![
         Identifier {
@@ -106,13 +129,22 @@ pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
         },
     ];
 
-    let cert = client.create_certificate_with_defaults(&identifiers)?;
+    let cert = client
+        .create_certificate_with_defaults(&identifiers)
+        .context(format!(
+            "failed to create certificate for domain: {}",
+            domain
+        ))?;
 
     let signed_cert = client
         .sign_certificate(&cert, &identifiers, |user_challenges| {
             handle_challenges_with_pektin(user_challenges)
         })
-        .await?;
+        .await
+        .context(format!(
+            "failed to sign certificate for domain with ACME provider: {}",
+            domain
+        ))?;
     let current_time = chrono::offset::Utc::now().timestamp_millis() / 1000;
     Ok(VaultCert {
         cert: signed_cert,

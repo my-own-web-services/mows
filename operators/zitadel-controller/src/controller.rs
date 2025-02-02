@@ -1,11 +1,10 @@
 use crate::{
     config::{self, config},
     crd::{ZitadelResource, ZitadelResourceSpec, ZitadelResourceStatus},
-    reconcile::plain::handle_plain,
+    reconcile::raw::handle_raw,
     utils::get_error_type,
     Error, Metrics, Result,
 };
-use anyhow::Context as anyhow_context;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use kube::{
@@ -31,12 +30,16 @@ pub static FINALIZER: &str = "zitadel.k8s.mows.cloud";
 
 #[instrument(skip(kube_client))]
 pub async fn reconcile_resource(
-    pektin_dns: &ZitadelResource,
+    zitadel_resource: &ZitadelResource,
     kube_client: &kube::Client,
 ) -> Result<(), Error> {
-    let resource_namespace = pektin_dns.metadata.namespace.as_deref().unwrap_or("default");
+    let resource_namespace = zitadel_resource
+        .metadata
+        .namespace
+        .as_deref()
+        .unwrap_or("default");
 
-    let resource_name = match pektin_dns.metadata.name.as_deref() {
+    let resource_name = match zitadel_resource.metadata.name.as_deref() {
         Some(v) => v,
         None => {
             return Err(Error::GenericError(
@@ -45,8 +48,8 @@ pub async fn reconcile_resource(
         }
     };
 
-    match &pektin_dns.spec {
-        ZitadelResourceSpec::Plain(plain_resource) => handle_plain(plain_resource).await?,
+    match &zitadel_resource.spec {
+        ZitadelResourceSpec::Raw(raw_resource) => handle_raw(raw_resource).await?,
     }
 
     Ok(())

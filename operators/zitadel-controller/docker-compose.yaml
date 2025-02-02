@@ -1,0 +1,10 @@
+services:
+    zitadel-controller:
+        build:
+            context: "."
+            dockerfile: Dockerfile
+            tags: 
+                - localhost:5000/zitadel-controller
+            additional_contexts:
+                mows-common: ../../utils/mows-common
+

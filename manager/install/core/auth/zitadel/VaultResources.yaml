@@ -48,13 +48,9 @@ spec:
                             ExternalDomain: zitadel.vindelicorum.eu
                             TLS:
                                 Enabled: false
-                            DefaultInstance:
-                                OIDCSettings:
-                                    AccessTokenLifetime: 12h
-                                    IdTokenLifetime: 12h
-                                    RefreshTokenIdleExpiration: 720h #30d
-                                    RefreshTokenExpiration: 2160h #90d
+                            FirstInstance:
                                 Org:
+                                    Name: ZITADEL
                                     Human:
                                         UserName: zitadel-admin
                                         Password: "{% .secrets.zitadel.adminPassword %}"

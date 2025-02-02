@@ -1,5 +1,5 @@
 [package]
-name = "vault-resource-controller"
+name = "controller"
 version = "0.14.0"
 edition = "2021"
 publish = false
@@ -76,7 +76,7 @@ sha1 = "0.10.6"
 data-encoding = { version = "2.6.0" }
 
 
-mows-common = { path = "../../utils/mows-common" }
+mows-common = { path = "./mows-common" }
 
 
 [dependencies.kube]

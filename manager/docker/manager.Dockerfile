@@ -16,12 +16,8 @@ RUN apt-get update && apt-get install upx -y
 
 RUN cargo install cargo-build-deps
 COPY Cargo.toml Cargo.lock ./
-# replace "../operators/package-manager" with  "mows-package-manager" in Cargo.toml
-RUN  sed -i 's/..\/operators\/package-manager/mows-package-manager/g' Cargo.toml
-COPY ./mows-package-manager-temp mows-package-manager
-RUN sed -i 's/\.\.\/\.\.\/utils\/mows-common/\/mows-common/g' mows-package-manager/Cargo.toml
-
-COPY ./mows-common-temp /mows-common
+COPY --from=package-manager . package-manager
+COPY --from=mows-common . package-manager/mows-common
 
 RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps --release
 

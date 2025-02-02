@@ -65,7 +65,8 @@ impl ExternalProviderMachineHcloud {
                 ..Default::default()
             },
         )
-        .await?
+        .await
+        .context("Failed to list primary IPs. Make sure HCLOUD_PRIMARY_IP_NAME is set correctly")?
         .primary_ips
         .first()
         .map(|ip| ip.id.clone())
@@ -81,7 +82,9 @@ impl ExternalProviderMachineHcloud {
                 ..Default::default()
             },
         )
-        .await?
+        .await.context(
+            "Failed to list primary legacy IPs. Make sure HCLOUD_PRIMARY_LEGACY_IP_NAME is set correctly",
+        )?
         .primary_ips
         .first()
         .map(|ip| ip.id.clone())
@@ -97,7 +100,8 @@ impl ExternalProviderMachineHcloud {
                 }),
             },
         )
-        .await?;
+        .await
+        .context("Failed to create SSH key on Hetzner Cloud.")?;
 
         let create_server_params = CreateServerParams {
             create_server_request: Some(CreateServerRequest {
@@ -120,20 +124,17 @@ impl ExternalProviderMachineHcloud {
             }),
         };
 
-        let res =
-            match hcloud::apis::servers_api::create_server(&configuration, create_server_params)
-                .await
-            {
-                Ok(res) => res,
-                Err(e) => {
-                    bail!("Failed to create VM on Hetzner Cloud: {}", e);
-                }
-            };
+        let res = hcloud::apis::servers_api::create_server(&configuration, create_server_params)
+            .await
+            .context("Failed to create VM on Hetzner Cloud.")?;
 
         ssh_config.remote_hostname = Some(
-            some_or_bail!(res.server.public_net.ipv4.clone(), "No IP address")
-                .ip
-                .to_string(),
+            some_or_bail!(
+                res.server.public_net.ipv4.clone(),
+                "No IP address present in create_server response"
+            )
+            .ip
+            .to_string(),
         );
 
         Ok(Machine {
@@ -171,7 +172,8 @@ impl ExternalProviderMachineHcloud {
                 ..Default::default()
             },
         )
-        .await?
+        .await
+        .context("Failed to list servers.")?
         .servers
         .first()
         .map(|s| s.id.clone())
@@ -186,13 +188,16 @@ impl ExternalProviderMachineHcloud {
         let mut configuration = Configuration::new();
         configuration.bearer_access_token = std::env::var(HCLOUD_API_TOKEN_ENV_NAME).ok();
 
-        let hcloud_id = Self::get_hcloud_id_from_mows_id(mows_id, &configuration).await?;
+        let hcloud_id = Self::get_hcloud_id_from_mows_id(mows_id, &configuration)
+            .await
+            .context("Failed to get Hetzner Cloud ID from MOWS ID")?;
 
         let res = request_console_for_server(
             &configuration,
             RequestConsoleForServerParams { id: hcloud_id },
         )
-        .await?;
+        .await
+        .context("Failed to request console for server.")?;
 
         Ok(VncWebsocket {
             url: res.wss_url,

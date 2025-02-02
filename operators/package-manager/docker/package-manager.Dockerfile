@@ -16,9 +16,7 @@ RUN apt-get update && apt-get install upx -y
 
 RUN cargo install cargo-build-deps
 COPY Cargo.toml Cargo.lock ./
-COPY ./mows-common-temp /mows-common
-
-RUN sed -i 's/\.\.\/\.\.\/utils\/mows-common/\/mows-common/g' Cargo.toml
+COPY --from=mows-common . mows-common
 
 RUN cargo build-deps --release
 RUN rm -f target/x86_64-unknown-linux-musl/release/deps/package-manager*
@@ -28,7 +26,6 @@ COPY migrations migrations
 COPY --chown=root:root src src
 COPY --from=ui-builder /build/dist ./ui-build
 RUN cargo build  --release --bin main
-RUN strip target/x86_64-unknown-linux-musl/release/main
 RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 RUN useradd -u 50003 -N mows-package-manager
 

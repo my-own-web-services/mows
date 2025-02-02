@@ -311,7 +311,8 @@ impl Cluster {
                 uri: core_repo.uri.clone(),
             };
 
-            repo.render(&core_repo.namespace).await?;
+            repo.render(&core_repo.namespace, &ic.package_manager.working_dir)
+                .await?;
         }
 
         Ok(())
@@ -336,6 +337,14 @@ impl Cluster {
             warn!("Skipping storage install as configured in internal config");
         } else {
             ClusterStorage::install(&self).await?;
+        }
+
+        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("argocd")) {
+            warn!("Skipping argocd install as configured in internal config");
+        } else {
+            Self::install_argocd(&self).await?;
+
+            Self::install_core_with_argo(&self).await?;
         }
 
         if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("vault")) {

@@ -7,16 +7,11 @@ RUN apt-get update && apt-get install upx -y
 
 RUN cargo install cargo-build-deps
 COPY Cargo.toml Cargo.lock ./
-COPY ./pektin-common-temp /pektin-common
-COPY ./mows-common-temp /mows-common
-
-# replace ../../apis/core/pektin/common in cargo.toml with /pektin-common
-RUN sed -i 's/\.\.\/\.\.\/apis\/core\/pektin\/common/\/pektin-common/g' Cargo.toml
-RUN sed -i 's/\.\.\/\.\.\/utils\/mows-common/\/mows-common/g' Cargo.toml
-
+COPY --from=mows-common . mows-common
+COPY --from=pektin-common . pektin-common
 
 RUN cargo build-deps --release
-RUN rm -f target/x86_64-unknown-linux-musl/release/deps/pektin-dns*
+RUN rm -f target/x86_64-unknown-linux-musl/release/deps/controller
 # build
 COPY --chown=root:root src src
 RUN cargo build  --release --bin main

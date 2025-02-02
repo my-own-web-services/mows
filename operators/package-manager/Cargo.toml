@@ -61,7 +61,7 @@ thiserror = "2.0.3"
 anyhow = "1.0.93"
 
 tracing = "0.1.40"
-mows-common = { path = "../../utils/mows-common" }
+mows-common = { path = "./mows-common" }
 url = { version = "2.5.4", features = ["serde"] }
 
 include_dir = "0.7.3"

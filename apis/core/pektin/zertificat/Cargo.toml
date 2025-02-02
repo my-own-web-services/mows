@@ -39,7 +39,7 @@ data-encoding = "2.6.0"
 reqwest = { version = "0.12.9", default-features = false, features = [
     "rustls-tls",
 ] }
-acme-rs = { path = "../acme-rs", features = [
+acme-rs = { path = "./acme-rs", features = [
     "acmeRsStd",
 ], default-features = false }
 rand_core = { version = "0.6.4", default-features = false, features = [
@@ -53,7 +53,7 @@ chrono = "0.4.38"
 vaultrs = "0.7.2"
 
 
-mows-common = { path = "../../../../utils/mows-common" }
+mows-common = { path = "./mows-common" }
 
 
 tracing = "0.1.37"

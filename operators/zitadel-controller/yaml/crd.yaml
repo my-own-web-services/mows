@@ -22,12 +22,172 @@ spec:
           spec:
             oneOf:
             - required:
-              - plain
+              - raw
             properties:
-              plain:
-                items:
-                  type: string
-                type: array
+              raw:
+                properties:
+                  resource:
+                    oneOf:
+                    - required:
+                      - org
+                    - required:
+                      - project
+                    properties:
+                      org:
+                        properties:
+                          name:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      project:
+                        properties:
+                          applications:
+                            items:
+                              properties:
+                                clientDataTarget:
+                                  oneOf:
+                                  - required:
+                                    - vault
+                                  properties:
+                                    vault:
+                                      properties:
+                                        name:
+                                          type: string
+                                        path:
+                                          type: string
+                                      required:
+                                      - name
+                                      - path
+                                      type: object
+                                  type: object
+                                method:
+                                  oneOf:
+                                  - required:
+                                    - oidc
+                                  - required:
+                                    - api
+                                  properties:
+                                    api:
+                                      properties:
+                                        authMethodType:
+                                          type: string
+                                      required:
+                                      - authMethodType
+                                      type: object
+                                    oidc:
+                                      properties:
+                                        accessTokenRoleAssertion:
+                                          type: boolean
+                                        accessTokenType:
+                                          type: string
+                                        additionalOrigins:
+                                          items:
+                                            type: string
+                                          type: array
+                                        appType:
+                                          type: string
+                                        authMethodType:
+                                          type: string
+                                        backChannelLogoutUri:
+                                          type: string
+                                        clockSkew:
+                                          nullable: true
+                                          properties:
+                                            nanos:
+                                              format: int32
+                                              type: integer
+                                            seconds:
+                                              format: int64
+                                              type: integer
+                                          required:
+                                          - nanos
+                                          - seconds
+                                          type: object
+                                        devMode:
+                                          type: boolean
+                                        grantTypes:
+                                          items:
+                                            type: string
+                                          type: array
+                                        idTokenRoleAssertion:
+                                          type: boolean
+                                        idTokenUserinfoAssertion:
+                                          type: boolean
+                                        loginVersion:
+                                          nullable: true
+                                          type: string
+                                        postLogoutRedirectUris:
+                                          items:
+                                            type: string
+                                          type: array
+                                        redirectUris:
+                                          items:
+                                            type: string
+                                          type: array
+                                        responseTypes:
+                                          items:
+                                            type: string
+                                          type: array
+                                        skipNativeAppSuccessPage:
+                                          type: boolean
+                                        version:
+                                          type: string
+                                      required:
+                                      - accessTokenRoleAssertion
+                                      - accessTokenType
+                                      - additionalOrigins
+                                      - appType
+                                      - authMethodType
+                                      - backChannelLogoutUri
+                                      - devMode
+                                      - grantTypes
+                                      - idTokenRoleAssertion
+                                      - idTokenUserinfoAssertion
+                                      - postLogoutRedirectUris
+                                      - redirectUris
+                                      - responseTypes
+                                      - skipNativeAppSuccessPage
+                                      - version
+                                      type: object
+                                  type: object
+                                name:
+                                  type: string
+                              required:
+                              - clientDataTarget
+                              - method
+                              - name
+                              type: object
+                            type: array
+                          name:
+                            type: string
+                          orgName:
+                            type: string
+                          roles:
+                            items:
+                              properties:
+                                displayName:
+                                  type: string
+                                group:
+                                  type: string
+                                key:
+                                  type: string
+                              required:
+                              - displayName
+                              - group
+                              - key
+                              type: object
+                            type: array
+                        required:
+                        - applications
+                        - name
+                        - orgName
+                        - roles
+                        type: object
+                    type: object
+                required:
+                - resource
+                type: object
             type: object
           status:
             description: The status object of `ZitadelResource`

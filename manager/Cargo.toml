@@ -107,7 +107,7 @@ include_dir = "0.7.3"
 mime_guess = "2.0.5"
 
 
-mows-package-manager = { path = "../operators/package-manager" }
+mows-package-manager = { path = "./package-manager" }
 
 
 # [target.'cfg(not(target_env = "msvc"))'.dependencies]

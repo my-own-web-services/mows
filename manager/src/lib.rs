@@ -11,10 +11,7 @@ pub mod ui;
 pub mod utils;
 
 pub mod providers {
-    pub mod hcloud {
-        pub mod index;
-        pub mod machine;
-    }
+    pub mod hcloud;
     pub mod qemu {
         pub mod machine;
     }

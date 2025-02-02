@@ -1,0 +1,10 @@
+services:
+    vault-resource-controller:
+        build:
+            context: "."
+            dockerfile: Dockerfile
+            tags: 
+                - localhost:5000/vault-resource-controller
+            additional_contexts:
+                mows-common: ../../utils/mows-common
+

@@ -1,11 +1,13 @@
 pub mod repository {
     use axum::{extract::State, Json};
+    use mows_common::get_current_config_cloned;
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
     use utoipa::ToSchema;
     use utoipa_axum::{router::OpenApiRouter, routes};
 
     use crate::{
+        config::config,
         db::{
             db::Db,
             models::{NewRepository, Repository},
@@ -103,6 +105,8 @@ pub mod repository {
 
         let mut results = Vec::new();
 
+        let config = get_current_config_cloned!(config());
+
         for repository_render_req in req_body.repositories.iter() {
             let repository = match &repository_render_req.repository_selector {
                 RenderRepositoriesRepositorySelector::Id(id) => {
@@ -123,7 +127,10 @@ pub mod repository {
                 },
             };
 
-            let render_result = match repository.render(&repository_render_req.namespace).await {
+            let render_result = match repository
+                .render(&repository_render_req.namespace, &config.working_dir)
+                .await
+            {
                 Ok(v) => v,
                 Err(e) => {
                     return Json(ApiResponse {

@@ -1,5 +1,10 @@
 services:
   mows-package-manager:
+    build:
+      context: "."
+      dockerfile: ./docker/package-manager.Dockerfile
+      additional_contexts:
+        mows-common: ../../utils/mows-common
     image: mows-package-manager
     container_name: mows-package-manager
     environment:

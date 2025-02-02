@@ -67,7 +67,7 @@ const urls: Url[] = [
         category: ["cluster"]
     },
     {
-        url: "http://localhost:8001/api/v1/namespaces/mows-core-argocd/services/https:mows-core-argocd-server:https/proxy/",
+        url: "http://localhost:8001/api/v1/namespaces/mows-core-argocd/services/http:mows-core-argocd-server:http/proxy/",
         title: "ArgoCD",
         category: ["cluster"],
         notes: "user: admin, password: can be found with command in notes"

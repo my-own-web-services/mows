@@ -6,24 +6,24 @@ use zitadel::api::zitadel;
 
 use crate::{
     config::config,
-    crd::{self, PlainZitadelResource},
+    crd::{self, RawZitadelResource},
     utils::create_new_zitadel_management_client,
     Error,
 };
 
-pub async fn handle_plain(plain_resource: &PlainZitadelResource) -> Result<(), Error> {
+pub async fn handle_raw(raw_resource: &RawZitadelResource) -> Result<(), Error> {
     let mut client = create_new_zitadel_management_client().await?;
     let config = get_current_config_cloned!(config());
 
-    match &plain_resource.resource {
-        crd::PlainZitadelResourceSelector::Org(plain_zitadel_org) => {
+    match &raw_resource.resource {
+        crd::RawZitadelResourceSelector::Org(raw_zitadel_org) => {
             client
                 .add_org(AddOrgRequest {
-                    name: plain_zitadel_org.name.clone(),
+                    name: raw_zitadel_org.name.clone(),
                 })
                 .await?;
         }
-        crd::PlainZitadelResourceSelector::Project(plain_zitadel_project) => todo!(),
+        crd::RawZitadelResourceSelector::Project(raw_zitadel_project) => todo!(),
     };
 
     Ok(())

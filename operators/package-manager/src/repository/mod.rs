@@ -5,10 +5,9 @@ use std::{
 
 use anyhow::Context;
 use fs_extra::dir::CopyOptions;
-use mows_common::get_current_config_cloned;
 use raw::RawSpecError;
 
-use crate::{config::config, db::models::Repository, types::MowsManifest, utils::parse_manifest};
+use crate::{db::models::Repository, types::MowsManifest, utils::parse_manifest};
 
 mod raw;
 
@@ -23,10 +22,8 @@ pub struct RepositoryPaths {
 }
 
 impl RepositoryPaths {
-    pub async fn new(repository: &Repository) -> Self {
-        let config = get_current_config_cloned!(config());
-
-        let working_path = Path::new(config.working_dir.as_str()).join(repository.id.to_string());
+    pub async fn new(repository: &Repository, root_working_directory: &str) -> Self {
+        let working_path = Path::new(root_working_directory).join(repository.id.to_string());
         let source_path = working_path.join("source");
         let manifest_path = source_path.join(MANIFEST_FILE_NAME);
         let output_path = working_path.join("output");
@@ -51,8 +48,9 @@ impl Repository {
     pub async fn render(
         &self,
         namespace: &str,
+        root_working_directory: &str,
     ) -> Result<HashMap<String, String>, RepositoryError> {
-        let repo_paths = RepositoryPaths::new(self).await;
+        let repo_paths = RepositoryPaths::new(self, root_working_directory).await;
 
         let _ = &self.fetch(&repo_paths.source_path).await?;
 

@@ -1,5 +1,5 @@
 [package]
-name = "pektin-dns-controller"
+name = "controller"
 version = "0.14.0"
 edition = "2021"
 publish = false
@@ -58,8 +58,8 @@ reqwest = { version = "0.12.9", default-features = false, features = [
 reqwest-tracing = "0.5.3"
 tracing-actix-web = "0.7.14"
 
-pektin-common = { path = "../../apis/core/pektin/common" }
-mows-common = { path = "../../utils/mows-common" }
+pektin-common = { path = "./pektin-common" }
+mows-common = { path = "./mows-common" }
 
 [dependencies.kube]
 features = ["runtime", "client", "derive"]
