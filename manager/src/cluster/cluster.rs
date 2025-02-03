@@ -165,11 +165,17 @@ impl Cluster {
         Ok(kc)
     }
 
+    pub async fn get_kubeconfig_struct(&self) -> anyhow::Result<Kubeconfig> {
+        let kubeconfig_replaced = self.get_kubeconfig_with_replaced_addresses().await?;
+        let kubeconfig = Kubeconfig::from_yaml(&kubeconfig_replaced)?;
+
+        Ok(kubeconfig)
+    }
+
     pub async fn get_kube_client(&self) -> anyhow::Result<kube::client::Client> {
         // I wanted to import this function from mows-common but can't because of
         // https://github.com/rust-lang/cargo/issues/8639
-        let kubeconfig_replaced = self.get_kubeconfig_with_replaced_addresses().await?;
-        let kubeconfig = Kubeconfig::from_yaml(&kubeconfig_replaced)?;
+        let kubeconfig = self.get_kubeconfig_struct().await?;
         let config =
             kube::Config::from_custom_kubeconfig(kubeconfig, &KubeConfigOptions::default()).await?;
         Ok(kube::client::Client::try_from(config)?)

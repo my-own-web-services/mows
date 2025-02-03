@@ -33,10 +33,8 @@ impl ClusterStorage {
     }
 
     async fn configure_node_storage_labels(cluster: &Cluster) -> anyhow::Result<()> {
-        let kc = cluster.get_kubeconfig_struct().await?;
-
         for (_, node) in &cluster.cluster_nodes {
-            ClusterStorage::set_storage_labels(&node, &kc).await?;
+            ClusterStorage::set_storage_labels(&node, &cluster).await?;
         }
 
         Ok(())
