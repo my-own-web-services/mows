@@ -7,7 +7,7 @@ spec:
         - websecure
     routes:
         - kind: Rule
-          match: Host(`zitadel.$MOWS_PRIMARY_CLUSTER_DOMAIN`)
+          match: Host(`{§ .config.subdomain §}.{§ .config.domain §}`)
           services:
               - kind: Service
                 name: mows-core-auth-zitadel

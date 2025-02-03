@@ -6,7 +6,7 @@ use crate::{
         secret_sync::handle_secret_sync,
     },
     utils::get_error_type,
-    Error, Metrics, Result,
+    ControllerError, Metrics, Result,
 };
 use anyhow::Context as anyhow_context;
 use chrono::{DateTime, Utc};
@@ -31,7 +31,7 @@ use tracing::*;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 pub static FINALIZER: &str = "vaultresources.k8s.mows.cloud";
 
-pub async fn create_vault_client() -> Result<VaultClient, Error> {
+pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
     let mut client_builder = VaultClientSettingsBuilder::default();
 
     let config = get_current_config_cloned!(config());
@@ -40,7 +40,7 @@ pub async fn create_vault_client() -> Result<VaultClient, Error> {
 
     let vc =
         VaultClient::new(client_builder.build().map_err(|_| {
-            Error::GenericError("Failed to create vault client settings builder".to_string())
+            ControllerError::GenericError("Failed to create vault client settings builder".to_string())
         })?)?;
 
     let service_account_jwt = std::fs::read_to_string(config.service_account_token_path)
@@ -68,7 +68,7 @@ pub async fn create_vault_client() -> Result<VaultClient, Error> {
 pub async fn reconcile_resource(
     vault_resource: &VaultResource,
     kube_client: &kube::Client,
-) -> Result<(), Error> {
+) -> Result<(), ControllerError> {
     let vc = create_vault_client().await?;
 
     let resource_namespace = vault_resource.metadata.namespace.as_deref().unwrap_or("default");
@@ -76,7 +76,7 @@ pub async fn reconcile_resource(
     let resource_name = match vault_resource.metadata.name.as_deref() {
         Some(v) => v,
         None => {
-            return Err(Error::GenericError(
+            return Err(ControllerError::GenericError(
                 "Failed to get resource name from VaultResource metadata".to_string(),
             ))
         }
@@ -104,7 +104,7 @@ pub async fn reconcile_resource(
                         if sudo == "true" {
                             target_namespace = force_target_namespace_some;
                         } else {
-                            return Err(Error::GenericError(format!(
+                            return Err(ControllerError::GenericError(format!(
                                 "The `{}` label is only allowed with `{}` label set to `true`",
                                 force_target_namespace_key, sudo_key
                             )));
@@ -157,10 +157,10 @@ async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Res
         }
     })
     .await
-    .map_err(|e| Error::FinalizerError(Box::new(e)))
+    .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
 }
 
-fn error_policy(vault_resource: Arc<VaultResource>, error: &Error, ctx: Arc<Context>) -> Action {
+fn error_policy(vault_resource: Arc<VaultResource>, error: &ControllerError, ctx: Arc<Context>) -> Action {
     warn!("reconcile failed: {:?}", error);
     ctx.metrics.reconcile.set_failure(&vault_resource, error);
 
@@ -192,7 +192,7 @@ impl VaultResource {
                 let _o = vault_resources
                     .patch_status(&name, &ps, &new_status)
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
 
                 recorder
                     .publish(Event {
@@ -203,7 +203,7 @@ impl VaultResource {
                         secondary: None,
                     })
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
             }
             Err(e) => {
                 error!("Reconcile failed: {:?}", e);
@@ -219,7 +219,7 @@ impl VaultResource {
                 vault_resources
                     .patch_status(&name, &ps, &new_status)
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
 
                 let reason = get_error_type(&e);
 
@@ -232,7 +232,7 @@ impl VaultResource {
                         secondary: None,
                     })
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
                 return Err(e);
             }
         }
@@ -259,7 +259,7 @@ impl VaultResource {
                 secondary: None,
             })
             .await
-            .map_err(Error::KubeError);
+            .map_err(ControllerError::KubeError);
 
         error!("Failed to publish event: {:?}", res);
 

@@ -118,7 +118,7 @@ pub async fn get_cluster_kubeconfig() -> anyhow::Result<()> {
     for cluster in cfg1.clusters.values() {
         if cluster.kubeconfig.is_none() {
             debug!("Getting kubeconfig for cluster {}", cluster.id);
-            let kubeconfig = cluster.get_kubeconfig().await.context(format!(
+            let kubeconfig = cluster.get_kubeconfig_from_node().await.context(format!(
                 "Failed to get kubeconfig for cluster {}",
                 cluster.id
             ))?;

@@ -1,4 +1,4 @@
-use crate::repository::RepositoryError;
+use crate::repository::RenderError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PackageManagerErrors {
@@ -9,5 +9,5 @@ pub enum PackageManagerErrors {
     #[error("Interact error {0}")]
     InteractError(#[from] deadpool_diesel::InteractError),
     #[error("Repository error {0}")]
-    RepositoryError(#[from] RepositoryError),
+    RepositoryError(#[from] RenderError),
 }

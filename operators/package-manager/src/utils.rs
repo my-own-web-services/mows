@@ -1,8 +1,14 @@
 use std::path::{Path, PathBuf};
 
+use kube::{
+    api::{ApiResource, DynamicObject},
+    config::{KubeConfigOptions, Kubeconfig},
+    discovery::{ApiCapabilities, Scope},
+    Api, Client,
+};
 use tokio::signal;
 
-use crate::types::MowsManifest;
+use crate::{repository::RenderError, types::MowsManifest};
 
 pub async fn parse_manifest(input: &str) -> anyhow::Result<MowsManifest> {
     // this workaround is needed because serde_yaml does not support nested enums
@@ -54,4 +60,20 @@ pub async fn get_all_file_paths_recursive(path: &Path) -> Vec<PathBuf> {
     }
 
     file_paths
+}
+
+pub fn dynamic_kube_api(
+    ar: ApiResource,
+    caps: ApiCapabilities,
+    client: Client,
+    ns: Option<&str>,
+    all: bool,
+) -> Api<DynamicObject> {
+    if caps.scope == Scope::Cluster || all {
+        Api::all_with(client, &ar)
+    } else if let Some(namespace) = ns {
+        Api::namespaced_with(client, namespace, &ar)
+    } else {
+        Api::default_namespaced_with(client, &ar)
+    }
 }

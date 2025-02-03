@@ -82,7 +82,7 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn get_kubeconfig(&self) -> anyhow::Result<String> {
+    pub async fn get_kubeconfig_from_node(&self) -> anyhow::Result<String> {
         if self.kubeconfig.is_some() {
             return Ok(self.kubeconfig.clone().unwrap());
         }
@@ -150,7 +150,7 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn get_kubeconfig_struct(&self) -> anyhow::Result<kube::Config> {
+    pub async fn get_kubeconfig_with_replaced_addresses(&self) -> anyhow::Result<String> {
         let node = some_or_bail!(self.cluster_nodes.values().next(), "No nodes found");
 
         let hostname = if let Ok(v) = self.controlplane_vip_is_ready().await {
@@ -162,19 +162,21 @@ impl Cluster {
         let kc = some_or_bail!(self.kubeconfig.clone(), "No kubeconfig found")
             .replace("https://127.0.0.1", &format!("https://{}", hostname));
 
-        let kc = Kubeconfig::from_yaml(&kc)?;
-
-        Ok(kube::Config::from_custom_kubeconfig(kc, &KubeConfigOptions::default()).await?)
+        Ok(kc)
     }
 
     pub async fn get_kube_client(&self) -> anyhow::Result<kube::client::Client> {
-        let kc = self.get_kubeconfig_struct().await?;
-        Ok(kube::client::Client::try_from(kc)?)
+        // I wanted to import this function from mows-common but can't because of
+        // https://github.com/rust-lang/cargo/issues/8639
+        let kubeconfig_replaced = self.get_kubeconfig_with_replaced_addresses().await?;
+        let kubeconfig = Kubeconfig::from_yaml(&kubeconfig_replaced)?;
+        let config =
+            kube::Config::from_custom_kubeconfig(kubeconfig, &KubeConfigOptions::default()).await?;
+        Ok(kube::client::Client::try_from(config)?)
     }
 
     pub async fn are_nodes_ready(&self) -> anyhow::Result<bool> {
-        let kc = self.get_kubeconfig_struct().await?;
-        let client = kube::client::Client::try_from(kc)?;
+        let client = self.get_kube_client().await?;
 
         let nodes: Api<Node> = Api::all(client);
 
@@ -326,7 +328,7 @@ impl Cluster {
         if ic.dev.enabled && ic.dev.install_k8s_dashboard {
             self.install_dashboard().await?;
         }
-
+        /*
         if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("network")) {
             warn!("Skipping network install as configured in internal config");
         } else {
@@ -337,7 +339,9 @@ impl Cluster {
             warn!("Skipping storage install as configured in internal config");
         } else {
             ClusterStorage::install(&self).await?;
-        }
+        }*/
+
+        self.install_with_package_manager().await?;
 
         if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("argocd")) {
             warn!("Skipping argocd install as configured in internal config");

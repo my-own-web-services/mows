@@ -1,13 +1,16 @@
-use std::collections::HashMap;
-
+use super::RepositoryPaths;
+use crate::{dev::get_fake_app_config, types::RawSpec, utils::get_all_file_paths_recursive};
 use anyhow::Context;
 use helm::HelmRepoError;
 use serde::Deserialize;
 use serde_yaml::Value;
+use std::collections::HashMap;
 
-use crate::{dev::get_cluster_variables, types::RawSpec, utils::get_all_file_paths_recursive};
-
-use super::RepositoryPaths;
+use mows_common::templating::{
+    functions::{serde_json_hashmap_to_gtmpl_hashmap, TEMPLATE_FUNCTIONS},
+    gtmpl::{self, Context as GtmplContext, Template, Value as GtmplValue},
+    gtmpl_derive::Gtmpl,
+};
 
 mod helm;
 
@@ -25,10 +28,9 @@ impl RawSpec {
             }
         }
 
-        let cluster_variables = get_cluster_variables().await;
+        let app_config = get_fake_app_config().await;
 
-        self.replace_cluster_variables(repo_paths, cluster_variables)
-            .await?;
+        self.replace_app_config(repo_paths, app_config).await?;
 
         match self {
             RawSpec::HelmRepos(helm_repos) => {
@@ -123,24 +125,56 @@ impl RawSpec {
         }
     }
 
-    pub async fn replace_cluster_variables(
+    pub async fn replace_app_config(
         &self,
         repo_paths: &RepositoryPaths,
-        cluster_variables: HashMap<String, String>,
+        app_config: HashMap<String, serde_json::Value>,
     ) -> Result<(), RawSpecError> {
         // replace cluster variables in all files recursively
         let file_paths = get_all_file_paths_recursive(&repo_paths.source_path).await;
 
+        let mut template_creator = Template::default();
+        template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+
+        #[derive(Gtmpl)]
+        struct LocalContext {
+            config: HashMap<String, GtmplValue>,
+        }
+
+        let context = GtmplContext::from(LocalContext {
+            config: serde_json_hashmap_to_gtmpl_hashmap(app_config),
+        });
+
+        let temp_token_left = "{t";
+        let temp_token_right = "t}";
+
         for file_path in file_paths {
-            let file_content = tokio::fs::read_to_string(&file_path).await?;
+            let original_file_content = tokio::fs::read_to_string(&file_path)
+                .await?
+                .replace("{{", &temp_token_left)
+                .replace("}}", &temp_token_right)
+                .replace("{§", "{{")
+                .replace("§}", "}}");
 
-            let replaced_content = cluster_variables
-                .iter()
-                .fold(file_content, |acc, (key, value)| {
-                    acc.replace(&format!("${}", key), value)
-                });
+            println!("file_content: {}", &original_file_content);
 
-            tokio::fs::write(&file_path, replaced_content).await?;
+            template_creator
+                .parse(&original_file_content)
+                .context(format!(
+                    "Error parsing template: {} with content:\n {}",
+                    file_path.to_str().unwrap_or(""),
+                    &original_file_content
+                ))?;
+
+            let rendered_content = template_creator.render(&context)?;
+
+            tokio::fs::write(
+                &file_path,
+                rendered_content
+                    .replace(temp_token_left, "{{")
+                    .replace(temp_token_right, "}}"),
+            )
+            .await?;
         }
 
         Ok(())
@@ -157,4 +191,8 @@ pub enum RawSpecError {
     AnyhowError(#[from] anyhow::Error),
     #[error("Error parsing file: {0}")]
     ParsingError(#[from] serde_yaml::Error),
+    #[error("Error rendering template: {0}")]
+    TemplateExecError(#[from] gtmpl::error::ExecError),
+    #[error("Error parsing template: {0}")]
+    ParseTemplateError(#[from] gtmpl::error::ParseError),
 }

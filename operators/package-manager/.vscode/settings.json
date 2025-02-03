@@ -30,11 +30,19 @@
 ],
     "cSpell.words": [
         "apidoc",
+        "argocd",
+        "firstdorsal",
+        "flate",
+        "gitea",
         "hasher",
+        "kubeconfig",
+        "kustomizations",
         "openapi",
+        "reqwest",
         "serviceaccount",
         "tempfile",
         "utoipa",
+        "vindelicorum",
         "zitadel"
     ],
     "workbench.colorCustomizations": {

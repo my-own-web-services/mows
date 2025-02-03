@@ -3,6 +3,32 @@
 1. path traversal attacks ../../
 
 
+# replacements
+
+
+not directly replaced but filled into the defaults of config in the ui
+cluster.public_ip
+cluster.public_legacy_ip
+cluster.domain, can be adjusted
+
+config.organization
+
+
+
+
+
+deploy gitea
+- select org: qa, or firstdorsal
+- use default subdomain for chart, in this case gitea
+- use primary domain of org as default or any other domain that we know of
+namespace will be created as mows-app-ORGNAME-deploymentname, mows-app-qa-gitea
+
+
+
+
+
+
+
 # flow
 
 ## adding repository (git)
@@ -65,7 +91,7 @@ app:
 - a commit is created and made ready for the admin to sign it
 
 - the admin signs it and it is pushed to their own gitea
-- an arogcd app definition is created, argocd pulls the repo verifies the commit and updates the cluster
+- an argocd app definition is created, argocd pulls the repo verifies the commit and updates the cluster
 
 
 

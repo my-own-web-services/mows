@@ -9,7 +9,7 @@ spec:
         -   repository: https://helm.cilium.io
             chartName: cilium
             digest: 20481d2f5d85ee1b68237aac4210e8e0e1615b037e6ecf3b845fb8bdad254110
-            valuesFile: helm/cilium/values.yaml
+            valuesFile: files/helm/cilium/values.yaml
             resources:
-                - announce.yaml
-                - ip-pool.yaml
+                - files/announce.yaml
+                - files/ip-pool.yaml

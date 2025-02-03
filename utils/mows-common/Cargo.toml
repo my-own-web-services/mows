@@ -10,6 +10,7 @@ telemetry = ["opentelemetry-otlp"]
 
 [dependencies]
 thiserror = "2.0.3"
+anyhow = "1.0.95"
 
 tokio = { version = "1.41.1", features = ["macros", "rt-multi-thread"] }
 
@@ -37,4 +38,18 @@ reqwest-tracing = { version = "0.5.4", features = ["opentelemetry_0_24"] }
 
 reqwest-middleware = { version = "0.4.0", features = ["json", "rustls-tls"] }
 http = "1.1.0"
-rand = "0.8.5"
+
+
+rand = { version = "0.8.5" }
+gtmpl = { version = "0.7" }
+gtmpl_value = { version = "0.5.1" }
+gtmpl_derive = { version = "0.5.0" }
+bcrypt = { version = "0.15.1" }
+md5 = { version = "0.7.0" }
+sha2 = "0.10"
+sha1 = "0.10.6"
+data-encoding = { version = "2.6.0" }
+serde_yaml = "0.9.25"
+
+kube = { version = "0.96.0", features = ["runtime", "derive", "client"] }
+k8s-openapi = { version = "0.23.0", features = ["latest"] }

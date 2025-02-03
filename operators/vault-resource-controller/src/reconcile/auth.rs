@@ -16,7 +16,7 @@ pub async fn handle_auth_engine(
     resource_namespace: &str,
     resource_name: &str,
     vault_auth_engine: &VaultAuthEngine,
-) -> Result<(), crate::Error> {
+) -> Result<(), crate::ControllerError> {
     let mount_path = format!("mows-core-secrets-vrc/{}/{}", resource_namespace, resource_name);
 
     let current_auth_engines = vaultrs::sys::auth::list(vault_client)
@@ -55,7 +55,7 @@ pub async fn handle_k8s_auth_engine(
     mount_path: &str,
     resource_namespace: &str,
     k8s_auth_engine_config: &KubernetesAuthEngineParams,
-) -> Result<(), crate::Error> {
+) -> Result<(), crate::ControllerError> {
     let kubernetes_ca_cert = std::fs::read_to_string("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
         .context("Failed to read kubernetes ca cert")?;
 
@@ -83,7 +83,7 @@ pub async fn handle_k8s_auth_role(
     resource_namespace: &str,
     role_name: &str,
     role: &KubernetesAuthEngineRole,
-) -> Result<(), crate::Error> {
+) -> Result<(), crate::ControllerError> {
     let namespace = role.namespace.clone().unwrap_or(resource_namespace.to_string());
 
     let policy_ids = role

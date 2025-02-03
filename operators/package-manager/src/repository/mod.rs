@@ -1,55 +1,20 @@
+use crate::{db::models::Repository, types::MowsManifest, utils::parse_manifest};
+use anyhow::Context;
+use fs_extra::dir::CopyOptions;
+use mows_common::kube::get_kube_client;
+use raw::RawSpecError;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
 };
-
-use anyhow::Context;
-use fs_extra::dir::CopyOptions;
-use raw::RawSpecError;
-
-use crate::{db::models::Repository, types::MowsManifest, utils::parse_manifest};
-
 mod raw;
-
-const MANIFEST_FILE_NAME: &str = "manifest.mows.yaml";
-
-pub struct RepositoryPaths {
-    /// The parent working directory
-    pub working_path: PathBuf,
-    pub source_path: PathBuf,
-    pub manifest_path: PathBuf,
-    pub output_path: PathBuf,
-}
-
-impl RepositoryPaths {
-    pub async fn new(repository: &Repository, root_working_directory: &str) -> Self {
-        let working_path = Path::new(root_working_directory).join(repository.id.to_string());
-        let source_path = working_path.join("source");
-        let manifest_path = source_path.join(MANIFEST_FILE_NAME);
-        let output_path = working_path.join("output");
-
-        let _ = tokio::fs::remove_dir_all(&working_path).await.map_err(|e| {
-            tracing::warn!("Error removing working directory: {}", e);
-        });
-
-        tokio::fs::create_dir_all(&source_path).await.unwrap();
-        tokio::fs::create_dir_all(&output_path).await.unwrap();
-
-        Self {
-            source_path,
-            working_path,
-            manifest_path,
-            output_path,
-        }
-    }
-}
 
 impl Repository {
     pub async fn render(
         &self,
         namespace: &str,
         root_working_directory: &str,
-    ) -> Result<HashMap<String, String>, RepositoryError> {
+    ) -> Result<HashMap<String, String>, RenderError> {
         let repo_paths = RepositoryPaths::new(self, root_working_directory).await;
 
         let _ = &self.fetch(&repo_paths.source_path).await?;
@@ -95,10 +60,54 @@ impl Repository {
 
         Ok(mows_manifest)
     }
+    pub async fn install(
+        &self,
+        namespace: &str,
+        root_working_directory: &str,
+        kubeconfig: &str,
+    ) -> Result<(), InstallError> {
+        let rendered_files = self.render(namespace, root_working_directory).await?;
+        let client = get_kube_client(kubeconfig).await?;
+        // https://github.com/kube-rs/kube/blob/main/examples/kubectl.rs
+        Ok(())
+    }
+}
+
+const MANIFEST_FILE_NAME: &str = "manifest.mows.yaml";
+
+pub struct RepositoryPaths {
+    /// The parent working directory
+    pub working_path: PathBuf,
+    pub source_path: PathBuf,
+    pub manifest_path: PathBuf,
+    pub output_path: PathBuf,
+}
+
+impl RepositoryPaths {
+    pub async fn new(repository: &Repository, root_working_directory: &str) -> Self {
+        let working_path = Path::new(root_working_directory).join(repository.id.to_string());
+        let source_path = working_path.join("source");
+        let manifest_path = source_path.join(MANIFEST_FILE_NAME);
+        let output_path = working_path.join("output");
+
+        let _ = tokio::fs::remove_dir_all(&working_path).await.map_err(|e| {
+            tracing::warn!("Error removing working directory: {}", e);
+        });
+
+        tokio::fs::create_dir_all(&source_path).await.unwrap();
+        tokio::fs::create_dir_all(&output_path).await.unwrap();
+
+        Self {
+            source_path,
+            working_path,
+            manifest_path,
+            output_path,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RepositoryError {
+pub enum RenderError {
     #[error("Error fetching repository: {0}")]
     FetchError(#[from] FetchMowsRepoError),
     #[error("Manifest Error: {0}")]
@@ -107,6 +116,10 @@ pub enum RepositoryError {
     RawSpecError(#[from] RawSpecError),
     #[error("IO error: {0}")]
     IoError(#[from] tokio::io::Error),
+    #[error("Parsing Error: {0}")]
+    ParseError(#[from] serde_yaml::Error),
+    #[error(transparent)]
+    AnyhowError(#[from] anyhow::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -129,4 +142,12 @@ pub enum FetchMowsRepoError {
     FsExtraError(#[from] fs_extra::error::Error),
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InstallError {
+    #[error(transparent)]
+    AnyhowError(#[from] anyhow::Error),
+    #[error(transparent)]
+    RepositoryError(#[from] RenderError),
 }

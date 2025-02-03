@@ -102,9 +102,7 @@ impl ClusterStorage {
         sc_name: &str,
         params: &BTreeMap<String, String>,
     ) -> anyhow::Result<bool> {
-        let kc = cluster.get_kubeconfig_struct().await?;
-
-        let client = kube::client::Client::try_from(kc.clone())?;
+        let client = cluster.get_kube_client().await?;
 
         let sc_api: kube::Api<StorageClass> = kube::Api::all(client.clone());
 
@@ -138,9 +136,7 @@ impl ClusterStorage {
         let secret_name = "mows-core-storage-longhorn-secret";
         let namespace = "mows-core-storage-longhorn";
 
-        let kc = cluster.get_kubeconfig_struct().await?;
-
-        let client = kube::client::Client::try_from(kc.clone())?;
+        let client = cluster.get_kube_client().await?;
 
         ClusterStorage::create_storage_secrets(&client, &secret_name, &namespace).await?;
 
@@ -235,8 +231,8 @@ impl ClusterStorage {
     Sets the labels that are required for longhorn to automatically detect the storage
     https://longhorn.io/docs/1.6.2/nodes-and-volumes/nodes/default-disk-and-node-config/
     */
-    pub async fn set_storage_labels(node: &ClusterNode, kc: &kube::Config) -> anyhow::Result<()> {
-        let client = kube::client::Client::try_from(kc.clone())?;
+    pub async fn set_storage_labels(node: &ClusterNode, cluster: &Cluster) -> anyhow::Result<()> {
+        let client = cluster.get_kube_client().await?;
 
         let nodes: Api<Node> = Api::all(client);
 

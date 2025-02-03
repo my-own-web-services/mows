@@ -4,9 +4,9 @@ metadata:
     name: zitadel-dns
 spec:
     plain:
-        - name: zitadel.$MOWS_PRIMARY_CLUSTER_DOMAIN.
+        - name: "{§ .config.subdomain §}.{§ .config.domain §}."
           meta: ""
           ttl: 60
           rr_set:
               A:
-                  - value: "$MOWS_PRIMARY_CLUSTER_LEGACY_IP"
+                  - value: "{§ .config.legacy_ip §}"

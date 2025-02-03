@@ -31,8 +31,8 @@ RUN apk add --no-cache \
     virt-install
 
 
-COPY ./misc/supervisord.conf /etc/supervisord.conf
-COPY ./misc/init-libvirtd.sh /init-libvirtd.sh
+COPY ./misc/qemu/supervisord.conf /etc/supervisord.conf
+COPY ./misc/qemu/init-libvirtd.sh /init-libvirtd.sh
 RUN chmod +x /init-libvirtd.sh
 
 STOPSIGNAL SIGKILL

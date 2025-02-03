@@ -1,14 +1,12 @@
-use std::{collections::HashMap, path::Path};
-
+use crate::{repository::RepositoryPaths, types::HelmRepoSpec};
 use flate2::read::GzDecoder;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::{collections::HashMap, path::Path};
 use tokio::{io::AsyncWriteExt, process::Command};
 use url::Url;
 use utoipa::ToSchema;
-
-use crate::{repository::RepositoryPaths, types::HelmRepoSpec};
 
 impl HelmRepoSpec {
     pub async fn render(

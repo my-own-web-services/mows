@@ -474,9 +474,9 @@ fn trunc(args: &[Value]) -> Result<Value, FuncError> {
     ))?;
     let trunc_index = trunc_index.to_string();
     let negative = trunc_index.starts_with('-');
-    let trunc_index = trunc_index
-        .parse::<usize>()
-        .map_err(|_| FuncError::Generic("Invalid number. Number must be a positive integer".to_string()))?;
+    let trunc_index = trunc_index.parse::<usize>().map_err(|_| {
+        FuncError::Generic("Invalid number. Number must be a positive integer".to_string())
+    })?;
     let value = &args.get(1).ok_or(FuncError::ExactlyXArgs(
         "This function requires exactly 2 arguments.".to_string(),
         2,
@@ -498,9 +498,9 @@ fn abbrev(args: &[Value]) -> Result<Value, FuncError> {
         2,
     ))?;
     let max_length = max_length.to_string();
-    let max_length = max_length
-        .parse::<usize>()
-        .map_err(|_| FuncError::Generic("Invalid number. Number must be a positive integer".to_string()))?;
+    let max_length = max_length.parse::<usize>().map_err(|_| {
+        FuncError::Generic("Invalid number. Number must be a positive integer".to_string())
+    })?;
 
     let value = &args.get(1).ok_or(FuncError::ExactlyXArgs(
         "This function requires exactly 2 arguments.".to_string(),
@@ -519,18 +519,18 @@ fn abbrevboth(args: &[Value]) -> Result<Value, FuncError> {
         3,
     ))?;
     let left_offset = left_offset.to_string();
-    let left_offset = left_offset
-        .parse::<usize>()
-        .map_err(|_| FuncError::Generic("Invalid number. Number must be a positive integer".to_string()))?;
+    let left_offset = left_offset.parse::<usize>().map_err(|_| {
+        FuncError::Generic("Invalid number. Number must be a positive integer".to_string())
+    })?;
 
     let max_length = &args.get(1).ok_or(FuncError::ExactlyXArgs(
         "This function requires exactly 3 arguments.".to_string(),
         3,
     ))?;
     let max_length = max_length.to_string();
-    let max_length = max_length
-        .parse::<usize>()
-        .map_err(|_| FuncError::Generic("Invalid number. Number must be a positive integer".to_string()))?;
+    let max_length = max_length.parse::<usize>().map_err(|_| {
+        FuncError::Generic("Invalid number. Number must be a positive integer".to_string())
+    })?;
 
     let value = &args.get(2).ok_or(FuncError::ExactlyXArgs(
         "This function requires exactly 3 arguments.".to_string(),
@@ -621,7 +621,8 @@ fn rand_alpha_num(args: &[Value]) -> Result<Value, FuncError> {
         .map_err(|_| FuncError::Generic("Invalid number".to_string()))?;
     let mut rng = rand::thread_rng();
 
-    let charset: Vec<u8> = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".to_vec();
+    let charset: Vec<u8> =
+        b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".to_vec();
 
     let generated: String = (0..length)
         .map(|_| {
@@ -908,7 +909,9 @@ fn b64enc(args: &[Value]) -> Result<Value, FuncError> {
         1,
     ))?;
     let content = content.to_string();
-    Ok(Value::from(data_encoding::BASE64.encode(content.as_bytes())))
+    Ok(Value::from(
+        data_encoding::BASE64.encode(content.as_bytes()),
+    ))
 }
 
 fn b64dec(args: &[Value]) -> Result<Value, FuncError> {
@@ -933,7 +936,9 @@ fn b32enc(args: &[Value]) -> Result<Value, FuncError> {
         1,
     ))?;
     let content = content.to_string();
-    Ok(Value::from(data_encoding::BASE32.encode(content.as_bytes())))
+    Ok(Value::from(
+        data_encoding::BASE32.encode(content.as_bytes()),
+    ))
 }
 
 fn b32dec(args: &[Value]) -> Result<Value, FuncError> {
