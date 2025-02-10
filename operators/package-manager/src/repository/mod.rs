@@ -1,12 +1,18 @@
-use crate::{db::models::Repository, types::MowsManifest, utils::parse_manifest};
+use crate::{
+    db::models::Repository,
+    types::{MowsManifest, RenderedDocument},
+    utils::{get_dynamic_kube_api, parse_manifest},
+};
 use anyhow::Context;
 use fs_extra::dir::CopyOptions;
+use k8s_openapi::api::core::v1::Namespace;
+use kube::{
+    api::{DynamicObject, GroupVersionKind, ObjectMeta, Patch, PatchParams},
+    Api, Discovery, ResourceExt,
+};
 use mows_common::kube::get_kube_client;
 use raw::RawSpecError;
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 mod raw;
 
 impl Repository {
@@ -14,7 +20,7 @@ impl Repository {
         &self,
         namespace: &str,
         root_working_directory: &str,
-    ) -> Result<HashMap<String, String>, RenderError> {
+    ) -> Result<Vec<RenderedDocument>, RenderError> {
         let repo_paths = RepositoryPaths::new(self, root_working_directory).await;
 
         let _ = &self.fetch(&repo_paths.source_path).await?;
@@ -33,6 +39,7 @@ impl Repository {
     pub async fn fetch(&self, target_path: &PathBuf) -> Result<(), FetchMowsRepoError> {
         if self.uri.starts_with("file://") {
             let cp_options = &CopyOptions::new().content_only(true).overwrite(true);
+
             fs_extra::dir::copy(&self.uri[7..], target_path, cp_options).context(format!(
                 "Error copying files from {} to {}",
                 &self.uri[7..],
@@ -62,13 +69,97 @@ impl Repository {
     }
     pub async fn install(
         &self,
-        namespace: &str,
+        requested_namespace: &str,
         root_working_directory: &str,
         kubeconfig: &str,
     ) -> Result<(), InstallError> {
-        let rendered_files = self.render(namespace, root_working_directory).await?;
+        let rendered_documents = self
+            .render(requested_namespace, root_working_directory)
+            .await?;
+
         let client = get_kube_client(kubeconfig).await?;
-        // https://github.com/kube-rs/kube/blob/main/examples/kubectl.rs
+
+        let discovery = Discovery::new(client.clone()).run().await?;
+
+        let patch_params = PatchParams::apply("mows-package-manager").force();
+
+        // create namespace if it doesn't exist
+
+        let ns_api: Api<Namespace> = Api::all(client.clone());
+
+        let namespace = Namespace {
+            metadata: ObjectMeta {
+                name: Some(requested_namespace.to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let _ = ns_api
+            .patch(requested_namespace, &patch_params, &Patch::Apply(namespace))
+            .await;
+
+        for rendered_document in rendered_documents {
+            if rendered_document.object.is_null() {
+                continue;
+            }
+            let object: DynamicObject = serde_yaml_ng::from_value(rendered_document.object.clone())
+                .context(format!(
+                    "Error parsing rendered file as DynamicObject: {}",
+                    rendered_document.file_path
+                ))?;
+
+            let group_version_kind = match &object.types {
+                Some(type_meta) => GroupVersionKind::try_from(type_meta)
+                    .context("Error converting type meta to GroupVersionKind")?,
+                None => {
+                    return Err(InstallError::AnyhowError(anyhow::anyhow!(
+                        "No type meta found in object: {:?}",
+                        rendered_document.object
+                    )))
+                }
+            };
+
+            // serde_yaml converts the mode 0404 to the string "0404", that does not work with the kubernetes API
+
+            let is_namespace = group_version_kind.kind == "Namespace";
+
+            let namespace_to_use = object.namespace();
+            let namespace_to_use = namespace_to_use.as_deref().or(Some(requested_namespace));
+
+            let object_name = object.name_any();
+
+            match discovery.resolve_gvk(&group_version_kind) {
+                Some((api_resource, api_capabilities)) => {
+                    let api = get_dynamic_kube_api(
+                        api_resource,
+                        api_capabilities,
+                        client.clone(),
+                        namespace_to_use,
+                        is_namespace,
+                    );
+
+                    let _response = api
+                        .patch(
+                            &object_name,
+                            &patch_params,
+                            &Patch::Apply(&rendered_document.object),
+                        )
+                        .await
+                        .context(format!(
+                            "Error applying object: \n {}",
+                            &serde_yaml_ng::to_string(&rendered_document.object)?
+                        ))?;
+                }
+                None => {
+                    return Err(InstallError::AnyhowError(anyhow::anyhow!(
+                        "API not found for Group Version Kind: {:?}",
+                        group_version_kind
+                    )))
+                }
+            };
+        }
+
         Ok(())
     }
 }
@@ -117,7 +208,7 @@ pub enum RenderError {
     #[error("IO error: {0}")]
     IoError(#[from] tokio::io::Error),
     #[error("Parsing Error: {0}")]
-    ParseError(#[from] serde_yaml::Error),
+    ParseError(#[from] serde_yaml_ng::Error),
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
 }
@@ -125,7 +216,7 @@ pub enum RenderError {
 #[derive(Debug, thiserror::Error)]
 pub enum ManifestError {
     #[error("Parsing Error: {0}")]
-    ParsingError(#[from] serde_yaml::Error),
+    ParsingError(#[from] serde_yaml_ng::Error),
     #[error("IO error: {0}")]
     IoError(#[from] tokio::io::Error),
     #[error(transparent)]
@@ -150,4 +241,10 @@ pub enum InstallError {
     AnyhowError(#[from] anyhow::Error),
     #[error(transparent)]
     RepositoryError(#[from] RenderError),
+    #[error(transparent)]
+    KubeError(#[from] kube::Error),
+    #[error(transparent)]
+    SerdeYamlError(#[from] serde_yaml_ng::Error),
+    #[error(transparent)]
+    SerdeJsonError(#[from] serde_json::Error),
 }

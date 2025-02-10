@@ -313,14 +313,20 @@ impl Cluster {
     pub async fn install_with_package_manager(&self) -> anyhow::Result<()> {
         let ic = &INTERNAL_CONFIG;
 
+        let kubeconfig = &self.get_kubeconfig_with_replaced_addresses().await?;
+
         for core_repo in ic.core_repos.iter() {
             let repo = Repository {
                 id: 0,
                 uri: core_repo.uri.clone(),
             };
 
-            repo.render(&core_repo.namespace, &ic.package_manager.working_dir)
-                .await?;
+            repo.install(
+                &core_repo.namespace,
+                &ic.package_manager.working_dir,
+                kubeconfig,
+            )
+            .await?;
         }
 
         Ok(())
@@ -334,7 +340,7 @@ impl Cluster {
         if ic.dev.enabled && ic.dev.install_k8s_dashboard {
             self.install_dashboard().await?;
         }
-        /*
+
         if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("network")) {
             warn!("Skipping network install as configured in internal config");
         } else {
@@ -345,7 +351,7 @@ impl Cluster {
             warn!("Skipping storage install as configured in internal config");
         } else {
             ClusterStorage::install(&self).await?;
-        }*/
+        }
 
         self.install_with_package_manager().await?;
 

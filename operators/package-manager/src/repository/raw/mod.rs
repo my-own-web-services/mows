@@ -1,9 +1,13 @@
 use super::RepositoryPaths;
-use crate::{dev::get_fake_app_config, types::RawSpec, utils::get_all_file_paths_recursive};
+use crate::{
+    dev::get_fake_app_config,
+    types::{RawSpec, RenderedDocument},
+    utils::get_all_file_paths_recursive,
+};
 use anyhow::Context;
 use helm::HelmRepoError;
 use serde::Deserialize;
-use serde_yaml::Value;
+use serde_yaml_ng::Value;
 use std::collections::HashMap;
 
 use mows_common::templating::{
@@ -19,11 +23,11 @@ impl RawSpec {
         &self,
         repo_paths: &RepositoryPaths,
         namespace: &str,
-    ) -> Result<HashMap<String, String>, RawSpecError> {
+    ) -> Result<Vec<RenderedDocument>, RawSpecError> {
         match self {
             RawSpec::HelmRepos(helm_repos) => {
                 for helm_repo in helm_repos {
-                    helm_repo.fetch(repo_paths).await?;
+                    helm_repo.get_chart(repo_paths).await?;
                 }
             }
         }
@@ -35,56 +39,42 @@ impl RawSpec {
         match self {
             RawSpec::HelmRepos(helm_repos) => {
                 for helm_repo in helm_repos {
-                    helm_repo.render(repo_paths, namespace).await?;
+                    helm_repo.render(repo_paths, namespace, namespace).await?;
                 }
             }
         }
 
         // read all files from output directory
 
-        let mut result_files = HashMap::new();
+        let mut result_documents: Vec<RenderedDocument> = Vec::new();
 
         let file_paths = get_all_file_paths_recursive(&repo_paths.output_path).await;
 
         for file_path in file_paths {
             let input_file_string = tokio::fs::read_to_string(&file_path).await?;
 
-            let mut output_file_docs = Vec::new();
-
-            for single_document_deserializer in
-                serde_yaml::Deserializer::from_str(&input_file_string)
+            for (document_index, single_document_deserializer) in
+                serde_yaml_ng::Deserializer::from_str(&input_file_string).enumerate()
             {
-                let mut value: Value = Value::deserialize(single_document_deserializer).context(
+                let value: Value = Value::deserialize(single_document_deserializer).context(
                     format!("Error parsing file: {}", file_path.to_str().unwrap_or("")),
                 )?;
 
-                let force_namespace = false;
+                //let force_namespace = false;
 
-                Self::transform(&mut value, namespace, force_namespace);
+                //Self::transform(&mut value, namespace, force_namespace);
 
-                let single_document_content_string = serde_yaml::to_string(&value)?;
+                //let single_document_content_string = serde_yaml_ng::to_string(&value)?;
 
-                output_file_docs.push(single_document_content_string);
+                result_documents.push(RenderedDocument {
+                    object: value,
+                    file_path: file_path.to_str().unwrap_or("").to_string(),
+                    index: document_index,
+                });
             }
-
-            let output_path_string = repo_paths
-                .output_path
-                .to_str()
-                .ok_or("Invalid file path")
-                .map_err(|e| RawSpecError::AnyhowError(anyhow::anyhow!(e)))?;
-
-            result_files.insert(
-                file_path
-                    .to_str()
-                    .ok_or("Invalid file path")
-                    .map_err(|e| RawSpecError::AnyhowError(anyhow::anyhow!(e)))?
-                    .to_string()
-                    .replace(output_path_string, ""),
-                output_file_docs.join("---\n"),
-            );
         }
 
-        Ok(result_files)
+        Ok(result_documents)
     }
 
     fn transform(value: &mut Value, namespace: &str, force_namespace: bool) {
@@ -96,26 +86,29 @@ impl RawSpec {
 
         match value {
             Value::Mapping(ref mut map) => {
-                match map.get_mut(&serde_yaml::Value::String("metadata".to_string())) {
+                match map.get_mut(&serde_yaml_ng::Value::String("metadata".to_string())) {
                     Some(metadata) => {
                         if let Value::Mapping(ref mut metadata_map) = metadata {
                             metadata_map.insert(
-                                serde_yaml::Value::String("namespace".to_string()),
-                                serde_yaml::Value::String(namespace.to_string()),
+                                serde_yaml_ng::Value::String("namespace".to_string()),
+                                serde_yaml_ng::Value::String(namespace.to_string()),
                             );
                         }
                     }
                     None => {
-                        let metadata = serde_yaml::Value::Mapping(serde_yaml::Mapping::new());
-                        map.insert(serde_yaml::Value::String("metadata".to_string()), metadata);
+                        let metadata = serde_yaml_ng::Value::Mapping(serde_yaml_ng::Mapping::new());
+                        map.insert(
+                            serde_yaml_ng::Value::String("metadata".to_string()),
+                            metadata,
+                        );
 
                         if let Value::Mapping(ref mut metadata_map) = map
-                            .get_mut(&serde_yaml::Value::String("metadata".to_string()))
+                            .get_mut(&serde_yaml_ng::Value::String("metadata".to_string()))
                             .unwrap()
                         {
                             metadata_map.insert(
-                                serde_yaml::Value::String("namespace".to_string()),
-                                serde_yaml::Value::String(namespace.to_string()),
+                                serde_yaml_ng::Value::String("namespace".to_string()),
+                                serde_yaml_ng::Value::String(namespace.to_string()),
                             );
                         }
                     }
@@ -156,8 +149,6 @@ impl RawSpec {
                 .replace("{§", "{{")
                 .replace("§}", "}}");
 
-            println!("file_content: {}", &original_file_content);
-
             template_creator
                 .parse(&original_file_content)
                 .context(format!(
@@ -190,7 +181,7 @@ pub enum RawSpecError {
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
     #[error("Error parsing file: {0}")]
-    ParsingError(#[from] serde_yaml::Error),
+    ParsingError(#[from] serde_yaml_ng::Error),
     #[error("Error rendering template: {0}")]
     TemplateExecError(#[from] gtmpl::error::ExecError),
     #[error("Error parsing template: {0}")]

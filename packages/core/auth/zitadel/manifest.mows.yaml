@@ -1,0 +1,20 @@
+manifestVersion: "0.1"
+metadata:
+    name: zitadel
+    description: "zitadel"
+    version: "0.1"
+spec:
+    raw:
+        helmRepos:
+        -   chartName: zitadel
+            repository: 
+                remote:
+                    url: https://charts.zitadel.com
+                    sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+            valuesFile: files/values.yaml
+            resources:
+                - files/DnsRecord.yaml
+                - files/IngressRoute.yaml
+                - files/vault-resources/password-sync.yaml
+                - files/vault-resources/secrets.yaml
+                - files/PostgresCluster.yaml

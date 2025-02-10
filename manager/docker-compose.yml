@@ -35,6 +35,7 @@ services:
             - ../apis/:/apis/
             - ./install:/install
             - ./misc/internal-config.yml:/internal-config.yml
+            - ../packages/:/packages/
             - /etc/resolv.conf:/etc/host-resolv.conf:ro
             - /dev:/dev
             - /run/udev:/run/udev:ro

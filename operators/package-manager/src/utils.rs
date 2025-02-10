@@ -1,19 +1,16 @@
-use std::path::{Path, PathBuf};
-
+use crate::types::MowsManifest;
 use kube::{
     api::{ApiResource, DynamicObject},
-    config::{KubeConfigOptions, Kubeconfig},
     discovery::{ApiCapabilities, Scope},
     Api, Client,
 };
+use std::path::{Path, PathBuf};
 use tokio::signal;
-
-use crate::{repository::RenderError, types::MowsManifest};
 
 pub async fn parse_manifest(input: &str) -> anyhow::Result<MowsManifest> {
     // this workaround is needed because serde_yaml does not support nested enums
 
-    let yaml_value: serde_yaml::Value = serde_yaml::from_str(input)?;
+    let yaml_value: serde_yaml_ng::Value = serde_yaml_ng::from_str(input)?;
     let json_string = serde_json::to_string(&yaml_value)?;
     let manifest: MowsManifest = serde_json::from_str(&json_string)?;
 
@@ -61,19 +58,19 @@ pub async fn get_all_file_paths_recursive(path: &Path) -> Vec<PathBuf> {
 
     file_paths
 }
-
-pub fn dynamic_kube_api(
-    ar: ApiResource,
-    caps: ApiCapabilities,
+/// all: Ignore namespace and return cluster-wide API
+pub fn get_dynamic_kube_api(
+    api_resource: ApiResource,
+    api_capabilities: ApiCapabilities,
     client: Client,
-    ns: Option<&str>,
+    namespace: Option<&str>,
     all: bool,
 ) -> Api<DynamicObject> {
-    if caps.scope == Scope::Cluster || all {
-        Api::all_with(client, &ar)
-    } else if let Some(namespace) = ns {
-        Api::namespaced_with(client, namespace, &ar)
+    if api_capabilities.scope == Scope::Cluster || all {
+        Api::all_with(client, &api_resource)
+    } else if let Some(namespace) = namespace {
+        Api::namespaced_with(client, namespace, &api_resource)
     } else {
-        Api::default_namespaced_with(client, &ar)
+        Api::default_namespaced_with(client, &api_resource)
     }
 }

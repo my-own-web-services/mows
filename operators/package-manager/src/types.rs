@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_yaml_ng::Value;
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
@@ -48,10 +49,30 @@ pub enum RawSpec {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct HelmRepoSpec {
-    pub repository: String,
     pub chart_name: String,
-    /// sha256 digest of the chart
-    pub digest: String,
+    pub repository: HelmRepoType,
     pub values_file: Option<String>,
     pub resources: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum HelmRepoType {
+    Local,
+    Remote(RemoteHelmRepo),
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteHelmRepo {
+    pub url: String,
+    /// sha256 digest of the chart
+    pub sha256_digest: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq, Eq)]
+pub struct RenderedDocument {
+    pub object: Value,
+    pub file_path: String,
+    pub index: usize,
 }

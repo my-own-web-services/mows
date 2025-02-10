@@ -5,6 +5,7 @@ services:
       dockerfile: ./docker/package-manager.Dockerfile
       additional_contexts:
         mows-common: ../../utils/mows-common
+        serde-yaml: ../../utils/serde-yaml
     image: mows-package-manager
     container_name: mows-package-manager
     environment:

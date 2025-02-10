@@ -75,3 +75,45 @@ spec:
                 pektin-zertificat:
                     serviceAccountName: pektin-zertificat
                     policyIds: ["pektin-zertificat-policy"]
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: traefik-certificates-sync
+    labels:
+        k8s.mows.cloud/sudo: "true"
+        vault.k8s.mows.cloud/force-target-namespace: "mows-core-network-ingress"
+spec:
+    secretSync:
+        kvMapping:
+            certificates: # name in the template engine
+                engine: pektin-zertificat # name of the secretEngine in the same namespace as the resource
+                path: "{§ .config.domain §}" # path to the secret in the secretEngine
+        targets:
+            secrets:
+                traefik-certificates:
+                    map:
+                        tls.crt: "{% .secrets.certificates.cert %}"
+                        tls.key: "{% .secrets.certificates.key %}"
+
+---
+
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: stalwart-certificates-sync
+    labels:
+        k8s.mows.cloud/sudo: "true"
+        vault.k8s.mows.cloud/force-target-namespace: "mows-core-com-email"
+spec:
+    secretSync:
+        kvMapping:
+            certificates: # name in the template engine
+                engine: pektin-zertificat # name of the secretEngine in the same namespace as the resource
+                path: "{§ .config.domain §}" # path to the secret in the secretEngine
+        targets:
+            secrets:
+                stalwart-default-certificates:
+                    map:
+                        tls.crt: "{% .secrets.certificates.cert %}"
+                        tls.key: "{% .secrets.certificates.key %}"

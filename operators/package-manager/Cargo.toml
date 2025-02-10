@@ -8,6 +8,7 @@ edition = "2021"
 name = "main"
 path = "src/main.rs"
 
+
 [lints.rust]
 unsafe_code = "forbid"
 
@@ -24,7 +25,10 @@ serde = { version = "1.0.214", features = [
     "derive",
     "std",
 ], default-features = false }
-serde_yaml = { version = "0.9.33" }
+
+
+serde_yaml_ng = { git = "https://github.com/firstdorsal/serde-yaml-ng" }
+
 serde_json = { version = "1.0.132" }
 
 tokio = { version = "1.41.0", default-features = false, features = [

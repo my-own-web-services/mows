@@ -3,3 +3,11 @@ zitadel:
     masterkeySecretName: "zitadel-masterkey"
     configSecretName: zitadel-config
     configSecretKey: config.yaml
+
+image:
+    repository: ghcr.io/zitadel/zitadel
+    tag: latest-debug
+initJob:
+    activeDeadlineSeconds: 1800
+setupJob:
+    activeDeadlineSeconds: 1800

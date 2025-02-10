@@ -9,11 +9,6 @@ pub async fn get_fake_app_config() -> HashMap<String, Value> {
         "domain".to_string(),
         Value::String("vindelicorum.eu".to_string()),
     );
-
-    cluster_variables.insert(
-        "subdomain".to_string(),
-        Value::String("zitadel".to_string()),
-    );
     cluster_variables.insert(
         "legacy_ip".to_string(),
         Value::String("116.203.53.54".to_string()),

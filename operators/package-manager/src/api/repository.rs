@@ -12,7 +12,7 @@ pub mod repository {
             db::Db,
             models::{NewRepository, Repository},
         },
-        types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
+        types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, RenderedDocument},
     };
 
     pub fn router() -> OpenApiRouter<Db> {
@@ -190,6 +190,6 @@ pub mod repository {
 
     #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
     pub struct RenderRepositoriesResBody {
-        pub results: Vec<HashMap<String, String>>,
+        pub results: Vec<Vec<RenderedDocument>>,
     }
 }

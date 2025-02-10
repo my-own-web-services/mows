@@ -1,4 +1,7 @@
-use crate::{repository::RepositoryPaths, types::HelmRepoSpec};
+use crate::{
+    repository::RepositoryPaths,
+    types::{HelmRepoSpec, HelmRepoType, RemoteHelmRepo},
+};
 use flate2::read::GzDecoder;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -13,6 +16,7 @@ impl HelmRepoSpec {
         &self,
         repo_paths: &RepositoryPaths,
         unforced_namespace: &str,
+        release_name: &str,
     ) -> Result<(), HelmRepoError> {
         let chart_output_path = repo_paths.output_path.join("helm");
         let chart_path = repo_paths.source_path.join("charts").join(&self.chart_name);
@@ -106,15 +110,26 @@ impl HelmRepoSpec {
         Ok(())
     }
 
-    pub async fn fetch(&self, repo_paths: &RepositoryPaths) -> Result<(), HelmRepoError> {
-        let helm_repository_index = self.fetch_repository().await?;
-        self.fetch_chart(&helm_repository_index, repo_paths).await?;
+    pub async fn get_chart(&self, repo_paths: &RepositoryPaths) -> Result<(), HelmRepoError> {
+        match &self.repository {
+            HelmRepoType::Remote(remote_repository) => {
+                let helm_repository_index = self.fetch_remote_repository(remote_repository).await?;
+                self.fetch_remote_chart(remote_repository, &helm_repository_index, repo_paths)
+                    .await?;
+            }
+            HelmRepoType::Local => {
+                // do nothing
+            }
+        }
 
         Ok(())
     }
 
-    pub async fn fetch_repository(&self) -> Result<HelmRepositoryIndex, HelmRepoError> {
-        let req_path = format!("{}/index.yaml", self.repository);
+    pub async fn fetch_remote_repository(
+        &self,
+        remote_repository: &RemoteHelmRepo,
+    ) -> Result<HelmRepositoryIndex, HelmRepoError> {
+        let req_path = format!("{}/index.yaml", remote_repository.url);
 
         let client = mows_common::reqwest::new_reqwest_client()
             .await
@@ -131,15 +146,16 @@ impl HelmRepoSpec {
         })?;
 
         let helm_repository_index: HelmRepositoryIndex =
-            serde_yaml::from_str(&helm_repository_index_string).map_err(|e| {
+            serde_yaml_ng::from_str(&helm_repository_index_string).map_err(|e| {
                 HelmRepoError::FetchHelmRepoError(format!("Error parsing HelmRepo: {}", e))
             })?;
 
         Ok(helm_repository_index)
     }
 
-    pub async fn fetch_chart(
+    pub async fn fetch_remote_chart(
         &self,
+        remote_repository: &RemoteHelmRepo,
         helm_repo_index: &HelmRepositoryIndex,
         repo_paths: &RepositoryPaths,
     ) -> Result<(), HelmRepoError> {
@@ -153,7 +169,7 @@ impl HelmRepoSpec {
                 ))
             })?
             .iter()
-            .find(|entry| entry.digest == self.digest)
+            .find(|entry| entry.digest == remote_repository.sha256_digest)
             .ok_or(HelmRepoError::FetchHelmChartError(format!(
                 "Error fetching HelmChart: {}",
                 self.chart_name
@@ -165,7 +181,7 @@ impl HelmRepoSpec {
                 HelmRepoError::FetchHelmChartError(format!("Error creating reqwest client: {}", e))
             })?;
 
-        let temp_file_path = format!("/tmp/{}", self.digest);
+        let temp_file_path = format!("/tmp/{}", remote_repository.sha256_digest);
 
         let tar_file = tokio::fs::File::create(Path::new(&temp_file_path))
             .await
@@ -177,7 +193,8 @@ impl HelmRepoSpec {
 
         let mut hasher = Sha256::new();
 
-        let chart_url = self.get_chart_url(&chart_versions.urls).await?;
+        let chart_url =
+            Self::get_remote_chart_url(&remote_repository, &chart_versions.urls).await?;
 
         let mut byte_stream = reqwest_client
             .get(chart_url)
@@ -206,7 +223,7 @@ impl HelmRepoSpec {
 
         let hex_digest = format!("{:x}", hasher.finalize());
 
-        if hex_digest != self.digest {
+        if hex_digest != remote_repository.sha256_digest {
             return Err(HelmRepoError::FetchHelmChartError(format!(
                 "Error fetching HelmChart: digest mismatch"
             )));
@@ -237,9 +254,12 @@ impl HelmRepoSpec {
         Ok(())
     }
 
-    async fn get_chart_url(&self, urls: &Vec<String>) -> Result<Url, HelmRepoError> {
+    async fn get_remote_chart_url(
+        remote_repository: &RemoteHelmRepo,
+        urls: &Vec<String>,
+    ) -> Result<Url, HelmRepoError> {
         let url = Url::parse(&urls[0]).unwrap_or(
-            Url::parse(&self.repository)
+            Url::parse(&remote_repository.url)
                 .map_err(|e| {
                     HelmRepoError::FetchHelmChartError(format!("Error parsing URL: {}", e))
                 })?
@@ -261,6 +281,8 @@ pub enum HelmRepoError {
     FetchHelmChartError(String),
     #[error("Error rendering Helm: {0}")]
     RenderHelmError(String),
+    #[error("Error copying file: {0}")]
+    CopyFileError(String),
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

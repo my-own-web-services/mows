@@ -306,7 +306,7 @@ export default withToasterHook(
                     </div>
                     <div>
                         <div className={"flex items-baseline gap-4"}>
-                            <h1 className={"pb-4 text-3xl font-bold"}>Machines</h1>
+                            <h1 className={"pb-4 text-3xl font-bold"}>Clusters</h1>
 
                             <div className={"flex gap-4 pb-4"}>
                                 {urls.flatMap((url) => {
@@ -320,6 +320,11 @@ export default withToasterHook(
                                 })}
                                 {this.clusterServiceUrl(configSignal.value?.clusters)}
                             </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div className={"flex items-baseline gap-4"}>
+                            <h1 className={"pb-4 text-3xl font-bold"}>Machines</h1>
                         </div>
                         <div className="flex flex-row flex-wrap gap-2">
                             <Button

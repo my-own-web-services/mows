@@ -5,10 +5,14 @@ own_addresses:
     ip: null
 
 core_repos:
-    - uri: file:///packages/core/network/cilium/
-      namespace: mows-core-network-cilium
-    - uri: file:///packages/core/storage/longhorn/
-      namespace: mows-core-storage-longhorn
+    - uri: file:///packages/core/auth/zitadel/
+      namespace: mows-core-auth-zitadel
+    - uri: file:///packages/core/dns/pektin/
+      namespace: mows-core-dns-pektin
+    #- uri: file:///packages/core/network/cilium/
+    #  namespace: mows-core-network-cilium
+    #- uri: file:///packages/core/storage/longhorn/
+    #  namespace: mows-core-storage-longhorn2
 
 package_manager:
     working_dir: /tmp/mows-package-manager

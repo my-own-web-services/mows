@@ -1,0 +1,18 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+    name: zitadel-postgres
+spec:
+    instances: 1
+    storage:
+        size: 2Gi
+    primaryUpdateStrategy: unsupervised
+    enableSuperuserAccess: true
+    superuserSecret:
+        name: zitadel-db-admin
+    bootstrap:
+        initdb:
+            database: zitadel
+            owner: zitadel
+            secret:
+                name: zitadel-db-user
