@@ -7,6 +7,7 @@ use axum::{
     Json,
 };
 use tokio::{process::Command, signal};
+use tracing::debug;
 
 use crate::{
     internal_config::INTERNAL_CONFIG,
@@ -150,13 +151,20 @@ pub async fn cmd(cmd_and_args: Vec<&str>, error: &str) -> anyhow::Result<String>
         .await
         .context(error.to_string())?;
 
-    if !command.status.success() {
+    if command.status.code().is_some_and(|code| code != 0) {
         let stderr = std::str::from_utf8(&command.stderr).unwrap_or("Failed to get stderr");
+        let stdout = std::str::from_utf8(&command.stdout).unwrap_or("Failed to get stdout");
 
         // log the exact command that was spawned
-        //error!("Failed to execute command: {} {:?}", cmd, args);
+        debug!("Failed to execute command: {} {:?}", cmd, args);
 
-        bail!("{}: [{}]: {}", error.to_string(), command.status, stderr)
+        bail!(
+            "{}: [{}]: {} {}",
+            error.to_string(),
+            command.status,
+            stderr,
+            stdout
+        )
     }
 
     Ok(String::from_utf8(command.stdout)?)

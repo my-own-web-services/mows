@@ -1,10 +1,8 @@
 use anyhow::Context;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
 use axum::http::{HeaderValue, Method};
-
-use include_dir::{include_dir, Dir};
 use manager::api::boot::*;
-use manager::api::cluster::*;
+use manager::api::clusters::*;
 use manager::api::config::*;
 use manager::api::direct_terminal::*;
 use manager::api::health::health;
@@ -15,10 +13,8 @@ use manager::tasks::start_background_tasks;
 use manager::tracing::start_tracing;
 use manager::ui::serve_spa;
 use manager::utils::{shutdown_signal, start_dnsmasq, start_pixiecore};
-use reqwest::StatusCode;
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
-use tower_http::services::ServeFile;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
@@ -63,10 +59,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .nest("/api/machines", machines::router())
         .nest("/api/config", config_api::router())
         .nest("/api/health", health::router())
+        .nest("/api/clusters", clusters::router())
         .routes(routes!(create_public_ip))
-        .routes(routes!(dev_create_cluster_from_all_machines_in_inventory))
         .routes(routes!(get_boot_config_by_mac))
-        .routes(routes!(dev_install_cluster_basics))
         .routes(routes!(direct_terminal))
         .fallback(serve_spa)
         .layer(

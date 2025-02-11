@@ -2,6 +2,7 @@ pub mod config_api {
 
     use crate::{
         config::{config, ManagerConfig},
+        get_current_config_cloned,
         types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
         write_config,
     };
@@ -65,7 +66,7 @@ pub mod config_api {
 
     pub async fn handle_get_config(mut socket: WebSocket) {
         loop {
-            let config = config().read().await.clone();
+            let config = get_current_config_cloned!();
 
             let message = Message::Text(serde_json::to_string(&config).unwrap().into());
             match socket.send(message).await {

@@ -15,6 +15,8 @@ use vaultrs::{
     client::{VaultClient, VaultClientSettingsBuilder},
     sys,
 };
+
+use super::cluster::ProxyError;
 pub struct ClusterSecrets;
 
 impl ClusterSecrets {
@@ -28,7 +30,7 @@ impl ClusterSecrets {
             }
         };
 
-        match Self::unseal_vault(secrets.clone()).await {
+        match Self::unseal_vault(&secrets).await {
             Ok(_) => (),
             Err(e) => {
                 Self::stop_vault_proxy().await?;
@@ -55,7 +57,10 @@ impl ClusterSecrets {
         Ok(())
     }
 
-    pub async fn join_raft_and_unseal(pod_name: &str, secrets: VaultSecrets) -> anyhow::Result<()> {
+    pub async fn join_raft_and_unseal(
+        pod_name: &str,
+        secrets: &VaultSecrets,
+    ) -> anyhow::Result<()> {
         debug!("Joining Vault to Raft");
 
         cmd(
@@ -123,7 +128,17 @@ impl ClusterSecrets {
         })
     }
 
-    pub async fn unseal_vault(vault_secrets: VaultSecrets) -> anyhow::Result<()> {
+    pub async fn proxy_vault_and_unseal(vault_secrets: &VaultSecrets) -> anyhow::Result<()> {
+        Self::start_vault_proxy().await?;
+
+        let res = Self::unseal_vault(vault_secrets).await;
+
+        Self::stop_vault_proxy().await?;
+
+        res
+    }
+
+    pub async fn unseal_vault(vault_secrets: &VaultSecrets) -> anyhow::Result<()> {
         debug!("Unsealing Vault");
 
         let client = Self::new_vault_client(None).await?;
@@ -142,19 +157,19 @@ impl ClusterSecrets {
         Ok(())
     }
 
-    pub async fn start_proxy_and_setup_vrc(cluster: &Cluster) -> anyhow::Result<()> {
+    pub async fn setup_vrc(cluster: &Cluster) -> anyhow::Result<()> {
         debug!("Setting up Vault Resource Controller");
 
         Self::start_vault_proxy().await?;
 
-        let res = Self::setup_vrc(cluster).await;
+        let res = Self::setup_vrc_inner(cluster).await;
 
         Self::stop_vault_proxy().await?;
 
         res
     }
 
-    pub async fn setup_vrc(cluster: &Cluster) -> anyhow::Result<()> {
+    pub async fn setup_vrc_inner(cluster: &Cluster) -> anyhow::Result<()> {
         let vault_secrets = some_or_bail!(&cluster.vault_secrets, "Vault secrets not found");
 
         let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token))
@@ -268,21 +283,31 @@ path "mows-core-secrets-vrc/*" {
         Ok(())
     }
 
-    pub async fn start_proxy_and_setup_pektin(cluster: &Cluster) -> anyhow::Result<()> {
-        debug!("Setting up pektin");
-
+    pub async fn is_vault_sealed(cluster: &Cluster) -> anyhow::Result<bool> {
         Self::start_vault_proxy().await?;
 
-        //let res = Self::setup_pektin_for_manager(cluster).await;
+        let res = Self::is_vault_sealed_inner(cluster).await;
 
         Self::stop_vault_proxy().await?;
 
-        Ok(())
+        res
+    }
+
+    pub async fn is_vault_sealed_inner(cluster: &Cluster) -> anyhow::Result<bool> {
+        let vault_secrets = some_or_bail!(&cluster.vault_secrets, "Vault secrets not found");
+
+        let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token))
+            .await
+            .context("Failed to create vault client with root token for setting up vrc")?;
+
+        let status = sys::status(&vault_client)
+            .await
+            .context("Failed to get vault status")?;
+
+        Ok(format!("{:?}", status).contains("SEALED"))
     }
 
     pub async fn start_vault_proxy() -> anyhow::Result<()> {
-        debug!("Starting Vault proxy");
-
         // TODO switch this to service/mows-core-secrets-vault-active once vault is initialized
 
         Cluster::start_kubectl_port_forward(
@@ -294,24 +319,17 @@ path "mows-core-secrets-vrc/*" {
         )
         .await?;
 
-        //sleep 1 sec
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-
-        debug!("Vault proxy started");
 
         Ok(())
     }
 
     pub async fn stop_vault_proxy() -> anyhow::Result<()> {
-        debug!("Stopping Vault proxy");
-
         Cluster::stop_kubectl_port_forward(
             "mows-core-secrets-vault",
             "service/mows-core-secrets-vault",
         )
         .await?;
-
-        debug!("Vault proxy stopped");
 
         Ok(())
     }

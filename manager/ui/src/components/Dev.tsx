@@ -17,6 +17,7 @@ import { configSignal, machineStatusSignal } from "../config";
 import { withToasterHook } from "../utils";
 import Notes from "./Notes";
 import TerminalComponent from "./Terminal";
+import ClusterComp from "./cluster/ClusterComp";
 import MachineComponent from "./machine/Machine";
 
 const urls: Url[] = [
@@ -321,6 +322,20 @@ export default withToasterHook(
                                 {this.clusterServiceUrl(configSignal.value?.clusters)}
                             </div>
                         </div>
+                        <div className={"flex"}>
+                            {configSignal.value?.clusters &&
+                                Object.entries(configSignal.value?.clusters).map(
+                                    ([id, cluster]) => {
+                                        return (
+                                            <ClusterComp
+                                                key={id}
+                                                cluster={cluster}
+                                                client={this.props.client}
+                                            />
+                                        );
+                                    }
+                                )}
+                        </div>
                     </div>
                     <div>
                         <div className={"flex items-baseline gap-4"}>
@@ -370,6 +385,7 @@ export default withToasterHook(
                                     .map(([machine_id, machine]) => {
                                         return (
                                             <MachineComponent
+                                                client={this.props.client}
                                                 machineStatus={
                                                     machineStatusSignal.value[machine_id]
                                                 }

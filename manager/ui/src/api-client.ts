@@ -14,6 +14,15 @@ export enum ApiResponseStatus {
   Error = "Error",
 }
 
+export interface ApiResponseClusterStatusResBody {
+  data?: {
+    id: string;
+    status: ClusterStatus;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseEmptyApiResponse {
   /** @default null */
   data?: any;
@@ -87,6 +96,36 @@ export interface ClusterNode {
   internal_ips: InternalIps;
   machine_id: string;
   primary: boolean;
+}
+
+export enum ClusterRunningState {
+  Stopped = "Stopped",
+  DriveDecrypted = "DriveDecrypted",
+  KubernetesRunning = "KubernetesRunning",
+  ControlplaneReady = "ControlplaneReady",
+  VaultUnsealed = "VaultUnsealed",
+  SystemReady = "SystemReady",
+}
+
+export enum ClusterSignal {
+  Start = "Start",
+  Restart = "Restart",
+  Stop = "Stop",
+}
+
+export interface ClusterSignalReqBody {
+  cluster_id: string;
+  signal: ClusterSignal;
+}
+
+export interface ClusterStatus {
+  install_state?: null | ClusterInstallState;
+  running_state?: null | ClusterRunningState;
+}
+
+export interface ClusterStatusResBody {
+  id: string;
+  status: ClusterStatus;
 }
 
 /** @default null */
@@ -509,6 +548,66 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
+     * @name DevCreateClusterFromAllMachinesInInventory
+     * @request POST:/api/clusters/dev_create_from_all_machines_in_inventory
+     */
+    devCreateClusterFromAllMachinesInInventory: (data: ClusterCreationConfig, params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, any>({
+        path: `/api/clusters/dev_create_from_all_machines_in_inventory`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name DevInstallClusterBasics
+     * @request POST:/api/clusters/dev_install_basics
+     */
+    devInstallClusterBasics: (params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, any>({
+        path: `/api/clusters/dev_install_basics`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name SignalCluster
+     * @request POST:/api/clusters/signal
+     */
+    signalCluster: (data: ClusterSignalReqBody, params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, any>({
+        path: `/api/clusters/signal`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetClusterStatus
+     * @request GET:/api/clusters/status
+     */
+    getClusterStatus: (params: RequestParams = {}) =>
+      this.request<ApiResponseClusterStatusResBody, any>({
+        path: `/api/clusters/status`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @name GetConfig
      * @request GET:/api/config
      */
@@ -538,42 +637,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @name DevCreateClusterFromAllMachinesInInventory
-     * @request POST:/api/dev/cluster/create_from_all_machines_in_inventory
-     */
-    devCreateClusterFromAllMachinesInInventory: (data: ClusterCreationConfig, params: RequestParams = {}) =>
-      this.request<ApiResponseEmptyApiResponse, any>({
-        path: `/api/dev/cluster/create_from_all_machines_in_inventory`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name DevInstallClusterBasics
-     * @request POST:/api/dev/cluster/install_basics
-     */
-    devInstallClusterBasics: (params: RequestParams = {}) =>
-      this.request<ApiResponseEmptyApiResponse, any>({
-        path: `/api/dev/cluster/install_basics`,
-        method: "POST",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
      * @name GetHealth
-     * @request GET:/api/health/
+     * @request GET:/api/health
      */
     getHealth: (params: RequestParams = {}) =>
       this.request<ApiResponseHealthResBody, any>({
-        path: `/api/health/`,
+        path: `/api/health`,
         method: "GET",
         format: "json",
         ...params,

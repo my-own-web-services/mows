@@ -1,9 +1,8 @@
-use std::io::Write;
-use std::net::Ipv4Addr;
-use std::process::Stdio;
-use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
-
-use crate::config::{HelmDeploymentState, Vip, VipIp};
+use super::network::ClusterNetwork;
+use super::secrets::ClusterSecrets;
+use super::storage::ClusterStorage;
+use crate::api::clusters::clusters::ClusterSignal;
+use crate::config::{ClusterInstallState, HelmDeploymentState, Vip, VipIp};
 use crate::internal_config::INTERNAL_CONFIG;
 use crate::s;
 use crate::utils::cmd;
@@ -20,16 +19,33 @@ use kube::{
     Api,
 };
 use mows_package_manager::db::models::Repository;
-
+use serde::{Deserialize, Serialize};
+use std::io::Write;
+use std::net::Ipv4Addr;
+use std::process::Stdio;
+use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
 use tempfile::NamedTempFile;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tokio::time::sleep;
-use tracing::{debug, warn};
+use tracing::{debug, trace, warn};
+use utoipa::ToSchema;
 
-use super::network::ClusterNetwork;
-use super::secrets::ClusterSecrets;
-use super::storage::ClusterStorage;
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
+pub struct ClusterStatus {
+    pub install_state: Option<ClusterInstallState>,
+    pub running_state: Option<ClusterRunningState>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
+pub enum ClusterRunningState {
+    Stopped,
+    DriveDecrypted,
+    KubernetesRunning,
+    ControlplaneReady,
+    VaultUnsealed,
+    SystemReady,
+}
 
 impl Cluster {
     #[tracing::instrument]
@@ -66,6 +82,155 @@ impl Cluster {
             vip,
             vault_secrets: None,
         })
+    }
+
+    pub async fn get_running_state(&self) -> anyhow::Result<Option<ClusterRunningState>> {
+        let mut running_state = None;
+
+        if !self.cluster_nodes.is_empty() {
+            running_state = Some(ClusterRunningState::Stopped);
+        };
+
+        if running_state == Some(ClusterRunningState::Stopped) {
+            running_state = Some(ClusterRunningState::DriveDecrypted);
+        };
+
+        if running_state == Some(ClusterRunningState::DriveDecrypted) {
+            let mut k8s_ready = true;
+            for node in self.cluster_nodes.values() {
+                match node.is_kubernetes_ready().await {
+                    Ok(false) => {
+                        k8s_ready = false;
+                        break;
+                    }
+                    Err(_) => break,
+                    _ => (),
+                }
+            }
+
+            if k8s_ready {
+                running_state = Some(ClusterRunningState::KubernetesRunning);
+            }
+        };
+
+        if running_state == Some(ClusterRunningState::KubernetesRunning) {
+            if let Ok(true) = self.is_control_plane_ready().await {
+                running_state = Some(ClusterRunningState::ControlplaneReady);
+            }
+        };
+        /*
+        if running_state == Some(ClusterRunningState::ControlplaneReady) {
+            if !self.is_vault_sealed().await? {
+                running_state = Some(ClusterRunningState::VaultUnsealed);
+            }
+        };*/
+
+        Ok(running_state)
+    }
+
+    pub async fn is_vault_sealed(&self) -> anyhow::Result<bool> {
+        ClusterSecrets::is_vault_sealed(&self).await
+    }
+
+    pub async fn is_control_plane_ready(&self) -> anyhow::Result<bool> {
+        // check with kubectl
+        let client = self.get_kube_client().await?;
+
+        let nodes: Api<Node> = Api::all(client);
+
+        let ready = nodes
+            .list(&ListParams::default())
+            .await?
+            .items
+            .iter()
+            .any(|node| {
+                node.status
+                    .as_ref()
+                    .and_then(|status| status.conditions.as_ref())
+                    .and_then(|conditions| {
+                        Some(conditions.iter().any(|condition| {
+                            condition.type_ == "Ready" && condition.status == "True"
+                        }))
+                    })
+                    .unwrap_or(false)
+            });
+
+        Ok(ready)
+    }
+
+    pub async fn get_status(&self) -> anyhow::Result<ClusterStatus> {
+        Ok(ClusterStatus {
+            install_state: self.install_state.clone(),
+            running_state: self.get_running_state().await?,
+        })
+    }
+
+    pub async fn send_signal(&self, signal: ClusterSignal) -> anyhow::Result<()> {
+        match signal {
+            ClusterSignal::Start => self.start_cluster().await?,
+            ClusterSignal::Restart => {
+                self.stop_cluster().await?;
+                self.start_cluster().await?;
+            }
+            ClusterSignal::Stop => self.stop_cluster().await?,
+        }
+        Ok(())
+    }
+
+    pub async fn start_cluster(&self) -> anyhow::Result<()> {
+        debug!("Starting cluster");
+
+        let config = get_current_config_cloned!();
+
+        for node in self.cluster_nodes.values() {
+            debug!("Starting machine: {}", node.machine_id);
+            match config.get_machine_by_id(&node.machine_id) {
+                Some(machine) => machine.start().await?,
+                None => bail!("Machine not found"),
+            }
+        }
+
+        // wait until vault is reachable
+        for _ in 0..100 {
+            if ClusterSecrets::is_vault_sealed(&self).await.is_err() {
+                sleep(tokio::time::Duration::from_secs(6)).await;
+            } else {
+                break;
+            }
+        }
+
+        self.unseal_vault().await?;
+
+        debug!("Cluster started");
+
+        Ok(())
+    }
+
+    pub async fn unseal_vault(&self) -> anyhow::Result<()> {
+        if let Some(vault_secrets) = &self.vault_secrets {
+            ClusterSecrets::proxy_vault_and_unseal(vault_secrets).await
+        } else {
+            bail!("No vault secrets found");
+        }
+    }
+
+    pub async fn stop_cluster(&self) -> anyhow::Result<()> {
+        debug!("Stopping cluster");
+        let config = get_current_config_cloned!();
+
+        for node in self.cluster_nodes.values() {
+            debug!("Stopping machine: {}", node.machine_id);
+            match config.get_machine_by_id(&node.machine_id) {
+                Some(machine) => machine.shutdown().await?,
+                None => bail!("Machine not found"),
+            }
+        }
+
+        // TODO wait until all machines are stopped
+
+        debug!("Cluster stopped");
+
+        Ok(())
     }
 
     pub async fn start_all_machines(&self, config: &ManagerConfig) -> anyhow::Result<()> {
@@ -376,7 +541,7 @@ impl Cluster {
         if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("vrc")) {
             warn!("Skipping vrc install as configured in internal config");
         } else {
-            ClusterSecrets::start_proxy_and_setup_vrc(&self).await?;
+            ClusterSecrets::setup_vrc(&self).await?;
         }
 
         Ok(())
@@ -503,4 +668,22 @@ metadata:
 
         Ok(())
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ClusterError {
+    #[error("Vault not initialized")]
+    VaultNotInitialized,
+    #[error("Generic error: {0}")]
+    Generic(#[from] anyhow::Error),
+    #[error("Proxy error: {0}")]
+    Proxy(#[from] ProxyError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ProxyError {
+    #[error("Port in use: {0}")]
+    PortInUse(String),
+    #[error("Generic error: {0}")]
+    Generic(#[from] anyhow::Error),
 }

@@ -35,7 +35,7 @@ pub mod cluster {
 
 pub mod api {
     pub mod boot;
-    pub mod cluster;
+    pub mod clusters;
     pub mod config;
     pub mod direct_terminal;
     pub mod health;

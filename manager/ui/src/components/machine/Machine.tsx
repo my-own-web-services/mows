@@ -14,6 +14,7 @@ interface MachineComponentProps {
     readonly style?: CSSProperties;
     readonly machine: Machine;
     readonly machineStatus?: MachineStatus;
+    readonly client: Api<unknown>;
 }
 
 interface MachineComponentState {
@@ -25,15 +26,12 @@ export default class MachineComponent extends Component<
     MachineComponentProps,
     MachineComponentState
 > {
-    private client: Api<unknown>;
-
     constructor(props: MachineComponentProps) {
         super(props);
         this.state = {
             sshOpen: false,
             vncWebsocket: null
         };
-        this.client = new Api({ baseUrl: "http://localhost:3000" });
     }
 
     componentDidMount = async () => {
@@ -55,19 +53,19 @@ export default class MachineComponent extends Component<
     };
 
     private getVncWebsocket = async () => {
-        const ws = (await this.client.api.getVncWebsocket(this.props.machine.id)).data;
+        const ws = (await this.props.client.api.getVncWebsocket(this.props.machine.id)).data;
         this.setState({ vncWebsocket: ws.data });
     };
 
     private signalMachine = async (signal: MachineSignal) => {
-        await this.client.api.signalMachine({
+        await this.props.client.api.signalMachine({
             machine_id: this.props.machine.id,
             signal
         });
     };
 
     delete = async () => {
-        await this.client.api.deleteMachine({
+        await this.props.client.api.deleteMachine({
             machine_id: this.props.machine.id
         });
     };
@@ -86,7 +84,7 @@ export default class MachineComponent extends Component<
                         <h1 className="flex items-center gap-2 pb-1 text-xl">
                             <MachineStatusComp machineStatus={machineStatus} />
                             <MachineProviderIcon machine={this.props.machine} />
-                            <span className={"line"}>{this.props.machine.id}</span>
+                            <span>{this.props.machine.id}</span>
                         </h1>
 
                         <MachineScreen

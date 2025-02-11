@@ -1,9 +1,4 @@
 pub mod machines{
-
-
-
-
-
 use axum::{
     extract::{
         ws::{Message, WebSocket},
@@ -44,6 +39,19 @@ pub fn router() -> OpenApiRouter {
         .routes(routes!(dev_delete_all_machines))
 }
 
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct MachineCreationReqBody {
+    pub machines: Vec<MachineCreationReqType>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub enum MachineCreationReqType {
+    LocalQemu(LocalMachineProviderQemuConfig),
+    LocalPhysical(LocalMachineProviderPhysicalConfig),
+    ExternalHcloud(ExternalMachineProviderHcloudConfig),
+}
+
 #[utoipa::path(
     post,
     path = "/create",
@@ -76,6 +84,22 @@ pub fn router() -> OpenApiRouter {
     })
 }
 
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct MachineSignalReqBody {
+    pub signal: MachineSignal,
+    pub machine_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub enum MachineSignal {
+    Start,
+    Reboot,
+    Shutdown,
+    Reset,
+    ForceOff,
+}
+
 #[utoipa::path(
     post,
     path = "/signal",
@@ -87,7 +111,7 @@ pub fn router() -> OpenApiRouter {
 async fn signal_machine(
     Json(machine_signal): Json<MachineSignalReqBody>,
 ) -> Json<ApiResponse<()>> {
-    let config = config().read().await;
+    let config = get_current_config_cloned!();
     let machine = match config
         .machines
         .get(&machine_signal.machine_id)
@@ -115,6 +139,11 @@ async fn signal_machine(
         status: ApiResponseStatus::Success,
         data: None,
     })
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct MachineDeleteReqBody {
+    pub machine_id: String,
 }
 
 #[utoipa::path(
@@ -185,7 +214,7 @@ async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
     let mut config = write_config!();
 
     for (id, _) in machine_vec {
-        config.machines.remove(id);
+        config.clusters.remove(id);
     }
 
     config.clusters.clear();
@@ -195,6 +224,17 @@ async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
         status: ApiResponseStatus::Success,
         data: None,
     })
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct MachineInfoReqBody {
+    pub machine_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct MachineInfoResBody {
+    pub machine_infos: Value,
 }
 
 #[utoipa::path(
@@ -276,6 +316,13 @@ async fn get_vnc_websocket(Path(id): Path<String>) -> impl IntoResponse {
     })
 }
 
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct MachineStatusResBody {
+    pub id: String,
+    pub status: MachineStatus,
+}
+
 // machine status with socket
 #[utoipa::path(get, path = "/status",responses(
     (status = 200, description = "Got the machines status", body =  ApiResponse<MachineStatusResBody>),
@@ -309,53 +356,4 @@ async fn handle_get_machine_status(mut socket: WebSocket) {
         }
     }
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct MachineStatusResBody {
-    pub id: String,
-    pub status: MachineStatus,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct MachineInfoResBody {
-    pub machine_infos: Value,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct MachineInfoReqBody {
-    pub machine_id: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct MachineDeleteReqBody {
-    pub machine_id: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct MachineSignalReqBody {
-    pub signal: MachineSignal,
-    pub machine_id: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub enum MachineSignal {
-    Start,
-    Reboot,
-    Shutdown,
-    Reset,
-    ForceOff,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct MachineCreationReqBody {
-    pub machines: Vec<MachineCreationReqType>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub enum MachineCreationReqType {
-    LocalQemu(LocalMachineProviderQemuConfig),
-    LocalPhysical(LocalMachineProviderPhysicalConfig),
-    ExternalHcloud(ExternalMachineProviderHcloudConfig),
-}
-
 }

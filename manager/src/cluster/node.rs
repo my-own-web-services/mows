@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{bail, Context};
 
 use crate::{
     config::{ClusterNode, Machine},
@@ -21,9 +21,20 @@ impl ClusterNode {
         }
         Ok(res)
     }
+
     pub async fn get_machine(&self) -> anyhow::Result<Machine> {
         let cfg = get_current_config_cloned!();
         let machine = cfg.get_machine_by_id(&self.machine_id).unwrap();
         Ok(machine)
+    }
+
+    pub async fn is_kubernetes_ready(&self) -> anyhow::Result<bool> {
+        let machine = self.get_machine().await?;
+        let output = machine
+            .exec("sudo systemctl status k3s", 1)
+            .await
+            .context("Could not get node status.")?;
+
+        Ok(output.contains("active (running)"))
     }
 }

@@ -6,7 +6,7 @@ import { Api } from "./api-client";
 import CustomNavbar from "./components/CustomNavbar";
 import Dev from "./components/Dev";
 import Home from "./components/Home";
-import { handleConfigUpdate, handleMachineStatusUpdate } from "./config";
+import { handleClusterStatusUpdate, handleConfigUpdate, handleMachineStatusUpdate } from "./config";
 import "./index.scss";
 
 interface AppProps {}
@@ -15,16 +15,19 @@ interface AppState {}
 
 export default class App extends Component<AppProps, AppState> {
     client: Api<unknown>;
+    origin: string;
 
     constructor(props: AppProps) {
         super(props);
+        this.origin = "localhost:3000";
 
-        this.client = new Api({ baseUrl: "http://localhost:3000" });
+        this.client = new Api({ baseUrl: "http://" + this.origin });
     }
 
     componentDidMount = async () => {
-        await handleConfigUpdate();
-        await handleMachineStatusUpdate();
+        await handleConfigUpdate(this.origin);
+        await handleMachineStatusUpdate(this.origin);
+        await handleClusterStatusUpdate(this.origin);
         //setInterval(reloadConfig, 1000);
     };
 
