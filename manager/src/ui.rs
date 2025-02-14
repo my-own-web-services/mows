@@ -22,7 +22,7 @@ static INDEX_HEADERS: [(&str, &str); 8] = [
         script-src 'self';
         style-src 'self';
         manifest-src 'self';
-        connect-src 'self';
+        connect-src 'self' ws://localhost:* wss://web-console.hetzner.cloud;
         img-src 'self';
         font-src 'self';
         base-uri 'none';

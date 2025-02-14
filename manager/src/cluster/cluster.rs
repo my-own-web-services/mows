@@ -25,7 +25,7 @@ use std::net::Ipv4Addr;
 use std::process::Stdio;
 use std::{collections::HashMap, fs::Permissions, os::unix::fs::PermissionsExt, path::Path};
 use tempfile::NamedTempFile;
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::time::sleep;
 use tracing::{debug, trace, warn};
@@ -91,11 +91,13 @@ impl Cluster {
             running_state = Some(ClusterRunningState::Stopped);
         };
 
+        /*
         if running_state == Some(ClusterRunningState::Stopped) {
             running_state = Some(ClusterRunningState::DriveDecrypted);
         };
+        */
 
-        if running_state == Some(ClusterRunningState::DriveDecrypted) {
+        if running_state == Some(ClusterRunningState::Stopped) {
             let mut k8s_ready = true;
             for node in self.cluster_nodes.values() {
                 match node.is_kubernetes_ready().await {
@@ -103,7 +105,10 @@ impl Cluster {
                         k8s_ready = false;
                         break;
                     }
-                    Err(_) => break,
+                    Err(_) => {
+                        k8s_ready = false;
+                        break;
+                    }
                     _ => (),
                 }
             }
@@ -118,12 +123,14 @@ impl Cluster {
                 running_state = Some(ClusterRunningState::ControlplaneReady);
             }
         };
-        /*
+
         if running_state == Some(ClusterRunningState::ControlplaneReady) {
-            if !self.is_vault_sealed().await? {
-                running_state = Some(ClusterRunningState::VaultUnsealed);
+            if let Ok(is_sealed) = self.is_vault_sealed().await {
+                if !is_sealed {
+                    running_state = Some(ClusterRunningState::VaultUnsealed);
+                }
             }
-        };*/
+        };
 
         Ok(running_state)
     }
@@ -208,7 +215,7 @@ impl Cluster {
 
     pub async fn unseal_vault(&self) -> anyhow::Result<()> {
         if let Some(vault_secrets) = &self.vault_secrets {
-            ClusterSecrets::proxy_vault_and_unseal(vault_secrets).await
+            ClusterSecrets::unseal_vault(vault_secrets).await
         } else {
             bail!("No vault secrets found");
         }
@@ -583,6 +590,31 @@ impl Cluster {
         Ok(())
     }
 
+    pub async fn start_vault_proxy() -> anyhow::Result<()> {
+        debug!("Starting vault proxy");
+
+        Self::start_kubectl_port_forward(
+            "mows-core-secrets-vault",
+            "service/mows-core-secrets-vault",
+            8200,
+            8200,
+            false,
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn stop_vault_proxy() -> anyhow::Result<()> {
+        debug!("Stopping vault proxy");
+        Self::stop_kubectl_port_forward(
+            "mows-core-secrets-vault",
+            "service/mows-core-secrets-vault",
+        )
+        .await?;
+        Ok(())
+    }
+
     pub async fn start_kubectl_port_forward(
         namespace: &str,
         // target is the pod or service name prefixed service/NAME_OF_SERVICE
@@ -593,7 +625,7 @@ impl Cluster {
     ) -> anyhow::Result<()> {
         debug!("Starting kubectl port-forward");
 
-        Command::new("kubectl")
+        let mut child = Command::new("kubectl")
             .args(vec![
                 "port-forward",
                 target,
@@ -610,8 +642,20 @@ impl Cluster {
                 ),
             ])
             .stdout(Stdio::null())
+            .stderr(Stdio::piped())
             .spawn()
             .context("Failed to start kubectl port-forward")?;
+
+        if let Some(stderr) = child.stderr.take() {
+            let mut reader = BufReader::new(stderr).lines();
+
+            // Read a few lines from stderr to detect immediate failure
+            for _ in 0..5 {
+                if let Some(line) = reader.next_line().await? {
+                    return Err(anyhow::anyhow!("kubectl port-forward failed: {}", line));
+                }
+            }
+        }
 
         Ok(())
     }

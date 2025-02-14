@@ -48,6 +48,7 @@ pub async fn start_background_tasks() -> anyhow::Result<()> {
         }
     });
 
+    // Kubectl proxy
     tokio::spawn(async {
         let mut proxy_running_for_cluster: Option<String> = None;
         loop {
@@ -72,6 +73,34 @@ pub async fn start_background_tasks() -> anyhow::Result<()> {
                 }
                 Err(e) => {
                     error!("Could not start cluster proxy: {:?}", e);
+                }
+            };
+        }
+    });
+
+    // Vault proxy
+    tokio::spawn(async {
+        let mut proxy_running_for_cluster: Option<String> = None;
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+
+            if let Some(cluster_id) = &proxy_running_for_cluster {
+                // the proxy is running... check if the cluster still exists else stop the proxy and allow the next iteration to start a new proxy
+                let cfg1 = get_current_config_cloned!();
+                if cfg1.clusters.get(&cluster_id.clone()).is_none() {
+                    if let Err(e) = Cluster::stop_vault_proxy().await {
+                        error!("Could not stop cluster proxy: {:?}", e);
+                    }
+                    proxy_running_for_cluster = None;
+                }
+            };
+
+            match start_vault_proxy().await {
+                Ok(cluster_id) => {
+                    proxy_running_for_cluster = cluster_id;
+                }
+                Err(e) => {
+                    trace!("Could not start vault proxy: {:?}", e);
                 }
             };
         }
@@ -173,9 +202,23 @@ pub async fn start_cluster_proxy() -> anyhow::Result<Option<String>> {
 
     for cluster in cfg1.clusters.values() {
         if cluster.kubeconfig.is_some() {
-            info!("Starting proxy for cluster {}", cluster.id);
+            info!("Starting kubectl proxy for cluster {}", cluster.id);
             Cluster::start_kubectl_proxy().await?;
-            info!("Started proxy for cluster {}", cluster.id);
+            info!("Started kubectl proxy for cluster {}", cluster.id);
+            return Ok(Some(cluster.id.clone()));
+        }
+    }
+    Ok(None)
+}
+
+pub async fn start_vault_proxy() -> anyhow::Result<Option<String>> {
+    let cfg1 = get_current_config_cloned!();
+
+    for cluster in cfg1.clusters.values() {
+        if cluster.kubeconfig.is_some() {
+            trace!("Starting vault proxy for cluster {}", cluster.id);
+            Cluster::start_vault_proxy().await?;
+            trace!("Started vault proxy for cluster {}", cluster.id);
             return Ok(Some(cluster.id.clone()));
         }
     }

@@ -16,29 +16,13 @@ use vaultrs::{
     sys,
 };
 
-use super::cluster::ProxyError;
 pub struct ClusterSecrets;
 
 impl ClusterSecrets {
     pub async fn setup_vault(cluster: &Cluster) -> anyhow::Result<()> {
-        Self::start_vault_proxy().await?;
-        let secrets = match Self::init_vault().await {
-            Ok(v) => v,
-            Err(e) => {
-                Self::stop_vault_proxy().await?;
-                bail!("Failed to initialize vault: {:?}", e);
-            }
-        };
+        let secrets = Self::init_vault().await?;
 
-        match Self::unseal_vault(&secrets).await {
-            Ok(_) => (),
-            Err(e) => {
-                Self::stop_vault_proxy().await?;
-                bail!("Failed to unseal vault: {:?}", e);
-            }
-        };
-
-        Self::stop_vault_proxy().await?;
+        Self::unseal_vault(&secrets).await?;
 
         let mut config = write_config!();
 
@@ -128,16 +112,6 @@ impl ClusterSecrets {
         })
     }
 
-    pub async fn proxy_vault_and_unseal(vault_secrets: &VaultSecrets) -> anyhow::Result<()> {
-        Self::start_vault_proxy().await?;
-
-        let res = Self::unseal_vault(vault_secrets).await;
-
-        Self::stop_vault_proxy().await?;
-
-        res
-    }
-
     pub async fn unseal_vault(vault_secrets: &VaultSecrets) -> anyhow::Result<()> {
         debug!("Unsealing Vault");
 
@@ -158,18 +132,6 @@ impl ClusterSecrets {
     }
 
     pub async fn setup_vrc(cluster: &Cluster) -> anyhow::Result<()> {
-        debug!("Setting up Vault Resource Controller");
-
-        Self::start_vault_proxy().await?;
-
-        let res = Self::setup_vrc_inner(cluster).await;
-
-        Self::stop_vault_proxy().await?;
-
-        res
-    }
-
-    pub async fn setup_vrc_inner(cluster: &Cluster) -> anyhow::Result<()> {
         let vault_secrets = some_or_bail!(&cluster.vault_secrets, "Vault secrets not found");
 
         let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token))
@@ -284,16 +246,6 @@ path "mows-core-secrets-vrc/*" {
     }
 
     pub async fn is_vault_sealed(cluster: &Cluster) -> anyhow::Result<bool> {
-        Self::start_vault_proxy().await?;
-
-        let res = Self::is_vault_sealed_inner(cluster).await;
-
-        Self::stop_vault_proxy().await?;
-
-        res
-    }
-
-    pub async fn is_vault_sealed_inner(cluster: &Cluster) -> anyhow::Result<bool> {
         let vault_secrets = some_or_bail!(&cluster.vault_secrets, "Vault secrets not found");
 
         let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token))
@@ -305,33 +257,6 @@ path "mows-core-secrets-vrc/*" {
             .context("Failed to get vault status")?;
 
         Ok(format!("{:?}", status).contains("SEALED"))
-    }
-
-    pub async fn start_vault_proxy() -> anyhow::Result<()> {
-        // TODO switch this to service/mows-core-secrets-vault-active once vault is initialized
-
-        Cluster::start_kubectl_port_forward(
-            "mows-core-secrets-vault",
-            "service/mows-core-secrets-vault",
-            8200,
-            8200,
-            false,
-        )
-        .await?;
-
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-
-        Ok(())
-    }
-
-    pub async fn stop_vault_proxy() -> anyhow::Result<()> {
-        Cluster::stop_kubectl_port_forward(
-            "mows-core-secrets-vault",
-            "service/mows-core-secrets-vault",
-        )
-        .await?;
-
-        Ok(())
     }
 
     pub async fn new_vault_client(token: Option<&str>) -> anyhow::Result<VaultClient> {
