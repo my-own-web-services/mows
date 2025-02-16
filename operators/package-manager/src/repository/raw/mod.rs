@@ -39,7 +39,7 @@ impl RawSpec {
         match self {
             RawSpec::HelmRepos(helm_repos) => {
                 for helm_repo in helm_repos {
-                    helm_repo.render(repo_paths, namespace, namespace).await?;
+                    helm_repo.render(repo_paths, namespace).await?;
                 }
             }
         }

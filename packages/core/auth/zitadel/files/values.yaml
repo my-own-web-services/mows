@@ -3,3 +3,12 @@ zitadel:
     masterkeySecretName: "zitadel-masterkey"
     configSecretName: zitadel-config
     configSecretKey: config.yaml
+
+initJob:
+    activeDeadlineSeconds: 1800
+    backoffLimit: 10
+setupJob:
+    activeDeadlineSeconds: 1800
+
+debug:
+    enabled: true

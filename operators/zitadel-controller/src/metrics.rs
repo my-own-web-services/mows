@@ -1,4 +1,4 @@
-use crate::{crd::ZitadelResource, Error};
+use crate::{crd::ZitadelResource, ControllerError};
 use kube::ResourceExt;
 use opentelemetry::trace::TraceId;
 use prometheus_client::{
@@ -80,7 +80,7 @@ impl ReconcileMetrics {
         self
     }
 
-    pub fn set_failure(&self, doc: &ZitadelResource, e: &Error) {
+    pub fn set_failure(&self, doc: &ZitadelResource, e: &ControllerError) {
         self.failures
             .get_or_create(&ErrorLabels {
                 instance: doc.name_any(),

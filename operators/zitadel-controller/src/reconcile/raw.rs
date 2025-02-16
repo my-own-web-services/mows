@@ -1,5 +1,5 @@
 use ::zitadel::api::zitadel::management::v1::AddOrgRequest;
-use mows_common::{get_current_config_cloned, reqwest::new_reqwest_client};
+use mows_common::get_current_config_cloned;
 use serde_json::{json, Value};
 use tracing::{debug, instrument};
 use zitadel::api::zitadel;
@@ -8,10 +8,10 @@ use crate::{
     config::config,
     crd::{self, RawZitadelResource},
     utils::create_new_zitadel_management_client,
-    Error,
+    ControllerError,
 };
 
-pub async fn handle_raw(raw_resource: &RawZitadelResource) -> Result<(), Error> {
+pub async fn handle_raw(raw_resource: &RawZitadelResource) -> Result<(), ControllerError> {
     let mut client = create_new_zitadel_management_client().await?;
     let config = get_current_config_cloned!(config());
 

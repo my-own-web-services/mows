@@ -4,10 +4,11 @@ zitadel:
     configSecretName: zitadel-config
     configSecretKey: config.yaml
 
-image:
-    repository: ghcr.io/zitadel/zitadel
-    tag: latest-debug
 initJob:
     activeDeadlineSeconds: 1800
+    backoffLimit: 10
 setupJob:
     activeDeadlineSeconds: 1800
+
+debug:
+    enabled: true

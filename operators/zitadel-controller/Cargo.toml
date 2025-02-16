@@ -49,7 +49,7 @@ opentelemetry = { version = "0.26.0", features = ["trace"] }
 thiserror = "2.0.0"
 anyhow = "1.0.93"
 prometheus-client = "0.22.2"
-vaultrs = "0.7.2"
+vaultrs = "0.7.3"
 serde_variant = "0.1.3"
 itertools = "0.13.0"
 reqwest = { version = "0.12.9", default-features = false, features = [
@@ -59,6 +59,7 @@ reqwest-tracing = "0.5.3"
 tracing-actix-web = "0.7.14"
 
 mows-common = { path = "./mows-common" }
+
 zitadel = { path = "./zitadel-rust", features = [
     "api",
     "interceptors",

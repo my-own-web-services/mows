@@ -7,6 +7,7 @@ spec:
     raw:
         helmRepos:
         -   chartName: cilium
+            releaseName: cilium
             repository: 
                 remote:
                     url: https://helm.cilium.io

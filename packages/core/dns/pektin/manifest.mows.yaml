@@ -7,6 +7,7 @@ spec:
     raw:
         helmRepos:
         -   chartName: pektin
+            releaseName: pektin
             repository: 
                 local:
             valuesFile: values.yaml

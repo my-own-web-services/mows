@@ -16,13 +16,13 @@ impl HelmRepoSpec {
         &self,
         repo_paths: &RepositoryPaths,
         unforced_namespace: &str,
-        release_name: &str,
     ) -> Result<(), HelmRepoError> {
         let chart_output_path = repo_paths.output_path.join("helm");
         let chart_path = repo_paths.source_path.join("charts").join(&self.chart_name);
 
         let mut args = vec![
             "template".to_string(),
+            self.release_name.to_string(),
             chart_path
                 .to_str()
                 .ok_or_else(|| {

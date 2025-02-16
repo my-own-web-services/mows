@@ -1,6 +1,7 @@
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
 use zitadel::api::zitadel::app::v1::{
     ApiAuthMethodType, LoginVersion, OidcAppType, OidcAuthMethodType, OidcGrantType, OidcResponseType,
     OidcTokenType, OidcVersion,

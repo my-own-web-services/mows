@@ -1,6 +1,6 @@
 apiVersion: v2
 name: zitadel-controller
-description: controller to create pektin dns entries
+description: controller to create zitadel resources
 type: application
 version: 0.1.0
 appVersion: latest

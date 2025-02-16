@@ -11,7 +11,7 @@ spec:
                     admin: "{% randAlphaNum 100 %}"
                 zitadel:
                     masterkey: "{% randAlphaNum 32 %}"
-                    adminPassword: "{% randAlphaNum 100 %}"
+                    adminPassword: "{% randAlphaNum 20 %}aA1!"
 ---
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource

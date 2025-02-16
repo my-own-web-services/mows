@@ -78,6 +78,8 @@ services:
         networks:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.5"
+
+    # TODO: replace with https://github.com/mcronce/oci-registry
     mows-dev-pull-through-cache-docker:
         image: registry:2
         container_name: mows-dev-pull-through-cache-docker

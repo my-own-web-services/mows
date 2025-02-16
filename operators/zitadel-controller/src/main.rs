@@ -1,6 +1,7 @@
 #![allow(unused_imports, unused_variables)]
 use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::Context;
+use controller::utils::get_zitadel_password_secret;
 pub use controller::{self, State};
 use mows_common::observability::init_observability;
 use tracing_actix_web::TracingLogger;
@@ -31,6 +32,8 @@ async fn main() -> anyhow::Result<()> {
     // Initialize Kubernetes controller state
     let state = State::default();
     let controller = controller::run(state.clone());
+
+    let password = get_zitadel_password_secret().await?;
 
     // Start web server
     let server = HttpServer::new(move || {

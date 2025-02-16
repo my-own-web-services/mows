@@ -7,8 +7,8 @@ spec:
         - websecure
     routes:
         - kind: Rule
-          match: Host(`{§ .config.subdomain §}.{§ .config.domain §}`)
+          match: Host(`zitadel.{§ .config.domain §}`)
           services:
               - kind: Service
-                name: mows-core-auth-zitadel
+                name: zitadel
                 port: 8080

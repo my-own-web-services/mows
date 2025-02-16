@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-cargo run --bin crdgen > yaml/crd.yaml
+cargo run --bin crdgen > charts/zitadel-controller/templates/CRD.yaml
 
 docker buildx bake
 

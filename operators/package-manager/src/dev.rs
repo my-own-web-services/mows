@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use serde_json::Value;
+use std::collections::HashMap;
 
 pub async fn get_fake_app_config() -> HashMap<String, Value> {
     let mut cluster_variables = HashMap::new();

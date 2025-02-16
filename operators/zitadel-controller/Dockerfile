@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install upx -y
 RUN cargo install cargo-build-deps
 COPY Cargo.toml Cargo.lock ./
 COPY --from=mows-common . mows-common
-COPY ./zitadel-rust ./
+COPY ./zitadel-rust ./zitadel-rust
 
 RUN cargo build-deps --release
 RUN rm -f target/x86_64-unknown-linux-musl/release/deps/controller

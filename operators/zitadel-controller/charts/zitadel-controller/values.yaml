@@ -1,5 +1,5 @@
 replicaCount: 1
-nameOverride: ""
+nameOverride: "mows-core-auth-zitadel-controller"
 namespace: "mows-core-auth-zitadel"
 version: "" # pin a specific version
 image:
@@ -49,7 +49,9 @@ networkPolicy:
         port: http
 
 logging:
-    env_filter: info,kube=debug,controller=debug
+    log_filter: info
+    tracing_filter: info
+
 
 env: []
 

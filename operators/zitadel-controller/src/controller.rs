@@ -3,7 +3,7 @@ use crate::{
     crd::{ZitadelResource, ZitadelResourceSpec, ZitadelResourceStatus},
     reconcile::raw::handle_raw,
     utils::get_error_type,
-    Error, Metrics, Result,
+    ControllerError, Metrics, Result,
 };
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
@@ -32,7 +32,7 @@ pub static FINALIZER: &str = "zitadel.k8s.mows.cloud";
 pub async fn reconcile_resource(
     zitadel_resource: &ZitadelResource,
     kube_client: &kube::Client,
-) -> Result<(), Error> {
+) -> Result<(), ControllerError> {
     let resource_namespace = zitadel_resource
         .metadata
         .namespace
@@ -42,7 +42,7 @@ pub async fn reconcile_resource(
     let resource_name = match zitadel_resource.metadata.name.as_deref() {
         Some(v) => v,
         None => {
-            return Err(Error::GenericError(
+            return Err(ControllerError::GenericError(
                 "Failed to get resource name from ZitadelResource metadata".to_string(),
             ))
         }
@@ -85,10 +85,10 @@ async fn reconcile(vault_resource: Arc<ZitadelResource>, ctx: Arc<Context>) -> R
         }
     })
     .await
-    .map_err(|e| Error::FinalizerError(Box::new(e)))
+    .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
 }
 
-fn error_policy(vault_resource: Arc<ZitadelResource>, error: &Error, ctx: Arc<Context>) -> Action {
+fn error_policy(vault_resource: Arc<ZitadelResource>, error: &ControllerError, ctx: Arc<Context>) -> Action {
     warn!("reconcile failed: {:?}", error);
     ctx.metrics.reconcile.set_failure(&vault_resource, error);
 
@@ -120,7 +120,7 @@ impl ZitadelResource {
                 let _o = vault_resources
                     .patch_status(&name, &ps, &new_status)
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
 
                 recorder
                     .publish(Event {
@@ -131,7 +131,7 @@ impl ZitadelResource {
                         secondary: None,
                     })
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
             }
             Err(e) => {
                 error!("Reconcile failed: {:?}", e);
@@ -147,7 +147,7 @@ impl ZitadelResource {
                 let _o = vault_resources
                     .patch_status(&name, &ps, &new_status)
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
 
                 let reason = get_error_type(&e);
 
@@ -160,7 +160,7 @@ impl ZitadelResource {
                         secondary: None,
                     })
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
                 return Err(e);
             }
         }
@@ -186,7 +186,7 @@ impl ZitadelResource {
                 secondary: None,
             })
             .await
-            .map_err(Error::KubeError);
+            .map_err(ControllerError::KubeError);
 
         error!("Failed to publish event: {:?}", res);
 

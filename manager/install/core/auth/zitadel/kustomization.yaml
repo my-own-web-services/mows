@@ -16,7 +16,7 @@ namespace: mows-core-auth-zitadel
 helmCharts:
     - name: zitadel
       repo: https://charts.zitadel.com
-      version: 8.11.2
+      version: 8.11.3
       releaseName: mows-core-auth-zitadel
       namespace: mows-core-auth-zitadel
       valuesFile: values.yaml

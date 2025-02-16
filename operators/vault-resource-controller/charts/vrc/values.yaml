@@ -49,8 +49,8 @@ networkPolicy:
         port: http
 
 logging:
-    env_filter: info,kube=debug,controller=debug
-
+    log_filter: info
+    tracing_filter: info
 env: []
 
 service:

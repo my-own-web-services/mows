@@ -1,0 +1,23 @@
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: zitadel-controller-kubernetes-auth-engine
+spec:
+    authEngine:
+        kubernetes:
+            roles:
+                mows-core-auth-zitadel-controller:
+                    serviceAccountName: mows-core-auth-zitadel-controller
+                    policyIds: ["zitadel-controller-policy"]
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: zitadel-controller-policy
+spec:
+    engineAccessPolicy:
+        subPolicies:
+            - engineId: zitadel-secrets
+              engineType: secret
+              subPath: "*"
+              capabilities: ["read", "list"]

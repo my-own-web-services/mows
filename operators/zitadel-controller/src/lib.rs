@@ -4,7 +4,7 @@ use mows_common::reqwest_middleware;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum ControllerError {
     #[error("SerializationError: {0}")]
     SerializationError(#[source] serde_json::Error),
 
@@ -14,7 +14,7 @@ pub enum Error {
     #[error("Finalizer Error: {0}")]
     // NB: awkward type because finalizer::Error embeds the reconciler error (which is this)
     // so boxing this error to break cycles
-    FinalizerError(#[source] Box<kube::runtime::finalizer::Error<Error>>),
+    FinalizerError(#[source] Box<kube::runtime::finalizer::Error<ControllerError>>),
 
     #[error("VaultError: {0}")]
     VaultError(#[source] vaultrs::error::ClientError),
@@ -34,48 +34,48 @@ pub enum Error {
     #[error("TonicStatusError: {0}")]
     TonicStatusError(#[source] tonic::Status),
 }
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+pub type Result<T, E = ControllerError> = std::result::Result<T, E>;
 
 // convert tonic status to error
-impl From<tonic::Status> for Error {
+impl From<tonic::Status> for ControllerError {
     fn from(error: tonic::Status) -> Self {
-        Error::TonicStatusError(error)
+        ControllerError::TonicStatusError(error)
     }
 }
 
-impl Error {
+impl ControllerError {
     pub fn metric_label(&self) -> String {
         format!("{self:?}").to_lowercase()
     }
 }
 
-impl From<reqwest_middleware::Error> for Error {
+impl From<reqwest_middleware::Error> for ControllerError {
     fn from(error: reqwest_middleware::Error) -> Self {
-        Error::ReqwestMiddlewareError(error)
+        ControllerError::ReqwestMiddlewareError(error)
     }
 }
 
-impl From<vaultrs::error::ClientError> for Error {
+impl From<vaultrs::error::ClientError> for ControllerError {
     fn from(error: vaultrs::error::ClientError) -> Self {
-        Error::VaultError(error)
+        ControllerError::VaultError(error)
     }
 }
 
-impl From<mows_common::errors::MowsError> for Error {
+impl From<mows_common::errors::MowsError> for ControllerError {
     fn from(error: mows_common::errors::MowsError) -> Self {
-        Error::MowsError(error)
+        ControllerError::MowsError(error)
     }
 }
 
-impl From<anyhow::Error> for Error {
+impl From<anyhow::Error> for ControllerError {
     fn from(error: anyhow::Error) -> Self {
-        Error::GenericError(error.to_string())
+        ControllerError::GenericError(error.to_string())
     }
 }
 
-impl From<reqwest::Error> for Error {
+impl From<reqwest::Error> for ControllerError {
     fn from(error: reqwest::Error) -> Self {
-        Error::ReqwestError(error)
+        ControllerError::ReqwestError(error)
     }
 }
 

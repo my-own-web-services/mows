@@ -50,6 +50,7 @@ pub enum RawSpec {
 #[serde(rename_all = "camelCase")]
 pub struct HelmRepoSpec {
     pub chart_name: String,
+    pub release_name: String,
     pub repository: HelmRepoType,
     pub values_file: Option<String>,
     pub resources: Option<Vec<String>>,

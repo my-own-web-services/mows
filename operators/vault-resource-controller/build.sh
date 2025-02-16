@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-cargo run --bin crdgen > yaml/crd.yaml
+cargo run --bin crdgen > charts/vrc/templates/CRD.yaml
 
 docker buildx bake
 
