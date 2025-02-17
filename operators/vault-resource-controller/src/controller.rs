@@ -129,7 +129,6 @@ pub async fn apply_resource(
         VaultResourceSpec::SecretEngine(vault_secret_engine) => {
             apply_secret_engine(
                 &vault_client,
-                kube_client,
                 resource_namespace,
                 resource_name,
                 vault_secret_engine,
@@ -207,7 +206,6 @@ impl VaultResource {
 
         match apply_resource(self, &kube_client).await {
             Ok(_) => {
-                info!("Reconcile successful");
                 let new_status = Patch::Apply(json!({
                     "apiVersion": "vault.k8s.mows.cloud/v1",
                     "kind": "VaultResource",

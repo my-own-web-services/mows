@@ -48,8 +48,8 @@ networkPolicy:
         app: prometheus
         port: http
 
-logging:
-    log_filter: info,vaultrs=warn
+logging:    
+    log_filter: warn,controller=debug
     tracing_filter: info
 env: []
 

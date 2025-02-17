@@ -13,6 +13,8 @@ use std::collections::HashMap;
 use tracing::{debug, instrument};
 use vaultrs::client::VaultClient;
 
+const TEMPLATE_KEYWORD: &str = "_template.reserved.mows.cloud";
+
 #[instrument(skip(vault_client), level = "trace")]
 pub async fn cleanup_secret_engine(
     vault_client: &VaultClient,
@@ -33,10 +35,9 @@ pub async fn cleanup_secret_engine(
     Ok(())
 }
 
-#[instrument(skip(vault_client, kube_client), level = "trace")]
+#[instrument(skip(vault_client), level = "trace")]
 pub async fn apply_secret_engine(
     vault_client: &VaultClient,
-    kube_client: &kube::Client,
     resource_namespace: &str,
     resource_name: &str,
     vault_secret_engine: &VaultSecretEngine,
@@ -62,7 +63,6 @@ pub async fn apply_secret_engine(
             debug!("Handling KV2 secret engine at {:?} in Vault", mount_path);
             apply_kv2_engine(
                 vault_client,
-                kube_client,
                 &mount_path,
                 kv2_secret_engine_params,
                 resource_namespace,
@@ -76,78 +76,64 @@ pub async fn apply_secret_engine(
     Ok(())
 }
 
-#[instrument(skip(vault_client, kube_client), level = "trace")]
+#[instrument(skip(vault_client), level = "trace")]
 pub async fn apply_kv2_engine(
     vault_client: &VaultClient,
-    kube_client: &kube::Client,
     mount_path: &str,
-    kv2_secret_engine_params: &KV2SecretEngineParams,
+    kv2_secret_engine: &KV2SecretEngineParams,
     resource_namespace: &str,
     resource_name: &str,
 ) -> Result<(), ControllerError> {
-    // check if the vault_resource is already present in kubernetes and if it is check the fields that changed and update them in vault
-
-    let vault_resource_api: Api<VaultResource> = Api::namespaced(kube_client.clone(), resource_namespace);
-
-    let old_vault_resource = vault_resource_api.get_opt(resource_name).await.map_err(|e| {
-        anyhow!(format!(
-            "Failed to get VaultResource {:?} in namespace {:?}: {:?}",
-            resource_name, resource_namespace, e
-        ))
-    })?;
-
-    let old_kv2_secret_engine_params =
-        old_vault_resource.and_then(|vault_resource| match vault_resource.spec {
-            VaultResourceSpec::SecretEngine(old_secret_engine) => match old_secret_engine {
-                VaultSecretEngine::KV2(old_kv2_secret_engine_params) => Some(old_kv2_secret_engine_params),
-                _ => None,
-            },
-            _ => None,
-        });
-
-    for (secret_path, secret_kv_data) in kv2_secret_engine_params.kv_data.iter() {
-        if let Some(old_kv2_secret_engine_params) = &old_kv2_secret_engine_params {
-            if let Some(old_secret_kv_data) = old_kv2_secret_engine_params.kv_data.get(secret_path) {
-                if old_secret_kv_data == secret_kv_data {
-                    debug!(
-                        "Secret {:?} in Vault at {:?} has not changed, skipping",
-                        secret_path, mount_path
-                    );
-                    continue;
-                }
-            }
-        }
-
-        let mut rendered_secret_kv_data: HashMap<String, String> =
-            vaultrs::kv2::read(vault_client, mount_path, secret_path)
+    for (new_secret_path, new_secret_kv_template) in kv2_secret_engine.kv_data.iter() {
+        let mut current_secret_kv_data: HashMap<String, String> =
+            vaultrs::kv2::read(vault_client, mount_path, new_secret_path)
                 .await
                 .unwrap_or_default();
 
         debug!(
             "Secret {:?} in Vault at {:?} has data {:?}",
-            secret_path, mount_path, rendered_secret_kv_data
+            new_secret_path, mount_path, current_secret_kv_data
         );
 
-        for (key, value) in secret_kv_data.iter() {
-            // update the secret values only if they are not already present in the secret
-            if rendered_secret_kv_data.contains_key(key) {
-                continue;
+        let mut value_changed = false;
+
+        for (new_key, new_template) in new_secret_kv_template.iter() {
+            // update the secret values only if the value pre rendering has changed
+
+            if let Some(last_template) =
+                current_secret_kv_data.get(format!("{}{}", new_key, TEMPLATE_KEYWORD).as_str())
+            {
+                if last_template == new_template {
+                    continue;
+                }
             }
+            value_changed = true;
 
             let mut template = Template::default();
             template.add_funcs(&TEMPLATE_FUNCTIONS);
-            template.parse(value.clone().replace("{%", "{{").replace("%}", "}}"))?;
+            template.parse(new_template.clone().replace("{%", "{{").replace("%}", "}}"))?;
 
-            rendered_secret_kv_data.insert(key.to_string(), template.render(&GtmplContext::empty())?);
+            current_secret_kv_data.insert(new_key.to_string(), template.render(&GtmplContext::empty())?);
+            current_secret_kv_data.insert(format!("{}{}", new_key, TEMPLATE_KEYWORD), new_template.clone());
         }
 
-        debug!(
-            "Creating secret {:?} in Vault at {:?} with data {:?}",
-            secret_path, mount_path, rendered_secret_kv_data
-        );
+        if value_changed {
+            debug!(
+                "Creating secret {:?} in Vault at {:?} with data {:?}",
+                new_secret_path, mount_path, current_secret_kv_data
+            );
+            vaultrs::kv2::set(vault_client, mount_path, new_secret_path, &current_secret_kv_data).await?;
+        } else {
+            debug!(
+                "Skipping secret {:?} in Vault at {:?} as value has not changed",
+                new_secret_path, mount_path
+            );
+        }
 
-        vaultrs::kv2::set(vault_client, mount_path, secret_path, &rendered_secret_kv_data).await?;
+        // TODO: delete key-values that are not in the new secret
     }
+
+    // TODO: delete secrets that are not in the new secret engine
 
     Ok(())
 }

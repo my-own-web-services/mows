@@ -70,7 +70,7 @@ pub async fn init_observability() {
     let otel = tracing_opentelemetry::OpenTelemetryLayer::new(init_tracer().await)
         .with_filter(tracing_filter);
 
-    let log_filter = tracing_subscriber::EnvFilter::from_str(&config.tracing_filter).unwrap();
+    let log_filter = tracing_subscriber::EnvFilter::from_str(&config.log_filter).unwrap();
 
     let logger = tracing_subscriber::fmt::layer()
         .with_ansi(true)
