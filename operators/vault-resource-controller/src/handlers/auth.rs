@@ -10,8 +10,31 @@ use vaultrs::{
 
 use crate::crd::{KubernetesAuthEngineParams, KubernetesAuthEngineRole, VaultAuthEngine};
 
-#[instrument(skip(vault_client))]
-pub async fn handle_auth_engine(
+pub async fn cleanup_auth_engine(
+    vault_client: &VaultClient,
+    resource_namespace: &str,
+    resource_name: &str,
+    vault_auth_engine: &VaultAuthEngine,
+) -> Result<(), crate::ControllerError> {
+    let mount_path = format!("mows-core-secrets-vrc/{}/{}", resource_namespace, resource_name);
+
+    let current_auth_engines = vaultrs::sys::auth::list(vault_client)
+        .await
+        .context("Failed to list auth engines in Vault")?;
+
+    if current_auth_engines.contains_key(&format!("{mount_path}/")) {
+        // TODO this will be added in the future when vaultrs supports it
+        /*
+        vaultrs::sys::auth::disable(vault_client, &mount_path)
+            .await
+            .context(format!("Failed to disable auth engine {mount_path} in Vault"))?;*/
+    }
+
+    Ok(())
+}
+
+#[instrument(skip(vault_client), level = "trace")]
+pub async fn apply_auth_engine(
     vault_client: &VaultClient,
     resource_namespace: &str,
     resource_name: &str,
@@ -35,7 +58,7 @@ pub async fn handle_auth_engine(
     }
 
     match &vault_auth_engine {
-        VaultAuthEngine::Kubernetes(k8s_auth_engine_config) => handle_k8s_auth_engine(
+        VaultAuthEngine::Kubernetes(k8s_auth_engine_config) => apply_k8s_auth_engine(
             vault_client,
             &mount_path,
             resource_namespace,
@@ -49,8 +72,8 @@ pub async fn handle_auth_engine(
 
     Ok(())
 }
-#[instrument(skip(vault_client))]
-pub async fn handle_k8s_auth_engine(
+#[instrument(skip(vault_client), level = "trace")]
+pub async fn apply_k8s_auth_engine(
     vault_client: &VaultClient,
     mount_path: &str,
     resource_namespace: &str,
@@ -69,15 +92,15 @@ pub async fn handle_k8s_auth_engine(
     .context("Failed to configure kubernetes auth for vrc in Vault")?;
 
     for (role_name, role) in k8s_auth_engine_config.roles.iter() {
-        handle_k8s_auth_role(vault_client, mount_path, resource_namespace, role_name, role)
+        apply_k8s_auth_role(vault_client, mount_path, resource_namespace, role_name, role)
             .await
             .context(format!("Failed to create k8s auth role {:?}", role_name))?;
     }
 
     Ok(())
 }
-#[instrument(skip(vault_client))]
-pub async fn handle_k8s_auth_role(
+#[instrument(skip(vault_client), level = "trace")]
+pub async fn apply_k8s_auth_role(
     vault_client: &VaultClient,
     mount_path: &str,
     resource_namespace: &str,

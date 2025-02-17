@@ -1,6 +1,6 @@
 # run inside the manager container
 
-kubectl apply -f /operators/vault-resource-controller/yaml/crd.yaml && helm upgrade --install mows-core-secrets-vrc /operators/vault-resource-controller/charts/vrc/ -n mows-core-secrets-vrc --create-namespace
+helm upgrade --install mows-core-secrets-vrc /operators/vault-resource-controller/charts/vrc/ -n mows-core-secrets-vrc --create-namespace
 
 #kubectl patch crd/vaultresources.vault.k8s.mows.cloud -p '{"metadata":{"finalizers":[]}}' --type=merge ; 
 

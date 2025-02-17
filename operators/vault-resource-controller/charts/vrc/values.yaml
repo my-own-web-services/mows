@@ -49,7 +49,7 @@ networkPolicy:
         port: http
 
 logging:
-    log_filter: info
+    log_filter: info,vaultrs=warn
     tracing_filter: info
 env: []
 

@@ -55,7 +55,7 @@ pub use metrics::Metrics;
 pub mod config;
 pub mod macros;
 pub mod utils;
-pub mod reconcile {
+pub mod handlers {
     pub mod auth;
     pub mod policy;
     pub mod secret_engine;

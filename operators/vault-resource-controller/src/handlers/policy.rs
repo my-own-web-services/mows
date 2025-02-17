@@ -7,8 +7,23 @@ use vaultrs::client::VaultClient;
 
 use crate::crd::{VaultEngineAccessPolicy, VaultEngineAccessPolicyType};
 
-#[instrument(skip(vault_client))]
-pub async fn handle_engine_access_policy(
+#[instrument(skip(vault_client), level = "trace")]
+pub async fn cleanup_engine_access_policy(
+    vault_client: &VaultClient,
+    resource_namespace: &str,
+    resource_name: &str,
+) -> anyhow::Result<()> {
+    let policy_name = format!("mows-core-secrets-vrc/{}/{}", resource_namespace, resource_name);
+
+    vaultrs::sys::policy::delete(vault_client, &policy_name)
+        .await
+        .context(format!("Failed to delete policy {policy_name} in Vault"))?;
+
+    Ok(())
+}
+
+#[instrument(skip(vault_client), level = "trace")]
+pub async fn apply_engine_access_policy(
     vault_client: &VaultClient,
     resource_namespace: &str,
     resource_name: &str,

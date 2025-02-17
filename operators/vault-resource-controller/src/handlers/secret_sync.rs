@@ -2,7 +2,7 @@ use k8s_openapi::api::core::v1::{ConfigMap, Secret};
 use kube::api::ObjectMeta;
 use mows_common::templating::{
     functions::{serde_json_value_to_gtmpl_value, TEMPLATE_FUNCTIONS},
-    gtmpl::{self, Context as GtmplContext, Template, Value as GtmplValue},
+    gtmpl::{Context as GtmplContext, Template, Value as GtmplValue},
     gtmpl_derive::Gtmpl,
 };
 
@@ -28,7 +28,60 @@ struct RenderedSecret {
     map: BTreeMap<String, String>,
 }
 
-pub async fn handle_secret_sync(
+pub async fn cleanup_secret_sync(
+    kube_client: &kube::Client,
+    resource_namespace: &str,
+    resource_name: &str,
+    vault_secret_sync: &VaultSecretSync,
+) -> Result<(), crate::ControllerError> {
+    let secret_api: kube::Api<Secret> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
+
+    for (secret_name, _) in vault_secret_sync.targets.secrets.iter().flatten() {
+        let secret_exists = secret_api
+            .get_opt(&secret_name)
+            .await
+            .map_err(crate::ControllerError::KubeError)?;
+
+        if let Some(old_secret) = &secret_exists {
+            if let Some(labels) = &old_secret.metadata.labels {
+                if let Some(managed) = labels.get(MANAGED_BY_KEY) {
+                    if managed == FINALIZER {
+                        secret_api
+                            .delete(&secret_name, &Default::default())
+                            .await
+                            .map_err(crate::ControllerError::KubeError)?;
+                    }
+                }
+            }
+        }
+    }
+
+    let configmap_api: kube::Api<ConfigMap> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
+
+    for (configmap_name, _) in vault_secret_sync.targets.config_maps.iter().flatten() {
+        let configmap_exists = configmap_api
+            .get_opt(&configmap_name)
+            .await
+            .map_err(crate::ControllerError::KubeError)?;
+
+        if let Some(old_configmap) = &configmap_exists {
+            if let Some(labels) = &old_configmap.metadata.labels {
+                if let Some(managed) = labels.get(MANAGED_BY_KEY) {
+                    if managed == FINALIZER {
+                        configmap_api
+                            .delete(&configmap_name, &Default::default())
+                            .await
+                            .map_err(crate::ControllerError::KubeError)?;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn apply_secret_sync(
     vault_client: &VaultClient,
     resource_namespace: &str,
     resource_name: &str,
@@ -54,8 +107,6 @@ pub async fn handle_secret_sync(
             vaultrs::kv2::read(vault_client, &vault_engine_path, &fetch_from.path).await?;
         fetched_secrets.insert(template_key.clone(), serde_json_value_to_gtmpl_value(secret));
     }
-
-    debug!("Fetched secrets: {:?}", fetched_secrets);
 
     let mut rendered_secrets: HashMap<String, RenderedSecret> = HashMap::new();
 
@@ -85,8 +136,6 @@ pub async fn handle_secret_sync(
                 },
             );
         }
-
-        debug!("Rendered secrets: {:?}", rendered_secrets);
     }
 
     if let Some(target_configmaps) = &vault_secret_sync.targets.config_maps {

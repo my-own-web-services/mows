@@ -3,7 +3,7 @@ use actix_web::{
     cookie::time::error, get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use anyhow::Context;
-use controller::create_vault_client;
+use controller::utils::create_vault_client;
 pub use controller::{self, State};
 use mows_common::observability::init_observability;
 use tracing_actix_web::TracingLogger;

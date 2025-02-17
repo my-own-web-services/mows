@@ -30,7 +30,7 @@ rules:
     verbs: ["create"]
   - apiGroups: [""]
     resources: ["secrets", "configmaps"]
-    verbs: ["create","patch", "update","get"]
+    verbs: ["create","patch", "update","get","delete"]
 
 
 ---

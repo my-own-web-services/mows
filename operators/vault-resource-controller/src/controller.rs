@@ -1,11 +1,13 @@
 use crate::{
     config::config,
     crd::{VaultResource, VaultResourceSpec, VaultResourceStatus},
-    reconcile::{
-        auth::handle_auth_engine, policy::handle_engine_access_policy, secret_engine::handle_secret_engine,
-        secret_sync::handle_secret_sync,
+    handlers::{
+        auth::apply_auth_engine,
+        policy::{apply_engine_access_policy, cleanup_engine_access_policy},
+        secret_engine::{apply_secret_engine, cleanup_secret_engine},
+        secret_sync::{apply_secret_sync, cleanup_secret_sync},
     },
-    utils::get_error_type,
+    utils::{create_vault_client, get_error_type},
     ControllerError, Metrics, Result,
 };
 use anyhow::Context as anyhow_context;
@@ -22,54 +24,53 @@ use kube::{
     },
     Resource,
 };
-use mows_common::{config::common_config, get_current_config_cloned, observability::get_trace_id};
+use mows_common::{get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
-use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 pub static FINALIZER: &str = "vaultresources.k8s.mows.cloud";
 
-pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
-    let mut client_builder = VaultClientSettingsBuilder::default();
-
-    let config = get_current_config_cloned!(config());
-
-    client_builder.address(config.vault_uri);
-
-    let vc =
-        VaultClient::new(client_builder.build().map_err(|_| {
-            ControllerError::GenericError("Failed to create vault client settings builder".to_string())
-        })?)?;
-
-    let service_account_jwt = std::fs::read_to_string(config.service_account_token_path)
-        .context("Failed to read service account token")?;
-
-    let vault_auth = vaultrs::auth::kubernetes::login(
-        &vc,
-        &config.vault_kubernetes_auth_path,
-        &config.vault_kubernetes_auth_role,
-        &service_account_jwt,
-    )
-    .await?;
-
-    let vc = VaultClient::new(
-        client_builder
-            .token(&vault_auth.client_token)
-            .build()
-            .context("Failed to create vault client")?,
-    )?;
-
-    Ok(vc)
+// Context for our reconciler
+#[derive(Clone)]
+pub struct Context {
+    /// Kubernetes client
+    pub client: Client,
+    /// Diagnostics read by the web server
+    pub diagnostics: Arc<RwLock<Diagnostics>>,
+    /// Prometheus metrics
+    pub metrics: Arc<Metrics>,
 }
 
-#[instrument(skip(kube_client))]
-pub async fn reconcile_resource(
+#[instrument(skip(ctx, vault_resource), fields(trace_id), level = "trace")]
+async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Result<Action> {
+    let trace_id = get_trace_id();
+    if trace_id != opentelemetry::trace::TraceId::INVALID {
+        Span::current().record("trace_id", field::display(&trace_id));
+    }
+    let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
+    ctx.diagnostics.write().await.last_event = Utc::now();
+    let ns = vault_resource.namespace().unwrap(); // vault resources are namespace scoped
+    let vault_resources: Api<VaultResource> = Api::namespaced(ctx.client.clone(), &ns);
+
+    //info!("Reconciling Object \"{}\" in {}", vault_resource.name_any(), ns);
+    finalizer(&vault_resources, FINALIZER, vault_resource, |event| async {
+        match event {
+            Finalizer::Apply(res) => res.reconcile(ctx.clone()).await,
+            Finalizer::Cleanup(res) => res.cleanup(ctx.clone()).await,
+        }
+    })
+    .await
+    .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
+}
+
+#[instrument(skip(kube_client), level = "trace")]
+pub async fn cleanup_resource(
     vault_resource: &VaultResource,
     kube_client: &kube::Client,
 ) -> Result<(), ControllerError> {
-    let vc = create_vault_client().await?;
+    let vault_client = create_vault_client().await?;
 
     let resource_namespace = vault_resource.metadata.namespace.as_deref().unwrap_or("default");
 
@@ -84,14 +85,74 @@ pub async fn reconcile_resource(
 
     match &vault_resource.spec {
         VaultResourceSpec::SecretEngine(vault_secret_engine) => {
-            handle_secret_engine(&vc, resource_namespace, resource_name, vault_secret_engine).await?
+            cleanup_secret_engine(
+                &vault_client,
+                resource_namespace,
+                resource_name,
+                vault_secret_engine,
+            )
+            .await?
         }
         VaultResourceSpec::AuthEngine(vault_auth_engine) => {
-            handle_auth_engine(&vc, resource_namespace, resource_name, vault_auth_engine).await?
+            //cleanup_auth_engine(&vc, resource_namespace, resource_name, vault_auth_engine).await?
+        }
+        VaultResourceSpec::EngineAccessPolicy(_) => {
+            cleanup_engine_access_policy(&vault_client, resource_namespace, resource_name).await?
+        }
+        VaultResourceSpec::SecretSync(vault_secret_sync) => {
+            cleanup_secret_sync(kube_client, resource_namespace, resource_name, vault_secret_sync).await?
+        }
+    }
+
+    Ok(())
+}
+
+#[instrument(skip(kube_client), level = "trace")]
+pub async fn apply_resource(
+    vault_resource: &VaultResource,
+    kube_client: &kube::Client,
+) -> Result<(), ControllerError> {
+    let vault_client = create_vault_client().await?;
+
+    let resource_namespace = vault_resource.metadata.namespace.as_deref().unwrap_or("default");
+
+    let resource_name = match vault_resource.metadata.name.as_deref() {
+        Some(v) => v,
+        None => {
+            return Err(ControllerError::GenericError(
+                "Failed to get resource name from VaultResource metadata".to_string(),
+            ))
+        }
+    };
+
+    match &vault_resource.spec {
+        VaultResourceSpec::SecretEngine(vault_secret_engine) => {
+            apply_secret_engine(
+                &vault_client,
+                kube_client,
+                resource_namespace,
+                resource_name,
+                vault_secret_engine,
+            )
+            .await?
+        }
+        VaultResourceSpec::AuthEngine(vault_auth_engine) => {
+            apply_auth_engine(
+                &vault_client,
+                resource_namespace,
+                resource_name,
+                vault_auth_engine,
+            )
+            .await?
         }
         VaultResourceSpec::EngineAccessPolicy(vault_engine_access_policy) => {
-            handle_engine_access_policy(&vc, resource_namespace, resource_name, vault_engine_access_policy)
-                .await?
+            apply_engine_access_policy(
+                &vault_client,
+                resource_namespace,
+                resource_name,
+                vault_engine_access_policy,
+            )
+            .await?
         }
         VaultResourceSpec::SecretSync(vault_secret_sync) => {
             let force_target_namespace_key = "vault.k8s.mows.cloud/force-target-namespace";
@@ -112,8 +173,8 @@ pub async fn reconcile_resource(
                     }
                 };
             };
-            handle_secret_sync(
-                &vc,
+            apply_secret_sync(
+                &vault_client,
                 resource_namespace,
                 resource_name,
                 &target_namespace,
@@ -127,39 +188,6 @@ pub async fn reconcile_resource(
     Ok(())
 }
 
-// Context for our reconciler
-#[derive(Clone)]
-pub struct Context {
-    /// Kubernetes client
-    pub client: Client,
-    /// Diagnostics read by the web server
-    pub diagnostics: Arc<RwLock<Diagnostics>>,
-    /// Prometheus metrics
-    pub metrics: Arc<Metrics>,
-}
-
-#[instrument(skip(ctx, vault_resource), fields(trace_id))]
-async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Result<Action> {
-    let trace_id = get_trace_id();
-    if trace_id != opentelemetry::trace::TraceId::INVALID {
-        Span::current().record("trace_id", field::display(&trace_id));
-    }
-    let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
-    ctx.diagnostics.write().await.last_event = Utc::now();
-    let ns = vault_resource.namespace().unwrap(); // vault resources are namespace scoped
-    let vault_resources: Api<VaultResource> = Api::namespaced(ctx.client.clone(), &ns);
-
-    info!("Reconciling Document \"{}\" in {}", vault_resource.name_any(), ns);
-    finalizer(&vault_resources, FINALIZER, vault_resource, |event| async {
-        match event {
-            Finalizer::Apply(res) => res.reconcile(ctx.clone()).await,
-            Finalizer::Cleanup(res) => res.cleanup(ctx.clone()).await,
-        }
-    })
-    .await
-    .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
-}
-
 fn error_policy(vault_resource: Arc<VaultResource>, error: &ControllerError, ctx: Arc<Context>) -> Action {
     warn!("reconcile failed: {:?}", error);
     ctx.metrics.reconcile.set_failure(&vault_resource, error);
@@ -169,7 +197,7 @@ fn error_policy(vault_resource: Arc<VaultResource>, error: &ControllerError, ctx
 
 impl VaultResource {
     // Reconcile (for non-finalizer related changes)
-    #[instrument(skip(ctx))]
+    #[instrument(skip(ctx), level = "trace")]
     async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
         let kube_client = ctx.client.clone();
         let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);
@@ -177,7 +205,7 @@ impl VaultResource {
         let name = self.name_any();
         let vault_resources: Api<VaultResource> = Api::namespaced(kube_client.clone(), &ns);
 
-        match reconcile_resource(self, &kube_client).await {
+        match apply_resource(self, &kube_client).await {
             Ok(_) => {
                 info!("Reconcile successful");
                 let new_status = Patch::Apply(json!({
@@ -246,16 +274,18 @@ impl VaultResource {
     }
 
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)
-    #[instrument(skip(ctx))]
+    #[instrument(skip(ctx), level = "trace")]
     async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
         let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
+
+        let res = cleanup_resource(self, &ctx.client).await?;
 
         let res = recorder
             .publish(Event {
                 type_: EventType::Normal,
-                reason: "DeleteRequested".into(),
+                reason: "CleanupRequested".into(),
                 note: Some(format!("Delete `{}`", self.name_any())),
-                action: "Deleting".into(),
+                action: "Cleanup".into(),
                 secondary: None,
             })
             .await
@@ -330,13 +360,13 @@ impl State {
 /// Initialize the controller and shared state (given the crd is installed)
 pub async fn run(state: State) {
     let client = Client::try_default().await.expect("failed to create kube Client");
-    let docs = Api::<VaultResource>::all(client.clone());
-    if let Err(e) = docs.list(&ListParams::default().limit(1)).await {
+    let object = Api::<VaultResource>::all(client.clone());
+    if let Err(e) = object.list(&ListParams::default().limit(1)).await {
         error!("CRD is not queryable; {e:?}. Is the CRD installed?");
         info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
         std::process::exit(1);
     }
-    Controller::new(docs, Config::default().any_semantic())
+    Controller::new(object, Config::default().any_semantic())
         .shutdown_on_signal()
         .run(reconcile, error_policy, state.to_context(client))
         .filter_map(|x| async move { std::result::Result::ok(x) })

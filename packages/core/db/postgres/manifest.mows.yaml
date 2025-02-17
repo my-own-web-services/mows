@@ -1,0 +1,15 @@
+manifestVersion: "0.1"
+metadata:
+    name: postgres
+    description: "postgres operator"
+    version: "0.1"
+spec:
+    raw:
+        helmRepos:
+        -   chartName: cloudnative-pg
+            releaseName: mows-core-db-postgres
+            repository: 
+                remote:
+                    url: https://cloudnative-pg.github.io/charts
+                    sha256Digest: a7ac3a9b0d5fe754819e0877fb2f1b0921e3f5009a25cbec876f6a147dffbb3e
+            valuesFile: files/values.yaml

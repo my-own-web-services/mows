@@ -184,7 +184,7 @@ impl ClusterSecrets {
             "mows-core-secrets-vrc",
             r#"# creating of secret engines
 path "sys/mounts/mows-core-secrets-vrc/*" {
-  capabilities = ["create","update"]
+  capabilities = ["create", "update", "read", "delete"]
 }
 
 # listing secret engines
@@ -202,24 +202,24 @@ path "sys/auth" {
 
 # creating auth engines
 path "sys/auth/mows-core-secrets-vrc/*" {
-  capabilities = ["create", "update","sudo"]
+  capabilities = ["create", "update", "sudo"]
 }
 
-# create and list policies
+# create delete and list policies
 path "sys/policy/mows-core-secrets-vrc/*" {
-  capabilities = ["create","update"]
+  capabilities = ["create", "update", "delete"]
 }
 path "sys/policy" {
-  capabilities = ["list","read"]
+  capabilities = ["list", "read"]
 }
 
 # give full access to all own engines
 path "auth/mows-core-secrets-vrc/*" {
-  capabilities = ["list","read","create","update"]
+  capabilities = ["list", "read", "create", "update"]
 }
 
 path "mows-core-secrets-vrc/*" {
-  capabilities = ["list","read","create","update"]
+  capabilities = ["list", "read", "create", "update"]
 }
 "#,
         )
