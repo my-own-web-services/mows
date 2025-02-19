@@ -1,6 +1,9 @@
 use crate::{
     db::models::Repository,
-    types::{MowsManifest, RenderedDocument},
+    rendered_document::{
+        CrdHandling, KubernetesResourceError, RenderedDocument, RenderedDocumentFilter,
+    },
+    types::MowsManifest,
     utils::{get_dynamic_kube_api, parse_manifest},
 };
 use anyhow::Context;
@@ -10,18 +13,26 @@ use kube::{
     api::{DynamicObject, GroupVersionKind, ObjectMeta, Patch, PatchParams},
     Api, Discovery, ResourceExt,
 };
-use mows_common::kube::get_kube_client;
+use mows_common::{kube::get_kube_client, utils::generate_id};
 use raw::RawSpecError;
+use serde::de;
 use std::path::{Path, PathBuf};
+use tracing::{debug, trace};
 mod raw;
 
 impl Repository {
+    pub fn new(uri: &str) -> Self {
+        Self {
+            uri: uri.to_string(),
+        }
+    }
+
     pub async fn render(
         &self,
         namespace: &str,
         root_working_directory: &str,
     ) -> Result<Vec<RenderedDocument>, RenderError> {
-        let repo_paths = RepositoryPaths::new(self, root_working_directory).await;
+        let repo_paths = self.get_repository_paths(root_working_directory).await?;
 
         let _ = &self.fetch(&repo_paths.source_path).await?;
 
@@ -34,6 +45,13 @@ impl Repository {
         };
 
         Ok(result)
+    }
+
+    pub async fn get_repository_paths(
+        &self,
+        root_working_directory: &str,
+    ) -> anyhow::Result<RepositoryPaths> {
+        Ok(RepositoryPaths::new(root_working_directory).await)
     }
 
     pub async fn fetch(&self, target_path: &PathBuf) -> Result<(), FetchMowsRepoError> {
@@ -67,55 +85,94 @@ impl Repository {
 
         Ok(mows_manifest)
     }
+
     pub async fn install(
         &self,
         requested_namespace: &str,
         root_working_directory: &str,
+        crd_handling: &CrdHandling,
         kubeconfig: &str,
     ) -> Result<(), InstallError> {
+        debug!("Installing repository: {:?}", self);
+
         let rendered_documents = self
             .render(requested_namespace, root_working_directory)
-            .await?;
+            .await
+            .context(format!("Error rendering documents"))?;
 
-        let client = get_kube_client(kubeconfig).await?;
+        self.install_with_api(
+            requested_namespace,
+            kubeconfig,
+            rendered_documents,
+            crd_handling,
+        )
+        .await?;
 
-        let discovery = Discovery::new(client.clone()).run().await?;
+        Ok(())
+    }
+
+    pub async fn install_with_api(
+        &self,
+        requested_namespace: &str,
+        kubeconfig: &str,
+        rendered_documents: Vec<RenderedDocument>,
+        crd_handling: &CrdHandling,
+    ) -> Result<(), InstallError> {
+        debug!("Installing repository: {:?}", self);
+
+        let rendered_documents = rendered_documents.filter_crd(crd_handling);
+
+        debug!("Filtered documents: {:#?}", rendered_documents);
+
+        let client = get_kube_client(kubeconfig)
+            .await
+            .context(format!("Error creating kube client"))?;
+
+        let discovery = Discovery::new(client.clone())
+            .run()
+            .await
+            .context("Error creating discovery client")?;
 
         let patch_params = PatchParams::apply("mows-package-manager").force();
 
         // create namespace if it doesn't exist
+        if crd_handling != &CrdHandling::OnlyCrd {
+            let ns_api: Api<Namespace> = Api::all(client.clone());
 
-        let ns_api: Api<Namespace> = Api::all(client.clone());
-
-        let namespace = Namespace {
-            metadata: ObjectMeta {
-                name: Some(requested_namespace.to_string()),
+            let namespace = Namespace {
+                metadata: ObjectMeta {
+                    name: Some(requested_namespace.to_string()),
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            ..Default::default()
-        };
+            };
 
-        let _ = ns_api
-            .patch(requested_namespace, &patch_params, &Patch::Apply(namespace))
-            .await;
+            ns_api
+                .patch(
+                    requested_namespace,
+                    &patch_params,
+                    &Patch::Apply(&namespace),
+                )
+                .await
+                .context(format!("Error creating namespace: {}", requested_namespace))?;
+        }
 
         for rendered_document in rendered_documents {
-            if rendered_document.object.is_null() {
+            if rendered_document.resource.is_null() {
                 continue;
             }
-            let object: DynamicObject = serde_yaml_ng::from_value(rendered_document.object.clone())
-                .context(format!(
-                    "Error parsing rendered file as DynamicObject: {}",
-                    rendered_document.file_path
-                ))?;
+            let resource: DynamicObject =
+                serde_yaml_ng::from_value(rendered_document.resource.clone())
+                    .context("Error parsing resource as DynamicObject")?;
 
-            let group_version_kind = match &object.types {
+            let group_version_kind = match &resource.types {
                 Some(type_meta) => GroupVersionKind::try_from(type_meta)
                     .context("Error converting type meta to GroupVersionKind")?,
                 None => {
                     return Err(InstallError::AnyhowError(anyhow::anyhow!(
-                        "No type meta found in object: {:?}",
-                        rendered_document.object
+                        "No type meta found in object: {:?} \nPath: {}",
+                        rendered_document.resource,
+                        rendered_document.file_path,
                     )))
                 }
             };
@@ -124,10 +181,10 @@ impl Repository {
 
             let is_namespace = group_version_kind.kind == "Namespace";
 
-            let namespace_to_use = object.namespace();
+            let namespace_to_use = resource.namespace();
             let namespace_to_use = namespace_to_use.as_deref().or(Some(requested_namespace));
 
-            let object_name = object.name_any();
+            let object_name = resource.name_any();
 
             match discovery.resolve_gvk(&group_version_kind) {
                 Some((api_resource, api_capabilities)) => {
@@ -143,12 +200,12 @@ impl Repository {
                         .patch(
                             &object_name,
                             &patch_params,
-                            &Patch::Apply(&rendered_document.object),
+                            &Patch::Apply(&rendered_document.resource),
                         )
                         .await
                         .context(format!(
-                            "Error applying object: \n {}",
-                            &serde_yaml_ng::to_string(&rendered_document.object)?
+                            "Error applying object: \n{}",
+                            &serde_yaml_ng::to_string(&rendered_document.resource)?
                         ))?;
                 }
                 None => {
@@ -175,14 +232,14 @@ pub struct RepositoryPaths {
 }
 
 impl RepositoryPaths {
-    pub async fn new(repository: &Repository, root_working_directory: &str) -> Self {
-        let working_path = Path::new(root_working_directory).join(repository.id.to_string());
+    pub async fn new(root_working_directory: &str) -> Self {
+        let working_path = Path::new(root_working_directory).join(generate_id(50));
         let source_path = working_path.join("source");
         let manifest_path = source_path.join(MANIFEST_FILE_NAME);
         let output_path = working_path.join("output");
 
         let _ = tokio::fs::remove_dir_all(&working_path).await.map_err(|e| {
-            tracing::warn!("Error removing working directory: {}", e);
+            trace!("Error removing working directory: {}", e);
         });
 
         tokio::fs::create_dir_all(&source_path).await.unwrap();
@@ -247,4 +304,6 @@ pub enum InstallError {
     SerdeYamlError(#[from] serde_yaml_ng::Error),
     #[error(transparent)]
     SerdeJsonError(#[from] serde_json::Error),
+    #[error(transparent)]
+    KubernetesResourceError(#[from] KubernetesResourceError),
 }

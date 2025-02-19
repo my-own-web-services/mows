@@ -7,7 +7,6 @@ use utoipa::ToSchema;
 #[diesel(table_name = crate::db::schema::repositories)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Repository {
-    pub id: i32,
     pub uri: String,
 }
 

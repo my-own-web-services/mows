@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_yaml_ng::Value;
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
@@ -69,11 +68,4 @@ pub struct RemoteHelmRepo {
     pub url: String,
     /// sha256 digest of the chart
     pub sha256_digest: String,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq, Eq)]
-pub struct RenderedDocument {
-    pub object: Value,
-    pub file_path: String,
-    pub index: usize,
 }

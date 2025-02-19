@@ -19,6 +19,7 @@ use kube::{
     Api,
 };
 use mows_package_manager::db::models::Repository;
+use mows_package_manager::rendered_document::CrdHandling;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::net::Ipv4Addr;
@@ -28,6 +29,7 @@ use tempfile::NamedTempFile;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::time::sleep;
+use tracing::field::debug;
 use tracing::{debug, trace, warn};
 use utoipa::ToSchema;
 
@@ -482,74 +484,232 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn install_with_package_manager(&self) -> anyhow::Result<()> {
+    pub async fn install_with_package_manager(
+        &self,
+        uri: &str,
+        namespace: &str,
+        crd_handling: &CrdHandling,
+    ) -> anyhow::Result<()> {
         let ic = &INTERNAL_CONFIG;
 
-        let kubeconfig = &self.get_kubeconfig_with_replaced_addresses().await?;
+        let kubeconfig = self.get_kubeconfig_with_replaced_addresses().await?;
 
-        for core_repo in ic.core_repos.iter() {
-            let repo = Repository {
-                id: 0,
-                uri: core_repo.uri.clone(),
-            };
-
-            repo.install(
-                &core_repo.namespace,
+        Repository::new(uri)
+            .install(
+                namespace,
                 &ic.package_manager.working_dir,
-                kubeconfig,
+                crd_handling,
+                &kubeconfig,
             )
-            .await?;
+            .await
+            .context(format!(
+                "Failed to install core repo: {} in namespace: {}",
+                uri, namespace
+            ))?;
+        /*
+        for core_repo in ic.core_repos.iter() {
+            // delete the repo if it exists
+
+
+            debug!("Installing core repo: {}", core_repo.uri);
+
+
+            /*
+            let rendered_files = repo
+                .render(&core_repo.namespace, &ic.package_manager.working_dir)
+                .await
+                .context(format!(
+                    "Failed to install core repo: {} in namespace: {}",
+                    core_repo.uri, core_repo.namespace
+                ))?;
+
+            debug!("Rendered {} files", rendered_files.len());
+
+            let mut all_files = String::new();
+
+            for file in rendered_files {
+                if let Ok(file) = serde_yaml::to_string(&file.object) {
+                    all_files.push_str(&file);
+                    all_files.push_str("\n---\n");
+                }
+            }
+
+            debug!("All files have length: {}", all_files.len());
+
+            // create namespace
+
+            Command::new("kubectl")
+                .args(vec!["create", "namespace", &core_repo.namespace])
+                .output()
+                .await
+                .context("Failed to create namespace")?;
+
+            let mut child = Command::new("kubectl")
+                .args(vec!["apply", "--server-side", "-f", "-"])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::null())
+                .stderr(Stdio::piped())
+                .spawn()
+                .context("Failed to start kubectl apply")?;
+
+            let stdin = child.stdin.as_mut().context("Failed to open stdin")?;
+
+            stdin
+                .write_all(all_files.as_bytes())
+                .await
+                .context("Failed to write to stdin")?;
+
+            let res = child
+                .wait_with_output()
+                .await
+                .context("Failed to wait for kubectl apply")?;
+
+            if !res.status.success() {
+                let stderr = String::from_utf8_lossy(&res.stderr);
+                bail!("Failed to apply core repo: {} {:?}", core_repo.uri, stderr);
+            }*/
+        }*/
+
+        Ok(())
+    }
+
+    pub async fn install_many_with_package_manager(
+        &self,
+        uri_and_namespace: Vec<(&str, &str)>,
+        crd_handling: &CrdHandling,
+    ) -> anyhow::Result<()> {
+        let ic = &INTERNAL_CONFIG;
+
+        let kubeconfig = self.get_kubeconfig_with_replaced_addresses().await?;
+
+        for (uri, namespace) in uri_and_namespace {
+            Repository::new(&uri)
+                .install(
+                    &namespace,
+                    &ic.package_manager.working_dir,
+                    crd_handling,
+                    &kubeconfig,
+                )
+                .await
+                .context(format!(
+                    "Failed to install core repo: {} in namespace: {}",
+                    uri, namespace
+                ))?;
         }
 
         Ok(())
     }
 
     pub async fn install_core_cloud_system(&self) -> anyhow::Result<()> {
-        let ic = &INTERNAL_CONFIG;
-
         self.write_local_kubeconfig().await?;
 
-        if ic.dev.enabled && ic.dev.install_k8s_dashboard {
-            self.install_dashboard().await?;
-        }
+        self.install_dashboard().await?;
 
-        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("network")) {
-            warn!("Skipping network install as configured in internal config");
-        } else {
-            ClusterNetwork::install().await?;
-        }
+        ClusterNetwork::install().await?;
 
-        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("storage")) {
-            warn!("Skipping storage install as configured in internal config");
-        } else {
-            ClusterStorage::install(&self).await?;
-        }
+        ClusterStorage::install(&self).await?;
 
-        self.install_with_package_manager().await?;
+        debug!("Installing CRDs");
+        self.install_many_with_package_manager(
+            vec![
+                (
+                    "file:///packages/core/secrets/vault/",
+                    "mows-core-secrets-vault",
+                ),
+                (
+                    "file:///packages/core/secrets/vrc/",
+                    "mows-core-secrets-vrc",
+                ),
+                (
+                    "file:///packages/core/db/postgres/",
+                    "mows-core-db-postgres",
+                ),
+                ("file:///packages/core/dns/pektin/", "mows-core-dns-pektin"),
+                (
+                    "file:///packages/core/network/ingress/",
+                    "mows-core-network-ingress",
+                ),
+                (
+                    "file:///packages/core/auth/zitadel/",
+                    "mows-core-auth-zitadel",
+                ),
+            ],
+            &CrdHandling::OnlyCrd,
+        )
+        .await?;
 
-        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("argocd")) {
-            warn!("Skipping argocd install as configured in internal config");
-        } else {
-            Self::install_argocd(&self).await?;
+        debug!("Installing Vault");
+        self.install_with_package_manager(
+            "file:///packages/core/secrets/vault/",
+            "mows-core-secrets-vault",
+            &CrdHandling::WithoutCrd,
+        )
+        .await?;
 
-            Self::install_core_with_argo(&self).await?;
-        }
+        if let Err(setup_error) = ClusterSecrets::setup_vault(&self).await {
+            if setup_error
+                .to_string()
+                .contains("Vault is already initialized")
+            {
+                let vault_secrets = match &self.vault_secrets {
+                    Some(secrets) => secrets,
+                    None => bail!("Vault is initialized but no vault secrets were found in the manager config, THIS IS REALLY BAD"),
+                };
 
-        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("vault")) {
-            warn!("Skipping vault install as configured in internal config");
-        } else {
-            if let Err(e) = ClusterSecrets::setup_vault(&self).await {
-                if !e.to_string().contains("Vault is already initialized") {
-                    bail!(e);
+                if let Err(unseal_error) = ClusterSecrets::unseal_vault(vault_secrets).await {
+                    if !unseal_error
+                        .to_string()
+                        .contains("Vault is already unsealed")
+                    {
+                        bail!("Failed to unseal vault: {:?}", unseal_error);
+                    }
                 }
+            } else {
+                bail!("Failed to setup vault: {:?}", setup_error);
             }
         }
 
-        if ic.dev.enabled && ic.dev.skip_core_components_install.contains(&s!("vrc")) {
-            warn!("Skipping vrc install as configured in internal config");
-        } else {
-            ClusterSecrets::setup_vrc(&self).await?;
-        }
+        debug!("Installing Vault Resource Controller");
+        self.install_with_package_manager(
+            "file:///packages/core/secrets/vrc/",
+            "mows-core-secrets-vrc",
+            &CrdHandling::WithoutCrd,
+        )
+        .await?;
+
+        ClusterSecrets::setup_vrc(&self).await?;
+
+        debug!("Installing Postgres Operator");
+        self.install_with_package_manager(
+            "file:///packages/core/db/postgres/",
+            "mows-core-db-postgres",
+            &CrdHandling::WithoutCrd,
+        )
+        .await?;
+
+        debug!("Installing DNS");
+        self.install_with_package_manager(
+            "file:///packages/core/dns/pektin/",
+            "mows-core-dns-pektin",
+            &CrdHandling::WithoutCrd,
+        )
+        .await?;
+
+        debug!("Installing Ingress");
+        self.install_with_package_manager(
+            "file:///packages/core/network/ingress/",
+            "mows-core-network-ingress",
+            &CrdHandling::WithoutCrd,
+        )
+        .await?;
+
+        debug!("Installing Zitadel");
+        self.install_with_package_manager(
+            "file:///packages/core/auth/zitadel/",
+            "mows-core-auth-zitadel",
+            &CrdHandling::WithoutCrd,
+        )
+        .await?;
 
         Ok(())
     }
@@ -562,7 +722,7 @@ impl Cluster {
     }
 
     pub async fn start_kubectl_proxy() -> anyhow::Result<()> {
-        debug!("Starting kubectl proxy");
+        trace!("Starting kubectl proxy");
 
         Command::new("kubectl")
             .args(vec![
@@ -581,7 +741,7 @@ impl Cluster {
     }
 
     pub async fn stop_kubectl_proxy() -> anyhow::Result<()> {
-        debug!("Stopping kubectl proxy");
+        trace!("Stopping kubectl proxy");
         cmd(
             vec!["pkill", "-f", "kubectl proxy"],
             "Failed to stop kubectl proxy",
@@ -591,7 +751,7 @@ impl Cluster {
     }
 
     pub async fn start_vault_proxy() -> anyhow::Result<()> {
-        debug!("Starting vault proxy");
+        trace!("Starting vault proxy");
 
         Self::start_kubectl_port_forward(
             "mows-core-secrets-vault",
@@ -606,7 +766,7 @@ impl Cluster {
     }
 
     pub async fn stop_vault_proxy() -> anyhow::Result<()> {
-        debug!("Stopping vault proxy");
+        trace!("Stopping vault proxy");
         Self::stop_kubectl_port_forward(
             "mows-core-secrets-vault",
             "service/mows-core-secrets-vault",
@@ -623,7 +783,7 @@ impl Cluster {
         remote_port: u16,
         exposed_outside_container: bool,
     ) -> anyhow::Result<()> {
-        debug!("Starting kubectl port-forward");
+        trace!("Starting kubectl port-forward");
 
         let mut child = Command::new("kubectl")
             .args(vec![
@@ -661,7 +821,7 @@ impl Cluster {
     }
 
     pub async fn stop_kubectl_port_forward(namespace: &str, target: &str) -> anyhow::Result<()> {
-        debug!("Stopping kubectl port-forward");
+        trace!("Stopping kubectl port-forward");
         cmd(
             vec![
                 "pkill",

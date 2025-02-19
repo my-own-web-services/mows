@@ -12,7 +12,8 @@ pub mod repository {
             db::Db,
             models::{NewRepository, Repository},
         },
-        types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, RenderedDocument},
+        rendered_document::RenderedDocument,
+        types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     };
 
     pub fn router() -> OpenApiRouter<Db> {
@@ -92,40 +93,12 @@ pub mod repository {
         State(db): State<Db>,
         Json(req_body): Json<RenderRepositoriesReqBody>,
     ) -> Json<ApiResponse<RenderRepositoriesResBody>> {
-        let repositories = match db.get_all_repositories().await {
-            Ok(repositories) => repositories,
-            Err(e) => {
-                return Json(ApiResponse {
-                    status: ApiResponseStatus::Error,
-                    message: e.to_string(),
-                    data: None,
-                })
-            }
-        };
-
         let mut results = Vec::new();
 
         let config = get_current_config_cloned!(config());
 
         for repository_render_req in req_body.repositories.iter() {
-            let repository = match &repository_render_req.repository_selector {
-                RenderRepositoriesRepositorySelector::Id(id) => {
-                    match repositories.iter().find(|r| r.id == *id) {
-                        Some(v) => v,
-                        None => {
-                            return Json(ApiResponse {
-                                status: ApiResponseStatus::Error,
-                                message: format!("Repository with id {} not found", id),
-                                data: None,
-                            })
-                        }
-                    }
-                }
-                RenderRepositoriesRepositorySelector::Direct(new_repository) => &Repository {
-                    id: 0,
-                    uri: new_repository.uri.clone(),
-                },
-            };
+            let repository = Repository::new(&repository_render_req.uri);
 
             let render_result = match repository
                 .render(&repository_render_req.namespace, &config.working_dir)
@@ -158,7 +131,7 @@ pub mod repository {
 
     #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
     pub struct RenderRepositoriesRepository {
-        pub repository_selector: RenderRepositoriesRepositorySelector,
+        pub uri: String,
         pub namespace: String,
         pub target: RenderRepositoriesTarget,
         pub secrets: Option<HashMap<String, String>>,
@@ -166,7 +139,6 @@ pub mod repository {
 
     #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
     pub enum RenderRepositoriesRepositorySelector {
-        Id(i32),
         Direct(NewRepository),
     }
 

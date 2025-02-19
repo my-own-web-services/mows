@@ -10,5 +10,10 @@ spec:
             releaseName: pektin
             repository: 
                 local:
-            valuesFile: values.yaml
+            valuesFile: files/pektin-values.yaml
+        -   chartName: pektin-dns-controller
+            releaseName: pektin-dns-controller
+            repository: 
+                local:
+            valuesFile: files/controller-values.yaml
 

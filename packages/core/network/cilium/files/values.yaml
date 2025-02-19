@@ -23,7 +23,7 @@ k8sClientRateLimit:
 gatewayAPI:
     enabled: true
     secretsNamespace:
-        name: mows-core-network-cilium-secrets
+        name: mows-core-network-cilium
 enableCiliumEndpointSlice: true
 debug:
     enabled: true
@@ -36,7 +36,7 @@ encryption:
     nodeEncryption: true
 envoyConfig:
     secretsNamespace:
-        name: mows-core-network-cilium-secrets
+        name: mows-core-network-cilium
 ingressController:
     secretsNamespace:
-        name: mows-core-network-cilium-secrets
+        name: mows-core-network-cilium

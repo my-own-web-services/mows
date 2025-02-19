@@ -59,7 +59,6 @@ pub struct InternalConfig {
     pub cluster: LocalClusterConfig,
     pub primary_origin: Url,
     pub os_config: OsConfig,
-    pub core_repos: Vec<CoreRepo>,
     pub package_manager: PackageManagerConfig,
 }
 
@@ -121,7 +120,6 @@ pub struct DevConfig {
     pub skip_network_policy_install: bool,
     pub install_k8s_dashboard: bool,
     pub send_default_netboot_config_if_mac_unknown: bool,
-    pub skip_core_components_install: Vec<String>,
     pub k3s_registries_file: Option<K3SRegistries>,
 }
 

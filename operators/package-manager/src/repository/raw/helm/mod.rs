@@ -7,7 +7,10 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::HashMap, path::Path};
-use tokio::{io::AsyncWriteExt, process::Command};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    process::Command,
+};
 use url::Url;
 use utoipa::ToSchema;
 
@@ -31,6 +34,7 @@ impl HelmRepoSpec {
                     ))
                 })?
                 .to_string(),
+            "--skip-tests".to_string(),
             "--output-dir".to_string(),
             chart_output_path
                 .to_str()
@@ -175,58 +179,110 @@ impl HelmRepoSpec {
                 self.chart_name
             )))?;
 
-        let reqwest_client = mows_common::reqwest::new_reqwest_client()
-            .await
-            .map_err(|e| {
-                HelmRepoError::FetchHelmChartError(format!("Error creating reqwest client: {}", e))
-            })?;
-
         let temp_file_path = format!("/tmp/{}", remote_repository.sha256_digest);
 
-        let tar_file = tokio::fs::File::create(Path::new(&temp_file_path))
-            .await
-            .map_err(|e| {
-                HelmRepoError::FetchHelmChartError(format!("Error creating file: {}", e))
-            })?;
+        // download the chart if it doesn't exist or the digest doesn't match
+        if !Path::new(&temp_file_path).exists() {
+            let reqwest_client = mows_common::reqwest::new_reqwest_client()
+                .await
+                .map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!(
+                        "Error creating reqwest client: {}",
+                        e
+                    ))
+                })?;
 
-        let mut writer = tokio::io::BufWriter::new(tar_file);
+            let tar_file = tokio::fs::File::create(Path::new(&temp_file_path))
+                .await
+                .map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!("Error creating file: {}", e))
+                })?;
 
-        let mut hasher = Sha256::new();
+            let mut writer = tokio::io::BufWriter::new(tar_file);
 
-        let chart_url =
-            Self::get_remote_chart_url(&remote_repository, &chart_versions.urls).await?;
+            let mut hasher = Sha256::new();
 
-        let mut byte_stream = reqwest_client
-            .get(chart_url)
-            .send()
-            .await
-            .map_err(|e| {
-                HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
-            })?
-            .bytes_stream();
+            let chart_url =
+                Self::get_remote_chart_url(&remote_repository, &chart_versions.urls).await?;
 
-        while let Some(chunk) = byte_stream.next().await {
-            let chunk = chunk.map_err(|e| {
-                HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
-            })?;
+            let mut byte_stream = reqwest_client
+                .get(chart_url)
+                .send()
+                .await
+                .map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
+                })?
+                .bytes_stream();
 
-            hasher.update(&chunk);
+            while let Some(chunk) = byte_stream.next().await {
+                let chunk = chunk.map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
+                })?;
 
-            writer.write_all(&chunk).await.map_err(|e| {
-                HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
-            })?;
+                hasher.update(&chunk);
 
-            writer.flush().await.map_err(|e| {
-                HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
-            })?;
-        }
+                writer.write_all(&chunk).await.map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
+                })?;
 
-        let hex_digest = format!("{:x}", hasher.finalize());
+                writer.flush().await.map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
+                })?;
+            }
 
-        if hex_digest != remote_repository.sha256_digest {
-            return Err(HelmRepoError::FetchHelmChartError(format!(
-                "Error fetching HelmChart: digest mismatch"
-            )));
+            let hex_digest = format!("{:x}", hasher.finalize());
+
+            if hex_digest != remote_repository.sha256_digest {
+                tokio::fs::remove_file(Path::new(&temp_file_path))
+                    .await
+                    .map_err(|e| {
+                        HelmRepoError::FetchHelmChartError(format!("Error removing file: {}", e))
+                    })?;
+
+                return Err(HelmRepoError::FetchHelmChartError(format!(
+                    "Error fetching HelmChart: digest mismatch"
+                )));
+            }
+        } else {
+            // check if the file has the correct digest
+
+            let tar_file = tokio::fs::File::open(Path::new(&temp_file_path))
+                .await
+                .map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!("Error opening file: {}", e))
+                })?;
+
+            let mut hasher = Sha256::new();
+
+            let mut reader = tokio::io::BufReader::new(tar_file);
+
+            let mut buffer = [0; 1024];
+
+            loop {
+                let count = reader.read(&mut buffer).await.map_err(|e| {
+                    HelmRepoError::FetchHelmChartError(format!("Error reading file: {}", e))
+                })?;
+
+                if count == 0 {
+                    break;
+                }
+
+                hasher.update(&buffer[..count]);
+            }
+
+            let hex_digest = format!("{:x}", hasher.finalize());
+
+            if hex_digest != remote_repository.sha256_digest {
+                tokio::fs::remove_file(Path::new(&temp_file_path))
+                    .await
+                    .map_err(|e| {
+                        HelmRepoError::FetchHelmChartError(format!("Error removing file: {}", e))
+                    })?;
+
+                return Err(HelmRepoError::FetchHelmChartError(format!(
+                    "Error fetching HelmChart: present file digest mismatch"
+                )));
+            }
         }
 
         // extract the tempfile to the source directory into a subdirectory named after the chart
@@ -244,12 +300,6 @@ impl HelmRepoSpec {
         archive.unpack(&chart_target_directory).map_err(|e| {
             HelmRepoError::FetchHelmChartError(format!("Error unpacking file: {}", e))
         })?;
-
-        tokio::fs::remove_file(Path::new(&temp_file_path))
-            .await
-            .map_err(|e| {
-                HelmRepoError::FetchHelmChartError(format!("Error removing file: {}", e))
-            })?;
 
         Ok(())
     }
@@ -296,7 +346,7 @@ pub struct HelmRepositoryIndex {
 #[serde(rename_all = "camelCase")]
 pub struct HelmRepositoryIndexEntry {
     pub api_version: String,
-    pub app_version: String,
+    pub app_version: Option<String>,
     pub created: Option<String>,
     pub description: Option<String>,
     pub digest: String,

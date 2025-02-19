@@ -12,6 +12,6 @@ spec:
                 remote:
                     url: https://charts.longhorn.io/
                     sha256Digest: 863c011cdc37dd0ad95595ed52b5ac43ef1394fa6012e607397f86e6b682be6a
-            valuesFile: helm/longhorn/values.yaml
+            valuesFile: files/values.yaml
             resources:
                 - files/StorageClass.yaml

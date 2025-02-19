@@ -4,16 +4,6 @@ own_addresses:
     legacy: "192.168.112.3"
     ip: null
 
-core_repos:
-    - uri: file:///packages/core/auth/zitadel/
-      namespace: mows-core-auth-zitadel
-    #- uri: file:///packages/core/dns/pektin/
-    #  namespace: mows-core-dns-pektin
-    #- uri: file:///packages/core/network/cilium/
-    #  namespace: mows-core-network-cilium
-    #- uri: file:///packages/core/storage/longhorn/
-    #  namespace: mows-core-storage-longhorn2
-
 package_manager:
     working_dir: /tmp/mows-package-manager
 
@@ -38,7 +28,6 @@ dev:
     skip_network_policy_install: true
     install_k8s_dashboard: true
     send_default_netboot_config_if_mac_unknown: false
-    skip_core_components_install: []
     # https://docs.k3s.io/installation/private-registry
     k3s_registries_file:
         mirrors:

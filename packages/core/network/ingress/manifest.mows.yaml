@@ -1,0 +1,17 @@
+manifestVersion: "0.1"
+metadata:
+    name: traefik
+    description: "A modern HTTP reverse proxy and load balancer"
+    version: "0.1"
+spec:
+    raw:
+        helmRepos:
+        -   chartName: traefik
+            releaseName: mows-core-network-ingress
+            repository: 
+                remote:
+                    url: https://traefik.github.io/charts
+                    sha256Digest: 1f06f7a0ee02427f4c35b5021d7ddbaeddb780b772cae411a0a84abf17733387
+            valuesFile: files/values.yaml
+            resources:
+                - files/TLSStore.yaml

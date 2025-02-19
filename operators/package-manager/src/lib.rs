@@ -1,6 +1,7 @@
 pub mod config;
 pub mod dev;
 pub mod errors;
+pub mod rendered_document;
 pub mod db {
     pub mod db;
     pub mod models;

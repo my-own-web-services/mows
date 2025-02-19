@@ -1,7 +1,6 @@
 use super::RepositoryPaths;
 use crate::{
-    dev::get_fake_app_config,
-    types::{RawSpec, RenderedDocument},
+    dev::get_fake_app_config, rendered_document::RenderedDocument, types::RawSpec,
     utils::get_all_file_paths_recursive,
 };
 use anyhow::Context;
@@ -56,7 +55,7 @@ impl RawSpec {
             for (document_index, single_document_deserializer) in
                 serde_yaml_ng::Deserializer::from_str(&input_file_string).enumerate()
             {
-                let value: Value = Value::deserialize(single_document_deserializer).context(
+                let resource = Value::deserialize(single_document_deserializer).context(
                     format!("Error parsing file: {}", file_path.to_str().unwrap_or("")),
                 )?;
 
@@ -67,7 +66,8 @@ impl RawSpec {
                 //let single_document_content_string = serde_yaml_ng::to_string(&value)?;
 
                 result_documents.push(RenderedDocument {
-                    object: value,
+                    kind: resource["kind"].as_str().unwrap_or("").to_string(),
+                    resource,
                     file_path: file_path.to_str().unwrap_or("").to_string(),
                     index: document_index,
                 });
