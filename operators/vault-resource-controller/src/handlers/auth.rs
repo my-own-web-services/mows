@@ -14,7 +14,6 @@ pub async fn cleanup_auth_engine(
     vault_client: &VaultClient,
     resource_namespace: &str,
     resource_name: &str,
-    vault_auth_engine: &VaultAuthEngine,
 ) -> Result<(), crate::ControllerError> {
     let mount_path = format!("mows-core-secrets-vrc/{}/{}", resource_namespace, resource_name);
 
@@ -23,11 +22,9 @@ pub async fn cleanup_auth_engine(
         .context("Failed to list auth engines in Vault")?;
 
     if current_auth_engines.contains_key(&format!("{mount_path}/")) {
-        // TODO this will be added in the future when vaultrs supports it
-        /*
         vaultrs::sys::auth::disable(vault_client, &mount_path)
             .await
-            .context(format!("Failed to disable auth engine {mount_path} in Vault"))?;*/
+            .context(format!("Failed to disable auth engine {mount_path} in Vault"))?;
     }
 
     Ok(())

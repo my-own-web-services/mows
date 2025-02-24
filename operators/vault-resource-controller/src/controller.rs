@@ -2,7 +2,7 @@ use crate::{
     config::config,
     crd::{VaultResource, VaultResourceSpec, VaultResourceStatus},
     handlers::{
-        auth::apply_auth_engine,
+        auth::{apply_auth_engine, cleanup_auth_engine},
         policy::{apply_engine_access_policy, cleanup_engine_access_policy},
         secret_engine::{apply_secret_engine, cleanup_secret_engine},
         secret_sync::{apply_secret_sync, cleanup_secret_sync},
@@ -10,7 +10,7 @@ use crate::{
     utils::{create_vault_client, get_error_type},
     ControllerError, Metrics, Result,
 };
-use anyhow::Context as AnyhowContext;
+use anyhow::{anyhow, Context as AnyhowContext};
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use kube::{
@@ -77,9 +77,9 @@ pub async fn cleanup_resource(
     let resource_name = match vault_resource.metadata.name.as_deref() {
         Some(v) => v,
         None => {
-            return Err(ControllerError::GenericError(
-                "Failed to get resource name from VaultResource metadata".to_string(),
-            ))
+            return Err(ControllerError::GenericError(anyhow!(
+                "Failed to get resource name from VaultResource metadata".to_string()
+            )))
         }
     };
 
@@ -93,9 +93,8 @@ pub async fn cleanup_resource(
             )
             .await?
         }
-        VaultResourceSpec::AuthEngine(vault_auth_engine) => {
-            // TODO
-            //cleanup_auth_engine(&vc, resource_namespace, resource_name, vault_auth_engine).await?
+        VaultResourceSpec::AuthEngine(_) => {
+            cleanup_auth_engine(&vault_client, resource_namespace, resource_name).await?
         }
         VaultResourceSpec::EngineAccessPolicy(_) => {
             cleanup_engine_access_policy(&vault_client, resource_namespace, resource_name).await?
@@ -120,9 +119,9 @@ pub async fn apply_resource(
     let resource_name = match vault_resource.metadata.name.as_deref() {
         Some(v) => v,
         None => {
-            return Err(ControllerError::GenericError(
+            return Err(ControllerError::GenericError(anyhow!(
                 "Failed to get resource name from VaultResource metadata".to_string(),
-            ))
+            )))
         }
     };
 
@@ -162,10 +161,10 @@ pub async fn apply_resource(
                         if sudo == "true" {
                             target_namespace = force_target_namespace_some;
                         } else {
-                            return Err(ControllerError::GenericError(format!(
+                            return Err(ControllerError::GenericError(anyhow!(format!(
                                 "The `{}` label is only allowed with `{}` label set to `true`",
                                 force_target_namespace_key, sudo_key
-                            )));
+                            ))));
                         };
                     }
                 };
@@ -224,6 +223,8 @@ impl VaultResource {
                     .await
                     .map_err(ControllerError::KubeError)?;
 
+                // TODO differentiate between create and update, return the correct event from apply_resource
+
                 recorder
                     .publish(Event {
                         type_: EventType::Normal,
@@ -280,7 +281,7 @@ impl VaultResource {
     async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
         let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
 
-        let res = cleanup_resource(self, &ctx.client).await?;
+        cleanup_resource(self, &ctx.client).await?;
 
         let res = recorder
             .publish(Event {

@@ -96,9 +96,9 @@ pub async fn apply_secret_sync(
             .join(&fetch_from.engine);
         let vault_engine_path = vault_engine_path
             .to_str()
-            .ok_or(crate::ControllerError::GenericError(
+            .ok_or(crate::ControllerError::GenericError(anyhow::anyhow!(
                 "Failed to create engine path".to_string(),
-            ))?;
+            )))?;
 
         debug!("Fetching secrets from: {:?}", &vault_engine_path);
 
@@ -220,16 +220,16 @@ pub async fn create_configmap_in_k8s(
         if let Some(labels) = &old_configmap.metadata.labels {
             if let Some(managed_by) = labels.get(MANAGED_BY_KEY) {
                 if managed_by != FINALIZER {
-                    return Err(crate::ControllerError::GenericError(format!(
+                    return Err(crate::ControllerError::GenericError(anyhow::anyhow!(format!(
                         "ConfigMap {} is not managed by vrc",
                         configmap_name
-                    )));
+                    ))));
                 }
             } else {
-                return Err(crate::ControllerError::GenericError(format!(
+                return Err(crate::ControllerError::GenericError(anyhow::anyhow!(format!(
                     "ConfigMap {} is not managed by vrc",
                     configmap_name
-                )));
+                ))));
             }
         }
         let patch_params = kube::api::PostParams::default();
@@ -283,16 +283,16 @@ pub async fn create_secret_in_k8s(
         if let Some(labels) = &old_secret.metadata.labels {
             if let Some(managed_by) = labels.get(MANAGED_BY_KEY) {
                 if managed_by != FINALIZER {
-                    return Err(crate::ControllerError::GenericError(format!(
+                    return Err(crate::ControllerError::GenericError(anyhow::anyhow!(format!(
                         "Secret {} is not managed by vrc",
                         secret_name
-                    )));
+                    ))));
                 }
             } else {
-                return Err(crate::ControllerError::GenericError(format!(
+                return Err(crate::ControllerError::GenericError(anyhow::anyhow!(format!(
                     "Secret {} is not managed by vrc",
                     secret_name
-                )));
+                ))));
             }
         }
         let patch_params = kube::api::PostParams::default();

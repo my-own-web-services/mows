@@ -1,9 +1,10 @@
-use std::sync::OnceLock;
-
+use crate::errors::MowsError;
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use tokio::sync::RwLock;
 
-use crate::errors::MowsError;
+// TODO load the config first into a hashmap with the mows common logic and then into the struct in the dependent services
+// TODO auto-reload the config
 
 pub fn common_config(log_vars: bool) -> &'static RwLock<CommonConfig> {
     static CONFIG: OnceLock<RwLock<CommonConfig>> = OnceLock::new();

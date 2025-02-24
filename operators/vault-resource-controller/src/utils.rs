@@ -35,7 +35,7 @@ pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
     client_builder.address(config.vault_uri);
 
     let vc = VaultClient::new(client_builder.build().map_err(|_| {
-        ControllerError::GenericError("Failed to create vault client settings builder".to_string())
+        ControllerError::GenericError(anyhow::anyhow!("Failed to create vault client settings builder"))
     })?)?;
 
     let service_account_jwt = std::fs::read_to_string(config.service_account_token_path)

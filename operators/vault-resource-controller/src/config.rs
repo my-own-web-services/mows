@@ -1,7 +1,6 @@
-use std::sync::OnceLock;
-
 use mows_common::config::load_env;
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use tokio::sync::RwLock;
 
 pub fn config() -> &'static RwLock<ControllerConfig> {
@@ -24,23 +23,26 @@ pub fn from_env() -> anyhow::Result<ControllerConfig> {
             "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
             "VAULT_URI",
             false,
+            true,
         )?,
         service_account_token_path: load_env(
             "/var/run/secrets/kubernetes.io/serviceaccount/token",
             "SERVICE_ACCOUNT_TOKEN_PATH",
             false,
+            true,
         )?,
-
         vault_kubernetes_auth_path: load_env(
             "mows-core-secrets-vrc-sys",
             "VAULT_KUBERNETES_AUTH_PATH",
             false,
+            true,
         )?,
         vault_kubernetes_auth_role: load_env(
             "mows-core-secrets-vrc",
             "VAULT_KUBERNETES_API_AUTH_ROLE",
             false,
+            true,
         )?,
-        reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false)?.parse()?,
+        reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false, true)?.parse()?,
     })
 }

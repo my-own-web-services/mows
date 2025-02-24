@@ -19,7 +19,7 @@ pub enum ControllerError {
     VaultError(#[from] vaultrs::error::ClientError),
 
     #[error("Generic Error: {0}")]
-    GenericError(String),
+    GenericError(#[from] anyhow::Error),
 
     #[error("TemplateParseError: {0}")]
     TemplateParseError(#[from] ParseError),
@@ -36,12 +36,6 @@ pub type Result<T, E = ControllerError> = std::result::Result<T, E>;
 impl ControllerError {
     pub fn metric_label(&self) -> String {
         format!("{self:?}").to_lowercase()
-    }
-}
-
-impl From<anyhow::Error> for ControllerError {
-    fn from(error: anyhow::Error) -> Self {
-        ControllerError::GenericError(error.to_string())
     }
 }
 

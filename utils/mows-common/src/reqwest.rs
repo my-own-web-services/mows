@@ -1,11 +1,11 @@
 use crate::{config, get_current_config_cloned};
-use http::Extensions;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Result};
-use reqwest_tracing::{
-    default_on_request_end, reqwest_otel_span, ReqwestOtelSpanBackend, TracingMiddleware,
-};
+use reqwest_tracing::TracingMiddleware;
 
 /*
+use http::Extensions;
+default_on_request_end, reqwest_otel_span, ReqwestOtelSpanBackend,
+
 pub struct ReqwestTrace;
 
 impl ReqwestOtelSpanBackend for ReqwestTrace {
