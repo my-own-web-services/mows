@@ -23,7 +23,7 @@ impl ReqwestOtelSpanBackend for ReqwestTrace {
 }*/
 
 pub async fn new_reqwest_client() -> Result<ClientWithMiddleware> {
-    let config = get_current_config_cloned!(config::common_config());
+    let config = get_current_config_cloned!(config::common_config(false));
     let client = reqwest::Client::builder()
         .user_agent(format!(
             "{}/{}",

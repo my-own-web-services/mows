@@ -1,19 +1,17 @@
 use crate::{
-    crd::{KV2SecretEngineParams, VaultResource, VaultResourceSpec, VaultSecretEngine},
+    crd::{KV2SecretEngineParams, VaultSecretEngine},
     ControllerError,
 };
-use anyhow::anyhow;
-use kube::Api;
 use mows_common::templating::{
     functions::TEMPLATE_FUNCTIONS,
     gtmpl::{Context as GtmplContext, Template},
 };
 use serde_variant::to_variant_name;
 use std::collections::HashMap;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, trace};
 use vaultrs::client::VaultClient;
 
-const TEMPLATE_KEYWORD: &str = "_template.reserved.mows.cloud";
+const TEMPLATE_KEYWORD: &str = "template.vrc.reserved.mows.cloud";
 
 #[instrument(skip(vault_client), level = "trace")]
 pub async fn cleanup_secret_engine(
@@ -90,18 +88,13 @@ pub async fn apply_kv2_engine(
                 .await
                 .unwrap_or_default();
 
-        debug!(
-            "Secret {:?} in Vault at {:?} has data {:?}",
-            new_secret_path, mount_path, current_secret_kv_data
-        );
-
         let mut value_changed = false;
 
         for (new_key, new_template) in new_secret_kv_template.iter() {
             // update the secret values only if the value pre rendering has changed
 
             if let Some(last_template) =
-                current_secret_kv_data.get(format!("{}{}", new_key, TEMPLATE_KEYWORD).as_str())
+                current_secret_kv_data.get(format!("{}_{}", new_key, TEMPLATE_KEYWORD).as_str())
             {
                 if last_template == new_template {
                     continue;
@@ -114,19 +107,22 @@ pub async fn apply_kv2_engine(
             template.parse(new_template.clone().replace("{%", "{{").replace("%}", "}}"))?;
 
             current_secret_kv_data.insert(new_key.to_string(), template.render(&GtmplContext::empty())?);
-            current_secret_kv_data.insert(format!("{}{}", new_key, TEMPLATE_KEYWORD), new_template.clone());
+            current_secret_kv_data.insert(format!("{}_{}", new_key, TEMPLATE_KEYWORD), new_template.clone());
         }
 
         if value_changed {
-            debug!(
+            trace!(
                 "Creating secret {:?} in Vault at {:?} with data {:?}",
-                new_secret_path, mount_path, current_secret_kv_data
+                new_secret_path,
+                mount_path,
+                current_secret_kv_data
             );
             vaultrs::kv2::set(vault_client, mount_path, new_secret_path, &current_secret_kv_data).await?;
         } else {
-            debug!(
+            trace!(
                 "Skipping secret {:?} in Vault at {:?} as value has not changed",
-                new_secret_path, mount_path
+                new_secret_path,
+                mount_path
             );
         }
 

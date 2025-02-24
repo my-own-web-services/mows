@@ -49,8 +49,8 @@ networkPolicy:
         port: http
 
 logging:    
-    log_filter: warn,controller=debug
-    tracing_filter: info
+    log_filter: warn,controller::handlers::secret_sync=trace,vaultrs=warn
+    tracing_filter: trace
 env: []
 
 service:
@@ -69,3 +69,4 @@ serviceMonitor:
     enabled: false
     path: /metrics
     scheme: http
+

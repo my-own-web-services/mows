@@ -1,5 +1,4 @@
 use crate::{
-    db::models::Repository,
     rendered_document::{
         CrdHandling, KubernetesResourceError, RenderedDocument, RenderedDocumentFilter,
     },
@@ -15,10 +14,16 @@ use kube::{
 };
 use mows_common::{kube::get_kube_client, utils::generate_id};
 use raw::RawSpecError;
-use serde::de;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tracing::{debug, trace};
+use utoipa::ToSchema;
 mod raw;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+pub struct Repository {
+    pub uri: String,
+}
 
 impl Repository {
     pub fn new(uri: &str) -> Self {
@@ -122,8 +127,6 @@ impl Repository {
 
         let rendered_documents = rendered_documents.filter_crd(crd_handling);
 
-        debug!("Filtered documents: {:#?}", rendered_documents);
-
         let client = get_kube_client(kubeconfig)
             .await
             .context(format!("Error creating kube client"))?;
@@ -225,7 +228,8 @@ const MANIFEST_FILE_NAME: &str = "manifest.mows.yaml";
 
 pub struct RepositoryPaths {
     /// The parent working directory
-    pub working_path: PathBuf,
+    pub package_manager_working_path: PathBuf,
+    pub repository_working_path: PathBuf,
     pub source_path: PathBuf,
     pub manifest_path: PathBuf,
     pub output_path: PathBuf,
@@ -246,8 +250,9 @@ impl RepositoryPaths {
         tokio::fs::create_dir_all(&output_path).await.unwrap();
 
         Self {
+            package_manager_working_path: PathBuf::from(root_working_directory),
             source_path,
-            working_path,
+            repository_working_path: working_path,
             manifest_path,
             output_path,
         }

@@ -1,5 +1,5 @@
 pub mod repository {
-    use axum::{extract::State, Json};
+    use axum::Json;
     use mows_common::get_current_config_cloned;
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
@@ -8,77 +8,13 @@ pub mod repository {
 
     use crate::{
         config::config,
-        db::{
-            db::Db,
-            models::{NewRepository, Repository},
-        },
         rendered_document::RenderedDocument,
-        types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
+        repository::Repository,
+        types::{ApiResponse, ApiResponseStatus},
     };
 
-    pub fn router() -> OpenApiRouter<Db> {
-        OpenApiRouter::new()
-            .routes(routes!(add_repositories))
-            .routes(routes!(get_repositories))
-            .routes(routes!(render_repositories))
-    }
-
-    #[utoipa::path(
-        post,
-        path = "",
-        request_body = AddRepositoryReqBody,
-        responses(
-            (status = 200, description = "Repository added", body = ApiResponse<EmptyApiResponse>),
-        ),
-    )]
-    async fn add_repositories(
-        State(db): State<Db>,
-        Json(req_body): Json<AddRepositoryReqBody>,
-    ) -> Json<ApiResponse<EmptyApiResponse>> {
-        match db.add_repository(req_body.repositories).await {
-            Ok(_) => Json(ApiResponse {
-                status: ApiResponseStatus::Success,
-                message: "Repositories added successfully".to_string(),
-                data: None,
-            }),
-            Err(e) => Json(ApiResponse {
-                status: ApiResponseStatus::Error,
-                message: e.to_string(),
-                data: None,
-            }),
-        }
-    }
-
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
-    pub struct AddRepositoryReqBody {
-        pub repositories: Vec<NewRepository>,
-    }
-
-    #[utoipa::path(
-        get,
-        path = "",
-        responses(
-            (status = 200, description = "Repositories fetched", body = ApiResponse<GetRepositoriesResBody>),
-        ),
-    )]
-    async fn get_repositories(State(db): State<Db>) -> Json<ApiResponse<GetRepositoriesResBody>> {
-        match db.get_all_repositories().await {
-            Ok(repositories) => Json(ApiResponse {
-                status: ApiResponseStatus::Success,
-                message: "Repositories fetched successfully".to_string(),
-                data: Some(GetRepositoriesResBody { repositories }),
-            }),
-            Err(e) => Json(ApiResponse {
-                status: ApiResponseStatus::Error,
-                message: e.to_string(),
-                data: None,
-            }),
-        }
-    }
-
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
-    pub struct GetRepositoriesResBody {
-        pub repositories: Vec<Repository>,
+    pub fn router() -> OpenApiRouter {
+        OpenApiRouter::new().routes(routes!(render_repositories))
     }
 
     #[utoipa::path(
@@ -90,7 +26,6 @@ pub mod repository {
         ),
     )]
     async fn render_repositories(
-        State(db): State<Db>,
         Json(req_body): Json<RenderRepositoriesReqBody>,
     ) -> Json<ApiResponse<RenderRepositoriesResBody>> {
         let mut results = Vec::new();
@@ -135,11 +70,6 @@ pub mod repository {
         pub namespace: String,
         pub target: RenderRepositoriesTarget,
         pub secrets: Option<HashMap<String, String>>,
-    }
-
-    #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, Eq)]
-    pub enum RenderRepositoriesRepositorySelector {
-        Direct(NewRepository),
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq, PartialOrd, Ord, Eq)]

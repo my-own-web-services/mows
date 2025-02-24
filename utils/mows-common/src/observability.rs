@@ -24,7 +24,7 @@ async fn resource() -> Resource {
     use opentelemetry::KeyValue;
 
     use crate::config::common_config;
-    let config = get_current_config_cloned!(common_config());
+    let config = get_current_config_cloned!(common_config(true));
     Resource::new([
         KeyValue::new("service.name", config.service_name),
         KeyValue::new("service.version", config.service_version),
@@ -39,7 +39,7 @@ async fn init_tracer() -> sdktrace::Tracer {
 
     use crate::{config::common_config, get_current_config_cloned};
 
-    let config = get_current_config_cloned!(common_config());
+    let config = get_current_config_cloned!(common_config(true));
 
     let endpoint = config.otel_endpoint_url.clone();
     let exporter = opentelemetry_otlp::new_exporter()
@@ -61,7 +61,7 @@ async fn init_tracer() -> sdktrace::Tracer {
 
 /// Initialize tracing
 pub async fn init_observability() {
-    let config = get_current_config_cloned!(common_config());
+    let config = get_current_config_cloned!(common_config(true));
 
     let tracing_filter = tracing_subscriber::EnvFilter::from_str(&config.tracing_filter).unwrap();
 

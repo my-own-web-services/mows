@@ -10,7 +10,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
 };
-use tracing::debug;
+use tracing::{debug, trace};
 use vaultrs::client::VaultClient;
 
 use crate::{crd::VaultSecretSync, FINALIZER};
@@ -31,7 +31,6 @@ struct RenderedSecret {
 pub async fn cleanup_secret_sync(
     kube_client: &kube::Client,
     resource_namespace: &str,
-    resource_name: &str,
     vault_secret_sync: &VaultSecretSync,
 ) -> Result<(), crate::ControllerError> {
     let secret_api: kube::Api<Secret> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
@@ -107,6 +106,11 @@ pub async fn apply_secret_sync(
             vaultrs::kv2::read(vault_client, &vault_engine_path, &fetch_from.path).await?;
         fetched_secrets.insert(template_key.clone(), serde_json_value_to_gtmpl_value(secret));
     }
+
+    debug!(
+        "Fetched secrets with names/keys: {:?}",
+        &fetched_secrets.keys().collect::<Vec<_>>()
+    );
 
     let mut rendered_secrets: HashMap<String, RenderedSecret> = HashMap::new();
 
@@ -275,6 +279,7 @@ pub async fn create_secret_in_k8s(
         .map_err(crate::ControllerError::KubeError)?;
 
     if let Some(old_secret) = &secret_exists {
+        trace!("Secret exists: {:?}", &old_secret.metadata.name);
         if let Some(labels) = &old_secret.metadata.labels {
             if let Some(managed_by) = labels.get(MANAGED_BY_KEY) {
                 if managed_by != FINALIZER {
@@ -293,11 +298,15 @@ pub async fn create_secret_in_k8s(
         let patch_params = kube::api::PostParams::default();
 
         new_secret.metadata.resource_version = old_secret.metadata.resource_version.clone();
+
+        trace!("Patching secret in k8s: {:?}", &new_secret.metadata.name);
         secret_api
             .replace(&secret_name, &patch_params, &new_secret)
             .await
             .map_err(crate::ControllerError::KubeError)?;
     } else {
+        trace!("Creating secret in k8s: {:?}", &new_secret.metadata.name);
+
         secret_api
             .create(&kube::api::PostParams::default(), &new_secret)
             .await

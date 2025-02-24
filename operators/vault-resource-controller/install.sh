@@ -4,6 +4,8 @@ helm upgrade --install mows-core-secrets-vrc /operators/vault-resource-controlle
 
 #kubectl patch crd/vaultresources.vault.k8s.mows.cloud -p '{"metadata":{"finalizers":[]}}' --type=merge ; 
 
+# ./mpm -u=file:///packages/core/secrets/vrc -n=mows-core-secrets-vrc
+
 # delete
 kubectl delete vaultresources.vault.k8s.mows.cloud --all -A ; kubectl delete crd vaultresources.vault.k8s.mows.cloud ; helm uninstall mows-core-secrets-vrc -n mows-core-secrets-vrc ; kubectl delete ns mows-core-secrets-vrc
 

@@ -10,7 +10,7 @@ use crate::{
     utils::{create_vault_client, get_error_type},
     ControllerError, Metrics, Result,
 };
-use anyhow::Context as anyhow_context;
+use anyhow::Context as AnyhowContext;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use kube::{
@@ -94,13 +94,14 @@ pub async fn cleanup_resource(
             .await?
         }
         VaultResourceSpec::AuthEngine(vault_auth_engine) => {
+            // TODO
             //cleanup_auth_engine(&vc, resource_namespace, resource_name, vault_auth_engine).await?
         }
         VaultResourceSpec::EngineAccessPolicy(_) => {
             cleanup_engine_access_policy(&vault_client, resource_namespace, resource_name).await?
         }
         VaultResourceSpec::SecretSync(vault_secret_sync) => {
-            cleanup_secret_sync(kube_client, resource_namespace, resource_name, vault_secret_sync).await?
+            cleanup_secret_sync(kube_client, resource_namespace, vault_secret_sync).await?
         }
     }
 
@@ -126,33 +127,30 @@ pub async fn apply_resource(
     };
 
     match &vault_resource.spec {
-        VaultResourceSpec::SecretEngine(vault_secret_engine) => {
-            apply_secret_engine(
-                &vault_client,
-                resource_namespace,
-                resource_name,
-                vault_secret_engine,
-            )
-            .await?
-        }
-        VaultResourceSpec::AuthEngine(vault_auth_engine) => {
-            apply_auth_engine(
-                &vault_client,
-                resource_namespace,
-                resource_name,
-                vault_auth_engine,
-            )
-            .await?
-        }
-        VaultResourceSpec::EngineAccessPolicy(vault_engine_access_policy) => {
-            apply_engine_access_policy(
-                &vault_client,
-                resource_namespace,
-                resource_name,
-                vault_engine_access_policy,
-            )
-            .await?
-        }
+        VaultResourceSpec::SecretEngine(vault_secret_engine) => apply_secret_engine(
+            &vault_client,
+            resource_namespace,
+            resource_name,
+            vault_secret_engine,
+        )
+        .await
+        .context("Failed to apply secret engine.")?,
+        VaultResourceSpec::AuthEngine(vault_auth_engine) => apply_auth_engine(
+            &vault_client,
+            resource_namespace,
+            resource_name,
+            vault_auth_engine,
+        )
+        .await
+        .context("Failed to apply auth engine.")?,
+        VaultResourceSpec::EngineAccessPolicy(vault_engine_access_policy) => apply_engine_access_policy(
+            &vault_client,
+            resource_namespace,
+            resource_name,
+            vault_engine_access_policy,
+        )
+        .await
+        .context("Failed to apply engine access policy.")?,
         VaultResourceSpec::SecretSync(vault_secret_sync) => {
             let force_target_namespace_key = "vault.k8s.mows.cloud/force-target-namespace";
             let sudo_key = "k8s.mows.cloud/sudo";
@@ -180,18 +178,24 @@ pub async fn apply_resource(
                 vault_secret_sync,
                 kube_client,
             )
-            .await?
+            .await
+            .context("Failed to apply secret sync.")?
         }
     }
 
     Ok(())
 }
 
-fn error_policy(vault_resource: Arc<VaultResource>, error: &ControllerError, ctx: Arc<Context>) -> Action {
+fn error_policy(
+    vault_resource: Arc<VaultResource>,
+    error: &ControllerError,
+    ctx: Arc<Context>,
+    reconcile_interval_seconds: u64,
+) -> Action {
     warn!("reconcile failed: {:?}", error);
     ctx.metrics.reconcile.set_failure(&vault_resource, error);
 
-    Action::requeue(Duration::from_secs(5 * 60))
+    Action::requeue(Duration::from_secs(reconcile_interval_seconds))
 }
 
 impl VaultResource {
@@ -364,9 +368,18 @@ pub async fn run(state: State) {
         info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
         std::process::exit(1);
     }
+
+    let config = get_current_config_cloned!(config());
+
     Controller::new(object, Config::default().any_semantic())
         .shutdown_on_signal()
-        .run(reconcile, error_policy, state.to_context(client))
+        .run(
+            reconcile,
+            |vault_resource, error, ctx| {
+                error_policy(vault_resource, error, ctx, config.reconcile_interval_seconds)
+            },
+            state.to_context(client),
+        )
         .filter_map(|x| async move { std::result::Result::ok(x) })
         .for_each(|_| futures::future::ready(()))
         .await;

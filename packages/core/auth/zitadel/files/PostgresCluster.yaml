@@ -10,9 +10,3 @@ spec:
     enableSuperuserAccess: true
     superuserSecret:
         name: zitadel-db-admin
-    bootstrap:
-        initdb:
-            database: zitadel
-            owner: zitadel
-            secret:
-                name: zitadel-db-user

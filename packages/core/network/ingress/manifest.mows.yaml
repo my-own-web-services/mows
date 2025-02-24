@@ -11,7 +11,7 @@ spec:
             repository: 
                 remote:
                     url: https://traefik.github.io/charts
-                    sha256Digest: 1f06f7a0ee02427f4c35b5021d7ddbaeddb780b772cae411a0a84abf17733387
+                    sha256Digest: 0fc17fbe28dee28a99e0de5986b5e2b643a91e4bf69e30205d0a1a81ca9127b6
             valuesFile: files/values.yaml
             resources:
                 - files/TLSStore.yaml

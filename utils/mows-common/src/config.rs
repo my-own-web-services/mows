@@ -5,9 +5,9 @@ use tokio::sync::RwLock;
 
 use crate::errors::MowsError;
 
-pub fn common_config() -> &'static RwLock<CommonConfig> {
+pub fn common_config(log_vars: bool) -> &'static RwLock<CommonConfig> {
     static CONFIG: OnceLock<RwLock<CommonConfig>> = OnceLock::new();
-    CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))
+    CONFIG.get_or_init(|| RwLock::new(from_env(log_vars).unwrap()))
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -19,21 +19,32 @@ pub struct CommonConfig {
     pub service_version: String,
 }
 
-pub fn from_env() -> Result<CommonConfig, MowsError> {
+pub fn from_env(log_vars: bool) -> Result<CommonConfig, MowsError> {
     Ok(CommonConfig {
         otel_endpoint_url: load_env(
             "http://mows-core-tracing-jaeger-collector.mows-core-tracing:4317",
             "OTEL_ENDPOINT_URL",
             false,
+            log_vars,
         )?,
-        log_filter: load_env("info", "LOG_FILTER", false)?,
-        tracing_filter: load_env("info", "TRACING_FILTER", false)?,
-        service_name: load_env(env!("CARGO_PKG_NAME"), "SERVICE_NAME", false)?,
-        service_version: load_env(env!("CARGO_PKG_VERSION"), "SERVICE_VERSION", false)?,
+        log_filter: load_env("info", "LOG_FILTER", false, log_vars)?,
+        tracing_filter: load_env("info", "TRACING_FILTER", false, log_vars)?,
+        service_name: load_env(env!("CARGO_PKG_NAME"), "SERVICE_NAME", false, log_vars)?,
+        service_version: load_env(
+            env!("CARGO_PKG_VERSION"),
+            "SERVICE_VERSION",
+            false,
+            log_vars,
+        )?,
     })
 }
 
-pub fn load_env(default: &str, param_name: &str, confidential: bool) -> Result<String, MowsError> {
+pub fn load_env(
+    default: &str,
+    param_name: &str,
+    confidential: bool,
+    log_vars: bool,
+) -> Result<String, MowsError> {
     let res = if let Ok(param) = std::env::var(param_name) {
         if param_name.ends_with("_FILE") {
             return match std::fs::read_to_string(&param) {
@@ -50,10 +61,13 @@ pub fn load_env(default: &str, param_name: &str, confidential: bool) -> Result<S
     } else {
         default.into()
     };
-    if !confidential {
-        println!("\t{}={}", param_name, res);
-    } else {
-        println!("\t{}=<REDACTED (len={})>", param_name, res.len());
+
+    if log_vars {
+        if confidential {
+            println!("\t{}=<REDACTED (len={})>", param_name, res.len());
+        } else {
+            println!("\t{}={}", param_name, res);
+        }
     }
     Ok(res)
 }

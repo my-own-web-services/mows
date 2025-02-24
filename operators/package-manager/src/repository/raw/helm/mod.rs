@@ -35,6 +35,7 @@ impl HelmRepoSpec {
                 })?
                 .to_string(),
             "--skip-tests".to_string(),
+            "--include-crds".to_string(),
             "--output-dir".to_string(),
             chart_output_path
                 .to_str()
@@ -179,7 +180,9 @@ impl HelmRepoSpec {
                 self.chart_name
             )))?;
 
-        let temp_file_path = format!("/tmp/{}", remote_repository.sha256_digest);
+        let temp_file_path = repo_paths
+            .package_manager_working_path
+            .join(&remote_repository.sha256_digest);
 
         // download the chart if it doesn't exist or the digest doesn't match
         if !Path::new(&temp_file_path).exists() {

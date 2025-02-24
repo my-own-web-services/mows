@@ -4,7 +4,6 @@ use super::storage::ClusterStorage;
 use crate::api::clusters::clusters::ClusterSignal;
 use crate::config::{ClusterInstallState, HelmDeploymentState, Vip, VipIp};
 use crate::internal_config::INTERNAL_CONFIG;
-use crate::s;
 use crate::utils::cmd;
 use crate::{
     config::{Cluster, MachineInstallState, ManagerConfig},
@@ -18,8 +17,8 @@ use kube::{
     config::{KubeConfigOptions, Kubeconfig},
     Api,
 };
-use mows_package_manager::db::models::Repository;
 use mows_package_manager::rendered_document::CrdHandling;
+use mows_package_manager::repository::Repository;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::net::Ipv4Addr;
@@ -29,8 +28,7 @@ use tempfile::NamedTempFile;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::time::sleep;
-use tracing::field::debug;
-use tracing::{debug, trace, warn};
+use tracing::{debug, trace};
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
@@ -703,7 +701,16 @@ impl Cluster {
         )
         .await?;
 
+        debug!("Installing Tracing");
+        self.install_with_package_manager(
+            "file:///packages/core/tracing/jaeger/",
+            "mows-core-tracing",
+            &CrdHandling::WithoutCrd,
+        )
+        .await?;
+
         debug!("Installing Zitadel");
+        // ./mpm -u=file:///packages/core/auth/zitadel/ -n=mows-core-auth-zitadel
         self.install_with_package_manager(
             "file:///packages/core/auth/zitadel/",
             "mows-core-auth-zitadel",

@@ -3,15 +3,12 @@ use axum::http::{
     header::{CONTENT_TYPE, UPGRADE},
     HeaderValue, Method,
 };
-use diesel::{Connection, SqliteConnection};
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use mows_common::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
 use mows_package_manager::{
     api::{health::*, repository::*},
     config::config,
-    db::db::Db,
     ui::serve_spa,
     utils::shutdown_signal,
 };
@@ -21,8 +18,6 @@ use tracing::info;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
-
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -36,7 +31,7 @@ struct ApiDoc;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let config = get_current_config_cloned!(config());
-    let _common_config = get_current_config_cloned!(common_config());
+    let _common_config = get_current_config_cloned!(common_config(true));
 
     init_observability().await;
 
@@ -50,28 +45,9 @@ async fn main() -> Result<(), anyhow::Error> {
             .for_each(|origin| origins.push(origin));
     }
 
-    SqliteConnection::establish(&config.db_url)?;
-    // set up connection pool
-    let manager =
-        deadpool_diesel::sqlite::Manager::new(config.db_url, deadpool_diesel::Runtime::Tokio1);
-    let pool = deadpool_diesel::sqlite::Pool::builder(manager)
-        .build()
-        .unwrap();
-
-    // run the migrations on server startup
-    {
-        let conn = pool.get().await.unwrap();
-        conn.interact(|conn| conn.run_pending_migrations(MIGRATIONS).map(|_| ()))
-            .await
-            .unwrap()
-            .unwrap();
-    }
-
-    let db = Db::new(pool).await;
-
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest("/api/health", health::router())
-        .nest("/api/repository", repository::router().with_state(db))
+        .nest("/api/repository", repository::router())
         .fallback(serve_spa)
         .layer(
             CorsLayer::new()

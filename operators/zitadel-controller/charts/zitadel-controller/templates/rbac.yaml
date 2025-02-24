@@ -23,7 +23,7 @@ metadata:
   name: {{ include "controller.fullname" . }}
 rules:
   - apiGroups: ["zitadel.k8s.mows.cloud"]
-    resources: ["pektindnses", "pektindnses/status", "pektindnses/finalizers"]
+    resources: ["zitadelresource", "zitadelresource/status", "zitadelresource/finalizers"]
     verbs: ["get", "list", "watch", "patch", "update"]
   - apiGroups: ["events.k8s.io"]
     resources: ["events"]

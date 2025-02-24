@@ -5,16 +5,14 @@ use crate::{
 };
 use anyhow::Context;
 use helm::HelmRepoError;
-use serde::Deserialize;
-use serde_yaml_ng::Value;
-use std::collections::HashMap;
-
 use mows_common::templating::{
     functions::{serde_json_hashmap_to_gtmpl_hashmap, TEMPLATE_FUNCTIONS},
     gtmpl::{self, Context as GtmplContext, Template, Value as GtmplValue},
     gtmpl_derive::Gtmpl,
 };
-
+use serde::Deserialize;
+use serde_yaml_ng::Value;
+use std::collections::HashMap;
 mod helm;
 
 impl RawSpec {
@@ -138,8 +136,8 @@ impl RawSpec {
             config: serde_json_hashmap_to_gtmpl_hashmap(app_config),
         });
 
-        let temp_token_left = "{t";
-        let temp_token_right = "t}";
+        let temp_token_left = "{lt.pm.reserved.mows.cloud";
+        let temp_token_right = "rt.pm.reserved.mows.cloud}";
 
         for file_path in file_paths {
             let original_file_content = tokio::fs::read_to_string(&file_path)

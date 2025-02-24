@@ -22,7 +22,7 @@ pub struct PackageManagerConfig {
 }
 
 pub fn from_env() -> anyhow::Result<PackageManagerConfig> {
-    let dev_allow_origins = match load_env("", "DEV_ALLOW_ORIGINS", false) {
+    let dev_allow_origins = match load_env("", "DEV_ALLOW_ORIGINS", false, true) {
         Ok(v) => v
             .split(",")
             .map(|x| x.to_string().parse::<Url>().unwrap())
@@ -35,22 +35,25 @@ pub fn from_env() -> anyhow::Result<PackageManagerConfig> {
             "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
             "VAULT_URI",
             false,
+            true,
         )?,
         service_account_token_path: load_env(
             "/var/run/secrets/kubernetes.io/serviceaccount/token",
             "SERVICE_ACCOUNT_TOKEN_PATH",
             false,
+            true,
         )?,
 
         vault_kubernetes_api_auth_path: load_env(
             "mows-core-secrets-vrc/mows-core-package-manager/cluster-params",
             "VAULT_KUBERNETES_API_AUTH_PATH",
             false,
+            true,
         )?,
-        primary_origin: load_env("", "PRIMARY_ORIGIN", false)?.parse::<Url>()?,
-        enable_dev: load_env("false", "ENABLE_DEV", false)?.parse::<bool>()?,
+        primary_origin: load_env("", "PRIMARY_ORIGIN", false, true)?.parse::<Url>()?,
+        enable_dev: load_env("false", "ENABLE_DEV", false, true)?.parse::<bool>()?,
         dev_allow_origins,
-        db_url: load_env("/db/mows-package-manager.db", "DATABASE_URL", false)?,
-        working_dir: load_env("/tmp/mows-package-manager", "WORKING_DIR", false)?,
+        db_url: load_env("/db/mows-package-manager.db", "DATABASE_URL", false, true)?,
+        working_dir: load_env("/tmp/mows-package-manager", "WORKING_DIR", false, true)?,
     })
 }
