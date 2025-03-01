@@ -1,18 +1,20 @@
-use crate::types::MowsManifest;
+use crate::types::Manifest;
 use kube::{
     api::{ApiResource, DynamicObject},
     discovery::{ApiCapabilities, Scope},
     Api, Client,
 };
+use serde::de::Error;
+use serde::{Deserialize, Deserializer};
 use std::path::{Path, PathBuf};
 use tokio::signal;
 
-pub async fn parse_manifest(input: &str) -> anyhow::Result<MowsManifest> {
+pub async fn parse_manifest(input: &str) -> anyhow::Result<Manifest> {
     // this workaround is needed because serde_yaml does not support nested enums
 
     let yaml_value: serde_yaml_ng::Value = serde_yaml_ng::from_str(input)?;
     let json_string = serde_json::to_string(&yaml_value)?;
-    let manifest: MowsManifest = serde_json::from_str(&json_string)?;
+    let manifest: Manifest = serde_json::from_str(&json_string)?;
 
     Ok(manifest)
 }

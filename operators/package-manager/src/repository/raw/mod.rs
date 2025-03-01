@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use super::RepositoryPaths;
 use crate::{
-    dev::get_fake_app_config, rendered_document::RenderedDocument, types::RawSpec,
+    rendered_document::RenderedDocument,
+    types::{ManifestSource, RawManifestSpec},
     utils::get_all_file_paths_recursive,
 };
 use anyhow::Context;
@@ -10,69 +13,34 @@ use mows_common::templating::{
     gtmpl::{self, Context as GtmplContext, Template, Value as GtmplValue},
     gtmpl_derive::Gtmpl,
 };
-use serde::Deserialize;
 use serde_yaml_ng::Value;
-use std::collections::HashMap;
+mod files;
 mod helm;
 
-impl RawSpec {
+impl RawManifestSpec {
     pub async fn render(
         &self,
         repo_paths: &RepositoryPaths,
         namespace: &str,
     ) -> Result<Vec<RenderedDocument>, RawSpecError> {
-        match self {
-            RawSpec::HelmRepos(helm_repos) => {
-                for helm_repo in helm_repos {
-                    helm_repo.get_chart(repo_paths).await?;
+        let mut rendered_documents: Vec<RenderedDocument> = Vec::new();
+
+        for (source_name, source) in &self.sources {
+            match source {
+                ManifestSource::Helm(helm_repo) => {
+                    let helm_rendered_documents =
+                        helm_repo.handle(repo_paths, namespace, source_name).await?;
+                    // append all
+                    rendered_documents.extend(helm_rendered_documents);
+                }
+                ManifestSource::Files(files) => {
+                    let returned_files = files.handle(repo_paths, source_name).await?;
+                    rendered_documents.extend(returned_files);
                 }
             }
         }
 
-        let app_config = get_fake_app_config().await;
-
-        self.replace_app_config(repo_paths, app_config).await?;
-
-        match self {
-            RawSpec::HelmRepos(helm_repos) => {
-                for helm_repo in helm_repos {
-                    helm_repo.render(repo_paths, namespace).await?;
-                }
-            }
-        }
-
-        // read all files from output directory
-
-        let mut result_documents: Vec<RenderedDocument> = Vec::new();
-
-        let file_paths = get_all_file_paths_recursive(&repo_paths.output_path).await;
-
-        for file_path in file_paths {
-            let input_file_string = tokio::fs::read_to_string(&file_path).await?;
-
-            for (document_index, single_document_deserializer) in
-                serde_yaml_ng::Deserializer::from_str(&input_file_string).enumerate()
-            {
-                let resource = Value::deserialize(single_document_deserializer).context(
-                    format!("Error parsing file: {}", file_path.to_str().unwrap_or("")),
-                )?;
-
-                //let force_namespace = false;
-
-                //Self::transform(&mut value, namespace, force_namespace);
-
-                //let single_document_content_string = serde_yaml_ng::to_string(&value)?;
-
-                result_documents.push(RenderedDocument {
-                    kind: resource["kind"].as_str().unwrap_or("").to_string(),
-                    resource,
-                    file_path: file_path.to_str().unwrap_or("").to_string(),
-                    index: document_index,
-                });
-            }
-        }
-
-        Ok(result_documents)
+        Ok(rendered_documents)
     }
 
     fn transform(value: &mut Value, namespace: &str, force_namespace: bool) {
@@ -122,7 +90,7 @@ impl RawSpec {
         app_config: HashMap<String, serde_json::Value>,
     ) -> Result<(), RawSpecError> {
         // replace cluster variables in all files recursively
-        let file_paths = get_all_file_paths_recursive(&repo_paths.source_path).await;
+        let file_paths = get_all_file_paths_recursive(&repo_paths.mows_repo_source_path).await;
 
         let mut template_creator = Template::default();
         template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
@@ -174,6 +142,8 @@ impl RawSpec {
 pub enum RawSpecError {
     #[error("Error rendering HelmRepo: {0}")]
     HelmRepoError(#[from] HelmRepoError),
+    #[error("Error handling file spec: {0}")]
+    FilesError(#[from] files::FilesSpecError),
     #[error("Error reading file: {0}")]
     ReadFileError(#[from] tokio::io::Error),
     #[error(transparent)]

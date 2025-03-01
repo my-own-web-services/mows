@@ -2,7 +2,7 @@ use crate::{
     rendered_document::{
         CrdHandling, KubernetesResourceError, RenderedDocument, RenderedDocumentFilter,
     },
-    types::MowsManifest,
+    types::Manifest,
     utils::{get_dynamic_kube_api, parse_manifest},
 };
 use anyhow::Context;
@@ -39,12 +39,17 @@ impl Repository {
     ) -> Result<Vec<RenderedDocument>, RenderError> {
         let repo_paths = self.get_repository_paths(root_working_directory).await?;
 
-        let _ = &self.fetch(&repo_paths.source_path).await?;
+        let _ = &self
+            .fetch_mows_repository(&repo_paths.mows_repo_source_path)
+            .await?;
+        debug!("Fetched repository: {:?}", self);
 
-        let mows_manifest = self.get_manifest(&repo_paths.manifest_path).await?;
+        let mows_manifest = self.read_manifest(&repo_paths.manifest_path).await?;
+
+        debug!("Read manifest: {:?}", mows_manifest);
 
         let result = match mows_manifest.spec {
-            crate::types::MowsSpec::Raw(raw_spec) => {
+            crate::types::ManifestSpec::Raw(raw_spec) => {
                 raw_spec.render(&repo_paths, &namespace).await?
             }
         };
@@ -59,7 +64,10 @@ impl Repository {
         Ok(RepositoryPaths::new(root_working_directory).await)
     }
 
-    pub async fn fetch(&self, target_path: &PathBuf) -> Result<(), FetchMowsRepoError> {
+    pub async fn fetch_mows_repository(
+        &self,
+        target_path: &PathBuf,
+    ) -> Result<(), FetchMowsRepoError> {
         if self.uri.starts_with("file://") {
             let cp_options = &CopyOptions::new().content_only(true).overwrite(true);
 
@@ -68,16 +76,19 @@ impl Repository {
                 &self.uri[7..],
                 target_path.display()
             ))?;
+
+            debug!(
+                "Copied files from {} to {}",
+                &self.uri[7..],
+                target_path.display()
+            );
         } else {
             return Err(FetchMowsRepoError::InvalidUri(self.uri.clone()));
         }
         Ok(())
     }
 
-    pub async fn get_manifest(
-        &self,
-        manifest_path: &PathBuf,
-    ) -> Result<MowsManifest, ManifestError> {
+    pub async fn read_manifest(&self, manifest_path: &PathBuf) -> Result<Manifest, ManifestError> {
         let mows_manifest_string =
             tokio::fs::read_to_string(manifest_path)
                 .await
@@ -86,7 +97,12 @@ impl Repository {
                     manifest_path.display()
                 ))?;
 
-        let mows_manifest = parse_manifest(&mows_manifest_string).await?;
+        let mows_manifest = parse_manifest(&mows_manifest_string)
+            .await
+            .context(format!(
+                "Error parsing manifest file: {}",
+                manifest_path.display()
+            ))?;
 
         Ok(mows_manifest)
     }
@@ -165,7 +181,7 @@ impl Repository {
                 continue;
             }
             let resource: DynamicObject =
-                serde_yaml_ng::from_value(rendered_document.resource.clone())
+                serde_json::from_value(rendered_document.resource.clone())
                     .context("Error parsing resource as DynamicObject")?;
 
             let group_version_kind = match &resource.types {
@@ -173,9 +189,9 @@ impl Repository {
                     .context("Error converting type meta to GroupVersionKind")?,
                 None => {
                     return Err(InstallError::AnyhowError(anyhow::anyhow!(
-                        "No type meta found in object: {:?} \nPath: {}",
+                        "No type meta found in object: {:?} {:?}",
                         rendered_document.resource,
-                        rendered_document.file_path,
+                        rendered_document.debug,
                     )))
                 }
             };
@@ -224,37 +240,46 @@ impl Repository {
     }
 }
 
-const MANIFEST_FILE_NAME: &str = "manifest.mows.yaml";
+const MANIFEST_FILE_NAME: &str = "mows-manifest.yaml";
 
 pub struct RepositoryPaths {
     /// The parent working directory
+    /// /tmp/mows-package-manager/
     pub package_manager_working_path: PathBuf,
+    /// The working directory for the repository
+    /// /tmp/mows-package-manager/zitadel-random
     pub repository_working_path: PathBuf,
-    pub source_path: PathBuf,
+    /// The path were the mows repository will be fetched to
+    /// /tmp/mows-package-manager/zitadel-random/source
+    pub mows_repo_source_path: PathBuf,
+    /// The path to the mows manifest file
+    /// /tmp/mows-package-manager/zitadel-random/source/manifest.mows.yaml
     pub manifest_path: PathBuf,
-    pub output_path: PathBuf,
+    /// a path to a temporary directory to work in
+    /// /tmp/mows-package-manager/zitadel-random/temp
+    pub temp_path: PathBuf,
 }
 
 impl RepositoryPaths {
     pub async fn new(root_working_directory: &str) -> Self {
-        let working_path = Path::new(root_working_directory).join(generate_id(50));
+        let working_path = Path::new(root_working_directory).join(generate_id(20));
         let source_path = working_path.join("source");
         let manifest_path = source_path.join(MANIFEST_FILE_NAME);
-        let output_path = working_path.join("output");
+        let temp_path = working_path.join("temp");
 
         let _ = tokio::fs::remove_dir_all(&working_path).await.map_err(|e| {
             trace!("Error removing working directory: {}", e);
         });
 
-        tokio::fs::create_dir_all(&source_path).await.unwrap();
-        tokio::fs::create_dir_all(&output_path).await.unwrap();
+        let _ = tokio::fs::create_dir_all(&source_path).await;
+        let _ = tokio::fs::create_dir_all(&temp_path).await;
 
         Self {
             package_manager_working_path: PathBuf::from(root_working_directory),
-            source_path,
             repository_working_path: working_path,
             manifest_path,
-            output_path,
+            mows_repo_source_path: source_path,
+            temp_path,
         }
     }
 }

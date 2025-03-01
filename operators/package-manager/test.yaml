@@ -1,0 +1,1890 @@
+resource:
+  apiVersion: v1
+  automountServiceAccountToken: true
+  kind: ServiceAccount
+  metadata:
+    name: mows-core-auth-zitadel-controller
+kind: ServiceAccount
+source_name: zitadelController
+source_type: !helm
+  uris: null
+  sha256Digest: null
+  version: null
+  releaseName: zitadel-controller
+  chartName: zitadel-controller
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel-controller/templates/ServiceAccount.yaml
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: mows-core-auth-zitadel-controller
+    automountServiceAccountToken: true
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelController/zitadel-controller/zitadel-controller/templates/ServiceAccount.yaml
+
+---
+resource:
+  apiVersion: v1
+  automountServiceAccountToken: true
+  kind: ServiceAccount
+  metadata:
+    labels:
+      app: mows-core-auth-zitadel-controller
+      app.kubernetes.io/name: mows-core-auth-zitadel-controller
+      app.kubernetes.io/version: latest
+    name: mows-core-auth-zitadel-controller
+    namespace: mows-core-auth-zitadel
+kind: ServiceAccount
+source_name: zitadelController
+source_type: !helm
+  uris: null
+  sha256Digest: null
+  version: null
+  releaseName: zitadel-controller
+  chartName: zitadel-controller
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel-controller/templates/rbac.yaml
+    # Scoped service account
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: mows-core-auth-zitadel-controller
+      labels:
+        app: mows-core-auth-zitadel-controller
+        app.kubernetes.io/name: mows-core-auth-zitadel-controller
+        app.kubernetes.io/version: "latest"
+      namespace: mows-core-auth-zitadel
+    automountServiceAccountToken: true
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelController/zitadel-controller/zitadel-controller/templates/rbac.yaml
+
+---
+resource:
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: zitadelresources.zitadel.k8s.mows.cloud
+  spec:
+    group: zitadel.k8s.mows.cloud
+    names:
+      categories: []
+      kind: ZitadelResource
+      plural: zitadelresources
+      shortNames:
+      - zrs
+      singular: zitadelresource
+    scope: Namespaced
+    versions:
+    - additionalPrinterColumns: []
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Auto-generated derived type for ZitadelResourceSpec via `CustomResource`
+          properties:
+            spec:
+              oneOf:
+              - required:
+                - raw
+              properties:
+                raw:
+                  properties:
+                    resource:
+                      oneOf:
+                      - required:
+                        - org
+                      - required:
+                        - project
+                      properties:
+                        org:
+                          properties:
+                            name:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        project:
+                          properties:
+                            applications:
+                              items:
+                                properties:
+                                  clientDataTarget:
+                                    oneOf:
+                                    - required:
+                                      - vault
+                                    properties:
+                                      vault:
+                                        properties:
+                                          name:
+                                            type: string
+                                          path:
+                                            type: string
+                                        required:
+                                        - name
+                                        - path
+                                        type: object
+                                    type: object
+                                  method:
+                                    oneOf:
+                                    - required:
+                                      - oidc
+                                    - required:
+                                      - api
+                                    properties:
+                                      api:
+                                        properties:
+                                          authMethodType:
+                                            type: string
+                                        required:
+                                        - authMethodType
+                                        type: object
+                                      oidc:
+                                        properties:
+                                          accessTokenRoleAssertion:
+                                            type: boolean
+                                          accessTokenType:
+                                            type: string
+                                          additionalOrigins:
+                                            items:
+                                              type: string
+                                            type: array
+                                          appType:
+                                            type: string
+                                          authMethodType:
+                                            type: string
+                                          backChannelLogoutUri:
+                                            type: string
+                                          clockSkew:
+                                            nullable: true
+                                            properties:
+                                              nanos:
+                                                format: int32
+                                                type: integer
+                                              seconds:
+                                                format: int64
+                                                type: integer
+                                            required:
+                                            - nanos
+                                            - seconds
+                                            type: object
+                                          devMode:
+                                            type: boolean
+                                          grantTypes:
+                                            items:
+                                              type: string
+                                            type: array
+                                          idTokenRoleAssertion:
+                                            type: boolean
+                                          idTokenUserinfoAssertion:
+                                            type: boolean
+                                          loginVersion:
+                                            nullable: true
+                                            type: string
+                                          postLogoutRedirectUris:
+                                            items:
+                                              type: string
+                                            type: array
+                                          redirectUris:
+                                            items:
+                                              type: string
+                                            type: array
+                                          responseTypes:
+                                            items:
+                                              type: string
+                                            type: array
+                                          skipNativeAppSuccessPage:
+                                            type: boolean
+                                          version:
+                                            type: string
+                                        required:
+                                        - accessTokenRoleAssertion
+                                        - accessTokenType
+                                        - additionalOrigins
+                                        - appType
+                                        - authMethodType
+                                        - backChannelLogoutUri
+                                        - devMode
+                                        - grantTypes
+                                        - idTokenRoleAssertion
+                                        - idTokenUserinfoAssertion
+                                        - postLogoutRedirectUris
+                                        - redirectUris
+                                        - responseTypes
+                                        - skipNativeAppSuccessPage
+                                        - version
+                                        type: object
+                                    type: object
+                                  name:
+                                    type: string
+                                required:
+                                - clientDataTarget
+                                - method
+                                - name
+                                type: object
+                              type: array
+                            name:
+                              type: string
+                            orgName:
+                              type: string
+                            roles:
+                              items:
+                                properties:
+                                  displayName:
+                                    type: string
+                                  group:
+                                    type: string
+                                  key:
+                                    type: string
+                                required:
+                                - displayName
+                                - group
+                                - key
+                                type: object
+                              type: array
+                          required:
+                          - applications
+                          - name
+                          - orgName
+                          - roles
+                          type: object
+                      type: object
+                  required:
+                  - resource
+                  type: object
+              type: object
+            status:
+              description: The status object of `ZitadelResource`
+              nullable: true
+              properties:
+                created:
+                  type: boolean
+              required:
+              - created
+              type: object
+          required:
+          - spec
+          title: ZitadelResource
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+kind: CustomResourceDefinition
+source_name: zitadelController
+source_type: !helm
+  uris: null
+  sha256Digest: null
+  version: null
+  releaseName: zitadel-controller
+  chartName: zitadel-controller
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel-controller/templates/CRD.yaml
+    apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    metadata:
+      name: zitadelresources.zitadel.k8s.mows.cloud
+    spec:
+      group: zitadel.k8s.mows.cloud
+      names:
+        categories: []
+        kind: ZitadelResource
+        plural: zitadelresources
+        shortNames:
+        - zrs
+        singular: zitadelresource
+      scope: Namespaced
+      versions:
+      - additionalPrinterColumns: []
+        name: v1
+        schema:
+          openAPIV3Schema:
+            description: Auto-generated derived type for ZitadelResourceSpec via `CustomResource`
+            properties:
+              spec:
+                oneOf:
+                - required:
+                  - raw
+                properties:
+                  raw:
+                    properties:
+                      resource:
+                        oneOf:
+                        - required:
+                          - org
+                        - required:
+                          - project
+                        properties:
+                          org:
+                            properties:
+                              name:
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          project:
+                            properties:
+                              applications:
+                                items:
+                                  properties:
+                                    clientDataTarget:
+                                      oneOf:
+                                      - required:
+                                        - vault
+                                      properties:
+                                        vault:
+                                          properties:
+                                            name:
+                                              type: string
+                                            path:
+                                              type: string
+                                          required:
+                                          - name
+                                          - path
+                                          type: object
+                                      type: object
+                                    method:
+                                      oneOf:
+                                      - required:
+                                        - oidc
+                                      - required:
+                                        - api
+                                      properties:
+                                        api:
+                                          properties:
+                                            authMethodType:
+                                              type: string
+                                          required:
+                                          - authMethodType
+                                          type: object
+                                        oidc:
+                                          properties:
+                                            accessTokenRoleAssertion:
+                                              type: boolean
+                                            accessTokenType:
+                                              type: string
+                                            additionalOrigins:
+                                              items:
+                                                type: string
+                                              type: array
+                                            appType:
+                                              type: string
+                                            authMethodType:
+                                              type: string
+                                            backChannelLogoutUri:
+                                              type: string
+                                            clockSkew:
+                                              nullable: true
+                                              properties:
+                                                nanos:
+                                                  format: int32
+                                                  type: integer
+                                                seconds:
+                                                  format: int64
+                                                  type: integer
+                                              required:
+                                              - nanos
+                                              - seconds
+                                              type: object
+                                            devMode:
+                                              type: boolean
+                                            grantTypes:
+                                              items:
+                                                type: string
+                                              type: array
+                                            idTokenRoleAssertion:
+                                              type: boolean
+                                            idTokenUserinfoAssertion:
+                                              type: boolean
+                                            loginVersion:
+                                              nullable: true
+                                              type: string
+                                            postLogoutRedirectUris:
+                                              items:
+                                                type: string
+                                              type: array
+                                            redirectUris:
+                                              items:
+                                                type: string
+                                              type: array
+                                            responseTypes:
+                                              items:
+                                                type: string
+                                              type: array
+                                            skipNativeAppSuccessPage:
+                                              type: boolean
+                                            version:
+                                              type: string
+                                          required:
+                                          - accessTokenRoleAssertion
+                                          - accessTokenType
+                                          - additionalOrigins
+                                          - appType
+                                          - authMethodType
+                                          - backChannelLogoutUri
+                                          - devMode
+                                          - grantTypes
+                                          - idTokenRoleAssertion
+                                          - idTokenUserinfoAssertion
+                                          - postLogoutRedirectUris
+                                          - redirectUris
+                                          - responseTypes
+                                          - skipNativeAppSuccessPage
+                                          - version
+                                          type: object
+                                      type: object
+                                    name:
+                                      type: string
+                                  required:
+                                  - clientDataTarget
+                                  - method
+                                  - name
+                                  type: object
+                                type: array
+                              name:
+                                type: string
+                              orgName:
+                                type: string
+                              roles:
+                                items:
+                                  properties:
+                                    displayName:
+                                      type: string
+                                    group:
+                                      type: string
+                                    key:
+                                      type: string
+                                  required:
+                                  - displayName
+                                  - group
+                                  - key
+                                  type: object
+                                type: array
+                            required:
+                            - applications
+                            - name
+                            - orgName
+                            - roles
+                            type: object
+                        type: object
+                    required:
+                    - resource
+                    type: object
+                type: object
+              status:
+                description: The status object of `ZitadelResource`
+                nullable: true
+                properties:
+                  created:
+                    type: boolean
+                required:
+                - created
+                type: object
+            required:
+            - spec
+            title: ZitadelResource
+            type: object
+        served: true
+        storage: true
+        subresources:
+          status: {}
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelController/zitadel-controller/zitadel-controller/templates/CRD.yaml
+
+---
+resource:
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: mows-core-auth-zitadel-controller
+  rules:
+  - apiGroups:
+    - zitadel.k8s.mows.cloud
+    resources:
+    - zitadelresource
+    - zitadelresource/status
+    - zitadelresource/finalizers
+    verbs:
+    - get
+    - list
+    - watch
+    - patch
+    - update
+  - apiGroups:
+    - events.k8s.io
+    resources:
+    - events
+    verbs:
+    - create
+kind: ClusterRole
+source_name: zitadelController
+source_type: !helm
+  uris: null
+  sha256Digest: null
+  version: null
+  releaseName: zitadel-controller
+  chartName: zitadel-controller
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel-controller/templates/rbac.yaml
+    # Access for the service account
+    kind: ClusterRole
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: mows-core-auth-zitadel-controller
+    rules:
+      - apiGroups: ["zitadel.k8s.mows.cloud"]
+        resources: ["zitadelresource", "zitadelresource/status", "zitadelresource/finalizers"]
+        verbs: ["get", "list", "watch", "patch", "update"]
+      - apiGroups: ["events.k8s.io"]
+        resources: ["events"]
+        verbs: ["create"]
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelController/zitadel-controller/zitadel-controller/templates/rbac.yaml
+
+---
+resource:
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: mows-core-auth-zitadel-controller
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: mows-core-auth-zitadel-controller
+  subjects:
+  - kind: ServiceAccount
+    name: mows-core-auth-zitadel-controller
+    namespace: mows-core-auth-zitadel
+kind: ClusterRoleBinding
+source_name: zitadelController
+source_type: !helm
+  uris: null
+  sha256Digest: null
+  version: null
+  releaseName: zitadel-controller
+  chartName: zitadel-controller
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel-controller/templates/rbac.yaml
+    # Binding the role to the account
+    kind: ClusterRoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: mows-core-auth-zitadel-controller
+    subjects:
+    - kind: ServiceAccount
+      namespace: mows-core-auth-zitadel
+      name: mows-core-auth-zitadel-controller
+    roleRef:
+      kind: ClusterRole
+      name: mows-core-auth-zitadel-controller
+      apiGroup: rbac.authorization.k8s.io
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelController/zitadel-controller/zitadel-controller/templates/rbac.yaml
+
+---
+resource:
+  apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: mows-core-auth-zitadel-controller
+      app.kubernetes.io/name: mows-core-auth-zitadel-controller
+      app.kubernetes.io/version: latest
+    name: mows-core-auth-zitadel-controller
+    namespace: mows-core-auth-zitadel
+  spec:
+    ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: mows-core-auth-zitadel-controller
+    type: ClusterIP
+kind: Service
+source_name: zitadelController
+source_type: !helm
+  uris: null
+  sha256Digest: null
+  version: null
+  releaseName: zitadel-controller
+  chartName: zitadel-controller
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel-controller/templates/service.yaml
+    # Expose the http port of the service
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: mows-core-auth-zitadel-controller
+      namespace: mows-core-auth-zitadel
+      labels:
+        app: mows-core-auth-zitadel-controller
+        app.kubernetes.io/name: mows-core-auth-zitadel-controller
+        app.kubernetes.io/version: "latest"
+    spec:
+      type: ClusterIP
+      ports:
+      - port: 80
+        targetPort: 8080
+        protocol: TCP
+        name: http
+      selector:
+        app: mows-core-auth-zitadel-controller
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelController/zitadel-controller/zitadel-controller/templates/service.yaml
+
+---
+resource:
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: mows-core-auth-zitadel-controller
+      app.kubernetes.io/name: mows-core-auth-zitadel-controller
+      app.kubernetes.io/version: latest
+    name: mows-core-auth-zitadel-controller
+    namespace: mows-core-auth-zitadel
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: mows-core-auth-zitadel-controller
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/default-container: zitadel-controller
+        labels:
+          app: mows-core-auth-zitadel-controller
+      spec:
+        containers:
+        - env:
+          - name: LOG_FILTER
+            value: info
+          - name: TRACING_FILTER
+            value: info
+          image: 192.168.112.5:5000/zitadel-controller:latest
+          imagePullPolicy: Always
+          name: zitadel-controller
+          ports:
+          - containerPort: 8080
+            name: http
+            protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 50m
+              memory: 50Mi
+          securityContext: {}
+        securityContext: {}
+        serviceAccountName: mows-core-auth-zitadel-controller
+kind: Deployment
+source_name: zitadelController
+source_type: !helm
+  uris: null
+  sha256Digest: null
+  version: null
+  releaseName: zitadel-controller
+  chartName: zitadel-controller
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel-controller/templates/deployment.yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: mows-core-auth-zitadel-controller
+      namespace: mows-core-auth-zitadel
+      labels:
+        app: mows-core-auth-zitadel-controller
+        app.kubernetes.io/name: mows-core-auth-zitadel-controller
+        app.kubernetes.io/version: "latest"
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: mows-core-auth-zitadel-controller
+      template:
+        metadata:
+          labels:
+            app: mows-core-auth-zitadel-controller
+          annotations:
+            kubectl.kubernetes.io/default-container: zitadel-controller
+        spec:
+          serviceAccountName: mows-core-auth-zitadel-controller
+          securityContext:
+            {}
+          containers:
+          - name: zitadel-controller
+            image: 192.168.112.5:5000/zitadel-controller:latest
+            imagePullPolicy: Always
+            securityContext:
+              {}
+            resources:
+              limits:
+                cpu: 100m
+                memory: 100Mi
+              requests:
+                cpu: 50m
+                memory: 50Mi
+            ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            env:
+            - name: LOG_FILTER
+              value: info
+            - name: TRACING_FILTER
+              value: info
+            readinessProbe:
+              httpGet:
+                path: /health
+                port: http
+              initialDelaySeconds: 5
+              periodSeconds: 5
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelController/zitadel-controller/zitadel-controller/templates/deployment.yaml
+
+---
+resource:
+  apiVersion: vault.k8s.mows.cloud/v1
+  kind: VaultResource
+  metadata:
+    name: zitadel-controller-kubernetes-auth-engine
+  spec:
+    authEngine:
+      kubernetes:
+        roles:
+          mows-core-auth-zitadel-controller:
+            policyIds:
+            - zitadel-controller-policy
+            serviceAccountName: mows-core-auth-zitadel-controller
+kind: VaultResource
+source_name: zitadelController
+source_type: !helm
+  uris: null
+  sha256Digest: null
+  version: null
+  releaseName: zitadel-controller
+  chartName: zitadel-controller
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel-controller/templates/VaultResources.yaml
+    apiVersion: vault.k8s.mows.cloud/v1
+    kind: VaultResource
+    metadata:
+        name: zitadel-controller-kubernetes-auth-engine
+    spec:
+        authEngine:
+            kubernetes:
+                roles:
+                    mows-core-auth-zitadel-controller:
+                        serviceAccountName: mows-core-auth-zitadel-controller
+                        policyIds: ["zitadel-controller-policy"]
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelController/zitadel-controller/zitadel-controller/templates/VaultResources.yaml
+
+---
+resource:
+  apiVersion: vault.k8s.mows.cloud/v1
+  kind: VaultResource
+  metadata:
+    name: zitadel-controller-policy
+  spec:
+    engineAccessPolicy:
+      subPolicies:
+      - capabilities:
+        - read
+        - list
+        engineId: zitadel-secrets
+        engineType: secret
+        subPath: '*'
+kind: VaultResource
+source_name: zitadelController
+source_type: !helm
+  uris: null
+  sha256Digest: null
+  version: null
+  releaseName: zitadel-controller
+  chartName: zitadel-controller
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel-controller/templates/VaultResources.yaml
+    apiVersion: vault.k8s.mows.cloud/v1
+    kind: VaultResource
+    metadata:
+        name: zitadel-controller-policy
+    spec:
+        engineAccessPolicy:
+            subPolicies:
+                - engineId: zitadel-secrets
+                  engineType: secret
+                  subPath: "*"
+                  capabilities: ["read", "list"]
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelController/zitadel-controller/zitadel-controller/templates/VaultResources.yaml
+
+---
+resource:
+  apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app.kubernetes.io/instance: zitadel
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: zitadel
+      app.kubernetes.io/version: v2.65.1
+      helm.sh/chart: zitadel-8.6.1
+    name: zitadel
+  spec:
+    ports:
+    - appProtocol: http2
+      name: http2-server
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app.kubernetes.io/instance: zitadel
+      app.kubernetes.io/name: zitadel
+    type: ClusterIP
+kind: Service
+source_name: zitadelHelmRepo
+source_type: !helm
+  uris:
+  - https://charts.zitadel.com
+  sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+  version: 8.6.1
+  releaseName: zitadel
+  chartName: zitadel
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel/templates/service.yaml
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: zitadel
+      labels:
+        helm.sh/chart: zitadel-8.6.1
+        app.kubernetes.io/name: zitadel
+        app.kubernetes.io/instance: zitadel
+        app.kubernetes.io/version: "v2.65.1"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      type: ClusterIP
+      ports:
+        - port: 8080
+          targetPort: 8080
+          protocol: TCP
+          name: http2-server
+          appProtocol: http2
+      selector:
+        app.kubernetes.io/name: zitadel
+        app.kubernetes.io/instance: zitadel
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelHelmRepo/zitadel/zitadel/templates/service.yaml
+
+---
+resource:
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app.kubernetes.io/component: start
+      app.kubernetes.io/instance: zitadel
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: zitadel
+      app.kubernetes.io/version: v2.65.1
+      helm.sh/chart: zitadel-8.6.1
+    name: zitadel
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/instance: zitadel
+        app.kubernetes.io/name: zitadel
+    template:
+      metadata:
+        annotations:
+          checksum/configmap: a3e7daffe63fbbcc6e420a39eee09d41619010a115e9ddd52701f89b94cc9e0c
+          checksum/secret-db-ssl-root-crt: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+          checksum/secret-zitadel-secrets: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        labels:
+          app.kubernetes.io/component: start
+          app.kubernetes.io/instance: zitadel
+          app.kubernetes.io/name: zitadel
+      spec:
+        containers:
+        - args:
+          - start
+          - --config
+          - /config/zitadel-config-yaml
+          - --config
+          - /zitadel-secret-config-yaml/config.yaml
+          - --masterkeyFromEnv
+          env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          - name: ZITADEL_MASTERKEY
+            valueFrom:
+              secretKeyRef:
+                key: masterkey
+                name: zitadel-masterkey
+          image: ghcr.io/zitadel/zitadel:v2.65.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /debug/healthz
+              port: http2-server
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 5
+          name: zitadel
+          ports:
+          - containerPort: 8080
+            name: http2-server
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /debug/ready
+              port: http2-server
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 5
+          resources: {}
+          securityContext:
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          startupProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /debug/ready
+              port: http2-server
+              scheme: HTTP
+            periodSeconds: 1
+          volumeMounts:
+          - mountPath: /config
+            name: zitadel-config-yaml
+            readOnly: true
+          - mountPath: /zitadel-secret-config-yaml
+            name: zitadel-secret-config-yaml
+            readOnly: true
+        enableServiceLinks: false
+        securityContext:
+          fsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+        serviceAccountName: zitadel
+        volumes:
+        - configMap:
+            name: zitadel-config-yaml
+          name: zitadel-config-yaml
+        - name: zitadel-secret-config-yaml
+          secret:
+            defaultMode: 288
+            secretName: zitadel-config
+kind: Deployment
+source_name: zitadelHelmRepo
+source_type: !helm
+  uris:
+  - https://charts.zitadel.com
+  sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+  version: 8.6.1
+  releaseName: zitadel
+  chartName: zitadel
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel/templates/deployment.yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: zitadel
+      labels:
+        helm.sh/chart: zitadel-8.6.1
+        app.kubernetes.io/name: zitadel
+        app.kubernetes.io/instance: zitadel
+        app.kubernetes.io/version: "v2.65.1"
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: start
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: zitadel
+          app.kubernetes.io/instance: zitadel
+      template:
+        metadata:
+          annotations:
+            checksum/configmap: a3e7daffe63fbbcc6e420a39eee09d41619010a115e9ddd52701f89b94cc9e0c
+            checksum/secret-db-ssl-root-crt: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+            checksum/secret-zitadel-secrets: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+          labels:
+            app.kubernetes.io/component: start
+            app.kubernetes.io/name: zitadel
+            app.kubernetes.io/instance: zitadel
+        spec:
+          serviceAccountName: zitadel
+          securityContext:
+            fsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+          enableServiceLinks: false
+          containers:
+            - name: zitadel
+              securityContext:
+                  privileged: false
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  runAsUser: 1000
+              image: "ghcr.io/zitadel/zitadel:v2.65.1"
+              imagePullPolicy: IfNotPresent
+              args:
+                - start
+                - --config
+                - /config/zitadel-config-yaml
+                - --config
+                - /zitadel-secret-config-yaml/config.yaml
+                - --masterkeyFromEnv
+              env:
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: status.podIP
+                - name: ZITADEL_MASTERKEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: zitadel-masterkey
+                      key: masterkey
+              ports:
+              - containerPort: 8080
+                name: http2-server
+                protocol: TCP
+              livenessProbe:
+                httpGet:
+                  path: /debug/healthz
+                  port: http2-server
+                  scheme: HTTP
+                initialDelaySeconds: 0
+                periodSeconds: 5
+                failureThreshold: 3
+              readinessProbe:
+                httpGet:
+                  path: /debug/ready
+                  port: http2-server
+                  scheme: HTTP
+                initialDelaySeconds: 0
+                periodSeconds: 5
+                failureThreshold: 3
+              startupProbe:
+                httpGet:
+                  path: /debug/ready
+                  port: http2-server
+                  scheme: HTTP
+                periodSeconds: 1
+                failureThreshold: 30
+              volumeMounts:
+              - name: zitadel-config-yaml
+                mountPath: /config
+                readOnly: true
+              - name: zitadel-secret-config-yaml
+                mountPath: /zitadel-secret-config-yaml
+                readOnly: true
+              resources:
+                  {}
+          volumes:
+          - name: zitadel-config-yaml
+            configMap:
+              name: zitadel-config-yaml
+          - name: zitadel-secret-config-yaml
+            secret:
+              secretName: zitadel-config
+              defaultMode: 0440
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelHelmRepo/zitadel/zitadel/templates/deployment.yaml
+
+---
+resource:
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation
+      helm.sh/hook-weight: '0'
+    labels:
+      app.kubernetes.io/instance: zitadel
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: zitadel
+      app.kubernetes.io/version: v2.65.1
+      helm.sh/chart: zitadel-8.6.1
+    name: zitadel
+kind: ServiceAccount
+source_name: zitadelHelmRepo
+source_type: !helm
+  uris:
+  - https://charts.zitadel.com
+  sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+  version: 8.6.1
+  releaseName: zitadel
+  chartName: zitadel
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel/templates/serviceaccount.yaml
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: zitadel
+      labels:
+        helm.sh/chart: zitadel-8.6.1
+        app.kubernetes.io/name: zitadel
+        app.kubernetes.io/instance: zitadel
+        app.kubernetes.io/version: "v2.65.1"
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+        helm.sh/hook: pre-install,pre-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation
+        helm.sh/hook-weight: "0"
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelHelmRepo/zitadel/zitadel/templates/serviceaccount.yaml
+
+---
+resource:
+  apiVersion: v1
+  data:
+    zitadel-config-yaml: |2-
+
+      ExternalSecure: true
+      FirstInstance:
+        Org:
+          Machine:
+            Machine:
+              Username: zitadel-admin-sa
+      Machine:
+        Identification:
+          Hostname:
+            Enabled: true
+          Webhook:
+            Enabled: false
+  kind: ConfigMap
+  metadata:
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation
+      helm.sh/hook-weight: '0'
+    labels:
+      app.kubernetes.io/instance: zitadel
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: zitadel
+      app.kubernetes.io/version: v2.65.1
+      helm.sh/chart: zitadel-8.6.1
+    name: zitadel-config-yaml
+kind: ConfigMap
+source_name: zitadelHelmRepo
+source_type: !helm
+  uris:
+  - https://charts.zitadel.com
+  sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+  version: 8.6.1
+  releaseName: zitadel
+  chartName: zitadel
+debug:
+  resource_string_before_parse: "# Source: zitadel/templates/configmap.yaml\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: zitadel-config-yaml\n  annotations:\n    helm.sh/hook: pre-install,pre-upgrade\n    helm.sh/hook-delete-policy: before-hook-creation\n    helm.sh/hook-weight: \"0\"\n  labels:\n    helm.sh/chart: zitadel-8.6.1\n    app.kubernetes.io/name: zitadel\n    app.kubernetes.io/instance: zitadel\n    app.kubernetes.io/version: \"v2.65.1\"\n    app.kubernetes.io/managed-by: Helm\ndata:\n  zitadel-config-yaml: |-\n    \n    ExternalSecure: true\n    FirstInstance:\n      Org:\n        Machine:\n          Machine:\n            Username: zitadel-admin-sa\n    Machine:\n      Identification:\n        Hostname:\n          Enabled: true\n        Webhook:\n          Enabled: false\n"
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelHelmRepo/zitadel/zitadel/templates/configmap.yaml
+
+---
+resource:
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation
+      helm.sh/hook-weight: '0'
+    labels:
+      app.kubernetes.io/instance: zitadel
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: zitadel
+      app.kubernetes.io/version: v2.65.1
+      helm.sh/chart: zitadel-8.6.1
+    name: zitadel
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - secrets
+    verbs:
+    - get
+    - create
+  - apiGroups:
+    - ''
+    resources:
+    - pods
+    verbs:
+    - get
+kind: Role
+source_name: zitadelHelmRepo
+source_type: !helm
+  uris:
+  - https://charts.zitadel.com
+  sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+  version: 8.6.1
+  releaseName: zitadel
+  chartName: zitadel
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel/templates/rbac.yaml
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: zitadel
+      labels:
+        helm.sh/chart: zitadel-8.6.1
+        app.kubernetes.io/name: zitadel
+        app.kubernetes.io/instance: zitadel
+        app.kubernetes.io/version: "v2.65.1"
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+        helm.sh/hook: pre-install,pre-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation
+        helm.sh/hook-weight: "0"
+    rules:
+      - apiGroups: [ "" ]
+        resources: [ "secrets" ]
+        verbs: [ "get", "create" ]
+      - apiGroups: [ "" ]
+        resources: [ "pods" ]
+        verbs: [ "get" ]
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelHelmRepo/zitadel/zitadel/templates/rbac.yaml
+
+---
+resource:
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation
+      helm.sh/hook-weight: '0'
+    labels:
+      app.kubernetes.io/instance: zitadel
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: zitadel
+      app.kubernetes.io/version: v2.65.1
+      helm.sh/chart: zitadel-8.6.1
+    name: zitadel
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: zitadel
+  subjects:
+  - kind: ServiceAccount
+    name: zitadel
+kind: RoleBinding
+source_name: zitadelHelmRepo
+source_type: !helm
+  uris:
+  - https://charts.zitadel.com
+  sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+  version: 8.6.1
+  releaseName: zitadel
+  chartName: zitadel
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel/templates/rbac.yaml
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: zitadel
+      labels:
+        helm.sh/chart: zitadel-8.6.1
+        app.kubernetes.io/name: zitadel
+        app.kubernetes.io/instance: zitadel
+        app.kubernetes.io/version: "v2.65.1"
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+        helm.sh/hook: pre-install,pre-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation
+        helm.sh/hook-weight: "0"
+    subjects:
+      - kind: ServiceAccount
+        name:  zitadel
+    roleRef:
+      kind: Role
+      name: zitadel
+      apiGroup: rbac.authorization.k8s.io
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelHelmRepo/zitadel/zitadel/templates/rbac.yaml
+
+---
+resource:
+  apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation
+      helm.sh/hook-weight: '1'
+    labels:
+      app.kubernetes.io/component: init
+      app.kubernetes.io/instance: zitadel
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: zitadel
+      app.kubernetes.io/version: v2.65.1
+      helm.sh/chart: zitadel-8.6.1
+    name: zitadel-init
+  spec:
+    activeDeadlineSeconds: 1800
+    backoffLimit: 10
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/component: init
+          app.kubernetes.io/instance: zitadel
+          app.kubernetes.io/name: zitadel
+      spec:
+        containers:
+        - args:
+          - init
+          - --config
+          - /config/zitadel-config-yaml
+          - --config
+          - /zitadel-secret-config-yaml/config.yaml
+          env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          image: ghcr.io/zitadel/zitadel:v2.65.1
+          imagePullPolicy: IfNotPresent
+          name: zitadel-init
+          resources: {}
+          securityContext:
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+          - mountPath: /config
+            name: zitadel-config-yaml
+            readOnly: true
+          - mountPath: /zitadel-secret-config-yaml
+            name: zitadel-secret-config-yaml
+            readOnly: true
+        enableServiceLinks: false
+        restartPolicy: OnFailure
+        securityContext:
+          fsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+        serviceAccountName: zitadel
+        volumes:
+        - configMap:
+            defaultMode: 288
+            name: zitadel-config-yaml
+          name: zitadel-config-yaml
+        - name: zitadel-secret-config-yaml
+          secret:
+            defaultMode: 288
+            secretName: zitadel-config
+kind: Job
+source_name: zitadelHelmRepo
+source_type: !helm
+  uris:
+  - https://charts.zitadel.com
+  sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+  version: 8.6.1
+  releaseName: zitadel
+  chartName: zitadel
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel/templates/initjob.yaml
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: "zitadel-init"
+      labels:
+        helm.sh/chart: zitadel-8.6.1
+        app.kubernetes.io/name: zitadel
+        app.kubernetes.io/instance: zitadel
+        app.kubernetes.io/version: "v2.65.1"
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: init
+      annotations:
+        helm.sh/hook: pre-install,pre-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation
+        helm.sh/hook-weight: "1"
+    spec:
+      backoffLimit: 10
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: zitadel
+            app.kubernetes.io/instance: zitadel
+            app.kubernetes.io/component: init
+        spec:
+          serviceAccountName: zitadel
+          securityContext:
+            fsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+          enableServiceLinks: false
+          restartPolicy: OnFailure
+          containers:
+            - name: "zitadel-init"
+              securityContext:
+                  privileged: false
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  runAsUser: 1000
+              image: "ghcr.io/zitadel/zitadel:v2.65.1"
+              imagePullPolicy: IfNotPresent
+              args:
+                - init
+                - --config
+                - /config/zitadel-config-yaml
+                - --config
+                - /zitadel-secret-config-yaml/config.yaml
+              env:
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: status.podIP
+              volumeMounts:
+              - name: zitadel-config-yaml
+                mountPath: /config
+                readOnly: true
+              - name: zitadel-secret-config-yaml
+                mountPath: /zitadel-secret-config-yaml
+                readOnly: true
+              resources:
+                  {}
+          volumes:
+          - name: zitadel-config-yaml
+            configMap:
+              name: zitadel-config-yaml
+              defaultMode: 0440
+          - name: zitadel-secret-config-yaml
+            secret:
+              secretName: zitadel-config
+              defaultMode: 0440
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelHelmRepo/zitadel/zitadel/templates/initjob.yaml
+
+---
+resource:
+  apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation
+      helm.sh/hook-weight: '2'
+    labels:
+      app.kubernetes.io/component: setup
+      app.kubernetes.io/instance: zitadel
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: zitadel
+      app.kubernetes.io/version: v2.65.1
+      helm.sh/chart: zitadel-8.6.1
+    name: zitadel-setup
+  spec:
+    activeDeadlineSeconds: 1800
+    backoffLimit: 5
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/component: setup
+          app.kubernetes.io/instance: zitadel
+          app.kubernetes.io/name: zitadel
+      spec:
+        containers:
+        - args:
+          - setup
+          - --masterkeyFromEnv
+          - --config
+          - /config/zitadel-config-yaml
+          - --steps
+          - /config/zitadel-config-yaml
+          - --config
+          - /zitadel-secret-config-yaml/config.yaml
+          - --steps
+          - /zitadel-secret-config-yaml/config.yaml
+          - --init-projections=true
+          env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          - name: ZITADEL_MASTERKEY
+            valueFrom:
+              secretKeyRef:
+                key: masterkey
+                name: zitadel-masterkey
+          - name: ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH
+            value: /machinekey/sa.json
+          image: ghcr.io/zitadel/zitadel:v2.65.1
+          imagePullPolicy: IfNotPresent
+          name: zitadel-setup
+          resources: {}
+          securityContext:
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+          - mountPath: /config
+            name: zitadel-config-yaml
+            readOnly: true
+          - mountPath: /zitadel-secret-config-yaml
+            name: zitadel-secret-config-yaml
+            readOnly: true
+          - mountPath: /machinekey
+            name: machinekey
+        - command:
+          - sh
+          - -c
+          - until [ ! -z $(kubectl -n abc get po ${POD_NAME} -o jsonpath="{.status.containerStatuses[?(@.name=='zitadel-setup')].state.terminated}") ]; do echo 'waiting for zitadel-setup container to terminate'; sleep 5; done && echo 'zitadel-setup container terminated' && if [ -f /machinekey/sa.json ]; then kubectl -n abc create secret generic zitadel-admin-sa --from-file=zitadel-admin-sa.json=/machinekey/sa.json; fi;
+          env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          image: bitnami/kubectl:1.31
+          name: zitadel-machinekey
+          resources: {}
+          securityContext:
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+          - mountPath: /machinekey
+            name: machinekey
+            readOnly: true
+        enableServiceLinks: false
+        restartPolicy: OnFailure
+        securityContext:
+          fsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+        serviceAccountName: zitadel
+        volumes:
+        - configMap:
+            defaultMode: 288
+            name: zitadel-config-yaml
+          name: zitadel-config-yaml
+        - name: zitadel-secret-config-yaml
+          secret:
+            defaultMode: 288
+            secretName: zitadel-config
+        - emptyDir: {}
+          name: machinekey
+kind: Job
+source_name: zitadelHelmRepo
+source_type: !helm
+  uris:
+  - https://charts.zitadel.com
+  sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+  version: 8.6.1
+  releaseName: zitadel
+  chartName: zitadel
+debug:
+  resource_string_before_parse: |
+    # Source: zitadel/templates/setupjob.yaml
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: "zitadel-setup"
+      labels:
+        helm.sh/chart: zitadel-8.6.1
+        app.kubernetes.io/name: zitadel
+        app.kubernetes.io/instance: zitadel
+        app.kubernetes.io/version: "v2.65.1"
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: setup
+      annotations:
+        helm.sh/hook: pre-install,pre-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation
+        helm.sh/hook-weight: "2"
+    spec:
+      backoffLimit: 5
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: zitadel
+            app.kubernetes.io/instance: zitadel
+            app.kubernetes.io/component: setup
+        spec:
+          serviceAccountName: zitadel
+          securityContext:
+            fsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+          enableServiceLinks: false
+          restartPolicy: OnFailure
+          containers:
+            - name: "zitadel-setup"
+              securityContext:
+                  privileged: false
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  runAsUser: 1000
+              image: "ghcr.io/zitadel/zitadel:v2.65.1"
+              imagePullPolicy: IfNotPresent
+              args:
+                - setup
+                - --masterkeyFromEnv
+                - --config
+                - /config/zitadel-config-yaml
+                - --steps
+                - /config/zitadel-config-yaml
+                - --config
+                - /zitadel-secret-config-yaml/config.yaml
+                - --steps
+                - /zitadel-secret-config-yaml/config.yaml
+                - --init-projections=true
+              env:
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: status.podIP
+                - name: ZITADEL_MASTERKEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: zitadel-masterkey
+                      key: masterkey
+                - name: ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH
+                  value: "/machinekey/sa.json"
+              volumeMounts:
+              - name: zitadel-config-yaml
+                mountPath: /config
+                readOnly: true
+              - name: zitadel-secret-config-yaml
+                mountPath: /zitadel-secret-config-yaml
+                readOnly: true
+              - name: machinekey
+                mountPath: "/machinekey"
+              resources:
+                {}
+            - name: "zitadel-machinekey"
+              securityContext:
+                  privileged: false
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  runAsUser: 1000
+              image: "bitnami/kubectl:1.31"
+              command: [ "sh","-c","until [ ! -z $(kubectl -n abc get po ${POD_NAME} -o jsonpath=\"{.status.containerStatuses[?(@.name=='zitadel-setup')].state.terminated}\") ]; do echo 'waiting for zitadel-setup container to terminate'; sleep 5; done && echo 'zitadel-setup container terminated' && if [ -f /machinekey/sa.json ]; then kubectl -n abc create secret generic zitadel-admin-sa --from-file=zitadel-admin-sa.json=/machinekey/sa.json; fi;" ]
+              env:
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+              volumeMounts:
+                - name: machinekey
+                  mountPath: "/machinekey"
+                  readOnly: true
+              resources:
+                {}
+          volumes:
+          - name: zitadel-config-yaml
+            configMap:
+              name: zitadel-config-yaml
+              defaultMode: 0440
+          - name: zitadel-secret-config-yaml
+            secret:
+              secretName: zitadel-config
+              defaultMode: 0440
+          - name: machinekey
+            emptyDir: { }
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/zitadelHelmRepo/zitadel/zitadel/templates/setupjob.yaml
+
+---
+resource:
+  apiVersion: pektin.k8s.mows.cloud/v1
+  kind: PektinDns
+  metadata:
+    name: zitadel-dns
+  spec:
+    plain:
+    - meta: ''
+      name: zitadel.{§ .config.domain §}.
+      rr_set:
+        A:
+        - value: '{§ .config.legacy_ip §}'
+      ttl: 60
+kind: PektinDns
+source_name: additional
+source_type: !files {}
+debug:
+  resource_string_before_parse: |
+    apiVersion: pektin.k8s.mows.cloud/v1
+    kind: PektinDns
+    metadata:
+        name: zitadel-dns
+    spec:
+        plain:
+            - name: "zitadel.{§ .config.domain §}."
+              meta: ""
+              ttl: 60
+              rr_set:
+                  A:
+                      - value: "{§ .config.legacy_ip §}"
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/additional/DnsRecord.yaml
+
+---
+resource:
+  apiVersion: traefik.io/v1alpha1
+  kind: IngressRoute
+  metadata:
+    name: zitadel-ingress
+  spec:
+    entryPoints:
+    - websecure
+    routes:
+    - kind: Rule
+      match: Host(`zitadel.{§ .config.domain §}`)
+      services:
+      - kind: Service
+        name: zitadel
+        port: 8080
+kind: IngressRoute
+source_name: additional
+source_type: !files {}
+debug:
+  resource_string_before_parse: |
+    apiVersion: traefik.io/v1alpha1
+    kind: IngressRoute
+    metadata:
+        name: zitadel-ingress
+    spec:
+        entryPoints:
+            - websecure
+        routes:
+            - kind: Rule
+              match: Host(`zitadel.{§ .config.domain §}`)
+              services:
+                  - kind: Service
+                    name: zitadel
+                    port: 8080
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/additional/IngressRoute.yaml
+
+---
+resource:
+  apiVersion: postgresql.cnpg.io/v1
+  kind: Cluster
+  metadata:
+    name: zitadel-postgres
+  spec:
+    enableSuperuserAccess: true
+    instances: 1
+    primaryUpdateStrategy: unsupervised
+    storage:
+      size: 2Gi
+    superuserSecret:
+      name: zitadel-db-admin
+kind: Cluster
+source_name: additional
+source_type: !files {}
+debug:
+  resource_string_before_parse: |
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Cluster
+    metadata:
+        name: zitadel-postgres
+    spec:
+        instances: 1
+        storage:
+            size: 2Gi
+        primaryUpdateStrategy: unsupervised
+        enableSuperuserAccess: true
+        superuserSecret:
+            name: zitadel-db-admin
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/additional/PostgresCluster.yaml
+
+---
+resource:
+  apiVersion: vault.k8s.mows.cloud/v1
+  kind: VaultResource
+  metadata:
+    name: zitadel-password-sync
+  spec:
+    secretSync:
+      kvMapping:
+        db:
+          engine: zitadel-secrets
+          path: db
+        zitadel:
+          engine: zitadel-secrets
+          path: zitadel
+      targets:
+        secrets:
+          zitadel-config:
+            map:
+              config.yaml: "ExternalSecure: true\nExternalDomain: zitadel.{§ .config.domain §}\nTLS:\n    Enabled: false\nDefaultInstance:\n    OIDCSettings:\n        AccessTokenLifetime: 12h\n        IdTokenLifetime: 12h\n        RefreshTokenIdleExpiration: 720h #30d\n        RefreshTokenExpiration: 2160h #90d\n    Org:\n        Machine:\n            Machine: \n                Username: zitadel-admin-sa\n    #    Human:\n    #        UserName: zitadel-admin\n    #        Password: \"{% .secrets.zitadel.adminPassword %}\"\n    #        PasswordChangeRequired: false\nDatabase:\n    Postgres:\n        Host: zitadel-postgres-rw\n        Port: 5432\n        Database: zitadel\n        MaxOpenConns: 20\n        MaxIdleConns: 10\n        MaxConnLifetime: 30m\n        MaxConnIdleTime: 5m\n        User:\n            Username: zitadel\n            Password: \"{% .secrets.db.user %}\"\n            SSL:\n                Mode: disable\n        Admin:\n            Username: postgres\n            Password: \"{% .secrets.db.admin %}\"\n            SSL:\n                Mode: disable\n"
+          zitadel-db-admin:
+            map:
+              password: '{% .secrets.db.admin  %}'
+              username: postgres
+            type: kubernetes.io/basic-auth
+          zitadel-db-user:
+            map:
+              password: '{% .secrets.db.user %}'
+              username: zitadel
+            type: kubernetes.io/basic-auth
+          zitadel-masterkey:
+            map:
+              masterkey: '{% .secrets.zitadel.masterkey %}'
+kind: VaultResource
+source_name: additional
+source_type: !files {}
+debug:
+  resource_string_before_parse: "apiVersion: vault.k8s.mows.cloud/v1\nkind: VaultResource\nmetadata:\n    name: zitadel-password-sync\nspec:\n    secretSync:\n        kvMapping:\n            db: # name in the template engine\n                engine: zitadel-secrets # name of the secretEngine in the same namespace as the resource\n                path: \"db\" # path to the secret in the secretEngine\n            zitadel:\n                engine: zitadel-secrets\n                path: \"zitadel\"\n        targets:\n            secrets:\n                zitadel-masterkey:\n                    map:\n                        masterkey: \"{% .secrets.zitadel.masterkey %}\"\n                zitadel-db-admin:\n                    type: kubernetes.io/basic-auth\n                    map:\n                        password: \"{% .secrets.db.admin  %}\"\n                        username: postgres\n                zitadel-db-user:\n                    type: kubernetes.io/basic-auth\n                    map:\n                        password: \"{% .secrets.db.user %}\"\n                        username: zitadel\n                zitadel-config:\n                    map:\n                        config.yaml: |\n                            ExternalSecure: true\n                            ExternalDomain: zitadel.{§ .config.domain §}\n                            TLS:\n                                Enabled: false\n                            DefaultInstance:\n                                OIDCSettings:\n                                    AccessTokenLifetime: 12h\n                                    IdTokenLifetime: 12h\n                                    RefreshTokenIdleExpiration: 720h #30d\n                                    RefreshTokenExpiration: 2160h #90d\n                                Org:\n                                    Machine:\n                                        Machine: \n                                            Username: zitadel-admin-sa\n                                #    Human:\n                                #        UserName: zitadel-admin\n                                #        Password: \"{% .secrets.zitadel.adminPassword %}\"\n                                #        PasswordChangeRequired: false\n                            Database:\n                                Postgres:\n                                    Host: zitadel-postgres-rw\n                                    Port: 5432\n                                    Database: zitadel\n                                    MaxOpenConns: 20\n                                    MaxIdleConns: 10\n                                    MaxConnLifetime: 30m\n                                    MaxConnIdleTime: 5m\n                                    User:\n                                        Username: zitadel\n                                        Password: \"{% .secrets.db.user %}\"\n                                        SSL:\n                                            Mode: disable\n                                    Admin:\n                                        Username: postgres\n                                        Password: \"{% .secrets.db.admin %}\"\n                                        SSL:\n                                            Mode: disable\n"
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/additional/vault-resources/password-sync.yaml
+
+---
+resource:
+  apiVersion: vault.k8s.mows.cloud/v1
+  kind: VaultResource
+  metadata:
+    name: zitadel-secrets
+  spec:
+    secretEngine:
+      kv-v2:
+        kvData:
+          db:
+            admin: '{% randAlphaNum 100 %}'
+            user: '{% randAlphaNum 100 %}'
+          zitadel:
+            adminPassword: '{% randAlphaNum 60 %}aA1!'
+            masterkey: '{% randAlphaNum 32 %}'
+kind: VaultResource
+source_name: additional
+source_type: !files {}
+debug:
+  resource_string_before_parse: |
+    apiVersion: vault.k8s.mows.cloud/v1
+    kind: VaultResource
+    metadata:
+        name: zitadel-secrets
+    spec:
+        secretEngine:
+            kv-v2:
+                kvData:
+                    db:
+                        user: "{% randAlphaNum 100 %}"
+                        admin: "{% randAlphaNum 100 %}"
+                    zitadel:
+                        masterkey: "{% randAlphaNum 32 %}"
+                        adminPassword: "{% randAlphaNum 60 %}aA1!"
+  resource_source_path: /tmp/mows-package-manager-cli/tzpN1ay8UTkCEyabaekK/source/sources/additional/vault-resources/secrets.yaml
+
+---

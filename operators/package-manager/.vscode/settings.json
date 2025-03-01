@@ -48,6 +48,7 @@
         "publickey",
         "reqwest",
         "serviceaccount",
+        "shellexpand",
         "tempfile",
         "templating",
         "thiserror",

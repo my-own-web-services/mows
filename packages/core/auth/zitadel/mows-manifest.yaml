@@ -1,0 +1,25 @@
+manifestVersion: "0.1"
+metadata:
+    name: zitadel
+    description: "zitadel"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            zitadelHelmRepo:
+                helm:
+                    uris:
+                        - https://charts.zitadel.com
+                    sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+                    version: "8.6.1"
+                    releaseName: zitadel
+                    chartName: zitadel
+            additional:
+                files: {}
+            zitadelController:
+                helm:
+                    releaseName: zitadel-controller
+                    chartName: zitadel-controller
+        type: core
+        namespaces:
+            - zitadel

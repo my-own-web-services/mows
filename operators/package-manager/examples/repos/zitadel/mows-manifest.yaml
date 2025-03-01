@@ -13,8 +13,8 @@ spec:
                     uris: # uris to the helm chart, multiple uris are possible to provide mirrors
                         - https://charts.zitadel.com/index.yaml
                     # digest of the chart tarball to guarantee the integrity of the chart
-                    digest: sha256:ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
-                    version: "0.1.0" # version of the chart, this is only used as reference so that one does not have to look up the version in the index.yaml, if version and hash mismatch an error will be thrown
+                    sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+                    version: "8.6.1" # version of the chart, this is only used as reference so that one does not have to look up the version in the index.yaml, if version and hash mismatch an error will be thrown
                     # if the resource is remote it will be downloaded to sources/zitadelRepo/zitadel, sources/SOURCE_NAME/CHART_NAME
                     # if the resource is local it will be searched at the same local path: sources/zitadelRepo/zitadel, sources/SOURCE_NAME/CHART_NAME
                     # the downloaded tgz will be stored in a temp folder by hash
@@ -22,7 +22,7 @@ spec:
                     releaseName: zitadel # name of the app in the cluster
                     chartName: zitadel # name of the chart
             additional: # name of the source
-                files: # source method files for providing additional files, all yaml files from the sources/additional/ folder will be read, sources/SOURCE_NAME/*.yaml,yml
+                files: {} # source method files for providing additional files, all yaml files from the sources/additional/ folder will be read, sources/SOURCE_NAME/*.yaml,yml
         # 2. Stage: transform all files from the sources if needed
         transformations:
             patches:

@@ -5,7 +5,6 @@ pub mod rendered_document;
 
 pub mod repository;
 pub mod types;
-pub mod types2;
 pub mod ui;
 pub mod utils;
 pub mod api {

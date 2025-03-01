@@ -1,13 +1,30 @@
 use serde::{Deserialize, Serialize};
-use serde_yaml_ng::Value;
 use utoipa::ToSchema;
+
+use crate::types::ManifestSource;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq, Eq)]
 pub struct RenderedDocument {
-    pub resource: Value,
+    pub resource: serde_json::Value,
     pub kind: String,
-    pub file_path: String,
-    pub index: usize,
+    pub source_name: String,
+    pub source_type: ManifestSource,
+    pub debug: RenderedDocumentDebug,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq, Eq)]
+pub struct RenderedDocumentDebug {
+    pub resource_string_before_parse: Option<String>,
+    pub resource_source_path: Option<String>,
+}
+
+impl Default for RenderedDocumentDebug {
+    fn default() -> Self {
+        Self {
+            resource_string_before_parse: None,
+            resource_source_path: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq, Eq)]

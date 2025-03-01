@@ -88,3 +88,10 @@ pub async fn init_observability() {
     #[cfg(not(feature = "telemetry"))]
     reg.with(logger).init();
 }
+
+pub async fn init_minimal_observability(level:&str)-> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+    .with_env_filter(level)
+    .init();
+    Ok(())
+}
