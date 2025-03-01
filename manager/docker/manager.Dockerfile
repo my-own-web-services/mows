@@ -24,7 +24,7 @@ RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps --release
 # build
 COPY --chown=root:root src src
 COPY --from=ui-builder /build/dist ./ui-build
-RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --release --bin server
+RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --release --bin main
 RUN cd ./package-manager && RUSTFLAGS="--cfg tokio_unstable" cargo build --release --bin cli
 #RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 
@@ -133,7 +133,7 @@ ENV XDG_CONFIG_HOME=/root/.config
 
 WORKDIR /app
 
-COPY --from=builder --chown=mows-manager:mows-manager /app/target/x86_64-unknown-linux-musl/release/server ./mows-manager
+COPY --from=builder --chown=mows-manager:mows-manager /app/target/x86_64-unknown-linux-musl/release/main ./mows-manager
 COPY --from=builder --chown=mows-manager:mows-manager /app/package-manager/target/x86_64-unknown-linux-musl/release/cli ./mpm
 RUN useradd -u 50001 -N mows-manager
 RUN groupadd -g 50001 mows-manager

@@ -200,9 +200,9 @@ path "sys/auth" {
   capabilities = [ "read"]
 }
 
-# creating auth engines
+# creating configuring and deleting auth engines
 path "sys/auth/mows-core-secrets-vrc/*" {
-  capabilities = ["create", "update", "sudo"]
+  capabilities = ["create", "update", "sudo", "delete"]
 }
 
 # create delete and list policies

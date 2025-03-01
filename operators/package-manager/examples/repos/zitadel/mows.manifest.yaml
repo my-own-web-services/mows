@@ -1,0 +1,76 @@
+manifestVersion: "0.1"
+metadata:
+    name: zitadel
+    description: "A powerful open source identity and access management solution"
+    version: "0.1"
+spec:
+    # enum switch between raw and mows special manifest, 
+    raw:
+        # 1. Stage fetch and render all sources
+        sources:
+            zitadelRepo: # name of the source, same name as the folder in the sources folder
+                helm: # source method helm
+                    uris: # uris to the helm chart, multiple uris are possible to provide mirrors
+                        - https://charts.zitadel.com/index.yaml
+                    # digest of the chart tarball to guarantee the integrity of the chart
+                    digest: sha256:ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
+                    version: "0.1.0" # version of the chart, this is only used as reference so that one does not have to look up the version in the index.yaml, if version and hash mismatch an error will be thrown
+                    # if the resource is remote it will be downloaded to sources/zitadelRepo/zitadel, sources/SOURCE_NAME/CHART_NAME
+                    # if the resource is local it will be searched at the same local path: sources/zitadelRepo/zitadel, sources/SOURCE_NAME/CHART_NAME
+                    # the downloaded tgz will be stored in a temp folder by hash
+                    # the values file is expected to be in sources/zitadelRepo/values.yaml
+                    releaseName: zitadel # name of the app in the cluster
+                    chartName: zitadel # name of the chart
+            additional: # name of the source
+                files: # source method files for providing additional files, all yaml files from the sources/additional/ folder will be read, sources/SOURCE_NAME/*.yaml,yml
+        # 2. Stage: transform all files from the sources if needed
+        transformations:
+            patches:
+            -   target:
+                -   field: "metadata.namespace"
+                    regex: "mows-core-auth-zitadel"
+                    # the values should be cluster variable template enabled
+                    # https://crates.io/crates/json-patch
+                mergePatch:
+                    metadata: abc
+
+                patches:
+                -   op: replace
+                    path: /spec/template/spec/containers/1/command
+                    value:
+                    - "sh"
+                    - "-c"
+                    - |
+                        until [ "$(kubectl -n mows-core-auth-zitadel get po ${POD_NAME} -o jsonpath="{.status.containerStatuses[?(@.name=='zitadel-setup')].state.terminated.reason}")" = "Completed" ]; 
+                        do 
+                            echo 'waiting for zitadel-setup container to terminate'; 
+                            sleep 5; 
+                        done && 
+                        echo 'zitadel-setup container terminated' && 
+                        if [ -f /machinekey/sa.json ]; then 
+                            kubectl -n mows-core-auth-zitadel create secret generic zitadel-admin-sa --from-file=zitadel-admin-sa.json=/machinekey/sa.json; 
+                        fi;
+                -   op: replace
+                    path: /spec/backoffLimit
+                    value: 10
+        
+        # 3. Stage
+        # the type part does not feel complete or fully thought through yet
+
+        type: core 
+        namespaces: # only core can use more than one namespace per app
+            - zitadel # will be expanded to mows-core-zitadel
+        # the sources must only produce namespaces that are listed here, with mows-core-NAMESPACE
+        # core resources can only exist once in the cluster
+
+        # apis can be installed once per organization but multiple times per cluster
+        # mows-apis-ORGANIZATION-NAME
+        # apis can provide data to be present in the mows package manager variables for other apps to use in their deployment
+        
+        # apps can be installed multiple times per cluster and per organization
+        # mows-apps-ORGANIZATION-NAME
+        # apps can required libraries to be present in the cluster, the libraries must be installed before the app can be installed
+
+        
+
+        # all this has only affect on the namespaces, how the app is named inside the cluster is defined by the releaseName for helm releases

@@ -1,3 +1,14 @@
+# packages
+
+1. A package can only be installed in one namespace (exceptions apply for core packages)
+
+2. A package can have multiple sources for generation at the same time (helm, kustomize, plain, etc.)
+
+3. A package needs to have all remote resources verified by checksum
+
+4. see examples/repos/zitadel
+
+
 
 # utoipa axum quirks
 

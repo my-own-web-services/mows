@@ -25,8 +25,8 @@ RUN rm -f target/x86_64-unknown-linux-musl/release/deps/package-manager*
 COPY migrations migrations
 COPY --chown=root:root src src
 COPY --from=ui-builder /build/dist ./ui-build
-RUN cargo build  --release --bin main
-RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
+RUN cargo build  --release --bin server
+RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/server
 RUN useradd -u 50003 -N mows-package-manager
 
 
@@ -36,7 +36,7 @@ RUN useradd -u 50003 -N mows-package-manager
 FROM alpine:latest
 RUN apk add --no-cache helm git
 WORKDIR /app
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/main ./mows-package-manager
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/server ./mows-package-manager
 COPY --from=builder /etc/passwd /etc/passwd
 RUN mkdir -p /db/ && chown -R mows-package-manager /db/
 USER mows-package-manager

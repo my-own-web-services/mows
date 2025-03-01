@@ -3,6 +3,12 @@ zitadel:
     masterkeySecretName: "zitadel-masterkey"
     configSecretName: zitadel-config
     configSecretKey: config.yaml
+    configmapConfig:
+        FirstInstance: 
+            Org: 
+                Machine:
+                    Machine:
+                        Username: zitadel-admin-sa
 
 initJob:
     activeDeadlineSeconds: 1800
