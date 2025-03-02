@@ -8,6 +8,7 @@ pub mod repository {
 
     use crate::{
         config::config,
+        dev::get_fake_cluster_config,
         rendered_document::RenderedDocument,
         repository::Repository,
         types::{ApiResponse, ApiResponseStatus},
@@ -35,8 +36,14 @@ pub mod repository {
         for repository_render_req in req_body.repositories.iter() {
             let repository = Repository::new(&repository_render_req.uri);
 
+            let cluster_variables = get_fake_cluster_config().await;
+
             let render_result = match repository
-                .render(&repository_render_req.namespace, &config.working_dir)
+                .render(
+                    &repository_render_req.namespace,
+                    &config.working_dir,
+                    &cluster_variables,
+                )
                 .await
             {
                 Ok(v) => v,

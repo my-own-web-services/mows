@@ -15,9 +15,8 @@ pub struct ControllerConfig {
     pub service_account_token_path: String,
     pub vault_kubernetes_auth_path: String,
     pub vault_kubernetes_auth_role: String,
-    pub zitadel_secrets_engine_name: String,
-    pub zitadel_secrets_path: String,
     pub zitadel_endpoint: String,
+    pub zitadel_service_account_token: String,
     pub reconcile_interval_seconds: u64,
 }
 
@@ -27,31 +26,29 @@ pub fn from_env() -> anyhow::Result<ControllerConfig> {
             "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
             "VAULT_URI",
             false,
+            true,
         )?,
         service_account_token_path: load_env(
             "/var/run/secrets/kubernetes.io/serviceaccount/token",
             "SERVICE_ACCOUNT_TOKEN_PATH",
             false,
+            true,
         )?,
 
         vault_kubernetes_auth_path: load_env(
             "mows-core-secrets-vrc/mows-core-auth-zitadel/zitadel-controller-kubernetes-auth-engine",
             "VAULT_KUBERNETES_AUTH_PATH",
             false,
+            true,
         )?,
         vault_kubernetes_auth_role: load_env(
             "mows-core-auth-zitadel-controller",
             "VAULT_KUBERNETES_API_AUTH_ROLE",
             false,
+            true,
         )?,
-
-        zitadel_endpoint: load_env("http://zitadel", "ZITADEL_API_ENDPOINT", false)?,
-        reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false)?.parse()?,
-        zitadel_secrets_engine_name: load_env(
-            "mows-core-secrets-vrc/mows-core-auth-zitadel/zitadel-secrets",
-            "ZITADEL_SECRETS_ENGINE_NAME",
-            false,
-        )?,
-        zitadel_secrets_path: load_env("zitadel", "ZITADEL_SECRETS_PATH", false)?,
+        zitadel_endpoint: load_env("https://zitadel", "ZITADEL_API_ENDPOINT", false, true)?,
+        reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false, true)?.parse()?,
+        zitadel_service_account_token: load_env("", "ZITADEL_SERVICE_ACCOUNT_TOKEN", true, true)?,
     })
 }

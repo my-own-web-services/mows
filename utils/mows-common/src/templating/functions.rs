@@ -1042,11 +1042,14 @@ fn random_string(args: &[Value]) -> Result<Value, FuncError> {
 }
 
 pub fn serde_json_hashmap_to_gtmpl_hashmap(
-    hashmap: HashMap<String, serde_json::Value>,
+    hashmap: &HashMap<String, serde_json::Value>,
 ) -> HashMap<String, Value> {
     let mut gtmpl_hashmap = HashMap::new();
     for (key, value) in hashmap {
-        gtmpl_hashmap.insert(key, Value::from(serde_json_value_to_gtmpl_value(value)));
+        gtmpl_hashmap.insert(
+            key.to_string(),
+            Value::from(serde_json_value_to_gtmpl_value(value.clone())),
+        );
     }
     gtmpl_hashmap
 }

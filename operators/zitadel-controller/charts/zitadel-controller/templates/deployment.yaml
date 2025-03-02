@@ -28,6 +28,7 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      
       containers:
       - name: {{ .Chart.Name }}
         image: {{ .Values.image.repository }}:{{ include "controller.tag" . }}
@@ -40,11 +41,19 @@ spec:
         - name: http
           containerPort: 8080
           protocol: TCP
+        # mount the zitadel-admin-sa secret to /zitadel-admin-sa.json
+
         env:
         - name: LOG_FILTER
           value: {{ .Values.logging.log_filter }}
         - name: TRACING_FILTER
           value: {{ .Values.logging.tracing_filter }}
+        - name: ZITADEL_SERVICE_ACCOUNT_TOKEN
+          # value from secret zitadel-admin-sa subPath zitadel-admin-sa.json
+          valueFrom:
+            secretKeyRef:
+              name: zitadel-admin-sa
+              key: zitadel-admin-sa.json
         {{- if .Values.tracing.enabled }}
         - name: OPENTELEMETRY_ENDPOINT_URL
           value: http://{{ .Values.tracing.service }}.{{ .Values.tracing.namespace }}.svc:{{ .Values.tracing.port }}

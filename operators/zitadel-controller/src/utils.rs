@@ -1,11 +1,8 @@
-use std::fmt::{Debug, Formatter};
-
+use crate::{config::config, ControllerError};
 use anyhow::Context;
 use mows_common::get_current_config_cloned;
-use prometheus_client::metrics::info;
-use serde_json::Value;
+use std::fmt::{Debug, Formatter};
 use tonic::{service::interceptor::InterceptedService, transport::Channel};
-use tracing::{debug, field::debug, info};
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 use zitadel::{
     api::{
@@ -15,7 +12,6 @@ use zitadel::{
     credentials::ServiceAccount,
 };
 
-use crate::{config::config, ControllerError};
 struct TypedDebugWrapper<'a, T: ?Sized>(&'a T);
 
 impl<T: Debug> Debug for TypedDebugWrapper<'_, T> {
@@ -36,27 +32,6 @@ pub fn get_error_type(e: &ControllerError) -> String {
     let reason = format!("{:?}", e.typed_debug());
     let reason = reason.split_at(reason.find('(').unwrap_or(0)).0;
     reason.to_string()
-}
-
-pub async fn get_zitadel_password_secret() -> Result<String, ControllerError> {
-    let config = get_current_config_cloned!(config());
-    let vault_client = create_vault_client().await?;
-
-    let secret: Value = vaultrs::kv2::read(
-        &vault_client,
-        &config.zitadel_secrets_engine_name,
-        &config.zitadel_secrets_path,
-    )
-    .await?;
-
-    info!("Got secret from vault: {}", secret);
-
-    Ok(secret
-        .get("adminPassword")
-        .context("Failed to get admin password")?
-        .as_str()
-        .context("Failed to get admin password")?
-        .to_string())
 }
 
 pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
@@ -93,13 +68,18 @@ pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
 
 pub type ManagementClient = ManagementServiceClient<InterceptedService<Channel, ServiceAccountInterceptor>>;
 
-pub async fn create_new_zitadel_management_client() -> anyhow::Result<ManagementClient> {
+pub async fn create_zitadel_management_client() -> anyhow::Result<ManagementClient> {
     let config = get_current_config_cloned!(config());
-    let service_account = ServiceAccount::load_from_file(&config.service_account_token_path).unwrap();
+    let service_account = ServiceAccount::load_from_json(&config.zitadel_service_account_token)
+        .map_err(|e| anyhow::anyhow!("Failed to load service account: {}", e))?;
+
     let client_builder =
         ClientBuilder::new(&config.zitadel_endpoint).with_service_account(&service_account, None);
 
-    let client = client_builder.build_management_client().await.unwrap();
+    let client = client_builder
+        .build_management_client()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to create zitadel management client: {}", e))?;
 
     Ok(client)
 }

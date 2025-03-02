@@ -710,7 +710,7 @@ impl Cluster {
         .await?;
 
         debug!("Installing Zitadel");
-        // ./mpm -u=file:///packages/core/auth/zitadel/ -n=mows-core-auth-zitadel
+        // mpm install -u=file:///packages/core/auth/zitadel/ -n=mows-core-auth-zitadel
         self.install_with_package_manager(
             "file:///packages/core/auth/zitadel/",
             "mows-core-auth-zitadel",

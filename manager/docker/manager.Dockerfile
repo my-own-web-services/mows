@@ -134,7 +134,7 @@ ENV XDG_CONFIG_HOME=/root/.config
 WORKDIR /app
 
 COPY --from=builder --chown=mows-manager:mows-manager /app/target/x86_64-unknown-linux-musl/release/main ./mows-manager
-COPY --from=builder --chown=mows-manager:mows-manager /app/package-manager/target/x86_64-unknown-linux-musl/release/cli ./mpm
+COPY --from=builder --chown=mows-manager:mows-manager /app/package-manager/target/x86_64-unknown-linux-musl/release/cli /usr/local/bin/mpm
 RUN useradd -u 50001 -N mows-manager
 RUN groupadd -g 50001 mows-manager
 

@@ -1,3 +1,5 @@
+`cargo run --bin cli -- template --uri=file:///home/paul/projects/mows/packages/core/auth/zitadel -n=abc -d > test.yaml`
+
 # packages
 
 1. A package can only be installed in one namespace (exceptions apply for core packages)

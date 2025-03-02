@@ -8,7 +8,7 @@ spec:
         sources:
             zitadelHelmRepo:
                 helm:
-                    uris:
+                    urls:
                         - https://charts.zitadel.com
                     sha256Digest: ff694231bbb1cda83c30dbff65c78f11ee4b2adeb81c438e3be6901c4821884a
                     version: "8.6.1"
@@ -20,6 +20,29 @@ spec:
                 helm:
                     releaseName: zitadel-controller
                     chartName: zitadel-controller
+        transformations:
+            patches:
+            -   target:
+                -   field: "/metadata/name"
+                    regex: "zitadel-setup"
+                patches:
+                -   op: replace
+                    path: /spec/template/spec/containers/1/command
+                    value:
+                    - "sh"
+                    - "-c"
+                    - |
+                        until [ "$(kubectl -n mows-core-auth-zitadel get po ${POD_NAME} -o jsonpath="{.status.containerStatuses[?(@.name=='zitadel-setup')].state.terminated.reason}")" = "Completed" ]; do echo 'waiting for zitadel-setup container to terminate'; sleep 5; done && echo 'zitadel-setup container terminated' && ls /machinekey/ && kubectl -n ${NAMESPACE} create secret generic zitadel-admin-sa --from-file=zitadel-admin-sa.json=/machinekey/sa.json;
+                -   op: replace
+                    path: /spec/backoffLimit
+                    value: 10
+                - op: add
+                  path: /spec/template/spec/containers/1/env/-
+                  value:
+                    name: NAMESPACE
+                    valueFrom:
+                        fieldRef:
+                            fieldPath: metadata.namespace
         type: core
         namespaces:
             - zitadel

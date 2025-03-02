@@ -109,11 +109,16 @@ async fn reconcile(vault_resource: Arc<PektinDns>, ctx: Arc<Context>) -> Result<
     .map_err(|e| Error::FinalizerError(Box::new(e)))
 }
 
-fn error_policy(vault_resource: Arc<PektinDns>, error: &Error, ctx: Arc<Context>) -> Action {
+fn error_policy(
+    vault_resource: Arc<PektinDns>,
+    error: &Error,
+    ctx: Arc<Context>,
+    reconcile_interval_seconds: u64,
+) -> Action {
     warn!("reconcile failed: {:?}", error);
     ctx.metrics.reconcile.set_failure(&vault_resource, error);
 
-    Action::requeue(Duration::from_secs(30))
+    Action::requeue(Duration::from_secs(reconcile_interval_seconds))
 }
 
 impl PektinDns {
@@ -137,7 +142,7 @@ impl PektinDns {
                     }
                 }));
 
-                let ps = PatchParams::apply("cntrlr").force();
+                let ps = PatchParams::apply(FINALIZER).force();
                 let _o = vault_resources
                     .patch_status(&name, &ps, &new_status)
                     .await
@@ -164,7 +169,7 @@ impl PektinDns {
                     }
                 }));
 
-                let ps = PatchParams::apply("cntrlr").force();
+                let ps = PatchParams::apply(FINALIZER).force();
                 let _o = vault_resources
                     .patch_status(&name, &ps, &new_status)
                     .await
@@ -274,15 +279,24 @@ impl State {
 /// Initialize the controller and shared state (given the crd is installed)
 pub async fn run(state: State) {
     let client = Client::try_default().await.expect("failed to create kube Client");
-    let docs = Api::<PektinDns>::all(client.clone());
-    if let Err(e) = docs.list(&ListParams::default().limit(1)).await {
+    let pektin_resource = Api::<PektinDns>::all(client.clone());
+    if let Err(e) = pektin_resource.list(&ListParams::default().limit(1)).await {
         error!("CRD is not queryable; {e:?}. Is the CRD installed?");
         info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
         std::process::exit(1);
     }
-    Controller::new(docs, Config::default().any_semantic())
+
+    let config = get_current_config_cloned!(config());
+
+    Controller::new(pektin_resource, Config::default().any_semantic())
         .shutdown_on_signal()
-        .run(reconcile, error_policy, state.to_context(client))
+        .run(
+            reconcile,
+            |pektin_resource, error, ctx| {
+                error_policy(pektin_resource, error, ctx, config.reconcile_interval_seconds)
+            },
+            state.to_context(client),
+        )
         .filter_map(|x| async move { std::result::Result::ok(x) })
         .for_each(|_| futures::future::ready(()))
         .await;

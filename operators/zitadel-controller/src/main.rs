@@ -1,10 +1,13 @@
 #![allow(unused_imports, unused_variables)]
 use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::Context;
-use controller::utils::get_zitadel_password_secret;
+use controller::utils::create_zitadel_management_client;
 pub use controller::{self, State};
 use mows_common::observability::init_observability;
+use prometheus_client::metrics::info;
+use tracing::info;
 use tracing_actix_web::TracingLogger;
+use zitadel::api::zitadel::management::v1::GetMyOrgRequest;
 
 #[get("/metrics")]
 async fn metrics(c: Data<State>, _req: HttpRequest) -> impl Responder {
@@ -33,7 +36,11 @@ async fn main() -> anyhow::Result<()> {
     let state = State::default();
     let controller = controller::run(state.clone());
 
-    let password = get_zitadel_password_secret().await?;
+    let mut zitadel_client = create_zitadel_management_client().await?;
+
+    zitadel_client.get_my_org(GetMyOrgRequest {}).await?;
+
+    info!("Zitadel connection successful");
 
     // Start web server
     let server = HttpServer::new(move || {

@@ -1,4 +1,5 @@
 use crate::{
+    dev::get_fake_cluster_config,
     rendered_document::{
         CrdHandling, KubernetesResourceError, RenderedDocument, RenderedDocumentFilter,
     },
@@ -15,7 +16,10 @@ use kube::{
 use mows_common::{kube::get_kube_client, utils::generate_id};
 use raw::RawSpecError;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 use tracing::{debug, trace};
 use utoipa::ToSchema;
 mod raw;
@@ -36,6 +40,7 @@ impl Repository {
         &self,
         namespace: &str,
         root_working_directory: &str,
+        cluster_variables: &HashMap<String, serde_json::Value>,
     ) -> Result<Vec<RenderedDocument>, RenderError> {
         let repo_paths = self.get_repository_paths(root_working_directory).await?;
 
@@ -50,7 +55,9 @@ impl Repository {
 
         let result = match mows_manifest.spec {
             crate::types::ManifestSpec::Raw(raw_spec) => {
-                raw_spec.render(&repo_paths, &namespace).await?
+                raw_spec
+                    .handle(&repo_paths, &namespace, cluster_variables)
+                    .await?
             }
         };
 
@@ -116,8 +123,14 @@ impl Repository {
     ) -> Result<(), InstallError> {
         debug!("Installing repository: {:?}", self);
 
+        let cluster_variables = get_fake_cluster_config().await;
+
         let rendered_documents = self
-            .render(requested_namespace, root_working_directory)
+            .render(
+                requested_namespace,
+                root_working_directory,
+                &cluster_variables,
+            )
             .await
             .context(format!("Error rendering documents"))?;
 

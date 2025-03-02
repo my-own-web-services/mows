@@ -2,32 +2,42 @@ use anyhow::Context;
 use clap::{Parser, Subcommand};
 
 use mows_common::observability::init_minimal_observability;
-use mows_package_manager::{rendered_document::CrdHandling, repository::Repository};
+use mows_package_manager::{
+    dev::get_fake_cluster_config,
+    rendered_document::{CrdHandling, RenderedDocument},
+    repository::Repository,
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
     #[clap(subcommand)]
     command: Commands,
+    /// Log debug information
     #[arg(short, long, global = true)]
-    verbose: bool,
+    verbose: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
 enum Commands {
     Install {
+        /// The url of the mows repository
         #[arg(short, long)]
-        uri: String,
+        url: String,
         #[arg(short, long)]
-        namespace: String,
+        name: String,
     },
     Template {
+        /// The url of the mows repository
         #[arg(short, long)]
-        uri: String,
+        url: String,
         #[arg(short, long)]
-        namespace: String,
+        name: String,
+        /// Output the debug output
         #[arg(short, long)]
         debug: bool,
+        #[arg(short, long)]
+        output: Option<String>,
     },
 }
 
@@ -35,11 +45,21 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    let log_level = if cli.verbose { "debug" } else { "info" };
-    init_minimal_observability(log_level).await?;
+    let log_level = match cli.verbose.as_deref() {
+        Some(value) => {
+            if value.is_empty() {
+                "info"
+            } else {
+                value
+            }
+        }
+        None => "info",
+    };
+
+    init_minimal_observability(&log_level).await?;
 
     match cli.command {
-        Commands::Install { uri, namespace } => {
+        Commands::Install { url, name } => {
             let kubeconfig_path =
                 std::env::var("KUBECONFIG").unwrap_or_else(|_| "~/.kube/config".to_string());
 
@@ -52,9 +72,9 @@ async fn main() -> anyhow::Result<()> {
                     "Failed to read kubeconfig from path: {}",
                     &kubeconfig_path
                 ))?;
-            Repository::new(&uri)
+            Repository::new(&url)
                 .install(
-                    &namespace,
+                    &name,
                     "/tmp/mows-package-manager-cli",
                     &CrdHandling::CrdFirst,
                     &kubeconfig,
@@ -62,32 +82,57 @@ async fn main() -> anyhow::Result<()> {
                 .await
                 .context(format!(
                     "Failed to install core repo: {} in namespace: {}",
-                    &uri, &namespace
+                    &url, &name
                 ))?;
         }
         Commands::Template {
-            uri,
-            namespace,
+            url,
+            name,
             debug,
+            output,
         } => {
-            let results = Repository::new(&uri)
-                .render(&namespace, "/tmp/mows-package-manager-cli")
+            let cluster_variables = get_fake_cluster_config().await;
+
+            let results = Repository::new(&url)
+                .render(&name, "/tmp/mows-package-manager-cli", &cluster_variables)
                 .await
                 .context(format!(
                     "Failed to install core repo: {} in namespace: {}",
-                    &uri, &namespace
+                    &url, &name
                 ))?;
-            if debug {
-                for result in &results {
-                    println!("{}", serde_yaml_ng::to_string(&result)?);
-                    println!("---");
-                }
-            } else {
-                for result in &results {
-                    println!("{}", serde_yaml_ng::to_string(&result.resource)?);
-                    println!("---");
-                }
-            }
+            handle_output(results, output, debug).await?;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn handle_output(
+    results: Vec<RenderedDocument>,
+    output_path: Option<String>,
+    debug: bool,
+) -> anyhow::Result<()> {
+    let mut output_text = String::new();
+    if debug {
+        for result in &results {
+            output_text.push_str(&serde_yaml_ng::to_string(&result)?);
+            output_text.push_str("\n---\n");
+        }
+    } else {
+        for result in &results {
+            output_text.push_str(&serde_yaml_ng::to_string(&result.resource)?);
+            output_text.push_str("\n---\n");
+        }
+    }
+
+    match output_path {
+        Some(output_path) => {
+            tokio::fs::write(&output_path, output_text)
+                .await
+                .context(format!("Failed to write output to path: {}", &output_path))?;
+        }
+        None => {
+            println!("{}", output_text);
         }
     }
 

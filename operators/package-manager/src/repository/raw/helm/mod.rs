@@ -1,12 +1,13 @@
 use crate::{
-    rendered_document::{RenderedDocument, RenderedDocumentDebug},
+    rendered_document::{MethodSpecificRenderedDocumentDebug, MethodSpecificRenderedDocumentDebugHelm, RenderedDocument, RenderedDocumentDebug},
     repository::RepositoryPaths,
-    types::{HelmRepoSpec, ManifestSource},
+    types::{HelmRepoSpec, ManifestSource}, utils::replace_cluster_variables,
 };
+use anyhow::Context;
 use flate2::read::GzDecoder;
 use futures::StreamExt;
 use k8s_openapi::api::resource;
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::HashMap, path::Path};
 use tokio::{
@@ -23,8 +24,9 @@ impl HelmRepoSpec {
         repo_paths: &RepositoryPaths,
         namespace: &str,
         source_name: &str,
+        cluster_variables: &HashMap<String, serde_json::Value>,
     ) -> Result<Vec<RenderedDocument>, HelmRepoError> {
-        self.get_chart(repo_paths,source_name).await?;
+        self.get_chart(repo_paths,source_name,cluster_variables).await?;
         self.render(repo_paths, &source_name, namespace).await
     }
     pub async fn render(
@@ -76,7 +78,7 @@ impl HelmRepoSpec {
 
                     let resource_source_path= document.lines().find(|line| line.starts_with("# Source:"))
                     .map(|line| line.trim_start_matches("# Source:").trim().to_string()).map(
-                        |source_path| chart_path.join(source_path).to_str().unwrap().to_string()
+                        |resource_source_path| source_path.join(resource_source_path).to_str().unwrap().to_string()
                     );
 
 
@@ -92,15 +94,26 @@ impl HelmRepoSpec {
                     HelmRepoError::RenderHelmError(format!("Error rendering Helm: {}", e))
                 })?;
 
+                let method_specific_debug:Option<MethodSpecificRenderedDocumentDebug>=if let Some(resource_source_path)=resource_source_path.clone() {
+                    Some(MethodSpecificRenderedDocumentDebug::Helm(MethodSpecificRenderedDocumentDebugHelm {
+                        original_template: tokio::fs::read_to_string(resource_source_path).await.map_err(
+                            |e| HelmRepoError::RenderHelmError(format!("Error reading file: {}", e))
+                        )?.to_string(
+                        ),
+                    }))
+                } else {
+                    None
+                };
+
 
                 result_documents.push(RenderedDocument {
-                    kind: resource["kind"].as_str().unwrap_or("").to_string(),
                     resource,
                     source_name: source_name.to_string(),
                     source_type: ManifestSource::Helm(self.clone()),
                     debug: RenderedDocumentDebug {
                         resource_string_before_parse: Some(document.to_string()),
-                        resource_source_path
+                        resource_source_path,
+                        method_specific:method_specific_debug,
                     },
                 });
             }
@@ -114,9 +127,19 @@ impl HelmRepoSpec {
         }
     }
 
-    pub async fn get_chart(&self, repo_paths: &RepositoryPaths,source_name: &str) -> Result<(), HelmRepoError> {
+    pub async fn get_chart(&self, repo_paths: &RepositoryPaths,source_name: &str,cluster_variables
+        : &HashMap<String, serde_json::Value>
+    ) -> Result<(), HelmRepoError> {
+
+
+                     // local chart,  check if the folder exists
+                     let source_path = repo_paths
+                     .mows_repo_source_path
+                     .join("sources")
+                     .join(source_name);
+                 let chart_path = source_path.join(&self.chart_name);
         
-        match &self.uris {
+        match &self.urls {
             Some(uris) => {
       
             let mut helm_repository_index_and_url: Option<(HelmRepositoryIndex, String)> = None;
@@ -131,7 +154,11 @@ impl HelmRepoSpec {
                             Some((index, remote_repository_uri.to_string()));
                         break;
                     }
-                    Err(_) => {
+                    Err(e) => {
+                        debug!(
+                            "Error fetching Helm Repository Index from: {:?}, error: {}",
+                            remote_repository_uri, e
+                        );
                         continue;
                     }
                 }
@@ -144,29 +171,24 @@ impl HelmRepoSpec {
                 ))?,
                 source_name
             )
-            .await
+            .await?;
             
             },
             None => {
-                // local chart,  check if the folder exists
-                let source_path = repo_paths
-                    .mows_repo_source_path
-                    .join("sources")
-                    .join(source_name);
-                let chart_path = source_path.join(&self.chart_name);
-
-                match Path::new(&chart_path).exists() {
-                    true => Ok(()),
-                    false => {
-                        return Err(HelmRepoError::FetchHelmChartError(format!(
-                            "Error fetching HelmChart: local chart: {} not found at {}",
-                            self.chart_name,
-                            chart_path.to_str().unwrap()
-                        )));
-                    },
+                if !Path::new(&chart_path).exists() {
+                    return Err(HelmRepoError::FetchHelmChartError(format!(
+                        "Error fetching HelmChart: local chart: {} not found at {}",
+                        self.chart_name,
+                        chart_path.to_str().unwrap()
+                    )));
                 }
             }
-        }
+        };
+
+        replace_cluster_variables(&chart_path, cluster_variables)
+            .await.map_err(|e| HelmRepoError::RenderHelmError(format!("Error rendering Helm: {}", e)))?;
+
+        Ok(())
     }
 
     pub async fn fetch_remote_repository_index(

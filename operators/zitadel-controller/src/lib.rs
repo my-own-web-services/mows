@@ -88,7 +88,7 @@ pub use crate::controller::*;
 /// Metrics
 mod metrics;
 pub use metrics::Metrics;
-pub mod reconcile {
+pub mod handlers {
     pub mod raw;
 }
 pub mod config;

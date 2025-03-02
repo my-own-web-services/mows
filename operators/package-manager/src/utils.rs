@@ -1,12 +1,19 @@
 use crate::types::Manifest;
+use anyhow::Context;
 use kube::{
     api::{ApiResource, DynamicObject},
     discovery::{ApiCapabilities, Scope},
     Api, Client,
 };
-use serde::de::Error;
-use serde::{Deserialize, Deserializer};
-use std::path::{Path, PathBuf};
+use mows_common::templating::{
+    functions::{serde_json_hashmap_to_gtmpl_hashmap, TEMPLATE_FUNCTIONS},
+    gtmpl::{Context as GtmplContext, Template, Value as GtmplValue},
+    gtmpl_derive::Gtmpl,
+};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 use tokio::signal;
 
 pub async fn parse_manifest(input: &str) -> anyhow::Result<Manifest> {
@@ -75,4 +82,56 @@ pub fn get_dynamic_kube_api(
     } else {
         Api::default_namespaced_with(client, &api_resource)
     }
+}
+
+pub async fn replace_cluster_variables(
+    directory_path: &PathBuf,
+    cluster_variables: &HashMap<String, serde_json::Value>,
+) -> anyhow::Result<()> {
+    // replace cluster variables in all files recursively
+    let file_paths = get_all_file_paths_recursive(&directory_path).await;
+
+    let mut template_creator = Template::default();
+    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+
+    #[derive(Gtmpl)]
+    struct LocalContext {
+        config: HashMap<String, GtmplValue>,
+    }
+
+    let context = GtmplContext::from(LocalContext {
+        config: serde_json_hashmap_to_gtmpl_hashmap(cluster_variables),
+    });
+
+    let temp_token_left = "{lt.pm.reserved.mows.cloud";
+    let temp_token_right = "rt.pm.reserved.mows.cloud}";
+
+    for file_path in file_paths {
+        let original_file_content = tokio::fs::read_to_string(&file_path)
+            .await?
+            .replace("{{", &temp_token_left)
+            .replace("}}", &temp_token_right)
+            .replace("{§", "{{")
+            .replace("§}", "}}");
+
+        template_creator
+            .parse(&original_file_content)
+            .context(format!(
+                "Error parsing template: {} with content:\n {}",
+                file_path.to_str().unwrap_or(""),
+                &original_file_content
+            ))?;
+
+        let rendered_content = template_creator.render(&context)?;
+
+        tokio::fs::write(
+            &file_path,
+            rendered_content
+                .replace(temp_token_left, "{{")
+                .replace(temp_token_right, "}}"),
+        )
+        .await?;
+    }
+
+    Ok(())
 }

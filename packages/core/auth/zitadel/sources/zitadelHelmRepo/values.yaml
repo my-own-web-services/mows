@@ -9,12 +9,21 @@ zitadel:
                 Machine:
                     Machine:
                         Username: zitadel-admin-sa
+                        Name: admin
+                    MachineKey:
+                        Type: 1
 
 initJob:
     activeDeadlineSeconds: 1800
     backoffLimit: 10
 setupJob:
     activeDeadlineSeconds: 1800
+    machinekeyWriter:
+        image:
+            tag: 1.32.2@sha256:d731e8ec55c0fff7f26f73588952ec67262675d18fa00d31f1fd1478125fbb88
+
+image:
+    tag: v2.65.1@sha256:013d23b69aa681f03d36a7fd61e4837a7b049a7e22bd7215eb3e98e9dbf5543c
 
 debug:
     enabled: true

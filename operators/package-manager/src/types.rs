@@ -52,7 +52,7 @@ pub struct RawManifestSpec {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestTransformations {
-    pub patches: Option<Vec<ManifestPatches>>,
+    pub patches: Vec<ManifestPatches>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Eq, PartialEq)]
@@ -85,7 +85,7 @@ pub struct FilesSpec {}
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct HelmRepoSpec {
-    pub uris: Option<Vec<String>>,
+    pub urls: Option<Vec<String>>,
     pub sha256_digest: Option<String>,
     pub version: Option<String>,
     pub release_name: String,
