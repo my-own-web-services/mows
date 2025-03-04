@@ -17,17 +17,24 @@ extern crate bcrypt;
 
 use bcrypt::DEFAULT_COST;
 pub const TEMPLATE_FUNCTIONS: [(&str, Func); 61] = [
-    ("randomString", random_string as Func),
-    ("hash", hash as Func),
-    ("b64enc", b64enc as Func),
-    ("b64dec", b64dec as Func),
-    ("b32enc", b32enc as Func),
-    ("b32dec", b32dec as Func),
+    // and
+    // or
+    // not
+    // eq
+    // ne
+    // lt
+    // le
+    // gt
+    // ge
     ("default", default as Func),
+    // required
     ("empty", empty as Func),
     ("fail", fail as Func),
     ("coalesce", coalesce as Func),
     ("ternary", ternary as Func),
+    // print
+    // println
+    // printf
     ("trim", trim as Func),
     ("trimAll", trim_all as Func),
     ("trimPrefix", trim_prefix as Func),
@@ -47,6 +54,8 @@ pub const TEMPLATE_FUNCTIONS: [(&str, Func); 61] = [
     ("randNumeric", rand_numeric as Func),
     ("randAlphaNum", rand_alpha_num as Func),
     ("randAscii", rand_ascii as Func),
+    // wrap
+    // wrapWith
     ("contains", contains as Func),
     ("hasPrefix", has_prefix as Func),
     ("hasSuffix", has_suffix as Func),
@@ -54,30 +63,169 @@ pub const TEMPLATE_FUNCTIONS: [(&str, Func); 61] = [
     ("squote", squote as Func),
     ("cat", cat as Func),
     ("indent", indent as Func),
+    // nindent
     ("replace", replace as Func),
     ("plural", plural as Func),
+    // snakecase
+    // camelcase
+    // kebabcase
+    // swapcase
+    // shuffle
+
+    // atoi
+    // float64
+    // int
+    // int64
+    // toDecimal
+    // toString
+    // toStrings
+    ("toJson", to_json as Func),
+    ("toPrettyJson", to_pretty_json as Func),
+    // toRawJson
+    ("fromYaml", from_yaml as Func),
+    ("fromJson", from_json as Func),
+    // fromJsonArray
+    ("toYaml", to_yaml as Func),
+    // toToml
+    // fromYamlArray
+
+    // regexMatch
+    // mustRegexMatch
+    // regexFindAll
+    // mustRegexFindAll
+    // regexFind
+    // mustRegexFind
+    // regexReplaceAll
+    // mustRegexReplaceAll
+    // regexReplaceAllLiteral
+    // mustRegexReplaceAllLiteral
+    // regexSplit
+    // mustRegexSplit
     ("sha1sum", sha1sum as Func),
     ("sha256sum", sha256sum as Func),
     ("sha512sum", sha512sum as Func),
     ("md5sum", md5sum as Func),
     ("htpasswd", htpasswd as Func),
-    ("joindomain", join_domain as Func),
-    ("mul", math_multiply as Func),
+    // derivePassword
+    // genPrivateKey
+    // buildCustomCert
+    ("genCA", gen_ca as Func),
+    ("genSelfSignedCert", gen_self_signed_cert as Func),
+    ("genSignedCert", gen_signed_cert as Func),
+    // encryptAES
+    // decryptAES
+
+    // now
+    // ago
+    // date
+    // dateInZone
+    // duration
+    // durationRound
+    // unixEpoch
+    // dateModify
+    // mustDateModify
+    // htmlDate
+    // htmlDateInZone
+    // toDate
+    // mustToDate
+    ("dict", dict as Func),
+    // get
+    // set
+    // unset
+    // hasKey
+    // pluck
+    // dig
+    // merge
+    // mustMerge
+    // mergeOverwrite
+    // mustMergeOverwrite
+    // keys
+    // pick
+    // omit
+    // values
+    // deepCopy
+    // mustDeepCopy
+    ("b64enc", b64enc as Func),
+    ("b64dec", b64dec as Func),
+    ("b32enc", b32enc as Func),
+    ("b32dec", b32dec as Func),
+    // first
+    // mustFirst
+    // rest
+    // mustRest
+    // last
+    // mustLast
+    // initial
+    // mustInitial
+    // append
+    // mustAppend
+    // prepend
+    // mustPrepend
+    // concat
+    // reverse
+    // mustReverse
+    // uniq
+    // mustUniq
+    // without
+    // mustWithout
+    // has
+    // mustHas
+    // compact
+    // mustCompact
+    // index
+    // slice
+    // mustSlice
+    // until
+    // untilStep
+    // seq
     ("add", math_add as Func),
+    // add1
     ("sub", math_subtract as Func),
     ("div", math_divide as Func),
     ("mod", math_modulo as Func),
+    ("mul", math_multiply as Func),
+    // max
+    // min
+    // len
+    // addf
+    // add1f
+    // subf
+    // divf
+    // mulf
+    // maxf
+    // minf
+    // floor
+    // ceil
+    // round
+
+    // getHostByName (WILL NOT BE IMPLEMENTED)
+
+    // base
+    // dir
+    // clean
+    // ext
+    // isAbs
+
+    // kindOf
+    // kindIs
+    // typeOf
+    // typeIs
+    // typeIsLike
+    // deepEqual
+
+    // semver
+    // semverCompare
+
+    // urlParse
+    // urlJoin
+    // urlQuery
+
+    // uuidv4
+    ("mowsRandomString", random_string as Func),
+    ("mowsHash", hash as Func),
+    ("mowsJoindomain", join_domain as Func),
     ("pow", math_power as Func),
-    ("genSelfSignedCert", gen_self_signed_cert as Func),
-    ("genSignedCert", gen_signed_cert as Func),
-    ("genCA", gen_ca as Func),
     ("list", list as Func),
-    ("toJson", to_json as Func),
-    ("toPrettyJson", to_pretty_json as Func),
-    ("fromJson", from_json as Func),
-    ("fromYaml", from_yaml as Func),
-    ("toYaml", to_yaml as Func),
-    ("dict", dict as Func),
 ];
 
 fn dict(args: &[Value]) -> Result<Value, FuncError> {

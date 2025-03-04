@@ -205,7 +205,6 @@ fn gen_ca_and_sign_cert() {
 
     #[derive(Debug, serde::Deserialize)]
     #[serde(rename_all = "PascalCase")]
-
     pub struct Result {
         pub cert: String,
         pub key: String,
@@ -241,7 +240,6 @@ fn gen_signed_cert() {
 
     #[derive(Debug, serde::Deserialize)]
     #[serde(rename_all = "PascalCase")]
-
     pub struct Result {
         pub cert: String,
         pub key: String,
