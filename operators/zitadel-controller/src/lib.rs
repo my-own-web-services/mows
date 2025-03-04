@@ -25,9 +25,6 @@ pub enum ControllerError {
     #[error("ReqwestMiddlewareError: {0}")]
     ReqwestMiddlewareError(#[source] reqwest_middleware::Error),
 
-    #[error("ReqwestError: {0}")]
-    ReqwestError(#[source] reqwest::Error),
-
     #[error("MowsError: {0}")]
     MowsError(#[source] mows_common::errors::MowsError),
 
@@ -70,12 +67,6 @@ impl From<mows_common::errors::MowsError> for ControllerError {
 impl From<anyhow::Error> for ControllerError {
     fn from(error: anyhow::Error) -> Self {
         ControllerError::GenericError(error.to_string())
-    }
-}
-
-impl From<reqwest::Error> for ControllerError {
-    fn from(error: reqwest::Error) -> Self {
-        ControllerError::ReqwestError(error)
     }
 }
 

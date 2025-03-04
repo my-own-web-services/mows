@@ -1,0 +1,18 @@
+manifestVersion: "0.1"
+metadata:
+    name: pektin
+    description: "Pektin DNS"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            pektinHelmRepo:
+                helm:
+                    releaseName: pektin
+                    chartName: pektin
+            pektinControllerHelmRepo:
+                helm:
+                    releaseName: pektin-dns-controller
+                    chartName: pektin-dns-controller
+
+

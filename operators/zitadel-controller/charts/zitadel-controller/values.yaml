@@ -6,6 +6,9 @@ image:
     repository: 192.168.112.5:5000/zitadel-controller
     pullPolicy: Always
 
+internal_zitadel_api_endpoint: "https://10.43.75.167:8080"
+
+
 imagePullSecrets: []
 
 serviceAccount:
@@ -49,7 +52,7 @@ networkPolicy:
         port: http
 
 logging:
-    log_filter: info,controller::handlers::raw=trace
+    log_filter: trace,controller::handlers::raw=trace
     tracing_filter: info
 
 

@@ -1,0 +1,18 @@
+manifestVersion: "0.1"
+metadata:
+    name: longhorn
+    description: "A distributed block storage system for Kubernetes"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            longhornHelmRepo:
+                helm:
+                    urls:
+                        - https://charts.longhorn.io/
+                    sha256Digest: 863c011cdc37dd0ad95595ed52b5ac43ef1394fa6012e607397f86e6b682be6a
+                    version: "1.7.2"
+                    releaseName: longhorn
+                    chartName: longhorn
+            additional:
+                files: {}

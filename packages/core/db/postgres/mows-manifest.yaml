@@ -1,0 +1,17 @@
+manifestVersion: "0.1"
+metadata:
+    name: postgres
+    description: "postgres operator"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            cloudnativePgHelmRepo:
+                helm:
+                    urls:
+                        - https://cloudnative-pg.github.io/charts
+                    sha256Digest: 9db75eb5002e0e71f13fa958cfd8edb0f33449990b2852962dd64ebf948d61e2
+                    version: "0.23.1"
+                    releaseName: cloudnative-pg
+                    chartName: cloudnative-pg
+

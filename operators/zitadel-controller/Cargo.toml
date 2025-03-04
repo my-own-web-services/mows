@@ -26,6 +26,11 @@ doc = false
 name = "crdgen"
 path = "src/crdgen.rs"
 
+[[bin]]
+doc = false
+name = "test_client"
+path = "src/test_client.rs"
+
 [lib]
 name = "controller"
 path = "src/lib.rs"
@@ -52,10 +57,7 @@ prometheus-client = "0.22.2"
 vaultrs = "0.7.3"
 serde_variant = "0.1.3"
 itertools = "0.13.0"
-reqwest = { version = "0.12.9", default-features = false, features = [
-    "rustls-tls",
-] }
-reqwest-tracing = "0.5.3"
+
 tracing-actix-web = "0.7.14"
 
 mows-common = { path = "./mows-common" }
@@ -64,6 +66,8 @@ zitadel = { path = "./zitadel-rust", features = [
     "api",
     "interceptors",
     "pbjson",
+    "api-common",
+    "proto_full",
 ] }
 tonic = { version = "0.12.3" }
 

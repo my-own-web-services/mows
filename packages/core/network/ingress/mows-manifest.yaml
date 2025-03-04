@@ -1,0 +1,18 @@
+manifestVersion: "0.1"
+metadata:
+    name: traefik
+    description: "A modern HTTP reverse proxy and load balancer"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            traefikHelmRepo:
+                helm:
+                    urls:
+                        - https://traefik.github.io/charts
+                    sha256Digest: 0fc17fbe28dee28a99e0de5986b5e2b643a91e4bf69e30205d0a1a81ca9127b6
+                    version: "9.0.0"
+                    releaseName: traefik
+                    chartName: traefik
+            additional:
+                files: {}

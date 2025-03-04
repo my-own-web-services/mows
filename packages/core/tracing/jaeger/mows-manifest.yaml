@@ -1,0 +1,17 @@
+manifestVersion: "0.1"
+metadata:
+    name: jaeger-tracing-all-in-one
+    description: "tracing"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            jaegerHelmRepo:
+                helm:
+                    urls:
+                        - https://jaegertracing.github.io/helm-charts
+                    sha256Digest: 3403fdadb649ae9fbb72c64f73f9f2f2e79e88055da0285ef266094b7db45fcc
+                    version: "3.4.0"
+                    releaseName: mows-core-tracing-jaeger
+                    chartName: jaeger
+

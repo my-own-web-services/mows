@@ -43,8 +43,6 @@ pub enum ManifestSpec {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct RawManifestSpec {
-    pub _type: PackageType,
-    pub namespaces: Vec<String>,
     pub sources: HashMap<String, ManifestSource>,
     pub transformations: Option<ManifestTransformations>,
 }
@@ -90,14 +88,6 @@ pub struct HelmRepoSpec {
     pub version: Option<String>,
     pub release_name: String,
     pub chart_name: String,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub enum PackageType {
-    Core,
-    Apis,
-    Apps,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Eq, PartialEq)]

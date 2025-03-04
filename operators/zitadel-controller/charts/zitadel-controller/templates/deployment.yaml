@@ -7,6 +7,7 @@ metadata:
   labels:
     {{- include "controller.labels" . | nindent 4 }}
 spec:
+  revisionHistoryLimit: 0
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
@@ -41,19 +42,23 @@ spec:
         - name: http
           containerPort: 8080
           protocol: TCP
-        # mount the zitadel-admin-sa secret to /zitadel-admin-sa.json
-
         env:
         - name: LOG_FILTER
           value: {{ .Values.logging.log_filter }}
         - name: TRACING_FILTER
           value: {{ .Values.logging.tracing_filter }}
+        - name: ZITADEL_API_ENDPOINT
+          value: {{ .Values.internal_zitadel_api_endpoint }}
         - name: ZITADEL_SERVICE_ACCOUNT_TOKEN
-          # value from secret zitadel-admin-sa subPath zitadel-admin-sa.json
           valueFrom:
             secretKeyRef:
               name: zitadel-admin-sa
               key: zitadel-admin-sa.json
+        - name: CA_CERTIFICATE_PEM
+          valueFrom: 
+            secretKeyRef:
+              name: zitadel-ca
+              key: ca.pem
         {{- if .Values.tracing.enabled }}
         - name: OPENTELEMETRY_ENDPOINT_URL
           value: http://{{ .Values.tracing.service }}.{{ .Values.tracing.namespace }}.svc:{{ .Values.tracing.port }}

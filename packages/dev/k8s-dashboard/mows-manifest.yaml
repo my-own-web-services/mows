@@ -1,0 +1,18 @@
+manifestVersion: "0.1"
+metadata:
+    name: kubernetes-dashboard
+    description: "A general purpose, web-based UI for Kubernetes clusters"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            kubernetesDashboardHelmRepo:
+                helm:
+                    urls:
+                        - https://kubernetes.github.io/dashboard/
+                    sha256Digest: b7948839fd36e9bd7c81d0f22f60d857f67b0b4ab5009699b042ad853d820882
+                    version: "6.0.8"
+                    releaseName: kubernetes-dashboard
+                    chartName: kubernetes-dashboard
+            additional:
+                files: {}   

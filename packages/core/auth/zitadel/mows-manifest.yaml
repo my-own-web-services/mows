@@ -36,13 +36,24 @@ spec:
                 -   op: replace
                     path: /spec/backoffLimit
                     value: 10
-                - op: add
-                  path: /spec/template/spec/containers/1/env/-
-                  value:
-                    name: NAMESPACE
-                    valueFrom:
-                        fieldRef:
-                            fieldPath: metadata.namespace
+                -   op: add
+                    path: /spec/template/spec/containers/1/env/-
+                    value:
+                        name: NAMESPACE
+                        valueFrom:
+                            fieldRef:
+                                fieldPath: metadata.namespace
+            -   target:
+                -   field: "/metadata/name"
+                    regex: "^zitadel$"
+                -   field: "/kind"
+                    regex: "^Deployment$"
+                patches:
+                -   op: add
+                    path: /spec
+                    value: 
+                        revisionHistoryLimit: 0
+                    
         type: core
         namespaces:
             - zitadel

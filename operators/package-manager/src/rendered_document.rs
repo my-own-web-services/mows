@@ -95,22 +95,23 @@ impl RenderedDocument {
         &self,
         target_selectors: &Vec<PatchTargetFieldSelector>,
     ) -> anyhow::Result<bool> {
-        let mut is_target = false;
+        let mut is_target = vec![];
 
         for target_selector in target_selectors {
             let pointer = Pointer::parse(&target_selector.field)?;
             if let Ok(field_value) = pointer.resolve(&self.resource) {
                 let regex = regex::Regex::new(&target_selector.regex)?;
                 if regex.is_match(&field_value.to_string()) {
-                    is_target = true;
-                    break;
+                    is_target.push(true);
+                } else {
+                    is_target.push(false);
                 }
             } else {
-                debug!("Field: {} not found in resource", target_selector.field);
+                is_target.push(false);
             }
         }
 
-        Ok(is_target)
+        Ok(is_target.iter().all(|x| *x))
     }
     pub async fn transform(
         &mut self,

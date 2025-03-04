@@ -2,11 +2,15 @@ use crate::{config::config, ControllerError};
 use anyhow::Context;
 use mows_common::get_current_config_cloned;
 use std::fmt::{Debug, Formatter};
-use tonic::{service::interceptor::InterceptedService, transport::Channel};
+use tonic::{
+    service::{interceptor::InterceptedService, Interceptor},
+    transport::{Certificate, Channel, ClientTlsConfig, Endpoint},
+};
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 use zitadel::{
     api::{
-        clients::ClientBuilder, interceptors::ServiceAccountInterceptor,
+        clients::{BuildInterceptedService, ChannelConfig, ClientBuilder, ClientError},
+        interceptors::ServiceAccountInterceptor,
         zitadel::management::v1::management_service_client::ManagementServiceClient,
     },
     credentials::ServiceAccount,
@@ -73,13 +77,19 @@ pub async fn create_zitadel_management_client() -> anyhow::Result<ManagementClie
     let service_account = ServiceAccount::load_from_json(&config.zitadel_service_account_token)
         .map_err(|e| anyhow::anyhow!("Failed to load service account: {}", e))?;
 
-    let client_builder = ClientBuilder::new(&config.zitadel_endpoint, config.ca_certificate_pem)
-        .with_service_account(&service_account, None);
+    let client_builder =
+        ClientBuilder::new(&config.zitadel_api_endpoint).with_service_account(&service_account, None);
+
+    let channel_config = ChannelConfig {
+        ca_certificate_pem: config.ca_certificate_pem.to_string(),
+        origin: config.zitadel_external_origin.to_string(),
+        tls_domain_name: config.zitadel_tls_domain_name.to_string(),
+    };
 
     let client = client_builder
-        .build_management_client()
+        .build_management_client(&channel_config)
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to create zitadel management client: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))?;
 
     Ok(client)
 }

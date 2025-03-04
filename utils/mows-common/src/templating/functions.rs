@@ -1,21 +1,22 @@
 use core::str;
-/// These functions aim to implement the list of functions available in Helm
-/// https://helm.sh/docs/chart_template_guide/function_list/
+
 use gtmpl::{Func, FuncError, Value};
 use rand::Rng;
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, DnType, ExtendedKeyUsagePurpose, IsCa,
-    KeyPair, KeyUsagePurpose, PrintableString,
+    KeyPair, KeyUsagePurpose,
 };
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 use time::OffsetDateTime;
 extern crate bcrypt;
 
 //TODO turn unwraps into func errors where possible
 
 use bcrypt::DEFAULT_COST;
+/// These functions aim to implement the list of functions available in Helm plus extra ones that may be useful.
+/// https://helm.sh/docs/chart_template_guide/function_list/
 pub const TEMPLATE_FUNCTIONS: [(&str, Func); 61] = [
     // and
     // or
@@ -198,7 +199,7 @@ pub const TEMPLATE_FUNCTIONS: [(&str, Func); 61] = [
     // ceil
     // round
 
-    // getHostByName (WILL NOT BE IMPLEMENTED)
+    // getHostByName (WILL NOT BE IMPLEMENTED FOR SECURITY REASONS)
 
     // base
     // dir
@@ -222,10 +223,10 @@ pub const TEMPLATE_FUNCTIONS: [(&str, Func); 61] = [
 
     // uuidv4
     ("mowsRandomString", random_string as Func),
-    ("mowsHash", hash as Func),
+    ("mowsDigest", mows_digest as Func),
     ("mowsJoindomain", join_domain as Func),
     ("pow", math_power as Func),
-    ("list", list as Func),
+    ("list", list as Func), // this is not mentioned in the helm docs but definitely present in helm
 ];
 
 fn dict(args: &[Value]) -> Result<Value, FuncError> {
@@ -451,8 +452,6 @@ fn gen_signed_cert(args: &[Value]) -> Result<Value, FuncError> {
 
             let cert = cert.to_string();
             let key = key.to_string();
-
-            dbg!(&cert, &key);
 
             (cert, key)
         }
@@ -1496,7 +1495,7 @@ fn b32dec(args: &[Value]) -> Result<Value, FuncError> {
     ))
 }
 
-fn hash(args: &[Value]) -> Result<Value, FuncError> {
+fn mows_digest(args: &[Value]) -> Result<Value, FuncError> {
     let method = &args.first().ok_or(FuncError::ExactlyXArgs(
         "This function requires exactly 2 arguments.".to_string(),
         2,

@@ -1,0 +1,6 @@
+tap:
+    sentry:
+        enabled: false
+    telemetry:
+        enabled: false
+    packetCapture: af_packet

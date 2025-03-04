@@ -1,0 +1,19 @@
+manifestVersion: "0.1"
+metadata:
+    name: kubeshark
+    description: "kubeshark"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            kubesharkHelmRepo:
+                helm:
+                    urls:
+                        - https://helm.kubeshark.co
+                    sha256Digest: 365757ea4141ec825b87355ce27cf008f7401e000108d7bdccdd411fa2fcb1de
+                    version: "52.5"
+                    releaseName: kubeshark
+                    chartName: kubeshark
+
+# mpm install -u=file:///packages/dev/kubeshark/ -n=mows-dev-kubeshark
+# kubectl port-forward -n=mows-dev-kubeshark service/kubeshark-front --address=0.0.0.0 8080:80 

@@ -1,4 +1,4 @@
-FROM node:alpine AS ui-builder
+FROM node:23.9.0-alpine3.21@sha256:191433e4778ded9405c9fc981f963ad2062a8648b59a9bc97d7194f3d183b2b2 AS ui-builder
 WORKDIR /build/
 COPY ui/ ./
 RUN npm install -g pnpm
@@ -133,8 +133,8 @@ ENV XDG_CONFIG_HOME=/root/.config
 
 WORKDIR /app
 
-COPY --from=builder --chown=mows-manager:mows-manager /app/target/x86_64-unknown-linux-musl/release/main ./mows-manager
-COPY --from=builder --chown=mows-manager:mows-manager /app/package-manager/target/x86_64-unknown-linux-musl/release/cli /usr/local/bin/mpm
+COPY --from=builder --chown=mows-manager:mows-manager /app/target/x86_64-unknown-linux-musl/debug/main ./mows-manager
+COPY --from=builder --chown=mows-manager:mows-manager /app/package-manager/target/x86_64-unknown-linux-musl/debug/cli /usr/local/bin/mpm
 RUN useradd -u 50001 -N mows-manager
 RUN groupadd -g 50001 mows-manager
 
