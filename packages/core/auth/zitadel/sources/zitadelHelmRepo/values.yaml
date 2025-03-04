@@ -4,6 +4,9 @@ zitadel:
     configSecretName: zitadel-config
     configSecretKey: config.yaml
     configmapConfig:
+        ExternalSecure: true
+        TLS:
+            enabled: true
         FirstInstance: 
             Org: 
                 Machine:
@@ -12,6 +15,9 @@ zitadel:
                         Name: admin
                     MachineKey:
                         Type: 1
+
+service:
+    scheme: HTTPS
 
 initJob:
     activeDeadlineSeconds: 1800

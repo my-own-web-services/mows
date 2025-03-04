@@ -19,13 +19,13 @@ COPY Cargo.toml Cargo.lock ./
 COPY --from=package-manager . package-manager
 COPY --from=mows-common . package-manager/mows-common
 
-RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps --release
+RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps
 
 # build
 COPY --chown=root:root src src
 COPY --from=ui-builder /build/dist ./ui-build
-RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --release --bin main
-RUN cd ./package-manager && RUSTFLAGS="--cfg tokio_unstable" cargo build --release --bin cli
+RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --bin main
+RUN cd ./package-manager && RUSTFLAGS="--cfg tokio_unstable" cargo build --bin cli
 #RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
 
 

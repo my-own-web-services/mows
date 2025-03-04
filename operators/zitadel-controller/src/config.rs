@@ -18,6 +18,7 @@ pub struct ControllerConfig {
     pub zitadel_endpoint: String,
     pub zitadel_service_account_token: String,
     pub reconcile_interval_seconds: u64,
+    pub ca_certificate_pem: String,
 }
 
 pub fn from_env() -> anyhow::Result<ControllerConfig> {
@@ -50,5 +51,6 @@ pub fn from_env() -> anyhow::Result<ControllerConfig> {
         zitadel_endpoint: load_env("https://zitadel", "ZITADEL_API_ENDPOINT", false, true)?,
         reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false, true)?.parse()?,
         zitadel_service_account_token: load_env("", "ZITADEL_SERVICE_ACCOUNT_TOKEN", true, true)?,
+        ca_certificate_pem: load_env("", "CA_CERTIFICATE_PEM", true, true)?,
     })
 }

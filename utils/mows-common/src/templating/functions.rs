@@ -3,15 +3,20 @@ use core::str;
 /// https://helm.sh/docs/chart_template_guide/function_list/
 use gtmpl::{Func, FuncError, Value};
 use rand::Rng;
+use rcgen::{
+    BasicConstraints, Certificate, CertificateParams, DnType, ExtendedKeyUsagePurpose, IsCa,
+    KeyPair, KeyUsagePurpose, PrintableString,
+};
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
+use time::OffsetDateTime;
 extern crate bcrypt;
 
 //TODO turn unwraps into func errors where possible
 
 use bcrypt::DEFAULT_COST;
-pub const TEMPLATE_FUNCTIONS: [(&str, Func); 51] = [
+pub const TEMPLATE_FUNCTIONS: [(&str, Func); 61] = [
     ("randomString", random_string as Func),
     ("hash", hash as Func),
     ("b64enc", b64enc as Func),
@@ -63,7 +68,380 @@ pub const TEMPLATE_FUNCTIONS: [(&str, Func); 51] = [
     ("div", math_divide as Func),
     ("mod", math_modulo as Func),
     ("pow", math_power as Func),
+    ("genSelfSignedCert", gen_self_signed_cert as Func),
+    ("genSignedCert", gen_signed_cert as Func),
+    ("genCA", gen_ca as Func),
+    ("list", list as Func),
+    ("toJson", to_json as Func),
+    ("toPrettyJson", to_pretty_json as Func),
+    ("fromJson", from_json as Func),
+    ("fromYaml", from_yaml as Func),
+    ("toYaml", to_yaml as Func),
+    ("dict", dict as Func),
 ];
+
+fn dict(args: &[Value]) -> Result<Value, FuncError> {
+    let mut dict = HashMap::new();
+    let mut args = args.iter();
+    while let Some(key) = args.next() {
+        let value = args
+            .next()
+            .ok_or(FuncError::Generic("No value found".to_string()))?;
+        dict.insert(key.to_string(), value.clone());
+    }
+    Ok(Value::from(dict))
+}
+
+fn from_yaml(args: &[Value]) -> Result<Value, FuncError> {
+    let value = &args.first().ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 1 argument.".to_string(),
+        1,
+    ))?;
+    let value = value.to_string();
+    let value: serde_yaml::Value =
+        serde_yaml::from_str(&value).map_err(|e| FuncError::Generic(e.to_string()))?;
+    let value = serde_yaml_value_to_gtmpl_value(value);
+    Ok(Value::from(value))
+}
+
+fn to_yaml(args: &[Value]) -> Result<Value, FuncError> {
+    let value = &args.first().ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 1 argument.".to_string(),
+        1,
+    ))?;
+
+    let yaml =
+        serde_yaml::to_string(&gtmpl_value_to_serde_yaml_value(value).map_err(|e| {
+            FuncError::Generic(format!("Error converting to yaml: {}", e.to_string()))
+        })?)
+        .map_err(|e| FuncError::Generic(e.to_string()))?;
+
+    Ok(Value::String(yaml))
+}
+
+fn from_json(args: &[Value]) -> Result<Value, FuncError> {
+    let value = &args.first().ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 1 argument.".to_string(),
+        1,
+    ))?;
+    let value = value.to_string();
+    let value: serde_json::Value =
+        serde_json::from_str(&value).map_err(|e| FuncError::Generic(e.to_string()))?;
+    let value = serde_json_value_to_gtmpl_value(value);
+    Ok(Value::from(value))
+}
+
+fn to_json(args: &[Value]) -> Result<Value, FuncError> {
+    let value = &args.first().ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 1 argument.".to_string(),
+        1,
+    ))?;
+
+    let json =
+        serde_json::to_string(&gtmpl_value_to_serde_json_value(value).map_err(|e| {
+            FuncError::Generic(format!("Error converting to json: {}", e.to_string()))
+        })?)
+        .map_err(|e| FuncError::Generic(e.to_string()))?;
+
+    Ok(Value::String(json))
+}
+
+fn to_pretty_json(args: &[Value]) -> Result<Value, FuncError> {
+    let value = &args.first().ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 1 argument.".to_string(),
+        1,
+    ))?;
+
+    let json =
+        serde_json::to_string_pretty(&gtmpl_value_to_serde_json_value(value).map_err(|e| {
+            FuncError::Generic(format!("Error converting to json: {}", e.to_string()))
+        })?)
+        .map_err(|e| FuncError::Generic(e.to_string()))?;
+
+    Ok(Value::String(json))
+}
+
+fn list(args: &[Value]) -> Result<Value, FuncError> {
+    Ok(Value::Array(args.to_vec()))
+}
+
+fn gen_ca(args: &[Value]) -> Result<Value, FuncError> {
+    let common_name = &args.first().ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 1 argument.".to_string(),
+        1,
+    ))?;
+    let common_name = common_name.to_string();
+
+    let days = args.get(1).ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 2 arguments.".to_string(),
+        2,
+    ))?;
+
+    let days = days.to_string();
+
+    let mut cert_params: CertificateParams =
+        rcgen::CertificateParams::new(vec![common_name.clone()]).map_err(|e| {
+            FuncError::Generic(format!("Error generating certificate params: {}", e))
+        })?;
+
+    cert_params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+
+    let (ca_cert, ca_keys) = new_ca(&common_name, &days)?;
+
+    let mut result = HashMap::new();
+
+    result.insert("Cert".to_string(), Value::from(ca_cert.pem()));
+    result.insert("Key".to_string(), Value::from(ca_keys.serialize_pem()));
+
+    Ok(gtmpl::Value::Map(result))
+}
+
+fn new_ca(common_name: &str, days: &str) -> anyhow::Result<(Certificate, KeyPair)> {
+    let time_from_now = time::Duration::days(days.parse::<i64>()?);
+    let mut params =
+        CertificateParams::new(Vec::default()).expect("empty subject alt name can't produce error");
+    let (from, until) = validity_period(time_from_now);
+    params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+    params
+        .distinguished_name
+        .push(DnType::CommonName, common_name.to_string());
+    params
+        .distinguished_name
+        .push(DnType::OrganizationName, common_name.to_string());
+    params.key_usages.push(KeyUsagePurpose::DigitalSignature);
+    params.key_usages.push(KeyUsagePurpose::KeyCertSign);
+    params.key_usages.push(KeyUsagePurpose::CrlSign);
+
+    params.not_before = from;
+    params.not_after = until;
+
+    let key_pair = KeyPair::generate()?;
+
+    Ok((params.self_signed(&key_pair)?, key_pair))
+}
+
+fn validity_period(duration_from_now: time::Duration) -> (OffsetDateTime, OffsetDateTime) {
+    let now = OffsetDateTime::now_utc();
+    let until = OffsetDateTime::now_utc()
+        .checked_add(duration_from_now)
+        .unwrap();
+    (now, until)
+}
+
+fn gen_signed_cert(args: &[Value]) -> Result<Value, FuncError> {
+    let common_name = &args.first().ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 5 arguments.".to_string(),
+        5,
+    ))?;
+    let common_name = common_name.to_string();
+
+    let ip_list = &args.get(1).ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 5 arguments.".to_string(),
+        5,
+    ))?;
+
+    let ip_list = match ip_list {
+        Value::Array(ips) => {
+            let ips = ips.iter().map(|v| v.to_string()).collect::<Vec<String>>();
+            Some(ips)
+        }
+        _ => None,
+    };
+
+    let dns_names = &args.get(2).ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 5 arguments.".to_string(),
+        5,
+    ))?;
+
+    let dns_names = match dns_names {
+        Value::Array(dns_names) => {
+            let dns_names = dns_names
+                .iter()
+                .map(|v| v.to_string())
+                .collect::<Vec<String>>();
+            Some(dns_names)
+        }
+        _ => None,
+    };
+
+    // concatenate the ips and dns_names into a string vec
+    let alt_names = match (ip_list, dns_names) {
+        (Some(ips), Some(mut dns_names)) => {
+            let mut alt_names = ips;
+            alt_names.append(&mut dns_names);
+            alt_names
+        }
+        (Some(ips), None) => ips,
+        (None, Some(dns_names)) => dns_names,
+        (None, None) => vec![],
+    };
+
+    let days = &args.get(3).ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 5 arguments.".to_string(),
+        5,
+    ))?;
+
+    let days = days.to_string();
+
+    let days = days
+        .parse::<u32>()
+        .map_err(|_| FuncError::Generic("Invalid number".to_string()))?;
+
+    let ca = &args.get(4).ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 5 arguments.".to_string(),
+        5,
+    ))?;
+
+    let (ca_cert_pem, ca_key_pair_pem) = match ca {
+        Value::Map(ca) => {
+            let cert = ca
+                .get("Cert")
+                .ok_or(FuncError::Generic("No cert found".to_string()))?;
+            let key = ca
+                .get("Key")
+                .ok_or(FuncError::Generic("No key found".to_string()))?;
+
+            let cert = cert.to_string();
+            let key = key.to_string();
+
+            dbg!(&cert, &key);
+
+            (cert, key)
+        }
+        _ => return Err(FuncError::Generic("Invalid CA".to_string())),
+    };
+
+    let mut own_cert_params: CertificateParams = rcgen::CertificateParams::new(alt_names)
+        .map_err(|e| FuncError::Generic(format!("Error generating certificate params: {}", e)))?;
+
+    own_cert_params.not_after = validity_period(time::Duration::days(days.into())).1;
+    own_cert_params
+        .distinguished_name
+        .push(DnType::CommonName, common_name.clone());
+    own_cert_params.use_authority_key_identifier_extension = true;
+    own_cert_params
+        .key_usages
+        .push(KeyUsagePurpose::DigitalSignature);
+    own_cert_params
+        .extended_key_usages
+        .push(ExtendedKeyUsagePurpose::ServerAuth);
+
+    let ca_key_pair = rcgen::KeyPair::from_pem(&ca_key_pair_pem)
+        .map_err(|e| FuncError::Generic(format!("Error generating key pair: {}", e.to_string())))?;
+
+    let ca_cert_params = rcgen::CertificateParams::from_ca_cert_pem(&ca_cert_pem)
+        .map_err(|e| FuncError::Generic(format!("Error generating certificate: {}", e)))?;
+
+    let ca_cert = ca_cert_params
+        .self_signed(&ca_key_pair)
+        .map_err(|e| FuncError::Generic(format!("Error generating certificate: {}", e)))?;
+
+    let own_key_pair = rcgen::KeyPair::generate()
+        .map_err(|e| FuncError::Generic(format!("Error generating key pair: {}", e.to_string())))?;
+
+    let cert = own_cert_params
+        .signed_by(&own_key_pair, &ca_cert, &ca_key_pair)
+        .map_err(|e| FuncError::Generic(format!("Error generating certificate: {}", e)))?;
+
+    let mut result = HashMap::new();
+
+    result.insert("Cert".to_string(), Value::from(cert.pem()));
+    result.insert("Key".to_string(), Value::from(own_key_pair.serialize_pem()));
+
+    Ok(gtmpl::Value::Map(result))
+}
+
+fn gen_self_signed_cert(args: &[Value]) -> Result<Value, FuncError> {
+    let common_name = &args.first().ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 4 arguments.".to_string(),
+        4,
+    ))?;
+
+    let common_name = common_name.to_string();
+
+    let ips = &args.get(1).unwrap_or(&Value::Nil);
+
+    let ips = match ips {
+        Value::Array(ips) => {
+            let ips = ips.iter().map(|v| v.to_string()).collect::<Vec<String>>();
+            Some(ips)
+        }
+        _ => None,
+    };
+
+    let dns_names = &args.get(2).unwrap_or(&Value::Nil);
+
+    let dns_names = match dns_names {
+        Value::Array(dns_names) => {
+            let dns_names = dns_names
+                .iter()
+                .map(|v| v.to_string())
+                .collect::<Vec<String>>();
+            Some(dns_names)
+        }
+        _ => None,
+    };
+
+    // concatenate the ips and dns_names into a string vec
+    let alt_names = match (ips, dns_names) {
+        (Some(ips), Some(mut dns_names)) => {
+            let mut alt_names = ips;
+            alt_names.append(&mut dns_names);
+            alt_names
+        }
+        (Some(ips), None) => ips,
+        (None, Some(dns_names)) => dns_names,
+        (None, None) => vec![],
+    };
+
+    let days = &args.get(3).ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 4 arguments.".to_string(),
+        4,
+    ))?;
+
+    let days = days.to_string();
+
+    let days = days
+        .parse::<u32>()
+        .map_err(|_| FuncError::Generic("Invalid number".to_string()))?;
+
+    let mut cert_params: CertificateParams = rcgen::CertificateParams::new(alt_names)
+        .map_err(|e| FuncError::Generic(format!("Error generating certificate params: {}", e)))?;
+
+    cert_params.not_after = validity_period(time::Duration::days(days.into())).1;
+
+    cert_params
+        .distinguished_name
+        .push(DnType::CommonName, common_name.clone());
+
+    cert_params.use_authority_key_identifier_extension = true;
+
+    cert_params
+        .key_usages
+        .push(KeyUsagePurpose::DigitalSignature);
+
+    cert_params
+        .extended_key_usages
+        .push(ExtendedKeyUsagePurpose::ServerAuth);
+
+    let key_pair = rcgen::KeyPair::generate()
+        .map_err(|e| FuncError::Generic(format!("Error generating key pair: {}", e.to_string())))?;
+
+    let cert = cert_params
+        .self_signed(&key_pair)
+        .map_err(|e| FuncError::Generic(format!("Error generating certificate: {}", e)))?;
+
+    let cert = cert.pem();
+
+    let key = key_pair.serialize_pem();
+
+    let mut result = HashMap::new();
+
+    result.insert("Cert".to_string(), Value::from(cert));
+    result.insert("Key".to_string(), Value::from(key));
+
+    Ok(gtmpl::Value::Map(result))
+}
 
 //TODO the math functions may take multiple arguments
 
@@ -283,6 +661,7 @@ fn trim(args: &[Value]) -> Result<Value, FuncError> {
         "This function requires exactly 1 argument.".to_string(),
         1,
     ))?;
+
     let value = value.to_string();
     let value = value.trim();
     Ok(Value::from(value))
@@ -745,27 +1124,39 @@ fn cat(args: &[Value]) -> Result<Value, FuncError> {
 }
 
 fn indent(args: &[Value]) -> Result<Value, FuncError> {
-    let value = &args.first().ok_or(FuncError::ExactlyXArgs(
+    // first argument is the indent number
+    let indent = &args.first().ok_or(FuncError::ExactlyXArgs(
         "This function requires exactly 2 arguments.".to_string(),
         2,
     ))?;
-    let value = value.to_string();
-    let indent = &args.get(1).ok_or(FuncError::ExactlyXArgs(
-        "This function requires exactly 2 arguments.".to_string(),
-        2,
-    ))?;
+
     let indent = indent.to_string();
+
     let indent = indent
         .parse::<usize>()
         .map_err(|_| FuncError::Generic("Invalid number".to_string()))?;
+
+    // second argument is the value to indent
+
+    let value = &args.get(1).ok_or(FuncError::ExactlyXArgs(
+        "This function requires exactly 2 arguments.".to_string(),
+        2,
+    ))?;
+
+    let value = value.to_string();
+
     let indent_string = " ".repeat(indent);
 
     let mut result = String::new();
     let lines = value.split('\n');
-    for line in lines {
+    let line_count = lines.clone().count();
+    for (index, line) in lines.enumerate() {
         result.push_str(&indent_string);
         result.push_str(line);
-        result.push('\n');
+
+        if index != line_count - 1 {
+            result.push('\n');
+        }
     }
     Ok(Value::from(result))
 }
@@ -1039,6 +1430,86 @@ fn random_string(args: &[Value]) -> Result<Value, FuncError> {
         .collect();
 
     Ok(Value::from(generated))
+}
+
+pub fn gtmpl_value_to_serde_yaml_value(value: &Value) -> anyhow::Result<serde_yaml::Value> {
+    Ok(match value {
+        Value::Nil => serde_yaml::Value::Null,
+        Value::Bool(b) => serde_yaml::Value::Bool(*b),
+        Value::Number(n) => {
+            let number = n
+                .as_f64()
+                .ok_or(anyhow::anyhow!("Cannot convert number to YAML"))?;
+
+            serde_yaml::Value::Number(number.into())
+        }
+        Value::String(s) => serde_yaml::Value::String(s.clone()),
+        Value::Array(a) => {
+            let mut array = Vec::new();
+            for v in a {
+                array.push(gtmpl_value_to_serde_yaml_value(v)?);
+            }
+            serde_yaml::Value::Sequence(array)
+        }
+        Value::Object(o) => {
+            let mut object = serde_yaml::Mapping::new();
+            for (k, v) in o {
+                let key = serde_yaml::Value::String(k.clone());
+                object.insert(key, gtmpl_value_to_serde_yaml_value(v)?);
+            }
+            serde_yaml::Value::Mapping(object)
+        }
+        Value::Map(m) => {
+            let mut object = serde_yaml::Mapping::new();
+            for (k, v) in m {
+                let key = serde_yaml::Value::String(k.clone());
+                object.insert(key, gtmpl_value_to_serde_yaml_value(v)?);
+            }
+            serde_yaml::Value::Mapping(object)
+        }
+        Value::Function(_) => serde_yaml::Value::Null,
+        Value::NoValue => serde_yaml::Value::Null,
+    })
+}
+
+pub fn gtmpl_value_to_serde_json_value(value: &Value) -> anyhow::Result<serde_json::Value> {
+    Ok(match value {
+        Value::Nil => serde_json::Value::Null,
+        Value::Bool(b) => serde_json::Value::Bool(*b),
+        Value::Number(n) => {
+            let number = n
+                .as_f64()
+                .ok_or(anyhow::anyhow!("Cannot convert number to JSON"))?;
+            serde_json::Value::Number(
+                serde_json::Number::from_f64(number)
+                    .ok_or(anyhow::anyhow!("Cannot convert number to JSON"))?,
+            )
+        }
+        Value::String(s) => serde_json::Value::String(s.clone()),
+        Value::Array(a) => {
+            let mut array = Vec::new();
+            for v in a {
+                array.push(gtmpl_value_to_serde_json_value(v)?);
+            }
+            serde_json::Value::Array(array)
+        }
+        Value::Object(o) => {
+            let mut object = serde_json::Map::new();
+            for (k, v) in o {
+                object.insert(k.clone(), gtmpl_value_to_serde_json_value(v)?);
+            }
+            serde_json::Value::Object(object)
+        }
+        Value::Map(m) => {
+            let mut object = serde_json::Map::new();
+            for (k, v) in m {
+                object.insert(k.clone(), gtmpl_value_to_serde_json_value(v)?);
+            }
+            serde_json::Value::Object(object)
+        }
+        Value::Function(_) => return Err(anyhow::anyhow!("Cannot convert function to JSON")),
+        Value::NoValue => serde_json::Value::Null,
+    })
 }
 
 pub fn serde_json_hashmap_to_gtmpl_hashmap(

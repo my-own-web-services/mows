@@ -73,8 +73,8 @@ pub async fn create_zitadel_management_client() -> anyhow::Result<ManagementClie
     let service_account = ServiceAccount::load_from_json(&config.zitadel_service_account_token)
         .map_err(|e| anyhow::anyhow!("Failed to load service account: {}", e))?;
 
-    let client_builder =
-        ClientBuilder::new(&config.zitadel_endpoint).with_service_account(&service_account, None);
+    let client_builder = ClientBuilder::new(&config.zitadel_endpoint, config.ca_certificate_pem)
+        .with_service_account(&service_account, None);
 
     let client = client_builder
         .build_management_client()
