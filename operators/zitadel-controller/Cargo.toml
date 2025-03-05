@@ -80,3 +80,12 @@ version = "0.96.0"
 #branch = "main"
 #rev = "19b90ad3a4dbc83e1dd742847c7707333259b1bb"
 #path = "../kube/kube"
+
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

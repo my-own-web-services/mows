@@ -52,7 +52,7 @@ networkPolicy:
         port: http
 
 logging:
-    log_filter: info,controller::handlers::raw=trace
+    log_filter: warn,controller::handlers::raw=trace
     tracing_filter: info
 
 

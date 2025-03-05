@@ -154,7 +154,8 @@ impl ZitadelResource {
                     .await
                     .map_err(ControllerError::KubeError)?;
 
-                let reason = get_error_type(&e);
+                let mut reason = get_error_type(&e);
+                reason.truncate(1000);
 
                 recorder
                     .publish(Event {

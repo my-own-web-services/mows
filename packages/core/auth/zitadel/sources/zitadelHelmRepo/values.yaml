@@ -3,7 +3,7 @@ zitadel:
     masterkeySecretName: "zitadel-masterkey"
     configSecretName: zitadel-config
     configSecretKey: config.yaml
-    configmapConfig:
+    configmapConfig: # these keys may be duplicated in the password sync, they are needed here 
         ExternalSecure: true
         TLS:
             enabled: false
@@ -14,8 +14,6 @@ zitadel:
                     Machine:
                         Username: zitadel-admin-sa
                         Name: admin
-                    #MachineKey:
-                    #    Type: 1
                     Pat:
                         ExpirationDate: "9999-01-01T00:00:00Z"
 
