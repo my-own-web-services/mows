@@ -40,6 +40,8 @@ pub fn from_env(log_vars: bool) -> Result<CommonConfig, MowsError> {
     })
 }
 
+// TODO, this can be improved, show as what it is parsed, warn if it contains whitespace
+
 pub fn load_env(
     default: &str,
     param_name: &str,
@@ -47,7 +49,7 @@ pub fn load_env(
     log_vars: bool,
 ) -> Result<String, MowsError> {
     let res = if let Ok(param) = std::env::var(param_name) {
-        if param_name.ends_with("_FILE") {
+        if param_name.ends_with("_FROM_FILE_PATH") {
             return match std::fs::read_to_string(&param) {
                 Ok(val) => Ok(val),
                 Err(err) => Err(MowsError::ConfigError(format!(
@@ -64,11 +66,23 @@ pub fn load_env(
     };
 
     if log_vars {
-        if confidential {
-            println!("\t{}=<REDACTED (len={})>", param_name, res.len());
+        let ends_with_newline = if res != res.trim() {
+            "    CONTAINS INVISIBLE WHITESPACE CHARACTERS!"
         } else {
-            println!("\t{}={}", param_name, res);
+            ""
+        };
+
+        if confidential {
+            println!(
+                "\t{}=<REDACTED, length={}>{}",
+                param_name,
+                res.len(),
+                ends_with_newline
+            );
+        } else {
+            println!("\t{}={}{}", param_name, res, ends_with_newline);
         }
+        println!();
     }
     Ok(res)
 }

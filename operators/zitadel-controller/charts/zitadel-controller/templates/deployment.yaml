@@ -49,11 +49,16 @@ spec:
           value: {{ .Values.logging.tracing_filter }}
         - name: ZITADEL_API_ENDPOINT
           value: {{ .Values.internal_zitadel_api_endpoint }}
-        - name: ZITADEL_SERVICE_ACCOUNT_TOKEN
+        #- name: ZITADEL_SERVICE_ACCOUNT_TOKEN
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: zitadel-admin-sa
+        #      key: zitadel-admin-sa.json
+        - name: ZITADEL_PA_TOKEN
           valueFrom:
             secretKeyRef:
-              name: zitadel-admin-sa
-              key: zitadel-admin-sa.json
+              name: zitadel-admin-pat
+              key: zitadel-admin-pat
         - name: CA_CERTIFICATE_PEM
           valueFrom: 
             secretKeyRef:

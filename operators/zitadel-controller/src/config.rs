@@ -21,7 +21,7 @@ pub struct ControllerConfig {
     pub zitadel_tls_domain_name: String,
     /// The address that zitadel uses
     pub zitadel_external_origin: String,
-    pub zitadel_service_account_token: String,
+    pub zitadel_pa_token: String,
     pub reconcile_interval_seconds: u64,
     pub ca_certificate_pem: String,
 }
@@ -54,13 +54,13 @@ pub fn from_env() -> anyhow::Result<ControllerConfig> {
             true,
         )?,
         zitadel_api_endpoint: load_env(
-            "https://zitadel.mows-core-auth-zitadel:8080",
+            "http://zitadel.mows-core-auth-zitadel:8080",
             "ZITADEL_API_ENDPOINT",
             false,
             true,
         )?,
         reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false, true)?.parse()?,
-        zitadel_service_account_token: load_env("", "ZITADEL_SERVICE_ACCOUNT_TOKEN", true, true)?,
+        zitadel_pa_token: load_env("", "ZITADEL_PA_TOKEN", false, true)?,
         ca_certificate_pem: load_env("", "CA_CERTIFICATE_PEM", false, true)?,
         zitadel_tls_domain_name: load_env("zitadel", "ZITADEL_TLS_DOMAIN_NAME", false, true)?,
         zitadel_external_origin: load_env(

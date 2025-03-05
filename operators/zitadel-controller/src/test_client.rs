@@ -32,18 +32,21 @@ SoxJG2uDgkreH9Du9f0h5DQ=
         tls_domain_name: "zitadel".to_string(),
     };
 
+    let pat = "5VVQyA2woNd5vMSW6pN9RsI3Qo3pNDrOLUSVNcNDLmCHueatXlvrOIHYm3aSUe17nG1Z-XM";
+
     let service_account = ServiceAccount::load_from_json(sa_token)
         .map_err(|e| anyhow::anyhow!("Failed to load service account: {}", e))?;
 
-    let client_builder = ClientBuilder::new("https://zitadel.mows-core-auth-zitadel:8080")
-        .with_service_account(&service_account, None);
+    let client_builder = ClientBuilder::new("http://localhost:8080").with_access_token(pat); //.with_service_account(&service_account, None);
 
     let mut client = client_builder
         .build_management_client(&channel_config)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))?;
 
-    client.get_iam(GetIamRequest {}).await?;
+    let res = client.get_iam(GetIamRequest {}).await?;
+
+    println!("{:?}", res);
 
     Ok(())
 }

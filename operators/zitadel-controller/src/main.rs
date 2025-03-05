@@ -1,14 +1,14 @@
 #![allow(unused_imports, unused_variables)]
+use crate::controller::config::config;
 use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::Context;
 use controller::utils::create_zitadel_management_client;
 pub use controller::{self, State};
-use mows_common::observability::init_observability;
+use mows_common::{get_current_config_cloned, observability::init_observability};
 use prometheus_client::metrics::info;
 use tracing::info;
 use tracing_actix_web::TracingLogger;
-use zitadel::api::zitadel::management::v1::GetMyOrgRequest;
-
+use zitadel::api::zitadel::management::v1::{GetIamRequest, GetMyOrgRequest};
 #[get("/metrics")]
 async fn metrics(c: Data<State>, _req: HttpRequest) -> impl Responder {
     let metrics = c.metrics();
@@ -38,7 +38,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut zitadel_client = create_zitadel_management_client().await?;
 
-    zitadel_client.get_my_org(GetMyOrgRequest {}).await?;
+    zitadel_client.get_iam(GetIamRequest {}).await?;
 
     info!("Zitadel connection successful");
 

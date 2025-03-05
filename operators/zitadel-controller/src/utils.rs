@@ -10,7 +10,7 @@ use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 use zitadel::{
     api::{
         clients::{BuildInterceptedService, ChannelConfig, ClientBuilder, ClientError},
-        interceptors::ServiceAccountInterceptor,
+        interceptors::{AccessTokenInterceptor, ServiceAccountInterceptor},
         zitadel::management::v1::management_service_client::ManagementServiceClient,
     },
     credentials::ServiceAccount,
@@ -70,15 +70,15 @@ pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
     Ok(vc)
 }
 
-pub type ManagementClient = ManagementServiceClient<InterceptedService<Channel, ServiceAccountInterceptor>>;
+pub type ManagementClient = ManagementServiceClient<InterceptedService<Channel, AccessTokenInterceptor>>;
 
 pub async fn create_zitadel_management_client() -> anyhow::Result<ManagementClient> {
     let config = get_current_config_cloned!(config());
-    let service_account = ServiceAccount::load_from_json(&config.zitadel_service_account_token)
-        .map_err(|e| anyhow::anyhow!("Failed to load service account: {}", e))?;
-
+    /*let service_account = ServiceAccount::load_from_json(&config.zitadel_pa_token)
+            .map_err(|e| anyhow::anyhow!("Failed to load service account: {}", e))?;
+    */
     let client_builder =
-        ClientBuilder::new(&config.zitadel_api_endpoint).with_service_account(&service_account, None);
+        ClientBuilder::new(&config.zitadel_api_endpoint).with_access_token(&config.zitadel_pa_token.trim()); //.with_service_account(&service_account, None);
 
     let channel_config = ChannelConfig {
         ca_certificate_pem: config.ca_certificate_pem.to_string(),

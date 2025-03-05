@@ -6,18 +6,19 @@ zitadel:
     configmapConfig:
         ExternalSecure: true
         TLS:
-            enabled: true
+            enabled: false
         FirstInstance: 
+            PatPath: /machinekey/pat
             Org: 
                 Machine:
                     Machine:
                         Username: zitadel-admin-sa
                         Name: admin
-                    MachineKey:
-                        Type: 1
+                    #MachineKey:
+                    #    Type: 1
+                    Pat:
+                        ExpirationDate: "9999-01-01T00:00:00Z"
 
-service:
-    scheme: HTTPS
 
 initJob:
     activeDeadlineSeconds: 1800
