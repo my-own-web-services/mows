@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/semantic-release.json",
+  "branches": [
+    "main",
+    {
+      "name": "next",
+      "prerelease": "prerelease"
+    }
+  ],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "semantic-release-cargo",
+      {
+        "allFeatures": true
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "target/package/*.crate"
+          }
+        ],
+        "successComment": false
+      }
+    ]
+  ]
+}

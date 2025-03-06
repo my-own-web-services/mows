@@ -1,5 +1,5 @@
 [package]
-name = "controller"
+name = "zitadel-controller"
 version = "0.14.0"
 edition = "2021"
 publish = false
@@ -37,7 +37,7 @@ path = "src/lib.rs"
 
 
 [dependencies]
-actix-web = "4.4.0"
+actix-web = "4.9.0"
 futures = "0.3.31"
 tokio = { version = "1.41.1", features = ["macros", "rt-multi-thread"] }
 k8s-openapi = { version = "0.23.0", features = ["latest"] }
@@ -60,9 +60,9 @@ itertools = "0.13.0"
 
 tracing-actix-web = "0.7.14"
 
-mows-common = { path = "./mows-common" }
+mows-common = { workspace = true }
 
-zitadel = { path = "./zitadel-rust", features = [
+zitadel = { workspace = true, features = [
     "api",
     "interceptors",
     "pbjson",

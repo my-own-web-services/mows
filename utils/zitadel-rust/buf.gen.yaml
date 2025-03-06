@@ -1,0 +1,25 @@
+# buf.gen.yaml
+version: v1
+managed:
+  enabled: true
+plugins:
+  - plugin: prost
+    out: src/api/generated
+    opt:
+      - compile_well_known_types
+      - extern_path=.google.protobuf=::pbjson_types
+  - plugin: prost-serde
+    out: src/api/generated
+  - plugin: tonic
+    out: src/api/generated
+    opt:
+      - compile_well_known_types
+      - extern_path=.google.protobuf=::pbjson_types
+      - no_server
+  - name: prost-crate
+    out: .
+    strategy: all
+    opt:
+      - gen_crate
+      - include_file=src/api/generated/mod.rs
+

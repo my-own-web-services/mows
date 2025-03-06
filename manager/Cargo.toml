@@ -45,14 +45,9 @@ tokio-tungstenite = "0.24.0"
 
 futures = "0.3.31"
 
-utoipa-swagger-ui = { version = "=8.0.3", features = ["axum"] }
-utoipa = { version = "5.2.0", features = [
-    "axum_extras",
-    "macros",
-    "openapi_extensions",
-    "debug",
-] }
-utoipa-axum = { version = "=0.1.2", features = ["debug"] }
+utoipa-swagger-ui = { workspace = true }
+utoipa = { workspace = true }
+utoipa-axum = { workspace = true }
 
 tower = { version = "0.5.1", features = ["util", "timeout"] }
 tower-http = { version = "0.6.1", features = [
@@ -107,7 +102,8 @@ include_dir = "0.7.3"
 mime_guess = "2.0.5"
 
 
-mows-package-manager = { path = "./package-manager" }
+mows-package-manager = { workspace = true }
+mows-common = { workspace = true }
 
 
 # [target.'cfg(not(target_env = "msvc"))'.dependencies]

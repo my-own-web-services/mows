@@ -46,14 +46,9 @@ tokio-tungstenite = "0.24.0"
 
 futures = "0.3.31"
 
-utoipa-swagger-ui = { version = "=8.0.3", features = ["axum"] }
-utoipa = { version = "5.2.0", features = [
-    "axum_extras",
-    "macros",
-    "openapi_extensions",
-    "debug",
-] }
-utoipa-axum = { version = "=0.1.2", features = ["debug"] }
+utoipa-swagger-ui = { workspace = true }
+utoipa = { workspace = true }
+utoipa-axum = { workspace = true }
 
 
 tower = { version = "0.5.1", features = ["util", "timeout"] }
@@ -69,7 +64,7 @@ thiserror = "2.0.3"
 anyhow = "1.0.93"
 
 tracing = "0.1.40"
-mows-common = { path = "./mows-common" }
+mows-common = { workspace = true }
 gtmpl_value = { version = "0.5.0" }
 
 
