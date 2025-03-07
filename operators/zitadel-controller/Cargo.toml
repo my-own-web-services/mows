@@ -32,7 +32,7 @@ name = "test_client"
 path = "src/test_client.rs"
 
 [lib]
-name = "controller"
+doc = false
 path = "src/lib.rs"
 
 

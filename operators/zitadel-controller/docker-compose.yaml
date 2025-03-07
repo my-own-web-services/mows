@@ -7,7 +7,9 @@ services:
                 - localhost:5000/zitadel-controller
             additional_contexts:
                 mows-common: ../../utils/mows-common
+                zitadel-rust: ../../utils/zitadel-rust
+                lock: ../../
             args:
-                - PROFILE=dev # or release
+                - PROFILE=dev # dev or release
 
 
