@@ -5,7 +5,7 @@ edition = "2021"
 
 
 [[bin]]
-name = "main"
+name = "zertificat"
 path = "src/main.rs"
 
 

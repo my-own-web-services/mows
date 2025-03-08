@@ -19,7 +19,7 @@ RUN useradd -u 50001 -N filez-addons-metadata
 RUN groupadd -g 50001 filez-addons-metadata
 
 # 1. APP STAGE
-FROM alpine
+FROM ${APP_STAGE_IMAGE}
 
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
     echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories 

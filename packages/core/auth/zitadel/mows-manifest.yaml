@@ -16,10 +16,10 @@ spec:
                     chartName: zitadel
             additional:
                 files: {}
-            zitadelController:
+            zitadelResourceControllerRepo:
                 helm:
-                    releaseName: zitadel-controller
-                    chartName: zitadel-controller
+                    releaseName: zitadel-resource-controller
+                    chartName: zitadel-resource-controller
         transformations:
             patches:
             -   target:

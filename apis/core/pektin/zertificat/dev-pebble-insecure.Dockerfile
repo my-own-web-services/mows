@@ -12,7 +12,7 @@ RUN cargo build --bin main
 RUN strip target/x86_64-unknown-linux-musl/debug/main
 
 # 1. APP STAGE
-FROM alpine:latest
+FROM ${APP_STAGE_IMAGE}:latest
 WORKDIR /app
 COPY --from=build /home/rust/src/target/x86_64-unknown-linux-musl/debug/main ./zertificat
 # permissions

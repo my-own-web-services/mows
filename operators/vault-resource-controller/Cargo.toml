@@ -18,7 +18,7 @@ indexing_slicing = "deny"
 
 [[bin]]
 doc = false
-name = "main"
+name = "controller"
 path = "src/main.rs"
 
 [[bin]]

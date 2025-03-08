@@ -23,7 +23,7 @@ RUN mkdir /.dev
 RUN chown filez-server:filez-server /.dev
 
 # 1. APP STAGE
-FROM alpine
+FROM ${APP_STAGE_IMAGE}
 WORKDIR /app
 COPY --from=build /volume/target/x86_64-unknown-linux-musl/debug/main ./filez-server
 COPY --from=build /etc/passwd /etc/passwd

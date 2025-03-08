@@ -43,7 +43,7 @@ name = "mows-workspace"
 mows-common = { path = "./utils/mows-common" }
 pektin-common = { path = "./apis/core/pektin/common" }
 zitadel = { path = "./utils/zitadel-rust" }
-mows-package-manager = { path = "./operators/package-manager" }
+mows-package-manager = { path = "./operators/mows-package-manager" }
 acme-rs = { path = "./apis/core/pektin/acme-rs" }
 
 

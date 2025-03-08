@@ -4,8 +4,13 @@ services:
             context: "."
             dockerfile: Dockerfile
             tags: 
-                - localhost:5000/pektin-zertificat
+                - ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}
             additional_contexts:
                 mows-common: ../../../../utils/mows-common
                 acme-rs: ../acme-rs
+                lock: ../../../../
+            args:
+                - PROFILE=dev # dev or release
+                - SERVICE_NAME=${SERVICE_NAME}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}
 

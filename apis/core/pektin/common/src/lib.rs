@@ -32,6 +32,8 @@ pub enum PektinCommonError {
     Db(#[from] deadpool_redis::redis::RedisError),
     #[error("Could not (de)serialize JSON: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("Error: {0}")]
+    GenericError(String),
 }
 
 // The following type definitions may seem weird (because they are), but they were crafted

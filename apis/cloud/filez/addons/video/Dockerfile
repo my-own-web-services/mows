@@ -31,7 +31,7 @@ RUN groupadd -g 50001 filez-addons-video
 RUN mkdir /output && chown filez-addons-video:filez-addons-video /output
 
 # 1. APP STAGE
-FROM alpine 
+FROM ${APP_STAGE_IMAGE} 
 WORKDIR /app
 
 COPY --from=build /ffprobe .

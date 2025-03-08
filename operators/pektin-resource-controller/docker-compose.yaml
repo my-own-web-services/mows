@@ -1,0 +1,15 @@
+services:
+    pektin-dns-controller:
+        build:
+            context: "."
+            dockerfile: Dockerfile
+            tags: 
+                - ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}
+            additional_contexts:
+                mows-common: ../../utils/mows-common
+                pektin-common: ../../apis/core/pektin/common
+                lock: ../../
+            args:
+                - PROFILE=dev # dev or release
+                - SERVICE_NAME=${SERVICE_NAME}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}

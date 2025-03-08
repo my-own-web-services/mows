@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = ["app"]
+exclude = ["target"]
+
+[workspace.dependencies]
+mows-common = { path = "./mows-common" }
+
+utoipa-swagger-ui = { version = "=8.0.3", features = ["vendored", "axum"] }
+utoipa = { version = "5.2.0", features = [
+    "axum_extras",
+    "macros",
+    "openapi_extensions",
+    "debug",
+] }
+utoipa-axum = { version = "=0.1.2", features = ["debug"] }

@@ -21,7 +21,7 @@ RUN useradd -u 50001 -N filez-addons-image
 RUN groupadd -g 50001 filez-addons-image
 
 # 1. APP STAGE
-FROM alpine
+FROM ${APP_STAGE_IMAGE}
 RUN apk update && apk add --no-cache perl darktable musl-locales musl-locales-lang
 WORKDIR /app
 RUN wget https://exiftool.org/Image-ExifTool-12.55.tar.gz

@@ -4,7 +4,12 @@ services:
             context: "."
             dockerfile: Dockerfile
             tags: 
-                - localhost:5000/vault-resource-controller
+                - ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}
             additional_contexts:
                 mows-common: ../../utils/mows-common
+                lock: ../../
+            args:
+                - PROFILE=dev # dev or release
+                - SERVICE_NAME=${SERVICE_NAME}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}
 

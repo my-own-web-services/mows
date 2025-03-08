@@ -1,15 +1,25 @@
-version: "3.7"
 services:
     pektin:
         build:
             context: "."
+            dockerfile: Dockerfile
+            tags: 
+                - ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}
+            additional_contexts:
+                pektin-common: ../common
+                mows-common: ../../../../utils/mows-common
+                lock: ../../../../
+            args:
+                - PROFILE=dev # dev or release
+                - SERVICE_NAME=${SERVICE_NAME}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}
         restart: always
         environment:
             DB_URI: redis://db:6379
-            BIND_ADDRESS: 0.0.0.0
-            BIND_PORT: 53
-        ports:
-            - "127.0.0.1:53:$BIND_PORT/udp"
+            #BIND_ADDRESS: 0.0.0.0
+            #BIND_PORT: 53
+        #ports:
+        #    - "127.0.0.1:53:$BIND_PORT/udp"
         networks:
             - pektin
     #db:

@@ -1,16 +1,9 @@
 #!/bin/bash
-
 set -euo pipefail
+export DEFAULT_REGISTRY="localhost:5000"
 
-rm -rf ./pektin-common-temp
-rm -rf ./mows-common-temp
+export SERVICE_NAME="pektin-api"
 
-cp ../common ./pektin-common-temp -r
-cp ../../../../utils/mows-common ./mows-common-temp -r
+docker buildx bake ${BAKE_ARGS:-default}
 
-docker build . -t localhost:5000/pektin-api -f Dockerfile
-
-rm -rf ./pektin-common-temp
-rm -rf ./mows-common-temp
-
-docker push localhost:5000/pektin-api 
+docker push ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}

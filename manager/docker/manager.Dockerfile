@@ -1,3 +1,8 @@
+ARG PROFILE="release"
+ARG RUSTFLAGS="--cfg tokio_unstable"
+ARG SERVICE_NAME="mows-manager"
+ARG BINARY_NAME="manager"
+
 FROM node:23.9.0-alpine3.21@sha256:191433e4778ded9405c9fc981f963ad2062a8648b59a9bc97d7194f3d183b2b2 AS ui-builder
 WORKDIR /build/
 COPY ui/ ./
@@ -7,26 +12,56 @@ RUN pnpm build
 
 
 
+FROM scratch AS sources
+COPY --from=mows-common . mows-common
+COPY --from=mows-package-manager . mows-package-manager
+COPY --from=lock ./Cargo.lock ./
+COPY dockerbuild.toml ./Cargo.toml
 
-FROM clux/muslrust:stable AS builder
-# build deps
+FROM clux/muslrust:stable AS chef-builder
+ARG CARGO_CHEF_REF
+RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
+
+FROM chef-builder AS planner
+COPY --from=sources / /build/
+COPY ./ /build/app/
+WORKDIR /build/app/ 
+RUN cargo chef prepare --recipe-path recipe.json
+
+
+
+
+FROM chef-builder AS builder
+ARG PROFILE
+ARG RUSTFLAGS
+ARG BINARY_NAME
 USER root
-WORKDIR /app
+WORKDIR /build
 RUN apt-get update && apt-get install upx -y
+COPY --from=sources / /build/
 
-RUN cargo install cargo-build-deps
-COPY Cargo.toml Cargo.lock ./
-COPY --from=package-manager . package-manager
-COPY --from=mows-common . package-manager/mows-common
+# build deps
+WORKDIR /build/app/
+COPY --from=planner /build/app/recipe.json recipe.json
+RUN  if [ "${PROFILE}" = "release" ];  then cargo chef cook --release --recipe-path recipe.json ;  else cargo chef cook --recipe-path recipe.json ; fi || true
 
-RUN RUSTFLAGS="--cfg tokio_unstable" cargo build-deps
 
 # build
-COPY --chown=root:root src src
+COPY --from=sources / /build/
+COPY src src
 COPY --from=ui-builder /build/dist ./ui-build
-RUN RUSTFLAGS="--cfg tokio_unstable" cargo build --bin main
-RUN cd ./package-manager && RUSTFLAGS="--cfg tokio_unstable" cargo build --bin cli
-#RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
+
+
+RUN cargo build --bin ${BINARY_NAME} --profile=${PROFILE}
+RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl/debug/${BINARY_NAME} /${BINARY_NAME}; else mv /build/target/x86_64-unknown-linux-musl/${PROFILE}/${BINARY_NAME} /${BINARY_NAME}; fi 
+RUN if [ "${PROFILE}" = "release" ];  then strip /${BINARY_NAME}; fi
+RUN if [ "${PROFILE}" = "release" ];  then upx --best --lzma /${BINARY_NAME}; fi
+
+
+RUN cd ../mows-package-manager && cargo build --bin cli --profile=${PROFILE} 
+RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl/debug/cli /cli; else mv /build/target/x86_64-unknown-linux-musl/${PROFILE}/cli /cli; fi
+RUN if [ "${PROFILE}" = "release" ];  then strip /cli; fi
+RUN if [ "${PROFILE}" = "release" ];  then upx --best --lzma /cli; fi
 
 
 
@@ -45,6 +80,10 @@ ARG DEBCONF_NOWARNINGS "yes"
 ARG DEBIAN_FRONTEND "noninteractive"
 ARG DEBCONF_NONINTERACTIVE_SEEN "true"
 ARG BASH_COMPLETIONS_DIR="/etc/bash_completion.d/"
+ARG BINARY_NAME
+ARG SERVICE_NAME
+ARG PROFILE
+
 
 RUN set -eu && \
     apt-get update && \
@@ -133,11 +172,12 @@ ENV XDG_CONFIG_HOME=/root/.config
 
 WORKDIR /app
 
-COPY --from=builder --chown=mows-manager:mows-manager /app/target/x86_64-unknown-linux-musl/debug/main ./mows-manager
-COPY --from=builder --chown=mows-manager:mows-manager /app/package-manager/target/x86_64-unknown-linux-musl/debug/cli /usr/local/bin/mpm
-RUN useradd -u 50001 -N mows-manager
-RUN groupadd -g 50001 mows-manager
+COPY --from=builder --chown=mows-manager:mows-manager /${BINARY_NAME} ./${BINARY_NAME}
+COPY --from=builder --chown=mows-manager:mows-manager /cli /usr/local/bin/mpm
+RUN useradd -u 50001 -N ${SERVICE_NAME}
+RUN groupadd -g 50001 ${SERVICE_NAME}
 
 USER root
 STOPSIGNAL SIGKILL 
-CMD ["./mows-manager"]
+#CMD [ "sleep", "infinity" ]
+CMD ["./manager"]

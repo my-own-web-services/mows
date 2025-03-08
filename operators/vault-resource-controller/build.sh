@@ -1,9 +1,11 @@
 #!/bin/bash
-
 set -euo pipefail
+export DEFAULT_REGISTRY="localhost:5000"
 
-cargo run --bin crdgen > charts/vrc/templates/CRD.yaml
+export SERVICE_NAME="vault-resource-controller"
 
-docker buildx bake
+cargo run --bin crdgen > charts/${SERVICE_NAME}/templates/CRD.yaml
 
-docker push localhost:5000/vault-resource-controller
+docker buildx bake ${BAKE_ARGS:-default}
+
+docker push ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}

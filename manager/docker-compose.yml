@@ -6,8 +6,14 @@ services:
             context: "."
             dockerfile: docker/manager.Dockerfile
             additional_contexts:
-                package-manager: ../operators/package-manager
+                mows-package-manager: ../operators/mows-package-manager
                 mows-common: ../utils/mows-common
+                lock: ../
+            args:
+                - PROFILE=dev # dev or release
+                - SERVICE_NAME=${SERVICE_NAME:-mows-manager}
+            tags:
+                - ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}
         init: true # without this the mows manager cant start a pty process
         networks:
             mows-manager-pxe:
@@ -30,20 +36,17 @@ services:
             - "::1:10000-10009:10000-10009" # ustreamer
         privileged: true
         volumes:
-            - ./temp/manager:/temp/
-            - ../operators/:/operators/
-            - ../apis/:/apis/
-            - ./install:/install
-            - ./misc/internal-config.yml:/internal-config.yml
-            - ../packages/:/packages/
+            - ./temp/manager:/temp/:rw
+            - ./misc/internal-config.yml:/internal-config.yml:ro
+            - ../packages/:/packages/:ro
             - /etc/resolv.conf:/etc/host-resolv.conf:ro
-            - /dev:/dev
+            - /dev:/dev:rw
             - /run/udev:/run/udev:ro
         environment:
             WEB_PORT: ${WEB_PORT}
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system
             #- RUST_BACKTRACE=full
-            RUST_LOG: main=debug,manager=debug,mows_package_manager=debug,tower_http=debug,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error
+            RUST_LOG: manager=debug,mows_package_manager=debug,tower_http=debug,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error
             EDIT_LOCAL_DNS_CONFIG: ${EDIT_LOCAL_DNS_CONFIG}
     qemu:
         image: qemu
@@ -74,7 +77,7 @@ services:
         ports:
             - "::1:5000:5000"
         volumes:
-            - ./temp/registries/local:/var/lib/registry
+            - ./temp/registries/local:/var/lib/registry:rw
         networks:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.5"
@@ -90,7 +93,7 @@ services:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.6"
         volumes:
-            - ./temp/registries/docker:/var/lib/registry
+            - ./temp/registries/docker:/var/lib/registry:rw
     mows-dev-pull-through-cache-quay:
         image: registry:2
         container_name: mows-dev-pull-through-cache-quay
@@ -101,7 +104,7 @@ services:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.7"
         volumes:
-            - ./temp/registries/quay:/var/lib/registry
+            - ./temp/registries/quay:/var/lib/registry:rw
     mows-dev-pull-through-cache-gcr:
         image: registry:2
         container_name: mows-dev-pull-through-cache-gcr
@@ -123,7 +126,7 @@ services:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.9"
         volumes:
-            - ./temp/registries/k8s:/var/lib/registry
+            - ./temp/registries/k8s:/var/lib/registry:rw
     mows-dev-pull-through-cache-ghcr:
         image: registry:2
         container_name: mows-dev-pull-through-cache-ghcr
@@ -134,7 +137,7 @@ services:
             mows-manager-pxe:
                 ipv4_address: "192.168.112.10"
         volumes:
-            - ./temp/registries/ghcr:/var/lib/registry
+            - ./temp/registries/ghcr:/var/lib/registry:rw
 
 volumes:
     mows-dev-local-registry:

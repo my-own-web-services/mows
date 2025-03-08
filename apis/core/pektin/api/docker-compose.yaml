@@ -1,0 +1,17 @@
+services:
+    pektin-api:
+        build:
+            context: "."
+            dockerfile: Dockerfile
+            tags: 
+                - ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}
+            additional_contexts:
+                pektin-common: ../common
+                mows-common: ../../../../utils/mows-common
+                lock: ../../../../
+            args:
+                - PROFILE=dev # dev or release
+                - SERVICE_NAME=${SERVICE_NAME}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}
+
+

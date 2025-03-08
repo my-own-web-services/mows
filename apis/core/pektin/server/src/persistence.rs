@@ -1,4 +1,4 @@
-use pektin_common::deadpool_redis::redis::aio::Connection;
+use pektin_common::deadpool_redis::redis::aio::MultiplexedConnection;
 use pektin_common::deadpool_redis::redis::{AsyncCommands, FromRedisValue, Value};
 use pektin_common::proto::rr::{Name, RecordType};
 use pektin_common::DbEntry;
@@ -17,7 +17,7 @@ pub enum QueryResponse {
 
 // also automatically looks for a wildcard record
 pub async fn get_rrset(
-    con: &mut Connection,
+    con: &mut MultiplexedConnection,
     zone: &Name,
     rr_type: RecordType,
 ) -> PektinResult<QueryResponse> {
@@ -28,7 +28,7 @@ pub async fn get_rrset(
 }
 
 pub async fn get_rrsig(
-    con: &mut Connection,
+    con: &mut MultiplexedConnection,
     zone: &Name,
     rr_type: RecordType,
 ) -> PektinResult<QueryResponse> {
@@ -39,7 +39,7 @@ pub async fn get_rrsig(
 }
 
 async fn get_definitive_or_wildcard_records(
-    con: &mut Connection,
+    con: &mut MultiplexedConnection,
     definitive_key: &str,
     wildcard_key: &str,
 ) -> PektinResult<QueryResponse> {

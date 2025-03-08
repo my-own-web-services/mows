@@ -1,37 +1,68 @@
+ARG PROFILE="release"
+ARG SERVICE_NAME="pektin-api"
+ARG SERVICE_VERSION="0.1.0"
+ARG BINARY_NAME="server"
+ARG APP_STAGE_IMAGE="scratch"
 
-FROM clux/muslrust:stable AS builder
-# build deps
+FROM scratch AS sources
+COPY --from=pektin-common . pektin-common
+COPY --from=mows-common . mows-common
+COPY --from=lock ./Cargo.lock ./
+COPY dockerbuild.toml ./Cargo.toml
+
+FROM clux/muslrust:stable AS chef-builder
+
+RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
+
+FROM chef-builder AS planner
+COPY --from=sources / /build/
+COPY ./ /build/app/
+WORKDIR /build/app/ 
+RUN cargo chef prepare --recipe-path recipe.json
+
+
+
+
+FROM chef-builder AS builder
+ARG PROFILE
+ARG RUSTFLAGS
+ARG BINARY_NAME
+ARG SERVICE_NAME
 USER root
-WORKDIR /app
+WORKDIR /build
 RUN apt-get update && apt-get install upx -y
+COPY --from=sources / /build/
 
-RUN cargo install cargo-build-deps
-COPY Cargo.toml Cargo.lock ./
-COPY ./pektin-common-temp /pektin-common
-COPY ./mows-common-temp /mows-common
-# replace ../../../../utils/mows-common with /mows-common
-RUN sed -i 's/\.\.\/\.\.\/\.\.\/\.\.\/utils\/mows-common/\/mows-common/g' Cargo.toml
-# replace ../common with /pektin-common
-RUN sed -i 's/\.\.\/common/\/pektin-common/g' Cargo.toml
+# build deps
+WORKDIR /build/app/
+COPY --from=planner /build/app/recipe.json recipe.json
+RUN  if [ "${PROFILE}" = "release" ];  then cargo chef cook --release --recipe-path recipe.json ;  else cargo chef cook --recipe-path recipe.json ; fi || true
 
-RUN cargo build-deps --release
-RUN rm -f target/x86_64-unknown-linux-musl/release/deps/pektin*
 # build
-COPY --chown=root:root src src
-RUN cargo build  --release --bin main
-RUN strip target/x86_64-unknown-linux-musl/release/main
-RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
-RUN useradd -u 50003 -N pektin-api
+COPY --from=sources / /build/
+COPY src src
+
+RUN cargo build --bin ${BINARY_NAME} --profile=${PROFILE}
+RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl/debug/${BINARY_NAME} /${BINARY_NAME}; else mv /build/target/x86_64-unknown-linux-musl/${PROFILE}/${BINARY_NAME} /${BINARY_NAME}; fi 
+RUN if [ "${PROFILE}" = "release" ];  then strip /${BINARY_NAME}; fi
+RUN if [ "${PROFILE}" = "release" ];  then upx --best --lzma /${BINARY_NAME}; fi
+
+RUN useradd -u 50003 -N ${SERVICE_NAME}
 
 
-# 1. APP STAGE
-FROM scratch
+# 1. APP STAGE 
+FROM ${APP_STAGE_IMAGE}
+ARG SERVICE_NAME
+ARG SERVICE_VERSION
+ARG BINARY_NAME
 WORKDIR /app
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/main ./pektin-api
+COPY --from=builder /${BINARY_NAME} ./${BINARY_NAME}
+#COPY --from=builder /app/target/x86_64-unknown-linux-musl/debug/test_client ./test_client
 COPY --from=builder /etc/passwd /etc/passwd
-USER pektin-api
-ENV SERVICE_NAME=pektin-api
-ENV SERVICE_VERSION=0.1.0
+USER ${SERVICE_NAME}
+ENV SERVICE_NAME=${SERVICE_NAME}
+ENV SERVICE_VERSION=${SERVICE_VERSION}
 STOPSIGNAL SIGTERM
 # run it 
-ENTRYPOINT ["./pektin-api"]
+ENTRYPOINT ["./${BINARY_NAME}"]
+

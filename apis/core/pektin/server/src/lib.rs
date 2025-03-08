@@ -4,7 +4,7 @@ pub mod persistence;
 use anyhow::{anyhow, bail, ensure, Context};
 use futures_util::join;
 use log::{error, info};
-use pektin_common::deadpool_redis::redis::aio::Connection;
+use pektin_common::deadpool_redis::redis::aio::MultiplexedConnection;
 use pektin_common::deadpool_redis::Pool;
 use pektin_common::proto::op::{Edns, Message, MessageType, Query, ResponseCode};
 use pektin_common::proto::rr::{Name, RData, Record, RecordType};
@@ -168,11 +168,11 @@ fn validate_query_message(query: &Message) -> bool {
 async fn find_answers<'c, 'n, O, F>(
     query: &'n Query,
     get_fn: F,
-    con: &'c mut Connection,
+    con: &'c mut MultiplexedConnection,
 ) -> PektinResult<Vec<Record>>
 where
     O: futures_util::Future<Output = PektinResult<QueryResponse>>,
-    F: Fn(&'c mut Connection, &'n Name, RecordType) -> O,
+    F: Fn(&'c mut MultiplexedConnection, &'n Name, RecordType) -> O,
 {
     let db_response = get_fn(con, query.name(), query.query_type()).await?;
     let db_entry = match db_response {
@@ -181,7 +181,9 @@ where
         QueryResponse::Wildcard(wild) => wild,
         QueryResponse::Both { definitive, .. } => definitive,
     };
-    Ok(db_entry.convert()?)
+    Ok(db_entry
+        .convert()
+        .map_err(|e| PektinError::CommonError(pektin_common::PektinCommonError::GenericError(e)))?)
 }
 
 /// Assumes the given query matched no known records. Adds the SOA record for the given zone to the
@@ -191,8 +193,8 @@ async fn add_soa_and_nsec3(
     query: &Query,
     authoritative_zone: Name,
     do_flag: bool,
-    con: &mut Connection,
-    dnssec_con: &mut Connection,
+    con: &mut MultiplexedConnection,
+    dnssec_con: &mut MultiplexedConnection,
 ) -> anyhow::Result<()> {
     // TODO: generate NSEC3 record and include it as well as its RRSIG record
 

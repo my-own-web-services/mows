@@ -41,7 +41,7 @@ struct ApiDoc;
 async fn main() -> Result<(), anyhow::Error> {
     let ic = &INTERNAL_CONFIG;
 
-    start_tracing().await.context("Failed to start tracing")?;
+    start_tracing().await.context("Failed to start tracing!")?;
 
     start_pixiecore()
         .await
