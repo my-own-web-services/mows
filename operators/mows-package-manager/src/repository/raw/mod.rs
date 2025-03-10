@@ -3,11 +3,11 @@ use crate::{
     rendered_document::RenderedDocument,
     types::{ManifestSource, RawManifestSpec},
 };
-use helm::HelmRepoError;
 use std::collections::HashMap;
 use tracing::debug;
 mod files;
 mod helm;
+mod remote_files;
 
 impl RawManifestSpec {
     pub async fn handle(
@@ -33,21 +33,34 @@ impl RawManifestSpec {
         let mut rendered_documents: Vec<RenderedDocument> = Vec::new();
 
         for (source_name, source) in &self.sources {
-            match source {
-                ManifestSource::Helm(helm_repo) => {
-                    let helm_rendered_documents = helm_repo
-                        .handle(repo_paths, namespace, source_name, cluster_variables)
-                        .await?;
-                    // append all
-                    rendered_documents.extend(helm_rendered_documents);
-                }
-                ManifestSource::Files(files) => {
-                    let returned_files = files
-                        .handle(repo_paths, source_name, cluster_variables)
-                        .await?;
-                    rendered_documents.extend(returned_files);
-                }
-            }
+            let returned_files = match source {
+                ManifestSource::Helm(helm_repo) => helm_repo
+                    .handle(repo_paths, namespace, source_name, cluster_variables)
+                    .await
+                    .map_err(|e| RawSpecSourcesError {
+                        source_name: source_name.clone(),
+                        source_type: "helm".to_string(),
+                        source: RawSpecSourcesErrorVariant::HelmRepoError(e),
+                    }),
+                ManifestSource::Files(files) => files
+                    .handle(repo_paths, source_name, cluster_variables)
+                    .await
+                    .map_err(|e| RawSpecSourcesError {
+                        source_name: source_name.clone(),
+                        source_type: "files".to_string(),
+                        source: RawSpecSourcesErrorVariant::FilesError(e),
+                    }),
+                ManifestSource::RemoteFiles(remote_files_spec) => remote_files_spec
+                    .handle(repo_paths, source_name, cluster_variables)
+                    .await
+                    .map_err(|e| RawSpecSourcesError {
+                        source_name: source_name.clone(),
+                        source_type: "remoteFiles".to_string(),
+                        source: RawSpecSourcesErrorVariant::RemoteFilesError(e),
+                    }),
+            }?;
+
+            rendered_documents.extend(returned_files);
         }
 
         Ok(rendered_documents)
@@ -69,15 +82,28 @@ impl RawManifestSpec {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[error("Failed to handle {source_type} source named `{source_name}`")]
+pub struct RawSpecSourcesError {
+    pub source_name: String,
+    pub source_type: String,
+    pub source: RawSpecSourcesErrorVariant,
+}
+
+#[derive(Debug, thiserror::Error)]
+
+pub enum RawSpecSourcesErrorVariant {
+    #[error(transparent)]
+    HelmRepoError(helm::HelmRepoError),
+    #[error(transparent)]
+    FilesError(files::FilesSpecError),
+    #[error(transparent)]
+    RemoteFilesError(remote_files::RemoteFilesSpecError),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum RawSpecError {
-    #[error("Error rendering HelmRepo: {0}")]
-    HelmRepoError(#[from] HelmRepoError),
-    #[error("Error handling file spec: {0}")]
-    FilesError(#[from] files::FilesSpecError),
-    #[error("Error reading file: {0}")]
-    ReadFileError(#[from] tokio::io::Error),
+    #[error(transparent)]
+    RemoteFilesError(#[from] RawSpecSourcesError),
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
-    #[error("Error parsing file: {0}")]
-    ParsingError(#[from] serde_yaml_ng::Error),
 }

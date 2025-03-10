@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use handlers::raw::ZitadelResourceRawError;
 use mows_common::reqwest_middleware;
 use thiserror::Error;
 
@@ -30,7 +31,11 @@ pub enum ControllerError {
 
     #[error("TonicStatusError: {0}")]
     TonicStatusError(#[source] tonic::Status),
+
+    #[error("ZitadelResourceRawError: {0}")]
+    ZitadelResourceRawError(#[from] ZitadelResourceRawError),
 }
+
 pub type Result<T, E = ControllerError> = std::result::Result<T, E>;
 
 // convert tonic status to error

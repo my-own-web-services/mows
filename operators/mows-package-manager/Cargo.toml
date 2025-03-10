@@ -12,6 +12,10 @@ path = "src/bin/server.rs"
 name = "cli"
 path = "src/bin/cli.rs"
 
+[[bin]]
+name = "generate_schema"
+path = "src/bin/generate_schema.rs"
+
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -86,3 +90,5 @@ json-patch = "4.0.0"
 regex = "1.11.1"
 jsonptr = "0.7.1"
 toml = "0.8.20"
+serde_variant = "0.1.3"
+schemars = "0.8.22"

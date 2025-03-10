@@ -3,6 +3,7 @@ use crate::{
     rendered_document::{
         CrdHandling, KubernetesResourceError, RenderedDocument, RenderedDocumentFilter,
     },
+    repository_paths::RepositoryPaths,
     types::Manifest,
     utils::{get_dynamic_kube_api, parse_manifest},
 };
@@ -253,61 +254,17 @@ impl Repository {
     }
 }
 
-const MANIFEST_FILE_NAME: &str = "mows-manifest.yaml";
-
-pub struct RepositoryPaths {
-    /// The parent working directory
-    /// /tmp/mows-package-manager/
-    pub package_manager_working_path: PathBuf,
-    /// The working directory for the repository
-    /// /tmp/mows-package-manager/zitadel-random
-    pub repository_working_path: PathBuf,
-    /// The path were the mows repository will be fetched to
-    /// /tmp/mows-package-manager/zitadel-random/source
-    pub mows_repo_source_path: PathBuf,
-    /// The path to the mows manifest file
-    /// /tmp/mows-package-manager/zitadel-random/source/manifest.mows.yaml
-    pub manifest_path: PathBuf,
-    /// a path to a temporary directory to work in
-    /// /tmp/mows-package-manager/zitadel-random/temp
-    pub temp_path: PathBuf,
-}
-
-impl RepositoryPaths {
-    pub async fn new(root_working_directory: &str) -> Self {
-        let working_path = Path::new(root_working_directory).join(generate_id(20));
-        let source_path = working_path.join("source");
-        let manifest_path = source_path.join(MANIFEST_FILE_NAME);
-        let temp_path = working_path.join("temp");
-
-        let _ = tokio::fs::remove_dir_all(&working_path).await.map_err(|e| {
-            trace!("Error removing working directory: {}", e);
-        });
-
-        let _ = tokio::fs::create_dir_all(&source_path).await;
-        let _ = tokio::fs::create_dir_all(&temp_path).await;
-
-        Self {
-            package_manager_working_path: PathBuf::from(root_working_directory),
-            repository_working_path: working_path,
-            manifest_path,
-            mows_repo_source_path: source_path,
-            temp_path,
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum RenderError {
-    #[error("Error fetching repository: {0}")]
+    #[error("Failed to fetch repository")]
     FetchError(#[from] FetchMowsRepoError),
-    #[error("Manifest Error: {0}")]
+    #[error(transparent)]
     ManifestError(#[from] ManifestError),
-    #[error("RawSpec Error: {0}")]
+    #[error(transparent)]
     RawSpecError(#[from] RawSpecError),
-    #[error("IO error: {0}")]
+    #[error(transparent)]
     IoError(#[from] tokio::io::Error),
-    #[error("Parsing Error: {0}")]
+    #[error(transparent)]
     ParseError(#[from] serde_yaml_ng::Error),
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
@@ -315,9 +272,9 @@ pub enum RenderError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ManifestError {
-    #[error("Parsing Error: {0}")]
+    #[error("Failed to parse manifest")]
     ParsingError(#[from] serde_yaml_ng::Error),
-    #[error("IO error: {0}")]
+    #[error("Failed to read manifest")]
     IoError(#[from] tokio::io::Error),
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
@@ -325,11 +282,11 @@ pub enum ManifestError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FetchMowsRepoError {
-    #[error("Invalid URI: {0}")]
+    #[error("Invalid URI: {0}, currently only file:// is supported")]
     InvalidUri(String),
-    #[error("IO error: {0}")]
+    #[error(transparent)]
     IoError(#[from] tokio::io::Error),
-    #[error("FS Extra error: {0}")]
+    #[error(transparent)]
     FsExtraError(#[from] fs_extra::error::Error),
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),

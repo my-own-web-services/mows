@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=/home/paul/projects/mows/operators/mows-package-manager/schemas/manifest-schema.json
+
+manifestVersion: "0.1"
+metadata:
+    name: kubeshark
+    description: "kubeshark"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            filesFromGithub:
+                remoteFiles:
+                    files: 
+                    - urls:
+                        - https://raw.githubusercontent.com/storax/kubedoom/refs/heads/master/manifest/rbac.yaml
+                      sha256Digest: a32ba4aabac83ade6da6fd3af47ac2961b600e4512286e4dc578da4d2613b0d5
+                      
+                    - urls:
+                        - https://raw.githubusercontent.com/storax/kubedoom/refs/heads/master/manifest/deployment.yaml
+                      sha256Digest: 2cf36ecbae2dd7b721f1fa546b56ac0cec5c73e0c2ccec9ea4359dc72e31fe6a
+

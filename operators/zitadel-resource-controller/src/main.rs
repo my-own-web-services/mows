@@ -7,7 +7,7 @@ use tracing::info;
 use tracing_actix_web::TracingLogger;
 use zitadel::api::zitadel::management::v1::{GetIamRequest, GetMyOrgRequest};
 use zitadel_controller::config::config;
-use zitadel_controller::utils::create_zitadel_management_client;
+use zitadel_controller::utils::ZitadelClient;
 use zitadel_controller::{self, State};
 
 #[get("/metrics")]
@@ -37,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
     let state = State::default();
     let controller = zitadel_controller::run(state.clone());
 
-    let mut zitadel_client = create_zitadel_management_client().await?;
+    let mut zitadel_client = ZitadelClient::new().await?.management_client(None).await?;
 
     zitadel_client.get_iam(GetIamRequest {}).await?;
 

@@ -7,7 +7,7 @@ services:
         mows-common: ../../utils/mows-common
         lock: ../../
       tags:
-        - ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}
+        - ${REGISTRY:-localhost:5000}/${SERVICE_NAME}
       args:
       - PROFILE=dev
       - SERVICE_NAME=${SERVICE_NAME}

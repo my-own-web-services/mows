@@ -49,6 +49,7 @@
         "reqwest",
         "serviceaccount",
         "shellexpand",
+        "splitn",
         "tempfile",
         "templating",
         "thiserror",

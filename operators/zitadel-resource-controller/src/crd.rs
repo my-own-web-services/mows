@@ -80,7 +80,9 @@ pub enum RawZitadelApplicationClientDataTarget {
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientDataTargetVault {
-    pub name: String,
+    /// The name of the vault engine in the same namespace mows-core-secrets-vrc/{RESOURCE_NAMESPACE}/{engine_name}
+    /// the zitadel controller cant create the vault engine, it must be created before with a vault resource, the vault resource must have the same namespace as the zitadel resource, the zitadel controller has vault access to write to the mows-core-secrets-vrc engines
+    pub engine_name: String,
     pub path: String,
 }
 

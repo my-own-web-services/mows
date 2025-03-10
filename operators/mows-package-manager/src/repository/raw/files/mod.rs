@@ -1,14 +1,14 @@
-use std::collections::HashMap;
-
-use anyhow::Context;
-use toml::Value;
-
 use crate::{
     rendered_document::{RenderedDocument, RenderedDocumentDebug},
-    repository::RepositoryPaths,
+    repository_paths::RepositoryPaths,
     types::FilesSpec,
-    utils::{get_all_file_paths_recursive, replace_cluster_variables},
+    utils::{
+        get_all_file_paths_recursive, parse_resources_from_file_extension,
+        replace_cluster_variables_in_folder_in_place,
+    },
 };
+use anyhow::Context;
+use std::collections::HashMap;
 
 impl FilesSpec {
     pub async fn handle(
@@ -23,7 +23,7 @@ impl FilesSpec {
             .join(source_name);
         let file_paths = get_all_file_paths_recursive(&source_path).await;
 
-        replace_cluster_variables(&source_path, cluster_variables)
+        replace_cluster_variables_in_folder_in_place(&source_path, cluster_variables)
             .await
             .context(format!(
                 "Failed to replace cluster variables in files for source: {}",
@@ -33,31 +33,28 @@ impl FilesSpec {
         let mut rendered_documents: Vec<RenderedDocument> = vec![];
 
         for file_path in file_paths {
-            let extension = file_path.extension().unwrap_or_default();
-            if ["yaml", "yml", "json", "toml"]
-                .iter()
-                .any(|v| *v == extension)
-            {
-                let file_content = tokio::fs::read_to_string(&file_path).await?;
+            let file_content = tokio::fs::read_to_string(&file_path).await?;
 
-                let resource: serde_json::Value = if extension == "json" {
-                    serde_json::from_str(&file_content)?
-                } else if extension == "toml" {
-                    let toml_resource: Value = toml::from_str(&file_content)?;
+            let resources = parse_resources_from_file_extension(
+                file_path
+                    .extension()
+                    .ok_or(FilesSpecError::AnyhowError(anyhow::anyhow!(
+                        "Failed to get file extension"
+                    )))?
+                    .to_str()
+                    .ok_or(FilesSpecError::AnyhowError(anyhow::anyhow!(
+                        "Failed to convert file extension"
+                    )))?,
+                &file_content,
+            )?;
 
-                    serde_json::from_value(serde_json::to_value(toml_resource)?)?
-                } else {
-                    let yaml_resource = serde_yaml_ng::from_str(&file_content)?;
-
-                    serde_json::from_value(yaml_resource)?
-                };
-
+            for resource in resources {
                 let rendered_document = RenderedDocument {
                     resource,
                     source_name: source_name.to_string(),
                     source_type: crate::types::ManifestSource::Files(self.clone()),
                     debug: RenderedDocumentDebug {
-                        resource_string_before_parse: Some(file_content),
+                        resource_string_before_parse: Some(file_content.clone()),
                         resource_source_path: Some(file_path.to_string_lossy().to_string()),
                         ..Default::default()
                     },
@@ -73,15 +70,14 @@ impl FilesSpec {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FilesSpecError {
-    #[error("IO Error: {0}")]
+    #[error(transparent)]
     IoError(#[from] std::io::Error),
-    #[error("SerdeYaml Error: {0}")]
-    SerdeError(#[from] serde_yaml_ng::Error),
-    #[error("SerdeJson Error: {0}")]
+    #[error(transparent)]
+    SerdeYamlError(#[from] serde_yaml_ng::Error),
+    #[error(transparent)]
     SerdeJsonError(#[from] serde_json::Error),
-    #[error("TOML Error: {0}")]
+    #[error(transparent)]
     TomlError(#[from] toml::de::Error),
-    // generic error
-    #[error("Error: {0}")]
+    #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
 }

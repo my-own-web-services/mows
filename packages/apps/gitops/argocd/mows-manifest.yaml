@@ -1,0 +1,19 @@
+manifestVersion: "0.1"
+metadata:
+    name: argocd
+    description: "argocd"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            argocdHelmRepo:
+                helm:
+                    urls:
+                        - https://argoproj.github.io/argo-helm
+                    sha256Digest: 678562cc29aaa37de8505f200869d4d2077d78a4b88712a654ab9c1af3df0510
+                    version: "7.8.9"
+                    releaseName: argocd
+                    chartName: argo-cd
+
+# mpm install -u=file:///packages/dev/kubeshark/ -n=mows-dev-kubeshark
+# kubectl port-forward -n=mows-dev-kubeshark service/kubeshark-front --address=0.0.0.0 8080:80 

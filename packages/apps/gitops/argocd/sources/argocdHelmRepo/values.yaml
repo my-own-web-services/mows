@@ -1,0 +1,16 @@
+dex:
+    enabled: true
+configs:
+    cm:
+        create: false
+    rbac:
+        policy.csv: |
+            g, argocd_administrators, role:admin
+            g, argocd_users, role:readonly
+        policy.default: ""
+        scopes: "[groups]"
+    params:
+        server.insecure: true
+    
+global:
+    domain: "argocd.{§ .config.domain §}"

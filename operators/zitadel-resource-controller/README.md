@@ -1,3 +1,11 @@
+map:
+- orgs to orgs 
+- namespaces to projects
+- apps to apps
+
+
+
+
 ## controller-rs
 [![ci](https://github.com/kube-rs/controller-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/kube-rs/controller-rs/actions/workflows/ci.yml)
 [![docker image](https://img.shields.io/docker/pulls/clux/controller.svg)](

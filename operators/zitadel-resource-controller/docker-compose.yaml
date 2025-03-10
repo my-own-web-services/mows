@@ -4,7 +4,7 @@ services:
             context: "."
             dockerfile: Dockerfile
             tags: 
-                - ${REGISTRY:-${DEFAULT_REGISTRY}}/${SERVICE_NAME}
+                - ${REGISTRY:-localhost:5000}/${SERVICE_NAME}
             additional_contexts:
                 mows-common: ../../utils/mows-common
                 zitadel-rust: ../../utils/zitadel-rust

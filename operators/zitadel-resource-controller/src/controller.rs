@@ -1,5 +1,5 @@
 use crate::{
-    config::{self, config},
+    config::config,
     crd::{ZitadelResource, ZitadelResourceSpec, ZitadelResourceStatus},
     handlers::raw::handle_raw,
     utils::get_error_type,
@@ -18,7 +18,6 @@ use kube::{
     },
     Resource,
 };
-
 use mows_common::{get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
 use serde_json::json;

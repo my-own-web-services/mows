@@ -1,17 +1,12 @@
 use crate::{
     rendered_document::{MethodSpecificRenderedDocumentDebug, MethodSpecificRenderedDocumentDebugHelm, RenderedDocument, RenderedDocumentDebug},
     repository::RepositoryPaths,
-    types::{HelmRepoSpec, ManifestSource}, utils::replace_cluster_variables,
+    types::{HelmRepoSpec, ManifestSource}, utils::{download_or_get_cached_file, replace_cluster_variables_in_folder_in_place},
 };
-use anyhow::Context;
 use flate2::read::GzDecoder;
-use futures::StreamExt;
-use k8s_openapi::api::resource;
-use serde::{de, Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use serde::{ Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
     process::Command,
 };
 use tracing::{debug};
@@ -96,8 +91,8 @@ impl HelmRepoSpec {
 
                 let method_specific_debug:Option<MethodSpecificRenderedDocumentDebug>=if let Some(resource_source_path)=resource_source_path.clone() {
                     Some(MethodSpecificRenderedDocumentDebug::Helm(MethodSpecificRenderedDocumentDebugHelm {
-                        original_template: tokio::fs::read_to_string(resource_source_path).await.map_err(
-                            |e| HelmRepoError::RenderHelmError(format!("Error reading file: {}", e))
+                        original_template: tokio::fs::read_to_string(&resource_source_path).await.map_err(
+                            |e| HelmRepoError::RenderHelmError(format!("Error reading original template file: {} from path {}", e, &resource_source_path))
                         )?.to_string(
                         ),
                     }))
@@ -185,7 +180,7 @@ impl HelmRepoSpec {
             }
         };
 
-        replace_cluster_variables(&chart_path, cluster_variables)
+        replace_cluster_variables_in_folder_in_place(&chart_path, cluster_variables)
             .await.map_err(|e| HelmRepoError::RenderHelmError(format!("Error rendering Helm: {}", e)))?;
 
         Ok(())
@@ -262,7 +257,7 @@ impl HelmRepoSpec {
 
 
         
-        let chart_versions = helm_repo_index
+        let selected_chart_versions = helm_repo_index
             .entries
             .get(&self.chart_name)
             .ok_or_else(|| {
@@ -274,150 +269,38 @@ impl HelmRepoSpec {
                 ))
             })?
             .iter()
-            .find(|entry| entry.digest == manifest_declared_digest)
-            .ok_or(HelmRepoError::FetchHelmChartError(format!(
-                "Could not find HelmChart with digest: {}",
-                self.chart_name
-            )))?;
+            .find(|entry| entry.digest == manifest_declared_digest).ok_or(
+                HelmRepoError::FetchHelmChartError(format!(
+                    "Could not find HelmChart with digest: {}",
+                    self.chart_name
+                ))
+            )?;
+
 
         // check if the version matches
-        if chart_versions.version != manifest_declared_version {
+        if selected_chart_versions.version != manifest_declared_version {
             return Err(HelmRepoError::FetchHelmChartError(format!(
                 "Version mismatch with the digest. Digest matching version: {}, Manifest declared version: {}",
-                chart_versions.version,
+                selected_chart_versions.version,
                 manifest_declared_version
             )));
         }
 
-        let temp_file_path_root = repository_paths
-            .package_manager_working_path
-            .join("helm");
+        let chart_urls = Self::get_remote_chart_urls(chart_index_root_url, &selected_chart_versions.urls).await?;
 
-        tokio::fs::create_dir_all(&temp_file_path_root) .await.map_err(|e| {
-            HelmRepoError::FetchHelmChartError(format!("Error creating directory: {}", e))
+        let store_path_with_repo_archive= download_or_get_cached_file(
+            &chart_urls,
+            &repository_paths.artifact_path,
+            &manifest_declared_digest,
+            None,
+        ).await.map_err(|e| {
+            HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
         })?;
 
-        let temp_file_path = temp_file_path_root
-            .join(format!("{}.tar",&manifest_declared_digest));
-
-
-        if Path::new(&temp_file_path).exists() {
-            debug!(
-                "HelmChart already present at {}, skipping download.",
-                &temp_file_path.to_str().unwrap()
-            );
-
-            let tar_file = tokio::fs::File::open(Path::new(&temp_file_path))
-                .await
-                .map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!("Error opening file: {}", e))
-                })?;
-
-            let mut hasher = Sha256::new();
-
-            let mut reader = tokio::io::BufReader::new(tar_file);
-
-            let mut buffer = [0; 1024];
-
-            loop {
-                let count = reader.read(&mut buffer).await.map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!("Error reading file: {}", e))
-                })?;
-
-                if count == 0 {
-                    break;
-                }
-
-                hasher.update(&buffer[..count]);
-            }
-
-            let hex_digest = format!("{:x}", hasher.finalize());
-
-            if hex_digest != manifest_declared_digest {
-                tokio::fs::remove_file(Path::new(&temp_file_path))
-                    .await
-                    .map_err(|e| {
-                        HelmRepoError::FetchHelmChartError(format!("Error removing file: {}", e))
-                    })?;
-
-                return Err(HelmRepoError::FetchHelmChartError(format!(
-                    "Error fetching HelmChart: present file digest mismatch"
-                )));
-            }
-        } else {
-            let chart_url = Self::get_remote_chart_url(&chart_index_root_url, &chart_versions.urls).await?;
-
-            debug!(
-                "Downloading HelmChart from: {:?}",
-                chart_url
-            );
-
-            let reqwest_client = mows_common::reqwest::new_reqwest_client()
-                .await
-                .map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!(
-                        "Error creating reqwest client: {}",
-                        e
-                    ))
-                })?;
-
-            let tar_file = tokio::fs::File::create(Path::new(&temp_file_path))
-                .await
-                .map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!("Error creating file: {}", e))
-                })?;
-
-            let mut writer = tokio::io::BufWriter::new(tar_file);
-
-            let mut hasher = Sha256::new();
-
-
-            let mut byte_stream = reqwest_client
-                .get(chart_url)
-                .send()
-                .await
-                .map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
-                })?
-                .bytes_stream();
-
-            while let Some(chunk) = byte_stream.next().await {
-                let chunk = chunk.map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
-                })?;
-
-                hasher.update(&chunk);
-
-                writer.write_all(&chunk).await.map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
-                })?;
-
-                writer.flush().await.map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
-                })?;
-            }
-
-            let hex_digest = format!("{:x}", hasher.finalize());
-
-            if hex_digest != manifest_declared_digest {
-                tokio::fs::remove_file(Path::new(&temp_file_path))
-                    .await
-                    .map_err(|e| {
-                        HelmRepoError::FetchHelmChartError(format!("Error removing file: {}", e))
-                    })?;
-
-                return Err(HelmRepoError::FetchHelmChartError(format!(
-                    "Error fetching HelmChart: digest mismatch"
-                )));
-            }
-            
-        }
-
-        // extract the tempfile to the source directory into a subdirectory named after the chart
 
         let chart_target_directory = repository_paths.mows_repo_source_path.join("sources").join(source_name);
 
-        let archive_file = std::fs::File::open(Path::new(&temp_file_path)).map_err(|e| {
+        let archive_file = std::fs::File::open(Path::new(&store_path_with_repo_archive)).map_err(|e| {
             HelmRepoError::FetchHelmChartError(format!("Error opening file: {}", e))
         })?;
 
@@ -432,22 +315,26 @@ impl HelmRepoSpec {
         Ok(())
     }
 
-    async fn get_remote_chart_url(
+    async fn get_remote_chart_urls(
         repository_index_url: &str,
         chart_urls: &Vec<String>,
-    ) -> Result<Url, HelmRepoError> {
-        let url = Url::parse(&chart_urls[0]).unwrap_or(
-            Url::parse(&repository_index_url)
-                .map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!("Error parsing URL: {}", e))
-                })?
-                .join(&chart_urls[0])
-                .map_err(|e| {
-                    HelmRepoError::FetchHelmChartError(format!("Error joining URL: {}", e))
-                })?,
-        );
+    ) -> Result<Vec<Url>, HelmRepoError> {
+        let mut urls= vec![];
 
-        Ok(url)
+        for url in chart_urls {
+            urls.push(Url::parse(url).unwrap_or(
+                Url::parse(&repository_index_url)
+                    .map_err(|e| {
+                        HelmRepoError::FetchHelmChartError(format!("Error parsing URL: {}", e))
+                    })?
+                    .join(url)
+                    .map_err(|e| {
+                        HelmRepoError::FetchHelmChartError(format!("Error joining URL: {}", e))
+                    })?,
+            ));
+        }
+
+        Ok(urls)
     }
 }
 

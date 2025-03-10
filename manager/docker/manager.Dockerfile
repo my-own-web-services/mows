@@ -18,6 +18,7 @@ COPY --from=mows-package-manager . mows-package-manager
 COPY --from=lock ./Cargo.lock ./
 COPY dockerbuild.toml ./Cargo.toml
 
+
 FROM clux/muslrust:stable AS chef-builder
 ARG CARGO_CHEF_REF
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0

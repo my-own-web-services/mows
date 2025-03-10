@@ -4,6 +4,7 @@ pub mod errors;
 pub mod rendered_document;
 
 pub mod repository;
+pub mod repository_paths;
 pub mod types;
 pub mod ui;
 pub mod utils;
