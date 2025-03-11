@@ -55,7 +55,7 @@ spec:
                     oidc.config:
                         name: Zitadel
                         issuer: https://zitadel.{§ .config.domain §}
-                        clientID: "{% .secrets.oidc.clientID %}"
+                        clientID: "{% .secrets.oidc.clientId %}"
                         # quotes are needed for the client id because it needs to be a string and not a number as it is provided by zitadel/vault
                         clientSecret: {% .secrets.oidc.clientSecret %}
                         requestedScopes:

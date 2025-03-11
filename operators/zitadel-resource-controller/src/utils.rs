@@ -10,6 +10,7 @@ use zitadel::api::{
     zitadel::{
         admin::v1::admin_service_client::AdminServiceClient,
         management::v1::management_service_client::ManagementServiceClient,
+        user::v2::user_service_client::UserServiceClient,
     },
 };
 
@@ -69,6 +70,7 @@ pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
 
 pub type ManagementClient = ManagementServiceClient<InterceptedService<Channel, AccessTokenInterceptor>>;
 pub type AdminClient = AdminServiceClient<InterceptedService<Channel, AccessTokenInterceptor>>;
+pub type UserClient = UserServiceClient<InterceptedService<Channel, AccessTokenInterceptor>>;
 
 pub struct ZitadelClient {
     pub api_endpoint: String,
@@ -111,6 +113,20 @@ impl ZitadelClient {
 
         client_builder
             .build_admin_client(&channel_config)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))
+    }
+
+    pub async fn user_client(&self, org_id: Option<&str>) -> anyhow::Result<UserClient> {
+        let client_builder =
+            ClientBuilder::new(&self.api_endpoint).with_access_token_and_org(&self.pa_token.trim(), org_id);
+
+        let channel_config = ChannelConfig {
+            origin: self.external_origin.to_string(),
+        };
+
+        client_builder
+            .build_user_client(&channel_config)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))
     }

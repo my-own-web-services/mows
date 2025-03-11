@@ -2,7 +2,7 @@ use crate::{
     config::config,
     crd::{VaultResource, VaultResourceSpec, VaultResourceStatus},
     handlers::{
-        auth::{apply_auth_engine, cleanup_auth_engine},
+        auth_engine::{apply_auth_engine, cleanup_auth_engine},
         policy::{apply_engine_access_policy, cleanup_engine_access_policy},
         secret_engine::{apply_secret_engine, cleanup_secret_engine},
         secret_sync::{apply_secret_sync, cleanup_secret_sync},

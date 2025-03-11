@@ -1,0 +1,42 @@
+apiVersion: zitadel.k8s.mows.cloud/v1
+kind: ZitadelResource
+metadata:
+    name: argocd-oidc
+spec:
+    raw:
+        resource:
+            project:
+                name: "argocd"
+                orgName: "mows"
+                projectRoleAssertion: true
+                projectRoleCheck: true
+                roles:
+                    -   key: argocd_administrators
+                        group: argocd_administrators
+                        displayName: Administrators
+                    -   key: argocd_users
+                        group: argocd_users
+                        displayName: Users
+                adminRoles: ["argocd_administrators", "argocd_users"]
+                applications:
+                    -   name: argocd
+                        clientDataTarget: 
+                            vault:
+                                engineName: argocd-oidc
+                                path: oidc
+                        method:
+                            oidc:
+                                redirectUris:
+                                    - https://argocd.{§ .config.domain §}/auth/callback
+                                responseTypes:
+                                    - code
+                                authenticationMethod: basic
+                                grantTypes:
+                                    - authorizationCode
+                                postLogoutRedirectUris:
+                                    - https://argocd.{§ .config.domain §}
+                                appType: web
+                                accessTokenType: bearer
+                                idTokenRoleAssertion: true
+                                idTokenUserinfoAssertion: true
+

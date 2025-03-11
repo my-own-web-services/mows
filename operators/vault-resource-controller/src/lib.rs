@@ -50,7 +50,7 @@ pub mod config;
 pub mod macros;
 pub mod utils;
 pub mod handlers {
-    pub mod auth;
+    pub mod auth_engine;
     pub mod policy;
     pub mod secret_engine;
     pub mod secret_sync;

@@ -2,10 +2,7 @@ use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use zitadel::api::zitadel::app::v1::{
-    ApiAuthMethodType, LoginVersion, OidcAppType, OidcAuthMethodType, OidcGrantType, OidcResponseType,
-    OidcTokenType, OidcVersion,
-};
+use zitadel::api::zitadel::app::v1::ApiAuthMethodType;
 
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[kube(
@@ -50,7 +47,11 @@ pub struct RawZitadelOrg {
 pub struct RawZitadelProject {
     pub org_name: String,
     pub name: String,
+    pub project_role_assertion: bool,
+    pub project_role_check: bool,
     pub roles: Vec<RawZitadelProjectRole>,
+    /// the roles to assign to the "zitadel-admin"
+    pub admin_roles: Vec<String>,
     pub applications: Vec<RawZitadelApplication>,
 }
 
@@ -102,29 +103,70 @@ pub enum RawZitadelApplicationMethod {
 #[serde(rename_all = "camelCase")]
 pub struct RawZitadelApplicationOidc {
     pub redirect_uris: Vec<String>,
-    #[schemars(with = "Vec<String>")]
     pub response_types: Vec<OidcResponseType>,
-    #[schemars(with = "Vec<String>")]
     pub grant_types: Vec<OidcGrantType>,
-    #[schemars(with = "String")]
     pub app_type: OidcAppType,
-    #[schemars(with = "String")]
-    pub auth_method_type: OidcAuthMethodType,
+    pub authentication_method: OidcAuthMethodType,
+    #[serde(default)]
     pub post_logout_redirect_uris: Vec<String>,
-    #[schemars(with = "String")]
-    pub version: OidcVersion,
     pub dev_mode: bool,
-    #[schemars(with = "String")]
     pub access_token_type: OidcTokenType,
-    pub access_token_role_assertion: bool,
-    pub id_token_role_assertion: bool,
-    pub id_token_userinfo_assertion: bool,
+    pub access_token_role_assertion: Option<bool>,
+    pub id_token_role_assertion: Option<bool>,
+    pub id_token_userinfo_assertion: Option<bool>,
     pub clock_skew: Option<Duration>,
+    #[serde(default)]
     pub additional_origins: Vec<String>,
-    pub skip_native_app_success_page: bool,
-    pub back_channel_logout_uri: String,
-    #[schemars(with = "Option<String>")]
+    pub skip_native_app_success_page: Option<bool>,
+    pub back_channel_logout_uri: Option<String>,
     pub login_version: Option<LoginVersion>,
+}
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum LoginVersion {
+    Version1,
+    Version2,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum OidcResponseType {
+    Code,
+    IdToken,
+    IdTokenToken,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum OidcGrantType {
+    AuthorizationCode,
+    Implicit,
+    RefreshToken,
+    DeviceCode,
+    TokenExchange,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum OidcAppType {
+    Web,
+    UserAgent,
+    Native,
+}
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum OidcAuthMethodType {
+    Basic,
+    Post,
+    None,
+    PrivateKeyJwt,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum OidcTokenType {
+    Bearer,
+    Jwt,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]

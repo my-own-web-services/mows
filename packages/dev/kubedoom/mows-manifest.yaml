@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=/home/paul/projects/mows/operators/mows-package-manager/schemas/manifest-schema.json
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/mows-package-manager/schemas/manifest-schema.json?ref_type=heads
 
 manifestVersion: "0.1"
 metadata:
@@ -18,4 +18,7 @@ spec:
                     - urls:
                         - https://raw.githubusercontent.com/storax/kubedoom/refs/heads/master/manifest/deployment.yaml
                       sha256Digest: 2cf36ecbae2dd7b721f1fa546b56ac0cec5c73e0c2ccec9ea4359dc72e31fe6a
+
+ 
+        
 
