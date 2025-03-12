@@ -1,5 +1,7 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
+import { GrResume } from "react-icons/gr";
+import { TbSnowflake } from "react-icons/tb";
 import { VscDebugStart, VscDebugStop, VscSync } from "react-icons/vsc";
 import { Button } from "rsuite";
 import { Api, Cluster, ClusterSignal } from "../../api-client";
@@ -62,6 +64,20 @@ export default class ClusterComp extends Component<ClusterCompProps, ClusterComp
                         onClick={() => this.signalCluster(ClusterSignal.Restart)}
                     >
                         <VscSync />
+                    </Button>
+                    <Button
+                        title="Suspend"
+                        size={buttonSize}
+                        onClick={() => this.signalCluster(ClusterSignal.Suspend)}
+                    >
+                        <TbSnowflake />
+                    </Button>
+                    <Button
+                        title="Resume"
+                        size={buttonSize}
+                        onClick={() => this.signalCluster(ClusterSignal.Resume)}
+                    >
+                        <GrResume />
                     </Button>
                 </div>
                 <ClusterStatusComp clusterStatus={clusterStatusSignal.value[cluster.id]} />

@@ -20,13 +20,6 @@ use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
-/*
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
-#[cfg(not(target_env = "msvc"))]
-#[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
-*/
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -34,7 +27,7 @@ static GLOBAL: Jemalloc = Jemalloc;
         (name = "mows-manager", description = "Cluster management API")
     )
 )]
-struct ApiDoc;
+pub struct ApiDoc;
 
 #[tracing::instrument]
 #[tokio::main]

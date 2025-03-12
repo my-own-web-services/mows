@@ -2,13 +2,15 @@ ARG PROFILE="release"
 ARG RUSTFLAGS="--cfg tokio_unstable"
 ARG SERVICE_NAME="mows-manager"
 ARG BINARY_NAME="manager"
+ARG BUILD_UI="true"
+ARG BUILD_PACKAGE_MANAGER_CLI="true"
 
 FROM node:23.9.0-alpine3.21@sha256:191433e4778ded9405c9fc981f963ad2062a8648b59a9bc97d7194f3d183b2b2 AS ui-builder
+ARG BUILD_UI
 WORKDIR /build/
-COPY ui/ ./
-RUN npm install -g pnpm
-RUN pnpm install
-RUN pnpm build
+COPY ui/ ./ 
+RUN  if [ "${BUILD_UI}" = "true" ];  then npm install -g pnpm && pnpm install && pnpm build ;  else mkdir -p /build/dist ; echo "BUILD_UI=false, The UI wasn't built. " > /build/dist/index.html ; fi
+
 
 
 
@@ -58,11 +60,14 @@ RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl
 RUN if [ "${PROFILE}" = "release" ];  then strip /${BINARY_NAME}; fi
 RUN if [ "${PROFILE}" = "release" ];  then upx --best --lzma /${BINARY_NAME}; fi
 
-
-RUN cd ../mows-package-manager && cargo build --bin cli --profile=${PROFILE} 
-RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl/debug/cli /cli; else mv /build/target/x86_64-unknown-linux-musl/${PROFILE}/cli /cli; fi
-RUN if [ "${PROFILE}" = "release" ];  then strip /cli; fi
-RUN if [ "${PROFILE}" = "release" ];  then upx --best --lzma /cli; fi
+ARG BUILD_PACKAGE_MANAGER_CLI
+RUN if [ "${BUILD_PACKAGE_MANAGER_CLI}" = "true" ];  then \
+cd ../mows-package-manager && cargo build --bin cli --profile=${PROFILE}  \
+&& if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl/debug/cli /cli; else mv /build/target/x86_64-unknown-linux-musl/${PROFILE}/cli /cli; fi \
+&& if [ "${PROFILE}" = "release" ];  then strip /cli; fi \
+&& if [ "${PROFILE}" = "release" ];  then upx --best --lzma /cli; fi \
+; else echo "#!/bin/sh \n echo \"BUILD_PACKAGE_MANAGER_CLI=false, The Package Manager CLI wasn't built.\"" > /cli && chmod +x /cli \
+; fi
 
 
 

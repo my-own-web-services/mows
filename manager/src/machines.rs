@@ -36,6 +36,7 @@ pub enum MachineStatus {
     Running,
     Stopped,
     Unknown,
+    Suspended,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]
@@ -134,6 +135,22 @@ impl Machine {
         }
     }
 
+    pub async fn suspend(&self) -> anyhow::Result<()> {
+        match self.machine_type {
+            MachineType::LocalQemu => LocalMachineProviderQemu::suspend(&self.id).await,
+            MachineType::LocalPhysical => bail!("Not implemented"),
+            MachineType::ExternalHcloud => bail!("Not implemented"),
+        }
+    }
+
+    pub async fn resume(&self) -> anyhow::Result<()> {
+        match self.machine_type {
+            MachineType::LocalQemu => LocalMachineProviderQemu::resume(&self.id).await,
+            MachineType::LocalPhysical => bail!("Not implemented"),
+            MachineType::ExternalHcloud => bail!("Not implemented"),
+        }
+    }
+
     pub async fn reboot(&self) -> anyhow::Result<()> {
         match self.machine_type {
             MachineType::LocalQemu => LocalMachineProviderQemu::reboot(&self.id).await,
@@ -183,6 +200,8 @@ impl Machine {
             MachineSignal::Reset => self.reset().await,
             MachineSignal::ForceOff => self.force_off().await,
             MachineSignal::Start => self.start().await,
+            MachineSignal::Suspend => self.suspend().await,
+            MachineSignal::Resume => self.resume().await,
         }
     }
 

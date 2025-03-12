@@ -4,7 +4,7 @@ pub mod clusters {
 
     use crate::{
         cluster::cluster::ClusterStatus,
-        config::{config, Cluster, ClusterInstallState, ClusterNode, InternalIps},
+        config::{Cluster, ClusterInstallState, ClusterNode, InternalIps},
         dev_mode_disabled, get_current_config_cloned,
         internal_config::INTERNAL_CONFIG,
         machines::MachineType,
@@ -89,6 +89,8 @@ pub mod clusters {
         Start,
         Restart,
         Stop,
+        Suspend,
+        Resume,
     }
 
     #[utoipa::path(
