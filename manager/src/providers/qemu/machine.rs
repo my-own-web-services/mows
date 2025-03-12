@@ -132,6 +132,7 @@ impl LocalMachineProviderQemu {
         Ok(match output.trim() {
             "running" => MachineStatus::Running,
             "shut off" => MachineStatus::Stopped,
+            "suspended" => MachineStatus::Suspended,
             _ => MachineStatus::Unknown,
         })
     }
@@ -224,6 +225,28 @@ impl LocalMachineProviderQemu {
                 "default",
                 &format!("{}-secondary.qcow2", id),
             ])
+            .stdout(Stdio::null())
+            .spawn()?
+            .wait()
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn resume(id: &str) -> anyhow::Result<()> {
+        Command::new("virsh")
+            .args(["resume", id])
+            .stdout(Stdio::null())
+            .spawn()?
+            .wait()
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn suspend(id: &str) -> anyhow::Result<()> {
+        Command::new("virsh")
+            .args(["suspend", id])
             .stdout(Stdio::null())
             .spawn()?
             .wait()

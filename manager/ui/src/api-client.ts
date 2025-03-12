@@ -111,6 +111,8 @@ export enum ClusterSignal {
   Start = "Start",
   Restart = "Restart",
   Stop = "Stop",
+  Suspend = "Suspend",
+  Resume = "Resume",
 }
 
 export interface ClusterSignalReqBody {
@@ -227,6 +229,8 @@ export enum MachineSignal {
   Shutdown = "Shutdown",
   Reset = "Reset",
   ForceOff = "ForceOff",
+  Suspend = "Suspend",
+  Resume = "Resume",
 }
 
 export interface MachineSignalReqBody {
@@ -238,6 +242,7 @@ export enum MachineStatus {
   Running = "Running",
   Stopped = "Stopped",
   Unknown = "Unknown",
+  Suspended = "Suspended",
 }
 
 export interface MachineStatusResBody {
@@ -540,7 +545,7 @@ export class HttpClient<SecurityDataType = unknown> {
 
 /**
  * @title manager
- * @version 0.1.0
+ * @version 0.0.1
  * @license
  */
 export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDataType> {

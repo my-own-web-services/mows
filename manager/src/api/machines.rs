@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
-    config::{config, Machine},
+    config::{ Machine},
     dev_mode_disabled, get_current_config_cloned,
     machines::{MachineStatus, MachineType, VncWebsocket},
     providers::{
@@ -98,6 +98,8 @@ pub enum MachineSignal {
     Shutdown,
     Reset,
     ForceOff,
+    Suspend,
+    Resume,
 }
 
 #[utoipa::path(

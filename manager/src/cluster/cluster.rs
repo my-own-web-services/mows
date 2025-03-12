@@ -180,7 +180,49 @@ impl Cluster {
                 self.start_cluster().await?;
             }
             ClusterSignal::Stop => self.stop_cluster().await?,
+            ClusterSignal::Suspend => {
+                self.suspend_cluster().await?;
+            }
+            ClusterSignal::Resume => {
+                self.resume_cluster().await?;
+            }
         }
+        Ok(())
+    }
+
+    pub async fn suspend_cluster(&self) -> anyhow::Result<()> {
+        debug!("Suspending cluster");
+
+        let config = get_current_config_cloned!();
+
+        // stop all machines
+        for node in self.cluster_nodes.values() {
+            debug!("Stopping machine: {}", node.machine_id);
+            match config.get_machine_by_id(&node.machine_id) {
+                Some(machine) => machine.suspend().await?,
+                None => bail!("Machine not found"),
+            }
+        }
+        debug!("Cluster suspended");
+
+        Ok(())
+    }
+
+    pub async fn resume_cluster(&self) -> anyhow::Result<()> {
+        debug!("Resuming cluster");
+
+        let config = get_current_config_cloned!();
+
+        // start all machines
+        for node in self.cluster_nodes.values() {
+            debug!("Starting machine: {}", node.machine_id);
+            match config.get_machine_by_id(&node.machine_id) {
+                Some(machine) => machine.resume().await?,
+                None => bail!("Machine not found"),
+            }
+        }
+        debug!("Cluster resumed");
+
         Ok(())
     }
 
@@ -189,16 +231,18 @@ impl Cluster {
 
         let config = get_current_config_cloned!();
 
-        for node in self.cluster_nodes.values() {
-            debug!("Starting machine: {}", node.machine_id);
-            match config.get_machine_by_id(&node.machine_id) {
-                Some(machine) => machine.start().await?,
-                None => bail!("Machine not found"),
+        if self.get_running_state().await? != Some(ClusterRunningState::ControlplaneReady) {
+            for node in self.cluster_nodes.values() {
+                debug!("Starting machine: {}", node.machine_id);
+                match config.get_machine_by_id(&node.machine_id) {
+                    Some(machine) => machine.start().await?,
+                    None => bail!("Machine not found"),
+                }
             }
         }
 
         // wait until vault is reachable
-        for _ in 0..100 {
+        for _ in 0..200 {
             if ClusterSecrets::is_vault_sealed(&self).await.is_err() {
                 sleep(tokio::time::Duration::from_secs(6)).await;
             } else {

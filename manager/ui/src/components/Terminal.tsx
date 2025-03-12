@@ -31,6 +31,7 @@ export default class TerminalComponent extends Component<
     private clipboardAddon: ClipboardAddon | null = null;
     private websocketAddon: WebSocketAddon | null = null;
     private ws: WebSocket | null = null;
+    private tryingToReconnect = false;
 
     componentDidMount = async () => {
         await this.init();
@@ -62,17 +63,22 @@ export default class TerminalComponent extends Component<
 
     createWebSocket = () => {
         this.ws = new WebSocket(this.getUrl());
-        // this.ws.onclose = async () => {
-        //     await this.retry();
-        // };
+        this.ws.onclose = async () => {
+            await this.retry();
+        };
 
-        // this.ws.onerror = async () => {
-        //     await this.retry();
-        // };
+        this.ws.onerror = async () => {
+            await this.retry();
+        };
     };
 
     retry = async () => {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        if (this.tryingToReconnect) {
+            return;
+        }
+        this.tryingToReconnect = true;
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         this.dispose();
         this.init();
@@ -102,6 +108,7 @@ export default class TerminalComponent extends Component<
             window.addEventListener("resize", () => {
                 this.fitAddon!.fit();
             });
+            this.tryingToReconnect = false;
         }
     };
 

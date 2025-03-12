@@ -12,8 +12,11 @@ services:
             args:
                 - PROFILE=dev # dev or release
                 - SERVICE_NAME=${SERVICE_NAME:-mows-manager}
+                - BUILD_UI=${BUILD_UI:-true}
+                - BUILD_PACKAGE_MANAGER_CLI=${BUILD_PACKAGE_MANAGER_CLI:-true}
             tags:
                 - ${REGISTRY:-localhost:5000}/${SERVICE_NAME:-mows-manager}
+                - mows-manager
         init: true # without this the mows manager cant start a pty process
         networks:
             mows-manager-pxe:

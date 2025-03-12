@@ -37,7 +37,6 @@ pub async fn handle_raw(raw_resource: &RawZitadelResource) -> Result<(), Control
             let mut management_client = client.management_client(Some(&org.id)).await?;
 
             // create project
-
             let project_list = management_client
                 .list_projects(ListProjectsRequest::default())
                 .await?;
@@ -65,7 +64,6 @@ pub async fn handle_raw(raw_resource: &RawZitadelResource) -> Result<(), Control
             };
 
             // create roles
-
             let mut project_role_list = management_client
                 .list_project_roles(zitadel::api::zitadel::management::v1::ListProjectRolesRequest {
                     project_id: project_id.clone(),

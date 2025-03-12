@@ -1,6 +1,8 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
+import { GrResume } from "react-icons/gr";
 import { IoTerminal } from "react-icons/io5";
+import { TbSnowflake } from "react-icons/tb";
 import { VscDebugStart, VscDebugStop, VscSync, VscSyncIgnored, VscTrash } from "react-icons/vsc";
 import { Button } from "rsuite";
 import { Api, Machine, MachineSignal, MachineStatus, VncWebsocket } from "../../api-client";
@@ -128,6 +130,20 @@ export default class MachineComponent extends Component<
                                 onClick={() => this.signalMachine(MachineSignal.ForceOff)}
                             >
                                 💥
+                            </Button>
+                            <Button
+                                title="Suspend"
+                                size={buttonSize}
+                                onClick={() => this.signalMachine(MachineSignal.Suspend)}
+                            >
+                                <TbSnowflake />
+                            </Button>
+                            <Button
+                                title="Resume"
+                                size={buttonSize}
+                                onClick={() => this.signalMachine(MachineSignal.Resume)}
+                            >
+                                <GrResume />
                             </Button>
                             <Button title="Delete" size={buttonSize} onClick={() => this.delete()}>
                                 <VscTrash />
