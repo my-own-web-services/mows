@@ -41,7 +41,10 @@ services:
         volumes:
             - ./temp/manager:/temp/:rw
             - ./misc/internal-config.yml:/internal-config.yml:ro
-            - ../packages/:/packages/:ro
+            - ./install:/install:ro
+            - ../packages/:/packages/
+            - ../operators/:/operators/
+            - ../apis/:/apis/
             - /etc/resolv.conf:/etc/host-resolv.conf:ro
             - /dev:/dev:rw
             - /run/udev:/run/udev:ro

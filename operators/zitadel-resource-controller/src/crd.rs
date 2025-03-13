@@ -1,7 +1,6 @@
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
 use zitadel::api::zitadel::app::v1::ApiAuthMethodType;
 
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -185,4 +184,48 @@ pub struct RawZitadelApplicationSaml {}
 pub struct RawZitadelApplicationApi {
     #[schemars(with = "String")]
     auth_method_type: ApiAuthMethodType,
+}
+
+pub fn oidc_response_type_to_zitadel(response_type: &OidcResponseType) -> i32 {
+    match response_type {
+        OidcResponseType::Code => 0,
+        OidcResponseType::IdToken => 1,
+        OidcResponseType::IdTokenToken => 2,
+    }
+}
+
+pub fn oidc_grant_type_to_zitadel(grant_type: &OidcGrantType) -> i32 {
+    match grant_type {
+        OidcGrantType::AuthorizationCode => 0,
+        OidcGrantType::Implicit => 1,
+        OidcGrantType::RefreshToken => 2,
+        OidcGrantType::DeviceCode => 3,
+        OidcGrantType::TokenExchange => 4,
+    }
+}
+
+pub fn oidc_app_type_to_zitadel(app_type: &OidcAppType) -> i32 {
+    match app_type {
+        OidcAppType::Web => 0,
+        OidcAppType::UserAgent => 1,
+        OidcAppType::Native => 2,
+    }
+}
+
+pub fn oidc_auth_method_type_to_zitadel(auth_method_type: &OidcAuthMethodType) -> i32 {
+    use zitadel::api::zitadel::app::v1::OidcGrantType;
+
+    match auth_method_type {
+        OidcAuthMethodType::Basic => 0,
+        OidcAuthMethodType::Post => 1,
+        OidcAuthMethodType::None => 2,
+        OidcAuthMethodType::PrivateKeyJwt => 3,
+    }
+}
+
+pub fn oidc_access_token_type_to_zitadel(access_token_type: &OidcTokenType) -> i32 {
+    match access_token_type {
+        OidcTokenType::Bearer => 0,
+        OidcTokenType::Jwt => 1,
+    }
 }

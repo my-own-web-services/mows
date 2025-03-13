@@ -9,7 +9,7 @@ spec:
             cloudnativePgHelmRepo:
                 helm:
                     urls:
-                        - https://cloudnative-pg.github.io/charts
+                        - https://cloudnative-pg.io/charts
                     sha256Digest: 9db75eb5002e0e71f13fa958cfd8edb0f33449990b2852962dd64ebf948d61e2
                     version: "0.23.1"
                     releaseName: cloudnative-pg
