@@ -659,10 +659,6 @@ impl Cluster {
                     "mows-core-secrets-vault",
                 ),
                 (
-                    "file:///packages/core/secrets/vrc/",
-                    "mows-core-secrets-vrc",
-                ),
-                (
                     "file:///packages/core/db/postgres/",
                     "mows-core-db-postgres",
                 ),
@@ -712,13 +708,6 @@ impl Cluster {
         }
 
         debug!("Installing Vault Resource Controller");
-        self.install_with_package_manager(
-            "file:///packages/core/secrets/vrc/",
-            "mows-core-secrets-vrc",
-            &CrdHandling::WithoutCrd,
-        )
-        .await?;
-
         ClusterSecrets::setup_vrc(&self).await?;
 
         debug!("Installing Postgres Operator");

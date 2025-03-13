@@ -5,6 +5,7 @@
         "cntrlr",
         "crdgen",
         "FINALIZER",
+        "oidc",
         "openmetrics",
         "opentelemetry",
         "otel",
@@ -14,6 +15,7 @@
         "runtimes",
         "schemars",
         "serviceaccount",
+        "userinfo",
         "vaultrs",
         "zitadel"
     ]

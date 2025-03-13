@@ -26,10 +26,6 @@ doc = false
 name = "crdgen"
 path = "src/crdgen.rs"
 
-[[bin]]
-doc = false
-name = "test_client"
-path = "src/test_client.rs"
 
 [lib]
 doc = false

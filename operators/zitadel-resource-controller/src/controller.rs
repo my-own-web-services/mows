@@ -48,7 +48,7 @@ pub async fn reconcile_resource(
     };
 
     match &zitadel_resource.spec {
-        ZitadelResourceSpec::Raw(raw_resource) => handle_raw(raw_resource).await?,
+        ZitadelResourceSpec::Raw(raw_resource) => handle_raw(resource_namespace, raw_resource).await?,
     }
 
     Ok(())

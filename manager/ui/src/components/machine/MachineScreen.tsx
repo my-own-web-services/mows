@@ -1,5 +1,5 @@
 import { isEqual } from "lodash";
-import { Component } from "preact";
+import { Component, createRef, RefObject } from "preact";
 import { CSSProperties } from "preact/compat";
 //@ts-ignore
 import { VncScreen } from "react-vnc";
@@ -15,15 +15,26 @@ interface MachineScreenProps {
 interface MachineScreenState {}
 
 export default class MachineScreen extends Component<MachineScreenProps, MachineScreenState> {
+    private vncRef: RefObject<VncScreen>;
+
     constructor(props: MachineScreenProps) {
         super(props);
         this.state = {
             url: "",
             machine_infos: null
         };
+
+        this.vncRef = createRef();
     }
 
-    componentDidMount = async () => {};
+    componentDidMount = async () => {
+        if (this.vncRef.current) {
+            setTimeout(() => {
+                this.vncRef.current.disconnect();
+                this.vncRef.current.connect();
+            }, 100);
+        }
+    };
 
     shouldComponentUpdate = (
         nextProps: Readonly<MachineScreenProps>,
@@ -36,6 +47,13 @@ export default class MachineScreen extends Component<MachineScreenProps, Machine
             !isEqual(nextProps.machine.id, this.props.machine.id) ||
             !isEqual(nextProps.machineStatus, this.props.machineStatus)
         );
+    };
+
+    componentWillUnmount = () => {
+        if (this.vncRef.current) {
+            this.vncRef.current.disconnect();
+            this.vncRef.current = null;
+        }
     };
 
     render = () => {
@@ -59,6 +77,7 @@ export default class MachineScreen extends Component<MachineScreenProps, Machine
                             url={this.props.vncWebsocket?.url}
                             backgroundColor="#000"
                             loadingUI={<div></div>}
+                            ref={this.vncRef}
                         />
                     ) : (
                         <div

@@ -5,7 +5,7 @@ own_addresses:
     ip: null
 
 package_manager:
-    working_dir: /tmp/mows-package-manager
+    working_dir: /tmp/mows-manager-mpm-lib
 
 os_config:
     kairos_version: "v3.2.1"

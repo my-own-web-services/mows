@@ -10,9 +10,9 @@ spec:
                 helm:
                     releaseName: pektin
                     chartName: pektin
-            pektinControllerHelmRepo:
+            pektinResourceControllerHelmRepo:
                 helm:
-                    releaseName: pektin-dns-controller
-                    chartName: pektin-dns-controller
+                    releaseName: pektin-resource-controller
+                    chartName: pektin-resource-controller
 
 

@@ -1,5 +1,5 @@
 apiVersion: v2
-name: pektin-dns-controller
+name: pektin-resource-controller
 description: controller to create pektin dns entries
 type: application
 version: 0.1.0
