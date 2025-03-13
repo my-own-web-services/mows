@@ -60,22 +60,35 @@ pub async fn shutdown_signal() {
     }
 }
 
-pub async fn get_all_file_paths_recursive(path: &Path) -> Vec<PathBuf> {
+pub async fn get_all_file_paths_recursive(path: &Path) -> anyhow::Result<Vec<PathBuf>> {
     let mut file_paths = Vec::new();
 
-    let mut dir = tokio::fs::read_dir(path).await.unwrap();
+    let mut dir = tokio::fs::read_dir(path).await.context(format!(
+        "Error reading directory: {}",
+        path.to_str().unwrap_or("")
+    ))?;
 
-    while let Some(entry) = dir.next_entry().await.unwrap() {
+    while let Some(entry) = dir.next_entry().await.context(format!(
+        "Error reading next entry in directory: {}",
+        path.to_str().unwrap_or("")
+    ))? {
         let path = entry.path();
 
         if path.is_dir() {
-            file_paths.append(&mut Box::pin(get_all_file_paths_recursive(&path)).await);
+            file_paths.append(
+                &mut Box::pin(get_all_file_paths_recursive(&path))
+                    .await
+                    .context(format!(
+                        "Error getting all file paths recursively in directory: {}",
+                        path.to_str().unwrap_or("")
+                    ))?,
+            );
         } else {
             file_paths.push(path);
         }
     }
 
-    file_paths
+    Ok(file_paths)
 }
 /// all: Ignore namespace and return cluster-wide API
 pub fn get_dynamic_kube_api(
@@ -99,7 +112,12 @@ pub async fn replace_cluster_variables_in_folder_in_place(
     cluster_variables: &HashMap<String, serde_json::Value>,
 ) -> anyhow::Result<()> {
     // replace cluster variables in all files recursively
-    let file_paths = get_all_file_paths_recursive(&directory_path).await;
+    let file_paths = get_all_file_paths_recursive(&directory_path)
+        .await
+        .context(format!(
+            "Error getting all file paths recursively in directory: {}",
+            directory_path.to_str().unwrap_or("")
+        ))?;
 
     for file_path in file_paths {
         let original_file_content = tokio::fs::read_to_string(&file_path).await?;

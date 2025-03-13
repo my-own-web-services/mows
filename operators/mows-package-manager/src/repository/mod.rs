@@ -8,13 +8,15 @@ use crate::{
     utils::{get_dynamic_kube_api, parse_manifest},
 };
 use anyhow::Context;
-use fs_extra::dir::CopyOptions;
 use k8s_openapi::api::core::v1::Namespace;
 use kube::{
     api::{DynamicObject, GroupVersionKind, ObjectMeta, Patch, PatchParams},
     Api, Discovery, ResourceExt,
 };
-use mows_common::{kube::get_kube_client, utils::generate_id};
+use mows_common::{
+    kube::get_kube_client,
+    utils::{copy_directory_recursive, generate_id},
+};
 use raw::RawSpecError;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -44,10 +46,10 @@ impl Repository {
         cluster_variables: &HashMap<String, serde_json::Value>,
     ) -> Result<Vec<RenderedDocument>, RenderError> {
         let repo_paths = self.get_repository_paths(root_working_directory).await?;
-
         let _ = &self
             .fetch_mows_repository(&repo_paths.mows_repo_source_path)
             .await?;
+
         debug!("Fetched repository: {:?}", self);
 
         let mows_manifest = self.read_manifest(&repo_paths.manifest_path).await?;
@@ -77,13 +79,15 @@ impl Repository {
         target_path: &PathBuf,
     ) -> Result<(), FetchMowsRepoError> {
         if self.uri.starts_with("file://") {
-            let cp_options = &CopyOptions::new().content_only(true).overwrite(true);
+            let source_path = Path::new(&self.uri[7..]);
 
-            fs_extra::dir::copy(&self.uri[7..], target_path, cp_options).context(format!(
-                "Error copying files from {} to {}",
-                &self.uri[7..],
-                target_path.display()
-            ))?;
+            copy_directory_recursive(source_path, target_path, 10_000)
+                .await
+                .context(format!(
+                    "Error copying files from {} to {}",
+                    &source_path.display(),
+                    target_path.display()
+                ))?;
 
             debug!(
                 "Copied files from {} to {}",
@@ -286,8 +290,6 @@ pub enum FetchMowsRepoError {
     InvalidUri(String),
     #[error(transparent)]
     IoError(#[from] tokio::io::Error),
-    #[error(transparent)]
-    FsExtraError(#[from] fs_extra::error::Error),
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
 }
