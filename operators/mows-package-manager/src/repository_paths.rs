@@ -33,10 +33,6 @@ impl RepositoryPaths {
         let temp_path = working_path.join("temp");
         let artifact_path = Path::new(&root_working_directory).join("store");
 
-        let _ = tokio::fs::remove_dir_all(&working_path).await.map_err(|e| {
-            debug!("Error removing working directory: {}", e);
-        });
-
         let _ = tokio::fs::create_dir_all(&source_path).await;
         let _ = tokio::fs::create_dir_all(&temp_path).await;
         let _ = tokio::fs::create_dir_all(&artifact_path).await;

@@ -21,7 +21,7 @@ impl FilesSpec {
             .mows_repo_source_path
             .join("sources")
             .join(source_name);
-        let file_paths = get_all_file_paths_recursive(&source_path).await;
+        let file_paths = get_all_file_paths_recursive(&source_path).await?;
 
         replace_cluster_variables_in_folder_in_place(&source_path, cluster_variables)
             .await

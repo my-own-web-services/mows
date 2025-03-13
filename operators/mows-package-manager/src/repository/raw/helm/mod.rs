@@ -1,15 +1,18 @@
 use crate::{
-    rendered_document::{MethodSpecificRenderedDocumentDebug, MethodSpecificRenderedDocumentDebugHelm, RenderedDocument, RenderedDocumentDebug},
+    rendered_document::{
+        MethodSpecificRenderedDocumentDebug, MethodSpecificRenderedDocumentDebugHelm,
+        RenderedDocument, RenderedDocumentDebug,
+    },
     repository::RepositoryPaths,
-    types::{HelmRepoSpec, ManifestSource}, utils::{download_or_get_cached_file, replace_cluster_variables_in_folder_in_place},
+    types::{HelmRepoSpec, ManifestSource},
+    utils::{download_or_get_cached_file, replace_cluster_variables_in_folder_in_place},
 };
+use anyhow::Context;
 use flate2::read::GzDecoder;
-use serde::{ Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
-use tokio::{
-    process::Command,
-};
-use tracing::{debug};
+use tokio::process::Command;
+use tracing::debug;
 use url::Url;
 use utoipa::ToSchema;
 
@@ -21,7 +24,8 @@ impl HelmRepoSpec {
         source_name: &str,
         cluster_variables: &HashMap<String, serde_json::Value>,
     ) -> Result<Vec<RenderedDocument>, HelmRepoError> {
-        self.get_chart(repo_paths,source_name,cluster_variables).await?;
+        self.get_chart(repo_paths, source_name, cluster_variables)
+            .await?;
         self.render(repo_paths, &source_name, namespace).await
     }
     pub async fn render(
@@ -66,49 +70,99 @@ impl HelmRepoSpec {
         if command.status.success() {
             let output = String::from_utf8_lossy(&command.stdout);
 
+            // write output to file
+
+            tokio::fs::write(
+                repo_paths.temp_path.join("helm_output.yaml"),
+                output.as_ref(),
+            )
+            .await
+            .map_err(|e| {
+                HelmRepoError::RenderHelmError(format!("Error writing helm output to file: {}", e))
+            })?;
+
             let mut result_documents: Vec<RenderedDocument> = Vec::new();
 
-            for document in output.split("---\n") {
+            let mut raw_documents: Vec<String> = output
+                .split("\n---\n# Source:")
+                .map(|s| s.to_string())
+                .collect();
+
+            // remove the first empty string
+            raw_documents.remove(0);
+
+            let relative_source_paths = raw_documents
+                .iter()
+                .map(|doc| {
+                    let mut lines = doc.lines();
+                    let source_path_comment = lines.next().unwrap_or("");
+                    debug!("source_path_comment: {}", source_path_comment);
+                    let source_path = source_path_comment.split(": ").last().unwrap_or("");
+                    //remove first character which is a space
+                    let source_path = &source_path[1..];
+
+                    source_path.to_string()
+                })
+                .collect::<Vec<String>>();
+
+            for (i, document_deserializer) in
+                serde_yaml_ng::Deserializer::from_str(&output).enumerate()
+            {
                 // get the resource path from the only comment in the document
 
-                    let resource_source_path= document.lines().find(|line| line.starts_with("# Source:"))
-                    .map(|line| line.trim_start_matches("# Source:").trim().to_string()).map(
-                        |resource_source_path| source_path.join(resource_source_path).to_str().unwrap().to_string()
-                    );
+                let resource =
+                    serde_yaml_ng::Value::deserialize(document_deserializer).map_err(|e| {
+                        HelmRepoError::RenderHelmError(format!(
+                            "Error serializing yaml to json: {}",
+                            e
+                        ))
+                    })?;
 
-
-                let resource: serde_yaml_ng::Value = serde_yaml_ng::from_str(document).map_err(|e| {
-                    HelmRepoError::RenderHelmError(format!("Error rendering Helm: {}", e))
-                })?;
+                let relative_resource_source_path =
+                    relative_source_paths.get(i).map(|p| p.to_string());
 
                 if resource.is_null() {
                     continue;
                 }
 
-                let resource: serde_json::Value=serde_json::to_value(&resource).map_err(|e| {
-                    HelmRepoError::RenderHelmError(format!("Error rendering Helm: {}", e))
+                let resource: serde_json::Value = serde_json::to_value(&resource).map_err(|e| {
+                    HelmRepoError::RenderHelmError(format!("Error converting yaml to json: {}", e))
                 })?;
 
-                let method_specific_debug:Option<MethodSpecificRenderedDocumentDebug>=if let Some(resource_source_path)=resource_source_path.clone() {
-                    Some(MethodSpecificRenderedDocumentDebug::Helm(MethodSpecificRenderedDocumentDebugHelm {
-                        original_template: tokio::fs::read_to_string(&resource_source_path).await.map_err(
-                            |e| HelmRepoError::RenderHelmError(format!("Error reading original template file: {} from path {}", e, &resource_source_path))
-                        )?.to_string(
-                        ),
-                    }))
-                } else {
-                    None
-                };
+                let method_specific: Option<MethodSpecificRenderedDocumentDebug> =
+                    if let Some(rrsp) = relative_resource_source_path.clone() {
+                        // for some reason there is a very very strange bug that get triggered when using tokio::fs::read_to_string here see at the bottom of the file (*1)
 
+                        let template_path = repo_paths
+                            .mows_repo_source_path
+                            .join("sources")
+                            .join(source_name)
+                            .join(rrsp);
+                        let original_template = std::fs::read_to_string(&template_path)
+                            .map_err(|e| {
+                                HelmRepoError::RenderHelmError(format!(
+                                    "Error reading original template file from path `{}` : {} ",
+                                    e,
+                                    &template_path.to_string_lossy()
+                                ))
+                            })?
+                            .to_string();
+
+                        Some(MethodSpecificRenderedDocumentDebug::Helm(
+                            MethodSpecificRenderedDocumentDebugHelm { original_template },
+                        ))
+                    } else {
+                        None
+                    };
 
                 result_documents.push(RenderedDocument {
                     resource,
                     source_name: source_name.to_string(),
                     source_type: ManifestSource::Helm(self.clone()),
                     debug: RenderedDocumentDebug {
-                        resource_string_before_parse: Some(document.to_string()),
-                        resource_source_path,
-                        method_specific:method_specific_debug,
+                        resource_string_before_parse: raw_documents.get(i).map(|s| s.to_string()),
+                        resource_source_path: relative_resource_source_path,
+                        method_specific,
                     },
                 });
             }
@@ -122,53 +176,52 @@ impl HelmRepoSpec {
         }
     }
 
-    pub async fn get_chart(&self, repo_paths: &RepositoryPaths,source_name: &str,cluster_variables
-        : &HashMap<String, serde_json::Value>
+    pub async fn get_chart(
+        &self,
+        repo_paths: &RepositoryPaths,
+        source_name: &str,
+        cluster_variables: &HashMap<String, serde_json::Value>,
     ) -> Result<(), HelmRepoError> {
+        // local chart,  check if the folder exists
+        let source_path = repo_paths
+            .mows_repo_source_path
+            .join("sources")
+            .join(source_name);
+        let chart_path = source_path.join(&self.chart_name);
 
-
-                     // local chart,  check if the folder exists
-                     let source_path = repo_paths
-                     .mows_repo_source_path
-                     .join("sources")
-                     .join(source_name);
-                 let chart_path = source_path.join(&self.chart_name);
-        
         match &self.urls {
             Some(uris) => {
-      
-            let mut helm_repository_index_and_url: Option<(HelmRepositoryIndex, String)> = None;
+                let mut helm_repository_index_and_url: Option<(HelmRepositoryIndex, String)> = None;
 
-            for remote_repository_uri in uris {
-                match self
-                    .fetch_remote_repository_index(remote_repository_uri)
-                    .await
-                {
-                    Ok(index) => {
-                        helm_repository_index_and_url =
-                            Some((index, remote_repository_uri.to_string()));
-                        break;
-                    }
-                    Err(e) => {
-                        debug!(
-                            "Error fetching Helm Repository Index from: {:?}, error: {}",
-                            remote_repository_uri, e
-                        );
-                        continue;
+                for remote_repository_url in uris {
+                    match self
+                        .fetch_remote_repository_index(remote_repository_url)
+                        .await
+                    {
+                        Ok(index) => {
+                            helm_repository_index_and_url =
+                                Some((index, remote_repository_url.to_string()));
+                            break;
+                        }
+                        Err(e) => {
+                            debug!(
+                                "Error fetching Helm Repository Index from: {:?}, error: {}",
+                                remote_repository_url, e
+                            );
+                            continue;
+                        }
                     }
                 }
-            }
 
-            self.fetch_remote_chart(
-                repo_paths,
-                &helm_repository_index_and_url.ok_or(HelmRepoError::FetchHelmChartError(
-                    format!("Error fetching HelmChart: {}", self.chart_name),
-                ))?,
-                source_name
-            )
-            .await?;
-            
-            },
+                self.fetch_remote_chart(
+                    repo_paths,
+                    &helm_repository_index_and_url.ok_or(HelmRepoError::FetchHelmChartError(
+                        format!("Error fetching HelmChart: {}", self.chart_name),
+                    ))?,
+                    source_name,
+                )
+                .await?;
+            }
             None => {
                 if !Path::new(&chart_path).exists() {
                     return Err(HelmRepoError::FetchHelmChartError(format!(
@@ -181,26 +234,26 @@ impl HelmRepoSpec {
         };
 
         replace_cluster_variables_in_folder_in_place(&chart_path, cluster_variables)
-            .await.map_err(|e| HelmRepoError::RenderHelmError(format!("Error rendering Helm: {}", e)))?;
+            .await
+            .map_err(|e| HelmRepoError::RenderHelmError(format!("Error rendering Helm: {}", e)))?;
 
         Ok(())
     }
 
     pub async fn fetch_remote_repository_index(
         &self,
-        uri: &str,
+        url: &str,
     ) -> Result<HelmRepositoryIndex, HelmRepoError> {
-        let req_url = Url::parse(uri)
-            .map_err(|e| HelmRepoError::FetchHelmRepoError(format!("Error parsing URL: {}", e)))?;
-
         // add index.yaml to the end of the URL if it doesn't exist
 
-        let req_url = if req_url.path().ends_with("index.yaml") {
-            req_url
+        let req_url = if url.ends_with("index.yaml") {
+            url.to_string()
         } else {
-            req_url.join("index.yaml").map_err(|e| {
-                HelmRepoError::FetchHelmRepoError(format!("Error joining URL: {}", e))
-            })?
+            if url.ends_with("/") {
+                format!("{}index.yaml", url)
+            } else {
+                format!("{}/index.yaml", url)
+            }
         };
 
         debug!(
@@ -224,7 +277,10 @@ impl HelmRepoSpec {
 
         let helm_repository_index: HelmRepositoryIndex =
             serde_yaml_ng::from_str(&helm_repository_index_string).map_err(|e| {
-                HelmRepoError::FetchHelmRepoError(format!("Error parsing HelmRepo: {}", e))
+                HelmRepoError::FetchHelmRepoError(format!(
+                    "Error parsing HelmRepo: {} while parsing string: {}",
+                    e, helm_repository_index_string
+                ))
             })?;
 
         debug!("Fetched Helm Repository Index");
@@ -236,32 +292,34 @@ impl HelmRepoSpec {
         &self,
         repository_paths: &RepositoryPaths,
         helm_repository_index_and_url: &(HelmRepositoryIndex, String),
-        source_name: &str
+        source_name: &str,
     ) -> Result<(), HelmRepoError> {
         let helm_repo_index = &helm_repository_index_and_url.0;
         let chart_index_root_url = &helm_repository_index_and_url.1;
 
-        let chart_index_url=Url::parse(chart_index_root_url).map_err(
-            |e| HelmRepoError::FetchHelmChartError(format!("Error parsing URL: {}", e)
-        ))?.join("index.yaml").map_err(
-            |e| HelmRepoError::FetchHelmChartError(format!("Error joining URL: {}", e)
-        ))?;
+        let chart_index_url = Url::parse(chart_index_root_url)
+            .map_err(|e| HelmRepoError::FetchHelmChartError(format!("Error parsing URL: {}", e)))?
+            .join("index.yaml")
+            .map_err(|e| HelmRepoError::FetchHelmChartError(format!("Error joining URL: {}", e)))?;
 
-        let manifest_declared_digest = self.sha256_digest.clone().ok_or(
-            HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: missing digest"))
-        )?;
+        let manifest_declared_digest =
+            self.sha256_digest
+                .clone()
+                .ok_or(HelmRepoError::FetchHelmChartError(format!(
+                    "Error fetching HelmChart: missing digest"
+                )))?;
 
-        let manifest_declared_version = self.version.clone().ok_or(
-            HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: missing version"))
-        )?;
+        let manifest_declared_version =
+            self.version
+                .clone()
+                .ok_or(HelmRepoError::FetchHelmChartError(format!(
+                    "Error fetching HelmChart: missing version"
+                )))?;
 
-
-        
         let selected_chart_versions = helm_repo_index
             .entries
             .get(&self.chart_name)
             .ok_or_else(|| {
-                
                 HelmRepoError::FetchHelmChartError(format!(
                     "Could not find HelmChart with name: {} in the fetched Helm repository index from: {}",
                     self.chart_name,
@@ -276,7 +334,6 @@ impl HelmRepoSpec {
                 ))
             )?;
 
-
         // check if the version matches
         if selected_chart_versions.version != manifest_declared_version {
             return Err(HelmRepoError::FetchHelmChartError(format!(
@@ -286,23 +343,30 @@ impl HelmRepoSpec {
             )));
         }
 
-        let chart_urls = Self::get_remote_chart_urls(chart_index_root_url, &selected_chart_versions.urls).await?;
+        let chart_urls =
+            Self::get_remote_chart_urls(chart_index_root_url, &selected_chart_versions.urls)
+                .await?;
 
-        let store_path_with_repo_archive= download_or_get_cached_file(
+        let store_path_with_repo_archive = download_or_get_cached_file(
             &chart_urls,
             &repository_paths.artifact_path,
             &manifest_declared_digest,
             None,
-        ).await.map_err(|e| {
+        )
+        .await
+        .map_err(|e| {
             HelmRepoError::FetchHelmChartError(format!("Error fetching HelmChart: {}", e))
         })?;
 
+        let chart_target_directory = repository_paths
+            .mows_repo_source_path
+            .join("sources")
+            .join(source_name);
 
-        let chart_target_directory = repository_paths.mows_repo_source_path.join("sources").join(source_name);
-
-        let archive_file = std::fs::File::open(Path::new(&store_path_with_repo_archive)).map_err(|e| {
-            HelmRepoError::FetchHelmChartError(format!("Error opening file: {}", e))
-        })?;
+        let archive_file =
+            std::fs::File::open(Path::new(&store_path_with_repo_archive)).map_err(|e| {
+                HelmRepoError::FetchHelmChartError(format!("Error opening file: {}", e))
+            })?;
 
         let uncompressed_file = GzDecoder::new(archive_file);
 
@@ -319,19 +383,21 @@ impl HelmRepoSpec {
         repository_index_url: &str,
         chart_urls: &Vec<String>,
     ) -> Result<Vec<Url>, HelmRepoError> {
-        let mut urls= vec![];
+        let mut urls = vec![];
 
         for url in chart_urls {
-            urls.push(Url::parse(url).unwrap_or(
-                Url::parse(&repository_index_url)
-                    .map_err(|e| {
-                        HelmRepoError::FetchHelmChartError(format!("Error parsing URL: {}", e))
-                    })?
-                    .join(url)
-                    .map_err(|e| {
-                        HelmRepoError::FetchHelmChartError(format!("Error joining URL: {}", e))
-                    })?,
-            ));
+            urls.push(
+                Url::parse(url).unwrap_or(
+                    Url::parse(&repository_index_url)
+                        .map_err(|e| {
+                            HelmRepoError::FetchHelmChartError(format!("Error parsing URL: {}", e))
+                        })?
+                        .join(url)
+                        .map_err(|e| {
+                            HelmRepoError::FetchHelmChartError(format!("Error joining URL: {}", e))
+                        })?,
+                ),
+            );
         }
 
         Ok(urls)
@@ -382,3 +448,21 @@ pub struct HelmRepositoryIndexMaintainer {
     pub name: Option<String>,
     pub url: Option<String>,
 }
+
+/*
+*1
+the trait bound `fn(axum::Json<RenderRepositoriesReqBody>) -> impl futures::Future<Output = axum::Json<ApiResponse<RenderRepositoriesResBody>>> {render_repositories}: Handler<_, _>` is not satisfied
+the following other types implement trait `Handler<T, S>`:
+`Layered<L, H, T, S>` implements `Handler<T, S>`
+`MethodRouter<S>` implements `Handler<(), S>`rustcClick for full compiler diagnostic
+lib.rs(134, 57): Actual error occurred here
+lib.rs(134, 24): required by a bound introduced by this call
+method_routing.rs(575, 12): required by a bound in `MethodRouter::<S>::on`
+
+in src/api/repository.rs:18:37
+pub fn router() -> OpenApiRouter {      HERE
+    OpenApiRouter::new().routes(routes!(render_repositories))
+}
+
+
+*/
