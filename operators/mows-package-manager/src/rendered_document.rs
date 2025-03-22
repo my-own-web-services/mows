@@ -125,6 +125,7 @@ impl RenderedDocument {
                     merge(&mut self.resource, merge_patch);
                 }
                 if let Some(json_patches) = &patch.patches {
+                    debug!("Applying patches: {:?}", json_patches);
                     let converted_json_patches: Patch =
                         serde_json::from_value(serde_json::to_value(json_patches)?)?;
                     json_patch::patch(&mut self.resource, &converted_json_patches)?;

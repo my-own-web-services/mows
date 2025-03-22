@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/mows-package-manager/schemas/manifest-schema.json?ref_type=heads
+
+manifestVersion: "0.1"
+metadata:
+  name: "pgAdmin"
+  version:  "0.1"
+spec:
+    raw:
+      sources:
+        pgAdminHelm:
+            helm:
+                urls:
+                    - https://helm.runix.net/
+                sha256Digest: 72f3b5d38833cb613f6b4b985a16bdf344fc611ae20e1f4b5dbd7221cd024b4c
+                version: "1.36.0"
+                releaseName: pgadmin
+                chartName: pgadmin4
+
+#kubectl port-forward -n=pgadmin service/pgadmin-pgadmin4 --address=0.0.0.0 8080:80 

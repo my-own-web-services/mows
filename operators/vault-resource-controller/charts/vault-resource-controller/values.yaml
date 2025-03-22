@@ -1,10 +1,12 @@
 replicaCount: 1
 nameOverride: ""
-namespace: "mows-core-secrets-vrc"
+namespace: "mows-core-secrets-vault"
 version: "" # pin a specific version
 image:
     repository: 192.168.112.5:5000/vault-resource-controller
     pullPolicy: Always
+
+vault_uri: http://vault.mows-core-secrets-vault:8200
 
 imagePullSecrets: []
 

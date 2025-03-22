@@ -93,7 +93,7 @@ ARG PROFILE
 
 RUN set -eu && \
     apt-get update && \
-    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less jq tcpdump wireguard ustreamer tesseract-ocr systemd bpftool tmux bash-completion
+    apt-get --no-install-recommends -y install libvirt-clients virtinst expect wget openssh-client sshpass net-tools iproute2 apt-transport-https gnupg curl ca-certificates inetutils-tools inetutils-ping htop dnsutils dnsmasq git vim nano less jq tcpdump wireguard ustreamer tesseract-ocr systemd bpftool tmux bash-completion zsh
 
 
 RUN mkdir -p $BASH_COMPLETIONS_DIR
@@ -101,7 +101,8 @@ RUN mkdir -p $BASH_COMPLETIONS_DIR
 # install pixiecore
 COPY --from=pixiecore-builder /go/bin/pixiecore /usr/local/bin/pixiecore
 
-
+COPY ./misc/.bashrc /root/.bashrc
+COPY ./misc/.zshrc /root/.zshrc
 # install helm
 RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list && \
@@ -131,7 +132,8 @@ RUN wget https://github.com/derailed/k9s/releases/download/v0.32.5/k9s_linux_amd
 RUN wget https://github.com/cilium/cilium-cli/releases/download/v0.16.11/cilium-linux-amd64.tar.gz && \
     tar -xvf cilium-linux-amd64.tar.gz -C /usr/local/bin && \
     chmod +x /usr/local/bin/cilium  && \
-    cilium completion bash > $BASH_COMPLETIONS_DIR/cilium
+    cilium completion bash > $BASH_COMPLETIONS_DIR/cilium && \
+    cilium 
 
 
 # install krew
@@ -144,7 +146,7 @@ RUN set -x; cd "$(mktemp -d)" && \
     ./"${KREW}" install krew
 
 # install krew plugins
-RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg gadget cert-manager ctx deprecations df-pv doctor exec-as flame get-all graph ice kubescape kurt kyverno ns outdated popeye pv-mounter pv-migrate rbac-tool rbac-lookup resource-capacity sniff stern tap trace tree view-secret virt
+#RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg gadget cert-manager ctx deprecations df-pv doctor exec-as flame get-all graph ice kubescape kurt kyverno ns outdated popeye pv-mounter pv-migrate rbac-tool rbac-lookup resource-capacity sniff stern tap trace tree view-secret virt
 
 
 
@@ -156,25 +158,35 @@ RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg gadget 
 
 
 # install helm plugins
-RUN helm plugin install https://github.com/databus23/helm-diff && \
-    helm plugin install https://github.com/hypnoglow/helm-s3.git && \
-    helm plugin install https://github.com/jkroepke/helm-secrets && \
-    helm plugin install https://github.com/aslafy-z/helm-git
+#RUN helm plugin install https://github.com/databus23/helm-diff && \
+#    helm plugin install https://github.com/hypnoglow/helm-s3.git && \
+#    helm plugin install https://github.com/jkroepke/helm-secrets && \
+#    helm plugin install https://github.com/aslafy-z/helm-git
+
+
+
+RUN curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh \
+    && echo 'eval "$(atuin init zsh)"' >> ~/.zshrc \
+    && echo 'db_path = "/temp/atuin/history.db"' > /root/.config/atuin/config.toml
+
+
 
 # install argocd-cli
-RUN VERSION=$(curl --silent "https://api.github.com/repos/argoproj/argo-cd/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/') && \
-    curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/$VERSION/argocd-linux-amd64 && \
-    chmod +x /usr/local/bin/argocd && \
-    argocd completion bash > $BASH_COMPLETIONS_DIR/argocd
+#RUN VERSION=$(curl --silent "https://api.github.com/repos/argoproj/argo-cd/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/') && \
+#    curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/$VERSION/argocd-linux-amd64 && \
+#    chmod +x /usr/local/bin/argocd && \
+#    argocd completion bash > $BASH_COMPLETIONS_DIR/argocd
 
 
 # colored bash & other bash stuff
 # https://bash-prompt-generator.org/
-COPY ./misc/.bashrc /root/.bashrc
 
 
-ENV TERM=xterm
+ENV TERM=xterm-256color
 ENV XDG_CONFIG_HOME=/root/.config
+ENV ATUIN_CONFIG_DIR=/root/.config/atuin
+
+
 
 WORKDIR /app
 

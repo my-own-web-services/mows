@@ -56,7 +56,7 @@ ARG SERVICE_NAME
 ARG SERVICE_VERSION
 ARG BINARY_NAME
 WORKDIR /app
-COPY --from=builder /${BINARY_NAME} ./${BINARY_NAME}
+COPY --from=builder /${BINARY_NAME} ./controller
 #COPY --from=builder /app/target/x86_64-unknown-linux-musl/debug/test_client ./test_client
 COPY --from=builder /etc/passwd /etc/passwd
 USER ${SERVICE_NAME}
@@ -64,5 +64,5 @@ ENV SERVICE_NAME=${SERVICE_NAME}
 ENV SERVICE_VERSION=${SERVICE_VERSION}
 STOPSIGNAL SIGTERM
 # run it 
-ENTRYPOINT ["./${BINARY_NAME}"]
+ENTRYPOINT ["./controller"]
 
