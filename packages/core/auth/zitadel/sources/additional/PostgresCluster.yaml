@@ -8,5 +8,6 @@ spec:
         size: 2Gi
     primaryUpdateStrategy: unsupervised
     enableSuperuserAccess: true
+
     superuserSecret:
         name: zitadel-db-admin

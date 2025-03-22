@@ -795,7 +795,7 @@ impl Cluster {
 
         Self::start_kubectl_port_forward(
             "mows-core-secrets-vault",
-            "service/mows-core-secrets-vault",
+            "service/vault",
             8200,
             8200,
             false,
@@ -807,17 +807,13 @@ impl Cluster {
 
     pub async fn stop_vault_proxy() -> anyhow::Result<()> {
         trace!("Stopping vault proxy");
-        Self::stop_kubectl_port_forward(
-            "mows-core-secrets-vault",
-            "service/mows-core-secrets-vault",
-        )
-        .await?;
+        Self::stop_kubectl_port_forward("mows-core-secrets-vault", "service/vault").await?;
         Ok(())
     }
 
+    /// target is the pod or service name prefixed service/NAME_OF_SERVICE
     pub async fn start_kubectl_port_forward(
         namespace: &str,
-        // target is the pod or service name prefixed service/NAME_OF_SERVICE
         target: &str,
         local_port: u16,
         remote_port: u16,

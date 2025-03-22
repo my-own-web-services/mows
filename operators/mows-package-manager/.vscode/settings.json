@@ -1,4 +1,5 @@
-{ "restoreTerminals.terminals": [
+{ "window.title": "📦 ${rootName}",
+    "restoreTerminals.terminals": [
     {
         "splitTerminals": [
             {

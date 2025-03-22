@@ -42,6 +42,11 @@ spec:
                         type: object
                       project:
                         properties:
+                          adminRoles:
+                            description: the roles to assign to the "zitadel-admin"
+                            items:
+                              type: string
+                            type: array
                           applications:
                             items:
                               properties:
@@ -52,12 +57,13 @@ spec:
                                   properties:
                                     vault:
                                       properties:
-                                        name:
+                                        engineName:
+                                          description: The name of the vault engine in the same namespace mows-core-secrets-vrc/{RESOURCE_NAMESPACE}/{engine_name} the zitadel controller cant create the vault engine, it must be created before with a vault resource, the vault resource must have the same namespace as the zitadel resource, the zitadel controller has vault access to write to the mows-core-secrets-vrc engines
                                           type: string
                                         path:
                                           type: string
                                       required:
-                                      - name
+                                      - engineName
                                       - path
                                       type: object
                                   type: object
@@ -78,18 +84,33 @@ spec:
                                     oidc:
                                       properties:
                                         accessTokenRoleAssertion:
+                                          nullable: true
                                           type: boolean
                                         accessTokenType:
+                                          enum:
+                                          - bearer
+                                          - jwt
                                           type: string
                                         additionalOrigins:
+                                          default: []
                                           items:
                                             type: string
                                           type: array
                                         appType:
+                                          enum:
+                                          - web
+                                          - userAgent
+                                          - native
                                           type: string
-                                        authMethodType:
+                                        authenticationMethod:
+                                          enum:
+                                          - basic
+                                          - post
+                                          - none
+                                          - privateKeyJwt
                                           type: string
                                         backChannelLogoutUri:
+                                          nullable: true
                                           type: string
                                         clockSkew:
                                           nullable: true
@@ -108,16 +129,28 @@ spec:
                                           type: boolean
                                         grantTypes:
                                           items:
+                                            enum:
+                                            - authorizationCode
+                                            - implicit
+                                            - refreshToken
+                                            - deviceCode
+                                            - tokenExchange
                                             type: string
                                           type: array
                                         idTokenRoleAssertion:
+                                          nullable: true
                                           type: boolean
                                         idTokenUserinfoAssertion:
+                                          nullable: true
                                           type: boolean
                                         loginVersion:
+                                          enum:
+                                          - version1
+                                          - version2
                                           nullable: true
                                           type: string
                                         postLogoutRedirectUris:
+                                          default: []
                                           items:
                                             type: string
                                           type: array
@@ -127,28 +160,23 @@ spec:
                                           type: array
                                         responseTypes:
                                           items:
+                                            enum:
+                                            - code
+                                            - idToken
+                                            - idTokenToken
                                             type: string
                                           type: array
                                         skipNativeAppSuccessPage:
+                                          nullable: true
                                           type: boolean
-                                        version:
-                                          type: string
                                       required:
-                                      - accessTokenRoleAssertion
                                       - accessTokenType
-                                      - additionalOrigins
                                       - appType
-                                      - authMethodType
-                                      - backChannelLogoutUri
+                                      - authenticationMethod
                                       - devMode
                                       - grantTypes
-                                      - idTokenRoleAssertion
-                                      - idTokenUserinfoAssertion
-                                      - postLogoutRedirectUris
                                       - redirectUris
                                       - responseTypes
-                                      - skipNativeAppSuccessPage
-                                      - version
                                       type: object
                                   type: object
                                 name:
@@ -163,6 +191,10 @@ spec:
                             type: string
                           orgName:
                             type: string
+                          projectRoleAssertion:
+                            type: boolean
+                          projectRoleCheck:
+                            type: boolean
                           roles:
                             items:
                               properties:
@@ -179,9 +211,12 @@ spec:
                               type: object
                             type: array
                         required:
+                        - adminRoles
                         - applications
                         - name
                         - orgName
+                        - projectRoleAssertion
+                        - projectRoleCheck
                         - roles
                         type: object
                     type: object

@@ -72,14 +72,14 @@ impl HelmRepoSpec {
 
             // write output to file
 
-            tokio::fs::write(
-                repo_paths.temp_path.join("helm_output.yaml"),
-                output.as_ref(),
-            )
-            .await
-            .map_err(|e| {
-                HelmRepoError::RenderHelmError(format!("Error writing helm output to file: {}", e))
-            })?;
+            // tokio::fs::write(
+            //     repo_paths.temp_path.join("helm_output.yaml"),
+            //     output.as_ref(),
+            // )
+            // .await
+            // .map_err(|e| {
+            //     HelmRepoError::RenderHelmError(format!("Error writing helm output to file: {}", e))
+            // })?;
 
             let mut result_documents: Vec<RenderedDocument> = Vec::new();
 
@@ -96,7 +96,7 @@ impl HelmRepoSpec {
                 .map(|doc| {
                     let mut lines = doc.lines();
                     let source_path_comment = lines.next().unwrap_or("");
-                    debug!("source_path_comment: {}", source_path_comment);
+                    //debug!("source_path_comment: {}", source_path_comment);
                     let source_path = source_path_comment.split(": ").last().unwrap_or("");
                     //remove first character which is a space
                     let source_path = &source_path[1..];

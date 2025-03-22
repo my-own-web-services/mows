@@ -52,7 +52,7 @@ services:
             WEB_PORT: ${WEB_PORT}
             LIBVIRT_DEFAULT_URI: qemu+tcp://qemu/system # qemu+tcp://localhost/system
             #- RUST_BACKTRACE=full
-            RUST_LOG: manager=debug,mows_package_manager=debug,tower_http=debug,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error
+            RUST_LOG: manager=debug,mows_package_manager=info,tower_http=debug,axum::rejection=trace,tokio=debug,runtime=debug,russh=error,manager::config_locks=error
             EDIT_LOCAL_DNS_CONFIG: ${EDIT_LOCAL_DNS_CONFIG}
     qemu:
         image: qemu

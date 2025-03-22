@@ -63,10 +63,10 @@ FROM alpine:latest
 ARG BINARY_NAME
 RUN apk add --no-cache helm git
 WORKDIR /app
-COPY --from=builder /${BINARY_NAME} ./${BINARY_NAME}
+COPY --from=builder /${BINARY_NAME} ./server
 COPY --from=builder /etc/passwd /etc/passwd
 USER mows-package-manager
 ENV SERVICE_NAME=mows-package-manager
 ENV SERVICE_VERSION=0.1.0
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["./${BINARY_NAME}"]
+ENTRYPOINT ["./server"]

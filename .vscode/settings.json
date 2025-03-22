@@ -1,4 +1,4 @@
-{ 
+{  "window.title": "🌐 ${rootName}",
     "cSpell.words": [
         "cpus",
         "domiflist",

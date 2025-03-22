@@ -20,7 +20,7 @@ pub struct ControllerConfig {
 pub fn from_env() -> anyhow::Result<ControllerConfig> {
     Ok(ControllerConfig {
         vault_uri: load_env(
-            "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
+            "http://vault-active.mows-core-secrets-vault:8200",
             "VAULT_URI",
             false,
             true,
