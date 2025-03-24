@@ -1,10 +1,11 @@
 use crate::{
     config::{Cluster, VaultSecrets},
-    s, some_or_bail,
+    some_or_bail,
     utils::cmd,
     write_config,
 };
 use anyhow::{bail, Context};
+use mows_common::s;
 use serde_yaml::Value;
 use std::string::String;
 use tracing::debug;
@@ -132,6 +133,10 @@ impl ClusterSecrets {
     }
 
     pub async fn setup_vrc(cluster: &Cluster) -> anyhow::Result<()> {
+        let token_policy_name = "mows-core-secrets-vrc";
+        let kubernetes_auth_mount = "mows-core-secrets-vrc-sys";
+        let kubernetes_auth_role_name = "mows-core-secrets-vrc";
+
         let vault_secrets = some_or_bail!(&cluster.vault_secrets, "Vault secrets not found");
 
         let vault_client = Self::new_vault_client(Some(&vault_secrets.root_token))
@@ -169,7 +174,7 @@ impl ClusterSecrets {
 
         vaultrs::auth::kubernetes::configure(
             &vault_client,
-            "mows-core-secrets-vrc-sys",
+            kubernetes_auth_mount,
             kube_api_addr,
             Some(
                 &mut ConfigureKubernetesAuthRequestBuilder::default()
@@ -181,7 +186,7 @@ impl ClusterSecrets {
 
         vaultrs::sys::policy::set(
             &vault_client,
-            "mows-core-secrets-vrc",
+            token_policy_name,
             r#"# creating of secret engines
 path "sys/mounts/mows-core-secrets-vrc/*" {
   capabilities = ["create", "update", "read", "delete"]
@@ -228,13 +233,13 @@ path "mows-core-secrets-vrc/*" {
 
         vaultrs::auth::kubernetes::role::create(
             &vault_client,
-            "mows-core-secrets-vrc-sys",
-            "mows-core-secrets-vrc",
+            kubernetes_auth_mount,
+            kubernetes_auth_role_name,
             Some(
                 &mut CreateKubernetesRoleRequestBuilder::default()
-                    .bound_service_account_names(vec![s!("mows-core-secrets-vrc")])
-                    .bound_service_account_namespaces(vec![s!("mows-core-secrets-vrc")])
-                    .token_policies(vec![s!("mows-core-secrets-vrc")]),
+                    .bound_service_account_names(vec![s!("vault-resource-controller")])
+                    .bound_service_account_namespaces(vec![s!("mows-core-secrets-vault")])
+                    .token_policies(vec![s!(token_policy_name)]),
             ),
         )
         .await

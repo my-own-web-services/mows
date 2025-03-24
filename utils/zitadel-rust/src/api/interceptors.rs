@@ -76,11 +76,7 @@ impl Interceptor for AccessTokenInterceptor {
         }
 
         if let Some(org_id) = &self.org_id {
-            meta.insert(
-                "x-zitadel-orgid
-",
-                org_id.parse().unwrap(),
-            );
+            meta.insert("x-zitadel-orgid", org_id.parse().unwrap());
         }
 
         Ok(request)

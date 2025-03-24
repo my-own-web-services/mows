@@ -31,8 +31,14 @@ pub struct VaultSecretSync {
 #[serde(rename_all = "camelCase")]
 pub struct VaultSecretSyncTargetTypes {
     // TODO: this should also allow for more options: like labels, annotations, etc.
-    pub config_maps: Option<HashMap<String, HashMap<String, String>>>,
+    pub config_maps: Option<HashMap<String, VaultSecretSyncTargetConfigMap>>,
     pub secrets: Option<HashMap<String, VaultSecretSyncTargetSecret>>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VaultSecretSyncTargetConfigMap {
+    pub data: HashMap<String, String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -40,7 +46,7 @@ pub struct VaultSecretSyncTargetTypes {
 pub struct VaultSecretSyncTargetSecret {
     #[serde(rename = "type")]
     pub secret_type: Option<String>,
-    pub map: HashMap<String, String>,
+    pub data: HashMap<String, String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]

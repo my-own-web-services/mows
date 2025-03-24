@@ -43,17 +43,7 @@ const defaultNotes: Note[] = [
         type: "default",
         description: "List cilium endpoints"
     },
-    {
-        content:
-            "helm plugin install https://github.com/komodorio/helm-dashboard.git ; helm dashboard --bind=0.0.0.0",
-        type: "default",
-        description: "Install and run helm dashboard"
-    },
-    {
-        content: "k kustomize --enable-helm /install/core/ | kubectl apply --server-side -f -",
-        type: "default",
-        description: "Apply kustomize resources"
-    },
+
     {
         content: "k logs POD -n NAMESPACE -c CONTAINER_IN_POD ",
         type: "default",
@@ -67,7 +57,7 @@ const defaultNotes: Note[] = [
     },
     {
         content:
-            "kubectl port-forward -n mows-core-secrets-vault service/mows-core-secrets-vault-ui --address 0.0.0.0 8080:http",
+            "kubectl port-forward -n mows-core-secrets-vault service/vault-ui --address 0.0.0.0 8080:http",
         type: "default",
         description: "Forward vault ui to http://localhost:8080/ui/"
     },
@@ -78,8 +68,8 @@ const defaultNotes: Note[] = [
         description: "Forward cilium/hubble ui to http://localhost:8080/ui/"
     },
     {
-        content: `kubectl apply -f /operators/vault-resource-controller/yaml/crd.yaml && helm upgrade --install mows-core-secrets-vrc /operators/vault-resource-controller/charts/vrc/ -n mows-core-secrets-vrc --create-namespace ; helm upgrade mows-core-dns-pektin /apis/core/pektin/charts/pektin --create-namespace --namespace mows-core-dns-pektin --install ; kubectl apply -f /operators/pektin-dns-controller/yaml/crd.yaml && helm upgrade --install mows-core-dns-pektin-controller /operators/pektin-dns-controller/charts/pektin-dns-controller/ -n mows-core-dns-pektin --create-namespace `,
-        description: "Install vault-resource-controller, pektin and pektin-dns-controller",
+        content: `kubectl apply -f /operators/vault-resource-controller/yaml/crd.yaml && helm upgrade --install mows-core-secrets-vrc /operators/vault-resource-controller/charts/vrc/ -n mows-core-secrets-vrc --create-namespace ; helm upgrade mows-core-dns-pektin /apis/core/pektin/charts/pektin --create-namespace --namespace mows-core-dns-pektin --install ; kubectl apply -f /operators/pektin-resource-controller/yaml/crd.yaml && helm upgrade --install mows-core-dns-pektin-controller /operators/pektin-resource-controller/charts/pektin-resource-controller/ -n mows-core-dns-pektin --create-namespace `,
+        description: "Install vault-resource-controller, pektin and pektin-resource-controller",
         type: "default"
     },
     {

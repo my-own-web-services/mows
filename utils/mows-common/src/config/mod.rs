@@ -1,4 +1,4 @@
-use crate::errors::MowsError;
+use crate::{constants::MowsConstants, errors::MowsError};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use tokio::sync::RwLock;
@@ -18,6 +18,7 @@ pub struct CommonConfig {
     pub tracing_filter: String,
     pub service_name: String,
     pub service_version: String,
+    pub constants: MowsConstants,
 }
 
 pub fn from_env(log_vars: bool) -> Result<CommonConfig, MowsError> {
@@ -37,6 +38,7 @@ pub fn from_env(log_vars: bool) -> Result<CommonConfig, MowsError> {
             false,
             log_vars,
         )?,
+        constants: MowsConstants::default(),
     })
 }
 
@@ -48,7 +50,7 @@ pub fn load_env(
     confidential: bool,
     log_vars: bool,
 ) -> Result<String, MowsError> {
-    let res = if let Ok(param) = std::env::var(param_name) {
+    let param_value = if let Ok(param) = std::env::var(param_name) {
         if param_name.ends_with("_FROM_FILE_PATH") {
             return match std::fs::read_to_string(&param) {
                 Ok(val) => Ok(val),
@@ -66,25 +68,14 @@ pub fn load_env(
     };
 
     if log_vars {
-        let ends_with_newline = if res != res.trim() {
-            "    CONTAINS INVISIBLE WHITESPACE CHARACTERS!"
-        } else {
-            ""
-        };
-
         if confidential {
-            println!(
-                "\t{}=<REDACTED, length={}>{}",
-                param_name,
-                res.len(),
-                ends_with_newline
-            );
+            println!("{}=<REDACTED, length={}>\n", param_name, param_value.len());
         } else {
-            println!("\t{}={}{}", param_name, res, ends_with_newline);
+            println!("{}={}\n", param_name, make_whitespace_visible(&param_value));
         }
         println!();
     }
-    Ok(res)
+    Ok(param_value)
 }
 
 #[macro_export]
@@ -103,4 +94,16 @@ macro_rules! write_config {
         tracing::debug!(target: "config_locks","Writing config: {} {}", file!(), line!());
         $config.write().await
     }};
+}
+
+pub fn make_whitespace_visible(s: &str) -> String {
+    s.chars()
+        .map(|c| match c {
+            ' ' => '·',
+            '\t' => '⇥',
+            '\n' => '↵',
+            '\r' => '↵',
+            _ => c,
+        })
+        .collect()
 }

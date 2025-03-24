@@ -1,3 +1,15 @@
+
+apiVersion: zitadel.k8s.mows.cloud/v1
+kind: ZitadelResource
+metadata:
+    name: mows-org
+spec:
+    raw:
+        resource:
+            org:
+                name: "mows"
+---
+            
 apiVersion: zitadel.k8s.mows.cloud/v1
 kind: ZitadelResource
 metadata:

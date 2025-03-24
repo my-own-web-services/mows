@@ -127,7 +127,7 @@ pub async fn apply_secret_sync(
         for (target_secret_name, target_secret) in target_secrets.iter() {
             let mut rendered_secret = BTreeMap::new();
 
-            for (map_name, target) in target_secret.map.iter() {
+            for (map_name, target) in target_secret.data.iter() {
                 template_creator.parse(target.clone().replace("{%", "{{").replace("%}", "}}"))?;
                 rendered_secret.insert(map_name.clone(), template_creator.render(&context)?);
             }
@@ -146,7 +146,7 @@ pub async fn apply_secret_sync(
         for (target_configmap_name, target_configmap) in target_configmaps.iter() {
             let mut rendered_configmap = BTreeMap::new();
 
-            for (map_name, target) in target_configmap.iter() {
+            for (map_name, target) in target_configmap.data.iter() {
                 template_creator.parse(target.clone().replace("{%", "{{").replace("%}", "}}"))?;
                 rendered_configmap.insert(map_name.clone(), template_creator.render(&context)?);
             }

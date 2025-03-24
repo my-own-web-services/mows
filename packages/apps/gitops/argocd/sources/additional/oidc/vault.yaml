@@ -6,7 +6,8 @@ metadata:
     name: argocd-oidc
 spec:
     secretEngine:
-        kv-v2: {}
+        kv-v2:
+            kvData: {}
 
 ---
 # create the policy for the zitadel controller to access the oidc secrets
@@ -49,17 +50,18 @@ spec:
                 path: "oidc"
         targets:
             configMaps:
-                argocd-cm: |
-                    kustomize.buildOptions: "--enable-helm"
-                    admin.enabled: true
-                    oidc.config:
-                        name: Zitadel
-                        issuer: https://zitadel.{§ .config.domain §}
-                        clientID: "{% .secrets.oidc.clientId %}"
-                        # quotes are needed for the client id because it needs to be a string and not a number as it is provided by zitadel/vault
-                        clientSecret: {% .secrets.oidc.clientSecret %}
-                        requestedScopes:
-                        - openid
-                        - profile
-                        - email
-                        - groups
+                argocd-cm: 
+                    data:
+                        kustomize.buildOptions: "--enable-helm"
+                        admin.enabled: "true"
+                        oidc.config: |
+                            name: Zitadel
+                            issuer: https://zitadel.{§ .config.domain §}
+                            clientID: "{% .secrets.oidc.clientId %}"
+                            # quotes are needed for the client id because it needs to be a string and not a number as it is provided by zitadel/vault
+                            clientSecret: "{% .secrets.oidc.clientSecret %}"
+                            requestedScopes:
+                            - openid
+                            - profile
+                            - email
+                            - groups

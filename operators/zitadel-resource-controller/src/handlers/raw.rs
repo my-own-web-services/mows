@@ -8,6 +8,7 @@ use crate::{
 };
 use ::zitadel::api::zitadel::management::v1::AddOrgRequest;
 use serde_json::json;
+use tracing::debug;
 use vaultrs::client::VaultClient;
 use zitadel::api::zitadel::{
     admin::v1::ListOrgsRequest,
@@ -15,6 +16,7 @@ use zitadel::api::zitadel::{
         AddOidcAppRequest, AddProjectRequest, AddProjectRoleRequest, AddUserGrantRequest,
         ListProjectGrantsRequest, ListProjectsRequest,
     },
+    org::v1::{org_query, OrgNameQuery, OrgQuery},
     project::v1::{project_query, ProjectNameQuery, ProjectQuery},
     user::v2::ListUsersRequest,
     v1::ListQuery,
@@ -28,13 +30,39 @@ pub async fn handle_raw(
 
     match &raw_resource.resource {
         crd::RawZitadelResourceSelector::Org(raw_zitadel_org) => {
-            let mut client = client.management_client(None).await?;
+            let mut management_client = client.management_client(None).await?;
 
-            client
-                .add_org(AddOrgRequest {
-                    name: raw_zitadel_org.name.clone(),
+            let mut admin_client = client.admin_client(None).await?;
+
+            let orgs = admin_client
+                .list_orgs(ListOrgsRequest {
+                    query: Some(ListQuery {
+                        limit: 1,
+                        ..Default::default()
+                    }),
+                    queries: vec![OrgQuery {
+                        query: Some(org_query::Query::NameQuery(OrgNameQuery {
+                            name: raw_zitadel_org.name.clone(),
+                            ..Default::default()
+                        })),
+                    }],
+                    ..Default::default()
                 })
                 .await?;
+
+            if orgs
+                .into_inner()
+                .result
+                .into_iter()
+                .find(|org| org.name == raw_zitadel_org.name)
+                .is_none()
+            {
+                management_client
+                    .add_org(AddOrgRequest {
+                        name: raw_zitadel_org.name.clone(),
+                    })
+                    .await?;
+            }
         }
         crd::RawZitadelResourceSelector::Project(raw_zitadel_project) => {
             let mut admin_client = client.admin_client(None).await?;
@@ -103,6 +131,8 @@ pub async fn handle_raw(
                 .result
                 .into_iter();
 
+            debug!("project_role_list: {:?}", project_role_list);
+
             for resource_role in raw_zitadel_project.roles.iter() {
                 if project_role_list.find(|project_role| project_role.key == resource_role.key) == None {
                     management_client
@@ -127,7 +157,7 @@ pub async fn handle_raw(
                 .result
                 .into_iter()
                 .find(|user| user.username == "zitadel-admin")
-                .unwrap();
+                .ok_or(ControllerError::GenericError("No admin user found".to_string()))?;
 
             let project_grant_list = management_client
                 .list_project_grants(ListProjectGrantsRequest {
@@ -170,7 +200,10 @@ pub async fn handle_raw(
                                     &vault_client,
                                     vault_target,
                                     resource_namespace,
-                                    json!({"clientId":"test","clientSecret":"test"}),
+                                    json!({
+                                        "clientId": "test",
+                                        "clientSecret": "test"
+                                    }),
                                 )
                                 .await?;
                             }
@@ -221,7 +254,10 @@ pub async fn handle_raw(
                                     &vault_client,
                                     vault,
                                     resource_namespace,
-                                    json!({"clientId":oidc_app.client_id,"clientSecret":oidc_app.client_secret}),
+                                    json!({
+                                        "clientId": oidc_app.client_id,
+                                        "clientSecret": oidc_app.client_secret
+                                    }),
                                 )
                                 .await?;
                             }
@@ -229,7 +265,6 @@ pub async fn handle_raw(
                     }
                     crd::RawZitadelApplicationMethod::Api(_) => todo!(),
                 }
-                // create client data target
             }
         }
     };

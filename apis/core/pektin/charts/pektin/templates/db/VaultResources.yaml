@@ -23,14 +23,15 @@ spec:
         targets:
             configMaps:
                 pektin-db-acl: # name of the secret in the same namespace
-                    data: |
-                        user default off
-                        user db-pektin-server on resetchannels allkeys -@all +GET +MGET +KEYS +SELECT #{% .secrets.dbPasswords.server | sha256sum %}
-                        user db-pektin-api on resetchannels allkeys -@all +SET +GET +MSET +MGET +DEL +KEYS +SELECT +PING #{% .secrets.dbPasswords.api | sha256sum  %}
+                    data: 
+                        data: |
+                            user default off
+                            user db-pektin-server on resetchannels allkeys -@all +GET +MGET +KEYS +SELECT #{% .secrets.dbPasswords.server | sha256sum %}
+                            user db-pektin-api on resetchannels allkeys -@all +SET +GET +MSET +MGET +DEL +KEYS +SELECT +PING #{% .secrets.dbPasswords.api | sha256sum  %}
             secrets:
                 pektin-db-server-password:
-                    map:
+                    data:
                         data: "{% .secrets.dbPasswords.server %}"
                 pektin-db-api-password:                
-                    map:
+                    data:
                         data: "{% .secrets.dbPasswords.api %}"

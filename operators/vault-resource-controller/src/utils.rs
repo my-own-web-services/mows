@@ -32,7 +32,7 @@ pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
 
     let config = get_current_config_cloned!(config());
 
-    client_builder.address(config.vault_uri);
+    client_builder.address(config.vault_url);
 
     let vc = VaultClient::new(client_builder.build().map_err(|_| {
         ControllerError::GenericError(anyhow::anyhow!("Failed to create vault client settings builder"))

@@ -15,9 +15,9 @@ use tracing::debug;
 
 use crate::{
     config::{Cluster, ClusterNode},
-    s,
     utils::generate_id,
 };
+use mows_common::s;
 
 pub struct ClusterStorage;
 

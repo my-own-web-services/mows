@@ -24,16 +24,16 @@ spec:
             secrets:
                 {{ .Values.db.name }}-admin:
                     type: kubernetes.io/basic-auth
-                    map:
+                    data:
                         password: "{% .secrets.db.admin  %}"
                         username: postgres
                 {{ .Values.db.name }}-user:
                     type: kubernetes.io/basic-auth
-                    map:
+                    data:
                         password: "{% .secrets.db.user %}"
                         username: stalwart
                 {{ .Values.server.name }}-config:
-                    map:
+                    data:
                         config.toml: |
                             [lookup.default]
                             hostname = "{{ .Values.server.defaultHostname }}"

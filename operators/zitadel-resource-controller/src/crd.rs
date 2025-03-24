@@ -108,7 +108,7 @@ pub struct RawZitadelApplicationOidc {
     pub authentication_method: OidcAuthMethodType,
     #[serde(default)]
     pub post_logout_redirect_uris: Vec<String>,
-    pub dev_mode: bool,
+    pub dev_mode: Option<bool>,
     pub access_token_type: OidcTokenType,
     pub access_token_role_assertion: Option<bool>,
     pub id_token_role_assertion: Option<bool>,

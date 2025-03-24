@@ -6,6 +6,9 @@ image:
     repository: 192.168.112.5:5000/pektin-resource-controller
     pullPolicy: Always
 
+vault: 
+    url: http://vault.mows-core-secrets-vault:8200
+
 imagePullSecrets: []
 
 serviceAccount:

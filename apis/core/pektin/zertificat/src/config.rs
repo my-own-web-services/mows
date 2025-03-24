@@ -28,8 +28,8 @@ pub struct ZertificatConfig {
 pub fn from_env() -> anyhow::Result<ZertificatConfig> {
     Ok(ZertificatConfig {
         vault_uri: load_env(
-            "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
-            "VAULT_URI",
+            "http://vault.mows-core-secrets-vault:8200",
+            "VAULT_URL",
             false,
             true,
         )?,

@@ -24,9 +24,9 @@ pub fn from_env() -> PektinApiResult<ApiConfig> {
             .map_err(|_| pektin_common::PektinCommonError::InvalidEnvVar("DB_PORT".into()))?,
         db_username: load_env("pektin-api", "DB_USERNAME", false)?,
         db_password: load_env("", "DB_PASSWORD", true)?,
-        vault_uri: load_env(
-            "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
-            "VAULT_URI",
+        vault_url: load_env(
+            "http://vault.mows-core-secrets-vault:8200",
+            "VAULT_URL",
             false,
         )?,
         ribston_uri: load_env("http://pektin-ribston:80", "RIBSTON_URI", false)?,
@@ -69,7 +69,7 @@ pub struct ApiConfig {
     pub db_username: String,
     pub db_password: String,
     pub db_port: u16,
-    pub vault_uri: String,
+    pub vault_url: String,
     pub ribston_uri: String,
     pub skip_auth: String,
     pub use_policies: String,

@@ -148,7 +148,7 @@ pub async fn get_zone_dnssec_keys(zone: &Name, vault_token: &str) -> PektinApiRe
 
     let crypto_key_name = get_crypto_key_name_from_zone(&zone);
 
-    let target_path = Path::new(&api_config.vault_uri)
+    let target_path = Path::new(&api_config.vault_url)
         .join("v1")
         .join(&api_config.vault_signing_secret_mount_path)
         .join("keys")
@@ -283,7 +283,7 @@ pub async fn vault_k8s_login() -> PektinApiResult<AuthInfo> {
     let api_config = get_current_config_cloned!();
     let mut client_builder = VaultClientSettingsBuilder::default();
 
-    client_builder.address(api_config.vault_uri.clone());
+    client_builder.address(api_config.vault_url.clone());
 
     let vc = VaultClient::new(client_builder.build().map_err(|_| {
         PektinApiError::GenericError("Failed to create vault client settings builder".to_string())
@@ -310,7 +310,7 @@ pub async fn create_vault_client_with_k8s_login() -> Result<VaultClient, PektinA
 
     let mut client_builder = VaultClientSettingsBuilder::default();
 
-    client_builder.address(api_config.vault_uri.clone());
+    client_builder.address(api_config.vault_url.clone());
 
     let vc = VaultClient::new(
         client_builder
@@ -327,7 +327,7 @@ pub async fn create_vault_client_with_token(token: &str) -> Result<VaultClient, 
 
     let mut client_builder = VaultClientSettingsBuilder::default();
 
-    client_builder.address(api_config.vault_uri.clone());
+    client_builder.address(api_config.vault_url.clone());
 
     let vc = VaultClient::new(
         client_builder

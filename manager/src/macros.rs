@@ -28,13 +28,6 @@ macro_rules! write_config {
 }
 
 #[macro_export]
-macro_rules! s {
-    ($str:expr) => {
-        $str.to_string()
-    };
-}
-
-#[macro_export]
 macro_rules! dev_mode_disabled {
     () => {
         if !crate::internal_config::INTERNAL_CONFIG.dev.enabled {

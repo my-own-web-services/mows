@@ -676,6 +676,14 @@ impl Cluster {
         )
         .await?;
 
+        debug!("Installing Postgres Operator");
+        self.install_with_package_manager(
+            "file:///packages/core/db/postgres/",
+            "mows-core-db-postgres",
+            &CrdHandling::WithoutCrd,
+        )
+        .await?;
+
         debug!("Installing Vault");
         self.install_with_package_manager(
             "file:///packages/core/secrets/vault/",
@@ -709,14 +717,6 @@ impl Cluster {
 
         debug!("Installing Vault Resource Controller");
         ClusterSecrets::setup_vrc(&self).await?;
-
-        debug!("Installing Postgres Operator");
-        self.install_with_package_manager(
-            "file:///packages/core/db/postgres/",
-            "mows-core-db-postgres",
-            &CrdHandling::WithoutCrd,
-        )
-        .await?;
 
         debug!("Installing DNS");
         self.install_with_package_manager(

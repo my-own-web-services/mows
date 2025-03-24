@@ -104,7 +104,7 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState {
         db_pool,
         db_pool_dnssec,
-        vault_uri: config.vault_uri.clone(),
+        vault_uri: config.vault_url.clone(),
         ribston_uri: config.ribston_uri.clone(),
         skip_auth: config.skip_auth.clone(),
     };

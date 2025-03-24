@@ -7,8 +7,8 @@ use utoipa::ToSchema;
 use crate::{
     config::{InternalIps, SshAccess, Vip},
     internal_config::INTERNAL_CONFIG,
-    s,
 };
+use mows_common::s;
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
 pub struct CloudInit {

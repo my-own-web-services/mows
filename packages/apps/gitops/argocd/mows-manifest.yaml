@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/mows-package-manager/schemas/manifest-schema.json?ref_type=heads
 manifestVersion: "0.1"
 metadata:
     name: argocd
@@ -14,6 +15,7 @@ spec:
                     version: "7.8.9"
                     releaseName: argocd
                     chartName: argo-cd
-                    
+            additional:
+                files: {}
 
 

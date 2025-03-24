@@ -235,7 +235,7 @@ impl LocalMachineProviderQemu {
 
     pub async fn resume(id: &str) -> anyhow::Result<()> {
         Command::new("virsh")
-            .args(["resume", id])
+            .args(["start", id])
             .stdout(Stdio::null())
             .spawn()?
             .wait()
@@ -246,7 +246,7 @@ impl LocalMachineProviderQemu {
 
     pub async fn suspend(id: &str) -> anyhow::Result<()> {
         Command::new("virsh")
-            .args(["suspend", id])
+            .args(["managedsave", id])
             .stdout(Stdio::null())
             .spawn()?
             .wait()
