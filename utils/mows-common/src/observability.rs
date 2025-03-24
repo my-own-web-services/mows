@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 use std::str::FromStr;
 
+use gtmpl::funcs::print;
 // some used only for telemetry feature
 use opentelemetry::trace::{TraceId, TracerProvider};
 use opentelemetry_sdk::{runtime, trace as sdktrace, trace::Config, Resource};
@@ -89,9 +90,7 @@ pub async fn init_observability() {
     reg.with(logger).init();
 }
 
-pub async fn init_minimal_observability(level:&str)-> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-    .with_env_filter(level)
-    .init();
+pub async fn init_minimal_observability(level: &str) -> anyhow::Result<()> {
+    tracing_subscriber::fmt().with_env_filter(level).init();
     Ok(())
 }

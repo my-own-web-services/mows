@@ -1,5 +1,5 @@
 replicaCount: 1
-nameOverride: "mows-core-auth-zitadel-controller"
+nameOverride: "zitadel-resource-controller"
 namespace: "mows-core-auth-zitadel"
 version: "" # pin a specific version
 image:
@@ -13,7 +13,7 @@ vault:
 
 
 logging:
-    log_filter: warn,controller::handlers::raw=trace
+    log_filter: warn,zitadel_resource_controller::handlers::raw=trace,vaultrs=trace
     tracing_filter: info
 
 imagePullSecrets: []

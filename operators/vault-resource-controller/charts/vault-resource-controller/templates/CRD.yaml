@@ -133,9 +133,19 @@ spec:
                       configMaps:
                         additionalProperties:
                           properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              nullable: true
+                              type: object
                             data:
                               additionalProperties:
                                 type: string
+                              type: object
+                            labels:
+                              additionalProperties:
+                                type: string
+                              nullable: true
                               type: object
                           required:
                           - data
@@ -145,9 +155,19 @@ spec:
                       secrets:
                         additionalProperties:
                           properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              nullable: true
+                              type: object
                             data:
                               additionalProperties:
                                 type: string
+                              type: object
+                            labels:
+                              additionalProperties:
+                                type: string
+                              nullable: true
                               type: object
                             type:
                               nullable: true

@@ -69,7 +69,21 @@ pub fn load_env(
 
     if log_vars {
         if confidential {
-            println!("{}=<REDACTED, length={}>\n", param_name, param_value.len());
+            let whitespace_warning = if param_value.contains(' ')
+                || param_value.contains('\t')
+                || param_value.contains('\n')
+            {
+                ", (CONTAINS WHITESPACE)"
+            } else {
+                ""
+            };
+
+            println!(
+                "{}=<REDACTED, length={}{}>\n",
+                param_name,
+                param_value.len(),
+                whitespace_warning
+            );
         } else {
             println!("{}={}\n", param_name, make_whitespace_visible(&param_value));
         }

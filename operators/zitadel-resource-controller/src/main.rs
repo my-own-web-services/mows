@@ -6,9 +6,9 @@ use prometheus_client::metrics::info;
 use tracing::info;
 use tracing_actix_web::TracingLogger;
 use zitadel::api::zitadel::management::v1::{GetIamRequest, GetMyOrgRequest};
-use zitadel_controller::config::config;
-use zitadel_controller::utils::ZitadelClient;
-use zitadel_controller::{self, State};
+use zitadel_resource_controller::config::config;
+use zitadel_resource_controller::utils::ZitadelClient;
+use zitadel_resource_controller::{self, State};
 
 #[get("/metrics")]
 async fn metrics(c: Data<State>, _req: HttpRequest) -> impl Responder {
@@ -35,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize Kubernetes controller state
     let state = State::default();
-    let controller = zitadel_controller::run(state.clone());
+    let controller = zitadel_resource_controller::run(state.clone());
 
     let mut zitadel_client = ZitadelClient::new().await?.management_client(None).await?;
 

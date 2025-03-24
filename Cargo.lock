@@ -4055,7 +4055,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "pektin-resource-controller"
+name = "pektin-server"
+version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-web",
+ "anyhow",
+ "chrono",
+ "data-encoding",
+ "env_logger",
+ "futures-util",
+ "hickory-server",
+ "log",
+ "parking_lot",
+ "pektin-common",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tikv-jemallocator",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "pektin_resource_controller"
 version = "0.14.0"
 dependencies = [
  "actix-web",
@@ -4081,29 +4104,6 @@ dependencies = [
  "tracing",
  "tracing-actix-web",
  "vaultrs",
-]
-
-[[package]]
-name = "pektin-server"
-version = "0.1.0"
-dependencies = [
- "actix-cors",
- "actix-web",
- "anyhow",
- "chrono",
- "data-encoding",
- "env_logger",
- "futures-util",
- "hickory-server",
- "log",
- "parking_lot",
- "pektin-common",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tikv-jemallocator",
- "tokio",
- "url",
 ]
 
 [[package]]
@@ -6765,7 +6765,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
-name = "vault-resource-controller"
+name = "vault_resource_controller"
 version = "0.14.0"
 dependencies = [
  "actix-web",
@@ -7538,7 +7538,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zitadel-controller"
+name = "zitadel_resource_controller"
 version = "0.14.0"
 dependencies = [
  "actix-web",

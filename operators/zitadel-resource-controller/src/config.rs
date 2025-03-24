@@ -13,8 +13,6 @@ pub fn config() -> &'static RwLock<ControllerConfig> {
 pub struct ControllerConfig {
     pub vault_url: String,
     pub service_account_token_path: String,
-    pub vault_kubernetes_auth_path: String,
-    pub vault_kubernetes_auth_role: String,
     /// the endpoint to reach the zitadel api at
     pub zitadel_api_endpoint: String,
     /// the domain name that the zitadel tls certificate is valid for
@@ -37,19 +35,6 @@ pub fn from_env() -> anyhow::Result<ControllerConfig> {
         service_account_token_path: load_env(
             "/var/run/secrets/kubernetes.io/serviceaccount/token",
             "SERVICE_ACCOUNT_TOKEN_PATH",
-            false,
-            true,
-        )?,
-
-        vault_kubernetes_auth_path: load_env(
-            "mows-core-secrets-vrc/mows-core-auth-zitadel/zitadel-controller-kubernetes-auth-engine",
-            "VAULT_KUBERNETES_AUTH_PATH",
-            false,
-            true,
-        )?,
-        vault_kubernetes_auth_role: load_env(
-            "mows-core-auth-zitadel-controller",
-            "VAULT_KUBERNETES_API_AUTH_ROLE",
             false,
             true,
         )?,

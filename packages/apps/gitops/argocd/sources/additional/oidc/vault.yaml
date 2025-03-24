@@ -20,8 +20,8 @@ spec:
         subPolicies:
             - engineId: argocd-oidc
               engineType: secret
-              subPath: "oidc"
-              capabilities: ["update", "read", "create"]
+              subPath: "*"
+              capabilities: ["update","read","create","delete","list"]
 ---
 # create a kubernetes service account binding to the policy
 apiVersion: vault.k8s.mows.cloud/v1
@@ -32,8 +32,8 @@ spec:
     authEngine:
         kubernetes:
             roles:
-                zitadel-controller:
-                    serviceAccountName: zitadel-controller
+                zitadel-resource-controller:
+                    serviceAccountName: zitadel-resource-controller
                     namespace: mows-core-auth-zitadel
                     policyIds: ["zitadel-controller-allow-oidc-access"]
 ---
@@ -50,10 +50,13 @@ spec:
                 path: "oidc"
         targets:
             configMaps:
-                argocd-cm: 
+                argocd-cm:
+                    labels:
+                        app.kubernetes.io/part-of: argocd
                     data:
                         kustomize.buildOptions: "--enable-helm"
                         admin.enabled: "true"
+                        url: "https://argocd.{§ .config.domain §}"
                         oidc.config: |
                             name: Zitadel
                             issuer: https://zitadel.{§ .config.domain §}
@@ -65,3 +68,4 @@ spec:
                             - profile
                             - email
                             - groups
+                            logoutURL: https://zitadel.{§ .config.domain §}/oidc/v1/end_session
