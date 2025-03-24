@@ -185,6 +185,7 @@ pub enum GetRemoteFileError {
     AnyhowError(#[from] anyhow::Error),
 }
 
+// TODO add retry logic
 pub async fn download_or_get_cached_file(
     urls: &Vec<Url>,
     temp_target_directory: &Path,
@@ -241,6 +242,7 @@ async fn read_local_file(
     if found_file_digest == expected_sha256_digest {
         return Ok(target_file_path.to_path_buf());
     } else {
+        tokio::fs::remove_file(&target_file_path).await?;
         return Err(GetRemoteFileError::DigestMismatch {
             expected_digest: expected_sha256_digest.to_string(),
             found_digest: found_file_digest,

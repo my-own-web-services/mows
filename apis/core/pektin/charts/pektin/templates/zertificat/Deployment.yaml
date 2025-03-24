@@ -25,8 +25,8 @@ spec:
           env:
             - name: VAULT_KUBERNETES_AUTH_PATH
               value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes"
-            - name: VAULT_URI
-              value: "http://mows-core-secrets-vault.mows-core-secrets-vault:8200"
+            - name: VAULT_URL
+              value: "{{ .Values.zertificat.vaultUrl }}"
             - name: VAULT_KUBERNETES_AUTH_ROLE
               value: "pektin-zertificat"
             - name: ACME_URL

@@ -1,5 +1,5 @@
 services:
-    pektin-dns-controller:
+    pektin-resource-controller:
         build:
             context: "."
             dockerfile: Dockerfile

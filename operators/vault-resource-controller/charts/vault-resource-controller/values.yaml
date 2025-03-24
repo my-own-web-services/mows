@@ -6,7 +6,8 @@ image:
     repository: 192.168.112.5:5000/vault-resource-controller
     pullPolicy: Always
 
-vault_uri: http://vault.mows-core-secrets-vault:8200
+vault: 
+    url: http://vault.mows-core-secrets-vault:8200
 
 imagePullSecrets: []
 

@@ -49,6 +49,8 @@ spec:
           value: {{ .Values.logging.tracing_filter }}
         - name: ZITADEL_API_ENDPOINT
           value: {{ .Values.internal_zitadel_api_endpoint }}
+        - name: VAULT_URL
+          value: {{ .Values.vault.url }}
         #- name: ZITADEL_SERVICE_ACCOUNT_TOKEN
         #  valueFrom:
         #    secretKeyRef:

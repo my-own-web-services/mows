@@ -10,7 +10,7 @@ pub fn config() -> &'static RwLock<ControllerConfig> {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ControllerConfig {
-    pub vault_uri: String,
+    pub vault_url: String,
     pub service_account_token_path: String,
     pub vault_kubernetes_auth_path: String,
     pub vault_kubernetes_auth_role: String,
@@ -19,9 +19,9 @@ pub struct ControllerConfig {
 
 pub fn from_env() -> anyhow::Result<ControllerConfig> {
     Ok(ControllerConfig {
-        vault_uri: load_env(
-            "http://vault-active.mows-core-secrets-vault:8200",
-            "VAULT_URI",
+        vault_url: load_env(
+            "http://vault.mows-core-secrets-vault:8200",
+            "VAULT_URL",
             false,
             true,
         )?,

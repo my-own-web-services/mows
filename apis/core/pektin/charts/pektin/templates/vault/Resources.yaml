@@ -17,7 +17,7 @@ spec:
                 pektin-zertificat:
                     ribston-policy: |- {{ range .Files.Lines "policies/ribston/acme.ribston.js" }}
                         {{ . }}{{ end }}
-                pektin-dns-controller:
+                pektin-resource-controller:
                     ribston-policy: |- {{ range .Files.Lines "policies/ribston/allow-everything.ribston.js" }}
                         {{ . }}{{ end }}
 ---
@@ -92,7 +92,7 @@ spec:
         targets:
             secrets:
                 traefik-certificates:
-                    map:
+                    data:
                         tls.crt: "{% .secrets.certificates.cert %}"
                         tls.key: "{% .secrets.certificates.key %}"
 

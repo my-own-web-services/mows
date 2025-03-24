@@ -15,14 +15,15 @@ use utoipa::ToSchema;
 
 use crate::{
     api::public_ip::PublicIpCreationConfigType,
-    config::{Cluster, Machine, PublicIpConfig, PublicIpVmProxy},
-    get_current_config_cloned, s, some_or_bail,
+    config::{config, Cluster, Machine, PublicIpConfig, PublicIpVmProxy},
+    some_or_bail,
     utils::cmd,
     write_config,
 };
+use mows_common::{config::common_config, get_current_config_cloned, s};
 
 pub async fn remove_public_ip_config_if_exists(machine_id: &str) -> anyhow::Result<()> {
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(config());
 
     for (_, cluster) in &config.clusters {
         for (public_ip_id, public_ip) in &cluster.public_ip_config {
@@ -57,7 +58,7 @@ pub async fn create_machine_proxy_public_ip(
     machine_id: &str,
     cluster_id: &str,
 ) -> anyhow::Result<PublicIpConfig> {
-    let config = get_current_config_cloned!();
+    let config = get_current_config_cloned!(config());
 
     let (_, machine) = some_or_bail!(
         config.machines.iter().find(|m| m.1.id == machine_id),
@@ -95,18 +96,30 @@ pub async fn install_local_wireguard(
     remote_ip: Option<Ipv6Addr>,
     remote_legacy_ip: Option<Ipv4Addr>,
 ) -> anyhow::Result<()> {
+    let common_config = get_current_config_cloned!(common_config(false));
+
     let mut tcp_service_map: HashMap<u16, String> = HashMap::new();
 
     let mut udp_service_map: HashMap<u16, String> = HashMap::new();
 
-    let ingress_service_name = s!("mows-core-network-ingress-traefik.mows-core-network-ingress");
+    let ingress_service_name = common_config
+        .constants
+        .core_components
+        .ingress
+        .full_service_name
+        .clone();
 
     tcp_service_map.insert(80, ingress_service_name.clone());
     tcp_service_map.insert(443, ingress_service_name.clone());
 
     udp_service_map.insert(443, ingress_service_name);
 
-    let dns_service_name = s!("pektin-server.mows-core-dns-pektin");
+    let dns_service_name = common_config
+        .constants
+        .core_components
+        .dns
+        .server_full_service_name
+        .clone();
 
     tcp_service_map.insert(53, dns_service_name.clone());
     udp_service_map.insert(53, dns_service_name);
@@ -121,7 +134,12 @@ pub async fn install_local_wireguard(
     .await
     .context("Failed to generate local WireGuard configuration for the cluster.")?;
 
-    let ns_name = "mows-core-network-public-ip";
+    let namespace_name = common_config
+        .constants
+        .core_components
+        .public_ip
+        .namespace
+        .clone();
 
     let kube_client = cluster.get_kube_client().await?;
 
@@ -131,7 +149,7 @@ pub async fn install_local_wireguard(
 
     let namespace = Namespace {
         metadata: ObjectMeta {
-            name: Some(ns_name.to_string()),
+            name: Some(namespace_name.to_string()),
             ..Default::default()
         },
         ..Default::default()
@@ -139,7 +157,7 @@ pub async fn install_local_wireguard(
 
     // only create the namespace if it doesn't exist
 
-    if namespace_api.get(ns_name).await.is_err() {
+    if namespace_api.get(&namespace_name).await.is_err() {
         namespace_api
             .create(&kube::api::PostParams::default(), &namespace)
             .await
@@ -147,9 +165,16 @@ pub async fn install_local_wireguard(
     }
     // create the wireguard configuration as secret
     let secrets_api: kube::Api<k8s_openapi::api::core::v1::Secret> =
-        kube::Api::namespaced(kube_client.clone(), ns_name);
+        kube::Api::namespaced(kube_client.clone(), &namespace_name);
 
     let mut secret_data = BTreeMap::new();
+
+    let secret_name = common_config
+        .constants
+        .core_components
+        .public_ip
+        .wg_secret_name
+        .clone();
 
     secret_data.insert(
         s!("wg0.conf"),
@@ -158,24 +183,16 @@ pub async fn install_local_wireguard(
 
     let secret = k8s_openapi::api::core::v1::Secret {
         metadata: ObjectMeta {
-            name: Some(s!("mows-core-network-public-ip-wg")),
+            name: Some(secret_name.clone()),
             ..Default::default()
         },
         data: Some(secret_data),
         ..Default::default()
     };
 
-    if secrets_api
-        .get("mows-core-network-public-ip-wg")
-        .await
-        .is_ok()
-    {
+    if secrets_api.get(&secret_name).await.is_ok() {
         secrets_api
-            .replace(
-                "mows-core-network-public-ip-wg",
-                &Default::default(),
-                &secret,
-            )
+            .replace(&secret_name, &Default::default(), &secret)
             .await
             .context("Failed to replace secret for WireGuard configuration.")?;
     } else {
@@ -186,25 +203,37 @@ pub async fn install_local_wireguard(
     }
     // create the wireguard pod
     let pod_api: kube::Api<k8s_openapi::api::core::v1::Pod> =
-        kube::Api::namespaced(kube_client.clone(), ns_name);
+        kube::Api::namespaced(kube_client.clone(), &namespace_name);
+
+    let pod_name = common_config
+        .constants
+        .core_components
+        .public_ip
+        .pod_name
+        .clone();
 
     // delete the pod if it exists
-    if pod_api.get("mows-core-network-public-ip").await.is_ok() {
+    if pod_api.get(&pod_name).await.is_ok() {
         pod_api
-            .delete("mows-core-network-public-ip", &Default::default())
+            .delete(&pod_name, &Default::default())
             .await
             .context("Failed to delete pod for WireGuard configuration.")?;
     }
 
     // wait until the pod is deleted
     loop {
-        if pod_api.get("mows-core-network-public-ip").await.is_err() {
+        if pod_api.get(&pod_name).await.is_err() {
             break;
         }
     }
 
     // TODO create a smaller image
-    let wg_client_image="docker.io/firstdorsal/tunnel-cluster-client@sha256:12dd911500341d241e31a5d46d930d8c3d81f367e9f4d55a852c1e09b3b5f7b5";
+    let wg_client_image = common_config
+        .constants
+        .core_components
+        .public_ip
+        .wg_client_image
+        .clone();
 
     let start_cmd = "wg-quick up wg0 && sleep infinity";
 
@@ -217,12 +246,12 @@ pub async fn install_local_wireguard(
 
     let pod = k8s_openapi::api::core::v1::Pod {
         metadata: ObjectMeta {
-            name: Some(s!("mows-core-network-public-ip")),
+            name: Some(pod_name.clone()),
             ..Default::default()
         },
         spec: Some(k8s_openapi::api::core::v1::PodSpec {
             containers: vec![k8s_openapi::api::core::v1::Container {
-                name: s!("mows-core-network-public-ip"),
+                name: pod_name.clone(),
                 image: Some(s!(wg_client_image)),
                 command: Some(vec![s!("bash"), s!("-c"), s!(start_cmd)]),
                 security_context: Some(k8s_openapi::api::core::v1::SecurityContext {
@@ -247,7 +276,7 @@ pub async fn install_local_wireguard(
             volumes: Some(vec![k8s_openapi::api::core::v1::Volume {
                 name: s!("wg0-conf"),
                 secret: Some(k8s_openapi::api::core::v1::SecretVolumeSource {
-                    secret_name: Some(s!("mows-core-network-public-ip-wg")),
+                    secret_name: Some(secret_name.clone()),
                     ..Default::default()
                 }),
                 ..Default::default()
@@ -259,9 +288,9 @@ pub async fn install_local_wireguard(
         ..Default::default()
     };
 
-    if pod_api.get("mows-core-network-public-ip").await.is_ok() {
+    if pod_api.get(&pod_name).await.is_ok() {
         pod_api
-            .replace("mows-core-network-public-ip", &Default::default(), &pod)
+            .replace(&pod_name, &Default::default(), &pod)
             .await
             .context("Failed to replace pod for WireGuard configuration.")?;
     } else {

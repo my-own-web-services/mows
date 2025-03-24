@@ -126,6 +126,7 @@ spec:
                                           - seconds
                                           type: object
                                         devMode:
+                                          nullable: true
                                           type: boolean
                                         grantTypes:
                                           items:
@@ -173,7 +174,6 @@ spec:
                                       - accessTokenType
                                       - appType
                                       - authenticationMethod
-                                      - devMode
                                       - grantTypes
                                       - redirectUris
                                       - responseTypes

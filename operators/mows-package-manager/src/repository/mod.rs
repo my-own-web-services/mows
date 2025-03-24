@@ -13,17 +13,14 @@ use kube::{
     api::{DynamicObject, GroupVersionKind, ObjectMeta, Patch, PatchParams},
     Api, Discovery, ResourceExt,
 };
-use mows_common::{
-    kube::get_kube_client,
-    utils::{copy_directory_recursive, generate_id},
-};
+use mows_common::{kube::get_kube_client, utils::copy_directory_recursive};
 use raw::RawSpecError;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
 };
-use tracing::{debug, trace};
+use tracing::debug;
 use utoipa::ToSchema;
 mod raw;
 

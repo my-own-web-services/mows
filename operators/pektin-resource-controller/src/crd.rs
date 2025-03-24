@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::kube_fix::KubePektinDbEntry;
 
+// TODO rename this to pektinresource
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[kube(
     kind = "PektinDns",

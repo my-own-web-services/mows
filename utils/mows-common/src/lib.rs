@@ -3,6 +3,8 @@ pub mod errors;
 pub mod observability;
 pub mod reqwest;
 pub use reqwest_middleware;
+pub mod constants;
 pub mod kube;
+pub mod macros;
 pub mod templating;
 pub mod utils;

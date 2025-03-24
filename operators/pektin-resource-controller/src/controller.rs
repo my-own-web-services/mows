@@ -34,7 +34,7 @@ pub async fn get_vault_token() -> Result<String, Error> {
     let config = get_current_config_cloned!(config());
     let mut client_builder = VaultClientSettingsBuilder::default();
 
-    client_builder.address(config.vault_uri);
+    client_builder.address(config.vault_url);
 
     let vc =
         VaultClient::new(client_builder.build().map_err(|_| {
@@ -232,7 +232,7 @@ impl Default for Diagnostics {
     fn default() -> Self {
         Self {
             last_event: Utc::now(),
-            reporter: "pektin-dns-controller".into(),
+            reporter: "pektin-resource-controller".into(),
         }
     }
 }

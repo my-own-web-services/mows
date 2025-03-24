@@ -29,20 +29,20 @@ spec:
         targets:
             secrets:
                 zitadel-masterkey:
-                    map:
+                    data:
                         masterkey: "{% .secrets.zitadel.masterkey %}"
                 zitadel-db-admin:
                     type: kubernetes.io/basic-auth
-                    map:
+                    data:
                         password: "{% .secrets.db.admin  %}"
                         username: postgres
                 zitadel-db-user:
                     type: kubernetes.io/basic-auth
-                    map:
+                    data:
                         password: "{% .secrets.db.user %}"
                         username: zitadel
                 zitadel-config:
-                    map:
+                    data:
                         config.yaml: |
                             ExternalSecure: true
                             ExternalDomain: zitadel.vindelicorum.eu

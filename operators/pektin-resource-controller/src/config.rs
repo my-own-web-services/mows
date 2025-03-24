@@ -11,7 +11,7 @@ pub fn config() -> &'static RwLock<ControllerConfig> {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ControllerConfig {
-    pub vault_uri: String,
+    pub vault_url: String,
     pub service_account_token_path: String,
     pub vault_kubernetes_api_auth_path: String,
     pub pektin_api_endpoint: String,
@@ -21,9 +21,9 @@ pub struct ControllerConfig {
 
 pub fn from_env() -> anyhow::Result<ControllerConfig> {
     Ok(ControllerConfig {
-        vault_uri: load_env(
-            "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
-            "VAULT_URI",
+        vault_url: load_env(
+            "http://vault.mows-core-secrets-vault:8200",
+            "VAULT_URL",
             false,
             true,
         )?,
@@ -41,7 +41,7 @@ pub fn from_env() -> anyhow::Result<ControllerConfig> {
             true,
         )?,
         pektin_api_endpoint: load_env("http://pektin-api", "PEKTIN_API_ENDPOINT", false, true)?,
-        pektin_username: load_env("pektin-dns-controller", "PEKTIN_USERNAME", false, true)?,
+        pektin_username: load_env("pektin-resource-controller", "PEKTIN_USERNAME", false, true)?,
         reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false, true)?.parse()?,
     })
 }

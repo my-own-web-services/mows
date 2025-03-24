@@ -4,6 +4,7 @@ api:
   imagePullPolicy: Always
   name: pektin-api
   replicaCount: 1
+  vaultUrl: http://vault.mows-core-secrets-vault:8200
 
 server:
   enabled: true
@@ -18,6 +19,7 @@ zertificat:
   imagePullPolicy: Always
   name: pektin-zertificat
   replicaCount: 1
+  vaultUrl: http://vault.mows-core-secrets-vault:8200
 
 db:
   enabled: true

@@ -11,7 +11,7 @@ pub fn config() -> &'static RwLock<ControllerConfig> {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ControllerConfig {
-    pub vault_uri: String,
+    pub vault_url: String,
     pub service_account_token_path: String,
     pub vault_kubernetes_auth_path: String,
     pub vault_kubernetes_auth_role: String,
@@ -28,9 +28,9 @@ pub struct ControllerConfig {
 
 pub fn from_env() -> anyhow::Result<ControllerConfig> {
     Ok(ControllerConfig {
-        vault_uri: load_env(
-            "http://mows-core-secrets-vault.mows-core-secrets-vault:8200",
-            "VAULT_URI",
+        vault_url: load_env(
+            "http://vault.mows-core-secrets-vault:8200",
+            "VAULT_URL",
             false,
             true,
         )?,
@@ -60,7 +60,7 @@ pub fn from_env() -> anyhow::Result<ControllerConfig> {
             true,
         )?,
         reconcile_interval_seconds: load_env("30", "RECONCILE_INTERVAL", false, true)?.parse()?,
-        zitadel_pa_token: load_env("", "ZITADEL_PA_TOKEN", false, true)?,
+        zitadel_pa_token: load_env("", "ZITADEL_PA_TOKEN", true, true)?,
         ca_certificate_pem: load_env("", "CA_CERTIFICATE_PEM", false, true)?,
         zitadel_tls_domain_name: load_env("zitadel", "ZITADEL_TLS_DOMAIN_NAME", false, true)?,
         zitadel_external_origin: load_env(

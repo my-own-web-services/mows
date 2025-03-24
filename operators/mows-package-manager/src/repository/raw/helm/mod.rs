@@ -7,7 +7,6 @@ use crate::{
     types::{HelmRepoSpec, ManifestSource},
     utils::{download_or_get_cached_file, replace_cluster_variables_in_folder_in_place},
 };
-use anyhow::Context;
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};

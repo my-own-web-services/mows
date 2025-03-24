@@ -1,0 +1,340 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VaultResource",
+  "description": "Auto-generated derived type for VaultResourceSpec via `CustomResource`",
+  "type": "object",
+  "required": [
+    "spec"
+  ],
+  "properties": {
+    "spec": {
+      "$ref": "#/definitions/VaultResourceSpec"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/VaultResourceStatus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "KV2SecretEngineParams": {
+      "type": "object",
+      "required": [
+        "kvData"
+      ],
+      "properties": {
+        "kvData": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "KubernetesAuthEngineParams": {
+      "type": "object",
+      "required": [
+        "roles"
+      ],
+      "properties": {
+        "roles": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/KubernetesAuthEngineRole"
+          }
+        }
+      }
+    },
+    "KubernetesAuthEngineRole": {
+      "type": "object",
+      "required": [
+        "policyIds",
+        "serviceAccountName"
+      ],
+      "properties": {
+        "namespace": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "policyIds": {
+          "description": "The vault policy id to attach to the service account without namespace",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "serviceAccountName": {
+          "type": "string"
+        }
+      }
+    },
+    "SecretSyncKvMapping": {
+      "type": "object",
+      "required": [
+        "engine",
+        "path"
+      ],
+      "properties": {
+        "engine": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "TransitSecretEngineParams": {
+      "type": "object"
+    },
+    "VaultAuthEngine": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kubernetes"
+          ],
+          "properties": {
+            "kubernetes": {
+              "$ref": "#/definitions/KubernetesAuthEngineParams"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "VaultEngineAccessPolicy": {
+      "type": "object",
+      "required": [
+        "subPolicies"
+      ],
+      "properties": {
+        "subPolicies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/VaultEngineAccessPolicySubPolicy"
+          }
+        }
+      }
+    },
+    "VaultEngineAccessPolicySubPolicy": {
+      "type": "object",
+      "required": [
+        "capabilities",
+        "engineId",
+        "engineType",
+        "subPath"
+      ],
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/VaultPolicyCapability"
+          }
+        },
+        "engineId": {
+          "type": "string"
+        },
+        "engineType": {
+          "$ref": "#/definitions/VaultEngineAccessPolicyType"
+        },
+        "subPath": {
+          "type": "string"
+        }
+      }
+    },
+    "VaultEngineAccessPolicyType": {
+      "type": "string",
+      "enum": [
+        "auth",
+        "secret"
+      ]
+    },
+    "VaultPolicyCapability": {
+      "type": "string",
+      "enum": [
+        "read",
+        "create",
+        "update",
+        "delete",
+        "list"
+      ]
+    },
+    "VaultResourceSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "secretEngine"
+          ],
+          "properties": {
+            "secretEngine": {
+              "$ref": "#/definitions/VaultSecretEngine"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "authEngine"
+          ],
+          "properties": {
+            "authEngine": {
+              "$ref": "#/definitions/VaultAuthEngine"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "engineAccessPolicy"
+          ],
+          "properties": {
+            "engineAccessPolicy": {
+              "$ref": "#/definitions/VaultEngineAccessPolicy"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "secretSync"
+          ],
+          "properties": {
+            "secretSync": {
+              "$ref": "#/definitions/VaultSecretSync"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "VaultResourceStatus": {
+      "description": "The status object of `VaultResource`",
+      "type": "object",
+      "required": [
+        "created"
+      ],
+      "properties": {
+        "created": {
+          "type": "boolean"
+        }
+      }
+    },
+    "VaultSecretEngine": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kv-v2"
+          ],
+          "properties": {
+            "kv-v2": {
+              "$ref": "#/definitions/KV2SecretEngineParams"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "transit"
+          ],
+          "properties": {
+            "transit": {
+              "$ref": "#/definitions/TransitSecretEngineParams"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "VaultSecretSync": {
+      "type": "object",
+      "required": [
+        "kvMapping",
+        "targets"
+      ],
+      "properties": {
+        "kvMapping": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/SecretSyncKvMapping"
+          }
+        },
+        "targets": {
+          "$ref": "#/definitions/VaultSecretSyncTargetTypes"
+        }
+      }
+    },
+    "VaultSecretSyncTargetConfigMap": {
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "VaultSecretSyncTargetSecret": {
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "VaultSecretSyncTargetTypes": {
+      "type": "object",
+      "properties": {
+        "configMaps": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "$ref": "#/definitions/VaultSecretSyncTargetConfigMap"
+          }
+        },
+        "secrets": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "$ref": "#/definitions/VaultSecretSyncTargetSecret"
+          }
+        }
+      }
+    }
+  }
+}

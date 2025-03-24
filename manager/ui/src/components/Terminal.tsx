@@ -79,6 +79,7 @@ export default class TerminalComponent extends Component<
         this.tryingToReconnect = true;
 
         await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log("Retrying to connect to websocket");
 
         this.dispose();
         this.init();

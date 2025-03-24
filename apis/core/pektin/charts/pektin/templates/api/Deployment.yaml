@@ -40,8 +40,8 @@ spec:
               value: "main=debug,pektin_api=debug,pektin_common=debug"
             - name: VAULT_KUBERNETES_AUTH_PATH
               value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes"
-            - name: VAULT_URI
-              value: "http://mows-core-secrets-vault.mows-core-secrets-vault:8200"
+            - name: VAULT_URL
+              value: {{ .Values.api.vaultUrl }}
             - name: POLICY_VAULT_PATH
               value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-policies"
             - name: DB_USERNAME

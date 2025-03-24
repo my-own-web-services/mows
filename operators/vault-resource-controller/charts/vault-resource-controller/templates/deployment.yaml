@@ -46,8 +46,8 @@ spec:
           value: {{ .Values.logging.log_filter }}
         - name: TRACING_FILTER
           value: {{ .Values.logging.tracing_filter }}
-        - name: VAULT_URI
-          value: {{ .Values.vault_uri }}
+        - name: VAULT_URL
+          value: {{ .Values.vault.url }}
         {{- if .Values.tracing.enabled }}
         - name: OPENTELEMETRY_ENDPOINT_URL
           value: http://{{ .Values.tracing.service }}.{{ .Values.tracing.namespace }}.svc:{{ .Values.tracing.port }}
