@@ -36,7 +36,7 @@ pub fn get_error_type(e: &ControllerError) -> String {
     reason.to_string()
 }
 
-pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
+pub async fn create_vault_client(auth_path: &str, auth_role: &str) -> Result<VaultClient, ControllerError> {
     let mut client_builder = VaultClientSettingsBuilder::default();
 
     let config = get_current_config_cloned!(config());
@@ -50,13 +50,8 @@ pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
     let service_account_jwt = std::fs::read_to_string(config.service_account_token_path)
         .context("Failed to read service account token")?;
 
-    let vault_auth = vaultrs::auth::kubernetes::login(
-        &vc,
-        &config.vault_kubernetes_auth_path,
-        &config.vault_kubernetes_auth_role,
-        &service_account_jwt,
-    )
-    .await?;
+    let vault_auth =
+        vaultrs::auth::kubernetes::login(&vc, auth_path, auth_role, &service_account_jwt).await?;
 
     let vc = VaultClient::new(
         client_builder

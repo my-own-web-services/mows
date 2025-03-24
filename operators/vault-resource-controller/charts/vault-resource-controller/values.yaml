@@ -52,7 +52,7 @@ networkPolicy:
         port: http
 
 logging:    
-    log_filter: warn,controller::handlers::secret_sync=trace,vaultrs=warn
+    log_filter: warn,vault_resource_controller::handlers::secret_sync=trace,vaultrs=warn
     tracing_filter: trace
 env: []
 

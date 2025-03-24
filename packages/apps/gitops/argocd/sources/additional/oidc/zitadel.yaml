@@ -34,8 +34,9 @@ spec:
                     -   name: argocd
                         clientDataTarget: 
                             vault:
-                                engineName: argocd-oidc
-                                path: oidc
+                                secretEngineName: argocd-oidc
+                                secretEngineSubPath: oidc
+                                kubernetesAuthEngineName: zitadel-controller-service-account
                         method:
                             oidc:
                                 redirectUris:

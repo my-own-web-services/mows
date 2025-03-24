@@ -1,5 +1,5 @@
 [package]
-name = "pektin-resource-controller"
+name = "pektin_resource_controller"
 version = "0.14.0"
 edition = "2021"
 publish = false
@@ -64,9 +64,3 @@ mows-common = { workspace = true }
 [dependencies.kube]
 features = ["runtime", "client", "derive"]
 version = "0.96.0"
-
-# testing new releases - ignore
-#git = "https://github.com/kube-rs/kube.git"
-#branch = "main"
-#rev = "19b90ad3a4dbc83e1dd742847c7707333259b1bb"
-#path = "../kube/kube"

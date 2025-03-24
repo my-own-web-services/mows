@@ -57,14 +57,17 @@ spec:
                                   properties:
                                     vault:
                                       properties:
-                                        engineName:
-                                          description: The name of the vault engine in the same namespace mows-core-secrets-vrc/{RESOURCE_NAMESPACE}/{engine_name} the zitadel controller cant create the vault engine, it must be created before with a vault resource, the vault resource must have the same namespace as the zitadel resource, the zitadel controller has vault access to write to the mows-core-secrets-vrc engines
+                                        kubernetesAuthEngineName:
                                           type: string
-                                        path:
+                                        secretEngineName:
+                                          description: The name of the vault engine in the same namespace mows-core-secrets-vrc/{RESOURCE_NAMESPACE}/{engine_name} the zitadel controller cant create the vault engine, it must be created before with a vault resource, the vault resource must have the same namespace as the zitadel resource
+                                          type: string
+                                        secretEngineSubPath:
                                           type: string
                                       required:
-                                      - engineName
-                                      - path
+                                      - kubernetesAuthEngineName
+                                      - secretEngineName
+                                      - secretEngineSubPath
                                       type: object
                                   type: object
                                 method:

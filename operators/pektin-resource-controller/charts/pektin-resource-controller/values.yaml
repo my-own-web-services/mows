@@ -9,6 +9,11 @@ image:
 vault: 
     url: http://vault.mows-core-secrets-vault:8200
 
+logging:
+    log_filter: info
+    tracing_filter: info
+
+
 imagePullSecrets: []
 
 serviceAccount:
@@ -51,9 +56,7 @@ networkPolicy:
         app: prometheus
         port: http
 
-logging:
-    log_filter: info
-    tracing_filter: info
+
 env: []
 
 service:

@@ -25,7 +25,16 @@ const MANAGED_BY_KEY: &str = "app.kubernetes.io/managed-by";
 #[derive(Debug)]
 struct RenderedSecret {
     secret_type: Option<String>,
-    map: BTreeMap<String, String>,
+    data: BTreeMap<String, String>,
+    labels: Option<BTreeMap<String, String>>,
+    annotations: Option<BTreeMap<String, String>>,
+}
+
+#[derive(Debug)]
+struct RenderedConfigmap {
+    data: BTreeMap<String, String>,
+    labels: Option<BTreeMap<String, String>>,
+    annotations: Option<BTreeMap<String, String>>,
 }
 
 pub async fn cleanup_secret_sync(
@@ -114,7 +123,7 @@ pub async fn apply_secret_sync(
 
     let mut rendered_secrets: HashMap<String, RenderedSecret> = HashMap::new();
 
-    let mut rendered_configmaps: HashMap<String, BTreeMap<String, String>> = HashMap::new();
+    let mut rendered_configmaps: HashMap<String, RenderedConfigmap> = HashMap::new();
 
     let mut template_creator = Template::default();
     template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
@@ -136,7 +145,9 @@ pub async fn apply_secret_sync(
                 target_secret_name.clone(),
                 RenderedSecret {
                     secret_type: target_secret.secret_type.clone(),
-                    map: rendered_secret,
+                    data: rendered_secret,
+                    labels: target_secret.labels.clone(),
+                    annotations: target_secret.annotations.clone(),
                 },
             );
         }
@@ -151,7 +162,14 @@ pub async fn apply_secret_sync(
                 rendered_configmap.insert(map_name.clone(), template_creator.render(&context)?);
             }
 
-            rendered_configmaps.insert(target_configmap_name.clone(), rendered_configmap);
+            rendered_configmaps.insert(
+                target_configmap_name.clone(),
+                RenderedConfigmap {
+                    data: rendered_configmap,
+                    labels: target_configmap.labels.clone(),
+                    annotations: target_configmap.annotations.clone(),
+                },
+            );
         }
     }
 
@@ -169,20 +187,19 @@ pub async fn apply_secret_sync(
             kube_client,
             &target_namespace,
             secret_name,
-            rendered_secret.map,
-            labels.clone(),
-            rendered_secret.secret_type,
+            rendered_secret,
+            &labels,
         )
         .await?;
     }
 
-    for (configmap_name, configmap_data) in rendered_configmaps {
+    for (configmap_name, rendered_configmap) in rendered_configmaps {
         create_configmap_in_k8s(
             kube_client,
             &target_namespace,
             configmap_name,
-            configmap_data,
-            labels.clone(),
+            rendered_configmap,
+            &labels,
         )
         .await?;
     }
@@ -190,24 +207,29 @@ pub async fn apply_secret_sync(
     Ok(())
 }
 
-pub async fn create_configmap_in_k8s(
+async fn create_configmap_in_k8s(
     kube_client: &kube::Client,
     resource_namespace: &str,
     configmap_name: String,
-    configmap_data: BTreeMap<String, String>,
-    labels: BTreeMap<String, String>,
+    rendered_configmap: RenderedConfigmap,
+    common_labels: &BTreeMap<String, String>,
 ) -> Result<(), crate::ControllerError> {
     let configmap_api: kube::Api<ConfigMap> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
 
+    let mut labels = common_labels.clone();
+
+    if let Some(configmap_labels) = &rendered_configmap.labels {
+        labels.extend(configmap_labels.clone());
+    }
     let mut new_configmap = ConfigMap {
         metadata: ObjectMeta {
             name: Some(configmap_name.clone()),
             namespace: Some(resource_namespace.to_string()),
             labels: Some(labels.clone()),
-
+            annotations: rendered_configmap.annotations,
             ..Default::default()
         },
-        data: Some(configmap_data),
+        data: Some(rendered_configmap.data),
         ..Default::default()
     };
 
@@ -250,26 +272,31 @@ pub async fn create_configmap_in_k8s(
     Ok(())
 }
 
-pub async fn create_secret_in_k8s(
+async fn create_secret_in_k8s(
     kube_client: &kube::Client,
     resource_namespace: &str,
     secret_name: String,
-    secret_map: BTreeMap<String, String>,
-    labels: BTreeMap<String, String>,
-    secret_type: Option<String>,
+    rendered_secret: RenderedSecret,
+    common_labels: &BTreeMap<String, String>,
 ) -> Result<(), crate::ControllerError> {
     let secret_api: kube::Api<Secret> = kube::Api::namespaced(kube_client.clone(), resource_namespace);
+
+    let mut labels = common_labels.clone();
+
+    if let Some(secret_labels) = &rendered_secret.labels {
+        labels.extend(secret_labels.clone());
+    }
 
     let mut new_secret = Secret {
         metadata: ObjectMeta {
             name: Some(secret_name.clone()),
             namespace: Some(resource_namespace.to_string()),
             labels: Some(labels.clone()),
-
+            annotations: rendered_secret.annotations.clone(),
             ..Default::default()
         },
-        type_: secret_type,
-        string_data: Some(secret_map),
+        type_: rendered_secret.secret_type,
+        string_data: Some(rendered_secret.data),
         ..Default::default()
     };
 

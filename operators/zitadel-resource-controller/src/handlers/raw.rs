@@ -7,6 +7,7 @@ use crate::{
     ControllerError,
 };
 use ::zitadel::api::zitadel::management::v1::AddOrgRequest;
+use anyhow::bail;
 use serde_json::json;
 use tracing::debug;
 use vaultrs::client::VaultClient;
@@ -18,9 +19,11 @@ use zitadel::api::zitadel::{
     },
     org::v1::{org_query, OrgNameQuery, OrgQuery},
     project::v1::{project_query, ProjectNameQuery, ProjectQuery},
-    user::v2::ListUsersRequest,
+    user::v2::{ListUsersRequest, UserNameQuery},
     v1::ListQuery,
 };
+
+use mows_common::s;
 
 pub async fn handle_raw(
     resource_namespace: &str,
@@ -50,9 +53,9 @@ pub async fn handle_raw(
                 })
                 .await?;
 
+            let orgs = orgs.into_inner().result;
+
             if orgs
-                .into_inner()
-                .result
                 .into_iter()
                 .find(|org| org.name == raw_zitadel_org.name)
                 .is_none()
@@ -68,9 +71,10 @@ pub async fn handle_raw(
             let mut admin_client = client.admin_client(None).await?;
 
             let orgs = admin_client.list_orgs(ListOrgsRequest::default()).await?;
+            let orgs = orgs.into_inner().result;
+
             let org = orgs
-                .into_inner()
-                .result
+                .clone()
                 .into_iter()
                 .find(|org| org.name == raw_zitadel_project.org_name)
                 .ok_or_else(|| ZitadelResourceRawError::OrgNotFound(raw_zitadel_project.org_name.clone()))?;
@@ -120,10 +124,6 @@ pub async fn handle_raw(
             let mut project_role_list = management_client
                 .list_project_roles(zitadel::api::zitadel::management::v1::ListProjectRolesRequest {
                     project_id: project_id.clone(),
-                    query: Some(ListQuery {
-                        limit: 1,
-                        ..Default::default()
-                    }),
                     ..Default::default()
                 })
                 .await?
@@ -134,7 +134,7 @@ pub async fn handle_raw(
             debug!("project_role_list: {:?}", project_role_list);
 
             for resource_role in raw_zitadel_project.roles.iter() {
-                if project_role_list.find(|project_role| project_role.key == resource_role.key) == None {
+                if project_role_list.find(|role| role.key == resource_role.key.clone()) == None {
                     management_client
                         .add_project_role(AddProjectRoleRequest {
                             project_id: project_id.clone(),
@@ -146,21 +146,73 @@ pub async fn handle_raw(
                 };
             }
 
-            // assign roles to admin
+            // get admin user_id
+            let admin_org = orgs
+                .into_iter()
+                .find(|org| org.name == "ZITADEL")
+                .ok_or(ControllerError::GenericError("Admin org not found".to_string()))?;
 
-            let mut user_client = client.user_client(None).await?;
+            let mut user_client = client.user_client(Some(&admin_org.id)).await?;
+            let admin_name = format!("zitadel-admin@{}", admin_org.primary_domain);
 
-            let users = user_client.list_users(ListUsersRequest::default()).await?;
+            debug!("admin_name: {}", admin_name);
 
-            let admin = users
+            let users = user_client
+                .list_users(ListUsersRequest {
+                    queries: vec![zitadel::api::zitadel::user::v2::SearchQuery {
+                        query: Some(
+                            zitadel::api::zitadel::user::v2::search_query::Query::UserNameQuery(
+                                UserNameQuery {
+                                    user_name: admin_name.clone(),
+                                    ..Default::default()
+                                },
+                            ),
+                        ),
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                })
+                .await?;
+
+            let admin_user = users
                 .into_inner()
                 .result
                 .into_iter()
-                .find(|user| user.username == "zitadel-admin")
+                .next()
                 .ok_or(ControllerError::GenericError("No admin user found".to_string()))?;
 
-            let project_grant_list = management_client
-                .list_project_grants(ListProjectGrantsRequest {
+            // assign roles to admin
+            let user_grants_list = management_client
+                .list_user_grants(zitadel::api::zitadel::management::v1::ListUserGrantRequest {
+                    query: Some(ListQuery {
+                        limit: 1,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                })
+                .await?
+                .into_inner()
+                .result;
+
+            if user_grants_list
+                .into_iter()
+                .find(|grant| grant.user_id == admin_user.user_id)
+                .is_none()
+            {
+                management_client
+                    .add_user_grant(AddUserGrantRequest {
+                        user_id: admin_user.user_id.clone(),
+                        project_id: project_id.clone(),
+                        role_keys: raw_zitadel_project.admin_roles.clone(),
+                        project_grant_id: s!(""),
+                    })
+                    .await?;
+            }
+
+            // zitadel-admin@zitadel.zitadel.vindelicorum.eu
+
+            let present_applications = management_client
+                .list_apps(zitadel::api::zitadel::management::v1::ListAppsRequest {
                     project_id: project_id.clone(),
                     query: Some(ListQuery {
                         limit: 1,
@@ -172,32 +224,24 @@ pub async fn handle_raw(
                 .into_inner()
                 .result;
 
-            management_client
-                .add_user_grant(AddUserGrantRequest {
-                    user_id: admin.user_id.clone(),
-                    project_id: project_id.clone(),
-                    role_keys: raw_zitadel_project.admin_roles.clone(),
-                    project_grant_id: project_grant_list
-                        .first()
-                        .map(|grant| grant.grant_id.clone())
-                        .ok_or(ControllerError::GenericError(
-                            "No project grant found".to_string(),
-                        ))?,
-                })
-                .await?;
-
             // create applications
-            for application in raw_zitadel_project.applications.iter() {
-                // create application
-                match &application.method {
-                    crd::RawZitadelApplicationMethod::Oidc(oidc_config) => {
-                        let vault_client = create_vault_client().await?;
+            for resource_application in raw_zitadel_project.applications.iter() {
+                if present_applications
+                    .clone()
+                    .into_iter()
+                    .find(|present_application| present_application.name == resource_application.name)
+                    .is_some()
+                {
+                    continue;
+                }
 
+                // create application
+                match &resource_application.method {
+                    crd::RawZitadelApplicationMethod::Oidc(oidc_config) => {
                         // check if we can create the client data target
-                        match &application.client_data_target {
+                        match &resource_application.client_data_target {
                             crd::RawZitadelApplicationClientDataTarget::Vault(vault_target) => {
                                 handle_vault_target(
-                                    &vault_client,
                                     vault_target,
                                     resource_namespace,
                                     json!({
@@ -212,7 +256,7 @@ pub async fn handle_raw(
                         let oidc_app = management_client
                             .add_oidc_app(AddOidcAppRequest {
                                 project_id: project_id.clone(),
-                                name: application.name.clone(),
+                                name: resource_application.name.clone(),
 
                                 redirect_uris: oidc_config.redirect_uris.clone(),
                                 response_types: oidc_config
@@ -248,10 +292,9 @@ pub async fn handle_raw(
                             .into_inner();
 
                         // create client data target
-                        match &application.client_data_target {
+                        match &resource_application.client_data_target {
                             crd::RawZitadelApplicationClientDataTarget::Vault(vault) => {
-                                handle_vault_target(
-                                    &vault_client,
+                                if let Err(e) = handle_vault_target(
                                     vault,
                                     resource_namespace,
                                     json!({
@@ -259,7 +302,11 @@ pub async fn handle_raw(
                                         "clientSecret": oidc_app.client_secret
                                     }),
                                 )
-                                .await?;
+                                .await
+                                {
+                                    // DELETE APP
+                                    return Err(e.into());
+                                }
                             }
                         }
                     }
@@ -279,16 +326,28 @@ pub enum ZitadelResourceRawError {
 }
 
 pub async fn handle_vault_target(
-    vault_client: &VaultClient,
     vault_target: &ClientDataTargetVault,
     resource_namespace: &str,
     data: serde_json::Value,
 ) -> Result<(), ControllerError> {
+    let auth_role = "zitadel-resource-controller";
+    let auth_path = format!(
+        "mows-core-secrets-vrc/{}/{}",
+        resource_namespace, vault_target.kubernetes_auth_engine_name
+    );
+    let vault_client = create_vault_client(&auth_path, &auth_role).await?;
+
     let mount_path = format!(
         "mows-core-secrets-vrc/{}/{}",
-        resource_namespace, vault_target.engine_name
+        resource_namespace, vault_target.secret_engine_name
     );
 
-    vaultrs::kv2::set(vault_client, &mount_path, &vault_target.path, &data).await?;
+    vaultrs::kv2::set(
+        &vault_client,
+        &mount_path,
+        &vault_target.secret_engine_sub_path,
+        &data,
+    )
+    .await?;
     Ok(())
 }

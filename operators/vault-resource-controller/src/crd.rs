@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use kube::CustomResource;
 use schemars::JsonSchema;
@@ -38,7 +38,9 @@ pub struct VaultSecretSyncTargetTypes {
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultSecretSyncTargetConfigMap {
-    pub data: HashMap<String, String>,
+    pub labels: Option<BTreeMap<String, String>>,
+    pub annotations: Option<BTreeMap<String, String>>,
+    pub data: BTreeMap<String, String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -46,7 +48,9 @@ pub struct VaultSecretSyncTargetConfigMap {
 pub struct VaultSecretSyncTargetSecret {
     #[serde(rename = "type")]
     pub secret_type: Option<String>,
-    pub data: HashMap<String, String>,
+    pub labels: Option<BTreeMap<String, String>>,
+    pub annotations: Option<BTreeMap<String, String>>,
+    pub data: BTreeMap<String, String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
