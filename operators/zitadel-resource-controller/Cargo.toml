@@ -68,6 +68,7 @@ zitadel = { workspace = true, features = [
     "api-user-v2",
 ] }
 tonic = { version = "0.12.3" }
+pbjson-types = "0.7.0"
 
 [dependencies.kube]
 features = ["runtime", "client", "derive"]

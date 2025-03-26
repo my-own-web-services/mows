@@ -7,7 +7,7 @@ use tracing::info;
 use tracing_actix_web::TracingLogger;
 use zitadel::api::zitadel::management::v1::{GetIamRequest, GetMyOrgRequest};
 use zitadel_resource_controller::config::config;
-use zitadel_resource_controller::utils::ZitadelClient;
+use zitadel_resource_controller::zitadel_client::ZitadelClient;
 use zitadel_resource_controller::{self, State};
 
 #[get("/metrics")]

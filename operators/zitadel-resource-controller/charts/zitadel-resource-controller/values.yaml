@@ -13,7 +13,7 @@ vault:
 
 
 logging:
-    log_filter: warn,zitadel_resource_controller::handlers::raw=trace,vaultrs=trace
+    log_filter: warn,zitadel_resource_controller::handlers::raw=trace,vaultrs=warn,zitadel_resource_controller::zitadel_client=trace
     tracing_filter: info
 
 imagePullSecrets: []
