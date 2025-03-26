@@ -7550,6 +7550,7 @@ dependencies = [
  "kube",
  "mows-common",
  "opentelemetry 0.26.0",
+ "pbjson-types",
  "prometheus-client",
  "schemars",
  "serde",

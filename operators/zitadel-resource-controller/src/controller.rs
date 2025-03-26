@@ -1,7 +1,7 @@
 use crate::{
     config::config,
     crd::{ZitadelResource, ZitadelResourceSpec, ZitadelResourceStatus},
-    handlers::raw::handle_raw,
+    handlers::raw::{apply_raw, cleanup_raw},
     utils::get_error_type,
     ControllerError, Metrics, Result,
 };
@@ -28,7 +28,7 @@ use tracing::*;
 pub static FINALIZER: &str = "zitadel.k8s.mows.cloud";
 
 #[instrument(skip(kube_client))]
-pub async fn reconcile_resource(
+pub async fn apply_resource(
     zitadel_resource: &ZitadelResource,
     kube_client: &kube::Client,
 ) -> Result<(), ControllerError> {
@@ -48,7 +48,37 @@ pub async fn reconcile_resource(
     };
 
     match &zitadel_resource.spec {
-        ZitadelResourceSpec::Raw(raw_resource) => handle_raw(resource_namespace, raw_resource).await?,
+        ZitadelResourceSpec::Raw(raw_resource) => {
+            apply_raw(resource_namespace, resource_name, raw_resource).await?
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn cleanup_resource(
+    zitadel_resource: &ZitadelResource,
+    kube_client: &kube::Client,
+) -> Result<(), ControllerError> {
+    let resource_namespace = zitadel_resource
+        .metadata
+        .namespace
+        .as_deref()
+        .unwrap_or("default");
+
+    let resource_name = match zitadel_resource.metadata.name.as_deref() {
+        Some(v) => v,
+        None => {
+            return Err(ControllerError::GenericError(
+                "Failed to get resource name from ZitadelResource metadata".to_string(),
+            ))
+        }
+    };
+
+    match &zitadel_resource.spec {
+        ZitadelResourceSpec::Raw(raw_resource) => {
+            cleanup_raw(resource_namespace, resource_name, raw_resource).await?
+        }
     }
 
     Ok(())
@@ -109,7 +139,7 @@ impl ZitadelResource {
         let name = self.name_any();
         let vault_resources: Api<ZitadelResource> = Api::namespaced(kube_client.clone(), &ns);
 
-        match reconcile_resource(self, &kube_client).await {
+        match apply_resource(self, &kube_client).await {
             Ok(_) => {
                 info!("Reconcile successful");
                 let new_status = Patch::Apply(json!({
@@ -130,7 +160,7 @@ impl ZitadelResource {
                     .publish(Event {
                         type_: EventType::Normal,
                         reason: "ObjectCreated".into(),
-                        note: Some(format!("Object Created: `{name}`")),
+                        note: Some(format!("Object Created: {name}")),
                         action: "CreateObject".into(),
                         secondary: None,
                     })
@@ -181,6 +211,7 @@ impl ZitadelResource {
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)
     async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
         let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
+
         // Document doesn't have any real cleanup, so we just publish an event
         let res = recorder
             .publish(Event {

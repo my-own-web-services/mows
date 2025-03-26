@@ -1,6 +1,7 @@
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use zitadel::api::zitadel::app::v1::ApiAuthMethodType;
 
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -31,27 +32,80 @@ pub struct RawZitadelResource {
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum RawZitadelResourceSelector {
-    Org(RawZitadelOrg),
     Project(RawZitadelProject),
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct RawZitadelOrg {
-    pub name: String,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct RawZitadelProject {
-    pub org_name: String,
-    pub name: String,
     pub project_role_assertion: bool,
     pub project_role_check: bool,
     pub roles: Vec<RawZitadelProjectRole>,
     /// the roles to assign to the "zitadel-admin"
     pub admin_roles: Vec<String>,
     pub applications: Vec<RawZitadelApplication>,
+    pub action_flow: Option<RawZitadelActionAndFlow>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RawZitadelActionAndFlow {
+    pub actions: HashMap<String, RawZitadelAction>,
+    pub flow: RawZitadelActionFlow,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RawZitadelAction {
+    pub script: String,
+    pub timeout_seconds: Option<i64>,
+    pub allowed_to_fail: Option<bool>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RawZitadelActionFlow {
+    pub complement_token: Option<ComplementTokenFlow>,
+    //pub external_authentication: Option<ExternalAuthenticationFlow>,
+    //pub internal_authentication: Option<InternalAuthenticationFlow>,
+    //pub complement_saml_response: Option<ComplementSAMLResponse>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum RawZitadelActionFlowEnum {
+    ComplementToken = 2,
+}
+
+impl RawZitadelActionFlowEnum {
+    pub fn to_string(&self) -> String {
+        match self {
+            RawZitadelActionFlowEnum::ComplementToken => "2".to_string(),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum RawZitadelActionFlowComplementTokenEnum {
+    PreUserinfoCreation,
+    PreAccessTokenCreation,
+}
+
+impl RawZitadelActionFlowComplementTokenEnum {
+    pub fn to_string(&self) -> String {
+        match self {
+            RawZitadelActionFlowComplementTokenEnum::PreUserinfoCreation => "4".to_string(),
+            RawZitadelActionFlowComplementTokenEnum::PreAccessTokenCreation => "5".to_string(),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ComplementTokenFlow {
+    pub pre_userinfo_creation: Option<Vec<String>>,
+    pub pre_access_token_creation: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -114,7 +168,7 @@ pub struct RawZitadelApplicationOidc {
     pub access_token_role_assertion: Option<bool>,
     pub id_token_role_assertion: Option<bool>,
     pub id_token_userinfo_assertion: Option<bool>,
-    pub clock_skew: Option<Duration>,
+    pub clock_skew_seconds: Option<i64>,
     #[serde(default)]
     pub additional_origins: Vec<String>,
     pub skip_native_app_success_page: Option<bool>,
@@ -171,13 +225,6 @@ pub enum OidcTokenType {
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Duration {
-    pub seconds: i64,
-    pub nanos: i32,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct RawZitadelApplicationSaml {}
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -214,8 +261,6 @@ pub fn oidc_app_type_to_zitadel(app_type: &OidcAppType) -> i32 {
 }
 
 pub fn oidc_auth_method_type_to_zitadel(auth_method_type: &OidcAuthMethodType) -> i32 {
-    use zitadel::api::zitadel::app::v1::OidcGrantType;
-
     match auth_method_type {
         OidcAuthMethodType::Basic => 0,
         OidcAuthMethodType::Post => 1,
@@ -229,4 +274,8 @@ pub fn oidc_access_token_type_to_zitadel(access_token_type: &OidcTokenType) -> i
         OidcTokenType::Bearer => 0,
         OidcTokenType::Jwt => 1,
     }
+}
+
+pub fn duration_to_zitadel(seconds: i64) -> pbjson_types::Duration {
+    pbjson_types::Duration { seconds, nanos: 0 }
 }

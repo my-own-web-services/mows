@@ -91,3 +91,5 @@ pub mod config;
 pub mod crd;
 pub mod macros;
 pub mod utils;
+pub mod vault;
+pub mod zitadel_client;

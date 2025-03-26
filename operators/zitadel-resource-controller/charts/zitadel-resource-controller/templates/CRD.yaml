@@ -29,19 +29,50 @@ spec:
                   resource:
                     oneOf:
                     - required:
-                      - org
-                    - required:
                       - project
                     properties:
-                      org:
-                        properties:
-                          name:
-                            type: string
-                        required:
-                        - name
-                        type: object
                       project:
                         properties:
+                          actionFlow:
+                            nullable: true
+                            properties:
+                              actions:
+                                additionalProperties:
+                                  properties:
+                                    allowedToFail:
+                                      nullable: true
+                                      type: boolean
+                                    script:
+                                      type: string
+                                    timeoutSeconds:
+                                      format: int64
+                                      nullable: true
+                                      type: integer
+                                  required:
+                                  - script
+                                  type: object
+                                type: object
+                              flow:
+                                properties:
+                                  complementToken:
+                                    nullable: true
+                                    properties:
+                                      preAccessTokenCreation:
+                                        items:
+                                          type: string
+                                        nullable: true
+                                        type: array
+                                      preUserinfoCreation:
+                                        items:
+                                          type: string
+                                        nullable: true
+                                        type: array
+                                    type: object
+                                type: object
+                            required:
+                            - actions
+                            - flow
+                            type: object
                           adminRoles:
                             description: the roles to assign to the "zitadel-admin"
                             items:
@@ -115,19 +146,10 @@ spec:
                                         backChannelLogoutUri:
                                           nullable: true
                                           type: string
-                                        clockSkew:
+                                        clockSkewSeconds:
+                                          format: int64
                                           nullable: true
-                                          properties:
-                                            nanos:
-                                              format: int32
-                                              type: integer
-                                            seconds:
-                                              format: int64
-                                              type: integer
-                                          required:
-                                          - nanos
-                                          - seconds
-                                          type: object
+                                          type: integer
                                         devMode:
                                           nullable: true
                                           type: boolean
@@ -190,10 +212,6 @@ spec:
                               - name
                               type: object
                             type: array
-                          name:
-                            type: string
-                          orgName:
-                            type: string
                           projectRoleAssertion:
                             type: boolean
                           projectRoleCheck:
@@ -216,8 +234,6 @@ spec:
                         required:
                         - adminRoles
                         - applications
-                        - name
-                        - orgName
                         - projectRoleAssertion
                         - projectRoleCheck
                         - roles
