@@ -1,32 +1,56 @@
+use crate::s;
 use serde::{Deserialize, Serialize};
 
-use crate::s;
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MowsConstants {
     pub core_components: CoreComponents,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CoreComponents {
     pub public_ip: CoreComponentPublicIp,
     pub ingress: CoreComponentIngress,
     pub dns: CoreComponentDns,
+    pub email: CoreComponentEmail,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CoreComponentDns {
     pub namespace: String,
     pub server_full_service_name: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CoreComponentIngress {
     pub namespace: String,
     pub full_service_name: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CoreComponentEmail {
+    pub namespace: String,
+    pub full_service_name: String,
+    pub public_ports: CoreComponentEmailPorts,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CoreComponentEmailPorts {
+    pub smtp: u16,
+    pub submission: u16,
+    pub smtps: u16,
+    pub imap: u16,
+    pub imaps: u16,
+    pub sieve: u16,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CoreComponentPublicIp {
     pub namespace: String,
     pub pod_name: String,
@@ -52,7 +76,20 @@ impl MowsConstants {
                     namespace: s!("mows-core-dns-pektin"),
                     server_full_service_name: s!("pektin-server.mows-core-dns-pektin"),
                 },
+                email: CoreComponentEmail {
+                    namespace: s!("mows-core-email"),
+                    full_service_name: s!("stalwart.mows-core-email"),
+                    public_ports: CoreComponentEmailPorts {
+                        smtp: 25,
+                        submission: 587,
+                        smtps: 465,
+                        imap: 143,
+                        imaps: 993,
+                        sieve: 4190,
+                    },
+                }
             },
+
         }
     }
 }

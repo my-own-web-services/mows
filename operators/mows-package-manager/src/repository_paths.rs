@@ -1,7 +1,5 @@
-use std::path::{Path, PathBuf};
-
 use mows_common::utils::generate_id;
-use tracing::debug;
+use std::path::{Path, PathBuf};
 
 const MANIFEST_FILE_NAME: &str = "mows-manifest.yaml";
 

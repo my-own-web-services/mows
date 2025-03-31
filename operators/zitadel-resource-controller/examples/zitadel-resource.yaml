@@ -58,18 +58,18 @@ spec:
                                 * @param api
                                 */
                                 function groupsClaim(ctx, api) {
-                                if (ctx.v1.user.grants === undefined || ctx.v1.user.grants.count == 0) {
-                                    return;
-                                }
+                                    if (ctx.v1.user.grants === undefined || ctx.v1.user.grants.count == 0) {
+                                        return;
+                                    }
 
-                                let grants = [];
-                                ctx.v1.user.grants.grants.forEach((claim) => {
-                                    claim.roles.forEach((role) => {
-                                    grants.push(role);
+                                    let grants = [];
+                                    ctx.v1.user.grants.grants.forEach((claim) => {
+                                        claim.roles.forEach((role) => {
+                                            grants.push(role);
+                                        });
                                     });
-                                });
 
-                                api.v1.claims.setClaim("groups", grants);
+                                    api.v1.claims.setClaim("groups", grants);
                                 }
                     flow:
                         complementToken:

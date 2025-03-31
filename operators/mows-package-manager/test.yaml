@@ -1,741 +1,192 @@
 apiVersion: v1
-automountServiceAccountToken: true
-kind: ServiceAccount
-metadata:
-  labels:
-    app: vault-resource-controller
-    app.kubernetes.io/name: vault-resource-controller
-    app.kubernetes.io/version: latest
-  name: vault-resource-controller
-  namespace: mows-core-secrets-vault
-
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: vaultresources.vault.k8s.mows.cloud
-spec:
-  group: vault.k8s.mows.cloud
-  names:
-    categories: []
-    kind: VaultResource
-    plural: vaultresources
-    shortNames:
-    - vres
-    singular: vaultresource
-  scope: Namespaced
-  versions:
-  - additionalPrinterColumns: []
-    name: v1
-    schema:
-      openAPIV3Schema:
-        description: Auto-generated derived type for VaultResourceSpec via `CustomResource`
-        properties:
-          spec:
-            oneOf:
-            - required:
-              - secretEngine
-            - required:
-              - authEngine
-            - required:
-              - engineAccessPolicy
-            - required:
-              - secretSync
-            properties:
-              authEngine:
-                oneOf:
-                - required:
-                  - kubernetes
-                properties:
-                  kubernetes:
-                    properties:
-                      roles:
-                        additionalProperties:
-                          properties:
-                            namespace:
-                              nullable: true
-                              type: string
-                            policyIds:
-                              description: The vault policy id to attach to the service account without namespace
-                              items:
-                                type: string
-                              type: array
-                            serviceAccountName:
-                              type: string
-                          required:
-                          - policyIds
-                          - serviceAccountName
-                          type: object
-                        type: object
-                    required:
-                    - roles
-                    type: object
-                type: object
-              engineAccessPolicy:
-                properties:
-                  subPolicies:
-                    items:
-                      properties:
-                        capabilities:
-                          items:
-                            enum:
-                            - read
-                            - create
-                            - update
-                            - delete
-                            - list
-                            type: string
-                          type: array
-                        engineId:
-                          type: string
-                        engineType:
-                          enum:
-                          - auth
-                          - secret
-                          type: string
-                        subPath:
-                          type: string
-                      required:
-                      - capabilities
-                      - engineId
-                      - engineType
-                      - subPath
-                      type: object
-                    type: array
-                required:
-                - subPolicies
-                type: object
-              secretEngine:
-                oneOf:
-                - required:
-                  - kv-v2
-                - required:
-                  - transit
-                properties:
-                  kv-v2:
-                    properties:
-                      kvData:
-                        additionalProperties:
-                          additionalProperties:
-                            type: string
-                          type: object
-                        type: object
-                    required:
-                    - kvData
-                    type: object
-                  transit:
-                    type: object
-                type: object
-              secretSync:
-                properties:
-                  kvMapping:
-                    additionalProperties:
-                      properties:
-                        engine:
-                          type: string
-                        path:
-                          type: string
-                      required:
-                      - engine
-                      - path
-                      type: object
-                    type: object
-                  targets:
-                    properties:
-                      configMaps:
-                        additionalProperties:
-                          additionalProperties:
-                            type: string
-                          type: object
-                        nullable: true
-                        type: object
-                      secrets:
-                        additionalProperties:
-                          properties:
-                            map:
-                              additionalProperties:
-                                type: string
-                              type: object
-                            type:
-                              nullable: true
-                              type: string
-                          required:
-                          - map
-                          type: object
-                        nullable: true
-                        type: object
-                    type: object
-                required:
-                - kvMapping
-                - targets
-                type: object
-            type: object
-          status:
-            description: The status object of `VaultResource`
-            nullable: true
-            properties:
-              created:
-                type: boolean
-            required:
-            - created
-            type: object
-        required:
-        - spec
-        title: VaultResource
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: vault-resource-controller
-rules:
-- apiGroups:
-  - vault.k8s.mows.cloud
-  resources:
-  - vaultresources
-  - vaultresources/status
-  - vaultresources/finalizers
-  verbs:
-  - get
-  - list
-  - watch
-  - patch
-  - update
-- apiGroups:
-  - events.k8s.io
-  resources:
-  - events
-  verbs:
-  - create
-- apiGroups:
-  - ''
-  resources:
-  - secrets
-  - configmaps
-  verbs:
-  - create
-  - patch
-  - update
-  - get
-  - delete
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: vault-resource-controller
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: vault-resource-controller
-subjects:
-- kind: ServiceAccount
-  name: vault-resource-controller
-  namespace: mows-core-secrets-vault
-
----
-apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: vault-resource-controller
-    app.kubernetes.io/name: vault-resource-controller
-    app.kubernetes.io/version: latest
-  name: vault-resource-controller
-  namespace: mows-core-secrets-vault
+  name: stalwart.mows-core-email
 spec:
   ports:
   - name: http
     port: 80
-    protocol: TCP
-    targetPort: 8080
+    targetPort: http
+  - name: smtp
+    port: 25
+    targetPort: smtp
+  - name: submission
+    port: 587
+    targetPort: submission
+  - name: smtps
+    port: 465
+    targetPort: smtps
+  - name: imap
+    port: 143
+    targetPort: imap
+  - name: imaps
+    port: 993
+    targetPort: imaps
+  - name: sieve
+    port: 4190
+    targetPort: sieve
   selector:
-    app: vault-resource-controller
-  type: ClusterIP
+    app: stalwart-server
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: vault-resource-controller
-    app.kubernetes.io/name: vault-resource-controller
-    app.kubernetes.io/version: latest
-  name: vault-resource-controller
-  namespace: mows-core-secrets-vault
+  name: stalwart-server
 spec:
   replicas: 1
-  revisionHistoryLimit: 0
   selector:
     matchLabels:
-      app: vault-resource-controller
-  template:
-    metadata:
-      annotations:
-        kubectl.kubernetes.io/default-container: vault-resource-controller
-      labels:
-        app: vault-resource-controller
-    spec:
-      containers:
-      - env:
-        - name: LOG_FILTER
-          value: warn,controller::handlers::secret_sync=trace,vaultrs=warn
-        - name: TRACING_FILTER
-          value: trace
-        image: 192.168.112.5:5000/vault-resource-controller:latest
-        imagePullPolicy: Always
-        name: vault-resource-controller
-        ports:
-        - containerPort: 8080
-          name: http
-          protocol: TCP
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: http
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        resources:
-          limits:
-            cpu: 100m
-            memory: 100Mi
-          requests:
-            cpu: 50m
-            memory: 50Mi
-        securityContext: {}
-      securityContext: {}
-      serviceAccountName: vault-resource-controller
-
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-  name: vault
-  namespace: abc
-spec:
-  maxUnavailable: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: vault
-      app.kubernetes.io/name: vault
-      component: server
-
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-  name: vault
-  namespace: abc
-
----
-apiVersion: v1
-data:
-  extraconfig-from-values.hcl: |2-
-
-    disable_mlock = true
-    ui = true
-    listener "tcp" {
-        tls_disable = 1
-        address = "[::]:8200"
-        cluster_address = "[::]:8201"
-    }
-kind: ConfigMap
-metadata:
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-  name: vault-config
-  namespace: abc
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-  name: vault-server-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: system:auth-delegator
-subjects:
-- kind: ServiceAccount
-  name: vault
-  namespace: abc
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-  name: vault-discovery-role
-  namespace: abc
-rules:
-- apiGroups:
-  - ''
-  resources:
-  - pods
-  verbs:
-  - get
-  - watch
-  - list
-  - update
-  - patch
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-  name: vault-discovery-rolebinding
-  namespace: abc
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: vault-discovery-role
-subjects:
-- kind: ServiceAccount
-  name: vault
-  namespace: abc
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations: null
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-    vault-active: 'true'
-  name: vault-active
-  namespace: abc
-spec:
-  ports:
-  - name: http
-    port: 8200
-    targetPort: 8200
-  - name: https-internal
-    port: 8201
-    targetPort: 8201
-  publishNotReadyAddresses: true
-  selector:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/name: vault
-    component: server
-    vault-active: 'true'
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations: null
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-  name: vault-standby
-  namespace: abc
-spec:
-  ports:
-  - name: http
-    port: 8200
-    targetPort: 8200
-  - name: https-internal
-    port: 8201
-    targetPort: 8201
-  publishNotReadyAddresses: true
-  selector:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/name: vault
-    component: server
-    vault-active: 'false'
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations: null
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-    vault-internal: 'true'
-  name: vault-internal
-  namespace: abc
-spec:
-  clusterIP: None
-  ports:
-  - name: http
-    port: 8200
-    targetPort: 8200
-  - name: https-internal
-    port: 8201
-    targetPort: 8201
-  publishNotReadyAddresses: true
-  selector:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/name: vault
-    component: server
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations: null
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-    helm.sh/chart: vault-0.28.1
-  name: vault
-  namespace: abc
-spec:
-  ports:
-  - name: http
-    port: 8200
-    targetPort: 8200
-  - name: https-internal
-    port: 8201
-    targetPort: 8201
-  publishNotReadyAddresses: true
-  selector:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/name: vault
-    component: server
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault-ui
-    helm.sh/chart: vault-0.28.1
-  name: vault-ui
-  namespace: abc
-spec:
-  ports:
-  - name: http
-    port: 8200
-    targetPort: 8200
-  publishNotReadyAddresses: true
-  selector:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/name: vault
-    component: server
-  type: ClusterIP
-
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  labels:
-    app.kubernetes.io/instance: vault
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: vault
-  name: vault
-  namespace: abc
-spec:
-  podManagementPolicy: Parallel
-  replicas: 3
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: vault
-      app.kubernetes.io/name: vault
-      component: server
-  serviceName: vault-internal
-  template:
-    metadata:
-      annotations: null
-      labels:
-        app.kubernetes.io/instance: vault
-        app.kubernetes.io/name: vault
-        component: server
-        helm.sh/chart: vault-0.28.1
-    spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app.kubernetes.io/instance: vault
-                app.kubernetes.io/name: vault
-                component: server
-            topologyKey: kubernetes.io/hostname
-      containers:
-      - args:
-        - |
-          cp /vault/config/extraconfig-from-values.hcl /tmp/storageconfig.hcl;
-          [ -n "${HOST_IP}" ] && sed -Ei "s|HOST_IP|${HOST_IP?}|g" /tmp/storageconfig.hcl;
-          [ -n "${POD_IP}" ] && sed -Ei "s|POD_IP|${POD_IP?}|g" /tmp/storageconfig.hcl;
-          [ -n "${HOSTNAME}" ] && sed -Ei "s|HOSTNAME|${HOSTNAME?}|g" /tmp/storageconfig.hcl;
-          [ -n "${API_ADDR}" ] && sed -Ei "s|API_ADDR|${API_ADDR?}|g" /tmp/storageconfig.hcl;
-          [ -n "${TRANSIT_ADDR}" ] && sed -Ei "s|TRANSIT_ADDR|${TRANSIT_ADDR?}|g" /tmp/storageconfig.hcl;
-          [ -n "${RAFT_ADDR}" ] && sed -Ei "s|RAFT_ADDR|${RAFT_ADDR?}|g" /tmp/storageconfig.hcl;
-          /usr/local/bin/docker-entrypoint.sh vault server -config=/tmp/storageconfig.hcl -config=/vault/userconfig/vault-storage-config/
-        command:
-        - /bin/sh
-        - -ec
-        env:
-        - name: HOST_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.hostIP
-        - name: POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        - name: VAULT_K8S_POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: VAULT_K8S_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: VAULT_ADDR
-          value: http://127.0.0.1:8200
-        - name: VAULT_API_ADDR
-          value: http://$(POD_IP):8200
-        - name: SKIP_CHOWN
-          value: 'true'
-        - name: SKIP_SETCAP
-          value: 'true'
-        - name: HOSTNAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: VAULT_CLUSTER_ADDR
-          value: https://$(HOSTNAME).vault-internal:8201
-        - name: HOME
-          value: /home/vault
-        - name: VAULT_LOG_LEVEL
-          value: debug
-        image: hashicorp/vault:1.17.2
-        imagePullPolicy: IfNotPresent
-        lifecycle:
-          preStop:
-            exec:
-              command:
-              - /bin/sh
-              - -c
-              - sleep 5 && kill -SIGTERM $(pidof vault)
-        name: vault
-        ports:
-        - containerPort: 8200
-          name: http
-        - containerPort: 8201
-          name: https-internal
-        - containerPort: 8202
-          name: http-rep
-        readinessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -ec
-            - vault status -tls-skip-verify
-          failureThreshold: 2
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          successThreshold: 1
-          timeoutSeconds: 3
-        securityContext:
-          allowPrivilegeEscalation: false
-        volumeMounts:
-        - mountPath: /vault/audit
-          name: audit
-        - mountPath: /vault/config
-          name: config
-        - mountPath: /home/vault
-          name: home
-        - mountPath: /vault/userconfig/vault-storage-config/
-          name: vault-db-secret-volume
-          subPath: config.hcl
-      hostNetwork: false
-      securityContext:
-        fsGroup: 1000
-        runAsGroup: 1000
-        runAsNonRoot: true
-        runAsUser: 100
-      serviceAccountName: vault
-      terminationGracePeriodSeconds: 10
-      volumes:
-      - configMap:
-          name: vault-config
-        name: config
-      - emptyDir: {}
-        name: home
-      - name: vault-db-secret-volume
-        secret:
-          secretName: vault-db-secret
-  updateStrategy:
-    type: OnDelete
-  volumeClaimTemplates:
-  - metadata:
-      name: audit
-    spec:
-      accessModes:
-      - ReadWriteOnce
+      app: stalwart-server
+  spec:
+    containers:
+    - command:
+      - /usr/local/bin/stalwart-mail
+      - --config
+      - /config.toml
+      env:
+      - name: RUN_AS_USER
+        value: '50003'
+      image: stalwartlabs/mail-server
+      imagePullPolicy: Always
+      livenessProbe:
+        httpGet:
+          path: /healthz/live
+          port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      name: stalwart-server
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 2500
+        name: smtp
+      - containerPort: 5870
+        name: submission
+      - containerPort: 4650
+        name: smtps
+      - containerPort: 1430
+        name: imap
+      - containerPort: 9930
+        name: imaps
+      - containerPort: 4190
+        name: sieve
+      readinessProbe:
+        httpGet:
+          path: /healthz/ready
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 10
       resources:
-        requests:
-          storage: 10Gi
-
----
-apiVersion: v1
-data:
-  config.hcl: c3RvcmFnZSAicG9zdGdyZXNxbCIgewogICAgICAgICAgICBjb25uZWN0aW9uX3VybD0icG9zdGdyZXM6Ly9wb3N0Z3Jlczp1TjNpMUhoMGJZYkNjNFR5VkFhY0JobVN6Z3F0enF4bU9WakFuMFFJQ2hzSnJTbXU5UFkyZncycThFS0tMcFo5QHBvc3RncmVzLnZhdWx0Lm1vd3MtY29yZS1zZWNyZXRzLXZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsOjU0MzIvdmF1bHRkYj9zc2xtb2RlPWRpc2FibGUiCiAgICAgICAgICAgIHRhYmxlPSJ2YXVsdF9rdl9zdG9yZSIsCiAgICAgICAgICAgIGhhX2VuYWJsZWQ9dHJ1ZSwKICAgICAgICAgICAgaGFfdGFibGU9InZhdWx0X2hhX2xvY2tzIiAKICAgICAgICB9
-  password: dU4zaTFIaDBiWWJDYzRUeVZBYWNCaG1TemdxdHpxeG1PVmpBbjBRSUNoc0pyU211OVBZMmZ3MnE4RUtLTHBaOQ==
-  username: cG9zdGdyZXM=
-kind: Secret
-metadata:
-  name: vault-db-secret
-type: kubernetes.io/basic-auth
+        cpu: 500m
+        limits: null
+        memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 50003
+      volumeMounts:
+      - mountPath: /opt/stalwart-mail
+        name: mail-data
+      - mountPath: /config.toml
+        name: config
+        subPath: config.toml
+      - mountPath: /certs/default/
+        name: default-certificates
+    serviceAccountName: stalwart-server
+    volumes:
+    - name: mail-data
+      persistentVolumeClaim:
+        claimName: stalwart-server-data
+    - name: config
+      secret:
+        name: stalwart-server-config
+    - name: default-certificates
+      secret:
+        secretName: stalwart-default-certificates
+  template:
+    metadata:
+      labels:
+        app: stalwart-server
 
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: vault-postgres
+  name: stalwart-db-postgres
 spec:
+  bootstrap:
+    initdb:
+      database: stalwart
+      owner: stalwart
+      secret:
+        name: stalwart-db-user
   enableSuperuserAccess: true
   instances: 1
   primaryUpdateStrategy: unsupervised
   storage:
     size: 2Gi
   superuserSecret:
-    name: vault-db-secret
+    name: stalwart-db-admin
+
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+  name: stalwart-server-db-passwords
+spec:
+  secretEngine:
+    kv-v2:
+      kvData:
+        db:
+          admin: '{% randAlphaNum 100 %}'
+          user: '{% randAlphaNum 100 %}'
+
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+  name: stalwart-server-db-passwords-sync
+spec:
+  secretSync:
+    kvMapping:
+      db:
+        engine: stalwart-server-db-passwords
+        path: db
+    targets:
+      secrets:
+        stalwart-db-admin:
+          data:
+            password: '{% .secrets.db.admin  %}'
+            username: postgres
+          type: kubernetes.io/basic-auth
+        stalwart-db-user:
+          data:
+            password: '{% .secrets.db.user %}'
+            username: stalwart
+          type: kubernetes.io/basic-auth
+        stalwart-server-config:
+          data:
+            config.toml: "[lookup.default]\nhostname = \"mx.vindelicorum.eu\"\n\n[server.http]\nuse-x-forwarded = true\nhsts = true\n\n[server.listener.\"http\"]\nbind = \"[::]:8080\"\n\n[server.listener.\"smtp\"]\nbind = \"[::]:2500\"\n\n[server.listener.\"submission\"]\nbind = \"[::]:5870\"\n\n[server.listener.\"smtps\"]\nbind = \"[::]:4650\"\n\n[server.listener.\"imap\"]\nbind = \"[::]:1430\"\n\n[server.listener.\"imaps\"]\nbind = \"[::]:9930\"\n\n[server.listener.\"sieve\"]\nbind = \"[::]:4190\"                            \n\n[store.\"postgresql\"]\ntype = \"postgresql\"\nhost = \"stalwart-db-postgres-rw\"\nport = 5432\ndatabase = \"stalwart\"\nuser = \"stalwart\"\npassword = \"{% .secrets.db.user %}\"\ntimeout = \"15s\"\n\n[certificate.\"default\"]\ncert=\"%{file:/certs/default/tls.crt}%\"\nkey=\"%{file:/certs/default/tls.key}%\"\n# TODO handle reloading of certificates\n"
+
+---
+apiVersion: pektin.k8s.mows.cloud/v1
+kind: PektinDns
+metadata:
+  name: primary-mail-domain
+spec:
+  plain:
+  - data: mx.vindelicorum.eu.
+    meta: ''
+    name: vindelicorum.eu.
+    ttl: 60
+    type: MX
+  - meta: ''
+    name: mx.vindelicorum.eu.
+    rr_set:
+      A:
+      - value: 116.203.53.54
+    ttl: 60
 
 ---
