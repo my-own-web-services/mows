@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: {{ .Values.server.name }}
 spec:
+    revisionHistoryLimit: 0
     replicas: {{ .Values.server.replicaCount }}
     selector:
         matchLabels:
@@ -11,71 +12,76 @@ spec:
         metadata:
             labels:
                 app: {{ .Values.server.name }}
-    spec:
-        serviceAccountName: {{ .Values.server.name }}
-        volumes:
-            -   name: mail-data
-                persistentVolumeClaim:
-                    claimName: {{ .Values.server.name }}-data
-            -   name: config
-                secret:
-                    name: {{ .Values.server.name }}-config
-            -   name: default-certificates
-                secret:
-                    secretName: stalwart-default-certificates
+        spec:
+            serviceAccountName: {{ .Values.server.name }}
+            volumes:
+                -   name: mail-data
+                    persistentVolumeClaim:
+                        claimName: {{ .Values.server.name }}-data
+                -   name: config
+                    secret:
+                        secretName: {{ .Values.server.name }}-config
+                -   name: default-certificates
+                    secret:
+                        secretName: stalwart-default-certificates
 
-        containers:
-            -   name: {{ .Values.server.name }}
-                image: "{{ .Values.server.image }}"
-                imagePullPolicy: {{ .Values.server.imagePullPolicy }}
-                livenessProbe:
-                    httpGet:
-                        path: /healthz/live
-                        port: 8080
-                    initialDelaySeconds: 30
-                    periodSeconds: 10
-                readinessProbe:
-                    httpGet:
-                        path: /healthz/ready
-                        port: 8080
-                    initialDelaySeconds: 5
-                    periodSeconds: 10      
-                securityContext:
-                    allowPrivilegeEscalation: false
-                    readOnlyRootFilesystem: true
-                    runAsNonRoot: true
-                    runAsUser: 50003
-                volumeMounts:
-                    -   name: mail-data
-                        mountPath: /opt/stalwart-mail
-                    -   name: config
-                        mountPath: /config.toml
-                        subPath: config.toml
-                    -   name: default-certificates
-                        mountPath: /certs/default/
-                command: ["/usr/local/bin/stalwart-mail","--config","/config.toml"]
-                ports:
-                    -   name: http
-                        containerPort: 8080
-                    -   name: smtp
-                        containerPort: 2500
-                    -   name: submission
-                        containerPort: 5870
-                    -   name: smtps
-                        containerPort: 4650
-                    -   name: imap
-                        containerPort: 1430
-                    -   name: imaps
-                        containerPort: 9930
-                    -   name: sieve
-                        containerPort: 4190
-                resources:
-                    limits:
-                    memory: 128Mi
-                    cpu: 500m
-                env:
-                    -   name: RUN_AS_USER
-                        value: "50003"
+            containers:
+                -   name: {{ .Values.server.name }}
+                    image: "{{ .Values.server.image }}"
+                    imagePullPolicy: {{ .Values.server.imagePullPolicy }}
+                    livenessProbe:
+                        httpGet:
+                            path: /healthz/live
+                            port: 8080
+                        initialDelaySeconds: 30
+                        periodSeconds: 10
+                    readinessProbe:
+                        httpGet:
+                            path: /healthz/ready
+                            port: 8080
+                        initialDelaySeconds: 5
+                        periodSeconds: 10      
+                    securityContext:
+                        allowPrivilegeEscalation: false
+                        #readOnlyRootFilesystem: true
+                        #runAsNonRoot: true
+                        #runAsUser: 50003
+                    volumeMounts:
+                        -   name: mail-data
+                            mountPath: /opt/stalwart-mail
+                        -   name: config
+                            mountPath: /config.toml
+                            subPath: config.toml
+                        -   name: default-certificates
+                            mountPath: /certs/default/
+                    command: 
+                        - bash 
+                        - -c
+                        - |
+                            cp /config.toml /opt/config.toml
+                            /usr/local/bin/stalwart-mail --config /opt/config.toml
+                    ports:
+                        -   name: http
+                            containerPort: 8080
+                        -   name: smtp
+                            containerPort: 2500
+                        -   name: submission
+                            containerPort: 5870
+                        -   name: smtps
+                            containerPort: 4650
+                        -   name: imap
+                            containerPort: 1430
+                        -   name: imaps
+                            containerPort: 9930
+                        -   name: sieve
+                            containerPort: 4190
+                    resources:
+                        limits:
+                            memory: 128Mi
+                            cpu: 500m
+                    #env:
+                    #    -   name: RUN_AS_USER
+                    #        value: "50003"
 
 
 

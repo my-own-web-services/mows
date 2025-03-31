@@ -5,10 +5,12 @@ metadata:
 spec:
     plain:
         -   name: "{§ .config.domain §}."
-            type: MX
             meta: ""
             ttl: 60
-            data: mx.{§ .config.domain §}.
+            rr_set: 
+                MX: 
+                -   exchange: mx.{§ .config.domain §}.
+                    preference: 10
 
         -   name: mx.{§ .config.domain §}.
             meta: ""
