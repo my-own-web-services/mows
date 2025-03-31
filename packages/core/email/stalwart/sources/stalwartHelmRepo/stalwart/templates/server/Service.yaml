@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{§ .config.constants.coreComponents.email.fullServiceName §}"
+  name: "{§ .config.constants.coreComponents.email.serviceName §}"
 spec:
     ports:
         -   name: http
-            port: 80
+            port: 8080
             targetPort: http
 
         -   name: smtp

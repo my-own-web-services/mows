@@ -20,21 +20,21 @@ pub struct CoreComponents {
 #[serde(rename_all = "camelCase")]
 pub struct CoreComponentDns {
     pub namespace: String,
-    pub server_full_service_name: String,
+    pub server_service_name: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CoreComponentIngress {
     pub namespace: String,
-    pub full_service_name: String,
+    pub service_name: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CoreComponentEmail {
     pub namespace: String,
-    pub full_service_name: String,
+    pub service_name: String,
     pub public_ports: CoreComponentEmailPorts,
 }
 
@@ -70,15 +70,14 @@ impl MowsConstants {
                 },
                 ingress: CoreComponentIngress {
                     namespace: s!("mows-core-network-ingress"),
-                    full_service_name: s!("traefik.mows-core-network-ingress"),
+                    service_name: s!("traefik"),
                 },
                 dns: CoreComponentDns {
                     namespace: s!("mows-core-dns-pektin"),
-                    server_full_service_name: s!("pektin-server.mows-core-dns-pektin"),
+                    server_service_name: s!("pektin-server"),
                 },
                 email: CoreComponentEmail {
                     namespace: s!("mows-core-email"),
-                    full_service_name: s!("stalwart.mows-core-email"),
                     public_ports: CoreComponentEmailPorts {
                         smtp: 25,
                         submission: 587,
@@ -87,6 +86,7 @@ impl MowsConstants {
                         imaps: 993,
                         sieve: 4190,
                     },
+                    service_name: s!("stalwart"),
                 }
             },
 

@@ -9,6 +9,7 @@ spec:
                 db:
                     user: "{% randAlphaNum 100 %}"
                     admin: "{% randAlphaNum 100 %}"
+
 ---
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
@@ -43,25 +44,42 @@ spec:
                             hsts = true
 
                             [server.listener."http"]
-                            bind = "[::]:8080"
+                            bind = "0.0.0.0:8080"
+                            protocol = "http"
 
                             [server.listener."smtp"]
-                            bind = "[::]:2500"
+                            bind = "0.0.0.0:2500"
 
                             [server.listener."submission"]
-                            bind = "[::]:5870"
+                            bind = "0.0.0.0:5870"
 
                             [server.listener."smtps"]
-                            bind = "[::]:4650"
+                            bind = "0.0.0.0:4650"
 
                             [server.listener."imap"]
-                            bind = "[::]:1430"
+                            bind = "0.0.0.0:1430"
 
                             [server.listener."imaps"]
-                            bind = "[::]:9930"
+                            bind = "0.0.0.0:9930"
 
                             [server.listener."sieve"]
-                            bind = "[::]:4190"                            
+                            bind = "0.0.0.0:4190"
+
+                            [tracer.console]
+                            type = "console"
+                            level = "trace"
+
+                            [storage]
+                            data = "postgresql"
+                            fts = "postgresql"
+                            blob = "postgresql"
+                            lookup = "postgresql"
+                            directory = "internal"
+
+                            [directory."internal"]
+                            type = "internal"
+                            store = "postgresql"
+
 
                             [store."postgresql"]
                             type = "postgresql"
@@ -74,8 +92,12 @@ spec:
 
                             [certificate."default"]
                             cert="%{file:/certs/default/tls.crt}%"
-                            key="%{file:/certs/default/tls.key}%"
+                            private-key="%{file:/certs/default/tls.key}%"
                             # TODO handle reloading of certificates
+
+                            [authentication.fallback-admin]
+                            user = "admin"
+                            secret = "$2a$12$nVW88Csi1t3fwKd7iSXHf.Cw8lAkoUokBTzIoQhZl74tNaS74DPCe"
 
 
 

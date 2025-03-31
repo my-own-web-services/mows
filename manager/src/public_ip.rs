@@ -102,27 +102,36 @@ pub async fn install_local_wireguard(
 
     let mut udp_service_map: HashMap<u16, String> = HashMap::new();
 
-    let ingress_service_name = common_config
-        .constants
-        .core_components
-        .ingress
-        .full_service_name
-        .clone();
-
-    tcp_service_map.insert(80, ingress_service_name.clone());
-    tcp_service_map.insert(443, ingress_service_name.clone());
-
-    udp_service_map.insert(443, ingress_service_name);
-
-    let dns_service_name = common_config
-        .constants
-        .core_components
-        .dns
-        .server_full_service_name
-        .clone();
-
-    tcp_service_map.insert(53, dns_service_name.clone());
-    udp_service_map.insert(53, dns_service_name);
+    // Ingress
+    {
+        let ingress_const = common_config.constants.core_components.ingress;
+        let full_ingress_service_name =
+            format!("{}.{}", ingress_const.service_name, ingress_const.namespace);
+        tcp_service_map.insert(80, full_ingress_service_name.clone());
+        tcp_service_map.insert(443, full_ingress_service_name.clone());
+        udp_service_map.insert(443, full_ingress_service_name);
+    }
+    // DNS
+    {
+        let dns_const = common_config.constants.core_components.dns;
+        let full_dns_service_name =
+            format!("{}.{}", dns_const.server_service_name, dns_const.namespace);
+        tcp_service_map.insert(53, full_dns_service_name.clone());
+        udp_service_map.insert(53, full_dns_service_name);
+    }
+    // Email
+    {
+        let email_const = common_config.constants.core_components.email;
+        let email_full_service_name =
+            format!("{}.{}", email_const.service_name, email_const.namespace);
+        let email_ports = email_const.public_ports.clone();
+        tcp_service_map.insert(email_ports.smtp, email_full_service_name.clone());
+        tcp_service_map.insert(email_ports.submission, email_full_service_name.clone());
+        tcp_service_map.insert(email_ports.smtps, email_full_service_name.clone());
+        tcp_service_map.insert(email_ports.imap, email_full_service_name.clone());
+        tcp_service_map.insert(email_ports.imaps, email_full_service_name.clone());
+        tcp_service_map.insert(email_ports.sieve, email_full_service_name.clone());
+    }
 
     let local_wg_config = create_local_wg_config(
         wg_keys,

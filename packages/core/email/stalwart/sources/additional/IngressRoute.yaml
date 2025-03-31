@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+    name: stalwart-ingress
+spec:
+    entryPoints:
+        - websecure
+    routes:
+        - kind: Rule
+          match: Host(`mx.{§ .config.domain §}`)
+          services:
+              - kind: Service
+                name: stalwart
+                port: 8080
