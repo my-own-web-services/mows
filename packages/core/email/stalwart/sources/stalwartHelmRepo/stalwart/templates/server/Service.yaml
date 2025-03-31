@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{§ .config.constants.coreComponents.email.fullServiceName §}"
+spec:
+    ports:
+        -   name: http
+            port: 80
+            targetPort: http
+
+        -   name: smtp
+            port: {§ .config.constants.coreComponents.email.publicPorts.smtp §}
+            targetPort: smtp
+
+        -   name: submission
+            port: {§ .config.constants.coreComponents.email.publicPorts.submission §}
+            targetPort: submission
+
+        -   name: smtps
+            port: {§ .config.constants.coreComponents.email.publicPorts.smtps §}
+            targetPort: smtps
+
+        -   name: imap
+            port: {§ .config.constants.coreComponents.email.publicPorts.imap §}
+            targetPort: imap
+
+        -   name: imaps
+            port: {§ .config.constants.coreComponents.email.publicPorts.imaps §}
+            targetPort: imaps
+
+        -   name: sieve
+            port: {§ .config.constants.coreComponents.email.publicPorts.sieve §}
+            targetPort: sieve
+    selector:
+        app: {{ .Values.server.name }}

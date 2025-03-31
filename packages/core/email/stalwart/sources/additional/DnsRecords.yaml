@@ -1,0 +1,18 @@
+apiVersion: pektin.k8s.mows.cloud/v1
+kind: PektinDns
+metadata:
+    name: primary-mail-domain
+spec:
+    plain:
+        -   name: "{§ .config.domain §}."
+            type: MX
+            meta: ""
+            ttl: 60
+            data: mx.{§ .config.domain §}.
+
+        -   name: mx.{§ .config.domain §}.
+            meta: ""
+            ttl: 60
+            rr_set:
+                A:
+                -   value: "{§ .config.legacy_ip §}"

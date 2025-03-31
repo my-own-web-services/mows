@@ -6,13 +6,10 @@ use kube::{
     discovery::{ApiCapabilities, Scope},
     Api, Client,
 };
-use mows_common::{
-    errors,
-    templating::{
-        functions::{serde_json_hashmap_to_gtmpl_hashmap, TEMPLATE_FUNCTIONS},
-        gtmpl::{Context as GtmplContext, Template, Value as GtmplValue},
-        gtmpl_derive::Gtmpl,
-    },
+use mows_common::templating::{
+    functions::{serde_json_hashmap_to_gtmpl_hashmap, TEMPLATE_FUNCTIONS},
+    gtmpl::{Context as GtmplContext, Template, Value as GtmplValue},
+    gtmpl_derive::Gtmpl,
 };
 use sha2::Digest;
 use std::{
@@ -23,7 +20,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     signal,
 };
-use tracing::{debug, trace};
+use tracing::debug;
 use url::Url;
 
 pub async fn parse_manifest(input: &str) -> anyhow::Result<Manifest> {

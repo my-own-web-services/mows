@@ -4,7 +4,7 @@ server:
     imagePullPolicy: Always
     name: stalwart-server
     replicaCount: 1
-    defaultHostname: mx.vindelicorum.eu
+    defaultHostname: mx.{§ .config.domain §}
 db:
     name: stalwart-db
     storageSize: 2Gi
