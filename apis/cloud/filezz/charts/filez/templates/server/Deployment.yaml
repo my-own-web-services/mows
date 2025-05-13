@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ .Values.server.name }}
+spec:
+    replicas: {{ .Values.server.replicaCount }}
+    selector:
+        matchLabels:
+            app: {{ .Values.server.name }}
+    template:
+        metadata:
+            labels:
+                app: {{ .Values.server.name }}
+        spec:
+            serviceAccountName: {{ .Values.server.name }}
+            containers:
+                -   name: {{ .Values.server.name }}
+                    image: "{{ .Values.server.image }}"
+                    imagePullPolicy: {{ .Values.server.imagePullPolicy }}
+                    securityContext:
+                        allowPrivilegeEscalation: false
+                        readOnlyRootFilesystem: true
+                        runAsNonRoot: true
+                        runAsUser: 50003
+                    ports:
+                        -   name: http
+                            containerPort: 80
+                            protocol: TCP
+                    resources:
+                        limits:
+                            memory: 128Mi
+                            cpu: 500m
+                    env:
+                        -   name: RUST_LOG
+                            value: {{ .Values.server.rust_log }}
+                        -   name: OIDC_CLIENT_ID
+                            valueFrom:
+                                secretKeyRef:
+                                    name: filez-oidc
+                                    key: client_id
+                        -   name: OIDC_CLIENT_SECRET
+                            valueFrom:
+                                secretKeyRef:
+                                    name: filez-oidc
+                                    key: client_secret
+                        -   name: OIDC_ISSUER
+                            valueFrom:
+                                secretKeyRef:
+                                    name: filez-oidc
+                                    key: issuer
+                        -   name: PRIMARY_ORIGIN
+                            value: "https://filez-api.{§ .config.domain §}"

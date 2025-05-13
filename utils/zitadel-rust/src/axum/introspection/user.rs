@@ -112,7 +112,7 @@ pub struct IntrospectedUser {
 
 impl<S> FromRequestParts<S> for IntrospectedUser
 where
-    IntrospectionState: FromRef<S>,
+    IntrospectionState: FromRef<S> + 'static,
     S: Send + Sync,
 {
     type Rejection = IntrospectionGuardError;

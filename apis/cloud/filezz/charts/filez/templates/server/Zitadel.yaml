@@ -1,0 +1,38 @@
+apiVersion: zitadel.k8s.mows.cloud/v1
+kind: ZitadelResource
+metadata:
+    name: filez-oidc
+spec:
+    raw:
+        resource:
+            project:
+                projectRoleAssertion: true
+                projectRoleCheck: true
+                roles:
+                    -   key: users
+                        group: users
+                        displayName: Users
+                adminRoles: ["users"]
+                applications:
+                    -   name: filez-server
+                        clientDataTarget: 
+                            vault:
+                                secretEngineName: filez-oidc
+                                secretEngineSubPath: oidc
+                                kubernetesAuthEngineName: zitadel-controller-service-account
+                        method:
+                            oidc:
+                                redirectUris:
+                                    - https://filez-api.{§ .config.domain §}/auth/callback
+                                responseTypes:
+                                    - code
+                                authenticationMethod: basic
+                                grantTypes:
+                                    - authorizationCode
+                                postLogoutRedirectUris:
+                                    - https://filez-api.{§ .config.domain §}
+                                appType: web
+                                accessTokenType: bearer
+                                idTokenRoleAssertion: true
+                                idTokenUserinfoAssertion: true
+          

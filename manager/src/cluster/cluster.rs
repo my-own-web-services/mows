@@ -1,7 +1,7 @@
 use super::network::ClusterNetwork;
 use super::secrets::ClusterSecrets;
 use super::storage::ClusterStorage;
-use crate::api::clusters::clusters::ClusterSignal;
+use crate::api::clusters::ClusterSignal;
 use crate::config::{ClusterInstallState, HelmDeploymentState, Vip, VipIp};
 use crate::internal_config::INTERNAL_CONFIG;
 use crate::utils::cmd;

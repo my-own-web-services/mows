@@ -1,0 +1,12 @@
+apiVersion: pektin.k8s.mows.cloud/v1
+kind: PektinDns
+metadata:
+    name: filez-server-dns
+spec:
+    plain:
+        - name: "filez-server.{§ .config.domain §}."
+          meta: ""
+          ttl: 60
+          rr_set:
+              A:
+                  - value: "{§ .config.legacy_ip §}"
