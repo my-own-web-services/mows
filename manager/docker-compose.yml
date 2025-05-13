@@ -19,10 +19,10 @@ services:
                 - mows-manager
         init: true # without this the mows manager cant start a pty process
         networks:
-            mows-manager-pxe:
-                ipv4_address: "192.168.112.3"
             mows-manager:
-            mows-manager-local-pxe:
+                ipv4_address: "192.168.112.3"
+                mac_address: "02:42:c0:a8:70:03"
+            mows-manager-local:
         dns:
             - "192.168.112.3"
         cap_add:
@@ -72,10 +72,9 @@ services:
         devices:
             - "/dev/kvm"
         networks:
-            mows-manager-pxe:
+            mows-manager:
                 ipv4_address: "192.168.112.4"
             # we need two networks because the pxe network is bridged
-            mows-manager:
     mows-dev-local-registry:
         image: registry:2
         container_name: mows-dev-local-registry
@@ -85,7 +84,7 @@ services:
         volumes:
             - ./temp/registries/local:/var/lib/registry:rw
         networks:
-            mows-manager-pxe:
+            mows-manager:
                 ipv4_address: "192.168.112.5"
 
     # TODO: replace with https://github.com/mcronce/oci-registry
@@ -96,7 +95,7 @@ services:
         environment:
             - REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io
         networks:
-            mows-manager-pxe:
+            mows-manager:
                 ipv4_address: "192.168.112.6"
         volumes:
             - ./temp/registries/docker:/var/lib/registry:rw
@@ -107,7 +106,7 @@ services:
         environment:
             - REGISTRY_PROXY_REMOTEURL=https://quay.io
         networks:
-            mows-manager-pxe:
+            mows-manager:
                 ipv4_address: "192.168.112.7"
         volumes:
             - ./temp/registries/quay:/var/lib/registry:rw
@@ -118,7 +117,7 @@ services:
         environment:
             - REGISTRY_PROXY_REMOTEURL=https://gcr.io
         networks:
-            mows-manager-pxe:
+            mows-manager:
                 ipv4_address: "192.168.112.8"
         volumes:
             - ./temp/registries/gcr:/var/lib/registry
@@ -129,7 +128,7 @@ services:
         environment:
             - REGISTRY_PROXY_REMOTEURL=https://k8s.gcr.io
         networks:
-            mows-manager-pxe:
+            mows-manager:
                 ipv4_address: "192.168.112.9"
         volumes:
             - ./temp/registries/k8s:/var/lib/registry:rw
@@ -140,7 +139,7 @@ services:
         environment:
             - REGISTRY_PROXY_REMOTEURL=https://ghcr.io
         networks:
-            mows-manager-pxe:
+            mows-manager:
                 ipv4_address: "192.168.112.10"
         volumes:
             - ./temp/registries/ghcr:/var/lib/registry:rw
@@ -152,8 +151,6 @@ volumes:
 networks:
     mows-manager:
         name: mows-manager
-    mows-manager-pxe:
-        name: mows-manager-pxe
         driver: bridge
         ipam:
             driver: default
@@ -161,8 +158,8 @@ networks:
                 - subnet: 192.168.112.0/24
                   gateway: "192.168.112.1"
         driver_opts:
-            com.docker.network.bridge.name: pxe
-            com.docker.network.container_iface_prefix: pxe
-    mows-manager-local-pxe:
-        name: mows-manager-local-pxe
+            com.docker.network.bridge.name: mows-manager
+            com.docker.network.container_iface_prefix: mows-manager
+    mows-manager-local:
+        name: mows-manager-local
         external: true
