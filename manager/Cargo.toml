@@ -19,15 +19,15 @@ cast_lossless = "deny"
 indexing_slicing = "deny"
 
 [dependencies]
-serde = { version = "1.0.214", features = [
+serde = { workspace = true, features = [
     "derive",
     "std",
 ], default-features = false }
 serde_yaml = { version = "0.9.33" }
-serde_json = { version = "1.0.132" }
+serde_json = { workspace = true }
 tempfile = "3.14.0"
-anyhow = "1.0.93"
-
+anyhow = { workspace = true }
+thiserror = { workspace = true }
 rand = "0.8.5"
 hcloud = { version = "0.21.0", default-features = false, features = [
     "rustls-tls",
@@ -35,12 +35,12 @@ hcloud = { version = "0.21.0", default-features = false, features = [
 
 
 # tracing must be enabled explicitly
-tokio = { version = "1.41.0", default-features = false, features = [
+tokio = { workspace = true, default-features = false, features = [
     "full",
     "tracing",
 ] }
 
-axum = { version = "=0.7.5", features = ["ws", "tokio"] }
+axum = { workspace = true, features = ["ws", "tokio"] }
 tokio-tungstenite = "0.24.0"
 
 futures = "0.3.31"
@@ -49,15 +49,15 @@ utoipa-swagger-ui = { workspace = true }
 utoipa = { workspace = true }
 utoipa-axum = { workspace = true }
 
-tower = { version = "0.5.1", features = ["util", "timeout"] }
-tower-http = { version = "0.6.1", features = [
+tower = { workspace = true, features = ["util", "timeout"] }
+tower-http = { workspace = true, features = [
     "fs",
     "cors",
     "add-extension",
     "trace",
 ] }
 
-tracing = "0.1.40"
+tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
 opentelemetry = { version = "0.26.0" }
 tracing-opentelemetry = "0.27.0"
@@ -80,7 +80,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "std",
 ] }
 async-stream = "=0.3.6"
-thiserror = "2.0.3"
+
 tokio-util = "0.7.8"
 serde-xml-rs = "0.6.0"
 
@@ -93,13 +93,13 @@ reqwest = { version = "0.12.9", default-features = false, features = [
     "rustls-tls",
 ] }
 lazy_static = "1.5.0"
-url = { version = "2.5.3", features = ["serde"] }
+url = { workspace = true, features = ["serde"] }
 
 vaultrs = "0.7.3"
 data-encoding = "2.6.0"
 
 include_dir = "0.7.3"
-mime_guess = "2.0.5"
+mime_guess = { workspace = true }
 
 
 mows-package-manager = { workspace = true }

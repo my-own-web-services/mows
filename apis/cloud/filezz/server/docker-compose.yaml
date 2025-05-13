@@ -1,0 +1,17 @@
+services:
+    filez-server:
+        build:
+            context: "."
+            dockerfile: Dockerfile
+            tags: 
+                - ${REGISTRY:-localhost:5000}/${SERVICE_NAME}
+            additional_contexts:
+                mows-common: ../../../../utils/mows-common
+                zitadel-rust: ../../../../utils/zitadel-rust
+                lock: ../../../../
+            args:
+                - PROFILE=dev # dev or release
+                - SERVICE_NAME=${SERVICE_NAME}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}
+
+

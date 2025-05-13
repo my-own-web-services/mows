@@ -5,7 +5,7 @@ exclude = ["target"]
 
 [workspace.dependencies]
 mows-common = { path = "./mows-common" }
-mows-package-manager = { path = "./mows-package-manager" }
+zitadel = { path = "./zitadel-rust" }
 
 
 utoipa-swagger-ui = { version = "9.0.1", features = ["vendored", "axum"] }

@@ -6,24 +6,21 @@ use axum::http::{
 use mows_common::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
-use mows_package_manager::{
-    api::{health::*, repository::*},
-    config::config,
-    ui::serve_spa,
-    utils::shutdown_signal,
-};
+use server::{api::files, config::config, utils::shutdown_signal};
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
+use utoipa_axum::routes;
+
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
-use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
+use zitadel::axum::introspection::IntrospectionStateBuilder;
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
     tags(
-        (name = "mows-package-manager", description = "MOWS Package Manager API"),
+        (name = "filez-server", description = "MOWS Filez API"),
     )
 )]
 struct ApiDoc;
@@ -33,10 +30,7 @@ struct ApiDoc;
 async fn main() -> Result<(), anyhow::Error> {
     let config = get_current_config_cloned!(config());
     let _common_config = get_current_config_cloned!(common_config(true));
-
     init_observability().await;
-
-    //dbg!(MowsManifest::example_yaml_str());
 
     let mut origins = vec![&config.primary_origin];
     if config.enable_dev {
@@ -46,12 +40,18 @@ async fn main() -> Result<(), anyhow::Error> {
             .for_each(|origin| origins.push(origin));
     }
 
+    let introspection_state = IntrospectionStateBuilder::new(&config.oidc_issuer.clone())
+        .with_basic_auth(
+            &config.oidc_client_id.clone(),
+            &config.oidc_client_secret.clone(),
+        )
+        .build()
+        .await
+        .context("Failed to create introspection state")?;
+
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .routes(routes!(mows_package_manager::api::health::get_health))
-        .routes(routes!(
-            mows_package_manager::api::repository::render_repositories
-        ))
-        .fallback(serve_spa)
+        .routes(routes!(crate::files::get::get_file))
+        .with_state(introspection_state)
         .layer(
             CorsLayer::new()
                 .allow_origin(
@@ -81,6 +81,8 @@ async fn main() -> Result<(), anyhow::Error> {
     .with_graceful_shutdown(shutdown_signal())
     .await
     .context("Failed to start server")?;
+
+    info!("Server started");
 
     Ok(())
 }

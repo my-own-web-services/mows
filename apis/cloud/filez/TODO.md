@@ -28,7 +28,7 @@ maybe a field search like `file.keywords: test` to only search for the word "tes
 
 ---
 
-20 dez 203
+20 dez 2023
 
 -   nutzer hinzufügen
 -   sharing ausprobieren und auf probleme testen
@@ -120,7 +120,7 @@ maybe a field search like `file.keywords: test` to only search for the word "tes
 -   group icons
 -   always display mime types even if they are not known ✅
 -   right panel: display group properties
--   save video wathc progress
+-   save video watch progress
 -   download files ✅
 -   right panel display multiple files
 -   export files

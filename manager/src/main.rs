@@ -2,11 +2,8 @@ use anyhow::Context;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
 use axum::http::{HeaderValue, Method};
 use manager::api::boot::*;
-use manager::api::clusters::*;
-use manager::api::config::*;
+
 use manager::api::direct_terminal::*;
-use manager::api::health::health;
-use manager::api::machines::*;
 use manager::api::public_ip::*;
 use manager::internal_config::INTERNAL_CONFIG;
 use manager::tasks::start_background_tasks;
@@ -49,10 +46,30 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .nest("/api/machines", machines::router())
-        .nest("/api/config", config_api::router())
-        .nest("/api/health", health::router())
-        .nest("/api/clusters", clusters::router())
+        //.nest("/api/machines", machines::router())
+        // machines
+        .routes(routes!(manager::api::machines::delete_machine))
+        .routes(routes!(manager::api::machines::create_machines))
+        .routes(routes!(manager::api::machines::signal_machine))
+        .routes(routes!(manager::api::machines::get_machine_info))
+        .routes(routes!(manager::api::machines::get_vnc_websocket))
+        .routes(routes!(manager::api::machines::get_machine_status))
+        .routes(routes!(manager::api::machines::dev_delete_all_machines))
+        // cluster
+        .routes(routes!(
+            manager::api::clusters::dev_create_cluster_from_all_machines_in_inventory
+        ))
+        .routes(routes!(manager::api::clusters::dev_install_cluster_basics))
+        .routes(routes!(manager::api::clusters::get_cluster_status))
+        .routes(routes!(manager::api::clusters::signal_cluster))
+        // health
+        .routes(routes!(manager::api::health::get_health))
+        // config
+        .routes(routes!(manager::api::config::update_config))
+        .routes(routes!(manager::api::config::get_config))
+        //.nest("/api/config", config_api::router())
+        //.nest("/api/health", health::router())
+        //.nest("/api/clusters", clusters::router())
         .routes(routes!(create_public_ip))
         .routes(routes!(get_boot_config_by_mac))
         .routes(routes!(direct_terminal))

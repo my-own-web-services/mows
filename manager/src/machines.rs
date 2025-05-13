@@ -2,12 +2,11 @@ use anyhow::{bail, Context};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
-use tokio::process::Command;
 use tracing::debug;
 use utoipa::ToSchema;
 
 use crate::{
-    api::machines::machines::{MachineCreationReqType, MachineSignal},
+    api::machines::{MachineCreationReqType, MachineSignal},
     config::{
         BackupNode, Cluster, ClusterNode, InternalIps, Machine, MachineInstall,
         MachineInstallState, PixiecoreBootConfig, Vip,

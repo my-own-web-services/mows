@@ -393,17 +393,17 @@ pub async fn create_local_wg_config(
 
     for (port, service_address) in tcp_service_map.iter() {
         if legacy_ip.is_some() {
-            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local) ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE \n\n"));
+            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(IP=$(dig +short {service_address}.svc.cluster.local); [ -z \"$IP\" ] && echo \"127.0.0.1\" || echo \"$IP\") ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE \n\n"));
 
-            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local) ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE \n\n"));
+            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -i wg0 -p tcp --dport {port} -j DNAT --to-destination $(IP=$(dig +short {service_address}.svc.cluster.local); [ -z \"$IP\" ] && echo \"127.0.0.1\" || echo \"$IP\") ; iptables -t nat -A POSTROUTING -p tcp --dport {port} -j MASQUERADE \n\n"));
         }
     }
 
     for (port, service_address) in udp_service_map.iter() {
         if legacy_ip.is_some() {
-            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -i wg0 -p udp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local) ; iptables -t nat -A POSTROUTING -p udp --dport {port} -j MASQUERADE \n\n"));
+            legacy_ip_up.push_str(&format!("PreUp = iptables -t nat -A PREROUTING -i wg0 -p udp --dport {port} -j DNAT --to-destination $(IP=$(dig +short {service_address}.svc.cluster.local); [ -z \"$IP\" ] && echo \"127.0.0.1\" || echo \"$IP\") ; iptables -t nat -A POSTROUTING -p udp --dport {port} -j MASQUERADE \n\n"));
 
-            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -i wg0 -p udp --dport {port} -j DNAT --to-destination $(dig +short {service_address}.svc.cluster.local) ; iptables -t nat -A POSTROUTING -p udp --dport {port} -j MASQUERADE \n\n"));
+            legacy_ip_down.push_str(&format!("PostDown = iptables -t nat -D PREROUTING -i wg0 -p udp --dport {port} -j DNAT --to-destination $(IP=$(dig +short {service_address}.svc.cluster.local); [ -z \"$IP\" ] && echo \"127.0.0.1\" || echo \"$IP\") ; iptables -t nat -A POSTROUTING -p udp --dport {port} -j MASQUERADE \n\n"));
         }
     }
 

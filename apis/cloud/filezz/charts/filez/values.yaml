@@ -1,0 +1,8 @@
+server:
+  enabled: true
+  image: 192.168.112.5:5000/filez-server
+  imagePullPolicy: Always
+  name: filez-server
+  replicaCount: 1
+  rust_log: "main=debug"
+  

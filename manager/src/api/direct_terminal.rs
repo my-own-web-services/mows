@@ -109,7 +109,7 @@ async fn run_command(
             sender
                 .send(Message::Close(Some(CloseFrame {
                     code: close_code::ERROR,
-                    reason: Cow::from(err.to_string()),
+                    reason: err.to_string().into(),
                 })))
                 .await
                 .unwrap_or_default();
@@ -288,7 +288,7 @@ async fn message_sender(mut stream: CommandStream, mut sender: SplitSink<WebSock
             }
             CommandStreamItem::Exit(reason) => Some(Message::Close(Some(CloseFrame {
                 code: close_code::NORMAL,
-                reason: Cow::from(reason),
+                reason: reason.into(),
             }))),
         };
         if let Some(message) = message {
@@ -359,8 +359,8 @@ impl From<String> for CommandMessage {
 impl From<Message> for CommandMessage {
     fn from(value: Message) -> Self {
         match value {
-            Message::Binary(d) => CommandMessage::Input(d),
-            Message::Text(t) => t.into(),
+            Message::Binary(d) => CommandMessage::Input(d.to_vec()),
+            Message::Text(t) => CommandMessage::from(t.to_string()),
             msg => CommandMessage::Irrelevant(msg),
         }
     }
