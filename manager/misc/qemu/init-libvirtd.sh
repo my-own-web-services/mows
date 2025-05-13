@@ -45,7 +45,7 @@ ip link set $pxe_interface master br0
 ip address del 192.168.112.4/24 dev mows-manager0
 ip link set br0 up
 ip address add dev br0 192.168.112.4/24
-
+ip route add default via 192.168.112.1 dev br0
 
 # Stop libvirtd
 killall libvirtd
