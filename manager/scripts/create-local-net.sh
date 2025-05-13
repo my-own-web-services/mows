@@ -18,4 +18,4 @@ docker network create -d macvlan \
     --subnet=192.168.113.0/24 \
     --gateway=192.168.113.1 \
     -o parent=$cluster_interface \
-    mows-manager-local-pxe || true
+    mows-manager-local || true
