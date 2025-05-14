@@ -56,7 +56,7 @@ vaultrs = "0.7.2"
 mows-common = { workspace = true }
 
 
-tracing = "0.1.37"
+tracing = { workspace = true }
 
 [profile.release]
 codegen-units = 1

@@ -1,8 +1,0 @@
-[workspace]
-resolver = "2"
-members = ["app"]
-exclude = ["target"]
-
-[workspace.dependencies]
-mows-common = { path = "./mows-common" }
-pektin-common = { path = "./pektin-common" }

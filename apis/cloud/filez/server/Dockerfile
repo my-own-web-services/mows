@@ -1,38 +1,68 @@
-# 0. BUILD STAGE
-FROM clux/muslrust:stable AS build
-# build deps
+ARG PROFILE="release"
+ARG SERVICE_NAME="filez-server"
+ARG SERVICE_VERSION="0.1.0"
+ARG BINARY_NAME="server"
+ARG APP_STAGE_IMAGE="scratch"
+
+FROM scratch AS sources
+COPY --from=mows-common . mows-common
+COPY --from=zitadel-rust . zitadel
+COPY --from=lock ./Cargo.lock ./
+COPY cargo-workspace-docker.toml ./Cargo.toml
+
+FROM clux/muslrust:stable AS chef-builder
+ARG CARGO_CHEF_REF
+RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
+
+FROM chef-builder AS planner
+COPY --from=sources / /build/
+COPY ./ /build/app/
+WORKDIR /build/app/ 
+RUN cargo chef prepare --recipe-path recipe.json
+
+
+
+
+FROM chef-builder AS builder
+ARG PROFILE
+ARG RUSTFLAGS
+ARG BINARY_NAME
+ARG SERVICE_NAME
 USER root
+WORKDIR /build
 RUN apt-get update && apt-get install upx -y
-RUN cargo install cargo-build-deps
+COPY --from=sources / /build/
 
-COPY ./server/Cargo.toml ./server/Cargo.lock ./
-COPY ./common /common
+# build deps
+WORKDIR /build/app/
+COPY --from=planner /build/app/recipe.json recipe.json
+RUN  if [ "${PROFILE}" = "release" ];  then cargo chef cook --release --recipe-path recipe.json ;  else cargo chef cook --recipe-path recipe.json ; fi || true
 
-RUN cargo build-deps --release
-RUN rm -f target/x86_64-unknown-linux-musl/release/deps/filez-server*
 # build
-COPY --chown=root:root ./server/src src
-RUN cargo build --release --bin main
-RUN strip target/x86_64-unknown-linux-musl/release/main
-RUN upx --best --lzma target/x86_64-unknown-linux-musl/release/main
-RUN useradd -u 50001 -N filez-server
-RUN groupadd -g 50001 filez-server
+COPY --from=sources / /build/
+COPY src src
 
-# create readonly dirs
-RUN mkdir /.dev
-RUN chown filez-server:filez-server /.dev
+RUN cargo build --bin ${BINARY_NAME} --profile=${PROFILE}
+RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl/debug/${BINARY_NAME} /${BINARY_NAME}; else mv /build/target/x86_64-unknown-linux-musl/${PROFILE}/${BINARY_NAME} /${BINARY_NAME}; fi 
+RUN if [ "${PROFILE}" = "release" ];  then strip /${BINARY_NAME}; fi
+RUN if [ "${PROFILE}" = "release" ];  then upx --best --lzma /${BINARY_NAME}; fi
 
-# 1. APP STAGE
-FROM scratch
+RUN useradd -u 50003 -N ${SERVICE_NAME}
+
+
+# 1. APP STAGE there are connection problems with from scratch
+FROM ${APP_STAGE_IMAGE}
+ARG SERVICE_NAME
+ARG SERVICE_VERSION
+ARG BINARY_NAME
 WORKDIR /app
-COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/main ./filez-server
-COPY --from=build /etc/passwd /etc/passwd
-COPY --from=build /etc/group /etc/group
-COPY --from=build --chown=filez-server:filez-server /.dev /.dev
-
-
-USER filez-server
-STOPSIGNAL SIGKILL
-EXPOSE 80
+COPY --from=builder /${BINARY_NAME} ./server
+#COPY --from=builder /app/target/x86_64-unknown-linux-musl/debug/test_client ./test_client
+COPY --from=builder /etc/passwd /etc/passwd
+USER ${SERVICE_NAME}
+ENV SERVICE_NAME=${SERVICE_NAME}
+ENV SERVICE_VERSION=${SERVICE_VERSION}
+STOPSIGNAL SIGTERM
 # run it 
-ENTRYPOINT ["./filez-server"]
+ENTRYPOINT ["./server"]
+

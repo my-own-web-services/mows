@@ -23,3 +23,5 @@ cd ./apis/core/pektin/feoco && bash build.sh ; cd ../../../../
 cd ./apis/core/pektin/server && bash build.sh ; cd ../../../../
 
 cd ./apis/core/pektin/zertificat && bash build.sh ; cd ../../../../
+
+cd ./apis/cloud/filez/server && bash build.sh ; cd ../../../../

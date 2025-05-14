@@ -4,6 +4,11 @@ resolver = "2"
 members = ["app"]
 exclude = ["target"]
 
+[workspace.dependencies.acme-rs]
+default-features = false
+features = ["acmeRsStd"]
+path = "./acme-rs"
+
 [workspace.dependencies.anyhow]
 version = "1.0.98"
 
