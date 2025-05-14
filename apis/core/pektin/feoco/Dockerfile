@@ -6,7 +6,7 @@ ARG APP_STAGE_IMAGE="scratch"
 
 FROM scratch AS sources
 COPY --from=lock ./Cargo.lock ./
-COPY dockerbuild.toml ./Cargo.toml
+COPY cargo-workspace-docker.toml ./Cargo.toml
 
 FROM clux/muslrust:stable AS chef-builder
 ARG CARGO_CHEF_REF

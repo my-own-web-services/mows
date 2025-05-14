@@ -8,7 +8,7 @@ FROM scratch AS sources
 COPY --from=mows-common . mows-common
 COPY --from=acme-rs . acme-rs
 COPY --from=lock ./Cargo.lock ./
-COPY dockerbuild.toml ./Cargo.toml
+COPY cargo-workspace-docker.toml ./Cargo.toml
 
 FROM clux/muslrust:stable AS chef-builder
 

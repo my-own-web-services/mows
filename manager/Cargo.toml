@@ -45,7 +45,7 @@ tokio-tungstenite = "0.24.0"
 
 futures = "0.3.31"
 
-utoipa-swagger-ui = { workspace = true }
+utoipa-swagger-ui = { workspace = true, features = ["axum"] }
 utoipa = { workspace = true }
 utoipa-axum = { workspace = true }
 
@@ -59,11 +59,12 @@ tower-http = { workspace = true, features = [
 
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
-opentelemetry = { version = "0.26.0" }
-tracing-opentelemetry = "0.27.0"
-opentelemetry-otlp = { version = "0.26.0", features = ["grpc-tonic"] }
-opentelemetry_sdk = { version = "0.26.0", features = ["rt-tokio"] }
-opentelemetry-semantic-conventions = { version = "0.26.0", features = [
+
+opentelemetry = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
+opentelemetry-semantic-conventions = { workspace = true, features = [
     "semconv_experimental",
 ] }
 
