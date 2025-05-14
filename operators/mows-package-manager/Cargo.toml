@@ -50,7 +50,7 @@ tokio-tungstenite = "0.24.0"
 
 futures = "0.3.31"
 
-utoipa-swagger-ui = { workspace = true }
+utoipa-swagger-ui = { workspace = true, features = ["axum"] }
 utoipa = { workspace = true }
 utoipa-axum = { workspace = true }
 

@@ -41,7 +41,7 @@ features = ["derive", "std"]
 version = "1.0.219"
 
 [workspace.dependencies.serde_json]
-version = "1.0.132"
+version = "1"
 
 [workspace.dependencies.thiserror]
 version = "2.0.12"

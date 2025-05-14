@@ -7,6 +7,13 @@ exclude = ["target"]
 [workspace.dependencies.anyhow]
 version = "1.0.98"
 
+[workspace.dependencies.axum]
+version = "0.8.4"
+
+[workspace.dependencies.axum-extra]
+features = ["typed-header"]
+version = "0.10.1"
+
 [workspace.dependencies.mows-common]
 path = "./mows-common"
 
@@ -14,12 +21,19 @@ path = "./mows-common"
 features = ["trace"]
 version = "0.26.0"
 
+[workspace.dependencies.opentelemetry-otlp]
+version = "0.26.0"
+
+[workspace.dependencies.opentelemetry_sdk]
+features = ["rt-tokio"]
+version = "0.26.0"
+
 [workspace.dependencies.serde]
 features = ["derive"]
 version = "1.0.219"
 
 [workspace.dependencies.serde_json]
-version = "1.0.132"
+version = "1"
 
 [workspace.dependencies.thiserror]
 version = "2.0.12"
@@ -27,6 +41,9 @@ version = "2.0.12"
 [workspace.dependencies.tokio]
 features = ["macros", "rt-multi-thread"]
 version = "1.45.0"
+
+[workspace.dependencies.tracing]
+version = "0.1.40"
 
 [workspace.dependencies.zitadel]
 features = ["api", "interceptors", "pbjson", "api-common", "proto_full", "zitadel-object-v2beta", "api-user-v2"]
