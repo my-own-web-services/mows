@@ -1,0 +1,9 @@
+[package]
+name = "cargo-workspace-docker"
+
+[[bin]]
+name = "cargo-workspace-docker"
+path = "src/main.rs"
+
+[dependencies]
+toml = { version = "0.8.22" }

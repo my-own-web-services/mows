@@ -9,24 +9,24 @@ telemetry = ["opentelemetry-otlp"]
 
 
 [dependencies]
-thiserror = "2.0.3"
-anyhow = "1.0.95"
+thiserror = { workspace = true }
+anyhow = { workspace = true }
 
-tokio = { version = "1.41.1", features = ["macros", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
-serde = { version = "1.0.214", features = ["derive"] }
-serde_json = "1.0.132"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 
-tracing = "0.1.37"
+tracing = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = [
     "json",
     "env-filter",
     "chrono",
 ] }
 tracing-opentelemetry = "0.27.0"
-opentelemetry = { version = "0.26.0", features = ["trace"] }
-opentelemetry-otlp = { version = "0.26.0", optional = true }
-opentelemetry_sdk = { version = "0.26.0", features = ["rt-tokio"] }
+opentelemetry = { workspace = true, features = ["trace"] }
+opentelemetry-otlp = { workspace = true, optional = true }
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
 
 reqwest = { version = "0.12.9", default-features = false, features = [
     "json",

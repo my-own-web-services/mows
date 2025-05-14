@@ -15,7 +15,6 @@ exclude = [
     "./apis/core/pektin/ribston/",
 ]
 
-
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
@@ -48,35 +47,25 @@ mows-package-manager = { path = "./operators/mows-package-manager" }
 acme-rs = { path = "./apis/core/pektin/acme-rs" }
 
 
-utoipa-swagger-ui = { version = "9.0.1", features = ["vendored", "axum"] }
-utoipa = { version = "5.2.0", features = [
-    "axum_extras",
-    "macros",
-    "openapi_extensions",
-    "debug",
-] }
-utoipa-axum = { version = "0.2.0", features = ["debug"] }
+utoipa-swagger-ui = "9.0.1"
+utoipa = "5.2.0"
+utoipa-axum = "0.2.0"
 
-axum = { version = "0.8.4", features = ["ws", "tokio"] }
-axum-extra = { version = "0.10.1", features = ["typed-header"] }
-tower = { version = "0.5.2", features = ["util", "timeout"] }
-tower-http = { version = "0.6.4", features = [
-    "fs",
-    "cors",
-    "add-extension",
-    "trace",
-] }
-tokio = { version = "1.45.0", default-features = false, features = [
-    "full",
-    "tracing",
-] }
+axum = "0.8.4"
+axum-extra = "0.10.1"
+tower = "0.5.2"
+tower-http = "0.6.4"
+tokio = "1.45.0"
 thiserror = "2.0.12"
 anyhow = "1.0.98"
 tracing = "0.1.40"
-serde = { version = "1.0.219", features = [
-    "derive",
-    "std",
-], default-features = false }
-serde_json = { version = "1.0.132" }
+serde = "1.0.219"
+serde_json = "1.0.132"
 mime_guess = "2.0.5"
-url = { version = "2.5.4", features = ["serde"] }
+url = "2.5.4"
+
+opentelemetry = "0.26.0"
+tracing-opentelemetry = "0.27.0"
+opentelemetry-otlp = "0.26.0"
+opentelemetry_sdk = "0.26.0"
+opentelemetry-semantic-conventions = "0.26.0"
