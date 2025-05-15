@@ -53,7 +53,7 @@ chrono = "0.4.38"
 vaultrs = { workspace = true }
 
 
-mows-common = { workspace = true }
+mows-common-rust = { workspace = true }
 
 
 tracing = { workspace = true }

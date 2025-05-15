@@ -1,5 +1,5 @@
 use gtmpl_value::FuncError;
-use mows_common::templating::gtmpl::error::{ExecError, ParseError};
+use mows_common_rust::templating::gtmpl::error::{ExecError, ParseError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]

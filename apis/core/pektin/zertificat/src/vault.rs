@@ -1,6 +1,6 @@
 use crate::{config::config, types::VaultCert};
 use anyhow::{bail, Context};
-use mows_common::get_current_config_cloned;
+use mows_common_rust::get_current_config_cloned;
 use serde::Deserialize;
 use serde_json::Value;
 use std::time::Duration;

@@ -7,7 +7,7 @@ services:
             dockerfile: docker/manager.Dockerfile
             additional_contexts:
                 mows-package-manager: ../operators/mows-package-manager
-                mows-common: ../utils/mows-common
+                mows-common-rust: ../utils/mows-common-rust
                 lock: ../
             args:
                 - PROFILE=dev # dev or release

@@ -1,5 +1,5 @@
 [package]
-name = "mows-common"
+name = "mows-common-rust"
 version = "0.1.0"
 edition = "2021"
 

@@ -4,6 +4,6 @@ old/
 .git/
 .env/
 
-mows-common-temp/target
+mows-common-rust-temp/target
 pektin-common-temp/target
 Dockerfile

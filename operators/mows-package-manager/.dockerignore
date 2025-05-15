@@ -1,4 +1,4 @@
 target
-mows-common-temp/target
+mows-common-rust-temp/target
 ui/node_modules
 docker-compose.yml

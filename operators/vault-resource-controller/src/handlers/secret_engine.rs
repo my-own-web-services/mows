@@ -2,7 +2,7 @@ use crate::{
     crd::{KV2SecretEngineParams, VaultSecretEngine},
     ControllerError,
 };
-use mows_common::templating::{
+use mows_common_rust::templating::{
     functions::TEMPLATE_FUNCTIONS,
     gtmpl::{Context as GtmplContext, Template},
 };

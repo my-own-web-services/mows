@@ -260,7 +260,7 @@ impl HelmRepoSpec {
             req_url.to_string()
         );
 
-        let client = mows_common::reqwest::new_reqwest_client()
+        let client = mows_common_rust::reqwest::new_reqwest_client()
             .await
             .map_err(|e| {
                 HelmRepoError::FetchHelmRepoError(format!("Error creating reqwest client: {}", e))

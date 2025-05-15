@@ -1,5 +1,5 @@
 target/
 .git/
 acme-rs-temp/target
-mows-common-temp/target
+mows-common-rust-temp/target
 pektin-common-temo/target

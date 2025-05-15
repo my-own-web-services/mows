@@ -13,7 +13,7 @@ use kube::{
     api::{DynamicObject, GroupVersionKind, ObjectMeta, Patch, PatchParams},
     Api, Discovery, ResourceExt,
 };
-use mows_common::{kube::get_kube_client, utils::copy_directory_recursive};
+use mows_common_rust::{kube::get_kube_client, utils::copy_directory_recursive};
 use raw::RawSpecError;
 use serde::{Deserialize, Serialize};
 use std::{

@@ -6,7 +6,7 @@ services:
             tags: 
                 - ${REGISTRY:-localhost:5000}/${SERVICE_NAME}
             additional_contexts:
-                mows-common: ../../../../utils/mows-common
+                mows-common-rust: ../../../../utils/mows-common-rust
                 acme-rs: ../acme-rs
                 lock: ../../../../
             args:

@@ -5,7 +5,7 @@ use crate::{
     write_config,
 };
 use anyhow::{bail, Context};
-use mows_common::s;
+use mows_common_rust::s;
 use serde_yaml::Value;
 use std::string::String;
 use tracing::debug;

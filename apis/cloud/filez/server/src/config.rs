@@ -1,4 +1,4 @@
-use mows_common::config::load_env;
+use mows_common_rust::config::load_env;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use tokio::sync::RwLock;

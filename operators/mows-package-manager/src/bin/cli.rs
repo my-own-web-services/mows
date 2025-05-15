@@ -1,7 +1,7 @@
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 
-use mows_common::observability::init_minimal_observability;
+use mows_common_rust::observability::init_minimal_observability;
 use mows_package_manager::{
     dev::get_fake_cluster_config,
     rendered_document::{CrdHandling, RenderedDocument},

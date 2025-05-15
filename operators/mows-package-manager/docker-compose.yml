@@ -4,7 +4,7 @@ services:
       context: "."
       dockerfile: ./docker/package-manager.Dockerfile
       additional_contexts:
-        mows-common: ../../utils/mows-common
+        mows-common-rust: ../../utils/mows-common-rust
         lock: ../../
       tags:
         - ${REGISTRY:-localhost:5000}/${SERVICE_NAME}

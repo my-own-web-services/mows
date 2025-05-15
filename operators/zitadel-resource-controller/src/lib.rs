@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use handlers::raw::ZitadelResourceRawError;
-use mows_common::reqwest_middleware;
+use mows_common_rust::reqwest_middleware;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -27,7 +27,7 @@ pub enum ControllerError {
     ReqwestMiddlewareError(#[source] reqwest_middleware::Error),
 
     #[error("MowsError: {0}")]
-    MowsError(#[source] mows_common::errors::MowsError),
+    MowsError(#[source] mows_common_rust::errors::MowsError),
 
     #[error("TonicStatusError: {0}")]
     TonicStatusError(#[source] tonic::Status),
@@ -63,8 +63,8 @@ impl From<vaultrs::error::ClientError> for ControllerError {
     }
 }
 
-impl From<mows_common::errors::MowsError> for ControllerError {
-    fn from(error: mows_common::errors::MowsError) -> Self {
+impl From<mows_common_rust::errors::MowsError> for ControllerError {
+    fn from(error: mows_common_rust::errors::MowsError) -> Self {
         ControllerError::MowsError(error)
     }
 }

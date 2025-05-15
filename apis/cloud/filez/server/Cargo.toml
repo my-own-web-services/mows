@@ -28,7 +28,7 @@ utoipa = { workspace = true }
 utoipa-axum = { workspace = true }
 axum = { workspace = true }
 axum-extra = { workspace = true }
-mows-common = { workspace = true }
+mows-common-rust = { workspace = true }
 tokio = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }

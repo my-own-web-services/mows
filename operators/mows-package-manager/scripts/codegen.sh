@@ -2,13 +2,13 @@
 
 set -euo pipefail
 
-rm -rf ./mows-common-temp
+rm -rf ./mows-common-rust-temp
 
-cp ../../utils/mows-common ./mows-common-temp -r
+cp ../../utils/mows-common-rust ./mows-common-rust-temp -r
 
 docker build -t mows-package-manager . -f docker/package-manager.Dockerfile
 
-rm -rf ./mows-common-temp
+rm -rf ./mows-common-rust-temp
 
 # generate openapi.json
 

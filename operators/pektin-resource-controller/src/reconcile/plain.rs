@@ -1,4 +1,4 @@
-use mows_common::{get_current_config_cloned, reqwest::new_reqwest_client};
+use mows_common_rust::{get_current_config_cloned, reqwest::new_reqwest_client};
 use serde_json::{json, Value};
 use tracing::{debug, instrument};
 

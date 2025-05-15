@@ -1,6 +1,6 @@
 use crate::{config::config, crd::ClientDataTargetVault, ControllerError};
 use anyhow::Context;
-use mows_common::get_current_config_cloned;
+use mows_common_rust::get_current_config_cloned;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
 pub async fn handle_vault_target(

@@ -17,7 +17,7 @@ use crate::{
     config::{Cluster, ClusterNode},
     utils::generate_id,
 };
-use mows_common::s;
+use mows_common_rust::s;
 
 pub struct ClusterStorage;
 

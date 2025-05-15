@@ -3325,7 +3325,7 @@ dependencies = [
  "kube",
  "lazy_static",
  "mime_guess",
- "mows-common",
+ "mows-common-rust",
  "mows-package-manager",
  "opentelemetry 0.26.0",
  "opentelemetry-otlp",
@@ -3455,7 +3455,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mows-common"
+name = "mows-common-rust"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -3507,7 +3507,7 @@ dependencies = [
  "k8s-openapi",
  "kube",
  "mime_guess",
- "mows-common",
+ "mows-common-rust",
  "regex",
  "schemars",
  "serde",
@@ -4085,7 +4085,7 @@ dependencies = [
  "log",
  "mime",
  "moka",
- "mows-common",
+ "mows-common-rust",
  "opentelemetry 0.26.0",
  "p256",
  "parking_lot",
@@ -4158,7 +4158,7 @@ dependencies = [
  "itertools 0.13.0",
  "k8s-openapi",
  "kube",
- "mows-common",
+ "mows-common-rust",
  "opentelemetry 0.26.0",
  "pektin-common",
  "prometheus-client",
@@ -5780,7 +5780,7 @@ dependencies = [
  "axum 0.8.4",
  "axum-extra",
  "mime_guess",
- "mows-common",
+ "mows-common-rust",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
@@ -6879,7 +6879,7 @@ dependencies = [
  "itertools 0.13.0",
  "k8s-openapi",
  "kube",
- "mows-common",
+ "mows-common-rust",
  "opentelemetry 0.26.0",
  "opentelemetry-otlp",
  "opentelemetry_sdk 0.26.0",
@@ -7707,7 +7707,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "data-encoding",
- "mows-common",
+ "mows-common-rust",
  "p256",
  "rand_core 0.6.4",
  "reqwest 0.12.15",
@@ -7778,7 +7778,7 @@ dependencies = [
  "itertools 0.13.0",
  "k8s-openapi",
  "kube",
- "mows-common",
+ "mows-common-rust",
  "opentelemetry 0.26.0",
  "pbjson-types",
  "prometheus-client",

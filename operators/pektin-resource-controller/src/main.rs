@@ -3,7 +3,7 @@ use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, Http
 use anyhow::Context;
 use controller::get_vault_token;
 pub use controller::{self, State};
-use mows_common::observability::init_observability;
+use mows_common_rust::observability::init_observability;
 use tracing_actix_web::TracingLogger;
 
 #[get("/metrics")]

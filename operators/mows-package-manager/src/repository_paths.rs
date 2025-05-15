@@ -1,4 +1,4 @@
-use mows_common::utils::generate_id;
+use mows_common_rust::utils::generate_id;
 use std::path::{Path, PathBuf};
 
 const MANIFEST_FILE_NAME: &str = "mows-manifest.yaml";

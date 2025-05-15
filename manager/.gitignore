@@ -3,5 +3,5 @@ kcrypt-challenger
 netboot
 temp
 secrets.env
-mows-common-temp
+mows-common-rust-temp
 mows-package-manager-temp
