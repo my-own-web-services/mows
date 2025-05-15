@@ -1,6 +1,6 @@
 use anyhow::Context;
 use axum::http::{
-    header::{CONTENT_TYPE, UPGRADE},
+    header::{AUTHORIZATION, CONTENT_TYPE, UPGRADE},
     HeaderValue, Method,
 };
 use mows_common::{
@@ -64,7 +64,7 @@ async fn main() -> Result<(), anyhow::Error> {
                         .collect::<Vec<HeaderValue>>(),
                 )
                 .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
-                .allow_headers([CONTENT_TYPE, UPGRADE]),
+                .allow_headers([CONTENT_TYPE, UPGRADE, AUTHORIZATION]),
         )
         .split_for_parts();
 
@@ -81,8 +81,6 @@ async fn main() -> Result<(), anyhow::Error> {
     .with_graceful_shutdown(shutdown_signal())
     .await
     .context("Failed to start server")?;
-
-    info!("Server started");
 
     Ok(())
 }

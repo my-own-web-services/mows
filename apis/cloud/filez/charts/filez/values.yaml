@@ -4,5 +4,14 @@ server:
   imagePullPolicy: Always
   name: filez-server
   replicaCount: 1
-  rust_log: "main=debug"
+  rustLog: "main=debug"
+  dev:
+    enabled: true
+    allowedCorsOrigins: "http://localhost:5174/"
+
+webFrontend:
+  dev:
+    enabled: true
+    allowedRedirectOrigins: 
+      - "http://localhost:5174"
   

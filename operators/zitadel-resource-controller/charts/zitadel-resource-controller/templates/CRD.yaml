@@ -110,10 +110,10 @@ spec:
                                   properties:
                                     api:
                                       properties:
-                                        authMethodType:
+                                        authenticationMethod:
                                           type: string
                                       required:
-                                      - authMethodType
+                                      - authenticationMethod
                                       type: object
                                     oidc:
                                       properties:

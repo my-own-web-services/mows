@@ -1,3 +1,5 @@
+use tracing::debug;
+
 use crate::{
     crd::{self, RawZitadelResource},
     zitadel_client::ZitadelClient,
@@ -116,7 +118,18 @@ pub async fn apply_raw(
                             )
                             .await?
                     }
-                    crd::RawZitadelApplicationMethod::Api(_) => todo!(),
+                    crd::RawZitadelApplicationMethod::Api(api_config) => {
+                        zitadel_client
+                            .apply_api_application(
+                                &resource_namespace,
+                                &project_org_id,
+                                &project_id,
+                                &resource_application.name,
+                                &api_config,
+                                &resource_application.client_data_target,
+                            )
+                            .await?
+                    }
                 };
             }
         }

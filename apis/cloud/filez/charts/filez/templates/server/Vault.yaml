@@ -57,5 +57,6 @@ spec:
                     data:
                         webFrontendClientId: "{% .secrets.frontend.clientId %}"
                         serverClientId: "{% .secrets.server.clientId %}"
+                        serverClientSecret: "{% .secrets.server.clientSecret %}"
                         issuer: "https://zitadel.{§ .config.domain §}"
 

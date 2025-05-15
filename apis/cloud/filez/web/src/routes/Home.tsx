@@ -23,11 +23,11 @@ export default class Home extends Component<HomeProps, HomeState> {
         this.userManager = new UserManager({
             userStore: new WebStorageStateStore({ store: window.localStorage }),
             authority: "https://zitadel.vindelicorum.eu",
-            client_id: "320151133219783333",
-            redirect_uri: "http://localhost:5174/",
+            client_id: "320164741488116389",
+            redirect_uri: "http://localhost:5174",
             response_type: "code",
-            scope: "openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-oidc:aud",
-            post_logout_redirect_uri: "http://localhost:5174/",
+            scope: "openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-auth:aud",
+            post_logout_redirect_uri: "http://localhost:5174",
             response_mode: "query"
         });
     }
@@ -51,11 +51,11 @@ export default class Home extends Component<HomeProps, HomeState> {
             });
         }
     };
-    //320152518799721125
 
     handleLogin = () => {
         this.userManager.signinRedirect({});
     };
+
     handleLogout = () => {
         this.userManager.removeUser();
         this.setState({ user: null });

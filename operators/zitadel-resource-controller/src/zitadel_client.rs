@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::crd::{
-    duration_to_zitadel, RawZitadelAction, RawZitadelActionFlow, RawZitadelApplicationClientDataTarget,
-    RawZitadelApplicationOidc,
+    api_auth_method_type_to_zitadel, duration_to_zitadel, RawZitadelAction, RawZitadelActionFlow,
+    RawZitadelApplicationApi, RawZitadelApplicationClientDataTarget, RawZitadelApplicationOidc,
 };
 use crate::vault::handle_vault_target;
 use crate::ControllerError;
@@ -414,15 +414,85 @@ impl ZitadelClient {
         let apps = management_client
             .list_apps(ListAppsRequest {
                 project_id: project_id.to_string(),
-                query: Some(ListQuery {
-                    limit: 1,
-                    ..Default::default()
-                }),
+                query: Some(ListQuery { ..Default::default() }),
                 ..Default::default()
             })
             .await?;
 
         Ok(apps.into_inner().result)
+    }
+
+    pub async fn apply_api_application(
+        &self,
+        resource_namespace: &str,
+        project_org_id: &str,
+        project_id: &str,
+        application_name: &str,
+        api_config: &RawZitadelApplicationApi,
+        client_data_target: &RawZitadelApplicationClientDataTarget,
+    ) -> anyhow::Result<()> {
+        use zitadel::api::zitadel::management::v1::AddApiAppRequest;
+
+        let mut management_client = self.management_client(Some(project_org_id)).await?;
+
+        // check if we can create the client data target
+        match client_data_target {
+            RawZitadelApplicationClientDataTarget::Vault(vault_target) => {
+                handle_vault_target(
+                    vault_target,
+                    resource_namespace,
+                    json!({
+                        "test": "test",
+                    }),
+                )
+                .await?;
+            }
+        }
+
+        let api_app = management_client
+            .add_api_app(AddApiAppRequest {
+                project_id: project_id.to_string(),
+                name: application_name.to_string(),
+                auth_method_type: api_auth_method_type_to_zitadel(&api_config.authentication_method),
+
+                ..Default::default()
+            })
+            .await?
+            .into_inner();
+
+        // create client data target
+        match client_data_target {
+            RawZitadelApplicationClientDataTarget::Vault(vault) => {
+                if let Err(e) = handle_vault_target(
+                    vault,
+                    resource_namespace,
+                    json!({
+                        "clientId": api_app.client_id,
+                        "clientSecret": api_app.client_secret
+                    }),
+                )
+                .await
+                {
+                    // if vault creation fails we need to remove the app to not leave it in an inconsistent state
+                    if let Err(e) = management_client
+                        .remove_app(zitadel::api::zitadel::management::v1::RemoveAppRequest {
+                            app_id: api_app.app_id.clone(),
+                            project_id: project_id.to_string(),
+                        })
+                        .await
+                    {
+                        tracing::error!(
+                            "INCOSISTENCY: Failed to remove app after vault creation failed: {}",
+                            e
+                        );
+                    }
+
+                    return Err(e.into());
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn apply_oidc_application(
@@ -483,6 +553,7 @@ impl ZitadelClient {
                     .id_token_userinfo_assertion
                     .clone()
                     .unwrap_or_default(),
+                dev_mode: oidc_config.dev_mode.unwrap_or(false),
 
                 ..Default::default()
             })
