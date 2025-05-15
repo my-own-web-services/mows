@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: filez-server
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: filez-server
+  selector:
+    app: filez-server

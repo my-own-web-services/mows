@@ -1,24 +1,24 @@
 
-# create the engine for the oidc secrets to be stored in
+# create the engine for the auth secrets to be stored in
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
-    name: filez-oidc
+    name: filez-auth
 spec:
     secretEngine:
         kv-v2:
             kvData: {}
 
 ---
-# create the policy for the zitadel controller to access the oidc secrets
+# create the policy for the zitadel controller to access the auth secrets
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
-    name: zitadel-controller-allow-oidc-access
+    name: zitadel-controller-allow-auth-access
 spec:
     engineAccessPolicy:
         subPolicies:
-            - engineId: filez-oidc
+            - engineId: filez-auth
               engineType: secret
               subPath: "*"
               capabilities: ["update","read","create","delete","list"]
@@ -35,24 +35,27 @@ spec:
                 zitadel-resource-controller:
                     serviceAccountName: zitadel-resource-controller
                     namespace: mows-core-auth-zitadel
-                    policyIds: ["zitadel-controller-allow-oidc-access"]
+                    policyIds: ["zitadel-controller-allow-auth-access"]
 ---
 # sync the secrets to the argocd configmap
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
-    name: filez-oidc-sync
+    name: filez-auth-sync
 spec:
     secretSync:
         kvMapping:
-            oidc:
-                engine: filez-oidc
-                path: "oidc"
+            frontend:
+                engine: filez-auth
+                path: "filez-web-frontend"
+            server:
+                engine: filez-auth
+                path: "filez-server"
         targets:
             secrets:
-                filez-oidc:
+                filez-auth:
                     data:
-                        client_id: "{% .secrets.oidc.clientId %}"
-                        client_secret: "{% .secrets.oidc.clientSecret %}"
+                        webFrontendClientId: "{% .secrets.frontend.clientId %}"
+                        serverClientId: "{% .secrets.server.clientId %}"
                         issuer: "https://zitadel.{§ .config.domain §}"
 

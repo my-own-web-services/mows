@@ -599,7 +599,8 @@ impl TryFrom<DbEntry> for Vec<hickory_proto::rr::Record> {
                         entry.name.clone(),
                         entry.ttl,
                         RData::OPENPGPKEY(OPENPGPKEY::new(
-                            base64::decode(&record.value)
+                            BASE64_STANDARD
+                                .decode(&record.value)
                                 .map_err(|_| "OPENPGPKEY data not valid base64 (a-zA-Z0-9/+)")?,
                         )),
                     ))
@@ -620,7 +621,8 @@ impl TryFrom<DbEntry> for Vec<hickory_proto::rr::Record> {
                             record.signature_inception,
                             record.key_tag,
                             record.signer_name,
-                            base64::decode(&record.signature)
+                            BASE64_STANDARD
+                                .decode(&record.signature)
                                 .map_err(|_| "RRSIG signature not valid base64 (a-zA-Z0-9/+)")?,
                         ))),
                     );

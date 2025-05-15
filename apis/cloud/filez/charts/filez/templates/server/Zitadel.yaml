@@ -17,8 +17,17 @@ spec:
                     -   name: filez-server
                         clientDataTarget: 
                             vault:
-                                secretEngineName: filez-oidc
-                                secretEngineSubPath: oidc
+                                secretEngineName: filez-auth
+                                secretEngineSubPath: filez-server
+                                kubernetesAuthEngineName: zitadel-controller-service-account
+                        method:
+                            api:
+                                authenticationMethod: basic
+                    -   name: filez-web-frontend
+                        clientDataTarget: 
+                            vault:
+                                secretEngineName: filez-auth
+                                secretEngineSubPath: filez-web-frontend
                                 kubernetesAuthEngineName: zitadel-controller-service-account
                         method:
                             oidc:
@@ -31,7 +40,7 @@ spec:
                                     - authorizationCode
                                 postLogoutRedirectUris:
                                     - https://filez-api.{§ .config.domain §}
-                                appType: web
+                                appType: userAgent
                                 accessTokenType: bearer
                                 idTokenRoleAssertion: true
                                 idTokenUserinfoAssertion: true
