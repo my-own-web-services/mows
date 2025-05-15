@@ -6,7 +6,7 @@ ARG APP_STAGE_IMAGE="scratch"
 
 FROM scratch AS sources
 COPY --from=pektin-common . pektin-common
-COPY --from=mows-common . mows-common
+COPY --from=mows-common-rust . mows-common-rust
 COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 

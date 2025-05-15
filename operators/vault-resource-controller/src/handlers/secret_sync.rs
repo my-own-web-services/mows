@@ -1,6 +1,6 @@
 use k8s_openapi::api::core::v1::{ConfigMap, Secret};
 use kube::api::ObjectMeta;
-use mows_common::templating::{
+use mows_common_rust::templating::{
     functions::{serde_json_value_to_gtmpl_value, TEMPLATE_FUNCTIONS},
     gtmpl::{Context as GtmplContext, Template, Value as GtmplValue},
     gtmpl_derive::Gtmpl,

@@ -1,4 +1,4 @@
-use mows_common::observability::init_observability;
+use mows_common_rust::observability::init_observability;
 use pektin_api::get_current_config_cloned;
 use pektin_api::vault::create_vault_client_with_k8s_login;
 #[cfg(not(target_env = "msvc"))]

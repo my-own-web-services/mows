@@ -1,5 +1,5 @@
-use mows_common::constants::MowsConstants;
-use mows_common::s;
+use mows_common_rust::constants::MowsConstants;
+use mows_common_rust::s;
 use serde_json::Value;
 use std::collections::HashMap;
 

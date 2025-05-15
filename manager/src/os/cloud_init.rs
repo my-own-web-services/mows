@@ -8,7 +8,7 @@ use crate::{
     config::{InternalIps, SshAccess, Vip},
     internal_config::INTERNAL_CONFIG,
 };
-use mows_common::s;
+use mows_common_rust::s;
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema, Default, PartialEq, Eq)]
 pub struct CloudInit {

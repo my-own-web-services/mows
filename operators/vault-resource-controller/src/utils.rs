@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter};
 
 use anyhow::Context;
-use mows_common::get_current_config_cloned;
+use mows_common_rust::get_current_config_cloned;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
 use crate::{config::config, ControllerError};

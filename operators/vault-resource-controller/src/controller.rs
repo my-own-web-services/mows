@@ -24,7 +24,7 @@ use kube::{
     },
     Resource,
 };
-use mows_common::{get_current_config_cloned, observability::get_trace_id};
+use mows_common_rust::{get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;

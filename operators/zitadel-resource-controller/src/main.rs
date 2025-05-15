@@ -1,7 +1,7 @@
 #![allow(unused_imports, unused_variables)]
 use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::Context;
-use mows_common::{get_current_config_cloned, observability::init_observability};
+use mows_common_rust::{get_current_config_cloned, observability::init_observability};
 use prometheus_client::metrics::info;
 use tracing::info;
 use tracing_actix_web::TracingLogger;

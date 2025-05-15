@@ -3,7 +3,7 @@ use axum::http::{
     header::{CONTENT_TYPE, UPGRADE},
     HeaderValue, Method,
 };
-use mows_common::{
+use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
 use mows_package_manager::{

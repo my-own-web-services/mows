@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use mows_common::reqwest_middleware;
+use mows_common_rust::reqwest_middleware;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -29,7 +29,7 @@ pub enum Error {
     ReqwestError(#[source] reqwest::Error),
 
     #[error("MowsError: {0}")]
-    MowsError(#[source] mows_common::errors::MowsError),
+    MowsError(#[source] mows_common_rust::errors::MowsError),
 }
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -51,8 +51,8 @@ impl From<vaultrs::error::ClientError> for Error {
     }
 }
 
-impl From<mows_common::errors::MowsError> for Error {
-    fn from(error: mows_common::errors::MowsError) -> Self {
+impl From<mows_common_rust::errors::MowsError> for Error {
+    fn from(error: mows_common_rust::errors::MowsError) -> Self {
         Error::MowsError(error)
     }
 }

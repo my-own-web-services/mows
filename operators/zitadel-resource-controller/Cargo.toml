@@ -56,7 +56,7 @@ itertools = "0.13.0"
 
 tracing-actix-web = "0.7.14"
 
-mows-common = { workspace = true }
+mows-common-rust = { workspace = true }
 
 zitadel = { workspace = true, features = [
     "api",

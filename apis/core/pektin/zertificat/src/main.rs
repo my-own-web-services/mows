@@ -3,7 +3,7 @@ use lib::{
     types::{Identifier, UserChallenges},
     AcmeClient,
 };
-use mows_common::{
+use mows_common_rust::{
     get_current_config_cloned, observability::init_observability, reqwest::new_reqwest_client,
 };
 use p256::ecdsa::SigningKey;

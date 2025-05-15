@@ -7,7 +7,7 @@ use crate::crd::{
 use crate::vault::handle_vault_target;
 use crate::ControllerError;
 use crate::{config::config, crd::RawZitadelProjectRole};
-use mows_common::get_current_config_cloned;
+use mows_common_rust::get_current_config_cloned;
 use serde_json::json;
 use tonic::{service::interceptor::InterceptedService, transport::Channel};
 use tracing::debug;

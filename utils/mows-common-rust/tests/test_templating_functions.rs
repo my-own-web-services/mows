@@ -1,6 +1,6 @@
 use gtmpl::{Context as GtmplContext, Template, Value as GtmplValue};
 use gtmpl_derive::Gtmpl;
-use mows_common::templating::functions::TEMPLATE_FUNCTIONS;
+use mows_common_rust::templating::functions::TEMPLATE_FUNCTIONS;
 use std::collections::HashMap;
 
 // TODO test with the actual helm output and compare

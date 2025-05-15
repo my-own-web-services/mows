@@ -59,7 +59,7 @@ reqwest-tracing = "0.5.3"
 tracing-actix-web = "0.7.14"
 
 pektin-common = { workspace = true }
-mows-common = { workspace = true }
+mows-common-rust = { workspace = true }
 
 [dependencies.kube]
 features = ["runtime", "client", "derive"]

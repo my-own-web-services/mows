@@ -20,7 +20,7 @@ use crate::{
     utils::cmd,
     write_config,
 };
-use mows_common::{config::common_config, get_current_config_cloned, s};
+use mows_common_rust::{config::common_config, get_current_config_cloned, s};
 
 pub async fn remove_public_ip_config_if_exists(machine_id: &str) -> anyhow::Result<()> {
     let config = get_current_config_cloned!(config());

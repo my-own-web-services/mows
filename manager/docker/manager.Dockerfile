@@ -15,7 +15,7 @@ RUN  if [ "${BUILD_UI}" = "true" ];  then npm install -g pnpm && pnpm install &&
 
 
 FROM scratch AS sources
-COPY --from=mows-common . mows-common
+COPY --from=mows-common-rust . mows-common-rust
 COPY --from=mows-package-manager . mows-package-manager
 COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml

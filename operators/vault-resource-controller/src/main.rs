@@ -5,7 +5,7 @@ use actix_web::{
 use anyhow::Context;
 use controller::utils::create_vault_client;
 pub use controller::{self, State};
-use mows_common::observability::init_observability;
+use mows_common_rust::observability::init_observability;
 use tracing_actix_web::TracingLogger;
 
 #[get("/metrics")]

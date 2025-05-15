@@ -68,7 +68,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 tracing = { workspace = true }
-mows-common = { workspace = true }
+mows-common-rust = { workspace = true }
 gtmpl_value = { workspace = true }
 
 

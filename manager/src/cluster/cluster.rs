@@ -389,7 +389,7 @@ impl Cluster {
     }
 
     pub async fn get_kube_client(&self) -> anyhow::Result<kube::client::Client> {
-        // I wanted to import this function from mows-common but can't because of
+        // I wanted to import this function from mows-common-rust but can't because of
         // https://github.com/rust-lang/cargo/issues/8639
         let kubeconfig = self.get_kubeconfig_struct().await?;
         let config =

@@ -40,7 +40,7 @@ rpath = false
 
 
 [workspace.dependencies]
-mows-common = { path = "./utils/mows-common" }
+mows-common-rust = { path = "./utils/mows-common-rust" }
 pektin-common = { path = "./apis/core/pektin/common" }
 zitadel = { path = "./utils/zitadel-rust" }
 mows-package-manager = { path = "./operators/mows-package-manager" }

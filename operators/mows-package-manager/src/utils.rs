@@ -6,7 +6,7 @@ use kube::{
     discovery::{ApiCapabilities, Scope},
     Api, Client,
 };
-use mows_common::templating::{
+use mows_common_rust::templating::{
     functions::{serde_json_hashmap_to_gtmpl_hashmap, TEMPLATE_FUNCTIONS},
     gtmpl::{Context as GtmplContext, Template, Value as GtmplValue},
     gtmpl_derive::Gtmpl,
@@ -254,7 +254,7 @@ async fn fetch_from_url(
     expected_sha256_digest: &str,
     size_limit: Option<usize>,
 ) -> Result<PathBuf, GetRemoteFileError> {
-    let reqwest_client = mows_common::reqwest::new_reqwest_client()
+    let reqwest_client = mows_common_rust::reqwest::new_reqwest_client()
         .await
         .map_err(|e| {
             GetRemoteFileError::AnyhowError(anyhow::anyhow!("Error creating reqwest client: {}", e))

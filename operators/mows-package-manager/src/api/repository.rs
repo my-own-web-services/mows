@@ -1,5 +1,5 @@
 use axum::Json;
-use mows_common::get_current_config_cloned;
+use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use utoipa::ToSchema;

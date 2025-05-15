@@ -34,8 +34,8 @@ version = "=0.96.0"
 [workspace.dependencies.mime_guess]
 version = "2.0.5"
 
-[workspace.dependencies.mows-common]
-path = "./mows-common"
+[workspace.dependencies.mows-common-rust]
+path = "./mows-common-rust"
 
 [workspace.dependencies.mows-package-manager]
 path = "./mows-package-manager"

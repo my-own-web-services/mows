@@ -2,7 +2,7 @@ use actix_web::{
     error::{ErrorBadRequest, JsonPayloadError},
     HttpRequest, HttpResponse,
 };
-use mows_common::reqwest_middleware;
+use mows_common_rust::reqwest_middleware;
 use serde::Serialize;
 use serde_json::json;
 use thiserror::Error;
