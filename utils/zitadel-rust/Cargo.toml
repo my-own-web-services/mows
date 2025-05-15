@@ -290,7 +290,7 @@ serde = { version = "1.0.200", features = ["derive"], optional = true }
 serde_json = { version = "1.0.116", optional = true }
 serde_urlencoded = { version = "0.7.1", optional = true }
 time = { version = "0.3.36", optional = true }
-tokio = { version = "1.45.0", optional = true, features = [
+tokio = { workspace = true, optional = true, features = [
   "macros",
   "rt-multi-thread",
 ] }
@@ -299,14 +299,14 @@ rocket_okapi = { version = "0.9.0", optional = true, default-features = false }
 schemars = { version = "0.8.21", optional = true }
 tonic-types = { version = "0.12.1", optional = true }
 pbjson = { version = "0.7.0", optional = true }
-anyhow = "1.0.97"
+anyhow = { workspace = true }
 
 
 [dev-dependencies]
 chrono = "0.4.38"
-tokio = { version = "1.45.0", features = ["macros", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tower = { version = "0.5.0" }
-http-body-util = "0.1.0"
+#http-body-util = "0.1.0"
 
 [package.metadata.docs.rs]
 all-features = true

@@ -62,6 +62,10 @@ fn parse_root_dependencies(root_dir: &Path) -> Result<HashMap<String, DepLocator
                         }
                     } else if let Some(version) = value.as_str() {
                         deps.insert(key.clone(), DepLocator::Version(version.to_string()));
+                    } else if let Some(version) = value.get("version") {
+                        if let Some(version_str) = version.as_str() {
+                            deps.insert(key.clone(), DepLocator::Version(version_str.to_string()));
+                        }
                     } else {
                         eprintln!("Unknown dependency format for key: {}", key);
                     }

@@ -42,8 +42,9 @@ image = { git = "https://github.com/image-rs/image", branch = "master", features
     "avif",
 ] }
 
-reqwest = "0.11.14"
-
+reqwest = { workspace = true, features = [
+    "rustls-tls",
+], default-features = false }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"

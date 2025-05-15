@@ -1,0 +1,38 @@
+variablePrefix: "$"
+headers:
+    # on every resource
+    all:
+        Strict-Transport-Security: max-age=315360000; includeSubdomains; preload
+        Cache-Control: public, max-age=31536000
+
+    # only on the document
+    document:
+        Content-Security-Policy: >-
+            default-src 'none';
+
+            script-src 'self';
+                        
+            style-src 'self'; 
+
+            manifest-src 'self';
+
+            connect-src 'self'; 
+
+            img-src 'self'; 
+
+            font-src 'self'; 
+
+            base-uri 'none'; 
+
+            form-action 'none'; 
+
+            frame-ancestors 'none';
+        x-frame-options: DENY
+        x-content-type-options: nosniff
+        x-permitted-cross-domain-policies: none
+        x-download-options: noopen
+        x-xss-protection: 1; mode=block
+        referrer-policy: no-referrer
+        permissions-policy: accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=(), conversion-measurement=(), focus-without-user-activation=(), hid=(), idle-detection=(), interest-cohort=(), serial=(), sync-script=(), trust-token-redemption=(), window-placement=(), vertical-scroll=()
+# prevent all matching paths from beeing served from memory and read them from disk instead; if the path is included it is matched
+noMemory: [".png", ".jpg", ".avif", ".webp", ".svg"]

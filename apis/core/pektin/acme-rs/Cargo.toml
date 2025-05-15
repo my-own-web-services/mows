@@ -38,17 +38,17 @@ p256 = { version = "0.13.2", default-features = false, features = [
 rand_core = { version = "0.6.3", default-features = false, features = [
     "getrandom",
 ] }
-reqwest = { version = "0.12.8", default-features = false, features = [
+reqwest = { workspace = true, features = [
     "rustls-tls",
-] }
-serde = { version = "1.0", features = [
+], default-features = false }
+serde = { workspace = true, features = [
     "derive",
     "std",
 ], default-features = false }
-serde_json = { version = "1.0" }
-serde_yaml = { version = "0.9" }
-anyhow = { version = "1.0" }
-tokio = { version = "1.41.0", default-features = false, features = [
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true, default-features = false, features = [
     "rt-multi-thread",
     "macros",
 ] }

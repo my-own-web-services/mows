@@ -231,7 +231,7 @@ pub struct RawZitadelApplicationSaml {}
 #[serde(rename_all = "camelCase")]
 pub struct RawZitadelApplicationApi {
     #[schemars(with = "String")]
-    auth_method_type: ApiAuthMethodType,
+    authentication_method: ApiAuthMethodType,
 }
 
 pub fn oidc_response_type_to_zitadel(response_type: &OidcResponseType) -> i32 {

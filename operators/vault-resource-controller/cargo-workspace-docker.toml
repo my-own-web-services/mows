@@ -7,6 +7,23 @@ exclude = ["target"]
 [workspace.dependencies.anyhow]
 version = "1.0.98"
 
+[workspace.dependencies.gtmpl]
+version = "0.7"
+
+[workspace.dependencies.gtmpl_derive]
+version = "0.5.0"
+
+[workspace.dependencies.gtmpl_value]
+version = "0.5.1"
+
+[workspace.dependencies.k8s-openapi]
+features = ["latest"]
+version = "=0.23.0"
+
+[workspace.dependencies.kube]
+features = ["runtime", "derive", "client"]
+version = "=0.96.0"
+
 [workspace.dependencies.mows-common]
 path = "./mows-common"
 
@@ -21,12 +38,23 @@ version = "0.26.0"
 features = ["rt-tokio"]
 version = "0.26.0"
 
+[workspace.dependencies.rand]
+version = "0.9.1"
+
+[workspace.dependencies.reqwest]
+default-features = false
+features = ["json", "rustls-tls", "stream"]
+version = "0.12.15"
+
 [workspace.dependencies.serde]
 features = ["derive"]
 version = "1.0.219"
 
 [workspace.dependencies.serde_json]
 version = "1"
+
+[workspace.dependencies.serde_yaml]
+version = "0.9.34+deprecated"
 
 [workspace.dependencies.thiserror]
 version = "2.0.12"
@@ -37,3 +65,9 @@ version = "1.45.0"
 
 [workspace.dependencies.tracing]
 version = "0.1.40"
+
+[workspace.dependencies.tracing-opentelemetry]
+version = "0.27.0"
+
+[workspace.dependencies.vaultrs]
+version = "0.7.4"

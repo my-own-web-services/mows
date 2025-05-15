@@ -4,4 +4,10 @@ resolver = "2"
 members = ["app"]
 exclude = ["target"]
 
-[workspace.dependencies]
+[workspace.dependencies.serde_yaml]
+version = "0.9.34+deprecated"
+
+[workspace.dependencies.tokio]
+default-features = false
+features = ["rt-multi-thread", "macros", "signal"]
+version = "1.45.0"

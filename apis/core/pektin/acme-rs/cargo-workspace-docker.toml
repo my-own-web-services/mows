@@ -4,4 +4,26 @@ resolver = "2"
 members = ["app"]
 exclude = ["target"]
 
-[workspace.dependencies]
+[workspace.dependencies.anyhow]
+version = "1.0.98"
+
+[workspace.dependencies.reqwest]
+default-features = false
+features = ["rustls-tls"]
+version = "0.12.15"
+
+[workspace.dependencies.serde]
+default-features = false
+features = ["derive", "std"]
+version = "1.0.219"
+
+[workspace.dependencies.serde_json]
+version = "1"
+
+[workspace.dependencies.serde_yaml]
+version = "0.9.34+deprecated"
+
+[workspace.dependencies.tokio]
+default-features = false
+features = ["rt-multi-thread", "macros"]
+version = "1.45.0"
