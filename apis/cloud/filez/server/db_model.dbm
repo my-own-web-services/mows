@@ -1,0 +1,1586 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+CAUTION: Do not modify this file unless you know what you are doing.
+ Unexpected results may occur if the code is changed deliberately.
+-->
+<dbmodel pgmodeler-ver="1.1.5" use-changelog="false" max-obj-count="39"
+	last-position="-537,-552" last-zoom="0.6" scene-rect="-960,-920,3428.24,2308.12"
+	default-schema="public" default-owner="postgres"
+	layers="Default layer"
+	active-layers="0"
+	layer-name-colors="#000000"
+	layer-rect-colors="#b4b4b4"
+	show-layer-names="false" show-layer-rects="false">
+	<database name="new_database" is-template="false" allow-conns="true">
+</database>
+
+	<schema name="public" layers="0" fill-color="#e1e1e1" name-color="#000000" sql-disabled="true">
+</schema>
+
+	<tag name="Access Rule: Subject">
+		<style id="table-body" colors="#474f56,#474f56,#595e61" />
+		<style id="table-ext-body" colors="#474f56,#474f56,#595e61" />
+		<style id="table-name" colors="#ffffff" />
+		<style id="table-schema-name" colors="#000000" />
+		<style id="table-title" colors="#aaff7f,#6ec0ff,#77cbff" />
+		<style id="table-toggler-body" colors="#474f56,#474f56,#595e61" />
+		<style id="table-toggler-btns" colors="#3275b0,#6ec0ff,#77cbff" />
+	</tag>
+	<tag name="Access Rule: Object">
+		<style id="table-body" colors="#474f56,#474f56,#595e61" />
+		<style id="table-ext-body" colors="#474f56,#474f56,#595e61" />
+		<style id="table-name" colors="#ffffff" />
+		<style id="table-schema-name" colors="#000000" />
+		<style id="table-title" colors="#ff5500,#ff5500,#77cbff" />
+		<style id="table-toggler-body" colors="#474f56,#474f56,#595e61" />
+		<style id="table-toggler-btns" colors="#3275b0,#6ec0ff,#77cbff" />
+	</tag>
+	<tag name="Access Rule: Subject &amp; Object">
+		<style id="table-body" colors="#474f56,#474f56,#595e61" />
+		<style id="table-ext-body" colors="#474f56,#474f56,#595e61" />
+		<style id="table-name" colors="#ffffff" />
+		<style id="table-schema-name" colors="#000000" />
+		<style id="table-title" colors="#00ff7f,#ff5500,#aaff7f" />
+		<style id="table-toggler-body" colors="#474f56,#474f56,#595e61" />
+		<style id="table-toggler-btns" colors="#3275b0,#6ec0ff,#77cbff" />
+	</tag>
+	<usertype name="file_group_type_enum" configuration="enumeration">
+		<schema name="public" />
+		<role name="postgres" />
+		<enumeration label="manual" />
+		<enumeration label="dynamic" />
+	</usertype>
+
+	<table name="files" layers="0" collapse-mode="2" max-obj-count="6" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<tag name="Access Rule: Object" />
+		<position x="-220" y="340" />
+		<column name="file_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="owner_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="name" not-null="true">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="mime_type">
+			<type name="varchar" length="255" />
+		</column>
+		<constraint name="files_pk" type="pk-constr" table="public.files">
+			<columns names="file_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="users" layers="0" collapse-mode="2" max-obj-count="7" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<tag name="Access Rule: Subject &amp; Object" />
+		<position x="820" y="-460" />
+		<column name="user_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="name" not-null="true">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="max_storage_bytes">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="max_owned_files">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="deleted" not-null="true" default-value="false">
+			<type name="boolean" length="0" />
+		</column>
+		<constraint name="users_pk" type="pk-constr" table="public.users">
+			<columns names="user_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="file_groups" layers="0" collapse-mode="2" max-obj-count="7" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<tag name="Access Rule: Object" />
+		<position x="860" y="1060" />
+		<column name="file_group_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="owner_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="name" not-null="true">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="file_group_type" not-null="true" default-value="'manual'">
+			<type name="public.file_group_type_enum" length="0" />
+		</column>
+		<column name="dynamic_membership_rule">
+			<type name="text" length="0" />
+		</column>
+		<constraint name="file_groups_pk" type="pk-constr" table="public.file_groups">
+			<columns names="file_group_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="user_groups" layers="0" collapse-mode="2" max-obj-count="4" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<tag name="Access Rule: Subject &amp; Object" />
+		<position x="1920" y="360" />
+		<column name="user_group_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="owner_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="name" not-null="true">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<constraint name="user_groups_pk" type="pk-constr" table="public.user_groups">
+			<columns names="user_group_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="file_file_group_membership" layers="0" collapse-mode="2" max-obj-count="4"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="140" y="780" />
+		<column name="file_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="file_group_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="created_by_user_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<constraint name="file_group_membership_pk" type="pk-constr"
+			table="public.file_file_group_membership">
+			<columns names="file_id,file_group_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="user_user_group_membership" layers="0" collapse-mode="2" max-obj-count="4"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="1360" y="-140" />
+		<column name="user_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="user_group_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<constraint name="user_group_membership_pk" type="pk-constr"
+			table="public.user_user_group_membership">
+			<columns names="user_id,user_group_id" ref-type="src-columns" />
+		</constraint>
+		<constraint name="users_can_be_only_once_in_a_user_group" type="uq-constr"
+			table="public.user_user_group_membership">
+			<columns names="user_id,user_group_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="tags" layers="0" collapse-mode="2" max-obj-count="4" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="-940" y="360" />
+		<column name="tag_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="key">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="value">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<constraint name="key_value_unique" type="uq-constr" table="public.tags">
+			<columns names="key,value" ref-type="src-columns" />
+		</constraint>
+		<constraint name="tags_pk" type="pk-constr" table="public.tags">
+			<columns names="tag_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="jobs" layers="0" collapse-mode="2" max-obj-count="9" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="840" y="-900" />
+		<column name="job_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="owner_id">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="finished_at">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="updated_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="details">
+			<type name="jsonb" length="0" />
+		</column>
+		<column name="name">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="description">
+			<type name="text" length="0" />
+		</column>
+		<constraint name="jobs_pk" type="pk-constr" table="public.jobs">
+			<columns names="job_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="access_rules" layers="0" collapse-mode="2" max-obj-count="4" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="860" y="360" />
+		<column name="access_rule_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="owner_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="grants" not-null="true">
+			<type name="varchar" length="255" dimension="1" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<constraint name="access_rules_pk" type="pk-constr" table="public.access_rules">
+			<columns names="access_rule_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="file_access_rule_membership" layers="0" collapse-mode="2" max-obj-count="4"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="220" y="320" />
+		<column name="file_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="access_rule_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="created_by_user_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<constraint name="file_access_rule_membership_pk" type="pk-constr"
+			table="public.file_access_rule_membership">
+			<columns names="file_id,access_rule_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="file_group_access_rule_membership" layers="0" collapse-mode="2" max-obj-count="4"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="820" y="680" />
+		<column name="file_group_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="access_rule_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="created_by_user_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<constraint name="file_group_access_rule_membership_pk" type="pk-constr"
+			table="public.file_group_access_rule_membership">
+			<columns names="file_group_id,access_rule_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="user_access_rule_membership" layers="0" collapse-mode="2" max-obj-count="4"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="820" y="20" />
+		<column name="user_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="access_rule_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="created_by_user_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<constraint name="user_access_rule_membership_pk" type="pk-constr"
+			table="public.user_access_rule_membership">
+			<columns names="user_id,access_rule_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="user_group_access_rule_membership" layers="0" collapse-mode="2" max-obj-count="4"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="1320" y="320" />
+		<column name="user_group_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="access_rule_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="created_by_user_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<constraint name="user_group_access_rule_membership_pk" type="pk-constr"
+			table="public.user_group_access_rule_membership">
+			<columns names="user_group_id,access_rule_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<genericsql name="insert fake data">
+		<definition> <![CDATA[-- insert fake users
+INSERT INTO public.users (name)
+select 
+    md5(random()::text)
+from generate_series(1, 10000) as g;
+
+
+-- insert fake files with random users as owners
+DO $$
+DECLARE
+    num_files_to_create INT := 10000000; -- <<< SET HOW MANY FILES YOU WANT TO CREATE HERE
+    v_user_id_array INT[];          -- Array to hold existing user IDs
+    v_user_count INT;              -- Number of users found
+BEGIN
+    -- Step 1: Fetch all existing user IDs into an array
+    SELECT array_agg(user_id), count(user_id)
+    INTO v_user_id_array, v_user_count
+    FROM public.users;
+
+    -- Check if any users exist to assign as owners
+    IF v_user_count = 0 THEN
+        RAISE EXCEPTION 'No users found in public.users table. Cannot assign owners.';
+    END IF;
+    RAISE NOTICE 'Found % users to potentially assign as owners.', v_user_count;
+
+    -- Step 2: Insert the specified number of files
+    RAISE NOTICE 'Attempting to insert % new files...', num_files_to_create;
+
+    INSERT INTO public.files (
+        name,
+        owner_id
+    )
+    SELECT
+        -- Generate a somewhat unique fake file name
+        'FakeFile_' || substr(md5(random()::text || clock_timestamp()::text), 1, 12),
+
+        -- Pick a random user ID from the array of existing users
+        -- Array is 1-based, random() gives 0 to <1, scale and floor, add 1
+        v_user_id_array[1 + floor(random() * v_user_count)::int]
+
+
+    FROM
+        generate_series(1, num_files_to_create); -- Generate rows to insert
+
+    RAISE NOTICE 'Successfully inserted % fake files with random owners.', num_files_to_create;
+
+END $$;
+
+
+-- insert fake user groups with random users as owners
+DO $$
+DECLARE
+    num_groups_to_create INT := 1000; -- <<< SET HOW MANY USER GROUPS YOU WANT TO CREATE HERE
+    v_user_id_array INT[];          -- Array to hold existing user IDs
+    v_user_count INT;              -- Number of users found
+BEGIN
+    -- Step 1: Fetch all existing user IDs into an array
+    SELECT array_agg(user_id), count(user_id)
+    INTO v_user_id_array, v_user_count
+    FROM public.users;
+
+    -- Check if any users exist to assign as owners
+    IF v_user_count = 0 THEN
+        RAISE EXCEPTION 'No users found in public.users table. Cannot assign owners to user groups.';
+    END IF;
+    RAISE NOTICE 'Found % users to potentially assign as owners for user groups.', v_user_count;
+
+    -- Step 2: Insert the specified number of user groups
+    RAISE NOTICE 'Attempting to insert % new user groups...', num_groups_to_create;
+
+    INSERT INTO public.user_groups (
+        name,
+        owner_id
+        -- user_group_id is bigserial and handled automatically
+        -- created_at is handled by DEFAULT current_timestamp
+    )
+    SELECT
+        -- Generate a somewhat unique fake group name
+        'FakeGroup_' || substr(md5(random()::text || clock_timestamp()::text), 1, 15),
+
+        -- Pick a random user ID from the array of existing users
+        -- Array is 1-based, random() gives 0 to <1, scale and floor, add 1
+        v_user_id_array[1 + floor(random() * v_user_count)::int]
+    FROM
+        generate_series(1, num_groups_to_create); -- Generate rows to insert
+
+    RAISE NOTICE 'Successfully inserted % fake user groups with random owners.', num_groups_to_create;
+
+END $$;
+
+
+
+
+-- insert fake file groups with random users as owners
+DO $$
+DECLARE
+    num_groups_to_create INT := 10000; -- <<< SET HOW MANY FILE GROUPS YOU WANT TO CREATE HERE
+    v_user_id_array INT[];          -- Array to hold existing user IDs
+    v_user_count INT;              -- Number of users found
+BEGIN
+    -- Step 1: Fetch all existing user IDs into an array (needed for owners)
+    SELECT array_agg(user_id), count(user_id)
+    INTO v_user_id_array, v_user_count
+    FROM public.users;
+
+    -- Check if any users exist to assign as owners
+    IF v_user_count = 0 THEN
+        RAISE EXCEPTION 'No users found in public.users table. Cannot assign owners to file groups.';
+    END IF;
+    RAISE NOTICE 'Found % users to potentially assign as owners for file groups.', v_user_count;
+
+    -- Step 2: Insert the specified number of file groups
+    RAISE NOTICE 'Attempting to insert % new file groups...', num_groups_to_create;
+
+    INSERT INTO public.file_groups ( -- <<< TARGET TABLE CHANGED
+        name,
+        owner_id
+        -- file_group_id is bigserial and handled automatically
+        -- created_at is handled by DEFAULT current_timestamp
+    )
+    SELECT
+        -- Generate a somewhat unique fake file group name
+        'FakeFileGroup_' || substr(md5(random()::text || clock_timestamp()::text), 1, 15), -- <<< NAME PREFIX CHANGED
+
+        -- Pick a random user ID from the array of existing users
+        -- Array is 1-based, random() gives 0 to <1, scale and floor, add 1
+        v_user_id_array[1 + floor(random() * v_user_count)::int]
+    FROM
+        generate_series(1, num_groups_to_create); -- Generate rows to insert
+
+    RAISE NOTICE 'Successfully inserted % fake file groups with random owners.', num_groups_to_create;
+
+END $$;
+
+
+
+
+-- assign the files to random file groups
+DO $$
+DECLARE
+    num_assignments_to_create INT := 10000000; -- <<< SET TARGET NUMBER OF UNIQUE MEMBERSHIPS
+    v_file_id_array INT[];
+    v_file_count INT;
+    v_group_id_array INT[];
+    v_group_count INT;
+    v_user_id_array INT[];          -- For created_by_user_id
+    v_user_count INT;
+    v_inserted_count INT := 0;      -- To count how many rows were actually inserted
+BEGIN
+    -- Fetch all necessary IDs into arrays
+    SELECT array_agg(file_id), count(file_id) INTO v_file_id_array, v_file_count FROM public.files;
+    SELECT array_agg(file_group_id), count(file_group_id) INTO v_group_id_array, v_group_count FROM public.file_groups;
+    SELECT array_agg(user_id), count(user_id) INTO v_user_id_array, v_user_count FROM public.users;
+
+    -- Validate that we have data to work with
+    IF v_file_count = 0 THEN RAISE EXCEPTION 'No files found in public.files. Cannot create memberships.'; END IF;
+    IF v_group_count = 0 THEN RAISE EXCEPTION 'No file groups found in public.file_groups. Cannot create memberships.'; END IF;
+    IF v_user_count = 0 THEN RAISE EXCEPTION 'No users found in public.users. Cannot set created_by_user_id.'; END IF;
+
+    RAISE NOTICE 'Found % files, % file groups, % users.', v_file_count, v_group_count, v_user_count;
+    RAISE NOTICE 'Attempting to create up to % unique file-to-file-group assignments...', num_assignments_to_create;
+
+    -- Generate potential assignments and insert them, skipping duplicates
+    WITH potential_assignments AS (
+        SELECT
+            -- Pick random file ID from array
+            v_file_id_array[1 + floor(random() * v_file_count)::int] AS p_file_id,
+            -- Pick random group ID from array
+            v_group_id_array[1 + floor(random() * v_group_count)::int] AS p_group_id,
+            -- Pick random user ID from array for creator
+            v_user_id_array[1 + floor(random() * v_user_count)::int] AS p_creator_id
+        FROM
+            generate_series(1, num_assignments_to_create) -- Generate rows to select from
+    )
+    INSERT INTO public.file_file_group_membership (
+        file_id,
+        file_group_id,
+        created_by_user_id
+    )
+    SELECT p_file_id, p_group_id, p_creator_id
+    FROM potential_assignments
+    ON CONFLICT (file_id, file_group_id) DO NOTHING; -- <<< Skips insertion if the pair already exists
+
+END $$;
+
+
+
+
+
+-- add users to random groups
+DO $$
+DECLARE
+    num_memberships_to_create INT := 15000; -- <<< SET TARGET NUMBER OF UNIQUE USER-GROUP MEMBERSHIPS
+    v_user_id_array INT[];           -- Array for users being added to groups
+    v_user_count INT;
+    v_user_group_id_array INT[];     -- Array for user groups
+    v_user_group_count INT;
+    v_inserted_count INT := 0;       -- To count how many rows were actually inserted
+BEGIN
+    -- Fetch all necessary IDs into arrays
+    -- Users for membership
+    SELECT array_agg(user_id), count(user_id)
+    INTO v_user_id_array, v_user_count
+    FROM public.users;
+
+    -- User Groups
+    SELECT array_agg(user_group_id), count(user_group_id)
+    INTO v_user_group_id_array, v_user_group_count
+    FROM public.user_groups;
+
+    -- Validate that we have data to work with
+    IF v_user_count = 0 THEN RAISE EXCEPTION 'No users found in public.users. Cannot create memberships.'; END IF;
+    IF v_user_group_count = 0 THEN RAISE EXCEPTION 'No user groups found in public.user_groups. Cannot create memberships.'; END IF;
+
+    RAISE NOTICE 'Found % users and % user groups.', v_user_count, v_user_group_count;
+    RAISE NOTICE 'Attempting to create up to % unique user-to-user-group memberships...', num_memberships_to_create;
+
+    -- Generate potential assignments and insert them, skipping duplicates
+    WITH potential_assignments AS (
+        SELECT
+            -- Pick random user ID for the membership
+            v_user_id_array[1 + floor(random() * v_user_count)::int] AS p_user_id,
+            -- Pick random user group ID
+            v_user_group_id_array[1 + floor(random() * v_user_group_count)::int] AS p_group_id
+            -- Removed the selection for p_creator_id as the column doesn't exist
+        FROM
+            generate_series(1, num_memberships_to_create * 2) -- Generate more potential assignments than needed
+    )
+    INSERT INTO public.user_user_group_membership (
+        user_id,
+        user_group_id
+        -- Removed created_by_user_id from the column list
+        -- created_at should have a DEFAULT if it exists
+    )
+    SELECT p_user_id, p_group_id
+    FROM potential_assignments
+    ON CONFLICT (user_id, user_group_id) DO NOTHING -- <<< Skips insertion if the (user_id, user_group_id) pair already exists
+    ;
+
+    -- Get the actual count of rows inserted
+    GET DIAGNOSTICS v_inserted_count = ROW_COUNT;
+    RAISE NOTICE 'Successfully inserted % new unique user-to-user-group memberships.', v_inserted_count;
+
+END $$;
+
+
+
+
+
+
+
+-- access rules
+
+
+-- Script 1: Create Random Access Rules
+
+DO $$
+DECLARE
+    num_rules_to_create INT := 10000;     -- <<< SET HOW MANY ACCESS RULES TO CREATE HERE
+    v_user_id_array INT[];               -- Array to hold existing user IDs for owners
+    v_user_count INT;                   -- Number of users found
+    possible_grants TEXT[] := ARRAY['read', 'write', 'update', 'delete']; -- Base permissions
+BEGIN
+    -- Fetch all existing user IDs into an array for assigning owners
+    SELECT array_agg(user_id), count(user_id)
+    INTO v_user_id_array, v_user_count
+    FROM public.users;
+
+    -- Check if any users exist to assign as owners
+    IF v_user_count = 0 THEN
+        RAISE EXCEPTION 'No users found in public.users table. Cannot assign owners to access rules.';
+    END IF;
+    RAISE NOTICE 'Found % users to potentially assign as owners for access rules.', v_user_count;
+
+    -- Insert the specified number of access rules
+    RAISE NOTICE 'Attempting to insert % new access rules...', num_rules_to_create;
+
+    INSERT INTO public.access_rules (
+        owner_id,
+        grants
+        -- access_rule_id is bigserial and handled automatically
+        -- created_at is handled by DEFAULT current_timestamp
+    )
+    SELECT
+        -- Pick a random user ID from the array of existing users for the owner
+        v_user_id_array[1 + floor(random() * v_user_count)::int],
+
+        -- Generate a random subset of grants (at least 1, up to 4)
+        (
+            SELECT array_agg(perm)
+            FROM (
+                SELECT perm, random() as rn
+                FROM unnest(possible_grants) AS perm
+                ORDER BY rn
+                -- Select a random number of grants between 1 and 4
+                LIMIT (1 + floor(random() * array_length(possible_grants, 1)))::int
+            ) sub_grants
+        )::varchar[] -- Explicit cast might be needed depending on context
+
+    FROM
+        generate_series(1, num_rules_to_create); -- Generate rows to insert
+
+    RAISE NOTICE 'Successfully inserted % fake access rules with random owners and grants.', num_rules_to_create;
+
+END $$;
+
+
+-- Script 2: Link Files to Random Access Rules
+
+DO $$
+DECLARE
+    num_file_links INT := 5000;        -- <<< SET TARGET NUMBER OF UNIQUE FILE-RULE LINKS
+    v_file_id_array INT[];
+    v_file_count INT;
+    v_rule_id_array INT[];
+    v_rule_count INT;
+    v_user_id_array INT[];             -- For created_by_user_id
+    v_user_count INT;
+    v_inserted_count INT := 0;
+BEGIN
+    -- Fetch all necessary IDs into arrays
+    SELECT array_agg(file_id), count(file_id) INTO v_file_id_array, v_file_count FROM public.files;
+    SELECT array_agg(access_rule_id), count(access_rule_id) INTO v_rule_id_array, v_rule_count FROM public.access_rules;
+    SELECT array_agg(user_id), count(user_id) INTO v_user_id_array, v_user_count FROM public.users;
+
+    -- Validate data
+    IF v_file_count = 0 THEN RAISE EXCEPTION 'No files found. Cannot create file-rule links.'; END IF;
+    IF v_rule_count = 0 THEN RAISE EXCEPTION 'No access rules found. Cannot create file-rule links.'; END IF;
+    IF v_user_count = 0 THEN RAISE EXCEPTION 'No users found. Cannot set created_by_user_id for file-rule links.'; END IF;
+
+    RAISE NOTICE 'Found % files, % access rules, % users.', v_file_count, v_rule_count, v_user_count;
+    RAISE NOTICE 'Attempting to create up to % unique file-to-access-rule links...', num_file_links;
+
+    -- Generate potential links and insert, skipping duplicates
+    WITH potential_links AS (
+        SELECT
+            v_file_id_array[1 + floor(random() * v_file_count)::int] AS p_file_id,
+            v_rule_id_array[1 + floor(random() * v_rule_count)::int] AS p_rule_id,
+            v_user_id_array[1 + floor(random() * v_user_count)::int] AS p_creator_id
+        FROM
+            generate_series(1, num_file_links * 2) -- Generate more than needed due to potential conflicts
+    )
+    INSERT INTO public.file_access_rule_membership (
+        file_id,
+        access_rule_id,
+        created_by_user_id
+        -- created_at has a DEFAULT
+    )
+    SELECT p_file_id, p_rule_id, p_creator_id
+    FROM potential_links
+    ON CONFLICT (file_id, access_rule_id) DO NOTHING;
+
+    GET DIAGNOSTICS v_inserted_count = ROW_COUNT;
+    RAISE NOTICE 'Successfully inserted % new unique file-to-access-rule links.', v_inserted_count;
+
+END $$;
+
+
+-- Script 3: Link File Groups to Random Access Rules
+
+DO $$
+DECLARE
+    num_fgroup_links INT := 150000;      -- <<< SET TARGET NUMBER OF UNIQUE FILE_GROUP-RULE LINKS
+    v_fgroup_id_array INT[];
+    v_fgroup_count INT;
+    v_rule_id_array INT[];
+    v_rule_count INT;
+    v_user_id_array INT[];             -- For created_by_user_id
+    v_user_count INT;
+    v_inserted_count INT := 0;
+BEGIN
+    -- Fetch all necessary IDs into arrays
+    SELECT array_agg(file_group_id), count(file_group_id) INTO v_fgroup_id_array, v_fgroup_count FROM public.file_groups;
+    SELECT array_agg(access_rule_id), count(access_rule_id) INTO v_rule_id_array, v_rule_count FROM public.access_rules;
+    SELECT array_agg(user_id), count(user_id) INTO v_user_id_array, v_user_count FROM public.users;
+
+    -- Validate data
+    IF v_fgroup_count = 0 THEN RAISE EXCEPTION 'No file groups found. Cannot create file_group-rule links.'; END IF;
+    IF v_rule_count = 0 THEN RAISE EXCEPTION 'No access rules found. Cannot create file_group-rule links.'; END IF;
+    IF v_user_count = 0 THEN RAISE EXCEPTION 'No users found. Cannot set created_by_user_id for file_group-rule links.'; END IF;
+
+    RAISE NOTICE 'Found % file groups, % access rules, % users.', v_fgroup_count, v_rule_count, v_user_count;
+    RAISE NOTICE 'Attempting to create up to % unique file_group-to-access-rule links...', num_fgroup_links;
+
+    -- Generate potential links and insert, skipping duplicates
+    WITH potential_links AS (
+        SELECT
+            v_fgroup_id_array[1 + floor(random() * v_fgroup_count)::int] AS p_fgroup_id,
+            v_rule_id_array[1 + floor(random() * v_rule_count)::int] AS p_rule_id,
+            v_user_id_array[1 + floor(random() * v_user_count)::int] AS p_creator_id
+        FROM
+            generate_series(1, num_fgroup_links * 2) -- Generate more than needed
+    )
+    INSERT INTO public.file_group_access_rule_membership (
+        file_group_id,
+        access_rule_id,
+        created_by_user_id
+        -- created_at has a DEFAULT
+    )
+    SELECT p_fgroup_id, p_rule_id, p_creator_id
+    FROM potential_links
+    ON CONFLICT (file_group_id, access_rule_id) DO NOTHING;
+
+    GET DIAGNOSTICS v_inserted_count = ROW_COUNT;
+    RAISE NOTICE 'Successfully inserted % new unique file_group-to-access-rule links.', v_inserted_count;
+
+END $$;
+
+
+-- Script 4: Link Users to Random Access Rules
+
+DO $$
+DECLARE
+    num_user_links INT := 25000;        -- <<< SET TARGET NUMBER OF UNIQUE USER-RULE LINKS
+    v_target_user_id_array INT[];      -- Users being granted access
+    v_target_user_count INT;
+    v_rule_id_array INT[];
+    v_rule_count INT;
+    v_creator_user_id_array INT[];     -- Users creating the link
+    v_creator_user_count INT;
+    v_inserted_count INT := 0;
+BEGIN
+    -- Fetch all necessary IDs into arrays
+    SELECT array_agg(user_id), count(user_id) INTO v_target_user_id_array, v_target_user_count FROM public.users; -- Users getting access
+    SELECT array_agg(access_rule_id), count(access_rule_id) INTO v_rule_id_array, v_rule_count FROM public.access_rules;
+    SELECT array_agg(user_id), count(user_id) INTO v_creator_user_id_array, v_creator_user_count FROM public.users; -- Users creating link (could be same pool)
+
+    -- Validate data
+    IF v_target_user_count = 0 THEN RAISE EXCEPTION 'No users found. Cannot create user-rule links.'; END IF;
+    IF v_rule_count = 0 THEN RAISE EXCEPTION 'No access rules found. Cannot create user-rule links.'; END IF;
+    IF v_creator_user_count = 0 THEN RAISE EXCEPTION 'No users found to act as creators for user-rule links.'; END IF; -- Technically same check as first, but good practice
+
+    RAISE NOTICE 'Found % target users, % access rules, % potential creator users.', v_target_user_count, v_rule_count, v_creator_user_count;
+    RAISE NOTICE 'Attempting to create up to % unique user-to-access-rule links...', num_user_links;
+
+    -- Generate potential links and insert, skipping duplicates
+    WITH potential_links AS (
+        SELECT
+            v_target_user_id_array[1 + floor(random() * v_target_user_count)::int] AS p_user_id, -- The user getting the permission
+            v_rule_id_array[1 + floor(random() * v_rule_count)::int] AS p_rule_id,
+            v_creator_user_id_array[1 + floor(random() * v_creator_user_count)::int] AS p_creator_id -- The user adding the permission record
+        FROM
+            generate_series(1, num_user_links * 2) -- Generate more than needed
+    )
+    INSERT INTO public.user_access_rule_membership (
+        user_id,
+        access_rule_id,
+        created_by_user_id
+        -- created_at has a DEFAULT
+    )
+    SELECT p_user_id, p_rule_id, p_creator_id
+    FROM potential_links
+    ON CONFLICT (user_id, access_rule_id) DO NOTHING;
+
+    GET DIAGNOSTICS v_inserted_count = ROW_COUNT;
+    RAISE NOTICE 'Successfully inserted % new unique user-to-access-rule links.', v_inserted_count;
+
+END $$;
+
+
+-- Script 5: Link User Groups to Random Access Rules
+
+DO $$
+DECLARE
+    num_ugroup_links INT := 10000;      -- <<< SET TARGET NUMBER OF UNIQUE USER_GROUP-RULE LINKS
+    v_ugroup_id_array INT[];
+    v_ugroup_count INT;
+    v_rule_id_array INT[];
+    v_rule_count INT;
+    v_user_id_array INT[];             -- For created_by_user_id
+    v_user_count INT;
+    v_inserted_count INT := 0;
+BEGIN
+    -- Fetch all necessary IDs into arrays
+    SELECT array_agg(user_group_id), count(user_group_id) INTO v_ugroup_id_array, v_ugroup_count FROM public.user_groups;
+    SELECT array_agg(access_rule_id), count(access_rule_id) INTO v_rule_id_array, v_rule_count FROM public.access_rules;
+    SELECT array_agg(user_id), count(user_id) INTO v_user_id_array, v_user_count FROM public.users;
+
+    -- Validate data
+    IF v_ugroup_count = 0 THEN RAISE EXCEPTION 'No user groups found. Cannot create user_group-rule links.'; END IF;
+    IF v_rule_count = 0 THEN RAISE EXCEPTION 'No access rules found. Cannot create user_group-rule links.'; END IF;
+    IF v_user_count = 0 THEN RAISE EXCEPTION 'No users found. Cannot set created_by_user_id for user_group-rule links.'; END IF;
+
+    RAISE NOTICE 'Found % user groups, % access rules, % users.', v_ugroup_count, v_rule_count, v_user_count;
+    RAISE NOTICE 'Attempting to create up to % unique user_group-to-access-rule links...', num_ugroup_links;
+
+    -- Generate potential links and insert, skipping duplicates
+    WITH potential_links AS (
+        SELECT
+            v_ugroup_id_array[1 + floor(random() * v_ugroup_count)::int] AS p_ugroup_id,
+            v_rule_id_array[1 + floor(random() * v_rule_count)::int] AS p_rule_id,
+            v_user_id_array[1 + floor(random() * v_user_count)::int] AS p_creator_id
+        FROM
+            generate_series(1, num_ugroup_links * 2) -- Generate more than needed
+    )
+    INSERT INTO public.user_group_access_rule_membership (
+        user_group_id,
+        access_rule_id,
+        created_by_user_id
+        -- created_at has a DEFAULT
+    )
+    SELECT p_ugroup_id, p_rule_id, p_creator_id
+    FROM potential_links
+    ON CONFLICT (user_group_id, access_rule_id) DO NOTHING;
+
+    GET DIAGNOSTICS v_inserted_count = ROW_COUNT;
+    RAISE NOTICE 'Successfully inserted % new unique user_group-to-access-rule links.', v_inserted_count;
+
+END $$;
+
+
+]]> </definition>
+	</genericsql>
+
+	<index name="user_id_and_access_rule_id" table="public.user_access_rule_membership"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="user_id" />
+		</idxelement>
+		<idxelement use-sorting="false">
+			<column name="access_rule_id" />
+		</idxelement>
+		<columns names="user_id,access_rule_id" />
+	</index>
+
+	<index name="user_id" table="public.users"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="user_id" />
+		</idxelement>
+		<columns names="user_id" />
+	</index>
+
+	<index name="access_rule_id" table="public.access_rules"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="access_rule_id" />
+		</idxelement>
+		<columns names="access_rule_id" />
+	</index>
+
+	<index name="file_group_access_rule_membership_index"
+		table="public.file_group_access_rule_membership"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="file_group_id" />
+		</idxelement>
+		<idxelement use-sorting="false">
+			<column name="access_rule_id" />
+		</idxelement>
+		<columns names="file_group_id,access_rule_id" />
+	</index>
+
+	<index name="file_file_group_membership_index" table="public.file_file_group_membership"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="file_id" />
+		</idxelement>
+		<idxelement use-sorting="false">
+			<column name="file_group_id" />
+		</idxelement>
+		<columns names="file_id,file_group_id" />
+	</index>
+
+	<index name="file_id" table="public.files"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="file_id" />
+		</idxelement>
+		<columns names="file_id" />
+	</index>
+
+	<index name="owner_id" table="public.files"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="owner_id" />
+		</idxelement>
+		<columns names="owner_id" />
+	</index>
+
+	<index name="file_access_rule_membership_index" table="public.file_access_rule_membership"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="file_id" />
+		</idxelement>
+		<idxelement use-sorting="false">
+			<column name="access_rule_id" />
+		</idxelement>
+		<columns names="file_id,access_rule_id" />
+	</index>
+
+	<index name="user_group_access_rule_membership_index"
+		table="public.user_group_access_rule_membership"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="user_group_id" />
+		</idxelement>
+		<idxelement use-sorting="false">
+			<column name="access_rule_id" />
+		</idxelement>
+		<columns names="user_group_id,access_rule_id" />
+	</index>
+
+	<index name="user_group_id_index" table="public.user_groups"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="user_group_id" />
+		</idxelement>
+		<columns names="user_group_id" />
+	</index>
+
+	<index name="user_user_group_membership_index" table="public.user_user_group_membership"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="user_id" />
+		</idxelement>
+		<idxelement use-sorting="false">
+			<column name="user_group_id" />
+		</idxelement>
+		<columns names="user_id,user_group_id" />
+	</index>
+
+	<index name="file_group_id_index" table="public.file_groups"
+		concurrent="false" unique="false" fast-update="false" buffering="false"
+		nulls-not-distinct="false"
+		index-type="btree" factor="0">
+		<idxelement use-sorting="false">
+			<column name="file_group_id" />
+		</idxelement>
+		<columns names="file_group_id" />
+	</index>
+
+	<textbox name="whats next" layers="0" z-value="0" width="369.484" font-size="9">
+		<position x="2020" y="-100" />
+		<comment> <![CDATA[test queries für verschiedene häufige use cases und timing dieser
+
+switch to UUIDv7 eventually or add seperate external ids to prevent enumerations attacks
+]]> </comment>
+	</textbox>
+
+	<table name="file_tag_membership" layers="0" collapse-mode="2" max-obj-count="3" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="-620" y="400" />
+		<column name="tag_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="file_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<constraint name="file_tag_membership_pk" type="pk-constr"
+			table="public.file_tag_membership">
+			<columns names="tag_id,file_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="file_group_file_sort_orders" layers="0" collapse-mode="2" max-obj-count="6"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="300" y="1160" />
+		<column name="sort_order_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="file_group_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="name" not-null="true">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="created_by_user_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<constraint name="file_group_sort_orders_pk" type="pk-constr"
+			table="public.file_group_file_sort_orders">
+			<columns names="sort_order_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="file_group_file_sort_orders_items" layers="0" collapse-mode="2" max-obj-count="3"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="-300" y="1160" />
+		<column name="sort_order_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="file_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="position" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<constraint name="file_group_file_sort_orders_items_pk" type="pk-constr"
+			table="public.file_group_file_sort_orders_items">
+			<columns names="sort_order_id,file_id,position" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="apps" layers="0" collapse-mode="2" max-obj-count="7" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<tag name="Access Rule: Subject &amp; Object" />
+		<position x="100" y="-520" />
+		<column name="app_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="owner_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="name" not-null="true">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<column name="trusted" not-null="true" default-value="false">
+			<type name="boolean" length="0" />
+		</column>
+		<column name="origins">
+			<type name="text" length="0" dimension="1" />
+		</column>
+		<constraint name="apps_pk" type="pk-constr" table="public.apps">
+			<columns names="app_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="app_access_rule_membership" layers="0" collapse-mode="2" max-obj-count="3"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="140" y="-80" />
+		<column name="app_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="access_rule_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<constraint name="app_access_rule_membership_pk" type="pk-constr"
+			table="public.app_access_rule_membership">
+			<columns names="app_id,access_rule_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="file_group_sort_order" layers="0" collapse-mode="2" max-obj-count="3" z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="2120" y="1120" />
+		<column name="file_group_sort_order_id" not-null="true">
+			<type name="bigserial" length="0" />
+		</column>
+		<column name="owner_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="created_at" not-null="true" default-value="current_timestamp">
+			<type name="timestamp" length="0" />
+		</column>
+		<constraint name="file_group_sort_order_pk" type="pk-constr"
+			table="public.file_group_sort_order">
+			<columns names="file_group_sort_order_id" ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<table name="file_group_sort_order_items" layers="0" collapse-mode="2" max-obj-count="4"
+		z-value="0">
+		<schema name="public" />
+		<role name="postgres" />
+		<position x="1540" y="1100" />
+		<column name="file_group_sort_order_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<column name="file_group_virtual_path" not-null="true">
+			<type name="varchar" length="255" />
+		</column>
+		<column name="file_group_id" not-null="true">
+			<type name="bigint" length="0" />
+		</column>
+		<constraint name="file_group_sort_order_and_virtual_path_unique" type="uq-constr"
+			table="public.file_group_sort_order_items">
+			<columns names="file_group_sort_order_id,file_group_virtual_path" ref-type="src-columns" />
+		</constraint>
+		<constraint name="file_group_sort_order_items_pk" type="pk-constr"
+			table="public.file_group_sort_order_items">
+			<columns names="file_group_sort_order_id,file_group_virtual_path,file_group_id"
+				ref-type="src-columns" />
+		</constraint>
+	</table>
+
+	<constraint name="file_owner" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="SET NULL" ref-table="public.users" table="public.files">
+		<columns names="owner_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_group_owner" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="SET NULL" ref-table="public.users"
+		table="public.file_groups">
+		<columns names="owner_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="user_group_owner" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="SET NULL" ref-table="public.users"
+		table="public.user_groups">
+		<columns names="owner_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.files"
+		table="public.file_file_group_membership">
+		<columns names="file_id" ref-type="src-columns" />
+		<columns names="file_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_group_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.file_groups"
+		table="public.file_file_group_membership">
+		<columns names="file_group_id" ref-type="src-columns" />
+		<columns names="file_group_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="created_by_user" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.users"
+		table="public.file_file_group_membership">
+		<columns names="created_by_user_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="user_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.users"
+		table="public.user_user_group_membership">
+		<columns names="user_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="user_group_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.user_groups"
+		table="public.user_user_group_membership">
+		<columns names="user_group_id" ref-type="src-columns" />
+		<columns names="user_group_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="job owner" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="SET NULL" ref-table="public.users" table="public.jobs">
+		<columns names="owner_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="access_rule_owner" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.users"
+		table="public.access_rules">
+		<columns names="owner_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.files"
+		table="public.file_access_rule_membership">
+		<columns names="file_id" ref-type="src-columns" />
+		<columns names="file_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="access_rule_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.access_rules"
+		table="public.file_access_rule_membership">
+		<columns names="access_rule_id" ref-type="src-columns" />
+		<columns names="access_rule_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="created_by_user_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.users"
+		table="public.file_access_rule_membership">
+		<columns names="created_by_user_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_group_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.file_groups"
+		table="public.file_group_access_rule_membership">
+		<columns names="file_group_id" ref-type="src-columns" />
+		<columns names="file_group_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="access_rule_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.access_rules"
+		table="public.file_group_access_rule_membership">
+		<columns names="access_rule_id" ref-type="src-columns" />
+		<columns names="access_rule_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="created_by_user_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.users"
+		table="public.file_group_access_rule_membership">
+		<columns names="created_by_user_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="user_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.users"
+		table="public.user_access_rule_membership">
+		<columns names="user_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="access_rule_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.access_rules"
+		table="public.user_access_rule_membership">
+		<columns names="access_rule_id" ref-type="src-columns" />
+		<columns names="access_rule_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="created_by_user_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.users"
+		table="public.user_access_rule_membership">
+		<columns names="created_by_user_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="user_group_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.user_groups"
+		table="public.user_group_access_rule_membership">
+		<columns names="user_group_id" ref-type="src-columns" />
+		<columns names="user_group_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="access_rule_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.access_rules"
+		table="public.user_group_access_rule_membership">
+		<columns names="access_rule_id" ref-type="src-columns" />
+		<columns names="access_rule_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="created_by_user_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.users"
+		table="public.user_group_access_rule_membership">
+		<columns names="created_by_user_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.files"
+		table="public.file_tag_membership">
+		<columns names="file_id" ref-type="src-columns" />
+		<columns names="file_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="tag_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.tags"
+		table="public.file_tag_membership">
+		<columns names="tag_id" ref-type="src-columns" />
+		<columns names="tag_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_group_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.file_groups"
+		table="public.file_group_file_sort_orders">
+		<columns names="file_group_id" ref-type="src-columns" />
+		<columns names="file_group_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="sort_order_id_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.file_group_file_sort_orders"
+		table="public.file_group_file_sort_orders_items">
+		<columns names="sort_order_id" ref-type="src-columns" />
+		<columns names="sort_order_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_id_pk" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.files"
+		table="public.file_group_file_sort_orders_items">
+		<columns names="file_id" ref-type="src-columns" />
+		<columns names="file_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="app_owner" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.users" table="public.apps">
+		<columns names="owner_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="app_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.apps"
+		table="public.app_access_rule_membership">
+		<columns names="app_id" ref-type="src-columns" />
+		<columns names="app_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="access_rule_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.access_rules"
+		table="public.app_access_rule_membership">
+		<columns names="access_rule_id" ref-type="src-columns" />
+		<columns names="access_rule_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="owner" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.users"
+		table="public.file_group_sort_order">
+		<columns names="owner_id" ref-type="src-columns" />
+		<columns names="user_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_group_sort_order_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.file_group_sort_order"
+		table="public.file_group_sort_order_items">
+		<columns names="file_group_sort_order_id" ref-type="src-columns" />
+		<columns names="file_group_sort_order_id" ref-type="dst-columns" />
+	</constraint>
+
+	<constraint name="file_group_id" type="fk-constr" comparison-type="MATCH SIMPLE"
+		upd-action="NO ACTION" del-action="CASCADE" ref-table="public.file_groups"
+		table="public.file_group_sort_order_items">
+		<columns names="file_group_id" ref-type="src-columns" />
+		<columns names="file_group_id" ref-type="dst-columns" />
+	</constraint>
+
+	<relationship name="rel_files_users" type="relfk" layers="0"
+		src-table="public.files"
+		dst-table="public.users" reference-fk="file_owner"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_groups_users" type="relfk" layers="0"
+		src-table="public.file_groups"
+		dst-table="public.users" reference-fk="file_group_owner"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_user_groups_users" type="relfk" layers="0"
+		src-table="public.user_groups"
+		dst-table="public.users" reference-fk="user_group_owner"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_membership_files" type="relfk" layers="0"
+		src-table="public.file_file_group_membership"
+		dst-table="public.files" reference-fk="file_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_membership_file_groups" type="relfk" layers="0"
+		src-table="public.file_file_group_membership"
+		dst-table="public.file_groups" reference-fk="file_group_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_user_group_membership_users" type="relfk" layers="0"
+		src-table="public.user_user_group_membership"
+		dst-table="public.users" reference-fk="user_id"
+		src-required="false" dst-required="false" />
+
+	<relationship name="rel_user_group_membership_user_groups" type="relfk" layers="0"
+		src-table="public.user_user_group_membership"
+		dst-table="public.user_groups" reference-fk="user_group_id"
+		src-required="false" dst-required="false" />
+
+	<relationship name="rel_jobs_users" type="relfk" layers="0"
+		src-table="public.jobs"
+		dst-table="public.users" reference-fk="job owner"
+		src-required="false" dst-required="false" />
+
+	<relationship name="rel_access_rules_users2" type="relfk" layers="0"
+		src-table="public.access_rules"
+		dst-table="public.users" reference-fk="access_rule_owner"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_file_group_membership_users" type="relfk" layers="0"
+		src-table="public.file_file_group_membership"
+		dst-table="public.users" reference-fk="created_by_user"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_access_rule_membership_files" type="relfk" layers="0"
+		src-table="public.file_access_rule_membership"
+		dst-table="public.files" reference-fk="file_id"
+		src-required="false" dst-required="false" />
+
+	<relationship name="rel_file_access_rule_membership_access_rules" type="relfk" layers="0"
+		src-table="public.file_access_rule_membership"
+		dst-table="public.access_rules" reference-fk="access_rule_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_access_rule_membership_users" type="relfk" layers="0"
+		src-table="public.file_access_rule_membership"
+		dst-table="public.users" reference-fk="created_by_user_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_access_rule_membership_access_rules" type="relfk" layers="0"
+		src-table="public.file_group_access_rule_membership"
+		dst-table="public.access_rules" reference-fk="access_rule_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_access_rule_membership_users" type="relfk" layers="0"
+		src-table="public.file_group_access_rule_membership"
+		dst-table="public.users" reference-fk="created_by_user_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_access_rule_membership_file_groups" type="relfk" layers="0"
+		src-table="public.file_group_access_rule_membership"
+		dst-table="public.file_groups" reference-fk="file_group_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_user_access_rule_membership_users" type="relfk" layers="0"
+		src-table="public.user_access_rule_membership"
+		dst-table="public.users" reference-fk="user_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_user_access_rule_membership_access_rules" type="relfk" layers="0"
+		src-table="public.user_access_rule_membership"
+		dst-table="public.access_rules" reference-fk="access_rule_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_user_access_rule_membership_users1" type="relfk" layers="0"
+		src-table="public.user_access_rule_membership"
+		dst-table="public.users" reference-fk="created_by_user_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_user_group_access_rule_membership_access_rules" type="relfk" layers="0"
+		src-table="public.user_group_access_rule_membership"
+		dst-table="public.access_rules" reference-fk="access_rule_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_user_group_access_rule_membership_users" type="relfk" layers="0"
+		src-table="public.user_group_access_rule_membership"
+		dst-table="public.users" reference-fk="created_by_user_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_user_group_access_rule_membership_user_groups" type="relfk" layers="0"
+		src-table="public.user_group_access_rule_membership"
+		dst-table="public.user_groups" reference-fk="user_group_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_tag_membership_files" type="relfk" layers="0"
+		src-table="public.file_tag_membership"
+		dst-table="public.files" reference-fk="file_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_tag_membership_tags" type="relfk" layers="0"
+		src-table="public.file_tag_membership"
+		dst-table="public.tags" reference-fk="tag_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_sort_orders_file_groups" type="relfk" layers="0"
+		src-table="public.file_group_file_sort_orders"
+		dst-table="public.file_groups" reference-fk="file_group_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_file_sort_orders_items_file_group_file_sort_orde"
+		type="relfk" layers="0"
+		src-table="public.file_group_file_sort_orders_items"
+		dst-table="public.file_group_file_sort_orders" reference-fk="sort_order_id_fk"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_file_sort_orders_items_files" type="relfk" layers="0"
+		src-table="public.file_group_file_sort_orders_items"
+		dst-table="public.files" reference-fk="file_id_pk"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_apps_users" type="relfk" layers="0"
+		src-table="public.apps"
+		dst-table="public.users" reference-fk="app_owner"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_app_access_rule_membership_apps" type="relfk" layers="0"
+		src-table="public.app_access_rule_membership"
+		dst-table="public.apps" reference-fk="app_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_app_access_rule_membership_access_rules" type="relfk" layers="0"
+		src-table="public.app_access_rule_membership"
+		dst-table="public.access_rules" reference-fk="access_rule_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_sort_order_users" type="relfk" layers="0"
+		src-table="public.file_group_sort_order"
+		dst-table="public.users" reference-fk="owner"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_sort_order_items_file_group_sort_order" type="relfk"
+		layers="0"
+		src-table="public.file_group_sort_order_items"
+		dst-table="public.file_group_sort_order" reference-fk="file_group_sort_order_id"
+		src-required="false" dst-required="true" />
+
+	<relationship name="rel_file_group_sort_order_items_file_groups" type="relfk" layers="0"
+		src-table="public.file_group_sort_order_items"
+		dst-table="public.file_groups" reference-fk="file_group_id"
+		src-required="false" dst-required="true" />
+
+</dbmodel>

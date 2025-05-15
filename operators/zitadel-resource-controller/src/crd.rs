@@ -2,7 +2,6 @@ use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use zitadel::api::zitadel::app::v1::ApiAuthMethodType;
 
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[kube(
@@ -229,9 +228,23 @@ pub struct RawZitadelApplicationSaml {}
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub enum ApiAuthMethodType {
+    Basic,
+    PrivateKeyJwt,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct RawZitadelApplicationApi {
     #[schemars(with = "String")]
-    authentication_method: ApiAuthMethodType,
+    pub authentication_method: ApiAuthMethodType,
+}
+
+pub fn api_auth_method_type_to_zitadel(auth_method_type: &ApiAuthMethodType) -> i32 {
+    match auth_method_type {
+        ApiAuthMethodType::Basic => 0,
+        ApiAuthMethodType::PrivateKeyJwt => 1,
+    }
 }
 
 pub fn oidc_response_type_to_zitadel(response_type: &OidcResponseType) -> i32 {

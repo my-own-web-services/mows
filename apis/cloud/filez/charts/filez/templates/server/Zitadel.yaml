@@ -1,7 +1,7 @@
 apiVersion: zitadel.k8s.mows.cloud/v1
 kind: ZitadelResource
 metadata:
-    name: filez-oidc
+    name: filez-auth
 spec:
     raw:
         resource:
@@ -32,16 +32,30 @@ spec:
                         method:
                             oidc:
                                 redirectUris:
-                                    - https://filez-api.{§ .config.domain §}/auth/callback
+                                    - https://filez-web.{§ .config.domain §}/auth/callback
+                                    {{- if .Values.webFrontend.dev.enabled }}
+                                    {{- range .Values.webFrontend.dev.allowedRedirectOrigins }}
+                                    - {{ . | quote }}
+                                    {{- end }}
+                                    {{- end }}
+
                                 responseTypes:
                                     - code
-                                authenticationMethod: basic
+                                authenticationMethod: none
                                 grantTypes:
                                     - authorizationCode
                                 postLogoutRedirectUris:
-                                    - https://filez-api.{§ .config.domain §}
+                                    - https://filez-web.{§ .config.domain §}
+                                    {{- if .Values.webFrontend.dev.enabled }}
+                                    {{- range .Values.webFrontend.dev.allowedRedirectOrigins }}
+                                    - {{ . | quote }}
+                                    {{- end }}
+                                    {{- end }}
                                 appType: userAgent
                                 accessTokenType: bearer
                                 idTokenRoleAssertion: true
                                 idTokenUserinfoAssertion: true
+                                {{- if .Values.webFrontend.dev.enabled }}
+                                devMode: true
+                                {{- end }}
           
