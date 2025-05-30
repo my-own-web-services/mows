@@ -1101,13 +1101,13 @@ fn rand_alpha(args: &[Value]) -> Result<Value, FuncError> {
     let length = length
         .parse::<usize>()
         .map_err(|_| FuncError::Generic("Invalid number".to_string()))?;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let charset: Vec<u8> = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".to_vec();
 
     let generated: String = (0..length)
         .map(|_| {
-            let idx = rng.gen_range(0..charset.len());
+            let idx = rng.random_range(0..charset.len());
             *charset.get(idx).unwrap() as char
         })
         .collect();
@@ -1123,13 +1123,13 @@ fn rand_numeric(args: &[Value]) -> Result<Value, FuncError> {
     let length = length
         .parse::<usize>()
         .map_err(|_| FuncError::Generic("Invalid number".to_string()))?;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let charset: Vec<u8> = b"0123456789".to_vec();
 
     let generated: String = (0..length)
         .map(|_| {
-            let idx = rng.gen_range(0..charset.len());
+            let idx = rng.random_range(0..charset.len());
             *charset.get(idx).unwrap() as char
         })
         .collect();
@@ -1145,14 +1145,14 @@ fn rand_alpha_num(args: &[Value]) -> Result<Value, FuncError> {
     let length = length
         .parse::<usize>()
         .map_err(|_| FuncError::Generic("Invalid number".to_string()))?;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let charset: Vec<u8> =
         b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".to_vec();
 
     let generated: String = (0..length)
         .map(|_| {
-            let idx = rng.gen_range(0..charset.len());
+            let idx = rng.random_range(0..charset.len());
             *charset.get(idx).unwrap() as char
         })
         .collect();
@@ -1168,7 +1168,7 @@ fn rand_ascii(args: &[Value]) -> Result<Value, FuncError> {
     let length = length
         .parse::<usize>()
         .map_err(|_| FuncError::Generic("Invalid number".to_string()))?;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let charset: Vec<u8> =
         b" !#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
@@ -1176,7 +1176,7 @@ fn rand_ascii(args: &[Value]) -> Result<Value, FuncError> {
 
     let generated: String = (0..length)
         .map(|_| {
-            let idx = rng.gen_range(0..charset.len());
+            let idx = rng.random_range(0..charset.len());
             *charset.get(idx).unwrap() as char
         })
         .collect();
@@ -1567,11 +1567,11 @@ fn random_string(args: &[Value]) -> Result<Value, FuncError> {
     if method.contains('%') {
         charset.extend(b"%!@#$%^&*()_+-=[]{}|;':,./<>?`~");
     }
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let generated: String = (0..length)
         .map(|_| {
-            let idx = rng.gen_range(0..charset.len());
+            let idx = rng.random_range(0..charset.len());
             *charset.get(idx).unwrap() as char
         })
         .collect();

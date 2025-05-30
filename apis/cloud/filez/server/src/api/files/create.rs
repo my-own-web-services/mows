@@ -6,13 +6,13 @@ use zitadel::axum::introspection::IntrospectedUser;
 use crate::types::{ApiResponse, ApiResponseStatus};
 
 #[utoipa::path(
-    get,
-    path = "/get",
+    post,
+    path = "/create",
     responses(
-        (status = 200, description = "Got file", body = ApiResponse<GetFileResBody>),
+        (status = 200, description = "Creates a file on the server", body = ApiResponse<GetFileResBody>),
     )
 )]
-pub async fn get_file(user: IntrospectedUser) -> Json<ApiResponse<GetFileResBody>> {
+pub async fn get_file() -> Json<ApiResponse<GetFileResBody>> {
     Json(ApiResponse {
         status: ApiResponseStatus::Success,
         message: "Got File".to_string(),

@@ -1,0 +1,23 @@
+tenant:
+    name: mows
+    certificate:
+        requestAutoCert: false
+    pools:
+        -   name: default
+            servers: 3
+            volumesPerServer: 2
+            size: 2Gi
+    #additionalVolumes:
+    #    -   name: oidc-secret-volume
+    #        secret:
+    #            secretName: minio-oidc
+    #            items:
+    #                -   key: oidc-config
+    #                    path: config.env
+    #additionalVolumeMounts:
+    #    -   name: oidc-secret-volume
+    #        mountPath: /tmp/minio
+    #        readOnly: true
+    configSecret:
+        name: minio-config
+        existingSecret: true

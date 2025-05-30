@@ -306,7 +306,7 @@ anyhow = { workspace = true }
 chrono = "0.4.38"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tower = { version = "0.5.0" }
-#http-body-util = "0.1.0"
+http-body-util = "0.1.0"
 
 [package.metadata.docs.rs]
 all-features = true

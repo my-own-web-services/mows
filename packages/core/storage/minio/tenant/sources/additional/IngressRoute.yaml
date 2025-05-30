@@ -1,0 +1,20 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+    name: minio-ingress
+spec:
+    entryPoints:
+        - websecure
+    routes:
+        - kind: Rule
+          match: Host(`api-minio.{§ .config.domain §}`)
+          services:
+              - kind: Service
+                name: minio
+                port: 9000
+        - kind: Rule
+          match: Host(`console-minio.{§ .config.domain §}`)
+          services:
+              - kind: Service
+                name: mows-console
+                port: 9090

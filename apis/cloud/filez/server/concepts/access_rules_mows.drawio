@@ -1,0 +1,87 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" version="27.0.6">
+  <diagram name="Seite-1" id="6hsUSH1lGvw_2tnkDY_O">
+    <mxGraphModel dx="1612" dy="2037" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="6LTydZtJu815a8eUN8WR-1" value="bob greift von origin1 auf datei foto1 zu und will sie lesen" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="-60" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.179;exitY=0.998;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="6LTydZtJu815a8eUN8WR-2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="310" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.744;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="6LTydZtJu815a8eUN8WR-2" target="6LTydZtJu815a8eUN8WR-17">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="660" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-2" value="query1: ist bob der owner von foto1?" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="40" width="390" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-4" value="Ja" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="250" y="180" width="40" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="6LTydZtJu815a8eUN8WR-6" target="6LTydZtJu815a8eUN8WR-11">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="570" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="6LTydZtJu815a8eUN8WR-6" target="6LTydZtJu815a8eUN8WR-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-6" value="ist origin1 trusted?" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="370" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="6LTydZtJu815a8eUN8WR-7" target="6LTydZtJu815a8eUN8WR-11">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="668" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="6LTydZtJu815a8eUN8WR-7" target="6LTydZtJu815a8eUN8WR-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-7" value="gibt es eine access rule bei der bob, origin1 und foto1 member sind die read access erlaubt?" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="525" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-10" value="Ja" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="190" y="460" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-11" value="Zugriff erlaubt" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="750" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-13" value="Ja" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="270" y="600" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-15" value="Nein" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="400" y="460" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-16" value="nein" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="545" y="110" width="50" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="6LTydZtJu815a8eUN8WR-17" target="6LTydZtJu815a8eUN8WR-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="6LTydZtJu815a8eUN8WR-17" target="6LTydZtJu815a8eUN8WR-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-17" value="gibt es eine access rule bei der bob und foto1 member sind die read access erlaubt?" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="150" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-20" value="Ja" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="460" y="230" width="40" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-21" value="Zugriff verweiger" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="750" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-24" value="Nein" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="640" y="330" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6LTydZtJu815a8eUN8WR-25" value="Nein" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="485" y="670" width="60" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

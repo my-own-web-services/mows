@@ -1,0 +1,82 @@
+
+# create the engine for the oidc secrets to be stored in
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: minio-oidc
+spec:
+    secretEngine:
+        kv-v2:
+            kvData: {}
+
+---
+
+# create the engine for the root secrets to be stored in
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: minio-credentials
+spec:
+    secretEngine:
+        kv-v2:
+            kvData:
+                root:
+                    user: "{% randAlphaNum 100 %}"
+                    password: "{% randAlphaNum 100 %}"
+
+---
+# create the policy for the zitadel controller to access the oidc secrets
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: zitadel-controller-allow-oidc-access
+spec:
+    engineAccessPolicy:
+        subPolicies:
+            - engineId: minio-oidc
+              engineType: secret
+              subPath: "*"
+              capabilities: ["update","read","create","delete","list"]
+---
+# create a kubernetes service account binding to the policy
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: zitadel-controller-service-account
+spec:
+    authEngine:
+        kubernetes:
+            roles:
+                zitadel-resource-controller:
+                    serviceAccountName: zitadel-resource-controller
+                    namespace: mows-core-auth-zitadel
+                    policyIds: ["zitadel-controller-allow-oidc-access"]
+---
+# sync the secrets to the argocd configmap
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: minio-oidc-secret-sync
+spec:
+    secretSync:
+        kvMapping:
+            oidc:
+                engine: minio-oidc
+                path: "oidc"
+            rootCredentials:
+                engine: minio-credentials
+                path: "root"
+                
+        targets:
+            secrets:
+                minio-config:
+                    data:
+                        config.env: |
+                            export MINIO_IDENTITY_OPENID_CLIENT_ID="{% .secrets.oidc.clientId %}"
+                            export MINIO_IDENTITY_OPENID_CLIENT_SECRET="{% .secrets.oidc.clientSecret %}"
+                            export MINIO_IDENTITY_OPENID_CONFIG_URL="https://zitadel.{§ .config.domain §}/.well-known/openid-configuration"
+                            export MINIO_IDENTITY_OPENID_DISPLAY_NAME="ZITADEL"
+                            export MINIO_BROWSER_REDIRECT_URL="https://console-minio.{§ .config.domain §}"
+                            export MINIO_IDENTITY_OPENID_CLAIM_NAME="groups"
+                            export MINIO_ROOT_USER="{% .secrets.rootCredentials.user %}"
+                            export MINIO_ROOT_PASSWORD="{% .secrets.rootCredentials.password %}"

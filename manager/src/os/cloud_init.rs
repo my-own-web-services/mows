@@ -261,7 +261,7 @@ impl Install {
             reboot: true,
             auto: true,
             partitions: Partitions {
-                persistent: PersistentPartition { size: 1024 * 10 },
+                persistent: PersistentPartition { size: 1024 * 20 },
             },
             extra_partitions: vec![ExtraPartition {
                 name: s!("p0"),

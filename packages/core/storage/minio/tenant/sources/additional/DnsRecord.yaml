@@ -1,0 +1,18 @@
+apiVersion: pektin.k8s.mows.cloud/v1
+kind: PektinDns
+metadata:
+    name: minio-dns
+spec:
+    plain:
+        - name: "api-minio.{§ .config.domain §}."
+          meta: ""
+          ttl: 60
+          rr_set:
+              A:
+                  - value: "{§ .config.legacy_ip §}"
+        - name: "console-minio.{§ .config.domain §}."
+          meta: ""
+          ttl: 60
+          rr_set:
+              A:
+                  - value: "{§ .config.legacy_ip §}"

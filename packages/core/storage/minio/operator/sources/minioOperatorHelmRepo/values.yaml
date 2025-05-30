@@ -1,0 +1,4 @@
+operator:
+    env:
+        - name: OPERATOR_STS_ENABLED
+          value: "off"

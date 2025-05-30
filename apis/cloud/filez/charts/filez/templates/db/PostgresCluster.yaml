@@ -1,0 +1,18 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+    name: filez-postgres
+spec:
+    instances: 1
+    storage:
+        size: 2Gi
+    primaryUpdateStrategy: unsupervised
+    enableSuperuserAccess: true
+    superuserSecret:
+        name: filez-db-admin
+    bootstrap:
+        initdb:
+            database: filez
+            owner: filez
+            secret:
+                name: filez-db-user

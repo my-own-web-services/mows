@@ -14,6 +14,10 @@ version = "0.8.4"
 features = ["typed-header"]
 version = "0.10.1"
 
+[workspace.dependencies.chrono]
+features = ["serde"]
+version = "0.4.41"
+
 [workspace.dependencies.gtmpl]
 version = "0.7"
 
@@ -87,6 +91,7 @@ features = ["serde"]
 version = "2.5.4"
 
 [workspace.dependencies.utoipa]
+features = ["chrono", "uuid"]
 version = "5.2.0"
 
 [workspace.dependencies.utoipa-axum]
@@ -96,6 +101,10 @@ version = "0.2.0"
 features = ["axum"]
 version = "9.0.1"
 
+[workspace.dependencies.uuid]
+features = ["serde", "v7"]
+version = "1.17.0"
+
 [workspace.dependencies.zitadel]
-features = ["interceptors", "axum"]
+features = ["interceptors", "axum", "introspection_cache"]
 path = "./zitadel"

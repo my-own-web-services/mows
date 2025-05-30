@@ -29,9 +29,9 @@ impl LocalMachineProviderQemu {
         let ssh = SshAccess::new(Some(machine_name.to_string()), None).await?;
 
         let primary_volume_name = format!("{}-ssd", machine_name);
-        let primary_volume_size = 30;
+        let primary_volume_size = 100;
         let secondary_volume_name = format!("{}-hdd", machine_name);
-        let secondary_volume_size = 30;
+        let secondary_volume_size = 50;
 
         let memory = u32::from(cc.memory) * 1024;
 
