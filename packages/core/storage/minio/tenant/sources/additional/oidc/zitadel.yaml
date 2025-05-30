@@ -1,0 +1,76 @@
+apiVersion: zitadel.k8s.mows.cloud/v1
+kind: ZitadelResource
+metadata:
+    name: minio-oidc
+spec:
+    raw:
+        resource:
+            project:
+                projectRoleAssertion: true
+                projectRoleCheck: true
+                roles:
+                    -   key: consoleAdmin
+                        group: consoleAdmin
+                        displayName: Console Admin
+                adminRoles: ["consoleAdmin"]
+                applications:
+                    -   name: console-minio
+                        clientDataTarget: 
+                            vault:
+                                secretEngineName: minio-oidc
+                                secretEngineSubPath: oidc
+                                kubernetesAuthEngineName: zitadel-controller-service-account
+                        method:
+                            oidc:
+                                redirectUris:
+                                    - https://console-minio.{§ .config.domain §}/oauth_callback
+                                responseTypes:
+                                    - code
+                                authenticationMethod: basic
+                                grantTypes:
+                                    - authorizationCode
+                                postLogoutRedirectUris:
+                                    - https://console-minio.{§ .config.domain §}
+                                appType: web
+                                accessTokenType: bearer
+                                idTokenRoleAssertion: true
+                                idTokenUserinfoAssertion: true
+                actionFlow:
+                    actions:
+                        groupsClaim:
+                            allowedToFail: true
+                            timeoutSeconds: 10
+                            script: |
+                                /**
+                                * sets the roles an additional claim in the token with roles as value an project as key
+                                *
+                                * The role claims of the token look like the following:
+                                *
+                                * // added by the code below
+                                * "groups": ["{roleName}", "{roleName}", ...],
+                                *
+                                * Flow: Complement token, Triggers: Pre Userinfo creation, Pre access token creation
+                                *
+                                * @param ctx
+                                * @param api
+                                */
+                                function groupsClaim(ctx, api) {
+                                if (ctx.v1.user.grants === undefined || ctx.v1.user.grants.count == 0) {
+                                    return;
+                                }
+
+                                let grants = [];
+                                ctx.v1.user.grants.grants.forEach((claim) => {
+                                    claim.roles.forEach((role) => {
+                                    grants.push(role);
+                                    });
+                                });
+
+                                api.v1.claims.setClaim("groups", grants);
+                                }
+                    flow:
+                        complementToken:
+                            preUserinfoCreation: 
+                                - groupsClaim
+                            preAccessTokenCreation: 
+                                - groupsClaim

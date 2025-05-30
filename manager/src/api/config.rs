@@ -1,6 +1,5 @@
-
 use crate::{
-    config::{config, ManagerConfig},
+    config::ManagerConfig,
     get_current_config_cloned,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     write_config,
@@ -14,14 +13,13 @@ use axum::{
     Json,
 };
 use tracing::info;
-use utoipa_axum::{router::OpenApiRouter, routes};
 
 #[utoipa::path(
     put,
     path = "/api/config",
     request_body = ManagerConfig,
     responses(
-        (status = 200, description = "Config updated", body = ApiResponse<EmptyApiResponse>),
+        (status = 200, description = "Updates the config stored in memory with the received config", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn update_config(Json(posted_config): Json<ManagerConfig>) -> Json<ApiResponse<()>> {

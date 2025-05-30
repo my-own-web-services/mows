@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/mows-package-manager/schemas/manifest-schema.json?ref_type=heads
+manifestVersion: "0.1"
+metadata:
+    name: minio-tenant
+    description: "The default mows MinIO tenant"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            minioTenantHelmRepo:
+                helm:
+                    urls:
+                        - https://operator.min.io/
+                    sha256Digest: 931dfbbf19871ffd687b4eca1ed23b977928b52fc9710bb3250cb381716fc0ea
+                    version: "7.1.1"
+                    releaseName: minio-tenant
+                    chartName: tenant
+            additional:
+                files: {}
+
+
+

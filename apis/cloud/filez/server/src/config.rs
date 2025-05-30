@@ -30,12 +30,18 @@ pub fn from_env() -> anyhow::Result<FilezServerConfig> {
     };
 
     Ok(FilezServerConfig {
-        primary_origin: load_env("", "PRIMARY_ORIGIN", false, true)?.parse::<Url>()?,
+        primary_origin: load_env("http://localhost", "PRIMARY_ORIGIN", false, true)?
+            .parse::<Url>()?,
         enable_dev: load_env("false", "ENABLE_DEV", false, true)?.parse::<bool>()?,
         dev_allow_origins,
-        db_url: load_env("/db/mows-package-manager.db", "DATABASE_URL", false, true)?,
-        oidc_client_id: load_env("", "OIDC_CLIENT_ID", false, true)?,
-        oidc_client_secret: load_env("", "OIDC_CLIENT_SECRET", true, true)?,
-        oidc_issuer: load_env("", "OIDC_ISSUER", false, true)?,
+        db_url: load_env(
+            "postgres://filez:filez@localhost/filez",
+            "DATABASE_URL",
+            true,
+            true,
+        )?,
+        oidc_client_id: load_env("awdawd", "OIDC_CLIENT_ID", false, true)?,
+        oidc_client_secret: load_env("awdawd", "OIDC_CLIENT_SECRET", true, true)?,
+        oidc_issuer: load_env("http://localhost", "OIDC_ISSUER", false, true)?,
     })
 }

@@ -24,7 +24,7 @@ path = "src/main.rs"
 serde = { workspace = true }
 serde_json = { workspace = true }
 utoipa-swagger-ui = { workspace = true, features = ["axum"] }
-utoipa = { workspace = true }
+utoipa = { workspace = true, features = ["chrono", "uuid"] }
 utoipa-axum = { workspace = true }
 axum = { workspace = true }
 axum-extra = { workspace = true }
@@ -37,4 +37,27 @@ tower-http = { workspace = true, features = ["cors"] }
 
 mime_guess = { workspace = true }
 url = { workspace = true, features = ["serde"] }
-zitadel = { workspace = true, features = ["interceptors", "axum"] }
+zitadel = { workspace = true, features = [
+    "interceptors",
+    "axum",
+    "introspection_cache",
+] }
+
+
+diesel_migrations = "2.2.0"
+diesel = { version = "2.2.0", features = ["chrono", "uuid"] }
+diesel-async = { version = "0.5.2", features = [
+    "postgres",
+    "deadpool",
+    "async-connection-wrapper",
+] }
+tokio-postgres = { version = "0.7.13" }
+#tokio-postgres-rustls = "0.13.0"
+#rustls = "0.23.27"
+#futures-util = { workspace = true }
+
+
+uuid = { workspace = true, features = ["serde", "v7"] }
+chrono = { workspace = true, features = ["serde"] }
+
+axum-server-timing = { git = "https://github.com/JensWalter/axum-server-timing/", rev = "ec8362e98a0e98f7724ca1f9413c128e581461ad" }

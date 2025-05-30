@@ -197,7 +197,7 @@ impl Cluster {
 
         // stop all machines
         for node in self.cluster_nodes.values() {
-            debug!("Stopping machine: {}", node.machine_id);
+            debug!("Suspending machine: {}", node.machine_id);
             match config.get_machine_by_id(&node.machine_id) {
                 Some(machine) => machine.suspend().await?,
                 None => bail!("Machine not found"),

@@ -34,7 +34,7 @@ reqwest = { workspace = true, default-features = false, features = [
     "stream",
 ] }
 
-reqwest-tracing = { version = "0.5.4", features = ["opentelemetry_0_24"] }
+reqwest-tracing = { version = "0.5.4", features = ["opentelemetry_0_28"] }
 
 reqwest-middleware = { version = "0.4.0", features = ["json", "rustls-tls"] }
 http = "1.1.0"

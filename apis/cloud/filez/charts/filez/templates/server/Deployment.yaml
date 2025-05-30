@@ -24,7 +24,7 @@ spec:
                         runAsUser: 50003
                     ports:
                         -   name: http
-                            containerPort: 80
+                            containerPort: 8080
                             protocol: TCP
                     resources:
                         limits:
@@ -54,3 +54,8 @@ spec:
                             value: {{ .Values.server.dev.enabled | quote }}
                         -   name: DEV_ALLOW_ORIGINS
                             value: {{ .Values.server.dev.allowedCorsOrigins | quote }}
+                        -   name: DATABASE_URL
+                            valueFrom:
+                                secretKeyRef:
+                                    name: filez-db-user-connection-string
+                                    key: connectionString

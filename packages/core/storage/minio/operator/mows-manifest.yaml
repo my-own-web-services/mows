@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/mows-package-manager/schemas/manifest-schema.json?ref_type=heads
+manifestVersion: "0.1"
+metadata:
+    name: minio-operator
+    description: "A Kubernetes operator for managing MinIO deployments"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            minioOperatorHelmRepo:
+                helm:
+                    urls:
+                        - https://operator.min.io/
+                    sha256Digest: 94f8124e2ecbc62f9cdcbe0519e8980f5992073638f5f63bd2b3ecac4f0ce7ca
+                    version: "7.1.1"
+                    releaseName: minio-operator
+                    chartName: operator
+            additional:
+                files: {}
+
+
+

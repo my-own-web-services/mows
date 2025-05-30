@@ -41,6 +41,7 @@ RUN  if [ "${PROFILE}" = "release" ];  then cargo chef cook --release --recipe-p
 # build
 COPY --from=sources / /build/
 COPY src src
+COPY migrations migrations
 
 RUN cargo build --bin ${BINARY_NAME} --profile=${PROFILE}
 RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl/debug/${BINARY_NAME} /${BINARY_NAME}; else mv /build/target/x86_64-unknown-linux-musl/${PROFILE}/${BINARY_NAME} /${BINARY_NAME}; fi 

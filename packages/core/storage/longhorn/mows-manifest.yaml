@@ -11,8 +11,8 @@ spec:
                 helm:
                     urls:
                         - https://charts.longhorn.io/
-                    sha256Digest: 863c011cdc37dd0ad95595ed52b5ac43ef1394fa6012e607397f86e6b682be6a
-                    version: "1.7.2"
+                    sha256Digest: 095dd906f60402d0f73de6aabbf92741c3c432877f0901405b22289f3bd7ed4c
+                    version: "1.8.1"
                     releaseName: longhorn
                     chartName: longhorn
             additional:
