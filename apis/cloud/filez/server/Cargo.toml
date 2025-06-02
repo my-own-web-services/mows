@@ -41,7 +41,11 @@ zitadel = { workspace = true, features = ["axum", "introspection_cache"] }
 
 
 diesel_migrations = "2.2.0"
-diesel = { version = "2.2.10", features = ["chrono", "uuid"] }
+diesel = { version = "2.2.10", features = [
+    "chrono",
+    "uuid",
+    "postgres_backend",
+] }
 diesel-async = { version = "0.5.2", features = [
     "postgres",
     "deadpool",
@@ -54,12 +58,12 @@ tokio-postgres = { version = "0.7.13" }
 #futures-util = { workspace = true }
 
 
-uuid = { workspace = true, features = ["serde", "v7"] }
+uuid = { workspace = true, features = ["serde", "v4"] }
 chrono = { workspace = true, features = ["serde"] }
 
 axum-server-timing = { git = "https://github.com/JensWalter/axum-server-timing/", rev = "ec8362e98a0e98f7724ca1f9413c128e581461ad" }
 
-minio = { version = "0.2.0", features = [
+minio = { version = "0.3.0", features = [
     "rustls-tls",
     "ring",
 ], default-features = false }
@@ -69,3 +73,4 @@ axum-health = { version = "=0.1.2", features = [
     "_diesel-async",
 ] }
 async-trait = "0.1.88"
+futures-util = { workspace = true }

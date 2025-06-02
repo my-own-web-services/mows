@@ -11,7 +11,7 @@ dependencies = [
  "p256",
  "rand_core 0.6.4",
  "rcgen 0.9.3",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -2443,7 +2443,7 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f7b446f80cb00b49b795e423cdc013ee9d53f60ad9cc8bbcf94f27d7c2a2fdf"
 dependencies = [
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "serde",
  "serde_json",
  "serde_with",
@@ -2785,22 +2785,28 @@ dependencies = [
 
 [[package]]
 name = "hyper-util"
-version = "0.1.11"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "497bbc33a26fdd4af9ed9c70d63f61cf56a938375fbb32df34db9b1cd6d643f2"
+checksum = "b1c293b6b3d21eca78250dc7dbebd6b9210ec5530e038cbfe0661b5c47ab06e8"
 dependencies = [
+ "base64 0.22.1",
  "bytes",
  "futures-channel",
+ "futures-core",
  "futures-util",
  "http 1.3.1",
  "http-body 1.0.1",
  "hyper 1.6.0",
+ "ipnet",
  "libc",
+ "percent-encoding",
  "pin-project-lite",
  "socket2",
+ "system-configuration 0.6.1",
  "tokio",
  "tower-service",
  "tracing",
+ "windows-registry",
 ]
 
 [[package]]
@@ -3045,6 +3051,16 @@ name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
+
+[[package]]
+name = "iri-string"
+version = "0.7.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbc5ebe9c3a1a7a5127f920a418f7585e9e758e911d0466ed004f393b0e380b2"
+dependencies = [
+ "memchr",
+ "serde",
+]
 
 [[package]]
 name = "is-terminal"
@@ -3503,7 +3519,7 @@ dependencies = [
  "opentelemetry_sdk 0.26.0",
  "pty-process",
  "rand 0.8.5",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "serde",
  "serde-xml-rs",
  "serde_json",
@@ -3614,9 +3630,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "minio"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf8b78729d5973000da242b78241b0ff8ad81896e71374ad25ab337b2a743b94"
+checksum = "3824101357fa899d01c729e4a245776e20a03f2f6645979e86b9d3d5d9c42741"
 dependencies = [
  "async-recursion",
  "async-trait",
@@ -3640,7 +3656,7 @@ dependencies = [
  "percent-encoding",
  "rand 0.8.5",
  "regex",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "ring 0.17.14",
  "serde",
  "serde_json",
@@ -3714,7 +3730,7 @@ dependencies = [
  "pem 3.0.5",
  "rand 0.9.1",
  "rcgen 0.13.2",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "reqwest-middleware",
  "reqwest-tracing",
  "serde",
@@ -4365,7 +4381,7 @@ dependencies = [
  "parking_lot",
  "pektin-common",
  "rand 0.8.5",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "ring 0.17.14",
  "serde",
  "serde_json",
@@ -4436,7 +4452,7 @@ dependencies = [
  "opentelemetry 0.26.0",
  "pektin-common",
  "prometheus-client",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "reqwest-tracing",
  "schemars",
  "serde",
@@ -5173,9 +5189,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.15"
+version = "0.12.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d19c46a6fdd48bc4dab94b6103fccc55d34c67cc0ad04653aad4ea2a07cd7bbb"
+checksum = "e98ff6b0dbbe4d5a37318f433d4fc82babd21631f194d370409ceb2e40b2f0b5"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -5199,25 +5215,23 @@ dependencies = [
  "pin-project-lite",
  "quinn",
  "rustls 0.23.27",
- "rustls-pemfile 2.2.0",
  "rustls-pki-types",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper 1.0.2",
- "system-configuration 0.6.1",
  "tokio",
  "tokio-rustls 0.26.2",
  "tokio-util",
  "tower 0.5.2",
+ "tower-http",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "webpki-roots 0.26.11",
- "windows-registry",
+ "webpki-roots 1.0.0",
 ]
 
 [[package]]
@@ -5229,7 +5243,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http 1.3.1",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "serde",
  "thiserror 1.0.69",
  "tower-service",
@@ -5247,7 +5261,7 @@ dependencies = [
  "http 1.3.1",
  "matchit 0.8.4",
  "opentelemetry 0.28.0",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "reqwest-middleware",
  "tracing",
  "tracing-opentelemetry 0.29.0",
@@ -5603,7 +5617,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "http 1.3.1",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "rustify_derive",
  "serde",
  "serde_json",
@@ -6135,6 +6149,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "diesel_migrations",
+ "futures-util",
  "mime_guess",
  "minio",
  "mows-common-rust",
@@ -6640,9 +6655,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.45.0"
+version = "1.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2513ca694ef9ede0fb23fe71a4ee4107cb102b9dc1930f6d0fd77aae068ae165"
+checksum = "75ef51a33ef1da925cea3e4eb122833cb377c61439ca401b770f54902b806779"
 dependencies = [
  "backtrace",
  "bytes",
@@ -6901,12 +6916,14 @@ dependencies = [
  "http-body-util",
  "http-range-header",
  "httpdate",
+ "iri-string",
  "mime",
  "mime_guess",
  "percent-encoding",
  "pin-project-lite",
  "tokio",
  "tokio-util",
+ "tower 0.5.2",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -7358,7 +7375,7 @@ dependencies = [
  "bytes",
  "derive_builder",
  "http 1.3.1",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "rustify",
  "rustify_derive",
  "serde",
@@ -8186,7 +8203,7 @@ dependencies = [
  "mows-common-rust",
  "p256",
  "rand_core 0.6.4",
- "reqwest 0.12.15",
+ "reqwest 0.12.18",
  "serde",
  "serde_json",
  "tokio",

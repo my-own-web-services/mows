@@ -1,6 +1,4 @@
-use std::str::FromStr;
-
-use crate::types::AppState;
+use crate::{config::BUCKET_NAME, types::AppState};
 use axum::{
     body::{Body, Bytes},
     extract::{Path, Query, State},
@@ -118,7 +116,7 @@ pub async fn get_file_content(
 
     let get_object_response = match app_state
         .minio_client
-        .get_object("filez", file_meta.file_id.to_string())
+        .get_object(BUCKET_NAME, file_meta.file_id.to_string())
         .send()
         .await
     {

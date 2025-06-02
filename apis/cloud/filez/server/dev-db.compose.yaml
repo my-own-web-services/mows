@@ -8,8 +8,3 @@ services:
             POSTGRES_DB: filez
         ports:
             - "127.0.0.1:5432:5432"
-        volumes:
-            - filez-db-data:/var/lib/postgresql/data
-volumes:
-    filez-db-data:
-    

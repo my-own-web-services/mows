@@ -9,6 +9,8 @@ pub fn config() -> &'static RwLock<FilezServerConfig> {
     CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))
 }
 
+pub const BUCKET_NAME: &str = "filez";
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct FilezServerConfig {
     pub primary_origin: Url,
@@ -43,11 +45,11 @@ pub fn from_env() -> anyhow::Result<FilezServerConfig> {
             true,
             true,
         )?,
-        oidc_client_id: load_env("awdawd", "OIDC_CLIENT_ID", false, true)?,
-        oidc_client_secret: load_env("awdawd", "OIDC_CLIENT_SECRET", true, true)?,
+        oidc_client_id: load_env("a", "OIDC_CLIENT_ID", false, true)?,
+        oidc_client_secret: load_env("a", "OIDC_CLIENT_SECRET", true, true)?,
         oidc_issuer: load_env("http://localhost", "OIDC_ISSUER", false, true)?,
-        minio_username: load_env("minio", "MINIO_USERNAME", false, true)?,
-        minio_password: load_env("minio123", "MINIO_PASSWORD", true, true)?,
+        minio_username: load_env("a", "MINIO_USERNAME", false, true)?,
+        minio_password: load_env("a", "MINIO_PASSWORD", true, true)?,
         minio_endpoint: load_env("http://localhost:9000", "MINIO_ENDPOINT", false, true)?,
     })
 }
