@@ -37,7 +37,7 @@ spec:
                     namespace: mows-core-auth-zitadel
                     policyIds: ["zitadel-controller-allow-auth-access"]
 ---
-# sync the secrets to the argocd configmap
+# sync the secrets 
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:

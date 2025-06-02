@@ -2,6 +2,7 @@ use axum::{ Json,extract::State };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
+use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
    models::File, types::{ApiResponse, ApiResponseStatus, AppState}
@@ -9,12 +10,13 @@ use crate::{
 
 #[utoipa::path(
     post,    
-    path = "/files/metadata/get",
+    path = "/api/files/metadata/get",
     responses(
         (status = 200, description = "Gets the metadata for any number of files", body = ApiResponse<GetFileMetaResBody>),
     )
 )]
 pub async fn get_files_metadata(
+    user: IntrospectedUser,
     State(app_state): State<AppState>,
     Json(req_body): Json<GetFilesMetaRequestBody>,
 ) -> Json<ApiResponse<GetFileMetaResBody>> {

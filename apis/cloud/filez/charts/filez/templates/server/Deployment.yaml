@@ -59,3 +59,15 @@ spec:
                                 secretKeyRef:
                                     name: filez-db-user-connection-string
                                     key: connectionString
+                        -   name: MINIO_ENDPOINT
+                            value: "https://api-minio.{§ .config.domain §}"
+                        -   name: MINIO_USERNAME
+                            valueFrom:
+                                secretKeyRef:
+                                    name: minio-filez-user
+                                    key: CONSOLE_ACCESS_KEY
+                        -   name: MINIO_PASSWORD
+                            valueFrom:
+                                secretKeyRef:
+                                    name: minio-filez-user
+                                    key: CONSOLE_SECRET_KEY

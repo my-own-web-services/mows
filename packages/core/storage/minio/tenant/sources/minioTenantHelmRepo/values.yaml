@@ -21,3 +21,5 @@ tenant:
     configSecret:
         name: minio-config
         existingSecret: true
+    users:
+        - name: minio-filez-user

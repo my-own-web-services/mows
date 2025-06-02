@@ -3,13 +3,16 @@ use std::str::FromStr;
 
 use gtmpl::funcs::print;
 // some used only for telemetry feature
+#[cfg(feature = "telemetry")]
 use opentelemetry::trace::{TraceId, TracerProvider};
+#[cfg(feature = "telemetry")]
 use opentelemetry_sdk::{runtime, trace as sdktrace, trace::Config, Resource};
 use tracing_subscriber::{fmt::time::ChronoLocal, prelude::*, EnvFilter, Registry};
 
 use crate::{config::common_config, get_current_config_cloned};
 
 ///  Fetch an opentelemetry::trace::TraceId as hex through the full tracing stack
+#[cfg(feature = "telemetry")]
 pub fn get_trace_id() -> TraceId {
     use opentelemetry::trace::TraceContextExt as _; // opentelemetry::Context -> opentelemetry::trace::Span
     use tracing_opentelemetry::OpenTelemetrySpanExt as _; // tracing::Span to opentelemetry::Context

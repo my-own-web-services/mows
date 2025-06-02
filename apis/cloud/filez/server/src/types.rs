@@ -1,5 +1,7 @@
+use axum::extract::FromRef;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use zitadel::axum::introspection::IntrospectionState;
 
 use crate::db::Db;
 
@@ -22,5 +24,12 @@ pub enum ApiResponseStatus {
 #[derive(Clone)]
 pub struct AppState {
     pub db: Db,
-    pub user: zitadel::axum::introspection::IntrospectionState,
+    pub minio_client: minio::s3::Client,
+    pub introspection_state: zitadel::axum::introspection::IntrospectionState,
+}
+
+impl FromRef<AppState> for IntrospectionState {
+    fn from_ref(app_state: &AppState) -> IntrospectionState {
+        app_state.introspection_state.clone()
+    }
 }
