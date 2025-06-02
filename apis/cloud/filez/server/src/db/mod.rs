@@ -1,6 +1,7 @@
 use diesel::prelude::*;
 use diesel_async::pooled_connection::deadpool::Pool;
 use diesel_async::RunQueryDsl;
+use uuid::Uuid;
 
 use crate::{
     api::files::get_metadata::GetFilesMetaRequestBody,
@@ -19,16 +20,16 @@ impl Db {
         Self { pool }
     }
 
-    pub async fn get_files_metadata(
+    pub async fn get_files_metadata_for_owner(
         &self,
-        request: &GetFilesMetaRequestBody,
+        file_ids: &Vec<Uuid>,
+        owner_id: Uuid,
     ) -> Result<Vec<File>, FilezErrors> {
         let mut conn = self.pool.get().await?;
 
-        let file_ids = request.file_ids.clone();
-
         let result = files::table
             .filter(files::file_id.eq_any(file_ids))
+            .filter(files::owner_id.eq(owner_id))
             .select(File::as_select())
             .load::<File>(&mut conn)
             .await?;
@@ -36,11 +37,16 @@ impl Db {
         Ok(result)
     }
 
-    pub async fn get_file_by_id(&self, file_id: uuid::Uuid) -> Result<Option<File>, FilezErrors> {
+    pub async fn get_file_by_id_and_owner(
+        &self,
+        file_id: uuid::Uuid,
+        owner_id: Uuid,
+    ) -> Result<Option<File>, FilezErrors> {
         let mut conn = self.pool.get().await?;
 
         let result = files::table
             .filter(files::file_id.eq(file_id))
+            .filter(files::owner_id.eq(owner_id))
             .select(File::as_select())
             .first::<File>(&mut conn)
             .await
