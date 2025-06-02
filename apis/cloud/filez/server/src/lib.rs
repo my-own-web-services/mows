@@ -2,6 +2,7 @@ pub mod api;
 pub mod config;
 pub mod db;
 pub mod errors;
+pub mod macros;
 pub mod models;
 pub mod schema;
 pub mod types;

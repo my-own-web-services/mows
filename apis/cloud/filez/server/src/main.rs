@@ -26,11 +26,13 @@ use server::{
     },
 };
 use std::{net::SocketAddr, str::FromStr};
-use tower_http::cors::CorsLayer;
+use tower_http::{
+    compression::CompressionLayer, cors::CorsLayer, decompression::DecompressionLayer,
+};
 use utoipa_axum::routes;
 
 use axum::routing::get;
-use tracing::info;
+use tracing::{info, warn};
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
@@ -83,21 +85,34 @@ async fn main() -> Result<(), anyhow::Error> {
         .await?;
     }
 
+    // create the postgres connection pool
     let connection_manager =
         AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(config.db_url.clone());
     let pool = Pool::builder(connection_manager).build()?;
     let db = Db::new(pool).await;
 
+    // create the minio client
     let minio_static_provider =
         StaticProvider::new(&config.minio_username, &config.minio_password, None);
-
     let minio_client = ClientBuilder::new(BaseUrl::from_str(&config.minio_endpoint)?)
         .provider(Some(Box::new(minio_static_provider)))
         .build()?;
 
-    //create_bucket_if_not_exists(BUCKET_NAME, &minio_client)
-    //    .await
-    //    .context("Failed to create bucket")?;
+    // create the bucket if it does not exist in the background
+    let background_client = minio_client.clone();
+    tokio::spawn(async move {
+        info!("Creating bucket if it does not exist: {BUCKET_NAME}");
+
+        loop {
+            if let Err(e) = create_bucket_if_not_exists(BUCKET_NAME, &background_client).await {
+                warn!("Failed to create bucket: {e}, retrying in 5 seconds...");
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            } else {
+                info!("Bucket created successfully");
+                break;
+            }
+        }
+    });
 
     let app_state = AppState {
         db: db.clone(),
@@ -133,6 +148,8 @@ async fn main() -> Result<(), anyhow::Error> {
                 .build(),
         )
         .with_state(app_state)
+        .layer(CompressionLayer::new())
+        .layer(DecompressionLayer::new())
         .layer(
             CorsLayer::new()
                 .allow_origin(

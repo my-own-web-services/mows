@@ -129,11 +129,11 @@ impl HealthIndicator for ZitadelHealthIndicator {
             Ok(_) => HealthDetail::new(axum_health::HealthStatus::Up)
                 .with_detail(
                     "introspection".to_string(),
-                    "Zitadel introspection is healthy".to_string(),
+                    "Zitadel introspection endpoint is healthy".to_string(),
                 )
                 .clone(),
             Err(e) => HealthDetail::new(axum_health::HealthStatus::Down)
-                .with_detail("Zitadel connection failed".to_string(), e.to_string())
+                .with_detail("introspection".to_string(), e.to_string())
                 .clone(),
         };
 

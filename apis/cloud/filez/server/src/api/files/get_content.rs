@@ -36,13 +36,40 @@ pub struct GetFileRequestQueryParams {
     )
 )]
 pub async fn get_file_content(
-    user: IntrospectedUser,
+    external_user: IntrospectedUser,
     State(app_state): State<AppState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(file_id): Path<Uuid>,
     Query(params): Query<GetFileRequestQueryParams>,
 ) -> impl IntoResponse {
-    let file_meta_res = app_state.db.get_file_by_id(file_id).await;
+    let user = match app_state
+        .db
+        .get_user_by_external_id(&external_user.user_id)
+        .await
+    {
+        Ok(Some(u)) => u,
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                HeaderMap::new(),
+                Bytes::from("User not found"),
+            )
+                .into_response();
+        }
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                HeaderMap::new(),
+                Bytes::from(format!("Database error: {}", e)),
+            )
+                .into_response();
+        }
+    };
+
+    let file_meta_res = app_state
+        .db
+        .get_file_by_id_and_owner(file_id, user.user_id)
+        .await;
 
     timing.lock().unwrap().record(
         "db.get_file_by_id".to_string(),
