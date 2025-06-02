@@ -4,7 +4,7 @@ use minio::s3::{response::BucketExistsResponse, types::S3Api};
 use tokio::signal::{self};
 use zitadel::axum::introspection::IntrospectionState;
 
-use crate::db::Db;
+use crate::{config::BUCKET_NAME, db::Db};
 
 pub async fn shutdown_signal() {
     let ctrl_c = async {
@@ -60,7 +60,7 @@ impl HealthIndicator for MinioHealthIndicator {
     }
 
     async fn details(&self) -> HealthDetail {
-        match self.minio_client.bucket_exists("filez").send().await {
+        match self.minio_client.bucket_exists(BUCKET_NAME).send().await {
             Ok(resp) if resp.exists => HealthDetail::new(axum_health::HealthStatus::Up)
                 .with_detail("minio".to_string(), "Minio is healthy".to_string())
                 .clone(),

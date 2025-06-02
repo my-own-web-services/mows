@@ -3,8 +3,10 @@ use diesel_async::pooled_connection::deadpool::Pool;
 use diesel_async::RunQueryDsl;
 
 use crate::{
-    api::files::get_metadata::GetFilesMetaRequestBody, errors::FilezErrors, models::File,
-    schema::files,
+    api::files::get_metadata::GetFilesMetaRequestBody,
+    errors::FilezErrors,
+    models::{File, NewFile, NewUser, User},
+    schema::{self, files},
 };
 
 #[derive(Clone)]
@@ -27,6 +29,7 @@ impl Db {
 
         let result = files::table
             .filter(files::file_id.eq_any(file_ids))
+            .select(File::as_select())
             .load::<File>(&mut conn)
             .await?;
 
@@ -38,11 +41,85 @@ impl Db {
 
         let result = files::table
             .filter(files::file_id.eq(file_id))
+            .select(File::as_select())
             .first::<File>(&mut conn)
             .await
             .optional()?;
 
         Ok(result)
+    }
+
+    pub async fn create_file(&self, new_file: &NewFile<'_>) -> Result<File, FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        let result = diesel::insert_into(files::table)
+            .values(new_file)
+            .returning(File::as_returning())
+            .get_result::<File>(&mut conn)
+            .await?;
+
+        Ok(result)
+    }
+
+    pub async fn get_user_by_external_id(
+        &self,
+        external_user_id: &str,
+    ) -> Result<Option<User>, FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        let result = schema::users::table
+            .filter(schema::users::external_user_id.eq(external_user_id))
+            .first::<User>(&mut conn)
+            .await
+            .optional()?;
+
+        Ok(result)
+    }
+
+    pub async fn apply_user(
+        &self,
+        external_user_id: &str,
+        display_name: &str,
+    ) -> Result<uuid::Uuid, FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        // Check if the user already exists
+        let existing_user = schema::users::table
+            .filter(schema::users::external_user_id.eq(external_user_id))
+            .first::<User>(&mut conn)
+            .await
+            .optional()?;
+
+        if let Some(user) = existing_user {
+            // update the existing users display name
+            diesel::update(schema::users::table.find(user.user_id))
+                .set(schema::users::display_name.eq(display_name))
+                .execute(&mut conn)
+                .await?;
+            return Ok(user.user_id);
+        };
+        // If the user does not exist, create a new user
+        let new_user = NewUser {
+            external_user_id,
+            display_name,
+            created_time: chrono::Utc::now().naive_utc(),
+        };
+
+        let result = diesel::insert_into(schema::users::table)
+            .values(&new_user)
+            .get_result::<User>(&mut conn)
+            .await?;
+        Ok(result.user_id)
+    }
+
+    pub async fn delete_file(&self, file_id: uuid::Uuid) -> Result<(), FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        diesel::delete(files::table.filter(files::file_id.eq(file_id)))
+            .execute(&mut conn)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn get_health(&self) -> Result<(), FilezErrors> {

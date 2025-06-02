@@ -16,8 +16,8 @@ use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
 use server::{
-    api::files,
-    config::config,
+    api,
+    config::{config, BUCKET_NAME},
     db::Db,
     types::AppState,
     utils::{
@@ -95,9 +95,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .provider(Some(Box::new(minio_static_provider)))
         .build()?;
 
-    create_bucket_if_not_exists("filez", &minio_client)
-        .await
-        .context("Failed to create bucket")?;
+    //create_bucket_if_not_exists(BUCKET_NAME, &minio_client)
+    //    .await
+    //    .context("Failed to create bucket")?;
 
     let app_state = AppState {
         db: db.clone(),
@@ -109,10 +109,13 @@ async fn main() -> Result<(), anyhow::Error> {
         // NOTE!
         // Sometimes when something is wrong with the extractors a warning will appear of an axum version mismatch.
         // THIS IS NOT THE REASON why the error occurs.
-        .routes(routes!(crate::files::get_content::get_file_content))
-        .routes(routes!(crate::files::get_metadata::get_files_metadata))
-        .routes(routes!(crate::files::create::create))
-        .route("/health", get(health))
+        // FILES
+        .routes(routes!(api::files::get_content::get_file_content))
+        .routes(routes!(api::files::get_metadata::get_files_metadata))
+        .routes(routes!(api::files::create::create))
+        // USERS
+        .routes(routes!(api::users::apply::apply_user))
+        .route("/api/health", get(health))
         .layer(
             Health::builder()
                 .with_indicator(MinioHealthIndicator::new(
