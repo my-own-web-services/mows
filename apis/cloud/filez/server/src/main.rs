@@ -3,27 +3,38 @@ use axum::http::{
     header::{AUTHORIZATION, CONTENT_TYPE, UPGRADE},
     HeaderValue, Method,
 };
+use axum_health::{health, Health};
+use diesel_async::async_connection_wrapper::AsyncConnectionWrapper;
 use diesel_async::AsyncPgConnection;
-use diesel_async::{async_connection_wrapper::AsyncConnectionWrapper, RunQueryDsl};
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     AsyncConnection,
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use minio::s3::{creds::StaticProvider, http::BaseUrl, ClientBuilder};
 use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
-use server::{api::files, config::config, db::Db, types::AppState, utils::shutdown_signal};
-use std::net::SocketAddr;
+use server::{
+    api::files,
+    config::config,
+    db::Db,
+    types::AppState,
+    utils::{
+        create_bucket_if_not_exists, shutdown_signal, MinioHealthIndicator,
+        PostgresHealthIndicator, ZitadelHealthIndicator,
+    },
+};
+use std::{net::SocketAddr, str::FromStr};
 use tower_http::cors::CorsLayer;
 use utoipa_axum::routes;
 
+use axum::routing::get;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
 use zitadel::axum::introspection::IntrospectionStateBuilder;
-
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
 #[derive(utoipa::OpenApi)]
@@ -77,14 +88,47 @@ async fn main() -> Result<(), anyhow::Error> {
     let pool = Pool::builder(connection_manager).build()?;
     let db = Db::new(pool).await;
 
+    let minio_static_provider =
+        StaticProvider::new(&config.minio_username, &config.minio_password, None);
+
+    let minio_client = ClientBuilder::new(BaseUrl::from_str(&config.minio_endpoint)?)
+        .provider(Some(Box::new(minio_static_provider)))
+        .build()?;
+
+    create_bucket_if_not_exists("filez", &minio_client)
+        .await
+        .context("Failed to create bucket")?;
+
     let app_state = AppState {
         db: db.clone(),
-        user: introspection_state,
+        minio_client: minio_client.clone(),
+        introspection_state: introspection_state.clone(),
     };
 
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+        // NOTE!
+        // Sometimes when something is wrong with the extractors a warning will appear of an axum version mismatch.
+        // THIS IS NOT THE REASON why the error occurs.
         .routes(routes!(crate::files::get_content::get_file_content))
         .routes(routes!(crate::files::get_metadata::get_files_metadata))
+        .routes(routes!(crate::files::create::create))
+        .route("/health", get(health))
+        .layer(
+            Health::builder()
+                .with_indicator(MinioHealthIndicator::new(
+                    "minio".to_string(),
+                    minio_client.clone(),
+                ))
+                .with_indicator(PostgresHealthIndicator::new(
+                    "postgres".to_string(),
+                    db.clone(),
+                ))
+                .with_indicator(ZitadelHealthIndicator::new(
+                    "zitadel".to_string(),
+                    introspection_state,
+                ))
+                .build(),
+        )
         .with_state(app_state)
         .layer(
             CorsLayer::new()

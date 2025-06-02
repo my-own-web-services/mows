@@ -18,6 +18,9 @@ pub struct FilezServerConfig {
     pub oidc_client_id: String,
     pub oidc_client_secret: String,
     pub oidc_issuer: String,
+    pub minio_username: String,
+    pub minio_password: String,
+    pub minio_endpoint: String,
 }
 
 pub fn from_env() -> anyhow::Result<FilezServerConfig> {
@@ -43,5 +46,8 @@ pub fn from_env() -> anyhow::Result<FilezServerConfig> {
         oidc_client_id: load_env("awdawd", "OIDC_CLIENT_ID", false, true)?,
         oidc_client_secret: load_env("awdawd", "OIDC_CLIENT_SECRET", true, true)?,
         oidc_issuer: load_env("http://localhost", "OIDC_ISSUER", false, true)?,
+        minio_username: load_env("minio", "MINIO_USERNAME", false, true)?,
+        minio_password: load_env("minio123", "MINIO_PASSWORD", true, true)?,
+        minio_endpoint: load_env("http://localhost:9000", "MINIO_ENDPOINT", false, true)?,
     })
 }

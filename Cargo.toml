@@ -47,12 +47,12 @@ mows-package-manager = { path = "./operators/mows-package-manager" }
 acme-rs = { path = "./apis/core/pektin/acme-rs" }
 
 
-utoipa-swagger-ui = "9.0.1"
-utoipa = "5.2.0"
+utoipa-swagger-ui = "9.0.2"
+utoipa = "5.3.1"
 utoipa-axum = "0.2.0"
 
-axum = "0.8.4"
-axum-extra = "0.10.1"
+axum = "=0.8.4"
+axum-extra = "=0.10.1"
 tower = "0.5.2"
 tower-http = "0.6.4"
 tokio = "1.45.0"

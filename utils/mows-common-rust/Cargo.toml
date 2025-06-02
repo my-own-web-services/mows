@@ -5,7 +5,12 @@ edition = "2021"
 
 [features]
 default = ["telemetry"]
-telemetry = ["opentelemetry-otlp"]
+telemetry = [
+    "dep:opentelemetry-otlp",
+    "dep:tracing-opentelemetry",
+    "dep:opentelemetry",
+    "dep:opentelemetry_sdk",
+]
 
 
 [dependencies]
@@ -23,10 +28,13 @@ tracing-subscriber = { version = "0.3.18", features = [
     "env-filter",
     "chrono",
 ] }
-tracing-opentelemetry = { workspace = true }
-opentelemetry = { workspace = true, features = ["trace"] }
-opentelemetry-otlp = { workspace = true, optional = true }
-opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
+
+tracing-opentelemetry = { workspace = true, optional = true }
+opentelemetry = { workspace = true, optional = true, features = ["trace"] }
+opentelemetry-otlp = { workspace = true, optional = true, default-features = false }
+opentelemetry_sdk = { workspace = true, optional = true, features = [
+    "rt-tokio",
+] }
 
 reqwest = { workspace = true, default-features = false, features = [
     "json",

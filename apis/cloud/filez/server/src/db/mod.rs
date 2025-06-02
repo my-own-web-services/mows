@@ -44,4 +44,12 @@ impl Db {
 
         Ok(result)
     }
+
+    pub async fn get_health(&self) -> Result<(), FilezErrors> {
+        let mut conn = self.pool.get().await?;
+        diesel::select(diesel::dsl::sql::<diesel::sql_types::Bool>("1 = 1"))
+            .get_result::<bool>(&mut conn)
+            .await?;
+        Ok(())
+    }
 }

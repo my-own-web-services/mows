@@ -21,7 +21,10 @@ spec:
         kv-v2:
             kvData:
                 root:
-                    user: "{% randAlphaNum 100 %}"
+                    username: "root_{% randAlphaNum 80 %}"
+                    password: "{% randAlphaNum 100 %}"
+                filez:
+                    username: "filez_{% randAlphaNum 80 %}"
                     password: "{% randAlphaNum 100 %}"
 
 ---
@@ -52,7 +55,6 @@ spec:
                     namespace: mows-core-auth-zitadel
                     policyIds: ["zitadel-controller-allow-oidc-access"]
 ---
-# sync the secrets to the argocd configmap
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -63,9 +65,13 @@ spec:
             oidc:
                 engine: minio-oidc
                 path: "oidc"
-            rootCredentials:
+            rootUser:
                 engine: minio-credentials
                 path: "root"
+            filezUser:
+                engine: minio-credentials
+                path: "filez"
+            
                 
         targets:
             secrets:
@@ -78,5 +84,48 @@ spec:
                             export MINIO_IDENTITY_OPENID_DISPLAY_NAME="ZITADEL"
                             export MINIO_BROWSER_REDIRECT_URL="https://console-minio.{§ .config.domain §}"
                             export MINIO_IDENTITY_OPENID_CLAIM_NAME="groups"
-                            export MINIO_ROOT_USER="{% .secrets.rootCredentials.user %}"
-                            export MINIO_ROOT_PASSWORD="{% .secrets.rootCredentials.password %}"
+                            export MINIO_ROOT_USER="{% .secrets.rootUser.username %}"
+                            export MINIO_ROOT_PASSWORD="{% .secrets.rootUser.password %}"
+                minio-filez-user:
+                    data:
+                        CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
+                        CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"
+
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: minio-filez-user-sync-2
+    labels:
+        k8s.mows.cloud/sudo: "true"
+        vault.k8s.mows.cloud/force-target-namespace: "mows-cloud-filez"
+spec:
+    secretSync:
+        kvMapping:
+            filezUser:
+                engine: minio-credentials
+                path: "filez"
+                
+        targets:
+            secrets:
+                minio-filez-user:
+                    data:
+                        CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
+                        CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"
+---
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: minio-filez-user-sync
+spec:
+    secretSync:
+        kvMapping:
+            filezUser:
+                engine: minio-credentials
+                path: "filez"
+        targets:
+            secrets:
+                minio-filez-user:
+                    data:
+                        CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
+                        CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"

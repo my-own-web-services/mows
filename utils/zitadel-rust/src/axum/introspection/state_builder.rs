@@ -1,5 +1,6 @@
 use custom_error::custom_error;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 use crate::axum::introspection::state::IntrospectionConfig;
 use crate::credentials::Application;
@@ -72,27 +73,29 @@ impl IntrospectionStateBuilder {
             return Err(IntrospectionStateBuilderError::NoAuthSchema);
         }
 
-        let metadata = discover(&self.authority)
-            .await
-            .map_err(|source| IntrospectionStateBuilderError::Discovery { source })?;
-
-        let introspection_uri = metadata
-            .additional_metadata()
-            .introspection_endpoint
-            .clone();
-
-        if introspection_uri.is_none() {
-            return Err(IntrospectionStateBuilderError::NoIntrospectionUrl);
-        }
+        let introspection_uri = match discover(&self.authority).await {
+            Ok(metadata) => metadata
+                .additional_metadata()
+                .introspection_endpoint
+                .clone(),
+            Err(source) => {
+                tracing::error!(
+                    "Failed to discover metadata for authority {}: {}",
+                    self.authority,
+                    source
+                );
+                None
+            }
+        };
 
         Ok(IntrospectionState {
-            config: Arc::new(IntrospectionConfig {
+            config: Arc::new(RwLock::new(IntrospectionConfig {
                 authority: self.authority.clone(),
-                introspection_uri: introspection_uri.unwrap(),
+                introspection_uri,
                 authentication: self.authentication.as_ref().unwrap().clone(),
                 #[cfg(feature = "introspection_cache")]
                 cache: self.cache.take(),
-            }),
+            })),
         })
     }
 }
