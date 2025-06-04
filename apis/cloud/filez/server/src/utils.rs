@@ -140,3 +140,15 @@ impl HealthIndicator for ZitadelHealthIndicator {
         res.clone()
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("Invalid enum type: {msg}")]
+pub struct InvalidEnumType {
+    pub msg: String,
+}
+
+impl InvalidEnumType {
+    pub fn invalid_type_log(msg: String) -> Self {
+        InvalidEnumType { msg }
+    }
+}

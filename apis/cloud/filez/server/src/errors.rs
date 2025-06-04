@@ -5,4 +5,6 @@ pub enum FilezErrors {
     DatabaseError(#[from] diesel::result::Error),
     #[error("Deadpool error {0}")]
     DeadpoolError(#[from] diesel_async::pooled_connection::deadpool::PoolError),
+    #[error("Auth Evaluation Error: {0}")]
+    AuthEvaluationError(String),
 }

@@ -117,7 +117,7 @@ pub async fn create(
 
     // Create a new file entry in the database
     let new_file = NewFile {
-        owner_id: user.user_id,
+        owner_id: user.id,
         mime_type: &mime_type.to_string(),
         file_name: &meta_body.file_name,
         created_time: meta_body
@@ -148,7 +148,7 @@ pub async fn create(
 
     match app_state
         .minio_client
-        .put_object_content(BUCKET_NAME, db_created_file.file_id, object_content)
+        .put_object_content(BUCKET_NAME, db_created_file.id, object_content)
         .content_type(mime_type.to_string())
         .send()
         .await
@@ -156,7 +156,7 @@ pub async fn create(
         Ok(_) => {}
         Err(e) => {
             // If the file upload fails, delete the file entry from the database
-            if let Err(db_error) = app_state.db.delete_file(db_created_file.file_id).await {
+            if let Err(db_error) = app_state.db.delete_file(db_created_file.id).await {
                 tracing::error!(
                     "Failed to delete file from database after upload failure: {}",
                     db_error
@@ -174,7 +174,7 @@ pub async fn create(
         status: ApiResponseStatus::Success,
         message: "Created File".to_string(),
         data: Some(CreateFileResponseBody {
-            file_id: db_created_file.file_id.to_string(),
+            file_id: db_created_file.id.to_string(),
         }),
     })
 }
