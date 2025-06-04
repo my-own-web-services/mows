@@ -68,7 +68,7 @@ pub async fn get_file_content(
 
     let file_meta_res = app_state
         .db
-        .get_file_by_id_and_owner(file_id, user.user_id)
+        .get_file_by_id_and_owner(file_id, user.id)
         .await;
 
     timing.lock().unwrap().record(
@@ -118,7 +118,7 @@ pub async fn get_file_content(
                 None => "bin".to_string(),
             };
 
-            format!("file_{}.{}", file_meta.file_id, mime_string)
+            format!("file_{}.{}", file_meta.id, mime_string)
         } else {
             file_meta.file_name.clone()
         };
@@ -143,7 +143,7 @@ pub async fn get_file_content(
 
     let get_object_response = match app_state
         .minio_client
-        .get_object(BUCKET_NAME, file_meta.file_id.to_string())
+        .get_object(BUCKET_NAME, file_meta.id.to_string())
         .send()
         .await
     {

@@ -56,13 +56,16 @@ diesel-async = { version = "0.5.2", features = [
     "async-connection-wrapper",
     "r2d2",
 ] }
+
+diesel-enum = "0.2.1"
+
 tokio-postgres = { version = "0.7.13" }
 #tokio-postgres-rustls = "0.13.0"
 #rustls = "0.23.27"
 #futures-util = { workspace = true }
 
 
-uuid = { workspace = true, features = ["serde", "v4"] }
+uuid = { workspace = true, features = ["serde", "v7"] }
 chrono = { workspace = true, features = ["serde"] }
 
 axum-server-timing = { git = "https://github.com/JensWalter/axum-server-timing/", rev = "ec8362e98a0e98f7724ca1f9413c128e581461ad" }
@@ -78,3 +81,5 @@ axum-health = { version = "=0.1.2", features = [
 ] }
 async-trait = "0.1.88"
 futures-util = { workspace = true }
+
+serde_variant = "0.1.3"
