@@ -148,15 +148,26 @@ impl CloudInit {
 
         let mut stages = HashMap::new();
 
-        // LEAVE THIS ALONE, THE FORMATTING MATTERS FOR SOME REASON, TODO: insert gateway?
-        let static_ip_config = format!(
-            r#"[Match]
+        // LEAVE THIS ALONE, THE FORMATTING MATTERS FOR SOME REASON
+
+        let external_dhcp_network = s!(r#"[Match]
 Name=enp1s0
 
 [Network]
-Address={}/24
 Gateway=192.168.112.1
 DHCP=yes
+
+[DHCPv4]
+UseRoutes=true
+UseDNS=true
+"#);
+
+        let static_ip_config = format!(
+            r#"[Match]
+Name=enp2s0
+
+[Network]
+Address={}/24
 "#,
             internal_ips.legacy
         );
@@ -185,7 +196,16 @@ DHCP=yes
                 Task {
                     name: Some(s!("Set the static ip addresses")),
                     files: Some(vec![CloudInitFile {
-                        path: s!("/etc/systemd/network/01-man.network"),
+                        path: s!("/etc/systemd/network/10-external-dhcp.network"),
+                        permissions: 644,
+                        content: external_dhcp_network,
+                    }]),
+                    ..Task::default()
+                },
+                Task {
+                    name: Some(s!("Create the internal network")),
+                    files: Some(vec![CloudInitFile {
+                        path: s!("/etc/systemd/network/20-cluster-internal.network"),
                         permissions: 644,
                         content: static_ip_config,
                     }]),

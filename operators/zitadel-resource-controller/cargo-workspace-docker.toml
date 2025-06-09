@@ -8,11 +8,11 @@ exclude = ["target"]
 version = "1.0.98"
 
 [workspace.dependencies.axum]
-version = "0.8.4"
+version = "=0.8.4"
 
 [workspace.dependencies.axum-extra]
 features = ["typed-header"]
-version = "0.10.1"
+version = "=0.10.1"
 
 [workspace.dependencies.gtmpl]
 version = "0.7"
@@ -36,14 +36,14 @@ path = "./mows-common-rust"
 
 [workspace.dependencies.opentelemetry]
 features = ["trace"]
-version = "0.26.0"
+version = "=0.26.0"
 
 [workspace.dependencies.opentelemetry-otlp]
-version = "0.26.0"
+version = "=0.26.0"
 
 [workspace.dependencies.opentelemetry_sdk]
 features = ["rt-tokio"]
-version = "0.26.0"
+version = "=0.26.0"
 
 [workspace.dependencies.rand]
 version = "0.9.1"
@@ -74,7 +74,7 @@ version = "1.45.0"
 version = "0.1.40"
 
 [workspace.dependencies.tracing-opentelemetry]
-version = "0.27.0"
+version = "=0.27.0"
 
 [workspace.dependencies.vaultrs]
 version = "0.7.4"

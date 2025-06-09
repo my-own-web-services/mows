@@ -31,7 +31,7 @@ tracing-subscriber = { version = "0.3.18", features = [
 
 tracing-opentelemetry = { workspace = true, optional = true }
 opentelemetry = { workspace = true, optional = true, features = ["trace"] }
-opentelemetry-otlp = { workspace = true, optional = true, default-features = false }
+opentelemetry-otlp = { workspace = true, optional = true }
 opentelemetry_sdk = { workspace = true, optional = true, features = [
     "rt-tokio",
 ] }

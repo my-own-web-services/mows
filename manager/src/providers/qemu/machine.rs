@@ -49,6 +49,8 @@ impl LocalMachineProviderQemu {
                 "q35",
                 "--network",
                 "network=mows-manager,model=virtio",
+                "--network",
+                "network=cluster-internal,model=virtio",
                 "--video",
                 "qxl",
                 "--graphics",

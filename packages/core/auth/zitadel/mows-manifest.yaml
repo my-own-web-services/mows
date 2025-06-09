@@ -11,8 +11,8 @@ spec:
                 helm:
                     urls:
                         - https://charts.zitadel.com
-                    sha256Digest: 14bc564ea1d92bb62d72b90f052828471740785bfdc1e0fb1ee0323377c0dcc6
-                    version: "8.13.3"
+                    sha256Digest: 9fa648ae44aaba4f33e356106164dd39efe096cb737cb117162933f983e95eff
+                    version: "8.13.4"
                     releaseName: zitadel
                     chartName: zitadel
             additional:

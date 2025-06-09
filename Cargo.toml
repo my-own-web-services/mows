@@ -66,11 +66,11 @@ mime_guess = "2.0.5"
 url = "2.5.4"
 
 
-opentelemetry = "0.26.0"
-tracing-opentelemetry = "0.27.0"
-opentelemetry-otlp = "0.26.0"
-opentelemetry_sdk = "0.26.0"
-opentelemetry-semantic-conventions = "0.26.0"
+opentelemetry = "=0.26.0"
+tracing-opentelemetry = "=0.27.0"
+opentelemetry-otlp = "=0.26.0"
+opentelemetry_sdk = "=0.26.0"
+opentelemetry-semantic-conventions = "=0.26.0"
 
 include_dir = "0.7.3"
 reqwest = { version = "0.12.15", default-features = false }

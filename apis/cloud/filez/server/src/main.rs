@@ -16,7 +16,7 @@ use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
 use server::{
-    api,
+    api::{self},
     config::{config, BUCKET_NAME},
     db::Db,
     types::AppState,
@@ -130,6 +130,10 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::files::create::create))
         // USERS
         .routes(routes!(api::users::apply::apply_user))
+        // AUTH
+        .routes(routes!(
+            api::auth::check_resource_access::check_resource_access
+        ))
         .route("/api/health", get(health))
         .layer(
             Health::builder()

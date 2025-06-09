@@ -74,7 +74,6 @@ services:
         networks:
             mows-manager:
                 ipv4_address: "192.168.112.4"
-            # we need two networks because the pxe network is bridged
     mows-dev-local-registry:
         image: registry:2
         container_name: mows-dev-local-registry
