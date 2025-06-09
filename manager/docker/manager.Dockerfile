@@ -21,7 +21,7 @@ COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 
 
-FROM clux/muslrust:stable AS chef-builder
+FROM clux/muslrust:nightly AS chef-builder
 ARG CARGO_CHEF_REF
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
 
@@ -146,7 +146,7 @@ RUN set -x; cd "$(mktemp -d)" && \
     ./"${KREW}" install krew
 
 # install krew plugins
-RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg gadget cert-manager ctx deprecations df-pv doctor exec-as flame get-all graph ice kubescape kurt kyverno ns outdated popeye pv-mounter pv-migrate rbac-tool rbac-lookup resource-capacity sniff stern tap trace tree view-secret virt directpv 
+#RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg gadget cert-manager ctx deprecations df-pv doctor exec-as flame get-all graph ice kubescape kurt kyverno ns outdated popeye pv-mounter pv-migrate rbac-tool rbac-lookup resource-capacity sniff stern tap trace tree view-secret virt directpv 
 
 
 

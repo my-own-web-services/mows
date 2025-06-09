@@ -28,7 +28,7 @@ utoipa = { workspace = true, features = ["chrono", "uuid"] }
 utoipa-axum = { workspace = true }
 axum = { workspace = true }
 axum-extra = { workspace = true }
-mows-common-rust = { workspace = true }
+mows-common-rust = { workspace = true, features = ["telemetry"] }
 tokio = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }

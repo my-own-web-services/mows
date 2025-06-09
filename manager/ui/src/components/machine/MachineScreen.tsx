@@ -64,7 +64,7 @@ export default class MachineScreen extends Component<MachineScreenProps, Machine
             >
                 <div
                     className={
-                        "pointer-events-none flex min-h-[300px] w-full items-center justify-center rounded-lg bg-[black] p-2"
+                        "flex min-h-[300px] w-full items-center justify-center rounded-lg bg-[black] p-2"
                     }
                 >
                     {this.props.machineStatus === MachineStatus.Running ? (

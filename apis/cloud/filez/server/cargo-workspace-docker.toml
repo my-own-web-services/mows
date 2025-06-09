@@ -8,15 +8,18 @@ exclude = ["target"]
 version = "1.0.98"
 
 [workspace.dependencies.axum]
-version = "0.8.4"
+version = "=0.8.4"
 
 [workspace.dependencies.axum-extra]
 features = ["typed-header"]
-version = "0.10.1"
+version = "=0.10.1"
 
 [workspace.dependencies.chrono]
 features = ["serde"]
 version = "0.4.41"
+
+[workspace.dependencies.futures-util]
+version = "0.3.31"
 
 [workspace.dependencies.gtmpl]
 version = "0.7"
@@ -39,18 +42,19 @@ version = "=0.96.0"
 version = "2.0.5"
 
 [workspace.dependencies.mows-common-rust]
+features = ["telemetry"]
 path = "./mows-common-rust"
 
 [workspace.dependencies.opentelemetry]
 features = ["trace"]
-version = "0.26.0"
+version = "=0.26.0"
 
 [workspace.dependencies.opentelemetry-otlp]
-version = "0.26.0"
+version = "=0.26.0"
 
 [workspace.dependencies.opentelemetry_sdk]
 features = ["rt-tokio"]
-version = "0.26.0"
+version = "=0.26.0"
 
 [workspace.dependencies.rand]
 version = "0.9.1"
@@ -77,14 +81,14 @@ features = ["macros", "rt-multi-thread"]
 version = "1.45.0"
 
 [workspace.dependencies.tower-http]
-features = ["cors"]
+features = ["cors", "compression-full", "decompression-full"]
 version = "0.6.4"
 
 [workspace.dependencies.tracing]
 version = "0.1.40"
 
 [workspace.dependencies.tracing-opentelemetry]
-version = "0.27.0"
+version = "=0.27.0"
 
 [workspace.dependencies.url]
 features = ["serde"]
@@ -92,19 +96,19 @@ version = "2.5.4"
 
 [workspace.dependencies.utoipa]
 features = ["chrono", "uuid"]
-version = "5.2.0"
+version = "5.3.1"
 
 [workspace.dependencies.utoipa-axum]
 version = "0.2.0"
 
 [workspace.dependencies.utoipa-swagger-ui]
 features = ["axum"]
-version = "9.0.1"
+version = "9.0.2"
 
 [workspace.dependencies.uuid]
 features = ["serde", "v7"]
 version = "1.17.0"
 
 [workspace.dependencies.zitadel]
-features = ["interceptors", "axum", "introspection_cache"]
+features = ["axum", "introspection_cache"]
 path = "./zitadel"
