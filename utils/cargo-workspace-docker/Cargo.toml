@@ -1,5 +1,7 @@
 [package]
 name = "cargo-workspace-docker"
+edition = { workspace = true }
+version = "0.1.0"
 
 [[bin]]
 name = "cargo-workspace-docker"

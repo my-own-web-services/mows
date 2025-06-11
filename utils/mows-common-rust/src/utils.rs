@@ -1,10 +1,10 @@
+use rand::Rng;
 use std::path::Path;
 
 use anyhow::Context;
 use tokio::fs;
 
 pub fn generate_id(length: usize) -> String {
-    use rand::Rng;
     const CHARSET: &[u8; 62] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     let mut rng = rand::rng();

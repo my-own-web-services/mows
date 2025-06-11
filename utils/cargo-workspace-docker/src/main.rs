@@ -1,10 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::fmt::format;
 use std::fs;
 use std::path::{Path, PathBuf};
-
-use toml::map::Map;
 use toml::Value;
 
 extern crate toml;
@@ -23,15 +20,60 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn process_workspace(root_dir: &Path) -> Result<(), Box<dyn Error>> {
-    let root_deps = parse_root_dependencies(&root_dir)?;
-    dbg!(&root_deps);
-    for (dep_name, dep_locator) in &root_deps {
-        match dep_locator {
-            DepLocator::Path(path) => {}
-            DepLocator::Version(version) => {}
+    let root_cargo_toml = root_dir.join("Cargo.toml");
+    let root_toml_str = fs::read_to_string(&root_cargo_toml)?;
+
+    let root_toml: toml::Value = toml::de::from_str(&root_toml_str)?;
+    let root_deps = parse_root_dependencies(&root_toml, &root_dir)?;
+
+    let mut child_crates_to_be_deduplicated = HashMap::new();
+
+    process_workspace_recursive(
+        root_dir,
+        0,
+        &root_deps,
+        root_dir,
+        &root_toml,
+        &mut child_crates_to_be_deduplicated,
+    )?;
+
+    // print all child crates that have more than one distinct path
+    for (crate_name, paths) in &child_crates_to_be_deduplicated {
+        if paths.len() > 1 {
+            println!(
+                "Crate '{}' is in multiple workspace child crates but not configured to be a workspace crate: {}",
+                crate_name,
+                paths
+                    .iter()
+                    .map(|p| 
+                    // add the Cargo.toml file to the path
+                        format!("\n - {}/Cargo.toml", p)
+                    
+                    
+                    )
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+            println!("\n");
         }
     }
-    process_workspace_recursive(root_dir, 0, &root_deps, root_dir)?;
+
+
+
+
+
+
+    // crates template for copying into the workspace data-encoding = { version = "2.9.0", default-features = false }
+    println!("\n\n");
+
+    for (crate_name, paths) in &child_crates_to_be_deduplicated {
+        if paths.len() > 1 {
+            println!(
+                r#"{crate_name} = {{ version = "0.1.0", default-features = false }}"#
+                
+            );
+        }
+    }
 
     //process_workspace_recursive(root_dir, 0, &root_deps, root_dir)?;
     Ok(())
@@ -43,14 +85,15 @@ enum DepLocator {
     Version(String),
 }
 
-fn parse_root_dependencies(root_dir: &Path) -> Result<HashMap<String, DepLocator>, Box<dyn Error>> {
+fn parse_root_dependencies(
+    root_toml: &toml::Value,
+    root_dir: &Path,
+) -> Result<HashMap<String, DepLocator>, Box<dyn Error>> {
     // Parse root Cargo.toml to get dependency versions.
-    let root_cargo_toml = root_dir.join("Cargo.toml");
-    let root_toml_str = fs::read_to_string(&root_cargo_toml)?;
 
     let mut deps = HashMap::new();
-    let value = toml::de::from_str::<toml::Value>(&root_toml_str)?;
-    if let Some(workspace) = value.get("workspace") {
+
+    if let Some(workspace) = root_toml.get("workspace") {
         if let Some(dependencies) = workspace.get("dependencies") {
             if let Some(deps_table) = dependencies.as_table() {
                 for (key, value) in deps_table.iter() {
@@ -82,6 +125,8 @@ fn process_workspace_recursive(
     depth: usize,
     root_deps: &HashMap<String, DepLocator>,
     root_dir: &Path,
+    root_toml: &toml::Value,
+    child_crates_to_be_deduplicated: &mut HashMap<String, HashSet<String>>,
 ) -> Result<(), Box<dyn Error>> {
     if depth > MAX_DEPTH {
         return Ok(());
@@ -105,30 +150,62 @@ fn process_workspace_recursive(
                     &path,
                     &mut new_workspace_deps,
                     root_deps,
+                    child_crates_to_be_deduplicated,
                 )?;
 
-                let mut deps_section = toml::value::Table::new();
-                deps_section.insert("dependencies".to_string(), new_workspace_deps.into());
-
                 let mut workspace_section = toml::value::Table::new();
-                workspace_section.insert("workspace".to_string(), deps_section.into());
+                workspace_section.insert("dependencies".to_string(), new_workspace_deps.into());
+
+                // copy the workspace section from the root Cargo.toml into the new workspace section
+                if let Some(root_workspace) = root_toml.get("workspace") {
+                    if let Some(root_workspace_table) = root_workspace.as_table() {
+                        for (key, value) in root_workspace_table.iter() {
+                            if key != "dependencies" {
+                                workspace_section.insert(key.clone(), value.clone());
+                            }
+                        }
+                    }
+                }
+
+                // override members and exclude
+                workspace_section.insert(
+                    "members".to_string(),
+                    toml::Value::Array(vec![toml::Value::String("app".to_string())]),
+                );
+                workspace_section.insert(
+                    "exclude".to_string(),
+                    toml::Value::Array(vec![toml::Value::String("target".to_string())]),
+                );
+
+                // delete the original packages section
+                workspace_section.remove("packages");
+
+                let mut top_level_section = toml::value::Table::new();
+                top_level_section.insert("workspace".to_string(), workspace_section.into());
+
+                // copy the profiles section from the root Cargo.toml
+                if let Some(profile) = root_toml.get("profile") {
+                    top_level_section.insert("profile".to_string(), profile.clone());
+                }
 
                 // new table
 
                 let content = format!(
                     r#"# This file is generated by cargo-workspace-docker. Do not edit manually.
-[workspace]
-resolver = "2"
-members = ["app"]
-exclude = ["target"]
-
 {}"#,
-                    toml::ser::to_string(&workspace_section)?
+                    toml::ser::to_string(&top_level_section)?
                 );
 
                 fs::write(path.join("cargo-workspace-docker.toml"), content)?;
             }
-            process_workspace_recursive(&path, depth + 1, root_deps, root_dir)?;
+            process_workspace_recursive(
+                &path,
+                depth + 1,
+                root_deps,
+                root_dir,
+                &root_toml,
+                child_crates_to_be_deduplicated,
+            )?;
         }
     }
     Ok(())
@@ -138,6 +215,7 @@ fn resolve_workspace_dependencies_recursive(
     path: &PathBuf,
     new_workspace_deps: &mut toml::value::Table,
     root_deps: &HashMap<String, DepLocator>,
+    child_crates_to_be_deduplicated: &mut HashMap<String, HashSet<String>>,
 ) -> Result<(), Box<dyn Error>> {
     let path_dep_file_str = fs::read_to_string(path.join("Cargo.toml"))?;
     let path_dep_file = toml::de::from_str::<toml::Value>(&path_dep_file_str)?;
@@ -149,11 +227,18 @@ fn resolve_workspace_dependencies_recursive(
             single_dep_table.extend(value.as_table().unwrap().clone());
             single_dep_table.remove("workspace");
             single_dep_table.remove("optional");
+            // disable the default features
+            single_dep_table.insert("default-features".to_string(), Value::Boolean(false));
 
             match root_deps.get(crate_name) {
                 Some(DepLocator::Path(path)) => {
                     single_dep_table.insert("path".to_string(), format!("./{crate_name}").into());
-                    resolve_workspace_dependencies_recursive(path, new_workspace_deps, root_deps)?;
+                    resolve_workspace_dependencies_recursive(
+                        path,
+                        new_workspace_deps,
+                        root_deps,
+                        child_crates_to_be_deduplicated,
+                    )?;
                 }
                 Some(DepLocator::Version(version)) => {
                     single_dep_table.insert("version".to_string(), Value::String(version.clone()));
@@ -163,8 +248,25 @@ fn resolve_workspace_dependencies_recursive(
                 }
             }
             new_workspace_deps.insert(crate_name.clone(), single_dep_table.clone().into());
+        } else {
+            insert_child_crate(
+                child_crates_to_be_deduplicated,
+                crate_name.clone(),
+                path.to_str().unwrap().to_string(),
+            );
         }
     }
 
     Ok(())
+}
+
+pub fn insert_child_crate(
+    child_crates_to_be_deduplicated: &mut HashMap<String, HashSet<String>>,
+    crate_name: String,
+    dep_path: String,
+) {
+    child_crates_to_be_deduplicated
+        .entry(crate_name)
+        .or_default()
+        .insert(dep_path);
 }

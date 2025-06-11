@@ -1,11 +1,11 @@
 use axum::Json;
+use mows_common_rust::utils::generate_id;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
     public_ip::create_public_ip_handler,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
-    utils::generate_id,
     write_config,
 };
 

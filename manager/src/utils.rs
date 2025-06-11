@@ -124,20 +124,6 @@ pub async fn start_dnsmasq() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn generate_id(length: usize) -> String {
-    use rand::Rng;
-    const CHARSET: &[u8; 62] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-    let mut rng = rand::thread_rng();
-
-    (0..length)
-        .map(|_| {
-            let idx = rng.gen_range(0..CHARSET.len());
-            *CHARSET.get(idx).unwrap() as char
-        })
-        .collect()
-}
-
 pub async fn cmd(cmd_and_args: Vec<&str>, error: &str) -> anyhow::Result<String> {
     let cmd = some_or_bail!(cmd_and_args.first(), "No command provided");
     let args = cmd_and_args

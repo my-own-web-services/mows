@@ -1,52 +1,44 @@
 [package]
 name = "manager"
 version = "0.1.0"
-edition = "2021"
+edition = { workspace = true }
+
+[lints]
+workspace = true
 
 [[bin]]
 name = "manager"
 path = "src/main.rs"
 
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-enum_glob_use = "deny"
-cast_sign_loss = "deny"
-cast_possible_truncation = "deny"
-cast_possible_wrap = "deny"
-cast_lossless = "deny"
-indexing_slicing = "deny"
-
 [dependencies]
 serde = { workspace = true, features = [
     "derive",
     "std",
-], default-features = false }
-serde_yaml = { version = "0.9.33" }
-serde_json = { workspace = true }
+] }
+serde_yaml = { workspace = true }
+serde_json = { workspace = true, features=["default"] }
 tempfile = "3.14.0"
-anyhow = { workspace = true }
-thiserror = { workspace = true }
-rand = "0.8.5"
-hcloud = { version = "0.21.0", default-features = false, features = [
+anyhow = { workspace = true, features=["default"] }
+thiserror = { workspace = true, features=["default"] }
+rand = { workspace = true, features=["default"] }
+hcloud = { version = "0.21.0",  default-features=false, features = [
     "rustls-tls",
 ] }
 
 
 # tracing must be enabled explicitly
-tokio = { workspace = true, default-features = false, features = [
+tokio = { workspace = true,  features = [
     "full",
     "tracing",
 ] }
 
-axum = { workspace = true, features = ["ws", "tokio"] }
-tokio-tungstenite = "0.24.0"
+axum = { workspace = true, features = ["ws", "tokio","default"] }
+tokio-tungstenite = { workspace = true, features=["default"] }
 
-futures = "0.3.31"
+futures = { workspace = true, features=["default"] }
 
 utoipa-swagger-ui = { workspace = true, features = ["axum"] }
-utoipa = { workspace = true }
+utoipa = { workspace = true, features=["macros","axum_extras"] }
 utoipa-axum = { workspace = true }
 
 tower = { workspace = true, features = ["util", "timeout"] }
@@ -57,11 +49,11 @@ tower-http = { workspace = true, features = [
     "trace",
 ] }
 
-tracing = { workspace = true }
-tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
+tracing = { workspace = true, features=["default"] }
+tracing-subscriber = { workspace = true, features = ["env-filter", "chrono"] }
 
-opentelemetry = { workspace = true }
-tracing-opentelemetry = { workspace = true }
+opentelemetry = { workspace = true, features=["default"] }
+tracing-opentelemetry = { workspace = true, features=["default"] }
 opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
 opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
 opentelemetry-semantic-conventions = { workspace = true, features = [
@@ -89,30 +81,20 @@ serde-xml-rs = "0.6.0"
 kube = { workspace = true, features = ["runtime", "derive", "client"] }
 k8s-openapi = { workspace = true, features = ["latest"] }
 
-reqwest = { workspace = true, default-features = false, features = [
+reqwest = { workspace = true,  features = [
     "json",
     "rustls-tls",
 ] }
-lazy_static = "1.5.0"
+lazy_static = { workspace = true }
 url = { workspace = true, features = ["serde"] }
 
-vaultrs = { workspace = true }
-data-encoding = "2.6.0"
+vaultrs = { workspace = true, features = ["rustls"] }
+data-encoding = { workspace = true, features=["default"] }
 
-include_dir = { workspace = true }
-mime_guess = { workspace = true }
-mows-package-manager = { workspace = true }
-mows-common-rust = { workspace = true }
-
-
-# [target.'cfg(not(target_env = "msvc"))'.dependencies]
-# tikv-jemallocator = "0.6.0"
+include_dir = { workspace = true, features=["default"] }
+mime_guess = { workspace = true, features=["default"] }
+mows-package-manager = { workspace = true, features=["default"] }
+mows-common-rust = { workspace = true, features=["default"] }
 
 
-# [profile.release]
-# codegen-units = 1
-# debug = false
-# debug-assertions = false
-# lto = true
-# opt-level = 3
-# rpath = false
+

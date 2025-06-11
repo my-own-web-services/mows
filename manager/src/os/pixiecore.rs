@@ -1,6 +1,7 @@
 use std::{net::Ipv4Addr, os::unix::fs::PermissionsExt, path::Path};
 
 use anyhow::Context;
+use mows_common_rust::utils::generate_id;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tracing::debug;
@@ -8,7 +9,6 @@ use tracing::debug;
 use crate::{
     config::{InternalIps, PixiecoreBootConfig, SshAccess, Vip, VipIp},
     some_or_bail,
-    utils::generate_id,
 };
 
 use super::cloud_init::CloudInit;

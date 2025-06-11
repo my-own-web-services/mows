@@ -1,4 +1,5 @@
 use anyhow::{bail, Context};
+use mows_common_rust::utils::generate_id;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -17,9 +18,7 @@ use crate::{
         qemu::machine::LocalMachineProviderQemu,
     },
     public_ip::remove_public_ip_config_if_exists,
-    some_or_bail,
-    utils::generate_id,
-    write_config,
+    some_or_bail, write_config,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, Default, PartialEq)]

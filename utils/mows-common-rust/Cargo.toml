@@ -1,66 +1,69 @@
 [package]
 name = "mows-common-rust"
 version = "0.1.0"
-edition = "2021"
+edition = { workspace = true }
 
 [features]
-default = ["telemetry"]
-telemetry = [
-    "dep:opentelemetry-otlp",
-    "dep:tracing-opentelemetry",
-    "dep:opentelemetry",
-    "dep:opentelemetry_sdk",
-]
+
+default = []
 
 
 [dependencies]
-thiserror = { workspace = true }
-anyhow = { workspace = true }
+thiserror = { workspace = true, features = ["default"] }
+anyhow = { workspace = true, features = ["default"] }
 
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
+serde_json = { workspace = true, features = ["default"] }
 
-tracing = { workspace = true }
-tracing-subscriber = { version = "0.3.18", features = [
+tracing = { workspace = true, features = ["default"] }
+tracing-subscriber = { workspace = true, features = [
     "json",
     "env-filter",
     "chrono",
+    "default",
 ] }
 
-tracing-opentelemetry = { workspace = true, optional = true }
-opentelemetry = { workspace = true, optional = true, features = ["trace"] }
-opentelemetry-otlp = { workspace = true, optional = true }
-opentelemetry_sdk = { workspace = true, optional = true, features = [
-    "rt-tokio",
+tracing-opentelemetry = { workspace = true, features = [
+    "metrics",
+    "tracing-log",
 ] }
-
-reqwest = { workspace = true, default-features = false, features = [
-    "json",
-    "rustls-tls",
-    "stream",
+opentelemetry = { workspace = true, features = ["trace"] }
+opentelemetry-otlp = { workspace = true, features = [
+    "trace",
+    "logs",
+    "grpc-tonic",
+    "metrics",
 ] }
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
 
-reqwest-tracing = { version = "0.5.4", features = ["opentelemetry_0_28"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "stream"] }
+
+reqwest-tracing = { workspace = true, features = ["opentelemetry_0_28"] }
 
 reqwest-middleware = { version = "0.4.0", features = ["json", "rustls-tls"] }
 http = "1.1.0"
 
 
-rand = { workspace = true }
+rand = { workspace = true, features = ["default"] }
 gtmpl = { workspace = true }
 gtmpl_value = { workspace = true }
 gtmpl_derive = { workspace = true }
 bcrypt = { version = "0.15.1" }
 md5 = { version = "0.7.0" }
-sha2 = "0.10"
+sha2 = { workspace = true, features = ["default"] }
 sha1 = "0.10.6"
-data-encoding = { version = "2.6.0" }
+data-encoding = { workspace = true, features = ["default"] }
 serde_yaml = { workspace = true }
 
 kube = { workspace = true, features = ["runtime", "derive", "client"] }
 k8s-openapi = { workspace = true, features = ["latest"] }
-rcgen = { version = "0.13.2", features = ["pem", "crypto", "x509-parser"] }
-time = "0.3.37"
+rcgen = { workspace = true, features = [
+    "pem",
+    "x509-parser",
+    "default",
+    "crypto",
+] }
+time = { workspace = true, features = ["default"] }
 pem = "3.0.5"

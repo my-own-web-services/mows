@@ -13,11 +13,8 @@ use serde_json::json;
 
 use tracing::debug;
 
-use crate::{
-    config::{Cluster, ClusterNode},
-    utils::generate_id,
-};
-use mows_common_rust::s;
+use crate::config::{Cluster, ClusterNode};
+use mows_common_rust::{s, utils::generate_id};
 
 pub struct ClusterStorage;
 

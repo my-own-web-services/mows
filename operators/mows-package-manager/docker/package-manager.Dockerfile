@@ -15,7 +15,7 @@ COPY --from=mows-common-rust . mows-common-rust
 COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 
-FROM clux/muslrust:stable AS chef-builder
+FROM clux/muslrust:nightly AS chef-builder
 
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
 

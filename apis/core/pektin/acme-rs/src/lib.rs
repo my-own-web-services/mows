@@ -274,7 +274,7 @@ impl AcmeClient {
             initital_ip: Option<String>,
             #[serde(rename = "createdAt")]
             created_at: Option<String>,
-            contact: Vec<String>,
+            contact: Option<Vec<String>>,
             key: JsonWebKey,
         }
 

@@ -4,6 +4,7 @@ use axum::http::{
     HeaderValue, Method,
 };
 use axum_health::{health, Health};
+use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use diesel_async::async_connection_wrapper::AsyncConnectionWrapper;
 use diesel_async::AsyncPgConnection;
 use diesel_async::{
@@ -96,7 +97,8 @@ async fn main() -> Result<(), anyhow::Error> {
         StaticProvider::new(&config.minio_username, &config.minio_password, None);
     let minio_client = ClientBuilder::new(BaseUrl::from_str(&config.minio_endpoint)?)
         .provider(Some(Box::new(minio_static_provider)))
-        .build()?;
+        .build()
+        .context("Failed to create MinIO client.")?;
 
     // create the bucket if it does not exist in the background
     let background_client = minio_client.clone();
@@ -154,6 +156,8 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_state(app_state)
         .layer(CompressionLayer::new())
         .layer(DecompressionLayer::new())
+        .layer(OtelInResponseLayer::default())
+        .layer(OtelAxumLayer::default())
         .layer(
             CorsLayer::new()
                 .allow_origin(

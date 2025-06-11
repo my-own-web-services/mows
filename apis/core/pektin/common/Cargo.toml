@@ -10,34 +10,26 @@ name = "gen_schema"
 path = "src/gen_schema.rs"
 
 
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-enum_glob_use = "deny"
-cast_sign_loss = "deny"
-cast_possible_truncation = "deny"
-cast_possible_wrap = "deny"
-cast_lossless = "deny"
-indexing_slicing = "deny"
+[features]
+default = []
 
 [dependencies]
 base64 = "0.22.1"
 deadpool-redis = { version = "0.18.0", features = ["rt_tokio_1", "serde"] }
 hex = "0.4"
-serde = { version = "1.0.213", features = ["derive"] }
-serde_json = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["default"] }
 serde_repr = "0.1.19"
-thiserror = "1.0.65"
-tracing = "0.1.40"
+thiserror = { workspace = true }
+tracing = { workspace = true }
 hickory-proto = { version = "0.24.4", features = [
     "dnssec-ring",
     "serde-config",
 ] }
-url = "2.5.2"
+url = { workspace = true }
 
 
-schemars = { version = "0.8.12", features = ["chrono"] }
+schemars = { workspace = true, features = ["chrono"] }
 
 [lib]
 name = "pektin_common"

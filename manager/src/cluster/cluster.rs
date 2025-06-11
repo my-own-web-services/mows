@@ -8,7 +8,6 @@ use crate::utils::cmd;
 use crate::{
     config::{Cluster, MachineInstallState, ManagerConfig},
     get_current_config_cloned, some_or_bail,
-    utils::generate_id,
 };
 use anyhow::{bail, Context};
 use k8s_openapi::api::core::v1::Node;
@@ -17,6 +16,7 @@ use kube::{
     config::{KubeConfigOptions, Kubeconfig},
     Api,
 };
+use mows_common_rust::utils::generate_id;
 use mows_package_manager::rendered_document::CrdHandling;
 use mows_package_manager::repository::Repository;
 use serde::{Deserialize, Serialize};
