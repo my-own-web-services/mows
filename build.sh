@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-export BAKE_ARGS="--set *.args.PROFILE=release --set *.args.APP_STAGE_IMAGE=scratch"
+export BUILDX_BAKE_ENTITLEMENTS_FS=0
+export BAKE_ARGS="--set *.args.PROFILE=dev --set *.args.APP_STAGE_IMAGE=scratch"
 export REGISTRY="localhost:5000"
 
 

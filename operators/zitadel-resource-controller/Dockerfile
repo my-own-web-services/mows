@@ -10,7 +10,7 @@ COPY --from=zitadel-rust . zitadel
 COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 
-FROM clux/muslrust:stable AS chef-builder
+FROM clux/muslrust:nightly AS chef-builder
 ARG CARGO_CHEF_REF
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
 

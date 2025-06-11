@@ -1,20 +1,9 @@
 [package]
 name = "zitadel_resource_controller"
 version = "0.14.0"
-edition = "2021"
+edition = { workspace = true }
 publish = false
 
-
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-enum_glob_use = "deny"
-cast_sign_loss = "deny"
-cast_possible_truncation = "deny"
-cast_possible_wrap = "deny"
-cast_lossless = "deny"
-indexing_slicing = "deny"
 
 [[bin]]
 doc = false
@@ -33,30 +22,30 @@ path = "src/lib.rs"
 
 
 [dependencies]
-serde_json = { workspace = true }
-actix-web = "4.9.0"
-futures = "0.3.31"
+serde_json = { workspace = true, features = ["default"] }
+actix-web = { workspace = true, features = ["default"] }
+futures = { workspace = true, features = ["default"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-k8s-openapi = { version = "0.23.0", features = ["latest"] }
-schemars = { version = "0.8.12", features = ["chrono"] }
+k8s-openapi = { workspace = true, features = ["latest"] }
+schemars = { workspace = true, features = ["chrono"] }
 serde = { workspace = true, features = ["derive"] }
-serde_yaml = "0.9.25"
-chrono = { version = "0.4.26", features = ["serde"] }
+serde_yaml = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
 
-tracing = { workspace = true }
+tracing = { workspace = true, features = ["default"] }
 opentelemetry = { workspace = true, features = ["trace"] }
 
 
-thiserror = { workspace = true }
-anyhow = { workspace = true }
-prometheus-client = "0.22.2"
-vaultrs = { workspace = true }
-serde_variant = "0.1.3"
-itertools = "0.13.0"
+thiserror = { workspace = true, features = ["default"] }
+anyhow = { workspace = true, features = ["default"] }
+prometheus-client = { workspace = true }
+vaultrs = { workspace = true, features = ["rustls"] }
+serde_variant = { workspace = true }
+itertools = { workspace = true, features = ["default"] }
 
-tracing-actix-web = "0.7.14"
+tracing-actix-web = { workspace = true, features = ["default"] }
 
-mows-common-rust = { workspace = true }
+mows-common-rust = { workspace = true, features = ["default"] }
 
 zitadel = { workspace = true, features = [
     "api",
@@ -68,24 +57,7 @@ zitadel = { workspace = true, features = [
     "api-user-v2",
 ] }
 
-tonic = { version = "0.12.3" }
-pbjson-types = "0.7.0"
+tonic = { version = "0.12.3", features = ["default"] }
+pbjson-types = { workspace = true }
 
-[dependencies.kube]
-features = ["runtime", "client", "derive"]
-version = "0.96.0"
-
-# testing new releases - ignore
-#git = "https://github.com/kube-rs/kube.git"
-#branch = "main"
-#rev = "19b90ad3a4dbc83e1dd742847c7707333259b1bb"
-#path = "../kube/kube"
-
-
-[profile.release]
-opt-level = 3
-debug = false
-lto = true
-codegen-units = 1
-strip = true
-panic = "abort"
+kube = { workspace = true, features = ["runtime", "derive", "client"] }

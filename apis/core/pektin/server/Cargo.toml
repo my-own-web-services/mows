@@ -1,5 +1,5 @@
 [package]
-edition = "2021"
+edition = { workspace = true }
 name = "pektin-server"
 version = "0.1.0"
 
@@ -24,19 +24,19 @@ indexing_slicing = "deny"
 
 
 [dependencies]
-actix-cors = "0.7.0"
-actix-web = "4.9.0"
-anyhow = { workspace = true }
-chrono = "0.4.38"
-data-encoding = "2.6.0"
-env_logger = "0.11.5"
-futures-util = "0.3.31"
-log = { version = "0.4.22", features = ["release_max_level_warn"] }
-parking_lot = "0.12.3"
-pektin-common = { workspace = true }
+actix-cors = { workspace = true }
+actix-web = { workspace = true, features = ["default"] }
+anyhow = { workspace = true, features = ["default"] }
+chrono = { workspace = true, features = ["default"] }
+data-encoding = { workspace = true, features = ["default"] }
+env_logger = { workspace = true, features = ["default"] }
+futures-util = { workspace = true, features = ["default"] }
+log = { workspace = true, features = ["release_max_level_warn"] }
+parking_lot = { workspace = true, features = ["default"] }
+pektin-common = { workspace = true, features = ["default"] }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-thiserror = { workspace = true }
+serde_json = { workspace = true, features = ["default"] }
+thiserror = { workspace = true, features = ["default"] }
 tokio = { workspace = true, features = ["full"] }
 hickory-server = "0.24.1"
 url = { workspace = true, features = ["serde"] }
@@ -44,11 +44,3 @@ url = { workspace = true, features = ["serde"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.6.0"
-
-[profile.release]
-codegen-units = 1
-debug = false
-debug-assertions = false
-lto = true
-opt-level = 3
-rpath = false

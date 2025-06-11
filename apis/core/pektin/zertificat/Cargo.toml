@@ -1,67 +1,24 @@
 [package]
 name = "zertificat"
 version = "0.1.0"
-edition = "2021"
-
+edition = { workspace = true }
 
 [[bin]]
 name = "zertificat"
 path = "src/main.rs"
 
-
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-enum_glob_use = "deny"
-cast_sign_loss = "deny"
-cast_possible_truncation = "deny"
-cast_possible_wrap = "deny"
-cast_lossless = "deny"
-indexing_slicing = "deny"
-
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-serde = { workspace = true, features = [
-    "derive",
-    "std",
-], default-features = false }
-serde_json = { workspace = true }
-anyhow = { workspace = true }
-tokio = { workspace = true, default-features = false, features = [
-    "rt-multi-thread",
-    "macros",
-    "signal",
-] }
-data-encoding = "2.6.0"
-reqwest = { workspace = true, default-features = false, features = [
-    "rustls-tls",
-] }
-acme-rs = { workspace = true, features = [
-    "acmeRsStd",
-], default-features = false }
-rand_core = { version = "0.6.4", default-features = false, features = [
-    "getrandom",
-] }
-p256 = { version = "0.13.2", default-features = false, features = [
-    "std",
-    "ecdsa",
-] }
-chrono = "0.4.38"
-vaultrs = { workspace = true }
-
-
-mows-common-rust = { workspace = true }
-
-
-tracing = { workspace = true }
-
-[profile.release]
-codegen-units = 1
-debug = false
-debug-assertions = false
-lto = true
-opt-level = 3
-rpath = false
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true, features = ["default"] }
+anyhow = { workspace = true, features = ["default"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal"] }
+data-encoding = { workspace = true, features = ["default"] }
+reqwest = { workspace = true, features = ["rustls-tls"] }
+acme-rs = { workspace = true, features = ["acmeRsStd"] }
+rand = { workspace = true, features = ["default"] }
+p256 = { workspace = true, features = ["std", "ecdsa"] }
+chrono = { workspace = true, features = ["default"] }
+vaultrs = { workspace = true, features = ["rustls"] }
+mows-common-rust = { workspace = true, features = ["default"] }
+tracing = { workspace = true, features = ["default"] }
+rand_core = { version = "0.6.4", features = ["getrandom"] }

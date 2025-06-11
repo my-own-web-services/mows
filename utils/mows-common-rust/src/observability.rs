@@ -1,13 +1,13 @@
 use crate::{config::common_config, get_current_config_cloned};
-#[cfg(feature = "telemetry")]
+
 use opentelemetry::trace::{TraceId, TracerProvider};
-#[cfg(feature = "telemetry")]
+
 use opentelemetry_sdk::{runtime, trace as sdktrace, trace::Config, Resource};
 use std::str::FromStr;
 use tracing_subscriber::{fmt::time::ChronoLocal, prelude::*, Registry};
 
 ///  Fetch an opentelemetry::trace::TraceId as hex through the full tracing stack
-#[cfg(feature = "telemetry")]
+
 pub fn get_trace_id() -> TraceId {
     use opentelemetry::trace::TraceContextExt as _; // opentelemetry::Context -> opentelemetry::trace::Span
     use tracing_opentelemetry::OpenTelemetrySpanExt as _; // tracing::Span to opentelemetry::Context
@@ -18,7 +18,6 @@ pub fn get_trace_id() -> TraceId {
         .trace_id()
 }
 
-#[cfg(feature = "telemetry")]
 async fn resource() -> Resource {
     use opentelemetry::KeyValue;
 
@@ -30,7 +29,6 @@ async fn resource() -> Resource {
     ])
 }
 
-#[cfg(feature = "telemetry")]
 async fn init_tracer() -> sdktrace::Tracer {
     use opentelemetry::global;
     use opentelemetry_otlp::WithExportConfig;
@@ -65,7 +63,7 @@ pub async fn init_observability() {
     let tracing_filter = tracing_subscriber::EnvFilter::from_str(&config.tracing_filter).unwrap();
 
     // Setup tracing layers
-    #[cfg(feature = "telemetry")]
+
     let otel = tracing_opentelemetry::OpenTelemetryLayer::new(init_tracer().await)
         .with_filter(tracing_filter);
 
@@ -82,10 +80,8 @@ pub async fn init_observability() {
 
     // Decide on layers
     let reg = Registry::default();
-    #[cfg(feature = "telemetry")]
+
     reg.with(logger).with(otel).init();
-    #[cfg(not(feature = "telemetry"))]
-    reg.with(logger).init();
 }
 
 pub async fn init_minimal_observability(level: &str) -> anyhow::Result<()> {

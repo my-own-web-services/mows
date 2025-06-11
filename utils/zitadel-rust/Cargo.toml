@@ -268,18 +268,18 @@ proto_full = [
 # @@protoc_insertion_point(features)
 
 [dependencies]
-actix-web = { version = "4.9.0", optional = true }
-tracing = { workspace = true }
-async-trait = { version = "0.1.80", optional = true }
+actix-web = { workspace = true, optional = true }
+tracing = { workspace = true, features = ["default"] }
+async-trait = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 base64-compat = { version = "1", optional = true }
 custom_error = "1.9.2"
 document-features = { version = "0.2.8", optional = true }
 jsonwebtoken = { version = "9.3.0", optional = true }
-moka = { version = "0.12.8", features = ["future"], optional = true }
+moka = { workspace = true, features = ["future"], optional = true }
 openidconnect = { version = "3.5.0", optional = true }
-pbjson-types = { version = "0.7.0", optional = true }
+pbjson-types = { workspace = true, optional = true }
 prost = { version = "0.13.1", optional = true }
 prost-types = { version = "0.13.1", optional = true }
 reqwest = { version = "0.11.27", features = [
@@ -287,10 +287,10 @@ reqwest = { version = "0.11.27", features = [
   "rustls-tls",
 ], default-features = false, optional = true }
 rocket = { version = "0.5.0", optional = true }
-serde = { version = "1.0.200", features = ["derive"], optional = true }
-serde_json = { version = "1.0.116", optional = true }
+serde = { workspace = true, features = ["derive"], optional = true }
+serde_json = { workspace = true, optional = true }
 serde_urlencoded = { version = "0.7.1", optional = true }
-time = { version = "0.3.36", optional = true }
+time = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = [
   "macros",
   "rt-multi-thread",
@@ -303,7 +303,7 @@ rocket_okapi = { version = "0.9.0", optional = true, default-features = false }
 schemars = { version = "0.8.21", optional = true }
 tonic-types = { version = "0.12.1", optional = true }
 pbjson = { version = "0.7.0", optional = true }
-anyhow = { workspace = true }
+anyhow = { workspace = true, features = ["default"] }
 
 
 [dev-dependencies]

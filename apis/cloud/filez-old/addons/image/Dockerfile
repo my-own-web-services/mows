@@ -1,5 +1,5 @@
 # 0. BUILD STAGE
-FROM clux/muslrust:stable AS build
+FROM clux/muslrust:nightly AS build
 # build deps
 
 

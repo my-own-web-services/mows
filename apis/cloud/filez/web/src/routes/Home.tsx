@@ -63,8 +63,8 @@ export default class Home extends Component<HomeProps, HomeState> {
 
     sendApiRequest = () => {
         if (this.state.user) {
-            fetch("https://filez-server.vindelicorum.eu/get", {
-                method: "GET",
+            fetch("https://filez-server.vindelicorum.eu/api/users/apply", {
+                method: "POST",
                 headers: {
                     Authorization: `Bearer ${this.state.user.access_token}`
                 }

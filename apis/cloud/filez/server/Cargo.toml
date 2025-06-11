@@ -5,41 +5,30 @@ edition = "2021"
 publish = false
 
 
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-enum_glob_use = "deny"
-cast_sign_loss = "deny"
-cast_possible_truncation = "deny"
-cast_possible_wrap = "deny"
-cast_lossless = "deny"
-indexing_slicing = "deny"
-
 [[bin]]
 name = "server"
 path = "src/main.rs"
 
 [dependencies]
-serde = { workspace = true }
-serde_json = { workspace = true }
+serde = { workspace = true, features = ["default"] }
+serde_json = { workspace = true, features = ["default"] }
 utoipa-swagger-ui = { workspace = true, features = ["axum"] }
 utoipa = { workspace = true, features = ["chrono", "uuid"] }
 utoipa-axum = { workspace = true }
-axum = { workspace = true }
-axum-extra = { workspace = true }
-mows-common-rust = { workspace = true, features = ["telemetry"] }
-tokio = { workspace = true }
-thiserror = { workspace = true }
-anyhow = { workspace = true }
-tracing = { workspace = true }
+axum = { workspace = true, features = ["default"] }
+axum-extra = { workspace = true, features = ["default"] }
+mows-common-rust = { workspace = true, features = ["default"] }
+tokio = { workspace = true, features = ["default"] }
+thiserror = { workspace = true, features = ["default"] }
+anyhow = { workspace = true, features = ["default"] }
+tracing = { workspace = true, features = ["default"] }
 tower-http = { workspace = true, features = [
     "cors",
     "compression-full",
     "decompression-full",
 ] }
 
-mime_guess = { workspace = true }
+mime_guess = { workspace = true, features = ["default"] }
 url = { workspace = true, features = ["serde"] }
 zitadel = { workspace = true, features = ["axum", "introspection_cache"] }
 
@@ -62,7 +51,7 @@ diesel-enum = "0.2.1"
 tokio-postgres = { version = "0.7.13" }
 #tokio-postgres-rustls = "0.13.0"
 #rustls = "0.23.27"
-#futures-util = { workspace = true }
+#futures-util = { workspace = true, features=["default"] }
 
 
 uuid = { workspace = true, features = ["serde", "v7"] }
@@ -79,7 +68,8 @@ axum-health = { version = "=0.1.2", features = [
     "diesel-deadpool",
     "_diesel-async",
 ] }
-async-trait = "0.1.88"
-futures-util = { workspace = true }
+async-trait = { workspace = true }
+futures-util = { workspace = true, features = ["default"] }
 
 serde_variant = "0.1.3"
+axum-tracing-opentelemetry = { workspace = true }

@@ -1,7 +1,7 @@
 [package]
 name = "acme-rs"
 version = "0.1.0"
-edition = "2021"
+edition = { workspace = true }
 
 [[bin]]
 name = "main"
@@ -10,17 +10,6 @@ path = "src/main.rs"
 [lib]
 name = "lib"
 path = "src/lib.rs"
-
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-enum_glob_use = "deny"
-cast_sign_loss = "deny"
-cast_possible_truncation = "deny"
-cast_possible_wrap = "deny"
-cast_lossless = "deny"
-indexing_slicing = "deny"
 
 
 [features]
@@ -31,40 +20,16 @@ insecurePebbleRoots = []
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-p256 = { version = "0.13.2", default-features = false, features = [
-    "std",
-    "ecdsa",
-] }
-rand_core = { version = "0.6.3", default-features = false, features = [
-    "getrandom",
-] }
-reqwest = { workspace = true, features = [
-    "rustls-tls",
-], default-features = false }
-serde = { workspace = true, features = [
-    "derive",
-    "std",
-], default-features = false }
-serde_json = { workspace = true }
+sha2 = { workspace = true, features = ["default"] }
+reqwest = { workspace = true, features = ["rustls-tls"] }
+serde = { workspace = true, features = ["derive", "std"] }
+rcgen = { version = "0.12.1", features = ["x509-parser", "pem", "default"] }
+p256 = { workspace = true, features = ["std", "ecdsa"] }
+rand = { workspace = true, features = ["default"] }
+serde_json = { workspace = true, features = ["default"] }
 serde_yaml = { workspace = true }
-anyhow = { workspace = true }
-tokio = { workspace = true, default-features = false, features = [
-    "rt-multi-thread",
-    "macros",
-] }
-data-encoding = { version = "2.3.2" }
-sha2 = { version = "0.10.2", default-features = false }
-rcgen = { version = "0.9.3", features = [
-    "x509-parser",
-    "pem",
-], default-features = false }
-time = { version = "0.3", default-features = false, features = ["std"] }
-
-
-[profile.release]
-codegen-units = 1
-debug = false
-debug-assertions = false
-lto = true
-opt-level = 3
-rpath = false
+anyhow = { workspace = true, features = ["default"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+data-encoding = { workspace = true, features = ["default"] }
+time = { workspace = true, features = ["std"] }
+rand_core = { version = "0.6.4", features = ["getrandom"] }

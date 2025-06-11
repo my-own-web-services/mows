@@ -1,7 +1,7 @@
 FROM mwader/static-ffmpeg:6.0 as ffmpeg-static
 
 # 0. BUILD STAGE
-FROM clux/muslrust:stable AS build
+FROM clux/muslrust:nightly AS build
 # build deps
 USER root
 RUN apt-get update && apt-get install upx -y

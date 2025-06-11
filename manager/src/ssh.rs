@@ -1,5 +1,6 @@
 use anyhow::{bail, Context};
 use async_ssh2_tokio::{AuthMethod, Client, Config, ServerCheckMethod};
+use mows_common_rust::utils::generate_id;
 use std::env;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
@@ -9,10 +10,7 @@ use tempfile::NamedTempFile;
 use tokio::{io::AsyncWriteExt, process::Command};
 
 use crate::config::Machine;
-use crate::{
-    config::{ClusterNode, SshAccess},
-    utils::generate_id,
-};
+use crate::config::{ClusterNode, SshAccess};
 use crate::{some_or_bail, write_config};
 
 struct SshPubAndPrivKey {

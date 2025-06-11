@@ -1,4 +1,3 @@
-use rcgen::Certificate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -22,7 +21,7 @@ pub struct CreatedAccountResponse {
     pub initital_ip: Option<String>,
     #[serde(rename = "createdAt")]
     pub created_at: Option<String>,
-    pub contact: Vec<String>,
+    pub contact: Option<Vec<String>>,
     pub key: JsonWebKey,
     pub key_id: String,
 }
