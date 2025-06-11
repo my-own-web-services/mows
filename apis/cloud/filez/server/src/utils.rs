@@ -2,9 +2,15 @@ use async_trait::async_trait;
 use axum_health::{HealthDetail, HealthIndicator};
 use minio::s3::{response::BucketExistsResponse, types::S3Api};
 use tokio::signal::{self};
+use uuid::Timestamp;
 use zitadel::axum::introspection::IntrospectionState;
 
 use crate::{config::BUCKET_NAME, db::Db};
+
+pub fn get_uuid() -> uuid::Uuid {
+    let ts = Timestamp::now(uuid::NoContext);
+    uuid::Uuid::new_v7(ts)
+}
 
 pub async fn shutdown_signal() {
     let ctrl_c = async {

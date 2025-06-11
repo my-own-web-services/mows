@@ -20,7 +20,7 @@ use server::{
     api::{self},
     config::{config, BUCKET_NAME},
     db::Db,
-    types::AppState,
+    types::{ApiDoc, AppState},
     utils::{
         create_bucket_if_not_exists, shutdown_signal, MinioHealthIndicator,
         PostgresHealthIndicator, ZitadelHealthIndicator,
@@ -30,23 +30,15 @@ use std::{net::SocketAddr, str::FromStr};
 use tower_http::{
     compression::CompressionLayer, cors::CorsLayer, decompression::DecompressionLayer,
 };
+use utoipa::OpenApi;
 use utoipa_axum::routes;
 
 use axum::routing::get;
 use tracing::{info, warn};
-use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
 use zitadel::axum::introspection::IntrospectionStateBuilder;
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
-
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    tags(
-        (name = "filez-server", description = "MOWS Filez API"),
-    )
-)]
-struct ApiDoc;
 
 #[tracing::instrument]
 #[tokio::main]
@@ -72,33 +64,44 @@ async fn main() -> Result<(), anyhow::Error> {
         .await
         .context("Failed to create introspection state")?;
 
+    // run pending migrations
+
+    match AsyncPgConnection::establish(&config.db_url)
+        .await
+        .context("Failed to establish async Postgres connection")
     {
-        // run pending migrations
+        Ok(async_connection) => {
+            let mut async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
+                AsyncConnectionWrapper::from(async_connection);
 
-        let async_connection = AsyncPgConnection::establish(&config.db_url).await?;
-
-        let mut async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
-            AsyncConnectionWrapper::from(async_connection);
-
-        tokio::task::spawn_blocking(move || {
-            async_wrapper.run_pending_migrations(MIGRATIONS).unwrap();
-        })
-        .await?;
-    }
+            tokio::task::spawn_blocking(move || {
+                async_wrapper.run_pending_migrations(MIGRATIONS).unwrap();
+            })
+            .await
+            .context("Failed to run pending migrations")?;
+        }
+        Err(e) => {
+            tracing::error!("Failed to establish async Postgres connection: {e}");
+        }
+    };
 
     // create the postgres connection pool
     let connection_manager =
         AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(config.db_url.clone());
-    let pool = Pool::builder(connection_manager).build()?;
+    let pool = Pool::builder(connection_manager)
+        .build()
+        .context("Failed to create Postgres connection pool")?;
     let db = Db::new(pool).await;
 
     // create the minio client
     let minio_static_provider =
         StaticProvider::new(&config.minio_username, &config.minio_password, None);
-    let minio_client = ClientBuilder::new(BaseUrl::from_str(&config.minio_endpoint)?)
-        .provider(Some(Box::new(minio_static_provider)))
-        .build()
-        .context("Failed to create MinIO client.")?;
+    let minio_client = ClientBuilder::new(
+        BaseUrl::from_str(&config.minio_endpoint).context("Failed to parse MinIO endpoint URL.")?,
+    )
+    .provider(Some(Box::new(minio_static_provider)))
+    .build()
+    .context("Failed to create MinIO client.")?;
 
     // create the bucket if it does not exist in the background
     let background_client = minio_client.clone();
@@ -179,7 +182,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Starting server");
 
-    let listener = tokio::net::TcpListener::bind(SocketAddr::new("::".parse()?, 8080)).await?;
+    let listener = tokio::net::TcpListener::bind(SocketAddr::new("::".parse()?, 8080))
+        .await
+        .context("Failed to bind TCP listener to address ::1:8080")?;
 
     axum::serve(
         listener,

@@ -78,7 +78,7 @@ tokio-util = "0.7.8"
 serde-xml-rs = "0.6.0"
 
 
-kube = { workspace = true, features = ["runtime", "derive", "client"] }
+kube = { workspace = true, features = ["runtime", "derive", "client","default"] }
 k8s-openapi = { workspace = true, features = ["latest"] }
 
 reqwest = { workspace = true,  features = [

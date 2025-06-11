@@ -1,13 +1,14 @@
-use crate::utils::InvalidEnumType;
+use crate::utils::{get_uuid, InvalidEnumType};
 use diesel::{
     deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::Text,
 };
 use diesel_enum::DbEnum;
+use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Insertable, Clone)]
 #[diesel(table_name = crate::schema::files)]
 pub struct File {
     pub id: Uuid,
@@ -18,17 +19,20 @@ pub struct File {
     pub modified_time: chrono::NaiveDateTime,
 }
 
-#[derive(Serialize, Deserialize, Insertable, ToSchema, Clone)]
-#[diesel(table_name = crate::schema::files)]
-pub struct NewFile<'a> {
-    pub owner_id: Uuid,
-    pub mime_type: &'a str,
-    pub file_name: &'a str,
-    pub created_time: chrono::NaiveDateTime,
-    pub modified_time: chrono::NaiveDateTime,
+impl File {
+    pub fn new(owner: &User, mime_type: &Mime, file_name: &str) -> Self {
+        Self {
+            id: get_uuid(),
+            owner_id: owner.id.clone(),
+            mime_type: mime_type.to_string(),
+            file_name: file_name.to_string(),
+            created_time: chrono::Utc::now().naive_utc(),
+            modified_time: chrono::Utc::now().naive_utc(),
+        }
+    }
 }
 
-#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable)]
 #[diesel(table_name = crate::schema::users)]
 pub struct User {
     pub id: Uuid,
@@ -38,13 +42,16 @@ pub struct User {
     pub modified_time: chrono::NaiveDateTime,
 }
 
-#[derive(Serialize, Deserialize, Insertable, ToSchema, Clone)]
-#[diesel(table_name = crate::schema::users)]
-pub struct NewUser<'a> {
-    pub external_user_id: &'a str,
-    pub display_name: &'a str,
-    pub created_time: chrono::NaiveDateTime,
-    pub modified_time: chrono::NaiveDateTime,
+impl User {
+    pub fn new(external_user_id: Option<String>, display_name: &str) -> Self {
+        Self {
+            id: get_uuid(),
+            external_user_id,
+            display_name: display_name.to_string(),
+            created_time: chrono::Utc::now().naive_utc(),
+            modified_time: chrono::Utc::now().naive_utc(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable)]

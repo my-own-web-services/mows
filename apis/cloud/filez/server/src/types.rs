@@ -5,6 +5,14 @@ use zitadel::axum::introspection::IntrospectionState;
 
 use crate::db::Db;
 
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags(
+        (name = "filez-server", description = "MOWS Filez API"),
+    )
+)]
+pub struct ApiDoc;
+
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ApiResponse<T> {
     pub message: String,

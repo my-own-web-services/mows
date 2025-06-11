@@ -150,7 +150,11 @@ pub async fn install_local_wireguard(
         .namespace
         .clone();
 
-    let kube_client = cluster.get_kube_client().await?;
+    let kube_client = cluster.get_kube_client().await.context(
+        "
+        Failed to get Kubernetes client for the cluster.
+    ",
+    )?;
 
     // create the namespace
 

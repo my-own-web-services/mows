@@ -9,6 +9,9 @@ edition = "2021"
 name = "gen_schema"
 path = "src/gen_schema.rs"
 
+[lib]
+name = "pektin_common"
+path = "src/lib.rs"
 
 [features]
 default = []
@@ -29,8 +32,4 @@ hickory-proto = { version = "0.24.4", features = [
 url = { workspace = true }
 
 
-schemars = { workspace = true, features = ["chrono"] }
-
-[lib]
-name = "pektin_common"
-path = "src/lib.rs"
+schemars = { workspace = true, features = ["chrono", "default"] }

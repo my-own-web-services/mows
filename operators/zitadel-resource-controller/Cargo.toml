@@ -60,4 +60,4 @@ zitadel = { workspace = true, features = [
 tonic = { version = "0.12.3", features = ["default"] }
 pbjson-types = { workspace = true }
 
-kube = { workspace = true, features = ["runtime", "derive", "client"] }
+kube = { workspace = true, features = ["runtime", "derive", "default"] }

@@ -75,4 +75,4 @@ itertools = { workspace = true, features = ["default"] }
 mows-common-rust = { workspace = true, features = ["default"] }
 gtmpl_value = { workspace = true }
 
-kube = { workspace = true, features = ["runtime", "client", "derive"] }
+kube = { workspace = true, features = ["runtime", "default", "derive"] }
