@@ -1,4 +1,22 @@
-{  "window.title": "🌐 ${rootName}",
+{
+    "window.title": "🌐 ${rootName}",
+    "restoreTerminals.terminals": [
+        {
+            "splitTerminals": [
+                {
+                    "name": "manager",
+                    "commands": ["cd manager"]
+                }
+            ]
+        },
+        {
+            "splitTerminals": [
+                {
+                    "name": "root"
+                }
+            ]
+        }
+    ],
     "cSpell.words": [
         "cpus",
         "domiflist",
@@ -46,5 +64,5 @@
         "titleBar.inactiveBackground": "#00000099",
         "titleBar.inactiveForeground": "#e7e7e799"
     },
-    "peacock.color": "#000000",
+    "peacock.color": "#000000"
 }

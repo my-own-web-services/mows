@@ -61,4 +61,4 @@ tracing-actix-web = { workspace = true, features = ["default"] }
 pektin-common = { workspace = true, features = ["default"] }
 mows-common-rust = { workspace = true, features = ["default"] }
 
-kube = { workspace = true, features = ["runtime", "client", "derive"] }
+kube = { workspace = true, features = ["runtime", "default", "derive"] }

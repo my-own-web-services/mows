@@ -15,7 +15,7 @@ use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
     config::BUCKET_NAME,
-    models::NewFile,
+    models::File,
     types::{ApiResponse, ApiResponseStatus, AppState},
     validation::validate_file_name,
 };
@@ -35,7 +35,7 @@ pub async fn create(
 ) -> Json<ApiResponse<CreateFileResponseBody>> {
     // Check if the user is authenticated
 
-    let user = match app_state
+    let requesting_user = match app_state
         .db
         .get_user_by_external_id(&external_user.user_id)
         .await
@@ -116,17 +116,7 @@ pub async fn create(
     }
 
     // Create a new file entry in the database
-    let new_file = NewFile {
-        owner_id: user.id,
-        mime_type: &mime_type.to_string(),
-        file_name: &meta_body.file_name,
-        created_time: meta_body
-            .time_created
-            .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
-        modified_time: meta_body
-            .time_modified
-            .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
-    };
+    let new_file = File::new(&requesting_user, &mime_type, &meta_body.file_name);
 
     let db_created_file = match app_state.db.create_file(&new_file).await {
         Ok(id) => id,

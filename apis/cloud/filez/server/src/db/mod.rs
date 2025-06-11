@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     auth::check::{check_resources_access_control, AuthEvaluation},
     errors::FilezErrors,
-    models::{File, NewFile, NewUser, User},
+    models::{File, User},
     schema::{self, files},
 };
 
@@ -55,7 +55,7 @@ impl Db {
         Ok(result)
     }
 
-    pub async fn create_file(&self, new_file: &NewFile<'_>) -> Result<File, FilezErrors> {
+    pub async fn create_file(&self, new_file: &File) -> Result<File, FilezErrors> {
         let mut conn = self.pool.get().await?;
 
         let result = diesel::insert_into(files::table)
@@ -105,12 +105,7 @@ impl Db {
             return Ok(user.id);
         };
         // If the user does not exist, create a new user
-        let new_user = NewUser {
-            external_user_id,
-            display_name,
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
-        };
+        let new_user = User::new(Some(external_user_id.to_string()), display_name);
 
         let result = diesel::insert_into(schema::users::table)
             .values(&new_user)

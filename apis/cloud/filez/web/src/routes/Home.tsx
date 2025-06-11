@@ -1,6 +1,7 @@
 import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
+import { Api } from "../api-client";
 import Nav from "../components/Nav";
 
 interface HomeProps {
@@ -14,6 +15,7 @@ interface HomeState {
 
 export default class Home extends Component<HomeProps, HomeState> {
     userManager: UserManager;
+    client: Api<unknown>;
     constructor(props: HomeProps) {
         super(props);
         this.state = {
@@ -23,12 +25,23 @@ export default class Home extends Component<HomeProps, HomeState> {
         this.userManager = new UserManager({
             userStore: new WebStorageStateStore({ store: window.localStorage }),
             authority: "https://zitadel.vindelicorum.eu",
-            client_id: "320164741488116389",
-            redirect_uri: "http://localhost:5174",
+            client_id: "323914159873917680",
+            redirect_uri: window.location.origin,
             response_type: "code",
             scope: "openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-auth:aud",
-            post_logout_redirect_uri: "http://localhost:5174",
+            post_logout_redirect_uri: window.location.origin,
             response_mode: "query"
+        });
+
+        this.client = new Api({
+            baseUrl: "https://filez-server.vindelicorum.eu",
+            baseApiParams: { secure: true },
+            securityWorker: async () => ({
+                // https://github.com/acacode/swagger-typescript-api/issues/300
+                headers: {
+                    Authorization: `Bearer ${this.state.user?.access_token ?? ""}`
+                }
+            })
         });
     }
 
@@ -63,16 +76,7 @@ export default class Home extends Component<HomeProps, HomeState> {
 
     sendApiRequest = () => {
         if (this.state.user) {
-            fetch("https://filez-server.vindelicorum.eu/api/users/apply", {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${this.state.user.access_token}`
-                }
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    console.log(data);
-                });
+            this.client.api.applyUser();
         }
     };
 

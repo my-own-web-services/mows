@@ -57,7 +57,7 @@ sha1 = "0.10.6"
 data-encoding = { workspace = true, features = ["default"] }
 serde_yaml = { workspace = true }
 
-kube = { workspace = true, features = ["runtime", "derive", "client"] }
+kube = { workspace = true, features = ["runtime", "derive", "default"] }
 k8s-openapi = { workspace = true, features = ["latest"] }
 rcgen = { workspace = true, features = [
     "pem",
