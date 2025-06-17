@@ -32,9 +32,7 @@ impl IntrospectionState {
         }
 
         // Discover the URI
-        let metadata = discover(&config.authority.clone())
-            .await
-            .map_err(|_| IntrospectionGuardError::IntrospectionUriNotFound)?;
+        let metadata = discover(&config.authority.clone()).await?;
 
         // Update the config (write lock)
         {

@@ -1,7 +1,7 @@
 import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
-import { Api } from "../api-client";
+import { Api, CreateFileRequestBody } from "../api-client";
 import Nav from "../components/Nav";
 
 interface HomeProps {
@@ -25,7 +25,7 @@ export default class Home extends Component<HomeProps, HomeState> {
         this.userManager = new UserManager({
             userStore: new WebStorageStateStore({ store: window.localStorage }),
             authority: "https://zitadel.vindelicorum.eu",
-            client_id: "323914159873917680",
+            client_id: "324938566448775334",
             redirect_uri: window.location.origin,
             response_type: "code",
             scope: "openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-auth:aud",
@@ -74,9 +74,45 @@ export default class Home extends Component<HomeProps, HomeState> {
         this.setState({ user: null });
     };
 
-    sendApiRequest = () => {
+    checkAccess = async () => {
         if (this.state.user) {
-            this.client.api.applyUser();
+            const applyUserRes = await this.client.api.applyUser();
+
+            const userId = applyUserRes.data.data?.user_id;
+
+            if (userId) {
+                const res = await this.client.api.checkResourceAccess({
+                    action: "",
+                    resource_ids: [userId],
+                    resource_type: "user"
+                });
+                console.log("API Response:", res);
+            }
+        }
+    };
+
+    createFile = async () => {
+        if (this.state.user) {
+            const applyUserRes = await this.client.api.applyUser();
+            const userId = applyUserRes.data.data?.user_id;
+            if (userId) {
+                const content = new Blob(["This is a test file content"], {
+                    type: "text/plain"
+                });
+
+                const metadata: CreateFileRequestBody = {
+                    file_name: "test-file.txt",
+                    mime_type: "text/plain"
+                };
+
+                // @ts-ignore
+                const res = await this.client.api.createFile(content, {
+                    headers: {
+                        "x-filez-metadata": JSON.stringify(metadata)
+                    }
+                });
+                console.log("File created:", res);
+            }
         }
     };
 
@@ -90,7 +126,8 @@ export default class Home extends Component<HomeProps, HomeState> {
                 {this.state.user ? (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-5 text-2xl">
                         Welcome back {this.state.user.profile.name}!
-                        <button onClick={this.sendApiRequest}>Send API Request </button>
+                        <button onClick={this.checkAccess}>Check own resource access</button>
+                        <button onClick={this.createFile}>Create test file</button>
                         <button onClick={this.handleLogout}>Logout</button>
                     </div>
                 ) : (

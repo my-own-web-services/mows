@@ -1,7 +1,7 @@
 use anyhow::Context;
 use axum::http::{
     header::{AUTHORIZATION, CONTENT_TYPE, UPGRADE},
-    HeaderValue, Method,
+    HeaderName, HeaderValue, Method,
 };
 use axum_health::{health, Health};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
@@ -37,7 +37,10 @@ use axum::routing::get;
 use tracing::{info, warn};
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
-use zitadel::axum::introspection::IntrospectionStateBuilder;
+use zitadel::{
+    axum::introspection::IntrospectionStateBuilder,
+    oidc::introspection::cache::in_memory::InMemoryIntrospectionCache,
+};
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
 #[tracing::instrument]
@@ -60,6 +63,7 @@ async fn main() -> Result<(), anyhow::Error> {
             &config.oidc_client_id.clone(),
             &config.oidc_client_secret.clone(),
         )
+        .with_introspection_cache(InMemoryIntrospectionCache::new())
         .build()
         .await
         .context("Failed to create introspection state")?;
@@ -132,7 +136,7 @@ async fn main() -> Result<(), anyhow::Error> {
         // FILES
         .routes(routes!(api::files::get::get_file_content))
         .routes(routes!(api::files::info::get::get_files_metadata))
-        .routes(routes!(api::files::create::create))
+        .routes(routes!(api::files::create::create_file))
         // USERS
         .routes(routes!(api::users::apply::apply_user))
         // AUTH
@@ -173,7 +177,12 @@ async fn main() -> Result<(), anyhow::Error> {
                         .collect::<Vec<HeaderValue>>(),
                 )
                 .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
-                .allow_headers([CONTENT_TYPE, UPGRADE, AUTHORIZATION]),
+                .allow_headers([
+                    CONTENT_TYPE,
+                    UPGRADE,
+                    AUTHORIZATION,
+                    HeaderName::from_static("x-filez-metadata"),
+                ]),
         )
         .layer(axum_server_timing::ServerTimingLayer::new("FilezService"))
         .split_for_parts();

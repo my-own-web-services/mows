@@ -3,13 +3,18 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use zitadel::axum::introspection::IntrospectionState;
 
-use crate::db::Db;
+use crate::{api::files::create::CreateFileRequestBody, db::Db};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
     tags(
         (name = "filez-server", description = "MOWS Filez API"),
-    )
+    ),
+    components(
+        schemas(
+            CreateFileRequestBody,
+        )
+    ),
 )]
 pub struct ApiDoc;
 

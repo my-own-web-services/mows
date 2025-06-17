@@ -415,7 +415,7 @@ pub struct ResourceAuthInfo {
 
 pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, FilezErrors> {
     Ok(match resource_type {
-        "files" => ResourceAuthInfo {
+        "file" => ResourceAuthInfo {
             resource_table: "files",
             resource_table_id_column: "id",
             resource_table_owner_column: "owner_id",
@@ -425,11 +425,31 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, FilezError
             group_membership_table_group_id_column: Some("file_group_id"),
             resource_group_type_policy_str: Some("file_group"),
         },
-        "file_groups" => ResourceAuthInfo {
+        "file_group" => ResourceAuthInfo {
             resource_table: "file_groups",
             resource_table_id_column: "id",
             resource_table_owner_column: "owner_id",
             resource_type_policy_str: "file_group",
+            group_membership_table: None,
+            group_membership_table_resource_id_column: None,
+            group_membership_table_group_id_column: None,
+            resource_group_type_policy_str: None,
+        },
+        "user" => ResourceAuthInfo {
+            resource_table: "users",
+            resource_table_id_column: "id",
+            resource_table_owner_column: "id", // Users own themselves
+            resource_type_policy_str: "user",
+            group_membership_table: None,
+            group_membership_table_resource_id_column: None,
+            group_membership_table_group_id_column: None,
+            resource_group_type_policy_str: None,
+        },
+        "user_group" => ResourceAuthInfo {
+            resource_table: "user_groups",
+            resource_table_id_column: "id",
+            resource_table_owner_column: "owner_id",
+            resource_type_policy_str: "user_group",
             group_membership_table: None,
             group_membership_table_resource_id_column: None,
             group_membership_table_group_id_column: None,

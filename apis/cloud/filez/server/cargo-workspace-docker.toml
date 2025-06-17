@@ -70,7 +70,7 @@ version = "=0.23.0"
 
 [workspace.dependencies.kube]
 default-features = false
-features = ["runtime", "derive", "client"]
+features = ["runtime", "derive", "default"]
 version = "=0.96.0"
 
 [workspace.dependencies.mime_guess]
@@ -205,7 +205,7 @@ version = "1.17.0"
 
 [workspace.dependencies.zitadel]
 default-features = false
-features = ["axum", "introspection_cache"]
+features = ["axum", "introspection_cache", "default"]
 path = "./zitadel"
 
 [workspace.lints.clippy]

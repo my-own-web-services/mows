@@ -13,7 +13,6 @@ use std::time::Duration;
 
 use futures_util::StreamExt;
 use hickory_server::server::TimeoutStream;
-use log::{error, warn};
 use pektin_common::deadpool_redis::{self, Pool};
 use pektin_common::load_env;
 use pektin_common::proto::iocompat::AsyncIoTokioAsStd;
@@ -25,6 +24,7 @@ use pektin_common::proto::DnsStreamHandle;
 use pektin_server::{process_request, PektinResult};
 use tokio::net::{TcpListener, UdpSocket};
 use tokio::signal::unix::{signal, SignalKind};
+use tracing::{error, warn};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Config {

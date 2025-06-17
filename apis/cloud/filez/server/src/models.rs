@@ -40,6 +40,7 @@ pub struct User {
     pub display_name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
+    pub deleted: bool,
 }
 
 impl User {
@@ -50,6 +51,7 @@ impl User {
             display_name: display_name.to_string(),
             created_time: chrono::Utc::now().naive_utc(),
             modified_time: chrono::Utc::now().naive_utc(),
+            deleted: false,
         }
     }
 }
@@ -59,7 +61,7 @@ impl User {
 pub struct FileGroup {
     pub id: Uuid,
     pub owner_id: Uuid,
-    pub file_group_name: String,
+    pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
 }
@@ -77,6 +79,29 @@ pub struct FileFileGroupMember {
     pub created_time: chrono::NaiveDateTime,
 }
 
+#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable)]
+#[diesel(table_name = crate::schema::file_groups)]
+pub struct UserGroup {
+    pub id: Uuid,
+    pub owner_id: Uuid,
+    pub name: String,
+    pub created_time: chrono::NaiveDateTime,
+    pub modified_time: chrono::NaiveDateTime,
+}
+
+#[derive(
+    Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Associations, Insertable,
+)]
+#[diesel(table_name = crate::schema::user_user_group_members)]
+#[diesel(belongs_to(File, foreign_key = user_id))]
+#[diesel(belongs_to(FileGroup, foreign_key = user_group_id))]
+#[diesel(primary_key(user_id, user_group_id))]
+pub struct UserUserGroupMember {
+    pub user_id: Uuid,
+    pub user_group_id: Uuid,
+    pub created_time: chrono::NaiveDateTime,
+}
+
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Default)]
 #[diesel(table_name = crate::schema::apps)]
 pub struct FilezApp {
@@ -91,16 +116,7 @@ pub struct FilezApp {
 }
 
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    AsExpression,
-    FromSqlRow,
-    DbEnum,
-    serde::Serialize,
-    Deserialize,
+    Debug, Clone, Copy, PartialEq, Eq, AsExpression, FromSqlRow, DbEnum, Serialize, Deserialize,
 )]
 #[diesel(sql_type = Text)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
@@ -111,16 +127,7 @@ pub enum AccessPolicySubjectType {
 }
 
 #[derive(
-    Debug,
-    serde::Serialize,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    AsExpression,
-    FromSqlRow,
-    DbEnum,
-    Deserialize,
+    Debug, Serialize, Clone, Copy, PartialEq, Eq, AsExpression, FromSqlRow, DbEnum, Deserialize,
 )]
 #[diesel(sql_type = Text)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
@@ -131,16 +138,7 @@ pub enum AccessPolicyResourceType {
 }
 
 #[derive(
-    Debug,
-    serde::Serialize,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    AsExpression,
-    FromSqlRow,
-    DbEnum,
-    Deserialize,
+    Debug, Serialize, Clone, Copy, PartialEq, Eq, AsExpression, FromSqlRow, DbEnum, Deserialize,
 )]
 #[diesel(sql_type = Text)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]

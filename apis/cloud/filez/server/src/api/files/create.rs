@@ -23,11 +23,12 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/api/files/create",
+    request_body(content_type = "application/octet-stream"),
     responses(
         (status = 200, description = "Created a file on the server", body = ApiResponse<CreateFileResponseBody>),
     )
 )]
-pub async fn create(
+pub async fn create_file(
     external_user: IntrospectedUser,
     headers: HeaderMap,
     State(app_state): State<AppState>,
@@ -57,8 +58,7 @@ pub async fn create(
         }
     };
 
-    let content_length = request
-        .headers()
+    let content_length = headers
         .get("content-length")
         .and_then(|v| v.to_str().ok())
         .and_then(|s| s.parse::<u64>().ok());
@@ -72,7 +72,7 @@ pub async fn create(
     }
 
     let meta_body: CreateFileRequestBody =
-        match serde_json::from_str(&headers.get("body").unwrap().to_str().unwrap()) {
+        match serde_json::from_str(&headers.get("x-filez-metadata").unwrap().to_str().unwrap()) {
             Ok(body) => body,
             Err(e) => {
                 return Json(ApiResponse {

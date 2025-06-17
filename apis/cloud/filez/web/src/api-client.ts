@@ -128,8 +128,26 @@ export type AuthReason =
   | "NoMatchingAllowPolicy"
   | "ResourceNotFound";
 
+export interface CheckResourceAccessRequestBody {
+  action: string;
+  /** @format uuid */
+  requesting_app_id?: string | null;
+  requesting_app_trusted?: boolean | null;
+  resource_ids: string[];
+  resource_type: string;
+}
+
 export interface CheckResourceAccessResponseBody {
   auth_evaluations: AuthEvaluation[];
+}
+
+export interface CreateFileRequestBody {
+  file_name: string;
+  mime_type?: string | null;
+  /** @format date-time */
+  time_created?: string | null;
+  /** @format date-time */
+  time_modified?: string | null;
 }
 
 export interface CreateFileResponseBody {
@@ -151,6 +169,10 @@ export interface File {
 
 export interface GetFileMetaResBody {
   files_meta: (null | File)[];
+}
+
+export interface GetFilesMetaRequestBody {
+  file_ids: string[];
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -376,10 +398,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @name CheckResourceAccess
      * @request POST:/api/auth/check
      */
-    checkResourceAccess: (params: RequestParams = {}) =>
+    checkResourceAccess: (data: CheckResourceAccessRequestBody, params: RequestParams = {}) =>
       this.request<ApiResponseCheckResourceAccessResponseBody, any>({
         path: `/api/auth/check`,
         method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -400,13 +424,14 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @name Create
+     * @name CreateFile
      * @request POST:/api/files/create
      */
-    create: (params: RequestParams = {}) =>
+    createFile: (data: any, params: RequestParams = {}) =>
       this.request<ApiResponseCreateFileResponseBody, any>({
         path: `/api/files/create`,
         method: "POST",
+        body: data,
         format: "json",
         ...params,
       }),
@@ -417,10 +442,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @name GetFilesMetadata
      * @request POST:/api/files/info/get
      */
-    getFilesMetadata: (params: RequestParams = {}) =>
+    getFilesMetadata: (data: GetFilesMetaRequestBody, params: RequestParams = {}) =>
       this.request<ApiResponseGetFileMetaResBody, any>({
         path: `/api/files/info/get`,
         method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),

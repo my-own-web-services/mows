@@ -8,7 +8,7 @@ pub mod errors;
 pub mod macros;
 pub mod models;
 pub mod schema;
-pub mod test;
+pub mod tests;
 pub mod types;
 pub mod utils;
 pub mod validation;

@@ -3,7 +3,6 @@ pub mod persistence;
 
 use anyhow::{anyhow, bail, ensure, Context};
 use futures_util::join;
-use log::{error, info};
 use pektin_common::deadpool_redis::redis::aio::MultiplexedConnection;
 use pektin_common::deadpool_redis::Pool;
 use pektin_common::proto::op::{Edns, Message, MessageType, Query, ResponseCode};
@@ -11,6 +10,7 @@ use pektin_common::proto::rr::{Name, RData, Record, RecordType};
 use pektin_common::{get_authoritative_zones, DbEntry, RrSet};
 use persistence::{get_rrset, get_rrsig, QueryResponse};
 use thiserror::Error;
+use tracing::{error, info};
 
 #[derive(Debug, Error)]
 pub enum PektinError {

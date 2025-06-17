@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 use crate::axum::introspection::IntrospectionState;
+use crate::oidc::discovery::DiscoveryError;
 use axum::http::StatusCode;
 use axum::{
     extract::{FromRef, FromRequestParts},
@@ -12,51 +13,53 @@ use axum::{
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
-use custom_error::custom_error;
 use openidconnect::TokenIntrospectionResponse;
 use serde_json::json;
+use tracing::{span, Level};
 
-use crate::oidc::introspection::{introspect, IntrospectionError, ZitadelIntrospectionResponse};
+use crate::oidc::introspection::{introspect, ZitadelIntrospectionResponse};
 
-custom_error! {
-    /// Error type for guard related errors.
-    pub IntrospectionGuardError
-        MissingConfig = "no introspection config given to rocket managed state",
-        Unauthorized = "no HTTP authorization header found",
-        InvalidHeader = "authorization header is invalid",
-        WrongScheme = "Authorization header is not a bearer token",
-        Introspection{source: IntrospectionError} = "introspection returned an error: {source}",
-        Inactive = "access token is inactive",
-        NoUserId = "introspection result contained no user id",
-        IntrospectionUriNotFound = "introspection uri not found in discovery document",
-        ConfigLockError = "failed to acquire lock on introspection config",
+#[derive(Debug, thiserror::Error)]
+pub enum IntrospectionGuardError {
+    #[error("Invalid Authorization header {0}")]
+    InvalidHeader(String),
+
+    #[error("Introspection failed: {0}")]
+    Introspection(String),
+
+    #[error("Introspection URI not found in discovery document")]
+    IntrospectionUriNotFound,
+
+    #[error("Inactive user")]
+    Inactive,
+
+    #[error("No user ID found in introspection response")]
+    NoUserId,
+
+    #[error("Configuration lock error")]
+    ConfigLockError,
+
+    #[error(transparent)]
+    Discovery(#[from] DiscoveryError),
 }
 
+// implement for axum response
 impl IntoResponse for IntrospectionGuardError {
     fn into_response(self) -> axum::response::Response {
-        let (status, error_message) = match self {
-            IntrospectionGuardError::MissingConfig => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "missing config")
-            }
-            IntrospectionGuardError::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized"),
-            IntrospectionGuardError::InvalidHeader => (StatusCode::BAD_REQUEST, "invalid header"),
-            IntrospectionGuardError::WrongScheme => (StatusCode::BAD_REQUEST, "invalid schema"),
-            IntrospectionGuardError::Introspection { source: _ } => {
-                (StatusCode::BAD_REQUEST, "introspection error")
-            }
-            IntrospectionGuardError::Inactive => (StatusCode::FORBIDDEN, "user is inactive"),
-            IntrospectionGuardError::NoUserId => (StatusCode::NOT_FOUND, "user was not found"),
-            IntrospectionGuardError::IntrospectionUriNotFound => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "introspection uri not found",
-            ),
-            IntrospectionGuardError::ConfigLockError => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "config lock error")
-            }
+        let status = match self {
+            IntrospectionGuardError::InvalidHeader(_) => StatusCode::UNAUTHORIZED,
+            IntrospectionGuardError::Introspection { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            IntrospectionGuardError::IntrospectionUriNotFound => StatusCode::INTERNAL_SERVER_ERROR,
+            IntrospectionGuardError::Inactive => StatusCode::FORBIDDEN,
+            IntrospectionGuardError::NoUserId => StatusCode::UNAUTHORIZED,
+            IntrospectionGuardError::ConfigLockError => StatusCode::INTERNAL_SERVER_ERROR,
+            IntrospectionGuardError::Discovery(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         let body = Json(json!({
-            "error": error_message,
+            "status": "Error",
+            "message": self.to_string(),
+            "data": null,
         }));
 
         (status, body).into_response()
@@ -90,14 +93,21 @@ where
         let TypedHeader(Authorization(bearer)) = parts
             .extract::<TypedHeader<Authorization<Bearer>>>()
             .await
-            .map_err(|_| IntrospectionGuardError::InvalidHeader)?;
+            .map_err(|e| IntrospectionGuardError::InvalidHeader(e.to_string()))?;
+
+        let span = span!(Level::TRACE, "IntrospectionGuard");
+        let _enter = span.enter();
 
         let state = IntrospectionState::from_ref(state);
+        tracing::trace!("Extracting introspected user");
 
         let introspection_uri = state.get_introspection_uri().await?;
 
         #[cfg(feature = "introspection_cache")]
         let res = {
+            let span = span!(Level::TRACE, "IntrospectionCache");
+            let _enter = span.enter();
+            tracing::trace!("Introspection cache feature enabled, checking cache.");
             let token = bearer.token();
 
             // First check cache if it exists
@@ -106,9 +116,17 @@ where
                 if let Some(cache) = config.cache.as_deref() {
                     cache.get(token).await
                 } else {
+                    tracing::error!(
+                        "Introspection cache feature enabled, but no cache configured!"
+                    );
                     None
                 }
             };
+            if cached_result.is_some() {
+                tracing::trace!("Found cached introspection response for token");
+            } else {
+                tracing::trace!("No cached introspection response found for token");
+            }
 
             match cached_result {
                 Some(cached_response) => Ok(cached_response),
@@ -122,6 +140,8 @@ where
                             config.cache.is_some(),
                         )
                     };
+
+                    tracing::trace!("No cached response, performing introspection.",);
 
                     let res = introspect(
                         introspection_uri.as_str(),
@@ -148,10 +168,7 @@ where
         let res = {
             // Extract values from config before async operations
             let (authority, authentication) = {
-                let config = state
-                    .config
-                    .read()
-                    .map_err(|_| IntrospectionGuardError::ConfigLockError)?;
+                let config = state.config.read()?;
                 (config.authority.clone(), config.authentication.clone())
             }; // Lock is dropped here
 
@@ -170,7 +187,7 @@ where
                 false => Err(IntrospectionGuardError::Inactive),
                 _ => Err(IntrospectionGuardError::NoUserId),
             },
-            Err(source) => return Err(IntrospectionGuardError::Introspection { source }),
+            Err(e) => return Err(IntrospectionGuardError::Introspection(e.to_string())),
         };
 
         user
