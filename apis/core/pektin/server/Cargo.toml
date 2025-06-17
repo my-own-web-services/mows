@@ -31,7 +31,7 @@ chrono = { workspace = true, features = ["default"] }
 data-encoding = { workspace = true, features = ["default"] }
 env_logger = { workspace = true, features = ["default"] }
 futures-util = { workspace = true, features = ["default"] }
-log = { workspace = true, features = ["release_max_level_warn"] }
+tracing = { workspace = true, features = ["default"] }
 parking_lot = { workspace = true, features = ["default"] }
 pektin-common = { workspace = true, features = ["default"] }
 serde = { workspace = true, features = ["derive"] }

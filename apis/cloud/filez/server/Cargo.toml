@@ -14,7 +14,11 @@ path = "src/server.rs"
 serde = { workspace = true, features = ["default"] }
 serde_json = { workspace = true, features = ["default"] }
 utoipa-swagger-ui = { workspace = true, features = ["axum"] }
-utoipa = { workspace = true, features = ["chrono", "uuid"] }
+utoipa = { workspace = true, features = [
+    "chrono",
+    "uuid",
+    "openapi_extensions",
+] }
 utoipa-axum = { workspace = true }
 axum = { workspace = true, features = ["default"] }
 axum-extra = { workspace = true, features = ["default"] }
@@ -31,7 +35,11 @@ tower-http = { workspace = true, features = [
 
 mime_guess = { workspace = true, features = ["default"] }
 url = { workspace = true, features = ["serde"] }
-zitadel = { workspace = true, features = ["axum", "introspection_cache"] }
+zitadel = { workspace = true, features = [
+    "axum",
+    "introspection_cache",
+    "default",
+] }
 
 diesel_migrations = "2.2.0"
 diesel = { version = "2.2.10", features = [

@@ -59,7 +59,7 @@ version = "=0.23.0"
 
 [workspace.dependencies.kube]
 default-features = false
-features = ["runtime", "derive", "client"]
+features = ["runtime", "derive", "default"]
 version = "=0.96.0"
 
 [workspace.dependencies.mows-common-rust]

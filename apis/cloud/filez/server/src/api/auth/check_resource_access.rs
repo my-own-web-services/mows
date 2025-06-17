@@ -12,6 +12,7 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/api/auth/check",
+    request_body = CheckResourceAccessRequestBody,
     responses(
         (status = 200, description = "Checks if the requested resources are available to this user", body = ApiResponse<CheckResourceAccessResponseBody>),
     )

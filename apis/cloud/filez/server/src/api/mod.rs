@@ -14,3 +14,7 @@ pub mod users {
 pub mod auth {
     pub mod check_resource_access;
 }
+
+pub mod user_groups {}
+
+pub mod file_groups {}

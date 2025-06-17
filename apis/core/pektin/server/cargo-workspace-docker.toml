@@ -44,11 +44,6 @@ default-features = false
 features = ["default"]
 version = "0.3.31"
 
-[workspace.dependencies.log]
-default-features = false
-features = ["release_max_level_warn"]
-version = "0.4.27"
-
 [workspace.dependencies.parking_lot]
 default-features = false
 features = ["default"]
@@ -61,7 +56,7 @@ path = "./pektin-common"
 
 [workspace.dependencies.schemars]
 default-features = false
-features = ["chrono"]
+features = ["chrono", "default"]
 version = "0.8.22"
 
 [workspace.dependencies.serde]
@@ -86,6 +81,7 @@ version = "1.45.0"
 
 [workspace.dependencies.tracing]
 default-features = false
+features = ["default"]
 version = "0.1.40"
 
 [workspace.dependencies.url]

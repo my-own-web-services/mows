@@ -1,5 +1,3 @@
-// @generated automatically by Diesel CLI.
-
 diesel::table! {
     files {
         id -> Uuid,
@@ -10,7 +8,6 @@ diesel::table! {
         modified_time -> Timestamp,
     }
 }
-
 diesel::joinable!(files -> users (owner_id));
 
 diesel::table! {
@@ -20,6 +17,7 @@ diesel::table! {
         display_name -> Text,
         created_time -> Timestamp,
         modified_time -> Timestamp,
+        deleted -> Bool,
     }
 }
 
@@ -30,7 +28,6 @@ diesel::table! {
         created_time -> Timestamp,
     }
 }
-
 diesel::joinable!(file_file_group_members -> files (file_id));
 diesel::joinable!(file_file_group_members -> file_groups (file_group_id));
 
@@ -38,25 +35,24 @@ diesel::table! {
     file_groups {
         id -> Uuid,
         owner_id -> Uuid,
-        file_group_name -> Text,
+        name -> Text,
         created_time -> Timestamp,
         modified_time -> Timestamp,
+        description -> Nullable<Text>,
     }
 }
-
 diesel::joinable!(file_groups -> users (owner_id));
 
 diesel::table! {
     user_groups  {
         id -> Uuid,
         owner_id -> Uuid,
-        user_group_name -> Text,
+        name -> Text,
         created_time -> Timestamp,
         modified_time -> Timestamp,
         description -> Nullable<Text>,
     }
 }
-
 diesel::joinable!(user_groups -> users (owner_id));
 
 diesel::table! {
@@ -79,19 +75,25 @@ diesel::table! {
         description -> Nullable<Text>,
     }
 }
-
 diesel::joinable!(apps -> users (owner_id));
 
 diesel::table! {
-    tags (key, value, file_id) {
-        file_id -> Uuid,
+    tags {
+        id -> Uuid,
         key -> Text,
         value -> Text,
-        created_time -> Timestamp,
     }
 }
 
-diesel::joinable!(tags -> files (file_id));
+diesel::table! {
+    file_tag_members (file_id, tag_id) {
+        file_id -> Uuid,
+        tag_id -> Uuid,
+        created_time -> Timestamp,
+        created_by_user_id -> Uuid,
+    }
+}
+diesel::joinable!(file_tag_members -> users (created_by_user_id));
 
 diesel::table! {
     access_policies {
@@ -114,3 +116,25 @@ diesel::table! {
         effect -> Text,
     }
 }
+
+diesel::table! {
+    file_group_file_sort_orders {
+        id -> Uuid,
+        file_group_id -> Uuid,
+        name -> Text,
+        created_time -> Timestamp,
+        created_by_user_id -> Uuid,
+    }
+}
+diesel::joinable!(file_group_file_sort_orders -> file_groups (file_group_id));
+diesel::joinable!(file_group_file_sort_orders -> users (created_by_user_id));
+
+diesel::table! {
+    file_group_file_sort_order_items (sort_order_id, file_id, position){
+        sort_order_id -> Uuid,
+        file_id -> Uuid,
+        position -> Integer
+    }
+}
+diesel::joinable!(file_group_file_sort_order_items -> files (file_id));
+diesel::joinable!(file_group_file_sort_order_items -> file_group_file_sort_orders (sort_order_id));

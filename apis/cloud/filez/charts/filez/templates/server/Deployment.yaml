@@ -30,6 +30,10 @@ spec:
                         limits:
                             memory: 128Mi
                             cpu: 500m
+                    livenessProbe:
+                        httpGet:
+                            path: /api/health
+                            port: 8080
                     env:
                         -   name: RUST_LOG
                             value: {{ .Values.server.rustLog }}
@@ -71,3 +75,7 @@ spec:
                                 secretKeyRef:
                                     name: minio-filez-user
                                     key: CONSOLE_SECRET_KEY
+                        -   name: TRACING_FILTER
+                            value: {{ .Values.server.tracing.filter | quote }}
+                        -   name: LOG_FILTER
+                            value: {{ .Values.server.log.filter | quote }}

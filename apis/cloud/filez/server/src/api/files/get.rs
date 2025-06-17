@@ -18,7 +18,7 @@ use zitadel::axum::introspection::IntrospectedUser;
 pub struct GetFileRequestQueryParams {
     /// download the file/set the content disposition header to attachment
     pub d: Option<bool>,
-    /// request setting the caching headers
+    /// request setting the caching headers for max-age in seconds
     pub c: Option<u64>,
 }
 

@@ -58,17 +58,12 @@ version = "=0.23.0"
 
 [workspace.dependencies.kube]
 default-features = false
-features = ["runtime", "derive", "client"]
+features = ["runtime", "derive", "default"]
 version = "=0.96.0"
 
 [workspace.dependencies.lazy_static]
 default-features = false
 version = "1.5.0"
-
-[workspace.dependencies.log]
-default-features = false
-features = ["release_max_level_warn"]
-version = "0.4.27"
 
 [workspace.dependencies.moka]
 default-features = false
@@ -132,7 +127,7 @@ version = "0.5.7"
 
 [workspace.dependencies.schemars]
 default-features = false
-features = ["chrono"]
+features = ["chrono", "default"]
 version = "0.8.22"
 
 [workspace.dependencies.serde]

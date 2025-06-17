@@ -4418,7 +4418,6 @@ dependencies = [
  "env_logger",
  "idna",
  "lazy_static",
- "log",
  "mime",
  "moka",
  "mows-common-rust",
@@ -4472,7 +4471,6 @@ dependencies = [
  "env_logger",
  "futures-util",
  "hickory-server",
- "log",
  "parking_lot",
  "pektin-common",
  "serde",
@@ -4480,6 +4478,7 @@ dependencies = [
  "thiserror 2.0.12",
  "tikv-jemallocator",
  "tokio",
+ "tracing",
  "url",
 ]
 
@@ -8255,6 +8254,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
+ "thiserror 2.0.12",
  "time",
  "tokio",
  "tonic",

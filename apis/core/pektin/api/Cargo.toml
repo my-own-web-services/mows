@@ -21,7 +21,6 @@ data-encoding = { workspace = true, features = ["default"] }
 env_logger = { workspace = true, features = ["default"] }
 idna = "1.0.3"
 lazy_static = { workspace = true }
-log = { workspace = true, features = ["release_max_level_warn"] }
 moka = { workspace = true, features = ["future"] }
 mime = "0.3"
 

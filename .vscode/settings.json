@@ -18,13 +18,16 @@
         }
     ],
     "cSpell.words": [
+        "chrono",
         "cpus",
         "domiflist",
         "dominfo",
         "dumpxml",
+        "Filez",
         "gitea",
         "Hetzner",
         "hwtype",
+        "Insertable",
         "Jemalloc",
         "jemallocator",
         "kairos",
@@ -33,11 +36,13 @@
         "kubeconfig",
         "kubevirt",
         "kyverno",
+        "minio",
         "msvc",
         "neednet",
         "netboot",
         "noautoconsole",
         "nodepair",
+        "oidc",
         "openapi",
         "overlayfs",
         "pixieboot",
@@ -55,7 +60,8 @@
         "vcpus",
         "virsh",
         "virt",
-        "virtio"
+        "virtio",
+        "zitadel"
     ],
     "workbench.colorCustomizations": {
         "commandCenter.border": "#e7e7e799",

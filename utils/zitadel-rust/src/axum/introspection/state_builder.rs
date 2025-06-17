@@ -1,4 +1,3 @@
-use custom_error::custom_error;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -12,12 +11,16 @@ use crate::oidc::introspection::cache::IntrospectionCache;
 
 use super::state::IntrospectionState;
 
-custom_error! {
-    /// Error type for introspection config builder related errors.
-    pub IntrospectionStateBuilderError
-        NoAuthSchema = "no authentication for authority defined",
-        Discovery{source: DiscoveryError} = "could not fetch discovery document: {source}",
-        NoIntrospectionUrl = "discovery document did not contain an introspection url",
+#[derive(Debug, thiserror::Error)]
+pub enum IntrospectionStateBuilderError {
+    #[error("No authentication schema provided for authority")]
+    NoAuthSchema,
+
+    #[error("Discovery error")]
+    Discovery(#[from] DiscoveryError),
+
+    #[error("No introspection URL found in discovery document")]
+    NoIntrospectionUrl,
 }
 
 pub struct IntrospectionStateBuilder {

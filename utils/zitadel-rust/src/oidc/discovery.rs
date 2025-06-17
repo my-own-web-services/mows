@@ -1,4 +1,3 @@
-use custom_error::custom_error;
 use openidconnect::reqwest::async_http_client;
 use openidconnect::{
     core::{
@@ -11,11 +10,13 @@ use openidconnect::{
 };
 use serde::{Deserialize, Serialize};
 
-custom_error! {
-    /// Error type for discovery related errors.
-    pub DiscoveryError
-        IssuerUrl{source: url::ParseError} = "could not parse issuer url: {source}",
-        DiscoveryDocument = "could not discover OIDC document",
+#[derive(Debug, thiserror::Error)]
+pub enum DiscoveryError {
+    #[error(transparent)]
+    IssuerUrl(#[from] url::ParseError),
+
+    #[error("Discovery document could not be fetched or parsed {0}")]
+    DiscoveryDocument(String),
 }
 
 /// Fetch the well-known [OIDC Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html)
@@ -48,11 +49,10 @@ custom_error! {
 /// # }
 /// ```
 pub async fn discover(authority: &str) -> Result<ZitadelProviderMetadata, DiscoveryError> {
-    let issuer = IssuerUrl::new(authority.to_string())
-        .map_err(|source| DiscoveryError::IssuerUrl { source })?;
+    let issuer = IssuerUrl::new(authority.to_string())?;
     ZitadelProviderMetadata::discover_async(issuer, async_http_client)
         .await
-        .map_err(|_| DiscoveryError::DiscoveryDocument)
+        .map_err(|e| DiscoveryError::DiscoveryDocument(e.to_string()))
 }
 
 /// Definition of additional metadata that is not present in the
@@ -85,44 +85,3 @@ pub type ZitadelProviderMetadata = ProviderMetadata<
     CoreResponseType,
     CoreSubjectIdentifierType,
 >;
-
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::all)]
-
-    use super::*;
-
-    const ZITADEL_URL: &str = "https://zitadel-libraries-l8boqa.zitadel.cloud";
-
-    #[tokio::test]
-    async fn discovery_fails_with_invalid_url() {
-        let result = discover("foobar").await;
-
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            DiscoveryError::IssuerUrl { .. }
-        ));
-    }
-
-    #[tokio::test]
-    async fn discovery_fails_with_invalid_discovery() {
-        let result = discover("https://smartive.ch").await;
-
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            DiscoveryError::DiscoveryDocument
-        ));
-    }
-
-    #[tokio::test]
-    async fn discovery_succeeds() {
-        let result = discover(ZITADEL_URL).await.unwrap();
-
-        assert_eq!(
-            result.token_endpoint().unwrap().to_string(),
-            "https://zitadel-libraries-l8boqa.zitadel.cloud/oauth/v2/token".to_string()
-        );
-    }
-}

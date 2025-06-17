@@ -12,6 +12,7 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/api/files/info/get",
+    request_body = GetFilesMetaRequestBody,
     responses(
         (status = 200, description = "Gets the metadata for any number of files", body = ApiResponse<GetFileMetaResBody>),
     )
