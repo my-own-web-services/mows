@@ -24,6 +24,9 @@ COPY cargo-workspace-docker.toml ./Cargo.toml
 FROM clux/muslrust:nightly AS chef-builder
 ARG CARGO_CHEF_REF
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
+RUN cargo install --locked --no-default-features sccache
+ENV RUSTC_WRAPPER=sccache SCCACHE_DIR=/sccache
+
 
 FROM chef-builder AS planner
 COPY --from=sources / /build/
@@ -46,7 +49,13 @@ COPY --from=sources / /build/
 # build deps
 WORKDIR /build/app/
 COPY --from=planner /build/app/recipe.json recipe.json
-RUN  if [ "${PROFILE}" = "release" ];  then cargo chef cook --release --recipe-path recipe.json ;  else cargo chef cook --recipe-path recipe.json ; fi || true
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
+    cargo chef cook --recipe-path recipe.json
+
+#RUN  if [ "${PROFILE}" = "release" ];  then cargo chef cook --release --recipe-path recipe.json ;  else cargo chef cook --recipe-path recipe.json ; fi || true
 
 
 # build
@@ -54,8 +63,12 @@ COPY --from=sources / /build/
 COPY src src
 COPY --from=ui-builder /build/dist ./ui-build
 
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
+    cargo build --bin ${BINARY_NAME} --profile=${PROFILE}
 
-RUN cargo build --bin ${BINARY_NAME} --profile=${PROFILE}
+
 RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl/debug/${BINARY_NAME} /${BINARY_NAME}; else mv /build/target/x86_64-unknown-linux-musl/${PROFILE}/${BINARY_NAME} /${BINARY_NAME}; fi 
 RUN if [ "${PROFILE}" = "release" ];  then strip /${BINARY_NAME}; fi
 RUN if [ "${PROFILE}" = "release" ];  then upx --best --lzma /${BINARY_NAME}; fi

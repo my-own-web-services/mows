@@ -1,4 +1,4 @@
-use axum::{extract::State, Json};
+use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -20,6 +20,7 @@ use crate::{
 pub async fn check_resource_access(
     external_user: IntrospectedUser,
     State(app_state): State<AppState>,
+    Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<CheckResourceAccessRequestBody>,
 ) -> Json<ApiResponse<CheckResourceAccessResponseBody>> {
     let requesting_user = match app_state
@@ -44,7 +45,12 @@ pub async fn check_resource_access(
         }
     };
 
-    match app_state
+    timing.lock().unwrap().record(
+        "db.get_user_by_external_id".to_string(),
+        Some("Database operation to get user by external ID".to_string()),
+    );
+
+    let check_resources_access_control_res = app_state
         .db
         .check_resources_access_control(
             &requesting_user.id,
@@ -54,8 +60,14 @@ pub async fn check_resource_access(
             &req_body.resource_ids,
             &req_body.action,
         )
-        .await
-    {
+        .await;
+
+    timing.lock().unwrap().record(
+        "db.check_resources_access_control".to_string(),
+        Some("Database operation to check resources access control".to_string()),
+    );
+
+    match check_resources_access_control_res {
         Ok(auth_result) => {
             return Json(ApiResponse {
                 status: ApiResponseStatus::Success,

@@ -14,7 +14,7 @@ sleep 2
 rm -f openapi.json
 curl -o openapi.json http://localhost:8088/apidoc/openapi.json
 
-docker build -t filez-server-codegen . -f codegen.Dockerfile
+docker build -t filez-server-codegen ./codegen -f codegen/codegen.Dockerfile
 mkdir -p tmp
 docker run --rm -v ./openapi.json:/app/openapi.json -v ./tmp:/app/out filez-server-codegen --name filez-server-codegen
 

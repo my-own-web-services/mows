@@ -1,5 +1,7 @@
+use anyhow::bail;
 use async_trait::async_trait;
 use axum_health::{HealthDetail, HealthIndicator};
+use bigdecimal::BigDecimal;
 use minio::s3::{response::BucketExistsResponse, types::S3Api};
 use tokio::signal::{self};
 use uuid::Timestamp;
@@ -157,4 +159,43 @@ impl InvalidEnumType {
     pub fn invalid_type_log(msg: String) -> Self {
         InvalidEnumType { msg }
     }
+}
+
+pub struct Range {
+    pub start: BigDecimal,
+    pub end: Option<BigDecimal>,
+    pub length: Option<BigDecimal>,
+}
+
+pub fn parse_range(range: &str) -> anyhow::Result<Range> {
+    let parts = range.split('=').collect::<Vec<_>>();
+    if parts.len() != 2 {
+        bail!("Invalid range");
+    }
+    let range_type = parts
+        .first()
+        .ok_or_else(|| anyhow::anyhow!("No range type"))?;
+    let range = parts.get(1).ok_or_else(|| anyhow::anyhow!("No range"))?;
+    if range_type != &"bytes" {
+        bail!("Invalid range type");
+    }
+    let range_parts = range.split('-').collect::<Vec<_>>();
+
+    if range_parts.len() != 2 {
+        bail!("Invalid range");
+    }
+    let start = range_parts
+        .first()
+        .ok_or_else(|| anyhow::anyhow!("Invalid range byte start"))?
+        .parse::<u64>()?;
+    let end = range_parts
+        .get(1)
+        .ok_or_else(|| anyhow::anyhow!("Invalid range byte end"))?
+        .parse::<u64>()
+        .ok();
+    Ok(Range {
+        start: BigDecimal::from(start),
+        end: end.map(BigDecimal::from),
+        length: end.map(|e| BigDecimal::from(e - start + 1)),
+    })
 }
