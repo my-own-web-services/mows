@@ -1,7 +1,7 @@
 import { Component } from "preact";
 import { Route, Router } from "preact-router";
 import { CSSProperties } from "preact/compat";
-import Home from "./routes/Home";
+import Dev from "./routes/Dev";
 
 interface AppProps {
     readonly className?: string;
@@ -25,7 +25,7 @@ export default class App extends Component<AppProps, AppState> {
                 className={`App ${this.props.className ?? ""} min-h-full w-full bg-zinc-950 pb-10`}
             >
                 <Router>
-                    <Route path="/" component={Home} />
+                    <Route path="/" component={Dev} />
                 </Router>
             </div>
         );

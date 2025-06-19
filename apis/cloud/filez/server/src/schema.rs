@@ -6,6 +6,7 @@ diesel::table! {
         file_name -> Text,
         created_time -> Timestamp,
         modified_time -> Timestamp,
+        size -> Numeric,
     }
 }
 diesel::joinable!(files -> users (owner_id));
@@ -18,6 +19,7 @@ diesel::table! {
         created_time -> Timestamp,
         modified_time -> Timestamp,
         deleted -> Bool,
+        storage_limit -> Numeric,
     }
 }
 
@@ -138,3 +140,18 @@ diesel::table! {
 }
 diesel::joinable!(file_group_file_sort_order_items -> files (file_id));
 diesel::joinable!(file_group_file_sort_order_items -> file_group_file_sort_orders (sort_order_id));
+
+diesel::allow_tables_to_appear_in_same_query!(
+    files,
+    users,
+    file_file_group_members,
+    file_groups,
+    user_groups,
+    user_user_group_members,
+    apps,
+    tags,
+    file_tag_members,
+    access_policies,
+    file_group_file_sort_orders,
+    file_group_file_sort_order_items,
+);

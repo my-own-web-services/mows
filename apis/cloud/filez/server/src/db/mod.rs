@@ -1,12 +1,18 @@
-use diesel::prelude::*;
+use std::collections::HashMap;
+
+use bigdecimal::BigDecimal;
+use diesel::{insert_into, prelude::*};
 use diesel_async::pooled_connection::deadpool::Pool;
 use diesel_async::RunQueryDsl;
+use mows_common_rust::get_current_config_cloned;
 use uuid::Uuid;
 
 use crate::{
+    api::files::info::update::UpdateFilesInfoTypeTagsMethod,
     auth::check::{check_resources_access_control, AuthEvaluation},
+    config::config,
     errors::FilezErrors,
-    models::{File, User},
+    models::{File, FileTagMember, Tag, User},
     schema::{self, files},
 };
 
@@ -20,16 +26,11 @@ impl Db {
         Self { pool }
     }
 
-    pub async fn get_files_metadata_for_owner(
-        &self,
-        file_ids: &Vec<Uuid>,
-        owner_id: Uuid,
-    ) -> Result<Vec<File>, FilezErrors> {
+    pub async fn get_files_metadata(&self, file_ids: &Vec<Uuid>) -> Result<Vec<File>, FilezErrors> {
         let mut conn = self.pool.get().await?;
 
         let result = files::table
             .filter(files::id.eq_any(file_ids))
-            .filter(files::owner_id.eq(owner_id))
             .select(File::as_select())
             .load::<File>(&mut conn)
             .await?;
@@ -37,16 +38,11 @@ impl Db {
         Ok(result)
     }
 
-    pub async fn get_file_by_id_and_owner(
-        &self,
-        file_id: uuid::Uuid,
-        owner_id: Uuid,
-    ) -> Result<Option<File>, FilezErrors> {
+    pub async fn get_file_by_id(&self, file_id: uuid::Uuid) -> Result<Option<File>, FilezErrors> {
         let mut conn = self.pool.get().await?;
 
         let result = files::table
             .filter(files::id.eq(file_id))
-            .filter(files::owner_id.eq(owner_id))
             .select(File::as_select())
             .first::<File>(&mut conn)
             .await
@@ -89,6 +85,8 @@ impl Db {
     ) -> Result<uuid::Uuid, FilezErrors> {
         let mut conn = self.pool.get().await?;
 
+        let config = get_current_config_cloned!(config());
+
         // Check if the user already exists
         let existing_user = schema::users::table
             .filter(schema::users::external_user_id.eq(external_user_id))
@@ -105,7 +103,11 @@ impl Db {
             return Ok(user.id);
         };
         // If the user does not exist, create a new user
-        let new_user = User::new(Some(external_user_id.to_string()), display_name);
+        let new_user = User::new(
+            Some(external_user_id.to_string()),
+            display_name,
+            config.default_storage_limit,
+        );
 
         let result = diesel::insert_into(schema::users::table)
             .values(&new_user)
@@ -166,5 +168,123 @@ impl Db {
             action,
         )
         .await
+    }
+
+    pub async fn get_user_used_storage(&self, user_id: &Uuid) -> Result<BigDecimal, FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        let used_storage = schema::files::table
+            .filter(schema::files::owner_id.eq(user_id))
+            .select(diesel::dsl::sum(schema::files::size))
+            .first::<Option<BigDecimal>>(&mut conn)
+            .await?
+            .unwrap_or_else(|| BigDecimal::from(0));
+
+        Ok(used_storage)
+    }
+
+    pub async fn update_files_tags(
+        &self,
+        file_ids: &[Uuid],
+        tags: &HashMap<String, String>,
+        method: &UpdateFilesInfoTypeTagsMethod,
+        created_by_user_id: &Uuid,
+    ) -> Result<(), FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        // tags are stored in the tags table and linked to files via file_tag_members
+
+        match method {
+            UpdateFilesInfoTypeTagsMethod::Add => {
+                let tags_to_insert = tags
+                    .iter()
+                    .map(|(key, value)| Tag::new(key, value))
+                    .collect::<Vec<Tag>>();
+                insert_into(schema::tags::table)
+                    .values(tags_to_insert)
+                    .on_conflict_do_nothing()
+                    .execute(&mut conn)
+                    .await?;
+                // get the uuids of all the tags that were inserted or already existed
+                let database_tags: Vec<Tag> = schema::tags::table
+                    .filter(schema::tags::key.eq_any(tags.keys()))
+                    .filter(schema::tags::value.eq_any(tags.values()))
+                    .load(&mut conn)
+                    .await?;
+                // insert the file_tag_members
+                let file_tag_members: Vec<FileTagMember> = database_tags
+                    .iter()
+                    .flat_map(|tag| {
+                        file_ids.iter().map(|file_id| {
+                            FileTagMember::new(*file_id, tag.id, *created_by_user_id)
+                        })
+                    })
+                    .collect();
+
+                insert_into(schema::file_tag_members::table)
+                    .values(file_tag_members)
+                    .on_conflict_do_nothing()
+                    .execute(&mut conn)
+                    .await?;
+            }
+            UpdateFilesInfoTypeTagsMethod::Remove => {
+                // remove the tags from the file_tag_members
+                diesel::delete(schema::file_tag_members::table)
+                    .filter(schema::file_tag_members::file_id.eq_any(file_ids))
+                    .filter(
+                        schema::file_tag_members::tag_id.eq_any(
+                            schema::tags::table
+                                .filter(schema::tags::key.eq_any(tags.keys()))
+                                .filter(schema::tags::value.eq_any(tags.values()))
+                                .select(schema::tags::id),
+                        ),
+                    )
+                    .execute(&mut conn)
+                    .await?;
+            }
+            UpdateFilesInfoTypeTagsMethod::Set => {
+                // first, remove all existing tags for the files
+                diesel::delete(schema::file_tag_members::table)
+                    .filter(schema::file_tag_members::file_id.eq_any(file_ids))
+                    .execute(&mut conn)
+                    .await?;
+
+                // then, insert the new tags
+                let tags_to_insert = tags
+                    .iter()
+                    .map(|(key, value)| Tag::new(key, value))
+                    .collect::<Vec<Tag>>();
+
+                insert_into(schema::tags::table)
+                    .values(tags_to_insert)
+                    .on_conflict_do_nothing()
+                    .execute(&mut conn)
+                    .await?;
+
+                // get the uuids of all the tags that were inserted or already existed
+                let database_tags: Vec<Tag> = schema::tags::table
+                    .filter(schema::tags::key.eq_any(tags.keys()))
+                    .filter(schema::tags::value.eq_any(tags.values()))
+                    .load(&mut conn)
+                    .await?;
+
+                // insert the file_tag_members
+                let file_tag_members: Vec<FileTagMember> = database_tags
+                    .iter()
+                    .flat_map(|tag| {
+                        file_ids.iter().map(|file_id| {
+                            FileTagMember::new(*file_id, tag.id, *created_by_user_id)
+                        })
+                    })
+                    .collect();
+
+                insert_into(schema::file_tag_members::table)
+                    .values(file_tag_members)
+                    .execute(&mut conn)
+                    .await?;
+            }
+        }
+
+        Ok(())
     }
 }

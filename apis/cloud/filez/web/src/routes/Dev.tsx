@@ -1,22 +1,22 @@
 import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
-import { Api, CreateFileRequestBody } from "../api-client";
+import { Api, ContentType, CreateFileRequestBody } from "../api-client";
 import Nav from "../components/Nav";
 
-interface HomeProps {
+interface DevProps {
     readonly className?: string;
     readonly style?: CSSProperties;
 }
 
-interface HomeState {
+interface DevState {
     readonly user: User | null;
 }
 
-export default class Home extends Component<HomeProps, HomeState> {
+export default class Dev extends Component<DevProps, DevState> {
     userManager: UserManager;
     client: Api<unknown>;
-    constructor(props: HomeProps) {
+    constructor(props: DevProps) {
         super(props);
         this.state = {
             user: null
@@ -74,6 +74,12 @@ export default class Home extends Component<HomeProps, HomeState> {
         this.setState({ user: null });
     };
 
+    applyOwnUser = async () => {
+        if (this.state.user) {
+            const applyUserRes = await this.client.api.applyUser();
+        }
+    };
+
     checkAccess = async () => {
         if (this.state.user) {
             const applyUserRes = await this.client.api.applyUser();
@@ -93,26 +99,40 @@ export default class Home extends Component<HomeProps, HomeState> {
 
     createFile = async () => {
         if (this.state.user) {
-            const applyUserRes = await this.client.api.applyUser();
-            const userId = applyUserRes.data.data?.user_id;
-            if (userId) {
-                const content = new Blob(["This is a test file content"], {
-                    type: "text/plain"
-                });
+            const content = new Blob(["This is a test file content"], {
+                type: "text/plain"
+            });
 
-                const metadata: CreateFileRequestBody = {
-                    file_name: "test-file.txt",
-                    mime_type: "text/plain"
-                };
+            const metadata: CreateFileRequestBody = {
+                file_name: "test-file.txt",
+                mime_type: "text/plain"
+            };
 
-                // @ts-ignore
-                const res = await this.client.api.createFile(content, {
-                    headers: {
-                        "x-filez-metadata": JSON.stringify(metadata)
-                    }
+            // @ts-ignore
+            const res = await this.client.api.createFile(content, {
+                headers: {
+                    "x-filez-metadata": JSON.stringify(metadata)
+                },
+                type: ContentType.Binary
+            });
+            console.log("File created:", res);
+
+            const res2 = await this.client.api
+                .getFileContent(res.data.data?.file_id ?? "", null, null)
+                .catch((error) => {
+                    console.error("Error fetching file:", error);
                 });
-                console.log("File created:", res);
+            if (res2) {
+                console.log("File fetched:", res);
             }
+
+            // check why we have access to this file
+            const accessCheck = await this.client.api.checkResourceAccess({
+                action: "read",
+                resource_ids: [res.data.data?.file_id ?? ""],
+                resource_type: "file"
+            });
+            console.log("Access check result:", accessCheck);
         }
     };
 
@@ -120,7 +140,7 @@ export default class Home extends Component<HomeProps, HomeState> {
         return (
             <div
                 style={{ ...this.props.style }}
-                className={`Home ${this.props.className ?? ""} h-full w-full`}
+                className={`Dev ${this.props.className ?? ""} h-full w-full`}
             >
                 <Nav></Nav>
                 {this.state.user ? (

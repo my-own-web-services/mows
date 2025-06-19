@@ -46,6 +46,7 @@ diesel = { version = "2.2.10", features = [
     "chrono",
     "uuid",
     "postgres_backend",
+    "numeric",
 ] }
 diesel-async = { version = "0.5.2", features = [
     "postgres",
@@ -81,3 +82,4 @@ futures-util = { workspace = true, features = ["default"] }
 
 serde_variant = "0.1.3"
 axum-tracing-opentelemetry = { workspace = true }
+bigdecimal = { version = "0.4.8", features = ["serde", "serde_json"] }

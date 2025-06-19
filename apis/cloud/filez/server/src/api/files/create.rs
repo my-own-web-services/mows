@@ -3,7 +3,7 @@ use std::str::FromStr;
 use axum::{
     extract::{Request, State},
     http::HeaderMap,
-    Json,
+    Extension, Json,
 };
 use chrono::NaiveDateTime;
 use futures_util::TryStreamExt;
@@ -32,6 +32,7 @@ pub async fn create_file(
     external_user: IntrospectedUser,
     headers: HeaderMap,
     State(app_state): State<AppState>,
+    Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     request: Request,
 ) -> Json<ApiResponse<CreateFileResponseBody>> {
     // Check if the user is authenticated
@@ -58,18 +59,26 @@ pub async fn create_file(
         }
     };
 
-    let content_length = headers
+    timing.lock().unwrap().record(
+        "db.get_user_by_external_id".to_string(),
+        Some("Database operation to get user by external ID".to_string()),
+    );
+
+    let file_size = headers
         .get("content-length")
         .and_then(|v| v.to_str().ok())
         .and_then(|s| s.parse::<u64>().ok());
 
-    if content_length.is_none() {
-        return Json(ApiResponse {
-            status: ApiResponseStatus::Error,
-            message: "Content-Length header is missing".to_string(),
-            data: None,
-        });
-    }
+    let file_size = match file_size {
+        Some(size) => size,
+        None => {
+            return Json(ApiResponse {
+                status: ApiResponseStatus::Error,
+                message: "Missing or invalid content-length header".to_string(),
+                data: None,
+            });
+        }
+    };
 
     let meta_body: CreateFileRequestBody =
         match serde_json::from_str(&headers.get("x-filez-metadata").unwrap().to_str().unwrap()) {
@@ -115,8 +124,45 @@ pub async fn create_file(
         });
     }
 
+    // Check if the file size is within the allowed limits
+    let user_used_storage = match app_state
+        .db
+        .get_user_used_storage(&requesting_user.id)
+        .await
+    {
+        Ok(size) => size,
+        Err(e) => {
+            return Json(ApiResponse {
+                status: ApiResponseStatus::Error,
+                message: format!("Failed to get user storage: {}", e),
+                data: None,
+            });
+        }
+    };
+
+    timing.lock().unwrap().record(
+        "db.get_user_used_storage".to_string(),
+        Some("Database operation to get the storage used by the user".to_string()),
+    );
+
+    if &user_used_storage + file_size > requesting_user.storage_limit {
+        return Json(ApiResponse {
+            status: ApiResponseStatus::Error,
+            message: format!(
+                "User storage limit exceeded: {} bytes used, limit is {} bytes",
+                user_used_storage, requesting_user.storage_limit
+            ),
+            data: None,
+        });
+    }
+
     // Create a new file entry in the database
-    let new_file = File::new(&requesting_user, &mime_type, &meta_body.file_name);
+    let new_file = File::new(
+        &requesting_user,
+        &mime_type,
+        &meta_body.file_name,
+        file_size,
+    );
 
     let db_created_file = match app_state.db.create_file(&new_file).await {
         Ok(id) => id,
@@ -129,12 +175,17 @@ pub async fn create_file(
         }
     };
 
+    timing.lock().unwrap().record(
+        "db.create_file".to_string(),
+        Some("Database operation to create a new file entry".to_string()),
+    );
+
     let stream = request
         .into_body()
         .into_data_stream()
         .map_err(|err| tokio::io::Error::new(tokio::io::ErrorKind::Other, err));
 
-    let object_content = ObjectContent::new_from_stream(stream, content_length);
+    let object_content = ObjectContent::new_from_stream(stream, Some(file_size));
 
     match app_state
         .minio_client
@@ -159,6 +210,11 @@ pub async fn create_file(
             });
         }
     };
+
+    timing.lock().unwrap().record(
+        "minio.put_object_content".to_string(),
+        Some("MinIO operation to upload the file content".to_string()),
+    );
 
     Json(ApiResponse {
         status: ApiResponseStatus::Success,

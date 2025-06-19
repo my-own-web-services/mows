@@ -1,6 +1,7 @@
 pub mod files {
     pub mod info {
         pub mod get;
+        pub mod update;
     }
     pub mod create;
 

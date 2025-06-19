@@ -23,6 +23,7 @@ pub struct FilezServerConfig {
     pub minio_username: String,
     pub minio_password: String,
     pub minio_endpoint: String,
+    pub default_storage_limit: i64,
 }
 
 pub fn from_env() -> anyhow::Result<FilezServerConfig> {
@@ -51,5 +52,7 @@ pub fn from_env() -> anyhow::Result<FilezServerConfig> {
         minio_username: load_env("a", "MINIO_USERNAME", false, true)?,
         minio_password: load_env("a", "MINIO_PASSWORD", true, true)?,
         minio_endpoint: load_env("http://localhost:9000", "MINIO_ENDPOINT", false, true)?,
+        default_storage_limit: load_env("10737418240", "DEFAULT_STORAGE_LIMIT", false, true)?
+            .parse::<i64>()?,
     })
 }
