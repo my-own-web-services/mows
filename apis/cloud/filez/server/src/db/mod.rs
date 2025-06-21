@@ -1,10 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use bigdecimal::BigDecimal;
 use diesel::{insert_into, prelude::*};
 use diesel_async::pooled_connection::deadpool::Pool;
 use diesel_async::RunQueryDsl;
 use mows_common_rust::get_current_config_cloned;
+use url::Url;
 use uuid::Uuid;
 
 use crate::{
@@ -12,8 +13,9 @@ use crate::{
     auth::check::{check_resources_access_control, AuthEvaluation},
     config::config,
     errors::FilezErrors,
-    models::{File, FileTagMember, Tag, User},
+    models::{File, FileTagMember, FilezApp, Tag, User},
     schema::{self, files},
+    utils::is_dev_origin,
 };
 
 #[derive(Clone)]
@@ -286,5 +288,53 @@ impl Db {
         }
 
         Ok(())
+    }
+
+    pub async fn get_app_by_origin(&self, origin: &str) -> Result<FilezApp, FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        let apps = schema::apps::table
+            .filter(schema::apps::origins.contains(vec![origin.to_string()]))
+            .select(FilezApp::as_select())
+            .load::<FilezApp>(&mut conn)
+            .await?;
+
+        if apps.is_empty() {
+            return Err(FilezErrors::AuthEvaluationError(format!(
+                "No app found for origin: {}",
+                origin
+            )));
+        }
+        if apps.len() > 1 {
+            return Err(FilezErrors::AuthEvaluationError(format!(
+                "Multiple apps found for origin: {}",
+                origin
+            )));
+        }
+        let app = apps.into_iter().next().unwrap();
+
+        Ok(app)
+    }
+
+    pub async fn get_app_from_headers(
+        &self,
+        request_headers: &axum::http::HeaderMap,
+    ) -> Result<FilezApp, FilezErrors> {
+        match request_headers
+            .get("origin")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string())
+        {
+            Some(origin) => {
+                let config = get_current_config_cloned!(config());
+                if Url::from_str(&origin)? == config.primary_origin {
+                    return Ok(FilezApp::first_party());
+                } else if let Some(dev_origin) = is_dev_origin(&config, &origin).await {
+                    return Ok(FilezApp::dev(&dev_origin));
+                }
+                self.get_app_by_origin(&origin).await
+            }
+            None => Ok(FilezApp::no_origin()),
+        }
     }
 }

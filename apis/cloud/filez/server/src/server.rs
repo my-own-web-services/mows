@@ -133,12 +133,14 @@ async fn main() -> Result<(), anyhow::Error> {
         // NOTE!
         // Sometimes when something is wrong with the extractors a warning will appear of an axum version mismatch.
         // THIS IS NOT THE REASON why the error occurs.
+        // often it is the order of the extractors in the route handlers
         // FILES
         .routes(routes!(api::files::get::get_file_content))
         .routes(routes!(api::files::info::get::get_files_metadata))
         .routes(routes!(api::files::create::create_file))
         // USERS
         .routes(routes!(api::users::apply::apply_user))
+        .routes(routes!(api::users::get::get_users))
         // AUTH
         .routes(routes!(
             api::auth::check_resource_access::check_resource_access

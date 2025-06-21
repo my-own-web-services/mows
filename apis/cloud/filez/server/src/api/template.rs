@@ -1,29 +1,28 @@
-use axum::{extract::State, http::HeaderMap, Extension, Json};
+use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    models::{AccessPolicyResourceType, User},
+    models::{AccessPolicyResourceType, File},
     types::{ApiResponse, ApiResponseStatus, AppState},
 };
 
 #[utoipa::path(
     post,
-    path = "/api/users/get",
-    request_body = GetUsersReqBody,
+    path = "/api/resource/get",
+    request_body = ReqBody,
     responses(
-        (status = 200, description = "Gets Users", body = ApiResponse<GetUsersResBody>),
+        (status = 200, description = "", body = ApiResponse<ResBody>),
     )
 )]
-pub async fn get_users(
+pub async fn get_resource(
     external_user: IntrospectedUser,
-    request_headers: HeaderMap,
     State(app_state): State<AppState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<GetUsersReqBody>,
-) -> Json<ApiResponse<GetUsersResBody>> {
+    Json(req_body): Json<ReqBody>,
+) -> Json<ApiResponse<ResBody>> {
     let requesting_user = match app_state
         .db
         .get_user_by_external_id(&external_user.user_id)
@@ -51,31 +50,20 @@ pub async fn get_users(
         Some("Database operation to get user by external ID".to_string()),
     );
 
-    let requesting_app = match app_state.db.get_app_from_headers(&request_headers).await {
-        Ok(app) => app,
-        Err(e) => {
-            return Json(ApiResponse {
-                status: ApiResponseStatus::Error,
-                message: format!("Failed to get app from headers: {}", e),
-                data: None,
-            });
-        }
-    };
+    let requesting_app_id = Uuid::default();
+    let requesting_app_trusted = false;
 
-    timing.lock().unwrap().record(
-        "db.get_app_from_headers".to_string(),
-        Some("Database operation to get app from headers".to_string()),
-    );
+    let file_ids = req_body.file_ids;
 
     match app_state
         .db
         .check_resources_access_control(
             &requesting_user.id,
-            &requesting_app.id,
-            requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::User).unwrap(),
-            &req_body.user_ids,
-            "users:get",
+            &requesting_app_id,
+            requesting_app_trusted,
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            &file_ids,
+            "files:get_info",
         )
         .await
     {
@@ -105,16 +93,12 @@ pub async fn get_users(
     return Json(ApiResponse {
         status: ApiResponseStatus::Success,
         message: "".to_string(),
-        data: Some(GetUsersResBody { users: todo!() }),
+        data: Some(ResBody {}),
     });
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetUsersReqBody {
-    pub user_ids: Vec<Uuid>,
-}
+pub struct ReqBody {}
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetUsersResBody {
-    pub users: Vec<User>,
-}
+pub struct ResBody {}

@@ -1,4 +1,4 @@
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, http::HeaderMap, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -19,6 +19,8 @@ use crate::{
 )]
 pub async fn get_files_metadata(
     external_user: IntrospectedUser,
+    request_headers: HeaderMap,
+
     State(app_state): State<AppState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<GetFilesMetaRequestBody>,
@@ -50,19 +52,30 @@ pub async fn get_files_metadata(
         Some("Database operation to get user by external ID".to_string()),
     );
 
-    let requesting_app_id = Uuid::default();
-    let requesting_app_trusted = false;
+    let requesting_app = match app_state.db.get_app_from_headers(&request_headers).await {
+        Ok(app) => app,
+        Err(e) => {
+            return Json(ApiResponse {
+                status: ApiResponseStatus::Error,
+                message: format!("Failed to get app from headers: {}", e),
+                data: None,
+            });
+        }
+    };
 
-    let file_ids = req_body.file_ids;
+    timing.lock().unwrap().record(
+        "db.get_app_from_headers".to_string(),
+        Some("Database operation to get app from headers".to_string()),
+    );
 
     match app_state
         .db
         .check_resources_access_control(
             &requesting_user.id,
-            &requesting_app_id,
-            requesting_app_trusted,
+            &requesting_app.id,
+            requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            &file_ids,
+            &req_body.file_ids,
             "files:get_info",
         )
         .await
@@ -90,7 +103,7 @@ pub async fn get_files_metadata(
         Some("Database operation to check access control".to_string()),
     );
 
-    let files_meta_result = match app_state.db.get_files_metadata(&file_ids).await {
+    let files_meta_result = match app_state.db.get_files_metadata(&req_body.file_ids).await {
         Ok(files_meta) => files_meta,
         Err(e) => {
             return Json(ApiResponse {
@@ -106,7 +119,8 @@ pub async fn get_files_metadata(
         Some("Database operation to get files metadata".to_string()),
     );
 
-    let files_meta: Vec<Option<File>> = file_ids
+    let files_meta: Vec<Option<File>> = req_body
+        .file_ids
         .iter()
         .map(|fid| {
             files_meta_result
