@@ -6,6 +6,7 @@ use diesel::{
 use diesel_enum::DbEnum;
 use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
+use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -13,6 +14,8 @@ use uuid::Uuid;
     Serialize, Deserialize, Queryable, Selectable, ToSchema, Insertable, Clone, QueryableByName,
 )]
 #[diesel(table_name = crate::schema::files)]
+#[diesel(check_for_backend(Pg))]
+
 pub struct File {
     pub id: Uuid,
     pub owner_id: Uuid,
@@ -40,6 +43,8 @@ impl File {
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable)]
 #[diesel(table_name = crate::schema::users)]
+#[diesel(check_for_backend(Pg))]
+
 pub struct User {
     pub id: Uuid,
     pub external_user_id: Option<String>,
@@ -67,6 +72,8 @@ impl User {
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable)]
 #[diesel(table_name = crate::schema::file_groups)]
+#[diesel(check_for_backend(Pg))]
+
 pub struct FileGroup {
     pub id: Uuid,
     pub owner_id: Uuid,
@@ -94,6 +101,8 @@ impl FileGroup {
 #[diesel(belongs_to(File, foreign_key = file_id))]
 #[diesel(belongs_to(FileGroup, foreign_key = file_group_id))]
 #[diesel(primary_key(file_id, file_group_id))]
+#[diesel(check_for_backend(Pg))]
+
 pub struct FileFileGroupMember {
     pub file_id: Uuid,
     pub file_group_id: Uuid,
@@ -112,6 +121,8 @@ impl FileFileGroupMember {
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable)]
 #[diesel(table_name = crate::schema::file_groups)]
+#[diesel(check_for_backend(Pg))]
+
 pub struct UserGroup {
     pub id: Uuid,
     pub owner_id: Uuid,
@@ -139,6 +150,8 @@ impl UserGroup {
 #[diesel(belongs_to(File, foreign_key = user_id))]
 #[diesel(belongs_to(FileGroup, foreign_key = user_group_id))]
 #[diesel(primary_key(user_id, user_group_id))]
+#[diesel(check_for_backend(Pg))]
+
 pub struct UserUserGroupMember {
     pub user_id: Uuid,
     pub user_group_id: Uuid,
@@ -155,17 +168,69 @@ impl UserUserGroupMember {
     }
 }
 
-#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Default)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Queryable,
+    Selectable,
+    ToSchema,
+    Clone,
+    Insertable,
+    Default,
+    QueryableByName,
+)]
 #[diesel(table_name = crate::schema::apps)]
+#[diesel(check_for_backend(Pg))]
 pub struct FilezApp {
     pub id: Uuid,
     pub name: String,
-    pub description: String,
+    pub description: Option<String>,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
     pub owner_id: Uuid,
-    pub origins: Vec<String>,
+    pub origins: Option<Vec<String>>,
     pub trusted: bool,
+}
+
+impl FilezApp {
+    pub fn first_party() -> Self {
+        Self {
+            // empty UUID
+            id: Uuid::default(),
+            name: "The Filez primary origin".to_string(),
+            description: Some("First party app for Filez".to_string()),
+            created_time: chrono::Utc::now().naive_utc(),
+            modified_time: chrono::Utc::now().naive_utc(),
+            owner_id: Uuid::default(),
+            origins: None,
+            trusted: true,
+        }
+    }
+    pub fn dev(dev_origin: &Url) -> Self {
+        Self {
+            id: Uuid::default(),
+            name: "Filez Dev App".to_string(),
+            description: Some("Development allowed filez app".to_string()),
+            created_time: chrono::Utc::now().naive_utc(),
+            modified_time: chrono::Utc::now().naive_utc(),
+            owner_id: Uuid::default(),
+            origins: Some(vec![dev_origin.to_string()]),
+            trusted: true,
+        }
+    }
+
+    pub fn no_origin() -> Self {
+        Self {
+            id: Uuid::default(),
+            name: "Filez App with no origin".to_string(),
+            description: Some("App with no origins".to_string()),
+            created_time: chrono::Utc::now().naive_utc(),
+            modified_time: chrono::Utc::now().naive_utc(),
+            owner_id: Uuid::default(),
+            origins: None,
+            trusted: true,
+        }
+    }
 }
 
 #[derive(
@@ -174,6 +239,7 @@ pub struct FilezApp {
 #[diesel(sql_type = Text)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
+
 pub enum AccessPolicySubjectType {
     User,
     UserGroup,
@@ -188,6 +254,8 @@ pub enum AccessPolicySubjectType {
 pub enum AccessPolicyResourceType {
     File,
     FileGroup,
+    User,
+    UserGroup,
 }
 
 #[derive(

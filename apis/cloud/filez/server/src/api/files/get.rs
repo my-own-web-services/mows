@@ -78,15 +78,29 @@ pub async fn get_file_content(
         Some("Database operation to get user by external ID".to_string()),
     );
 
-    let requesting_app_id = Uuid::default();
-    let requesting_app_trusted = false;
+    let requesting_app = match app_state.db.get_app_from_headers(&request_headers).await {
+        Ok(app) => app,
+        Err(e) => {
+            return (
+                StatusCode::NOT_FOUND,
+                HeaderMap::new(),
+                Bytes::from(e.to_string()),
+            )
+                .into_response();
+        }
+    };
+
+    timing.lock().unwrap().record(
+        "db.get_app_from_headers".to_string(),
+        Some("Database operation to get app from headers".to_string()),
+    );
 
     match app_state
         .db
         .check_resources_access_control(
             &requesting_user.id,
-            &requesting_app_id,
-            requesting_app_trusted,
+            &requesting_app.id,
+            requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             &vec![file_id],
             "files:get_content",

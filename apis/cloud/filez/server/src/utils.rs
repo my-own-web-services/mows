@@ -4,6 +4,7 @@ use axum_health::{HealthDetail, HealthIndicator};
 use bigdecimal::BigDecimal;
 use minio::s3::{response::BucketExistsResponse, types::S3Api};
 use tokio::signal::{self};
+use url::Url;
 use uuid::Timestamp;
 use zitadel::axum::introspection::IntrospectionState;
 
@@ -198,4 +199,20 @@ pub fn parse_range(range: &str) -> anyhow::Result<Range> {
         end: end.map(BigDecimal::from),
         length: end.map(|e| BigDecimal::from(e - start + 1)),
     })
+}
+
+pub async fn is_dev_origin(config: &crate::config::FilezServerConfig, origin: &str) -> Option<Url> {
+    if config.enable_dev {
+        for dev_origin_url in config.dev_allow_origins.iter() {
+            if dev_origin_url.as_str() == origin {
+                match Url::parse(origin) {
+                    Ok(url) => return Some(url),
+                    Err(e) => {
+                        tracing::error!("Invalid dev origin URL {}: `{}`", e, origin);
+                    }
+                }
+            }
+        }
+    }
+    return None;
 }

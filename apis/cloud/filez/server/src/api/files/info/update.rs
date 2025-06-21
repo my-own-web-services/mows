@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use axum::{extract::State, Json};
+use axum::{extract::State, http::HeaderMap, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -22,7 +22,9 @@ use crate::{
 pub async fn update_files_metadata(
     external_user: IntrospectedUser,
     State(app_state): State<AppState>,
+    Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<UpdateFilesInfoRequestBody>,
+    request_headers: HeaderMap,
 ) -> Json<ApiResponse<EmptyApiResponse>> {
     let requesting_user = match app_state
         .db
@@ -46,19 +48,30 @@ pub async fn update_files_metadata(
         }
     };
 
-    let requesting_app_id = Uuid::default();
-    let requesting_app_trusted = false;
+    let requesting_app = match app_state.db.get_app_from_headers(&request_headers).await {
+        Ok(app) => app,
+        Err(e) => {
+            return Json(ApiResponse {
+                status: ApiResponseStatus::Error,
+                message: format!("Failed to get app from headers: {}", e),
+                data: None,
+            });
+        }
+    };
 
-    let file_ids = req_body.file_ids;
+    timing.lock().unwrap().record(
+        "db.get_app_from_headers".to_string(),
+        Some("Database operation to get app from headers".to_string()),
+    );
 
     match app_state
         .db
         .check_resources_access_control(
             &requesting_user.id,
-            &requesting_app_id,
-            requesting_app_trusted,
+            &requesting_app.id,
+            requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            &file_ids,
+            &req_body.file_ids,
             "files:update_info",
         )
         .await
@@ -86,7 +99,7 @@ pub async fn update_files_metadata(
             match app_state
                 .db
                 .update_files_tags(
-                    &file_ids,
+                    &req_body.file_ids,
                     &tags_info.tags,
                     &tags_info.method,
                     &requesting_user.id,
