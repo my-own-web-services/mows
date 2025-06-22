@@ -5,26 +5,25 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    models::{AccessPolicyResourceType, File},
-    types::{ApiResponse, ApiResponseStatus, AppState},
+    models::{AccessPolicyAction, AccessPolicyResourceType, File},
+    types::{ApiResponse, ApiResponseStatus, AppState, SortOrder},
 };
 
 #[utoipa::path(
     post,
-    path = "/api/files/info/get",
-    request_body = GetFilesMetaRequestBody,
+    path = "/api/file_groups/list_files",
+    request_body = ListFilesRequestBody,
     responses(
-        (status = 200, description = "Gets the metadata for any number of files", body = ApiResponse<GetFileMetaResBody>),
+        (status = 200, description = "Lists the files in a given group", body = ApiResponse<ListFilesResponseBody>),
     )
 )]
-pub async fn get_files_metadata(
+pub async fn list_files(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
-
     State(app_state): State<AppState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<GetFilesMetaRequestBody>,
-) -> Json<ApiResponse<GetFileMetaResBody>> {
+    Json(req_body): Json<ListFilesRequestBody>,
+) -> Json<ApiResponse<ListFilesResponseBody>> {
     let requesting_user = match app_state
         .db
         .get_user_by_external_id(&external_user.user_id)
@@ -74,14 +73,14 @@ pub async fn get_files_metadata(
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            &req_body.file_ids,
-            "files:get_info",
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
+            &vec![req_body.file_group_id],
+            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupListItems).unwrap(),
         )
         .await
     {
         Ok(auth_result) => {
-            if !auth_result.0 {
+            if auth_result.access_denied {
                 return Json(ApiResponse {
                     status: ApiResponseStatus::Error,
                     message: "Access denied".to_string(),
@@ -103,46 +102,55 @@ pub async fn get_files_metadata(
         Some("Database operation to check access control".to_string()),
     );
 
-    let files_meta_result = match app_state.db.get_files_metadata(&req_body.file_ids).await {
-        Ok(files_meta) => files_meta,
-        Err(e) => {
+    let list_files_query = app_state.db.list_files_by_file_group(
+        &req_body.file_group_id,
+        req_body.from_index,
+        req_body.limit,
+        req_body.sort_by.as_deref(),
+        req_body.sort_order,
+    );
+
+    let file_group_item_count_query = app_state
+        .db
+        .get_file_group_item_count(&req_body.file_group_id);
+
+    // join the two futures to run them concurrently
+    let (files, total_count) = match tokio::join!(list_files_query, file_group_item_count_query) {
+        (Ok(files), Ok(total_count)) => (files, total_count),
+        (Err(e), _) => {
             return Json(ApiResponse {
                 status: ApiResponseStatus::Error,
-                message: format!("Failed to get files metadata: {}", e),
+                message: format!("Failed to list files: {}", e),
+                data: None,
+            });
+        }
+        (_, Err(e)) => {
+            return Json(ApiResponse {
+                status: ApiResponseStatus::Error,
+                message: format!("Failed to get file group item count: {}", e),
                 data: None,
             });
         }
     };
 
-    timing.lock().unwrap().record(
-        "db.get_files_metadata".to_string(),
-        Some("Database operation to get files metadata".to_string()),
-    );
-
-    let files_meta: Vec<Option<File>> = req_body
-        .file_ids
-        .iter()
-        .map(|fid| {
-            files_meta_result
-                .iter()
-                .find(|file| file.id == *fid)
-                .cloned()
-        })
-        .collect();
-
     return Json(ApiResponse {
         status: ApiResponseStatus::Success,
-        message: "Got Files metadata".to_string(),
-        data: Some(GetFileMetaResBody { files_meta }),
+        message: "Got file list".to_string(),
+        data: Some(ListFilesResponseBody { files, total_count }),
     });
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetFilesMetaRequestBody {
-    pub file_ids: Vec<Uuid>,
+pub struct ListFilesRequestBody {
+    pub file_group_id: Uuid,
+    pub from_index: Option<i64>,
+    pub limit: Option<i64>,
+    pub sort_by: Option<String>,
+    pub sort_order: Option<SortOrder>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetFileMetaResBody {
-    pub files_meta: Vec<Option<File>>,
+pub struct ListFilesResponseBody {
+    pub files: Vec<File>,
+    pub total_count: i64,
 }

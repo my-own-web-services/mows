@@ -1,5 +1,8 @@
 use crate::{
-    config::BUCKET_NAME, models::AccessPolicyResourceType, types::AppState, utils::parse_range,
+    config::BUCKET_NAME,
+    models::{AccessPolicyAction, AccessPolicyResourceType},
+    types::AppState,
+    utils::parse_range,
 };
 use axum::{
     body::{Body, Bytes},
@@ -103,12 +106,12 @@ pub async fn get_file_content(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             &vec![file_id],
-            "files:get_content",
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilesContentGet).unwrap(),
         )
         .await
     {
         Ok(auth_result) => {
-            if !auth_result.0 {
+            if auth_result.access_denied {
                 return (
                     StatusCode::FORBIDDEN,
                     HeaderMap::new(),
@@ -172,7 +175,7 @@ pub async fn get_file_content(
     if params.d.unwrap_or(false) {
         // If the download parameter is set, set the content disposition header
 
-        let file_name = if file_meta.file_name.is_empty() {
+        let file_name = if file_meta.name.is_empty() {
             let mime_string = match mime_guess::get_mime_extensions_str(&file_meta.mime_type) {
                 Some(mime_strings) => match mime_strings.first() {
                     Some(mime_string) => mime_string.to_string(),
@@ -183,7 +186,7 @@ pub async fn get_file_content(
 
             format!("file_{}.{}", file_meta.id, mime_string)
         } else {
-            file_meta.file_name.clone()
+            file_meta.name.clone()
         };
 
         headers.insert(

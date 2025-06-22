@@ -136,8 +136,11 @@ async fn main() -> Result<(), anyhow::Error> {
         // often it is the order of the extractors in the route handlers
         // FILES
         .routes(routes!(api::files::get::get_file_content))
-        .routes(routes!(api::files::info::get::get_files_metadata))
         .routes(routes!(api::files::create::create_file))
+        .routes(routes!(api::files::meta::get::get_files_metadata))
+        .routes(routes!(api::files::meta::update::update_files_metadata))
+        // FILE GROUPS
+        .routes(routes!(api::file_groups::list_items::list_files))
         // USERS
         .routes(routes!(api::users::apply::apply_user))
         .routes(routes!(api::users::get::get_users))

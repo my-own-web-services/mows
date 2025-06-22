@@ -73,7 +73,7 @@ pub async fn check_resource_access(
                 status: ApiResponseStatus::Success,
                 message: "Auth results retrieved".to_string(),
                 data: Some(CheckResourceAccessResponseBody {
-                    auth_evaluations: auth_result.1,
+                    auth_evaluations: auth_result.evaluations,
                 }),
             });
         }

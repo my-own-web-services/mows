@@ -28,11 +28,15 @@ pub async fn check_resources_access_control(
     requested_resource_ids: &[Uuid],
 
     action_to_perform: &str,
-) -> Result<(bool, Vec<AuthEvaluation>), FilezErrors> {
+) -> Result<AuthResult, FilezErrors> {
     let mut conn = db.pool.get().await?;
 
     if requested_resource_ids.is_empty() {
-        return Ok((false, Vec::new()));
+        return Ok(AuthResult {
+            access_granted: true,
+            access_denied: false,
+            evaluations: Vec::new(),
+        });
     }
     let resource_auth_info = get_auth_info(resource_type)?;
 
@@ -55,17 +59,18 @@ pub async fn check_resources_access_control(
             .iter()
             .all(|ro| ro.owner_id == *requesting_user_id)
     {
-        return Ok((
-            true,
-            resource_owners_vec
-                .into_iter()
-                .map(|ro| AuthEvaluation {
-                    resource_id: ro.resource_id,
+        return Ok(AuthResult {
+            access_granted: true,
+            access_denied: false,
+            evaluations: requested_resource_ids
+                .iter()
+                .map(|&id| AuthEvaluation {
+                    resource_id: id,
                     is_allowed: true,
                     reason: AuthReason::Owned,
                 })
                 .collect(),
-        ));
+        });
     }
 
     let owners_map: HashMap<Uuid, Uuid> = resource_owners_vec
@@ -331,9 +336,13 @@ pub async fn check_resources_access_control(
         auth_evaluations.push(current_evaluation);
     }
 
-    let all_allowed = auth_evaluations.iter().all(|eval| eval.is_allowed);
+    let access_granted = auth_evaluations.iter().all(|eval| eval.is_allowed);
 
-    Ok((all_allowed, auth_evaluations))
+    Ok(AuthResult {
+        access_granted,
+        access_denied: !access_granted,
+        evaluations: auth_evaluations,
+    })
 }
 
 #[derive(QueryableByName, Debug, Clone)]
@@ -461,4 +470,11 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, FilezError
             ));
         }
     })
+}
+
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
+pub struct AuthResult {
+    pub access_granted: bool,
+    pub access_denied: bool,
+    pub evaluations: Vec<AuthEvaluation>,
 }

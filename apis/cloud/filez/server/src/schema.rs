@@ -3,10 +3,11 @@ diesel::table! {
         id -> Uuid,
         owner_id -> Uuid,
         mime_type -> Text,
-        file_name -> Text,
+        name -> Text,
         created_time -> Timestamp,
         modified_time -> Timestamp,
         size -> Numeric,
+        metadata -> Jsonb,
     }
 }
 diesel::joinable!(files -> users (owner_id));

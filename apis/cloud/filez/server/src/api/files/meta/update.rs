@@ -7,24 +7,24 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    models::AccessPolicyResourceType,
+    models::{AccessPolicyAction, AccessPolicyResourceType},
     types::{ApiResponse, ApiResponseStatus, AppState, EmptyApiResponse},
 };
 
 #[utoipa::path(
     post,
-    path = "/api/files/info/update",
-    request_body = UpdateFilesInfoRequestBody,
+    path = "/api/files/meta/update",
+    request_body = UpdateFilesMetaRequestBody,
     responses(
         (status = 200, description = "Updates the metadata for any number of files", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn update_files_metadata(
     external_user: IntrospectedUser,
+    request_headers: HeaderMap,
     State(app_state): State<AppState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<UpdateFilesInfoRequestBody>,
-    request_headers: HeaderMap,
+    Json(req_body): Json<UpdateFilesMetaRequestBody>,
 ) -> Json<ApiResponse<EmptyApiResponse>> {
     let requesting_user = match app_state
         .db
@@ -72,12 +72,12 @@ pub async fn update_files_metadata(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             &req_body.file_ids,
-            "files:update_info",
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilesMetaUpdate).unwrap(),
         )
         .await
     {
         Ok(auth_result) => {
-            if !auth_result.0 {
+            if auth_result.access_denied {
                 return Json(ApiResponse {
                     status: ApiResponseStatus::Error,
                     message: "Access denied".to_string(),
@@ -95,13 +95,13 @@ pub async fn update_files_metadata(
     };
 
     match req_body.files_meta {
-        UpdateFilesInfoType::Tags(tags_info) => {
+        UpdateFilesMetaType::Tags(tags_meta) => {
             match app_state
                 .db
                 .update_files_tags(
                     &req_body.file_ids,
-                    &tags_info.tags,
-                    &tags_info.method,
+                    &tags_meta.tags,
+                    &tags_meta.method,
                     &requesting_user.id,
                 )
                 .await
@@ -126,24 +126,24 @@ pub async fn update_files_metadata(
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct UpdateFilesInfoRequestBody {
+pub struct UpdateFilesMetaRequestBody {
     pub file_ids: Vec<Uuid>,
-    pub files_meta: UpdateFilesInfoType,
+    pub files_meta: UpdateFilesMetaType,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub enum UpdateFilesInfoType {
-    Tags(UpdateFilesInfoTypeTags),
+pub enum UpdateFilesMetaType {
+    Tags(UpdateFilesMetaTypeTags),
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct UpdateFilesInfoTypeTags {
+pub struct UpdateFilesMetaTypeTags {
     pub tags: HashMap<String, String>,
-    pub method: UpdateFilesInfoTypeTagsMethod,
+    pub method: UpdateFilesMetaTypeTagsMethod,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub enum UpdateFilesInfoTypeTagsMethod {
+pub enum UpdateFilesMetaTypeTagsMethod {
     Add,
     Remove,
     Set,
