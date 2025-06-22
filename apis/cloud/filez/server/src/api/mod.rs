@@ -1,5 +1,5 @@
 pub mod files {
-    pub mod info {
+    pub mod meta {
         pub mod get;
         pub mod update;
     }
@@ -18,4 +18,6 @@ pub mod auth {
 
 pub mod user_groups {}
 
-pub mod file_groups {}
+pub mod file_groups {
+    pub mod list_items;
+}

@@ -1,22 +1,21 @@
-use std::{collections::HashMap, str::FromStr};
-
+use crate::{
+    api::files::meta::update::UpdateFilesMetaTypeTagsMethod,
+    auth::check::{check_resources_access_control, AuthResult},
+    config::config,
+    errors::FilezErrors,
+    models::{File, FileTagMember, FilezApp, Tag, User},
+    schema::{self, files},
+    types::SortOrder,
+    utils::is_dev_origin,
+};
 use bigdecimal::BigDecimal;
 use diesel::{insert_into, prelude::*};
 use diesel_async::pooled_connection::deadpool::Pool;
 use diesel_async::RunQueryDsl;
 use mows_common_rust::get_current_config_cloned;
+use std::{collections::HashMap, str::FromStr};
 use url::Url;
 use uuid::Uuid;
-
-use crate::{
-    api::files::info::update::UpdateFilesInfoTypeTagsMethod,
-    auth::check::{check_resources_access_control, AuthEvaluation},
-    config::config,
-    errors::FilezErrors,
-    models::{File, FileTagMember, FilezApp, Tag, User},
-    schema::{self, files},
-    utils::is_dev_origin,
-};
 
 #[derive(Clone)]
 pub struct Db {
@@ -28,7 +27,71 @@ impl Db {
         Self { pool }
     }
 
-    pub async fn get_files_metadata(&self, file_ids: &Vec<Uuid>) -> Result<Vec<File>, FilezErrors> {
+    pub async fn get_file_group_item_count(
+        &self,
+        file_group_id: &Uuid,
+    ) -> Result<i64, FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        let count = schema::file_file_group_members::table
+            .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .await?;
+
+        Ok(count)
+    }
+
+    pub async fn list_files_by_file_group(
+        &self,
+        file_group_id: &Uuid,
+        from_index: Option<i64>,
+        limit: Option<i64>,
+        sort_by: Option<&str>,
+        sort_order: Option<SortOrder>,
+    ) -> Result<Vec<File>, FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        let mut query = schema::file_file_group_members::table
+            .inner_join(files::table.on(schema::file_file_group_members::file_id.eq(files::id)))
+            .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
+            .select(File::as_select())
+            .into_boxed();
+
+        match (sort_by, sort_order) {
+            (Some("created_time"), Some(SortOrder::Ascending)) => {
+                query = query.order_by(files::created_time.asc());
+            }
+            (Some("created_time"), Some(SortOrder::Descending)) => {
+                query = query.order_by(files::created_time.desc());
+            }
+            (Some("name"), Some(SortOrder::Ascending)) => {
+                query = query.order_by(files::name.asc());
+            }
+            (Some("name"), Some(SortOrder::Descending)) => {
+                query = query.order_by(files::name.desc());
+            }
+            _ => {
+                query = query.order_by(files::created_time.desc());
+            }
+        };
+
+        if let Some(from_index) = from_index {
+            query = query.offset(from_index);
+        }
+        if let Some(limit) = limit {
+            query = query.limit(limit);
+        }
+
+        let files_list = query.load::<File>(&mut conn).await?;
+
+        Ok(files_list)
+    }
+
+    pub async fn get_files_metadata(
+        &self,
+        file_ids: &Vec<Uuid>,
+    ) -> Result<HashMap<Uuid, File>, FilezErrors> {
         let mut conn = self.pool.get().await?;
 
         let result = files::table
@@ -37,7 +100,40 @@ impl Db {
             .load::<File>(&mut conn)
             .await?;
 
+        let result: HashMap<Uuid, File> = result.into_iter().map(|file| (file.id, file)).collect();
+
         Ok(result)
+    }
+
+    pub async fn get_files_tags(
+        &self,
+        file_ids: &[Uuid],
+    ) -> Result<HashMap<Uuid, HashMap<String, String>>, FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        let tags: Vec<(Uuid, String, String)> = schema::file_tag_members::table
+            .inner_join(
+                schema::tags::table.on(schema::file_tag_members::tag_id.eq(schema::tags::id)),
+            )
+            .filter(schema::file_tag_members::file_id.eq_any(file_ids))
+            .select((
+                schema::file_tag_members::file_id,
+                schema::tags::key,
+                schema::tags::value,
+            ))
+            .load(&mut conn)
+            .await?;
+
+        let mut file_tags: HashMap<Uuid, HashMap<String, String>> = HashMap::new();
+
+        for (file_id, key, value) in tags {
+            file_tags
+                .entry(file_id)
+                .or_insert_with(HashMap::new)
+                .insert(key, value);
+        }
+
+        Ok(file_tags)
     }
 
     pub async fn get_file_by_id(&self, file_id: uuid::Uuid) -> Result<Option<File>, FilezErrors> {
@@ -156,7 +252,7 @@ impl Db {
         resource_type: &str,
         requested_resource_ids: &[Uuid],
         action: &str,
-    ) -> Result<(bool, Vec<AuthEvaluation>), FilezErrors> {
+    ) -> Result<AuthResult, FilezErrors> {
         let user_group_ids = self.get_users_user_groups(requesting_user_id).await?;
 
         check_resources_access_control(
@@ -189,7 +285,7 @@ impl Db {
         &self,
         file_ids: &[Uuid],
         tags: &HashMap<String, String>,
-        method: &UpdateFilesInfoTypeTagsMethod,
+        method: &UpdateFilesMetaTypeTagsMethod,
         created_by_user_id: &Uuid,
     ) -> Result<(), FilezErrors> {
         let mut conn = self.pool.get().await?;
@@ -197,7 +293,7 @@ impl Db {
         // tags are stored in the tags table and linked to files via file_tag_members
 
         match method {
-            UpdateFilesInfoTypeTagsMethod::Add => {
+            UpdateFilesMetaTypeTagsMethod::Add => {
                 let tags_to_insert = tags
                     .iter()
                     .map(|(key, value)| Tag::new(key, value))
@@ -229,7 +325,7 @@ impl Db {
                     .execute(&mut conn)
                     .await?;
             }
-            UpdateFilesInfoTypeTagsMethod::Remove => {
+            UpdateFilesMetaTypeTagsMethod::Remove => {
                 // remove the tags from the file_tag_members
                 diesel::delete(schema::file_tag_members::table)
                     .filter(schema::file_tag_members::file_id.eq_any(file_ids))
@@ -244,7 +340,7 @@ impl Db {
                     .execute(&mut conn)
                     .await?;
             }
-            UpdateFilesInfoTypeTagsMethod::Set => {
+            UpdateFilesMetaTypeTagsMethod::Set => {
                 // first, remove all existing tags for the files
                 diesel::delete(schema::file_tag_members::table)
                     .filter(schema::file_tag_members::file_id.eq_any(file_ids))
@@ -336,5 +432,19 @@ impl Db {
             }
             None => Ok(FilezApp::no_origin()),
         }
+    }
+
+    pub async fn get_users_by_ids(
+        &self,
+        user_ids: &[Uuid],
+    ) -> Result<HashMap<Uuid, User>, FilezErrors> {
+        let mut conn = self.pool.get().await?;
+
+        let users: Vec<User> = schema::users::table
+            .filter(schema::users::id.eq_any(user_ids))
+            .load(&mut conn)
+            .await?;
+        let user_map: HashMap<Uuid, User> = users.into_iter().map(|user| (user.id, user)).collect();
+        Ok(user_map)
     }
 }

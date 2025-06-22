@@ -1,5 +1,9 @@
-use std::str::FromStr;
-
+use crate::{
+    config::BUCKET_NAME,
+    models::File,
+    types::{ApiResponse, ApiResponseStatus, AppState},
+    validation::validate_file_name,
+};
 use axum::{
     extract::{Request, State},
     http::HeaderMap,
@@ -10,15 +14,9 @@ use futures_util::TryStreamExt;
 use mime_guess::Mime;
 use minio::s3::builders::ObjectContent;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use utoipa::ToSchema;
 use zitadel::axum::introspection::IntrospectedUser;
-
-use crate::{
-    config::BUCKET_NAME,
-    models::File,
-    types::{ApiResponse, ApiResponseStatus, AppState},
-    validation::validate_file_name,
-};
 
 #[utoipa::path(
     post,

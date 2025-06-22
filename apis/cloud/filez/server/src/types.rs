@@ -19,6 +19,12 @@ use crate::{api::files::create::CreateFileRequestBody, db::Db};
 pub struct ApiDoc;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub enum SortOrder {
+    Ascending,
+    Descending,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ApiResponse<T> {
     pub message: String,
     pub status: ApiResponseStatus,

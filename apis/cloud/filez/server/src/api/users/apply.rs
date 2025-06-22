@@ -1,10 +1,10 @@
+use crate::types::{ApiResponse, ApiResponseStatus, AppState};
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
-use crate::types::{ApiResponse, ApiResponseStatus, AppState};
 #[utoipa::path(
     post,
     path = "/api/users/apply",

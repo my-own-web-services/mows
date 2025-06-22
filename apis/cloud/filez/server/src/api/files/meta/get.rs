@@ -1,29 +1,31 @@
-use crate::{
-    models::{AccessPolicyAction, AccessPolicyResourceType, User},
-    types::{ApiResponse, ApiResponseStatus, AppState},
-};
+use std::collections::HashMap;
+
 use axum::{extract::State, http::HeaderMap, Extension, Json};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use utoipa::ToSchema;
 use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
+use crate::{
+    models::{AccessPolicyAction, AccessPolicyResourceType, File},
+    types::{ApiResponse, ApiResponseStatus, AppState},
+};
+
 #[utoipa::path(
     post,
-    path = "/api/users/get",
-    request_body = GetUsersReqBody,
+    path = "/api/files/meta/get",
+    request_body = GetFilesMetaRequestBody,
     responses(
-        (status = 200, description = "Gets Users", body = ApiResponse<GetUsersResBody>),
+        (status = 200, description = "Gets the metadata for any number of files", body = ApiResponse<GetFileMetaResBody>),
     )
 )]
-pub async fn get_users(
+pub async fn get_files_metadata(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(app_state): State<AppState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<GetUsersReqBody>,
-) -> Json<ApiResponse<GetUsersResBody>> {
+    Json(req_body): Json<GetFilesMetaRequestBody>,
+) -> Json<ApiResponse<GetFileMetaResBody>> {
     let requesting_user = match app_state
         .db
         .get_user_by_external_id(&external_user.user_id)
@@ -73,9 +75,9 @@ pub async fn get_users(
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::User).unwrap(),
-            &req_body.user_ids,
-            &serde_variant::to_variant_name(&AccessPolicyAction::UsersGet).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            &req_body.file_ids,
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilesMetaGet).unwrap(),
         )
         .await
     {
@@ -102,31 +104,53 @@ pub async fn get_users(
         Some("Database operation to check access control".to_string()),
     );
 
-    let users = match app_state.db.get_users_by_ids(&req_body.user_ids).await {
-        Ok(users) => users,
+    let files_meta_result = match app_state.db.get_files_metadata(&req_body.file_ids).await {
+        Ok(files_meta) => files_meta,
         Err(e) => {
             return Json(ApiResponse {
                 status: ApiResponseStatus::Error,
-                message: format!("Failed to get users: {}", e),
+                message: format!("Failed to get files metadata: {}", e),
                 data: None,
             });
         }
     };
 
     timing.lock().unwrap().record(
-        "db.get_users_by_ids".to_string(),
-        Some("Database operation to get users by IDs".to_string()),
+        "db.get_files_metadata".to_string(),
+        Some("Database operation to get files metadata".to_string()),
     );
 
-    let mut users_meta = HashMap::new();
+    let file_tags = match app_state.db.get_files_tags(&req_body.file_ids).await {
+        Ok(tags) => tags,
+        Err(e) => {
+            return Json(ApiResponse {
+                status: ApiResponseStatus::Error,
+                message: format!("Failed to get file tags: {}", e),
+                data: None,
+            });
+        }
+    };
 
-    for requested_user_id in &req_body.user_ids {
-        if let Some(user) = users.get(requested_user_id) {
-            users_meta.insert(*requested_user_id, UserMeta { user: user.clone() });
+    let mut files_meta: HashMap<Uuid, FileMeta> = HashMap::new();
+
+    for requested_file_id in &req_body.file_ids {
+        let file_meta = files_meta_result
+            .get(requested_file_id)
+            .cloned()
+            .map(|file| {
+                let tags = file_tags
+                    .get(requested_file_id)
+                    .cloned()
+                    .unwrap_or_default();
+                FileMeta { file, tags }
+            });
+
+        if let Some(meta) = file_meta {
+            files_meta.insert(*requested_file_id, meta);
         } else {
             return Json(ApiResponse {
                 status: ApiResponseStatus::Error,
-                message: format!("User with ID {} not found", requested_user_id),
+                message: format!("File with ID {} not found", requested_file_id),
                 data: None,
             });
         }
@@ -134,22 +158,23 @@ pub async fn get_users(
 
     return Json(ApiResponse {
         status: ApiResponseStatus::Success,
-        message: "Successfully retrieved users".to_string(),
-        data: Some(GetUsersResBody { users_meta }),
+        message: "Got Files metadata".to_string(),
+        data: Some(GetFileMetaResBody { files_meta }),
     });
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetUsersReqBody {
-    pub user_ids: Vec<Uuid>,
+pub struct GetFilesMetaRequestBody {
+    pub file_ids: Vec<Uuid>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetUsersResBody {
-    pub users_meta: HashMap<Uuid, UserMeta>,
+pub struct GetFileMetaResBody {
+    pub files_meta: HashMap<Uuid, FileMeta>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct UserMeta {
-    pub user: User,
+pub struct FileMeta {
+    pub file: File,
+    pub tags: HashMap<String, String>,
 }

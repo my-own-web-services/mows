@@ -3,6 +3,7 @@ use bigdecimal::BigDecimal;
 use diesel::{
     deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::Text,
 };
+use diesel_as_jsonb::AsJsonb;
 use diesel_enum::DbEnum;
 use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
@@ -11,20 +12,37 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(
-    Serialize, Deserialize, Queryable, Selectable, ToSchema, Insertable, Clone, QueryableByName,
+    Serialize,
+    Deserialize,
+    Queryable,
+    Selectable,
+    ToSchema,
+    Insertable,
+    Clone,
+    QueryableByName,
+    Debug,
 )]
 #[diesel(table_name = crate::schema::files)]
 #[diesel(check_for_backend(Pg))]
-
 pub struct File {
     pub id: Uuid,
     pub owner_id: Uuid,
     pub mime_type: String,
-    pub file_name: String,
+    pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
     #[schema(value_type=i64)]
     pub size: BigDecimal,
+    pub metadata: FileMetadata,
+}
+
+#[derive(Serialize, Deserialize, AsJsonb, ToSchema, Clone, Debug)]
+pub struct FileMetadata {}
+
+impl FileMetadata {
+    pub fn new() -> Self {
+        Self {}
+    }
 }
 
 impl File {
@@ -33,15 +51,16 @@ impl File {
             id: get_uuid(),
             owner_id: owner.id.clone(),
             mime_type: mime_type.to_string(),
-            file_name: file_name.to_string(),
+            name: file_name.to_string(),
             created_time: chrono::Utc::now().naive_utc(),
             modified_time: chrono::Utc::now().naive_utc(),
             size: size.try_into().unwrap(),
+            metadata: FileMetadata::new(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable)]
+#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(Pg))]
 
@@ -70,7 +89,7 @@ impl User {
     }
 }
 
-#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable)]
+#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(table_name = crate::schema::file_groups)]
 #[diesel(check_for_backend(Pg))]
 
@@ -95,7 +114,7 @@ impl FileGroup {
 }
 
 #[derive(
-    Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Associations, Insertable,
+    Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Associations, Insertable, Debug,
 )]
 #[diesel(table_name = crate::schema::file_file_group_members)]
 #[diesel(belongs_to(File, foreign_key = file_id))]
@@ -119,7 +138,7 @@ impl FileFileGroupMember {
     }
 }
 
-#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable)]
+#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Debug, Insertable)]
 #[diesel(table_name = crate::schema::file_groups)]
 #[diesel(check_for_backend(Pg))]
 
@@ -144,7 +163,7 @@ impl UserGroup {
 }
 
 #[derive(
-    Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Associations, Insertable,
+    Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Associations, Insertable, Debug,
 )]
 #[diesel(table_name = crate::schema::user_user_group_members)]
 #[diesel(belongs_to(File, foreign_key = user_id))]
@@ -178,6 +197,7 @@ impl UserUserGroupMember {
     Insertable,
     Default,
     QueryableByName,
+    Debug,
 )]
 #[diesel(table_name = crate::schema::apps)]
 #[diesel(check_for_backend(Pg))]
@@ -267,6 +287,22 @@ pub enum AccessPolicyResourceType {
 pub enum AccessPolicyEffect {
     Deny,
     Allow,
+}
+
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub enum AccessPolicyAction {
+    #[serde(rename = "filez.files.content.get")]
+    FilesContentGet,
+    #[serde(rename = "filez.files.meta.get")]
+    FilesMetaGet,
+    #[serde(rename = "filez.files.meta.list")]
+    FilesMetaList,
+    #[serde(rename = "filez.files.meta.update")]
+    FilesMetaUpdate,
+    #[serde(rename = "filez.users.get")]
+    UsersGet,
+    #[serde(rename = "filez.file_groups.list_items")]
+    FileGroupListItems,
 }
 
 #[derive(Queryable, Selectable, Clone, Insertable, Debug, QueryableByName)]
