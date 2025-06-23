@@ -164,14 +164,13 @@ impl Db {
     pub async fn get_user_by_external_id(
         &self,
         external_user_id: &str,
-    ) -> Result<Option<User>, FilezErrors> {
+    ) -> Result<User, FilezErrors> {
         let mut conn = self.pool.get().await?;
 
         let result = schema::users::table
             .filter(schema::users::external_user_id.eq(external_user_id))
             .first::<User>(&mut conn)
-            .await
-            .optional()?;
+            .await?;
 
         Ok(result)
     }

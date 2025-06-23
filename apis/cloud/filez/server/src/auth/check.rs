@@ -34,7 +34,6 @@ pub async fn check_resources_access_control(
     if requested_resource_ids.is_empty() {
         return Ok(AuthResult {
             access_granted: true,
-            access_denied: false,
             evaluations: Vec::new(),
         });
     }
@@ -61,7 +60,6 @@ pub async fn check_resources_access_control(
     {
         return Ok(AuthResult {
             access_granted: true,
-            access_denied: false,
             evaluations: requested_resource_ids
                 .iter()
                 .map(|&id| AuthEvaluation {
@@ -340,7 +338,6 @@ pub async fn check_resources_access_control(
 
     Ok(AuthResult {
         access_granted,
-        access_denied: !access_granted,
         evaluations: auth_evaluations,
     })
 }
@@ -475,6 +472,24 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, FilezError
 #[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 pub struct AuthResult {
     pub access_granted: bool,
-    pub access_denied: bool,
     pub evaluations: Vec<AuthEvaluation>,
+}
+
+impl AuthResult {
+    pub fn is_allowed(&self) -> bool {
+        self.access_granted
+    }
+
+    pub fn is_denied(&self) -> bool {
+        !self.access_granted
+    }
+    pub fn verify(&self) -> Result<(), FilezErrors> {
+        if self.is_allowed() {
+            Ok(())
+        } else {
+            Err(FilezErrors::AuthEvaluationError(
+                "Access denied".to_string(),
+            ))
+        }
+    }
 }

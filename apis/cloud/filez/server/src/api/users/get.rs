@@ -1,6 +1,8 @@
 use crate::{
+    errors::FilezErrors,
     models::{AccessPolicyAction, AccessPolicyResourceType, User},
     types::{ApiResponse, ApiResponseStatus, AppState},
+    with_timing,
 };
 use axum::{extract::State, http::HeaderMap, Extension, Json};
 use serde::{Deserialize, Serialize};
@@ -20,56 +22,24 @@ use zitadel::axum::introspection::IntrospectedUser;
 pub async fn get_users(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
-    State(app_state): State<AppState>,
+    State(AppState { db, .. }): State<AppState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<GetUsersReqBody>,
-) -> Json<ApiResponse<GetUsersResBody>> {
-    let requesting_user = match app_state
-        .db
-        .get_user_by_external_id(&external_user.user_id)
-        .await
-    {
-        Ok(Some(u)) => u,
-        Ok(None) => {
-            return Json(ApiResponse {
-                status: ApiResponseStatus::Error,
-                message: "User not found".to_string(),
-                data: None,
-            });
-        }
-        Err(e) => {
-            return Json(ApiResponse {
-                status: ApiResponseStatus::Error,
-                message: format!("Database error: {}", e),
-                data: None,
-            });
-        }
-    };
-
-    timing.lock().unwrap().record(
-        "db.get_user_by_external_id".to_string(),
-        Some("Database operation to get user by external ID".to_string()),
+) -> Result<Json<ApiResponse<GetUsersResBody>>, FilezErrors> {
+    let requesting_user = with_timing!(
+        db.get_user_by_external_id(&external_user.user_id).await?,
+        "Database operation to get user by external ID",
+        timing
     );
 
-    let requesting_app = match app_state.db.get_app_from_headers(&request_headers).await {
-        Ok(app) => app,
-        Err(e) => {
-            return Json(ApiResponse {
-                status: ApiResponseStatus::Error,
-                message: format!("Failed to get app from headers: {}", e),
-                data: None,
-            });
-        }
-    };
-
-    timing.lock().unwrap().record(
-        "db.get_app_from_headers".to_string(),
-        Some("Database operation to get app from headers".to_string()),
+    let requesting_app = with_timing!(
+        db.get_app_from_headers(&request_headers).await?,
+        "Database operation to get app from headers",
+        timing
     );
 
-    match app_state
-        .db
-        .check_resources_access_control(
+    with_timing!(
+        db.check_resources_access_control(
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
@@ -77,45 +47,16 @@ pub async fn get_users(
             &req_body.user_ids,
             &serde_variant::to_variant_name(&AccessPolicyAction::UsersGet).unwrap(),
         )
-        .await
-    {
-        Ok(auth_result) => {
-            if auth_result.access_denied {
-                return Json(ApiResponse {
-                    status: ApiResponseStatus::Error,
-                    message: "Access denied".to_string(),
-                    data: None,
-                });
-            }
-        }
-        Err(e) => {
-            return Json(ApiResponse {
-                status: ApiResponseStatus::Error,
-                message: format!("Access control check failed: {}", e),
-                data: None,
-            });
-        }
-    };
-
-    timing.lock().unwrap().record(
-        "db.check_resources_access_control".to_string(),
-        Some("Database operation to check access control".to_string()),
+        .await?
+        .verify()?,
+        "Database operation to check access control",
+        timing
     );
 
-    let users = match app_state.db.get_users_by_ids(&req_body.user_ids).await {
-        Ok(users) => users,
-        Err(e) => {
-            return Json(ApiResponse {
-                status: ApiResponseStatus::Error,
-                message: format!("Failed to get users: {}", e),
-                data: None,
-            });
-        }
-    };
-
-    timing.lock().unwrap().record(
-        "db.get_users_by_ids".to_string(),
-        Some("Database operation to get users by IDs".to_string()),
+    let users = with_timing!(
+        db.get_users_by_ids(&req_body.user_ids).await?,
+        "Database operation to get users by IDs",
+        timing
     );
 
     let mut users_meta = HashMap::new();
@@ -124,19 +65,18 @@ pub async fn get_users(
         if let Some(user) = users.get(requested_user_id) {
             users_meta.insert(*requested_user_id, UserMeta { user: user.clone() });
         } else {
-            return Json(ApiResponse {
-                status: ApiResponseStatus::Error,
-                message: format!("User with ID {} not found", requested_user_id),
-                data: None,
-            });
+            return Err(FilezErrors::ResourceNotFound(format!(
+                "User with ID {} not found",
+                requested_user_id
+            )));
         }
     }
 
-    return Json(ApiResponse {
+    Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
         message: "Successfully retrieved users".to_string(),
         data: Some(GetUsersResBody { users_meta }),
-    });
+    }))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

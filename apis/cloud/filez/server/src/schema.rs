@@ -142,6 +142,19 @@ diesel::table! {
 diesel::joinable!(file_group_file_sort_order_items -> files (file_id));
 diesel::joinable!(file_group_file_sort_order_items -> file_group_file_sort_orders (sort_order_id));
 
+diesel::table! {
+    jobs {
+        id -> Uuid,
+        owner_id -> Uuid,
+        name -> Text,
+        status -> Text,
+        created_time -> Timestamp,
+        modified_time -> Timestamp,
+        start_time -> Nullable<Timestamp>,
+        end_time -> Nullable<Timestamp>,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     files,
     users,

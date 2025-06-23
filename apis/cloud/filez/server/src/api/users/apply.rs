@@ -1,5 +1,9 @@
-use crate::types::{ApiResponse, ApiResponseStatus, AppState};
-use axum::{extract::State, Json};
+use crate::{
+    errors::FilezErrors,
+    types::{ApiResponse, ApiResponseStatus, AppState},
+    with_timing,
+};
+use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -14,27 +18,23 @@ use zitadel::axum::introspection::IntrospectedUser;
 )]
 pub async fn apply_user(
     external_user: IntrospectedUser,
-    State(app_state): State<AppState>,
-) -> Json<ApiResponse<ApplyUserResponseBody>> {
-    match app_state
-        .db
-        .apply_user(
+    State(AppState { db, .. }): State<AppState>,
+    Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
+) -> Result<Json<ApiResponse<ApplyUserResponseBody>>, FilezErrors> {
+    let user_id = with_timing!(
+        db.apply_user(
             &external_user.user_id,
             &external_user.preferred_username.unwrap_or("".to_string()),
         )
-        .await
-    {
-        Ok(user_id) => Json(ApiResponse {
-            status: ApiResponseStatus::Success,
-            message: "User applied successfully".to_string(),
-            data: Some(ApplyUserResponseBody { user_id }),
-        }),
-        Err(e) => Json(ApiResponse {
-            status: ApiResponseStatus::Error,
-            message: format!("Failed to apply user: {}", e),
-            data: None,
-        }),
-    }
+        .await?,
+        "Database operation to apply user",
+        timing
+    );
+    Ok(Json(ApiResponse {
+        status: ApiResponseStatus::Success,
+        message: "User applied successfully".to_string(),
+        data: Some(ApplyUserResponseBody { user_id }),
+    }))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
