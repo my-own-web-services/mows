@@ -1,11 +1,13 @@
 use crate::{
     config::BUCKET_NAME,
+    errors::FilezErrors,
     models::{AccessPolicyAction, AccessPolicyResourceType},
     types::AppState,
     utils::parse_range,
+    with_timing,
 };
 use axum::{
-    body::{Body, Bytes},
+    body::Body,
     extract::{Path, Query, State},
     http::{
         header::{self, RANGE},
@@ -17,7 +19,6 @@ use axum::{
 use bigdecimal::BigDecimal;
 use bigdecimal::ToPrimitive;
 use minio::s3::types::S3Api;
-use mows_common_rust::s;
 use serde::Deserialize;
 use utoipa::IntoParams;
 use uuid::Uuid;
@@ -46,61 +47,28 @@ pub struct GetFileRequestQueryParams {
 )]
 pub async fn get_file_content(
     external_user: IntrospectedUser,
-    State(app_state): State<AppState>,
+    State(AppState {
+        db, minio_client, ..
+    }): State<AppState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(file_id): Path<Uuid>,
     Query(params): Query<GetFileRequestQueryParams>,
     request_headers: HeaderMap,
-) -> impl IntoResponse {
-    let requesting_user = match app_state
-        .db
-        .get_user_by_external_id(&external_user.user_id)
-        .await
-    {
-        Ok(Some(u)) => u,
-        Ok(None) => {
-            return (
-                StatusCode::NOT_FOUND,
-                HeaderMap::new(),
-                Bytes::from("User not found"),
-            )
-                .into_response();
-        }
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                HeaderMap::new(),
-                Bytes::from(format!("Database error: {}", e)),
-            )
-                .into_response();
-        }
-    };
-
-    timing.lock().unwrap().record(
-        "db.get_user_by_external_id".to_string(),
-        Some("Database operation to get user by external ID".to_string()),
+) -> Result<impl IntoResponse, FilezErrors> {
+    let requesting_user = with_timing!(
+        db.get_user_by_external_id(&external_user.user_id).await?,
+        "Database operation to get user by external ID",
+        timing
     );
 
-    let requesting_app = match app_state.db.get_app_from_headers(&request_headers).await {
-        Ok(app) => app,
-        Err(e) => {
-            return (
-                StatusCode::NOT_FOUND,
-                HeaderMap::new(),
-                Bytes::from(e.to_string()),
-            )
-                .into_response();
-        }
-    };
-
-    timing.lock().unwrap().record(
-        "db.get_app_from_headers".to_string(),
-        Some("Database operation to get app from headers".to_string()),
+    let requesting_app = with_timing!(
+        db.get_app_from_headers(&request_headers).await?,
+        "Database operation to get app from headers",
+        timing
     );
 
-    match app_state
-        .db
-        .check_resources_access_control(
+    with_timing!(
+        db.check_resources_access_control(
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
@@ -108,59 +76,21 @@ pub async fn get_file_content(
             &vec![file_id],
             &serde_variant::to_variant_name(&AccessPolicyAction::FilesContentGet).unwrap(),
         )
-        .await
-    {
-        Ok(auth_result) => {
-            if auth_result.access_denied {
-                return (
-                    StatusCode::FORBIDDEN,
-                    HeaderMap::new(),
-                    Bytes::from("Access denied"),
-                )
-                    .into_response();
-            }
-        }
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                HeaderMap::new(),
-                Bytes::from(format!("Access control check failed: {}", e)),
-            )
-                .into_response();
-        }
-    };
-
-    timing.lock().unwrap().record(
-        "db.check_resources_access_control".to_string(),
-        Some(s!("Database operation to check access control")),
+        .await?
+        .verify()?,
+        "Database operation to check access control",
+        timing
     );
 
-    let file_meta_res = app_state.db.get_file_by_id(file_id).await;
-
-    timing.lock().unwrap().record(
-        "db.get_file_by_id".to_string(),
-        Some(s!("Database operation to get file metadata")),
-    );
-
-    let file_meta = match file_meta_res {
-        Ok(Some(fm)) => fm,
-        Ok(None) => {
-            return (
-                StatusCode::NOT_FOUND,
-                HeaderMap::new(),
-                Bytes::from("File not found"),
-            )
-                .into_response();
-        }
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                HeaderMap::new(),
-                Bytes::from(format!("Error retrieving file: {}", e)),
-            )
-                .into_response();
-        }
-    };
+    let file_meta = with_timing!(
+        db.get_file_by_id(file_id).await?,
+        "Database operation to get file metadata",
+        timing
+    )
+    .ok_or(FilezErrors::ResourceNotFound(format!(
+        "File with ID {} not found",
+        file_id
+    )))?;
 
     // Create headers
     let mut headers = HeaderMap::new();
@@ -193,7 +123,12 @@ pub async fn get_file_content(
             header::CONTENT_DISPOSITION,
             format!("attachment; filename=\"{}\"", file_name)
                 .parse()
-                .expect("String to HeaderValue conversion failed"),
+                .map_err(|e| {
+                    FilezErrors::GenericError(anyhow::anyhow!(
+                        "Failed to parse content disposition header: {}",
+                        e
+                    ))
+                })?,
         );
     }
 
@@ -203,29 +138,22 @@ pub async fn get_file_content(
             header::CACHE_CONTROL,
             format!("public, max-age={}", cache_time)
                 .parse()
-                .expect("String to HeaderValue conversion failed"),
+                .map_err(|e| {
+                    FilezErrors::GenericError(anyhow::anyhow!(
+                        "Failed to parse cache control header: {}",
+                        e
+                    ))
+                })?,
         );
     }
 
-    let mut get_object_query = app_state
-        .minio_client
-        .get_object(BUCKET_NAME, file_meta.id.to_string());
+    let mut get_object_query = minio_client.get_object(BUCKET_NAME, file_meta.id.to_string());
 
     if request_headers.contains_key(RANGE) {
         // TODO handle range
         if let Some(range) = request_headers.get(RANGE) {
             let range_str = range.to_str().unwrap_or("");
-            let parsed_range = match parse_range(range_str) {
-                Ok(r) => r,
-                Err(e) => {
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        HeaderMap::new(),
-                        Bytes::from(format!("Invalid Range: {}", e)),
-                    )
-                        .into_response();
-                }
-            };
+            let parsed_range = parse_range(range_str)?;
 
             get_object_query = get_object_query
                 .offset(parsed_range.start.to_u64())
@@ -251,41 +179,19 @@ pub async fn get_file_content(
         }
     };
 
-    let get_object_response = match get_object_query.send().await {
-        Ok(response) => response,
-        Err(e) => {
-            // Handle the error, e.g., log it or return an error response
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                HeaderMap::new(),
-                Bytes::from(format!("Error retrieving file content: {}", e)),
-            )
-                .into_response();
-        }
-    };
-
-    timing.lock().unwrap().record(
-        "minio.get_object".to_string(),
-        Some(s!("MinIO operation to get file content")),
+    let get_object_response = with_timing!(
+        get_object_query.send().await?,
+        "MinIO operation to get file content",
+        timing
     );
 
-    let (stream, _size) = match get_object_response.content.to_stream().await {
-        Ok(stream_info) => stream_info,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                HeaderMap::new(),
-                Bytes::from(format!("Error converting to stream: {}", e)),
-            )
-                .into_response();
-        }
-    };
+    let (stream, _size) = get_object_response.content.to_stream().await?;
 
     let body = Body::from_stream(stream);
 
     if request_headers.contains_key(RANGE) {
-        (StatusCode::PARTIAL_CONTENT, headers, body).into_response()
+        Ok((StatusCode::PARTIAL_CONTENT, headers, body).into_response())
     } else {
-        (StatusCode::OK, headers, body).into_response()
+        Ok((StatusCode::OK, headers, body).into_response())
     }
 }

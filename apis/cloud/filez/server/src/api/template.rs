@@ -19,7 +19,7 @@ use crate::{
 )]
 pub async fn get_resource(
     external_user: IntrospectedUser,
-    State(app_state): State<AppState>,
+    State(AppState { db, .. }): State<AppState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<ReqBody>,
 ) -> Json<ApiResponse<ResBody>> {

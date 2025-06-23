@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::utils::{get_uuid, InvalidEnumType};
 use bigdecimal::BigDecimal;
 use diesel::{
@@ -37,11 +39,94 @@ pub struct File {
 }
 
 #[derive(Serialize, Deserialize, AsJsonb, ToSchema, Clone, Debug)]
-pub struct FileMetadata {}
+pub struct FileMetadata {
+    /// Place for apps to store custom data related to the file.
+    /// every app is identified by its id, and can only access its own data.
+    pub private_app_data: HashMap<String, serde_json::Value>,
+    /// Apps can provide and request shared app data from other apps on creation
+    pub shared_app_data: HashMap<String, serde_json::Value>,
+    /// Extracted data from the file, such as text content, metadata, etc.
+    pub extracted_data: serde_json::Value,
+
+    pub previews: HashMap<String, serde_json::Value>,
+    pub preferred_preview: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub enum BuiltInPreviews {
+    Image(BuiltInPreviewsImage),
+    Text(BuiltInPreviewsText),
+    Video(BuiltInPreviewsVideo),
+    Music(BuiltInPreviewsMusic),
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct BuiltInPreviewsImage {
+    pub resolutions: Vec<BuiltInPreviewsImageVariant>,
+    pub dominant_color: Option<String>, // e.g., "#FFFFFF"
+    pub width: u32,                     // original width
+    pub height: u32,                    // original height
+    pub image_type: BuiltInPreviewsImageType,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub enum BuiltInPreviewsImageType {
+    Jpeg,
+    Png,
+    Webp,
+    Avif,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct BuiltInPreviewsImageVariant {
+    pub width: u32,
+    pub height: u32,
+    pub id: Uuid,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct BuiltInPreviewsText {}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct BuiltInPreviewsVideo {
+    pub dominant_color: Option<String>,
+    pub width: u32,                    // original width
+    pub height: u32,                   // original height
+    pub duration: u64,                 // duration in milliseconds
+    pub dash_manifest: Option<String>, // the dash manifest content
+    pub thumbnail_still: Option<ThumbnailStill>,
+    pub scrub_thumbnails: Option<Vec<ScrubThumbnail>>,
+    pub thumbnail_video: Option<BuiltInPreviewsVideoThumbnailVideo>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct ThumbnailStill {
+    pub resolution: Vec<BuiltInPreviewsImageVariant>,
+    pub image_type: BuiltInPreviewsImageType,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct BuiltInPreviewsVideoThumbnailVideo {}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct ScrubThumbnail {
+    pub time: u64, // time in milliseconds
+    pub resolution: Vec<BuiltInPreviewsImageVariant>,
+    pub image_type: BuiltInPreviewsImageType,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct BuiltInPreviewsMusic {}
 
 impl FileMetadata {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            private_app_data: HashMap::new(),
+            shared_app_data: HashMap::new(),
+            extracted_data: serde_json::Value::Null,
+            previews: HashMap::new(),
+            preferred_preview: None,
+        }
     }
 }
 
@@ -63,7 +148,6 @@ impl File {
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(Pg))]
-
 pub struct User {
     pub id: Uuid,
     pub external_user_id: Option<String>,
@@ -92,7 +176,6 @@ impl User {
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(table_name = crate::schema::file_groups)]
 #[diesel(check_for_backend(Pg))]
-
 pub struct FileGroup {
     pub id: Uuid,
     pub owner_id: Uuid,
@@ -121,7 +204,6 @@ impl FileGroup {
 #[diesel(belongs_to(FileGroup, foreign_key = file_group_id))]
 #[diesel(primary_key(file_id, file_group_id))]
 #[diesel(check_for_backend(Pg))]
-
 pub struct FileFileGroupMember {
     pub file_id: Uuid,
     pub file_group_id: Uuid,
@@ -141,7 +223,6 @@ impl FileFileGroupMember {
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Debug, Insertable)]
 #[diesel(table_name = crate::schema::file_groups)]
 #[diesel(check_for_backend(Pg))]
-
 pub struct UserGroup {
     pub id: Uuid,
     pub owner_id: Uuid,
@@ -170,7 +251,6 @@ impl UserGroup {
 #[diesel(belongs_to(FileGroup, foreign_key = user_group_id))]
 #[diesel(primary_key(user_id, user_group_id))]
 #[diesel(check_for_backend(Pg))]
-
 pub struct UserUserGroupMember {
     pub user_id: Uuid,
     pub user_group_id: Uuid,
@@ -259,7 +339,6 @@ impl FilezApp {
 #[diesel(sql_type = Text)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
-
 pub enum AccessPolicySubjectType {
     User,
     UserGroup,
