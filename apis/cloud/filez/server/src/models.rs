@@ -1,6 +1,12 @@
-use std::collections::HashMap;
-
-use crate::utils::{get_uuid, InvalidEnumType};
+use crate::{
+    storage::{
+        errors::StorageError,
+        location::StorageLocation,
+        state::{StorageLocationsState, StorageProvider},
+    },
+    utils::{get_uuid, InvalidEnumType},
+};
+use axum::body::Body;
 use bigdecimal::BigDecimal;
 use diesel::{
     deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::Text,
@@ -9,7 +15,7 @@ use diesel_as_jsonb::AsJsonb;
 use diesel_enum::DbEnum;
 use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
-use url::Url;
+use std::collections::HashMap;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -36,6 +42,8 @@ pub struct File {
     #[schema(value_type=i64)]
     pub size: BigDecimal,
     pub metadata: FileMetadata,
+    pub storage: StorageLocation,
+    pub sha256_digest: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, AsJsonb, ToSchema, Clone, Debug)]
@@ -47,76 +55,8 @@ pub struct FileMetadata {
     pub shared_app_data: HashMap<String, serde_json::Value>,
     /// Extracted data from the file, such as text content, metadata, etc.
     pub extracted_data: serde_json::Value,
-
-    pub previews: HashMap<String, serde_json::Value>,
-    pub preferred_preview: Option<String>,
+    pub default_preview_app_id: Option<Uuid>,
 }
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub enum BuiltInPreviews {
-    Image(BuiltInPreviewsImage),
-    Text(BuiltInPreviewsText),
-    Video(BuiltInPreviewsVideo),
-    Music(BuiltInPreviewsMusic),
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct BuiltInPreviewsImage {
-    pub resolutions: Vec<BuiltInPreviewsImageVariant>,
-    pub dominant_color: Option<String>, // e.g., "#FFFFFF"
-    pub width: u32,                     // original width
-    pub height: u32,                    // original height
-    pub image_type: BuiltInPreviewsImageType,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub enum BuiltInPreviewsImageType {
-    Jpeg,
-    Png,
-    Webp,
-    Avif,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct BuiltInPreviewsImageVariant {
-    pub width: u32,
-    pub height: u32,
-    pub id: Uuid,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct BuiltInPreviewsText {}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct BuiltInPreviewsVideo {
-    pub dominant_color: Option<String>,
-    pub width: u32,                    // original width
-    pub height: u32,                   // original height
-    pub duration: u64,                 // duration in milliseconds
-    pub dash_manifest: Option<String>, // the dash manifest content
-    pub thumbnail_still: Option<ThumbnailStill>,
-    pub scrub_thumbnails: Option<Vec<ScrubThumbnail>>,
-    pub thumbnail_video: Option<BuiltInPreviewsVideoThumbnailVideo>,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct ThumbnailStill {
-    pub resolution: Vec<BuiltInPreviewsImageVariant>,
-    pub image_type: BuiltInPreviewsImageType,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct BuiltInPreviewsVideoThumbnailVideo {}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct ScrubThumbnail {
-    pub time: u64, // time in milliseconds
-    pub resolution: Vec<BuiltInPreviewsImageVariant>,
-    pub image_type: BuiltInPreviewsImageType,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct BuiltInPreviewsMusic {}
 
 impl FileMetadata {
     pub fn new() -> Self {
@@ -124,14 +64,19 @@ impl FileMetadata {
             private_app_data: HashMap::new(),
             shared_app_data: HashMap::new(),
             extracted_data: serde_json::Value::Null,
-            previews: HashMap::new(),
-            preferred_preview: None,
+            default_preview_app_id: None,
         }
     }
 }
 
 impl File {
-    pub fn new(owner: &User, mime_type: &Mime, file_name: &str, size: u64) -> Self {
+    pub fn new(
+        owner: &User,
+        mime_type: &Mime,
+        file_name: &str,
+        size: u64,
+        sha256_digest: Option<String>,
+    ) -> Self {
         Self {
             id: get_uuid(),
             owner_id: owner.id.clone(),
@@ -141,6 +86,80 @@ impl File {
             modified_time: chrono::Utc::now().naive_utc(),
             size: size.try_into().unwrap(),
             metadata: FileMetadata::new(),
+            storage: StorageLocation::default(),
+            sha256_digest,
+        }
+    }
+
+    pub async fn get_storage_provider_id_for_app_id(
+        &self,
+        app_id: &Uuid,
+    ) -> Result<Uuid, StorageError> {
+        self.storage
+            .locations
+            .get(&app_id)
+            .ok_or(StorageError::StorageProviderForAppNotFound(
+                app_id.to_string(),
+            ))
+            .copied()
+    }
+
+    pub async fn get_content(
+        &self,
+        storage_provider_state: StorageLocationsState,
+        timing: axum_server_timing::ServerTimingExtension,
+        range: Option<(Option<u64>, Option<u64>)>,
+        app_id: Option<Uuid>,
+        app_path: Option<String>,
+    ) -> Result<Body, StorageError> {
+        let provider_id = self
+            .get_storage_provider_id_for_app_id(&app_id.unwrap_or(Uuid::default()))
+            .await?;
+
+        let providers = storage_provider_state.providers.read().await;
+
+        match providers.get(&provider_id) {
+            Some(provider_state) => match provider_state {
+                StorageProvider::Minio(minio_provider) => {
+                    minio_provider
+                        .get_content(self, timing, range, app_path)
+                        .await
+                }
+            },
+            None => {
+                return Err(StorageError::StorageProviderStateNotFound(
+                    provider_id.to_string(),
+                ))
+            }
+        }
+    }
+
+    pub async fn create_file(
+        &self,
+        storage_provider_state: StorageLocationsState,
+        request: axum::http::Request<axum::body::Body>,
+        timing: axum_server_timing::ServerTimingExtension,
+        sha256_digest: Option<String>,
+    ) -> Result<(), StorageError> {
+        let provider_id = self
+            .get_storage_provider_id_for_app_id(&Uuid::default())
+            .await?;
+
+        let providers = storage_provider_state.providers.read().await;
+
+        match providers.get(&provider_id) {
+            Some(provider_state) => match provider_state {
+                StorageProvider::Minio(minio_provider) => {
+                    minio_provider
+                        .create_file(self, request, timing, sha256_digest)
+                        .await
+                }
+            },
+            None => {
+                return Err(StorageError::StorageProviderStateNotFound(
+                    provider_id.to_string(),
+                ))
+            }
         }
     }
 }
@@ -268,72 +287,6 @@ impl UserUserGroupMember {
 }
 
 #[derive(
-    Serialize,
-    Deserialize,
-    Queryable,
-    Selectable,
-    ToSchema,
-    Clone,
-    Insertable,
-    Default,
-    QueryableByName,
-    Debug,
-)]
-#[diesel(table_name = crate::schema::apps)]
-#[diesel(check_for_backend(Pg))]
-pub struct FilezApp {
-    pub id: Uuid,
-    pub name: String,
-    pub description: Option<String>,
-    pub created_time: chrono::NaiveDateTime,
-    pub modified_time: chrono::NaiveDateTime,
-    pub owner_id: Uuid,
-    pub origins: Option<Vec<String>>,
-    pub trusted: bool,
-}
-
-impl FilezApp {
-    pub fn first_party() -> Self {
-        Self {
-            // empty UUID
-            id: Uuid::default(),
-            name: "The Filez primary origin".to_string(),
-            description: Some("First party app for Filez".to_string()),
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
-            owner_id: Uuid::default(),
-            origins: None,
-            trusted: true,
-        }
-    }
-    pub fn dev(dev_origin: &Url) -> Self {
-        Self {
-            id: Uuid::default(),
-            name: "Filez Dev App".to_string(),
-            description: Some("Development allowed filez app".to_string()),
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
-            owner_id: Uuid::default(),
-            origins: Some(vec![dev_origin.to_string()]),
-            trusted: true,
-        }
-    }
-
-    pub fn no_origin() -> Self {
-        Self {
-            id: Uuid::default(),
-            name: "Filez App with no origin".to_string(),
-            description: Some("App with no origins".to_string()),
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
-            owner_id: Uuid::default(),
-            origins: None,
-            trusted: true,
-        }
-    }
-}
-
-#[derive(
     Debug, Clone, Copy, PartialEq, Eq, AsExpression, FromSqlRow, DbEnum, Serialize, Deserialize,
 )]
 #[diesel(sql_type = Text)]
@@ -398,7 +351,7 @@ pub struct AccessPolicy {
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
 
-    pub context_app_id: Option<Uuid>,
+    pub context_app_id: Option<String>,
 
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub resource_type: AccessPolicyResourceType,
@@ -414,7 +367,7 @@ impl AccessPolicy {
         name: &str,
         subject_type: AccessPolicySubjectType,
         subject_id: Uuid,
-        context_app_id: Option<Uuid>,
+        context_app_id: Option<String>,
         resource_type: AccessPolicyResourceType,
         resource_id: Uuid,
         action: &str,

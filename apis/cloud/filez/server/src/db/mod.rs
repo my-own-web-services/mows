@@ -1,20 +1,22 @@
 use crate::{
     api::files::meta::update::UpdateFilesMetaTypeTagsMethod,
     auth::check::{check_resources_access_control, AuthResult},
-    config::config,
-    errors::FilezErrors,
-    models::{File, FileTagMember, FilezApp, Tag, User},
+    config::{config, FilezServerConfig},
+    errors::FilezError,
+    models::{File, FileTagMember, Tag, User},
     schema::{self, files},
     types::SortOrder,
-    utils::is_dev_origin,
 };
+use anyhow::Context;
 use bigdecimal::BigDecimal;
 use diesel::{insert_into, prelude::*};
-use diesel_async::pooled_connection::deadpool::Pool;
-use diesel_async::RunQueryDsl;
+use diesel_async::{
+    async_connection_wrapper::AsyncConnectionWrapper, AsyncConnection, RunQueryDsl,
+};
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use mows_common_rust::get_current_config_cloned;
-use std::{collections::HashMap, str::FromStr};
-use url::Url;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -22,15 +24,36 @@ pub struct Db {
     pub pool: Pool<diesel_async::AsyncPgConnection>,
 }
 
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
+
 impl Db {
     pub async fn new(pool: Pool<diesel_async::AsyncPgConnection>) -> Self {
         Self { pool }
     }
 
-    pub async fn get_file_group_item_count(
-        &self,
-        file_group_id: &Uuid,
-    ) -> Result<i64, FilezErrors> {
+    pub async fn run_migrations(config: &FilezServerConfig) -> Result<(), FilezError> {
+        match AsyncPgConnection::establish(&config.db_url)
+            .await
+            .context("Failed to establish async Postgres connection")
+        {
+            Ok(async_connection) => {
+                let mut async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
+                    AsyncConnectionWrapper::from(async_connection);
+
+                tokio::task::spawn_blocking(move || {
+                    async_wrapper.run_pending_migrations(MIGRATIONS).unwrap();
+                })
+                .await
+                .context("Failed to run pending migrations")?;
+            }
+            Err(e) => {
+                tracing::error!("Failed to establish async Postgres connection: {e}");
+            }
+        };
+        Ok(())
+    }
+
+    pub async fn get_file_group_item_count(&self, file_group_id: &Uuid) -> Result<i64, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let count = schema::file_file_group_members::table
@@ -49,7 +72,7 @@ impl Db {
         limit: Option<i64>,
         sort_by: Option<&str>,
         sort_order: Option<SortOrder>,
-    ) -> Result<Vec<File>, FilezErrors> {
+    ) -> Result<Vec<File>, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let mut query = schema::file_file_group_members::table
@@ -91,7 +114,7 @@ impl Db {
     pub async fn get_files_metadata(
         &self,
         file_ids: &Vec<Uuid>,
-    ) -> Result<HashMap<Uuid, File>, FilezErrors> {
+    ) -> Result<HashMap<Uuid, File>, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let result = files::table
@@ -108,7 +131,7 @@ impl Db {
     pub async fn get_files_tags(
         &self,
         file_ids: &[Uuid],
-    ) -> Result<HashMap<Uuid, HashMap<String, String>>, FilezErrors> {
+    ) -> Result<HashMap<Uuid, HashMap<String, String>>, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let tags: Vec<(Uuid, String, String)> = schema::file_tag_members::table
@@ -136,7 +159,7 @@ impl Db {
         Ok(file_tags)
     }
 
-    pub async fn get_file_by_id(&self, file_id: uuid::Uuid) -> Result<Option<File>, FilezErrors> {
+    pub async fn get_file_by_id(&self, file_id: uuid::Uuid) -> Result<Option<File>, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let result = files::table
@@ -149,7 +172,7 @@ impl Db {
         Ok(result)
     }
 
-    pub async fn create_file(&self, new_file: &File) -> Result<File, FilezErrors> {
+    pub async fn create_file(&self, new_file: &File) -> Result<File, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let result = diesel::insert_into(files::table)
@@ -164,7 +187,7 @@ impl Db {
     pub async fn get_user_by_external_id(
         &self,
         external_user_id: &str,
-    ) -> Result<User, FilezErrors> {
+    ) -> Result<User, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let result = schema::users::table
@@ -179,7 +202,7 @@ impl Db {
         &self,
         external_user_id: &str,
         display_name: &str,
-    ) -> Result<uuid::Uuid, FilezErrors> {
+    ) -> Result<uuid::Uuid, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let config = get_current_config_cloned!(config());
@@ -213,7 +236,7 @@ impl Db {
         Ok(result.id)
     }
 
-    pub async fn delete_file(&self, file_id: uuid::Uuid) -> Result<(), FilezErrors> {
+    pub async fn delete_file(&self, file_id: uuid::Uuid) -> Result<(), FilezError> {
         let mut conn = self.pool.get().await?;
 
         diesel::delete(files::table.filter(files::id.eq(file_id)))
@@ -223,7 +246,7 @@ impl Db {
         Ok(())
     }
 
-    pub async fn get_health(&self) -> Result<(), FilezErrors> {
+    pub async fn get_health(&self) -> Result<(), FilezError> {
         let mut conn = self.pool.get().await?;
         diesel::select(diesel::dsl::sql::<diesel::sql_types::Bool>("1 = 1"))
             .get_result::<bool>(&mut conn)
@@ -231,7 +254,7 @@ impl Db {
         Ok(())
     }
 
-    pub async fn get_users_user_groups(&self, user_id: &Uuid) -> Result<Vec<Uuid>, FilezErrors> {
+    pub async fn get_users_user_groups(&self, user_id: &Uuid) -> Result<Vec<Uuid>, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let user_groups = schema::user_user_group_members::table
@@ -246,12 +269,12 @@ impl Db {
     pub async fn check_resources_access_control(
         &self,
         requesting_user_id: &Uuid,
-        requesting_app_id: &Uuid,
+        requesting_app_id: &str,
         requesting_app_trusted: bool,
         resource_type: &str,
         requested_resource_ids: &[Uuid],
         action: &str,
-    ) -> Result<AuthResult, FilezErrors> {
+    ) -> Result<AuthResult, FilezError> {
         let user_group_ids = self.get_users_user_groups(requesting_user_id).await?;
 
         check_resources_access_control(
@@ -267,7 +290,7 @@ impl Db {
         .await
     }
 
-    pub async fn get_user_used_storage(&self, user_id: &Uuid) -> Result<BigDecimal, FilezErrors> {
+    pub async fn get_user_used_storage(&self, user_id: &Uuid) -> Result<BigDecimal, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let used_storage = schema::files::table
@@ -286,7 +309,7 @@ impl Db {
         tags: &HashMap<String, String>,
         method: &UpdateFilesMetaTypeTagsMethod,
         created_by_user_id: &Uuid,
-    ) -> Result<(), FilezErrors> {
+    ) -> Result<(), FilezError> {
         let mut conn = self.pool.get().await?;
 
         // tags are stored in the tags table and linked to files via file_tag_members
@@ -385,58 +408,10 @@ impl Db {
         Ok(())
     }
 
-    pub async fn get_app_by_origin(&self, origin: &str) -> Result<FilezApp, FilezErrors> {
-        let mut conn = self.pool.get().await?;
-
-        let apps = schema::apps::table
-            .filter(schema::apps::origins.contains(vec![origin.to_string()]))
-            .select(FilezApp::as_select())
-            .load::<FilezApp>(&mut conn)
-            .await?;
-
-        if apps.is_empty() {
-            return Err(FilezErrors::AuthEvaluationError(format!(
-                "No app found for origin: {}",
-                origin
-            )));
-        }
-        if apps.len() > 1 {
-            return Err(FilezErrors::AuthEvaluationError(format!(
-                "Multiple apps found for origin: {}",
-                origin
-            )));
-        }
-        let app = apps.into_iter().next().unwrap();
-
-        Ok(app)
-    }
-
-    pub async fn get_app_from_headers(
-        &self,
-        request_headers: &axum::http::HeaderMap,
-    ) -> Result<FilezApp, FilezErrors> {
-        match request_headers
-            .get("origin")
-            .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string())
-        {
-            Some(origin) => {
-                let config = get_current_config_cloned!(config());
-                if Url::from_str(&origin)? == config.primary_origin {
-                    return Ok(FilezApp::first_party());
-                } else if let Some(dev_origin) = is_dev_origin(&config, &origin).await {
-                    return Ok(FilezApp::dev(&dev_origin));
-                }
-                self.get_app_by_origin(&origin).await
-            }
-            None => Ok(FilezApp::no_origin()),
-        }
-    }
-
     pub async fn get_users_by_ids(
         &self,
         user_ids: &[Uuid],
-    ) -> Result<HashMap<Uuid, User>, FilezErrors> {
+    ) -> Result<HashMap<Uuid, User>, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let users: Vec<User> = schema::users::table

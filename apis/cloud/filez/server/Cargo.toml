@@ -9,6 +9,14 @@ publish = false
 name = "server"
 path = "src/server.rs"
 
+[[bin]]
+name = "crdgen"
+path = "src/controller/crdgen.rs"
+
+[lib]
+name = "server_lib"
+path = "src/lib.rs"
+
 
 [features]
 timing = ["dep:axum-server-timing"]
@@ -72,6 +80,8 @@ tokio-postgres = { version = "0.7.13" }
 
 uuid = { workspace = true, features = ["serde", "v7"] }
 chrono = { workspace = true, features = ["serde"] }
+sha2 = { workspace = true, features = ["default"] }
+
 
 axum-server-timing = { git = "https://github.com/JensWalter/axum-server-timing/", rev = "ec8362e98a0e98f7724ca1f9413c128e581461ad", optional = true }
 
@@ -80,13 +90,18 @@ minio = { version = "0.3.0", features = [
     "ring",
 ], default-features = false }
 
-axum-health = { version = "=0.1.2", features = [
-    "diesel-deadpool",
-    "_diesel-async",
-] }
+
 async-trait = { workspace = true }
 futures-util = { workspace = true, features = ["default"] }
 
 serde_variant = "0.1.3"
 axum-tracing-opentelemetry = { workspace = true }
 bigdecimal = { version = "0.4.8", features = ["serde", "serde_json"] }
+
+kube = { workspace = true, features = ["runtime", "default", "derive"] }
+schemars = { workspace = true, features = ["chrono"] }
+k8s-openapi = { workspace = true, features = ["latest"] }
+serde_yaml = { workspace = true }
+prometheus-client = { workspace = true }
+opentelemetry = { workspace = true, features = ["trace"] }
+futures = { workspace = true, features = ["default"] }

@@ -739,21 +739,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum-health"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a56f5dc54368de406d0b9efbd0f9cd1a32a0e74452889e872cc0d66e3de5ada9"
-dependencies = [
- "async-trait",
- "axum 0.8.4",
- "diesel",
- "diesel-async",
- "futures",
- "serde",
- "tower-layer",
-]
-
-[[package]]
 name = "axum-server-timing"
 version = "2.1.0"
 source = "git+https://github.com/JensWalter/axum-server-timing/?rev=ec8362e98a0e98f7724ca1f9413c128e581461ad#ec8362e98a0e98f7724ca1f9413c128e581461ad"
@@ -6217,7 +6202,6 @@ dependencies = [
  "async-trait",
  "axum 0.8.4",
  "axum-extra",
- "axum-health",
  "axum-server-timing",
  "axum-tracing-opentelemetry",
  "bigdecimal",
@@ -6227,13 +6211,21 @@ dependencies = [
  "diesel-enum",
  "diesel_as_jsonb",
  "diesel_migrations",
+ "futures",
  "futures-util",
+ "k8s-openapi",
+ "kube",
  "mime_guess",
  "minio",
  "mows-common-rust",
+ "opentelemetry 0.26.0",
+ "prometheus-client",
+ "schemars",
  "serde",
  "serde_json",
  "serde_variant",
+ "serde_yaml",
+ "sha2",
  "thiserror 2.0.12",
  "tokio",
  "tokio-postgres",

@@ -1,7 +1,9 @@
 use crate::{
-    errors::FilezErrors,
+    apps::FilezApp,
+    errors::FilezError,
     models::{AccessPolicyAction, AccessPolicyResourceType, User},
-    types::{ApiResponse, ApiResponseStatus, AppState},
+    state::ServerState,
+    types::{ApiResponse, ApiResponseStatus},
     with_timing,
 };
 use axum::{extract::State, http::HeaderMap, Extension, Json};
@@ -22,10 +24,10 @@ use zitadel::axum::introspection::IntrospectedUser;
 pub async fn get_users(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
-    State(AppState { db, .. }): State<AppState>,
+    State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<GetUsersReqBody>,
-) -> Result<Json<ApiResponse<GetUsersResBody>>, FilezErrors> {
+) -> Result<Json<ApiResponse<GetUsersResBody>>, FilezError> {
     let requesting_user = with_timing!(
         db.get_user_by_external_id(&external_user.user_id).await?,
         "Database operation to get user by external ID",
@@ -33,7 +35,7 @@ pub async fn get_users(
     );
 
     let requesting_app = with_timing!(
-        db.get_app_from_headers(&request_headers).await?,
+        FilezApp::get_app_from_headers(&request_headers).await?,
         "Database operation to get app from headers",
         timing
     );
@@ -65,7 +67,7 @@ pub async fn get_users(
         if let Some(user) = users.get(requested_user_id) {
             users_meta.insert(*requested_user_id, UserMeta { user: user.clone() });
         } else {
-            return Err(FilezErrors::ResourceNotFound(format!(
+            return Err(FilezError::ResourceNotFound(format!(
                 "User with ID {} not found",
                 requested_user_id
             )));

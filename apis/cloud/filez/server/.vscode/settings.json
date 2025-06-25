@@ -1,12 +1,15 @@
 {
     "cSpell.words": [
         "chrono",
+        "crdgen",
         "deadpool",
         "Filez",
+        "Finalizer",
         "Insertable",
         "minio",
         "oidc",
         "openapi",
+        "opentelemetry",
         "Otel",
         "utoipa",
         "zitadel"

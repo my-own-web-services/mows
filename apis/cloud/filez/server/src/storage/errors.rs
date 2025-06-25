@@ -1,0 +1,18 @@
+#[derive(Debug, thiserror::Error)]
+pub enum StorageError {
+    #[error(transparent)]
+    MinioError(#[from] minio::s3::error::Error),
+    #[error("IO Error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Storage provider state for provider id {0} not found")]
+    StorageProviderStateNotFound(String),
+    #[error("Storage provider for app id {0} not found")]
+    StorageProviderForAppNotFound(String),
+    #[error("Size conversion error: {0}")]
+    SizeConversionError(String),
+    #[error("Digest mismatch: expected {expected}, got {calculated}")]
+    DigestMismatch {
+        expected: String,
+        calculated: String,
+    },
+}
