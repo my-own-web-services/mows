@@ -1,8 +1,8 @@
 use crate::{
-    config::BUCKET_NAME,
-    errors::FilezErrors,
+    errors::FilezError,
     models::File,
-    types::{ApiResponse, ApiResponseStatus, AppState},
+    state::ServerState,
+    types::{ApiResponse, ApiResponseStatus},
     validation::validate_file_name,
     with_timing,
 };
@@ -13,9 +13,7 @@ use axum::{
     Extension, Json,
 };
 use chrono::NaiveDateTime;
-use futures_util::TryStreamExt;
 use mime_guess::Mime;
-use minio::s3::builders::ObjectContent;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use utoipa::ToSchema;
@@ -32,12 +30,14 @@ use zitadel::axum::introspection::IntrospectedUser;
 pub async fn create_file(
     external_user: IntrospectedUser,
     headers: HeaderMap,
-    State(AppState {
-        db, minio_client, ..
-    }): State<AppState>,
+    State(ServerState {
+        db,
+        storage_locations,
+        ..
+    }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     request: Request,
-) -> Result<Json<ApiResponse<CreateFileResponseBody>>, FilezErrors> {
+) -> Result<Json<ApiResponse<CreateFileResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
         db.get_user_by_external_id(&external_user.user_id).await?,
         "Database operation to get user by external ID",
@@ -49,7 +49,7 @@ pub async fn create_file(
         .and_then(|v| v.to_str().ok())
         .and_then(|s| s.parse::<u64>().ok())
         .ok_or_else(|| {
-            FilezErrors::ParseError("Missing or invalid content-length header".to_string())
+            FilezError::ParseError("Missing or invalid content-length header".to_string())
         })?;
 
     let meta_body: CreateFileRequestBody =
@@ -60,13 +60,13 @@ pub async fn create_file(
         match meta_body.mime_type {
             Some(mime) => Mime::from_str(&mime)?,
             None => mime_guess::from_path(&meta_body.file_name).first().ok_or(
-                FilezErrors::ParseError("Failed to determine MIME type from file name".to_string()),
+                FilezError::ParseError("Failed to determine MIME type from file name".to_string()),
             )?,
         };
 
     validate_file_name(&meta_body.file_name)
         .await
-        .map_err(|e| FilezErrors::ParseError(format!("Invalid file name: {}", e)))?;
+        .map_err(|e| FilezError::ParseError(format!("Invalid file name: {}", e)))?;
 
     // Check if the file size is within the allowed limits
     let user_used_storage = with_timing!(
@@ -76,7 +76,7 @@ pub async fn create_file(
     );
 
     if &user_used_storage + file_size > requesting_user.storage_limit {
-        return Err(FilezErrors::GenericError(anyhow::anyhow!(
+        return Err(FilezError::GenericError(anyhow::anyhow!(
             "User storage limit exceeded: {} bytes used, {} bytes limit",
             user_used_storage,
             requesting_user.storage_limit
@@ -89,6 +89,7 @@ pub async fn create_file(
         &mime_type,
         &meta_body.file_name,
         file_size,
+        meta_body.sha256_digest.clone(),
     );
 
     let db_created_file = with_timing!(
@@ -99,30 +100,25 @@ pub async fn create_file(
         timing
     );
 
-    let stream = request
-        .into_body()
-        .into_data_stream()
-        .map_err(|err| tokio::io::Error::new(tokio::io::ErrorKind::Other, err));
-
-    let object_content = ObjectContent::new_from_stream(stream, Some(file_size));
-
-    with_timing!(
-        minio_client
-            .put_object_content(BUCKET_NAME, db_created_file.id, object_content)
-            .content_type(mime_type.to_string())
-            .send()
-            .await?,
-        "MinIO operation to upload the file content",
-        timing
-    );
-
-    Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
-        message: "Created File".to_string(),
-        data: Some(CreateFileResponseBody {
-            file_id: db_created_file.id.to_string(),
-        }),
-    }))
+    match db_created_file
+        .create_file(storage_locations, request, timing, meta_body.sha256_digest)
+        .await
+    {
+        Ok(_) => Ok(Json(ApiResponse {
+            status: ApiResponseStatus::Success,
+            message: "Created File".to_string(),
+            data: Some(CreateFileResponseBody {
+                file_id: db_created_file.id.to_string(),
+            }),
+        })),
+        Err(e) => Ok(Json(ApiResponse {
+            status: ApiResponseStatus::Error,
+            message: format!("Failed to create file content: {}", e),
+            data: Some(CreateFileResponseBody {
+                file_id: db_created_file.id.to_string(),
+            }),
+        })),
+    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
@@ -131,6 +127,7 @@ pub struct CreateFileRequestBody {
     pub file_name: String,
     pub time_created: Option<NaiveDateTime>,
     pub time_modified: Option<NaiveDateTime>,
+    pub sha256_digest: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

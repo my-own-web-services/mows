@@ -7,9 +7,11 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    errors::FilezErrors,
+    apps::FilezApp,
+    errors::FilezError,
     models::{AccessPolicyAction, AccessPolicyResourceType, File},
-    types::{ApiResponse, ApiResponseStatus, AppState},
+    state::ServerState,
+    types::{ApiResponse, ApiResponseStatus},
     with_timing,
 };
 
@@ -24,10 +26,10 @@ use crate::{
 pub async fn get_files_metadata(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
-    State(AppState { db, .. }): State<AppState>,
+    State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<GetFilesMetaRequestBody>,
-) -> Result<Json<ApiResponse<GetFileMetaResBody>>, FilezErrors> {
+) -> Result<Json<ApiResponse<GetFileMetaResBody>>, FilezError> {
     let requesting_user = with_timing!(
         db.get_user_by_external_id(&external_user.user_id).await?,
         "Database operation to get user by external ID",
@@ -35,7 +37,7 @@ pub async fn get_files_metadata(
     );
 
     let requesting_app = with_timing!(
-        db.get_app_from_headers(&request_headers).await?,
+        FilezApp::get_app_from_headers(&request_headers).await?,
         "Database operation to get app from headers",
         timing
     );
@@ -84,7 +86,7 @@ pub async fn get_files_metadata(
         if let Some(meta) = file_meta {
             files_meta.insert(*requested_file_id, meta);
         } else {
-            return Err(FilezErrors::GenericError(anyhow::anyhow!(
+            return Err(FilezError::GenericError(anyhow::anyhow!(
                 "File with ID {} not found or access denied",
                 requested_file_id
             )));

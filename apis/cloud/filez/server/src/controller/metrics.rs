@@ -1,4 +1,3 @@
-use crate::{crd::PektinDns, Error};
 use kube::ResourceExt;
 use opentelemetry::trace::TraceId;
 use prometheus_client::{
@@ -9,6 +8,8 @@ use prometheus_client::{
 use std::sync::Arc;
 use tokio::time::Instant;
 
+use super::{crd::FilezResource, errors::ControllerError};
+
 #[derive(Clone)]
 pub struct Metrics {
     pub reconcile: ReconcileMetrics,
@@ -17,7 +18,7 @@ pub struct Metrics {
 
 impl Default for Metrics {
     fn default() -> Self {
-        let mut registry = Registry::with_prefix("pektin_dns_controller_reconcile");
+        let mut registry = Registry::with_prefix("filez_resource_reconcile");
         let reconcile = ReconcileMetrics::default().register(&mut registry);
         Self {
             registry: Arc::new(registry),
@@ -55,7 +56,9 @@ impl Default for ReconcileMetrics {
         Self {
             runs: Family::<(), Counter>::default(),
             failures: Family::<ErrorLabels, Counter>::default(),
-            duration: HistogramWithExemplars::new([0.01, 0.1, 0.25, 0.5, 1., 5., 15., 60.].into_iter()),
+            duration: HistogramWithExemplars::new(
+                [0.01, 0.1, 0.25, 0.5, 1., 5., 15., 60.].into_iter(),
+            ),
         }
     }
 }
@@ -80,7 +83,7 @@ impl ReconcileMetrics {
         self
     }
 
-    pub fn set_failure(&self, doc: &PektinDns, e: &Error) {
+    pub fn set_failure(&self, doc: &FilezResource, e: &ControllerError) {
         self.failures
             .get_or_create(&ErrorLabels {
                 instance: doc.name_any(),

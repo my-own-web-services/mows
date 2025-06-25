@@ -8,6 +8,8 @@ diesel::table! {
         modified_time -> Timestamp,
         size -> Numeric,
         metadata -> Jsonb,
+        storage -> Jsonb,
+        sha256_digest -> Nullable<Text>,
     }
 }
 diesel::joinable!(files -> users (owner_id));
@@ -67,20 +69,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    apps {
-        id -> Uuid,
-        owner_id -> Uuid,
-        name -> Text,
-        trusted -> Bool,
-        origins -> Nullable<Array<Text>>,
-        created_time -> Timestamp,
-        modified_time -> Timestamp,
-        description -> Nullable<Text>,
-    }
-}
-diesel::joinable!(apps -> users (owner_id));
-
-diesel::table! {
     tags {
         id -> Uuid,
         key -> Text,
@@ -109,7 +97,7 @@ diesel::table! {
         subject_type -> Text,
         subject_id -> Uuid,
 
-        context_app_id -> Nullable<Uuid>,
+        context_app_id -> Nullable<Text>,
 
         resource_type -> Text,
         resource_id -> Uuid,
@@ -147,7 +135,7 @@ diesel::table! {
         id -> Uuid,
         owner_id -> Uuid,
         name -> Text,
-        status -> Text,
+        status -> Jsonb,
         created_time -> Timestamp,
         modified_time -> Timestamp,
         start_time -> Nullable<Timestamp>,
@@ -162,7 +150,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     file_groups,
     user_groups,
     user_user_group_members,
-    apps,
     tags,
     file_tag_members,
     access_policies,

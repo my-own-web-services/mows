@@ -5,9 +5,11 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    errors::FilezErrors,
+    apps::FilezApp,
+    errors::FilezError,
     models::{AccessPolicyAction, AccessPolicyResourceType, File},
-    types::{ApiResponse, ApiResponseStatus, AppState, SortOrder},
+    state::ServerState,
+    types::{ApiResponse, ApiResponseStatus, SortOrder},
     with_timing,
 };
 
@@ -22,10 +24,10 @@ use crate::{
 pub async fn list_files(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
-    State(AppState { db, .. }): State<AppState>,
+    State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<ListFilesRequestBody>,
-) -> Result<Json<ApiResponse<ListFilesResponseBody>>, FilezErrors> {
+) -> Result<Json<ApiResponse<ListFilesResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
         db.get_user_by_external_id(&external_user.user_id).await?,
         "Database operation to get user by external ID",
@@ -33,7 +35,7 @@ pub async fn list_files(
     );
 
     let requesting_app = with_timing!(
-        db.get_app_from_headers(&request_headers).await?,
+        FilezApp::get_app_from_headers(&request_headers).await?,
         "Database operation to get app from headers",
         timing
     );

@@ -1,5 +1,10 @@
-use std::collections::{HashMap, HashSet};
-
+use crate::models::AccessPolicyEffect;
+use crate::{
+    db::Db,
+    errors::FilezError,
+    models::{AccessPolicy, AccessPolicySubjectType},
+    schema,
+};
 use diesel::QueryDsl;
 use diesel::{
     pg::sql_types, prelude::QueryableByName, BoolExpressionMethods, ExpressionMethods,
@@ -7,28 +12,20 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-use crate::models::AccessPolicyEffect;
-use crate::{
-    db::Db,
-    errors::FilezErrors,
-    models::{AccessPolicy, AccessPolicySubjectType},
-    schema,
-};
 
 pub async fn check_resources_access_control(
     db: &Db,
     requesting_user_id: &Uuid,
     user_group_ids: &[Uuid],
-    context_app_id: &Uuid,
+    context_app_id: &str,
     context_app_trusted: bool,
     resource_type: &str,
     requested_resource_ids: &[Uuid],
-
     action_to_perform: &str,
-) -> Result<AuthResult, FilezErrors> {
+) -> Result<AuthResult, FilezError> {
     let mut conn = db.pool.get().await?;
 
     if requested_resource_ids.is_empty() {
@@ -394,9 +391,8 @@ pub enum AuthReason {
         via_user_group_id: Uuid,
         on_resource_group_id: Uuid,
     },
-    NoMatchingAllowPolicy, // Default deny if no specific allow/deny found
-    ResourceNotFound,      // If a requested resource ID doesn't exist
-                           // Add other specific reasons if needed
+    NoMatchingAllowPolicy,
+    ResourceNotFound,
 }
 
 #[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
@@ -410,16 +406,16 @@ pub struct ResourceAuthInfo {
     pub resource_table: &'static str,
     pub resource_table_id_column: &'static str,
     pub resource_table_owner_column: &'static str,
-    pub resource_type_policy_str: &'static str, // For access_policies.resource_type
+    pub resource_type_policy_str: &'static str,
 
-    // Optional: For resources that can be part of groups
+    // For resources that can be part of groups
     pub group_membership_table: Option<&'static str>,
     pub group_membership_table_resource_id_column: Option<&'static str>,
     pub group_membership_table_group_id_column: Option<&'static str>,
-    pub resource_group_type_policy_str: Option<&'static str>, // For access_policies.resource_type when targeting groups
+    pub resource_group_type_policy_str: Option<&'static str>,
 }
 
-pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, FilezErrors> {
+pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, FilezError> {
     Ok(match resource_type {
         "file" => ResourceAuthInfo {
             resource_table: "files",
@@ -462,7 +458,7 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, FilezError
             resource_group_type_policy_str: None,
         },
         _ => {
-            return Err(FilezErrors::AuthEvaluationError(
+            return Err(FilezError::AuthEvaluationError(
                 "Unsupported resource type".to_string(),
             ));
         }
@@ -483,13 +479,11 @@ impl AuthResult {
     pub fn is_denied(&self) -> bool {
         !self.access_granted
     }
-    pub fn verify(&self) -> Result<(), FilezErrors> {
+    pub fn verify(&self) -> Result<(), FilezError> {
         if self.is_allowed() {
             Ok(())
         } else {
-            Err(FilezErrors::AuthEvaluationError(
-                "Access denied".to_string(),
-            ))
+            Err(FilezError::AuthEvaluationError("Access denied".to_string()))
         }
     }
 }

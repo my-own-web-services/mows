@@ -1,13 +1,12 @@
 use crate::{
-    config::BUCKET_NAME,
-    errors::FilezErrors,
+    apps::FilezApp,
+    errors::FilezError,
     models::{AccessPolicyAction, AccessPolicyResourceType},
-    types::AppState,
+    state::ServerState,
     utils::parse_range,
     with_timing,
 };
 use axum::{
-    body::Body,
     extract::{Path, Query, State},
     http::{
         header::{self, RANGE},
@@ -18,7 +17,6 @@ use axum::{
 };
 use bigdecimal::BigDecimal;
 use bigdecimal::ToPrimitive;
-use minio::s3::types::S3Api;
 use serde::Deserialize;
 use utoipa::IntoParams;
 use uuid::Uuid;
@@ -34,9 +32,11 @@ pub struct GetFileRequestQueryParams {
 
 #[utoipa::path(
     get,
-    path = "/api/files/content/get/{file_id}",
+    path = "/api/files/content/get/{file_id}/{app_id}/{app_path}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to retrieve content for"),
+        ("app_id" = Option<Uuid>, Path, description = "The type of preview to retrieve, if applicable"),
+        ("app_path" = Option<String>, Path, description = "The path to the file preview, if applicable"),
         GetFileRequestQueryParams
     ),
     responses(
@@ -47,14 +47,16 @@ pub struct GetFileRequestQueryParams {
 )]
 pub async fn get_file_content(
     external_user: IntrospectedUser,
-    State(AppState {
-        db, minio_client, ..
-    }): State<AppState>,
+    State(ServerState {
+        db,
+        storage_locations,
+        ..
+    }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(file_id): Path<Uuid>,
+    Path((file_id, app_id, app_path)): Path<(Uuid, Option<Uuid>, Option<String>)>,
     Query(params): Query<GetFileRequestQueryParams>,
     request_headers: HeaderMap,
-) -> Result<impl IntoResponse, FilezErrors> {
+) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
         db.get_user_by_external_id(&external_user.user_id).await?,
         "Database operation to get user by external ID",
@@ -62,7 +64,7 @@ pub async fn get_file_content(
     );
 
     let requesting_app = with_timing!(
-        db.get_app_from_headers(&request_headers).await?,
+        FilezApp::get_app_from_headers(&request_headers).await?,
         "Database operation to get app from headers",
         timing
     );
@@ -87,14 +89,14 @@ pub async fn get_file_content(
         "Database operation to get file metadata",
         timing
     )
-    .ok_or(FilezErrors::ResourceNotFound(format!(
+    .ok_or(FilezError::ResourceNotFound(format!(
         "File with ID {} not found",
         file_id
     )))?;
 
     // Create headers
-    let mut headers = HeaderMap::new();
-    headers.insert(
+    let mut response_headers = HeaderMap::new();
+    response_headers.insert(
         header::CONTENT_TYPE,
         file_meta
             .mime_type
@@ -119,12 +121,12 @@ pub async fn get_file_content(
             file_meta.name.clone()
         };
 
-        headers.insert(
+        response_headers.insert(
             header::CONTENT_DISPOSITION,
             format!("attachment; filename=\"{}\"", file_name)
                 .parse()
                 .map_err(|e| {
-                    FilezErrors::GenericError(anyhow::anyhow!(
+                    FilezError::GenericError(anyhow::anyhow!(
                         "Failed to parse content disposition header: {}",
                         e
                     ))
@@ -134,12 +136,12 @@ pub async fn get_file_content(
 
     if let Some(cache_time) = params.c {
         // If the cache parameter is set, set the cache control header
-        headers.insert(
+        response_headers.insert(
             header::CACHE_CONTROL,
             format!("public, max-age={}", cache_time)
                 .parse()
                 .map_err(|e| {
-                    FilezErrors::GenericError(anyhow::anyhow!(
+                    FilezError::GenericError(anyhow::anyhow!(
                         "Failed to parse cache control header: {}",
                         e
                     ))
@@ -147,21 +149,14 @@ pub async fn get_file_content(
         );
     }
 
-    let mut get_object_query = minio_client.get_object(BUCKET_NAME, file_meta.id.to_string());
-
-    if request_headers.contains_key(RANGE) {
-        // TODO handle range
+    let range = if request_headers.contains_key(RANGE) {
         if let Some(range) = request_headers.get(RANGE) {
             let range_str = range.to_str().unwrap_or("");
             let parsed_range = parse_range(range_str)?;
 
-            get_object_query = get_object_query
-                .offset(parsed_range.start.to_u64())
-                .length(parsed_range.length.map(|l| l.to_u64().unwrap()));
-
-            headers.insert(header::ACCEPT_RANGES, "bytes".parse().unwrap());
-            headers.insert(header::CONNECTION, "Keep-Alive".parse().unwrap());
-            headers.insert(
+            response_headers.insert(header::ACCEPT_RANGES, "bytes".parse().unwrap());
+            response_headers.insert(header::CONNECTION, "Keep-Alive".parse().unwrap());
+            response_headers.insert(
                 HeaderName::from_static("keep-alive"),
                 "timeout=5, max=100".parse().unwrap(),
             );
@@ -170,28 +165,27 @@ pub async fn get_file_content(
                 .end
                 .unwrap_or(&file_meta.size - BigDecimal::from(1));
 
-            headers.insert(
+            response_headers.insert(
                 header::CONTENT_RANGE,
                 format!("bytes {}-{}/{}", parsed_range.start, end, file_meta.size)
                     .parse()
                     .expect("String to HeaderValue conversion failed"),
             );
+            Some((parsed_range.start.to_u64(), end.to_u64()))
+        } else {
+            None
         }
+    } else {
+        None
     };
 
-    let get_object_response = with_timing!(
-        get_object_query.send().await?,
-        "MinIO operation to get file content",
-        timing
-    );
+    let body = file_meta
+        .get_content(storage_locations, timing, range, app_id, app_path)
+        .await?;
 
-    let (stream, _size) = get_object_response.content.to_stream().await?;
-
-    let body = Body::from_stream(stream);
-
-    if request_headers.contains_key(RANGE) {
-        Ok((StatusCode::PARTIAL_CONTENT, headers, body).into_response())
+    if range.is_some() {
+        Ok((StatusCode::PARTIAL_CONTENT, response_headers, body).into_response())
     } else {
-        Ok((StatusCode::OK, headers, body).into_response())
+        Ok((StatusCode::OK, response_headers, body).into_response())
     }
 }

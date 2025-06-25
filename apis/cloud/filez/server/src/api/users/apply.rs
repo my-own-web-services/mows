@@ -1,6 +1,7 @@
 use crate::{
-    errors::FilezErrors,
-    types::{ApiResponse, ApiResponseStatus, AppState},
+    errors::FilezError,
+    state::ServerState,
+    types::{ApiResponse, ApiResponseStatus},
     with_timing,
 };
 use axum::{extract::State, Extension, Json};
@@ -18,9 +19,9 @@ use zitadel::axum::introspection::IntrospectedUser;
 )]
 pub async fn apply_user(
     external_user: IntrospectedUser,
-    State(AppState { db, .. }): State<AppState>,
+    State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-) -> Result<Json<ApiResponse<ApplyUserResponseBody>>, FilezErrors> {
+) -> Result<Json<ApiResponse<ApplyUserResponseBody>>, FilezError> {
     let user_id = with_timing!(
         db.apply_user(
             &external_user.user_id,

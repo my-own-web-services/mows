@@ -1,5 +1,5 @@
 use crate::{
-    config::{self, config},
+    config::config,
     crd::{PektinDns, PektinDnsSpec, PektinDnsStatus},
     reconcile::plain::handle_plain,
     utils::get_error_type,
