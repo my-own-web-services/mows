@@ -15,4 +15,6 @@ pub enum StorageError {
         expected: String,
         calculated: String,
     },
+    #[error("Offset mismatch: expected {expected}, got {calculated}")]
+    OffsetMismatch { expected: u64, calculated: u64 },
 }

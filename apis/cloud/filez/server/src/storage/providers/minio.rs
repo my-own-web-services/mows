@@ -8,6 +8,7 @@ use anyhow::Context;
 use axum::body::Body;
 use axum::extract::Request;
 use bigdecimal::ToPrimitive;
+use futures::StreamExt;
 use futures_util::TryStreamExt;
 use minio::s3::{builders::ObjectContent, types::S3Api};
 use minio::s3::{creds::StaticProvider, http::BaseUrl, ClientBuilder};
@@ -82,6 +83,82 @@ impl StorageProviderMinio {
         let (stream, _size) = get_object_response.content.to_stream().await?;
 
         Ok(Body::from_stream(stream))
+    }
+
+    pub async fn continue_file_creation(
+        &self,
+        file: &File,
+        request: Request,
+        timing: axum_server_timing::ServerTimingExtension,
+        offset: u64,
+        length: u64,
+    ) -> Result<(), StorageError> {
+        let object_id = file.id.to_string();
+
+        let get_object_response = with_timing!(
+            self.client
+                .get_object(&self.bucket, &object_id)
+                .send()
+                .await?,
+            "MinIO operation to get existing file content for continuation",
+            timing
+        );
+
+        if get_object_response.object_size != offset {
+            return Err(StorageError::OffsetMismatch {
+                expected: offset,
+                calculated: get_object_response.object_size,
+            });
+        }
+
+        let (existing_content_stream, _size) = get_object_response.content.to_stream().await?;
+
+        let existing_stream = existing_content_stream
+            .map_err(|e| tokio::io::Error::new(tokio::io::ErrorKind::Other, e));
+
+        let new_content_stream = request
+            .into_body()
+            .into_data_stream()
+            .map_err(|err| tokio::io::Error::new(tokio::io::ErrorKind::Other, err));
+
+        let combined_stream = existing_stream.chain(new_content_stream);
+
+        let total_size = offset + length;
+        let object_content = ObjectContent::new_from_stream(combined_stream, Some(total_size));
+
+        with_timing!(
+            self.client
+                .put_object_content(&self.bucket, &object_id, object_content)
+                .content_type(file.mime_type.clone())
+                .send()
+                .await?,
+            "MinIO operation to overwrite with continued file content",
+            timing
+        );
+        Ok(())
+    }
+
+    pub async fn get_file_size_from_content(
+        &self,
+        file: &File,
+        timing: axum_server_timing::ServerTimingExtension,
+        app_path: Option<String>,
+    ) -> Result<u64, StorageError> {
+        let object_id = match app_path {
+            Some(path) => format!("{}-{}", file.id, path),
+            None => file.id.to_string(),
+        };
+
+        let get_object_response = with_timing!(
+            self.client
+                .get_object(&self.bucket, &object_id)
+                .send()
+                .await?,
+            "MinIO operation to get file size",
+            timing
+        );
+
+        Ok(get_object_response.object_size)
     }
 
     pub async fn create_file(

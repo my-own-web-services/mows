@@ -1,15 +1,17 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Context;
 use axum::extract::FromRef;
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use kube::Client;
+use tokio::sync::RwLock;
 use zitadel::{
     axum::introspection::{IntrospectionState, IntrospectionStateBuilder},
     oidc::introspection::cache::in_memory::InMemoryIntrospectionCache,
 };
 
 use crate::{
+    apps::FilezApp,
     config::FilezServerConfig,
     controller::{ControllerContext, ControllerState, Diagnostics},
     db::Db,
@@ -23,6 +25,7 @@ pub struct ServerState {
     pub storage_locations: StorageLocationsState,
     pub introspection_state: zitadel::axum::introspection::IntrospectionState,
     pub controller_state: ControllerState,
+    pub apps: Arc<RwLock<HashMap<String, FilezApp>>>,
 }
 
 impl FromRef<ServerState> for IntrospectionState {
@@ -53,15 +56,12 @@ impl ServerState {
             .context("Failed to create Postgres connection pool")?;
         let db = Db::new(pool).await;
 
-        let storage_locations = StorageLocationsState::new()
-            .await
-            .context("Failed to create storage locations state")?;
-
         Ok(Self {
             db,
-            storage_locations,
+            storage_locations: StorageLocationsState::new(),
             introspection_state,
             controller_state: ControllerState::default(),
+            apps: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 
@@ -83,6 +83,8 @@ impl ServerState {
             client,
             metrics: self.controller_state.metrics.clone(),
             diagnostics: self.controller_state.diagnostics.clone(),
+            apps: self.apps.clone(),
+            storage_locations: self.storage_locations.clone(),
         })
     }
 }

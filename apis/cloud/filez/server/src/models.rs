@@ -1,4 +1,5 @@
 use crate::{
+    config::FILEZ_SERVER_APP_ID,
     storage::{
         errors::StorageError,
         location::StorageLocation,
@@ -93,15 +94,45 @@ impl File {
 
     pub async fn get_storage_provider_id_for_app_id(
         &self,
-        app_id: &Uuid,
-    ) -> Result<Uuid, StorageError> {
+        app_id: &str,
+    ) -> Result<String, StorageError> {
         self.storage
             .locations
-            .get(&app_id)
+            .get(app_id)
             .ok_or(StorageError::StorageProviderForAppNotFound(
                 app_id.to_string(),
             ))
-            .copied()
+            .cloned()
+    }
+
+    pub async fn get_file_size_from_content(
+        &self,
+        storage_provider_state: StorageLocationsState,
+        timing: axum_server_timing::ServerTimingExtension,
+        app_id: Option<String>,
+    ) -> Result<u64, StorageError> {
+        let provider_id = self
+            .get_storage_provider_id_for_app_id(
+                &app_id.clone().unwrap_or(FILEZ_SERVER_APP_ID.to_string()),
+            )
+            .await?;
+
+        let providers = storage_provider_state.locations.read().await;
+
+        match providers.get(&provider_id) {
+            Some(provider_state) => match provider_state {
+                StorageProvider::Minio(minio_provider) => {
+                    minio_provider
+                        .get_file_size_from_content(self, timing, app_id)
+                        .await
+                }
+            },
+            None => {
+                return Err(StorageError::StorageProviderStateNotFound(
+                    provider_id.to_string(),
+                ))
+            }
+        }
     }
 
     pub async fn get_content(
@@ -109,20 +140,50 @@ impl File {
         storage_provider_state: StorageLocationsState,
         timing: axum_server_timing::ServerTimingExtension,
         range: Option<(Option<u64>, Option<u64>)>,
-        app_id: Option<Uuid>,
+        app_id: Option<String>,
         app_path: Option<String>,
     ) -> Result<Body, StorageError> {
         let provider_id = self
-            .get_storage_provider_id_for_app_id(&app_id.unwrap_or(Uuid::default()))
+            .get_storage_provider_id_for_app_id(&app_id.unwrap_or(FILEZ_SERVER_APP_ID.to_string()))
             .await?;
 
-        let providers = storage_provider_state.providers.read().await;
+        let providers = storage_provider_state.locations.read().await;
 
         match providers.get(&provider_id) {
             Some(provider_state) => match provider_state {
                 StorageProvider::Minio(minio_provider) => {
                     minio_provider
                         .get_content(self, timing, range, app_path)
+                        .await
+                }
+            },
+            None => {
+                return Err(StorageError::StorageProviderStateNotFound(
+                    provider_id.to_string(),
+                ))
+            }
+        }
+    }
+
+    pub async fn continue_file_creation(
+        &self,
+        storage_provider_state: StorageLocationsState,
+        request: axum::http::Request<axum::body::Body>,
+        timing: axum_server_timing::ServerTimingExtension,
+        offset: u64,
+        length: u64,
+    ) -> Result<(), StorageError> {
+        let provider_id = self
+            .get_storage_provider_id_for_app_id(&FILEZ_SERVER_APP_ID.to_string())
+            .await?;
+
+        let providers = storage_provider_state.locations.read().await;
+
+        match providers.get(&provider_id) {
+            Some(provider_state) => match provider_state {
+                StorageProvider::Minio(minio_provider) => {
+                    minio_provider
+                        .continue_file_creation(self, request, timing, offset, length)
                         .await
                 }
             },
@@ -142,10 +203,10 @@ impl File {
         sha256_digest: Option<String>,
     ) -> Result<(), StorageError> {
         let provider_id = self
-            .get_storage_provider_id_for_app_id(&Uuid::default())
+            .get_storage_provider_id_for_app_id(&FILEZ_SERVER_APP_ID.to_string())
             .await?;
 
-        let providers = storage_provider_state.providers.read().await;
+        let providers = storage_provider_state.locations.read().await;
 
         match providers.get(&provider_id) {
             Some(provider_state) => match provider_state {
@@ -325,6 +386,10 @@ pub enum AccessPolicyEffect {
 pub enum AccessPolicyAction {
     #[serde(rename = "filez.files.content.get")]
     FilesContentGet,
+    #[serde(rename = "filez.files.content.tus.head")]
+    FilesContentTusHead,
+    #[serde(rename = "filez.files.content.tus.patch")]
+    FilesContentTusPatch,
     #[serde(rename = "filez.files.meta.get")]
     FilesMetaGet,
     #[serde(rename = "filez.files.meta.list")]

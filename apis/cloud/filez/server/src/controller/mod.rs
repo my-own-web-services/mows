@@ -1,13 +1,18 @@
-use crate::{config::config, state::ServerState};
+use crate::{
+    apps::FilezApp,
+    config::config,
+    state::ServerState,
+    storage::state::{StorageLocationsState, StorageProvider},
+};
 use chrono::{DateTime, Utc};
-use crd::FilezResource;
+use crd::{FilezResource, FilezResourceSpec};
 use errors::{ControllerError, Result};
 use futures::StreamExt;
 use kube::{
     api::{Api, ListParams},
     runtime::{
         controller::Action,
-        events::{Recorder, Reporter},
+        events::{Event, EventType, Recorder, Reporter},
         finalizer::{finalizer, Event as Finalizer},
         watcher::Config,
         Controller,
@@ -17,7 +22,7 @@ use kube::{
 use metrics::Metrics;
 use mows_common_rust::{get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
 use tracing::{error, field, info, instrument, warn, Span};
 
@@ -28,11 +33,62 @@ pub mod metrics;
 pub static FINALIZER: &str = "filez.k8s.mows.cloud";
 
 impl FilezResource {
-    async fn reconcile(&self, _ctx: Arc<ControllerContext>) -> Result<Action> {
-        todo!()
+    async fn reconcile(&self, ctx: Arc<ControllerContext>) -> Result<Action> {
+        let config = get_current_config_cloned!(config());
+
+        match self.spec {
+            FilezResourceSpec::StorageLocation(ref incoming_provider_config) => {}
+            FilezResourceSpec::FilezApp(ref incoming_app) => {
+                // insert or update the app in the state
+                let mut apps = ctx.apps.write().await;
+                if let Some(existing_app) = apps.get_mut(&self.name_any()) {
+                    // Update existing app
+                    *existing_app = incoming_app.clone();
+                } else {
+                    // Insert new app
+                    apps.insert(self.name_any(), incoming_app.clone());
+                }
+            }
+        }
+
+        Ok(Action::requeue(Duration::from_secs(
+            config.reconcile_interval_seconds,
+        )))
     }
-    async fn cleanup(&self, _ctx: Arc<ControllerContext>) -> Result<Action> {
-        todo!()
+    async fn cleanup(&self, ctx: Arc<ControllerContext>) -> Result<Action> {
+        match self.spec {
+            FilezResourceSpec::StorageLocation(_) => {
+                ctx.storage_locations
+                    .locations
+                    .write()
+                    .await
+                    .remove(&self.name_any());
+            }
+            FilezResourceSpec::FilezApp(_) => {
+                ctx.apps.write().await.remove(&self.name_any());
+            }
+        }
+
+        let recorder = ctx
+            .diagnostics
+            .read()
+            .await
+            .recorder(ctx.client.clone(), self);
+
+        if let Err(e) = recorder
+            .publish(Event {
+                type_: EventType::Normal,
+                reason: "DeleteRequested".into(),
+                note: Some(format!("Delete `{}`", self.name_any())),
+                action: "Deleting".into(),
+                secondary: None,
+            })
+            .await
+        {
+            error!("Failed to publish delete event: {:?}", e);
+        };
+
+        Ok(Action::await_change())
     }
 }
 
@@ -44,30 +100,6 @@ pub struct ControllerState {
     pub metrics: Arc<Metrics>,
 }
 
-impl ControllerState {
-    /// Metrics getter
-    pub fn metrics(&self) -> String {
-        let mut buffer = String::new();
-        let registry = &*self.metrics.registry;
-        prometheus_client::encoding::text::encode(&mut buffer, registry).unwrap();
-        buffer
-    }
-
-    /// State getter
-    pub async fn diagnostics(&self) -> Diagnostics {
-        self.diagnostics.read().await.clone()
-    }
-
-    // Create a Controller Context that can update State
-    pub fn to_context(&self, client: Client) -> Arc<ControllerContext> {
-        Arc::new(ControllerContext {
-            client,
-            metrics: self.metrics.clone(),
-            diagnostics: self.diagnostics.clone(),
-        })
-    }
-}
-
 // Context for our reconciler
 #[derive(Clone)]
 pub struct ControllerContext {
@@ -77,6 +109,11 @@ pub struct ControllerContext {
     pub diagnostics: Arc<RwLock<Diagnostics>>,
     /// Prometheus metrics
     pub metrics: Arc<Metrics>,
+
+    /// Apps state
+    pub apps: Arc<RwLock<HashMap<String, FilezApp>>>,
+
+    pub storage_locations: StorageLocationsState,
 }
 
 /// Diagnostics to be exposed by the web server
@@ -99,6 +136,51 @@ impl Diagnostics {
     pub fn recorder(&self, client: Client, resource: &FilezResource) -> Recorder {
         Recorder::new(client, self.reporter.clone(), resource.object_ref(&()))
     }
+}
+
+pub async fn sync_state_with_kubernetes(state: &ServerState) -> Result<()> {
+    let client = Client::try_default().await.map_err(|e| {
+        error!("Failed to create Kubernetes client: {e:?}");
+        ControllerError::KubeError(e)
+    })?;
+    let apps = Api::<FilezResource>::all(client.clone());
+    let list_params = ListParams::default();
+    let resources = apps.list(&list_params).await.map_err(|e| {
+        error!("Failed to list Filez resources: {e:?}");
+        ControllerError::KubeError(e)
+    })?;
+
+    for resource in resources {
+        let name = resource
+            .metadata
+            .name
+            .clone()
+            .ok_or(ControllerError::MissingResourceName(
+                resource.metadata.name.clone().unwrap_or_default(),
+            ))?;
+        match resource.spec {
+            FilezResourceSpec::StorageLocation(provider_config) => {
+                let provider = match StorageProvider::initialize(&provider_config).await {
+                    Ok(provider) => provider,
+                    Err(e) => {
+                        error!("Failed to initialize storage provider: {e:?}");
+                        continue;
+                    }
+                };
+                state
+                    .storage_locations
+                    .locations
+                    .write()
+                    .await
+                    .insert(name, provider);
+            }
+            FilezResourceSpec::FilezApp(app) => {
+                state.apps.write().await.insert(name, app);
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub async fn run(state: ServerState) -> Result<()> {

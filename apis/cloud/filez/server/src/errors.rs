@@ -29,6 +29,15 @@ pub enum FilezError {
     IoError(#[from] std::io::Error),
     #[error(transparent)]
     StorageError(#[from] StorageError),
+    // invalid request
+    #[error("Invalid request: {0}")]
+    InvalidRequest(String),
+    // unsupported media type
+    #[error("Unsupported media type: {0}")]
+    UnsupportedMediaType(String),
+    // unauthorized
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 }
 
 impl IntoResponse for FilezError {
@@ -46,6 +55,9 @@ impl IntoResponse for FilezError {
             FilezError::ResourceNotFound(_) => axum::http::StatusCode::NOT_FOUND,
             FilezError::IoError(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             FilezError::StorageError(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            FilezError::InvalidRequest(_) => axum::http::StatusCode::BAD_REQUEST,
+            FilezError::UnsupportedMediaType(_) => axum::http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            FilezError::Unauthorized(_) => axum::http::StatusCode::UNAUTHORIZED,
         };
 
         let body: ApiResponse<EmptyApiResponse> = ApiResponse {

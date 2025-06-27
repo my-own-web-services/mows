@@ -9,7 +9,8 @@ use crate::{
 use anyhow::Context;
 use axum::{
     extract::{Request, State},
-    http::HeaderMap,
+    http::{HeaderMap, StatusCode},
+    response::IntoResponse,
     Extension, Json,
 };
 use chrono::NaiveDateTime;
@@ -37,7 +38,7 @@ pub async fn create_file(
     }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     request: Request,
-) -> Result<Json<ApiResponse<CreateFileResponseBody>>, FilezError> {
+) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
         db.get_user_by_external_id(&external_user.user_id).await?,
         "Database operation to get user by external ID",
@@ -104,20 +105,26 @@ pub async fn create_file(
         .create_file(storage_locations, request, timing, meta_body.sha256_digest)
         .await
     {
-        Ok(_) => Ok(Json(ApiResponse {
-            status: ApiResponseStatus::Success,
-            message: "Created File".to_string(),
-            data: Some(CreateFileResponseBody {
-                file_id: db_created_file.id.to_string(),
+        Ok(_) => Ok((
+            StatusCode::CREATED,
+            Json(ApiResponse {
+                status: ApiResponseStatus::Success,
+                message: "Created File".to_string(),
+                data: Some(CreateFileResponseBody {
+                    file_id: db_created_file.id.to_string(),
+                }),
             }),
-        })),
-        Err(e) => Ok(Json(ApiResponse {
-            status: ApiResponseStatus::Error,
-            message: format!("Failed to create file content: {}", e),
-            data: Some(CreateFileResponseBody {
-                file_id: db_created_file.id.to_string(),
+        )),
+        Err(e) => Ok((
+            StatusCode::ACCEPTED,
+            Json(ApiResponse {
+                status: ApiResponseStatus::Error,
+                message: format!("File was created but content was not fully uploaded: {}", e),
+                data: Some(CreateFileResponseBody {
+                    file_id: db_created_file.id.to_string(),
+                }),
             }),
-        })),
+        )),
     }
 }
 

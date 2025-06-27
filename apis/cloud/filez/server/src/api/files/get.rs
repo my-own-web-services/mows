@@ -35,7 +35,7 @@ pub struct GetFileRequestQueryParams {
     path = "/api/files/content/get/{file_id}/{app_id}/{app_path}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to retrieve content for"),
-        ("app_id" = Option<Uuid>, Path, description = "The type of preview to retrieve, if applicable"),
+        ("app_id" = Option<String>, Path, description = "The type of preview to retrieve, if applicable"),
         ("app_path" = Option<String>, Path, description = "The path to the file preview, if applicable"),
         GetFileRequestQueryParams
     ),
@@ -53,7 +53,7 @@ pub async fn get_file_content(
         ..
     }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path((file_id, app_id, app_path)): Path<(Uuid, Option<Uuid>, Option<String>)>,
+    Path((file_id, app_id, app_path)): Path<(Uuid, Option<String>, Option<String>)>,
     Query(params): Query<GetFileRequestQueryParams>,
     request_headers: HeaderMap,
 ) -> Result<impl IntoResponse, FilezError> {
