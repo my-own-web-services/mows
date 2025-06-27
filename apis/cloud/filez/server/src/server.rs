@@ -61,6 +61,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::files::create::create_file))
         .routes(routes!(api::files::meta::get::get_files_metadata))
         .routes(routes!(api::files::meta::update::update_files_metadata))
+        // tus
+        .routes(routes!(api::files::tus::head::tus_head))
+        .routes(routes!(api::files::tus::patch::tus_patch))
         // FILE GROUPS
         .routes(routes!(api::file_groups::list_files::list_files))
         // USERS

@@ -14,7 +14,7 @@ use crate::{apps::FilezApp, storage::config::StorageProviderConfig};
 #[kube(status = "FilezResourceStatus", shortname = "fr")]
 #[serde(rename_all = "camelCase")]
 pub enum FilezResourceSpec {
-    StorageProvider(StorageProviderConfig),
+    StorageLocation(StorageProviderConfig),
     FilezApp(FilezApp),
 }
 

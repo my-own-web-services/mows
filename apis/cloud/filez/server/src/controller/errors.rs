@@ -8,6 +8,9 @@ pub enum ControllerError {
 
     #[error("Finalizer Error: {0}")]
     FinalizerError(#[from] Box<kube::runtime::finalizer::Error<ControllerError>>),
+
+    #[error("Missing resource name: {0}")]
+    MissingResourceName(String),
 }
 pub type Result<T, E = ControllerError> = std::result::Result<T, E>;
 

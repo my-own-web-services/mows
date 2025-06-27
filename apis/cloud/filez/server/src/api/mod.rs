@@ -4,8 +4,11 @@ pub mod files {
         pub mod update;
     }
     pub mod create;
-
     pub mod get;
+    pub mod tus {
+        pub mod head;
+        pub mod patch;
+    }
 }
 pub mod users {
     pub mod apply;

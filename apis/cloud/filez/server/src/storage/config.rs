@@ -4,18 +4,17 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, ToSchema, Clone, AsJsonb)]
 pub struct StorageConfig {
-    pub storage_locations: HashMap<Uuid, StorageProviderConfig>,
+    pub storage_locations: HashMap<String, StorageProviderConfig>,
 }
 
 impl StorageConfig {
     pub fn default() -> Self {
         let mut storage_locations = HashMap::new();
         storage_locations.insert(
-            Uuid::default(),
+            "default".to_string(),
             StorageProviderConfig::Minio(StorageProviderConfigMinio {
                 endpoint: "http://localhost:9000".to_string(),
                 username: "minioadmin".to_string(),
