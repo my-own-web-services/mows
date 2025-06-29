@@ -5,11 +5,11 @@ use crate::{
     storage::state::{StorageLocationsState, StorageProvider},
 };
 use chrono::{DateTime, Utc};
-use crd::{FilezResource, FilezResourceSpec};
-use errors::{ControllerError, Result};
+use crd::{FilezResource, FilezResourceSpec, FilezResourceStatus, SecretReadableByFilezController};
+use errors::{get_error_type, ControllerError, Result};
 use futures::StreamExt;
 use kube::{
-    api::{Api, ListParams},
+    api::{Api, ListParams, Patch, PatchParams},
     runtime::{
         controller::Action,
         events::{Event, EventType, Recorder, Reporter},
@@ -22,6 +22,7 @@ use kube::{
 use metrics::Metrics;
 use mows_common_rust::{get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
+use serde_json::json;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
 use tracing::{error, field, info, instrument, warn, Span};
@@ -32,24 +33,134 @@ pub mod metrics;
 
 pub static FINALIZER: &str = "filez.k8s.mows.cloud";
 
-impl FilezResource {
-    async fn reconcile(&self, ctx: Arc<ControllerContext>) -> Result<Action> {
-        let config = get_current_config_cloned!(config());
+async fn inner_reconcile(
+    resource: &FilezResource,
+    ctx: &ControllerContext,
+    name: &str,
+    namespace: &str,
+) -> Result<(), ControllerError> {
+    let full_name = format!("{}-{}", namespace, name);
+    match resource.spec {
+        FilezResourceSpec::StorageLocation(ref incoming_provider_config) => {
+            let locations_config = ctx.storage_locations.locations.read().await.clone();
 
-        match self.spec {
-            FilezResourceSpec::StorageLocation(ref incoming_provider_config) => {}
-            FilezResourceSpec::FilezApp(ref incoming_app) => {
-                // insert or update the app in the state
-                let mut apps = ctx.apps.write().await;
-                if let Some(existing_app) = apps.get_mut(&self.name_any()) {
-                    // Update existing app
-                    *existing_app = incoming_app.clone();
-                } else {
-                    // Insert new app
-                    apps.insert(self.name_any(), incoming_app.clone());
+            let filez_secrets =
+                SecretReadableByFilezController::fetch_map(&ctx.client, namespace).await?;
+
+            match locations_config.get(&full_name) {
+                Some((_, location_config)) => {
+                    // Update existing storage location if the config has changed
+                    if location_config != incoming_provider_config {
+                        let provider =
+                            StorageProvider::initialize(incoming_provider_config, &filez_secrets)
+                                .await?;
+                        let mut locations = ctx.storage_locations.locations.write().await;
+                        locations.insert(full_name, (provider, incoming_provider_config.clone()));
+                    }
+                }
+                None => {
+                    // Insert new storage location
+                    let provider =
+                        StorageProvider::initialize(incoming_provider_config, &filez_secrets)
+                            .await?;
+                    ctx.storage_locations
+                        .locations
+                        .write()
+                        .await
+                        .insert(full_name, (provider, incoming_provider_config.clone()));
                 }
             }
         }
+        FilezResourceSpec::FilezApp(ref incoming_app) => {
+            // insert or update the app in the state
+            let mut apps = ctx.apps.write().await;
+            if let Some(existing_app) = apps.get_mut(&full_name) {
+                // Update existing app
+                *existing_app = incoming_app.clone();
+            } else {
+                // Insert new app
+                apps.insert(full_name, incoming_app.clone());
+            }
+        }
+    }
+    Ok(())
+}
+
+impl FilezResource {
+    async fn reconcile(&self, ctx: Arc<ControllerContext>) -> Result<Action> {
+        let kube_client = ctx.client.clone();
+
+        let config = get_current_config_cloned!(config());
+        let filez_resources_api: Api<FilezResource> =
+            Api::namespaced(kube_client.clone(), &self.namespace().unwrap_or_default());
+        let name = self.metadata.name.clone().ok_or_else(|| {
+            ControllerError::MissingResourceName(self.metadata.name.clone().unwrap_or_default())
+        })?;
+
+        let namespace = self
+            .metadata
+            .namespace
+            .clone()
+            .unwrap_or_else(|| "default".to_string());
+
+        let recorder = ctx
+            .diagnostics
+            .read()
+            .await
+            .recorder(kube_client.clone(), self);
+
+        if let Err(e) = inner_reconcile(self, &ctx, &name, &namespace).await {
+            error!("Reconcile failed: {:?}", e);
+            let new_status = Patch::Apply(json!({
+                "apiVersion": "filez.k8s.mows.cloud/v1",
+                "kind": "FilezResource",
+                "status": FilezResourceStatus {
+                    created: false
+                }
+            }));
+
+            let ps = PatchParams::apply(FINALIZER).force();
+            let _o = filez_resources_api
+                .patch_status(&name, &ps, &new_status)
+                .await?;
+
+            let reason = get_error_type(&e);
+
+            recorder
+                .publish(Event {
+                    type_: EventType::Warning,
+                    reason,
+                    note: Some(e.to_string()),
+                    action: "CreateObject".into(),
+                    secondary: None,
+                })
+                .await?;
+            return Err(e);
+        }
+
+        info!("Reconcile successful");
+        let new_status = Patch::Apply(json!({
+              "apiVersion": "filez.k8s.mows.cloud/v1",
+              "kind": "FilezResource",
+              "status": FilezResourceStatus {
+                created: true
+            }
+        }));
+
+        let ps = PatchParams::apply(FINALIZER).force();
+        let _o = filez_resources_api
+            .patch_status(&name, &ps, &new_status)
+            .await?;
+
+        recorder
+            .publish(Event {
+                type_: EventType::Normal,
+                reason: "ObjectCreated".into(),
+                note: Some(format!("Object Created: `{name}`")),
+                action: "CreateObject".into(),
+                secondary: None,
+            })
+            .await?;
 
         Ok(Action::requeue(Duration::from_secs(
             config.reconcile_interval_seconds,
@@ -158,24 +269,33 @@ pub async fn sync_state_with_kubernetes(state: &ServerState) -> Result<()> {
             .ok_or(ControllerError::MissingResourceName(
                 resource.metadata.name.clone().unwrap_or_default(),
             ))?;
+
+        let namespace = resource.metadata.namespace.clone().unwrap_or_default();
+
+        let filez_secrets = SecretReadableByFilezController::fetch_map(&client, &namespace).await?;
+
+        let full_name = format!("{}-{}", namespace, name);
+
         match resource.spec {
             FilezResourceSpec::StorageLocation(provider_config) => {
-                let provider = match StorageProvider::initialize(&provider_config).await {
-                    Ok(provider) => provider,
-                    Err(e) => {
-                        error!("Failed to initialize storage provider: {e:?}");
-                        continue;
-                    }
-                };
+                let provider =
+                    match StorageProvider::initialize(&provider_config, &filez_secrets).await {
+                        Ok(provider) => provider,
+                        Err(e) => {
+                            error!("Failed to initialize storage provider: {e:?}");
+                            continue;
+                        }
+                    };
+
                 state
                     .storage_locations
                     .locations
                     .write()
                     .await
-                    .insert(name, provider);
+                    .insert(full_name, (provider, provider_config));
             }
             FilezResourceSpec::FilezApp(app) => {
-                state.apps.write().await.insert(name, app);
+                state.apps.write().await.insert(full_name, app);
             }
         }
     }

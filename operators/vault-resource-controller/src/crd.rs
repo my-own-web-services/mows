@@ -66,7 +66,7 @@ pub struct SecretSyncKvMapping {
     pub path: String,
 }
 
-// policies will be named mows-core-secrets-vrc/namespace/policy_id
+/// Policies will be named mows-core-secrets-vrc/{namespace}/{policy_id}
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultEngineAccessPolicy {

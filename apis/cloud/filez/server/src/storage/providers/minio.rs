@@ -1,5 +1,5 @@
 use crate::{
-    errors::FilezError,
+    controller::crd::{SecretReadableByFilezController, ValueOrSecretReference},
     models::File,
     storage::{errors::StorageError, state::StorageProvider},
     with_timing,
@@ -21,13 +21,13 @@ use std::{
 };
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, ToSchema, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, ToSchema, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct StorageProviderConfigMinio {
-    pub endpoint: String,
-    pub username: String,
-    pub password: String,
-    pub bucket: String,
-    pub id: String,
+    pub endpoint: ValueOrSecretReference,
+    pub username: ValueOrSecretReference,
+    pub password: ValueOrSecretReference,
+    pub bucket: ValueOrSecretReference,
+    pub id: ValueOrSecretReference,
 }
 
 #[derive(Debug, Clone)]
@@ -40,10 +40,17 @@ pub struct StorageProviderMinio {
 impl StorageProviderMinio {
     pub async fn initialize(
         config: &StorageProviderConfigMinio,
-    ) -> Result<StorageProvider, FilezError> {
-        let static_provider = StaticProvider::new(&config.username, &config.password, None);
+        secret_map: &SecretReadableByFilezController,
+    ) -> Result<StorageProvider, StorageError> {
+        let endpoint = config.endpoint.get_value(secret_map)?;
+        let username = config.username.get_value(secret_map)?;
+        let password = config.password.get_value(secret_map)?;
+        let bucket = config.bucket.get_value(secret_map)?;
+        let id = config.id.get_value(secret_map)?;
+
+        let static_provider = StaticProvider::new(&username, &password, None);
         let client = ClientBuilder::new(
-            BaseUrl::from_str(&config.endpoint).context("Failed to parse MinIO endpoint URL.")?,
+            BaseUrl::from_str(&endpoint).context("Failed to parse MinIO endpoint URL.")?,
         )
         .provider(Some(Box::new(static_provider)))
         .build()
@@ -51,8 +58,8 @@ impl StorageProviderMinio {
 
         Ok(StorageProvider::Minio(StorageProviderMinio {
             client,
-            bucket: config.bucket.clone(),
-            id: config.id.clone(),
+            bucket,
+            id,
         }))
     }
 

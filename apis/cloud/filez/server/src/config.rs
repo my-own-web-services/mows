@@ -4,8 +4,6 @@ use std::sync::OnceLock;
 use tokio::sync::RwLock;
 use url::Url;
 
-use crate::storage::config::StorageConfig;
-
 pub const TUS_VERSION: &str = "1.0.0";
 
 pub const FILEZ_SERVER_APP_ID: &str = "filez-server";
@@ -28,7 +26,6 @@ pub struct FilezServerConfig {
     pub minio_password: String,
     pub minio_endpoint: String,
     pub default_storage_limit: i64,
-    pub storage: StorageConfig,
     pub reconcile_interval_seconds: u64,
 }
 
@@ -60,7 +57,6 @@ pub fn from_env() -> anyhow::Result<FilezServerConfig> {
         minio_endpoint: load_env("http://localhost:9000", "MINIO_ENDPOINT", false, true)?,
         default_storage_limit: load_env("10737418240", "DEFAULT_STORAGE_LIMIT", false, true)?
             .parse::<i64>()?,
-        storage: StorageConfig::default(),
         reconcile_interval_seconds: load_env("60", "RECONCILE_INTERVAL_SECONDS", false, true)?
             .parse::<u64>()?,
     })
