@@ -129,7 +129,7 @@ impl PektinDns {
         let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);
         let ns = self.namespace().unwrap();
         let name = self.name_any();
-        let pektin_resources: Api<PektinDns> = Api::namespaced(kube_client.clone(), &ns);
+        let pektin_resources_api: Api<PektinDns> = Api::namespaced(kube_client.clone(), &ns);
 
         match reconcile_resource(self, &kube_client).await {
             Ok(_) => {
@@ -143,7 +143,7 @@ impl PektinDns {
                 }));
 
                 let ps = PatchParams::apply(FINALIZER).force();
-                let _o = pektin_resources
+                let _o = pektin_resources_api
                     .patch_status(&name, &ps, &new_status)
                     .await
                     .map_err(Error::KubeError)?;
@@ -170,7 +170,7 @@ impl PektinDns {
                 }));
 
                 let ps = PatchParams::apply(FINALIZER).force();
-                let _o = pektin_resources
+                let _o = pektin_resources_api
                     .patch_status(&name, &ps, &new_status)
                     .await
                     .map_err(Error::KubeError)?;

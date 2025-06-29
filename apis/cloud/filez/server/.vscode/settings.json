@@ -1,7 +1,9 @@
 {
     "cSpell.words": [
+        "bigdecimal",
         "chrono",
         "crdgen",
+        "creds",
         "deadpool",
         "Filez",
         "Finalizer",
@@ -11,6 +13,7 @@
         "openapi",
         "opentelemetry",
         "Otel",
+        "schemars",
         "utoipa",
         "zitadel"
     ]

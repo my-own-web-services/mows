@@ -120,7 +120,7 @@ impl File {
         let providers = storage_provider_state.locations.read().await;
 
         match providers.get(&provider_id) {
-            Some(provider_state) => match provider_state {
+            Some(provider_state) => match &provider_state.0 {
                 StorageProvider::Minio(minio_provider) => {
                     minio_provider
                         .get_file_size_from_content(self, timing, app_id)
@@ -150,7 +150,7 @@ impl File {
         let providers = storage_provider_state.locations.read().await;
 
         match providers.get(&provider_id) {
-            Some(provider_state) => match provider_state {
+            Some(provider_state) => match &provider_state.0 {
                 StorageProvider::Minio(minio_provider) => {
                     minio_provider
                         .get_content(self, timing, range, app_path)
@@ -180,7 +180,7 @@ impl File {
         let providers = storage_provider_state.locations.read().await;
 
         match providers.get(&provider_id) {
-            Some(provider_state) => match provider_state {
+            Some(provider_state) => match &provider_state.0 {
                 StorageProvider::Minio(minio_provider) => {
                     minio_provider
                         .continue_file_creation(self, request, timing, offset, length)
@@ -209,7 +209,7 @@ impl File {
         let providers = storage_provider_state.locations.read().await;
 
         match providers.get(&provider_id) {
-            Some(provider_state) => match provider_state {
+            Some(provider_state) => match &provider_state.0 {
                 StorageProvider::Minio(minio_provider) => {
                     minio_provider
                         .create_file(self, request, timing, sha256_digest)

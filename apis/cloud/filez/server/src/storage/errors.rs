@@ -17,4 +17,8 @@ pub enum StorageError {
     },
     #[error("Offset mismatch: expected {expected}, got {calculated}")]
     OffsetMismatch { expected: u64, calculated: u64 },
+    #[error("Generic error: {0}")]
+    GenericError(#[from] anyhow::Error),
+    #[error("Secret not found from reference: {0}")]
+    SecretNotFound(String),
 }

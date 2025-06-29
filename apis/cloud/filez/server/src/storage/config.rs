@@ -10,24 +10,9 @@ pub struct StorageConfig {
     pub storage_locations: HashMap<String, StorageProviderConfig>,
 }
 
-impl StorageConfig {
-    pub fn default() -> Self {
-        let mut storage_locations = HashMap::new();
-        storage_locations.insert(
-            "default".to_string(),
-            StorageProviderConfig::Minio(StorageProviderConfigMinio {
-                endpoint: "http://localhost:9000".to_string(),
-                username: "minioadmin".to_string(),
-                password: "minioadmin".to_string(),
-                bucket: "filez".to_string(),
-                id: "default".to_string(),
-            }),
-        );
-        Self { storage_locations }
-    }
-}
+impl StorageConfig {}
 
-#[derive(Serialize, Deserialize, Debug, ToSchema, Clone, JsonSchema)]
+#[derive(Serialize, Deserialize, Debug, ToSchema, Clone, JsonSchema, PartialEq, Eq)]
 pub enum StorageProviderConfig {
     Minio(StorageProviderConfigMinio),
 }
