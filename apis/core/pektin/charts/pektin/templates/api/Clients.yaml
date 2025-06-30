@@ -1,5 +1,6 @@
 # auth engine for clients to authenticate with the pektin api, clients send tokens from this auth engine to vault these tokens should only have access to their own pektin-policy
 
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -15,6 +16,7 @@ spec:
                     serviceAccountName: pektin-resource-controller
                     policyIds: ["pektin-api-client-pektin-resource-controller-policy"]
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -27,6 +29,7 @@ spec:
               subPath: "data/pektin-zertificat"
               capabilities: ["read"]
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:

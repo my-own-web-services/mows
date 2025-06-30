@@ -131,6 +131,7 @@ spec:
     name: stalwart-db-admin
 
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -144,6 +145,7 @@ spec:
           user: '{% randAlphaNum 100 %}'
 
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -171,6 +173,7 @@ spec:
             config.toml: "[lookup.default]\nhostname = \"mx.vindelicorum.eu\"\n\n[server.http]\nuse-x-forwarded = true\nhsts = true\n\n[server.listener.\"http\"]\nbind = \"[::]:8080\"\n\n[server.listener.\"smtp\"]\nbind = \"[::]:2500\"\n\n[server.listener.\"submission\"]\nbind = \"[::]:5870\"\n\n[server.listener.\"smtps\"]\nbind = \"[::]:4650\"\n\n[server.listener.\"imap\"]\nbind = \"[::]:1430\"\n\n[server.listener.\"imaps\"]\nbind = \"[::]:9930\"\n\n[server.listener.\"sieve\"]\nbind = \"[::]:4190\"                            \n\n[store.\"postgresql\"]\ntype = \"postgresql\"\nhost = \"stalwart-db-postgres-rw\"\nport = 5432\ndatabase = \"stalwart\"\nuser = \"stalwart\"\npassword = \"{% .secrets.db.user %}\"\ntimeout = \"15s\"\n\n[certificate.\"default\"]\ncert=\"%{file:/certs/default/tls.crt}%\"\nkey=\"%{file:/certs/default/tls.key}%\"\n# TODO handle reloading of certificates\n"
 
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/pektin-resource-controller/PektinResourceCRDSchema.json?ref_type=heads
 apiVersion: pektin.k8s.mows.cloud/v1
 kind: PektinDns
 metadata:
