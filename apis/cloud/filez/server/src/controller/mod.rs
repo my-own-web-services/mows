@@ -51,18 +51,24 @@ async fn inner_reconcile(
                 Some((_, location_config)) => {
                     // Update existing storage location if the config has changed
                     if location_config != incoming_provider_config {
-                        let provider =
-                            StorageProvider::initialize(incoming_provider_config, &filez_secrets)
-                                .await?;
+                        let provider = StorageProvider::initialize(
+                            incoming_provider_config,
+                            &filez_secrets,
+                            &full_name,
+                        )
+                        .await?;
                         let mut locations = ctx.storage_locations.locations.write().await;
                         locations.insert(full_name, (provider, incoming_provider_config.clone()));
                     }
                 }
                 None => {
                     // Insert new storage location
-                    let provider =
-                        StorageProvider::initialize(incoming_provider_config, &filez_secrets)
-                            .await?;
+                    let provider = StorageProvider::initialize(
+                        incoming_provider_config,
+                        &filez_secrets,
+                        &full_name,
+                    )
+                    .await?;
                     ctx.storage_locations
                         .locations
                         .write()
@@ -279,7 +285,9 @@ pub async fn sync_state_with_kubernetes(state: &ServerState) -> Result<()> {
         match resource.spec {
             FilezResourceSpec::StorageLocation(provider_config) => {
                 let provider =
-                    match StorageProvider::initialize(&provider_config, &filez_secrets).await {
+                    match StorageProvider::initialize(&provider_config, &filez_secrets, &full_name)
+                        .await
+                    {
                         Ok(provider) => provider,
                         Err(e) => {
                             error!("Failed to initialize storage provider: {e:?}");

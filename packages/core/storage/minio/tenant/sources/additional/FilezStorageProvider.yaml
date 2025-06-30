@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/apis/cloud/filez/server/FilezResourceCRDSchema.json?ref_type=heads
+apiVersion: filez.k8s.mows.cloud/v1
+kind: FilezResource
+spec:
+    storageLocation:
+        Minio:
+            bucket:
+                value: "filez"
+            endpoint:
+                value: "https://api-minio.{§ .config.domain §}"
+            password:
+                secret: CONSOLE_SECRET_KEY
+            username:
+                secret: CONSOLE_ACCESS_KEY
+            

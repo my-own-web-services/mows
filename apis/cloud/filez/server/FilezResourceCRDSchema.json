@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "FilezResource",
-  "description": "Auto-generated derived type for FilezResourceSpec via `CustomResource`",
+  "description": "Custom kubernetes resource for applying Filez resources such as storage locations and filez apps.",
   "type": "object",
   "required": [
     "spec"
@@ -156,7 +156,6 @@
       "required": [
         "bucket",
         "endpoint",
-        "id",
         "password",
         "username"
       ],
@@ -165,9 +164,6 @@
           "$ref": "#/definitions/ValueOrSecretReference"
         },
         "endpoint": {
-          "$ref": "#/definitions/ValueOrSecretReference"
-        },
-        "id": {
           "$ref": "#/definitions/ValueOrSecretReference"
         },
         "password": {

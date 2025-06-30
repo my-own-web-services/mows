@@ -6,7 +6,7 @@ spec:
   group: pektin.k8s.mows.cloud
   names:
     categories: []
-    kind: PektinDns
+    kind: PektinResource
     plural: pektindnses
     shortNames:
     - pdns

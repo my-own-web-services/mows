@@ -19,10 +19,11 @@ impl StorageProvider {
     pub async fn initialize(
         provider_config: &StorageProviderConfig,
         secret_map: &SecretReadableByFilezController,
+        id: &str,
     ) -> Result<StorageProvider, StorageError> {
         match provider_config {
             StorageProviderConfig::Minio(config) => {
-                StorageProviderMinio::initialize(config, secret_map).await
+                StorageProviderMinio::initialize(config, secret_map, id).await
             }
         }
     }

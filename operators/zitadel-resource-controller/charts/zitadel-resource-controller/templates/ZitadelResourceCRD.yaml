@@ -17,7 +17,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Auto-generated derived type for ZitadelResourceSpec via `CustomResource`
+        description: Custom kubernetes resource for applying Zitadel resources like projects, roles, applications, etc.
         properties:
           spec:
             oneOf:

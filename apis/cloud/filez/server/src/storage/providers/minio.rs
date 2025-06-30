@@ -27,7 +27,6 @@ pub struct StorageProviderConfigMinio {
     pub username: ValueOrSecretReference,
     pub password: ValueOrSecretReference,
     pub bucket: ValueOrSecretReference,
-    pub id: ValueOrSecretReference,
 }
 
 #[derive(Debug, Clone)]
@@ -41,12 +40,12 @@ impl StorageProviderMinio {
     pub async fn initialize(
         config: &StorageProviderConfigMinio,
         secret_map: &SecretReadableByFilezController,
+        id: &str,
     ) -> Result<StorageProvider, StorageError> {
         let endpoint = config.endpoint.get_value(secret_map)?;
         let username = config.username.get_value(secret_map)?;
         let password = config.password.get_value(secret_map)?;
         let bucket = config.bucket.get_value(secret_map)?;
-        let id = config.id.get_value(secret_map)?;
 
         let static_provider = StaticProvider::new(&username, &password, None);
         let client = ClientBuilder::new(
@@ -59,7 +58,7 @@ impl StorageProviderMinio {
         Ok(StorageProvider::Minio(StorageProviderMinio {
             client,
             bucket,
-            id,
+            id: id.to_string(),
         }))
     }
 

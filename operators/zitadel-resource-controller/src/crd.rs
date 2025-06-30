@@ -8,7 +8,8 @@ use std::collections::HashMap;
     kind = "ZitadelResource",
     group = "zitadel.k8s.mows.cloud",
     version = "v1",
-    namespaced
+    namespaced,
+    doc = "Custom kubernetes resource for applying Zitadel resources like projects, roles, applications, etc."
 )]
 #[kube(status = "ZitadelResourceStatus", shortname = "zrs")]
 #[serde(rename_all = "camelCase")]

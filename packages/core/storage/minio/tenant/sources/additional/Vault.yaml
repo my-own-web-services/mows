@@ -96,28 +96,7 @@ spec:
                         CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
                         CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"
 
----
-# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
-apiVersion: vault.k8s.mows.cloud/v1
-kind: VaultResource
-metadata:
-    name: minio-filez-user-sync-2
-    labels:
-        k8s.mows.cloud/sudo: "true"
-        vault.k8s.mows.cloud/force-target-namespace: "mows-cloud-filez"
-spec:
-    secretSync:
-        kvMapping:
-            filezUser:
-                engine: minio-credentials
-                path: "filez"
-                
-        targets:
-            secrets:
-                minio-filez-user:
-                    data:
-                        CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
-                        CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"
+
 ---
 # yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
@@ -133,6 +112,10 @@ spec:
         targets:
             secrets:
                 minio-filez-user:
+                    data:
+                        CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
+                        CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"
+                SecretReadableByFilezController:
                     data:
                         CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
                         CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"

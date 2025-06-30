@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PektinResource",
-  "description": "Auto-generated derived type for PektinResourceSpec via `CustomResource`",
+  "description": "Custom kubernetes resource for applying Pektin DNS entries.",
   "type": "object",
   "required": [
     "spec"
