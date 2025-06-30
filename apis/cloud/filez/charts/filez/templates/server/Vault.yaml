@@ -1,5 +1,6 @@
 
 # create the engine for the auth secrets to be stored in
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -11,6 +12,7 @@ spec:
 
 ---
 # create the policy for the zitadel controller to access the auth secrets
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -24,6 +26,7 @@ spec:
               capabilities: ["update","read","create","delete","list"]
 ---
 # create a kubernetes service account binding to the policy
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -38,6 +41,7 @@ spec:
                     policyIds: ["zitadel-controller-allow-auth-access"]
 ---
 # sync the secrets 
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:

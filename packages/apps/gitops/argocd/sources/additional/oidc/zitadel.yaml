@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/zitadel-resource-controller/ZitadelResourceCRDSchema.json?ref_type=heads
 apiVersion: zitadel.k8s.mows.cloud/v1
 kind: ZitadelResource
 metadata:

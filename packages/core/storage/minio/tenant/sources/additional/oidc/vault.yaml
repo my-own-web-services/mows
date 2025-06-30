@@ -1,5 +1,6 @@
 
 # create the engine for the oidc secrets to be stored in
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -12,6 +13,7 @@ spec:
 ---
 
 # create the engine for the root secrets to be stored in
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -29,6 +31,7 @@ spec:
 
 ---
 # create the policy for the zitadel controller to access the oidc secrets
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -42,6 +45,7 @@ spec:
               capabilities: ["update","read","create","delete","list"]
 ---
 # create a kubernetes service account binding to the policy
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -55,6 +59,7 @@ spec:
                     namespace: mows-core-auth-zitadel
                     policyIds: ["zitadel-controller-allow-oidc-access"]
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -92,6 +97,7 @@ spec:
                         CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"
 
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -113,6 +119,7 @@ spec:
                         CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
                         CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:

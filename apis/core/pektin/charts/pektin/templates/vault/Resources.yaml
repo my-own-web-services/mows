@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -6,6 +7,7 @@ spec:
     secretEngine:
         transit: {}
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -21,6 +23,7 @@ spec:
                     ribston-policy: |- {{ range .Files.Lines "policies/ribston/allow-everything.ribston.js" }}
                         {{ . }}{{ end }}
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -31,6 +34,7 @@ spec:
             kvData: {}
                 
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -46,6 +50,7 @@ spec:
 ---
 # allow zertificat access to its engine to store TLS certificates
 
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -61,6 +66,7 @@ spec:
 ---
 
 # create the auth engine for general authentication
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -76,6 +82,7 @@ spec:
                     serviceAccountName: pektin-zertificat
                     policyIds: ["pektin-zertificat-policy"]
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
@@ -96,6 +103,7 @@ spec:
                         tls.crt: "{% .secrets.certificates.cert %}"
                         tls.key: "{% .secrets.certificates.key %}"
 ---
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
