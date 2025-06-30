@@ -17,7 +17,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Auto-generated derived type for VaultResourceSpec via `CustomResource`
+        description: Custom kubernetes resource for applying Vault resources like secret engines, auth engines, policies, and secret sync configurations.
         properties:
           spec:
             oneOf:

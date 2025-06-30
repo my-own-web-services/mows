@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
     kind = "VaultResource",
     group = "vault.k8s.mows.cloud",
     version = "v1",
-    namespaced
+    namespaced,
+    doc = "Custom kubernetes resource for applying Vault resources like secret engines, auth engines, policies, and secret sync configurations."
 )]
 #[kube(status = "VaultResourceStatus", shortname = "vres")]
 #[serde(rename_all = "camelCase")]

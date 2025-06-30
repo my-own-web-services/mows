@@ -9,7 +9,8 @@ use crate::kube_fix::KubePektinDbEntry;
     kind = "PektinResource",
     group = "pektin.k8s.mows.cloud",
     version = "v1",
-    namespaced
+    namespaced,
+    doc = "Custom kubernetes resource for applying Pektin DNS entries."
 )]
 #[kube(status = "PektinResourceStatus", shortname = "pdns")]
 #[serde(rename_all = "camelCase")]

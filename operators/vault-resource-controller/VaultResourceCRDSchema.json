@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "VaultResource",
-  "description": "Auto-generated derived type for VaultResourceSpec via `CustomResource`",
+  "description": "Custom kubernetes resource for applying Vault resources like secret engines, auth engines, policies, and secret sync configurations.",
   "type": "object",
   "required": [
     "spec"

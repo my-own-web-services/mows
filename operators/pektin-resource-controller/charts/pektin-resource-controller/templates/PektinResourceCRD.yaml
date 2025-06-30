@@ -17,7 +17,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Auto-generated derived type for PektinResourceSpec via `CustomResource`
+        description: Custom kubernetes resource for applying Pektin DNS entries.
         properties:
           spec:
             oneOf:

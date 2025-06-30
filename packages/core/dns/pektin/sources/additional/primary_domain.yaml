@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/pektin-resource-controller/PektinResourceCRDSchema.json?ref_type=heads
 apiVersion: pektin.k8s.mows.cloud/v1
-kind: PektinDns
+kind: PektinResource
 metadata:
     name: "{§ .config.domain §}"
 spec:

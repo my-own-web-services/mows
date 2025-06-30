@@ -15,7 +15,8 @@ use utoipa::ToSchema;
     kind = "FilezResource",
     group = "filez.k8s.mows.cloud",
     version = "v1",
-    namespaced
+    namespaced,
+    doc = "Custom kubernetes resource for applying Filez resources such as storage locations and filez apps."
 )]
 #[kube(status = "FilezResourceStatus", shortname = "fr")]
 #[serde(rename_all = "camelCase")]
