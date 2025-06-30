@@ -19,6 +19,7 @@ dependencies = [
  "sha2",
  "time",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -8234,9 +8235,6 @@ dependencies = [
  "chrono",
  "data-encoding",
  "mows-common-rust",
- "p256",
- "rand 0.9.1",
- "rand_core 0.6.4",
  "reqwest 0.12.19",
  "serde",
  "serde_json",

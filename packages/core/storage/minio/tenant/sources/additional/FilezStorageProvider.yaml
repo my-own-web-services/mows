@@ -1,6 +1,8 @@
 # yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/apis/cloud/filez/server/FilezResourceCRDSchema.json?ref_type=heads
 apiVersion: filez.k8s.mows.cloud/v1
 kind: FilezResource
+metadata:
+    name: minio-filez-default
 spec:
     storageLocation:
         Minio:

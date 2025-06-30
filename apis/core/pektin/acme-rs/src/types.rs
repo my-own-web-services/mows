@@ -1,16 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Directory {
-    #[serde(rename = "newAccount")]
     pub new_account: String,
-    #[serde(rename = "newNonce")]
     pub new_nonce: String,
-    #[serde(rename = "newOrder")]
     pub new_order: String,
-    #[serde(rename = "renewalInfo")]
     pub renewal_info: Option<String>,
-    #[serde(rename = "revokeCert")]
     pub revoke_cert: String,
 }
 
@@ -18,7 +14,7 @@ pub struct Directory {
 pub struct CreatedAccountResponse {
     pub status: String,
     #[serde(rename = "initialIp")]
-    pub initital_ip: Option<String>,
+    pub initial_ip: Option<String>,
     #[serde(rename = "createdAt")]
     pub created_at: Option<String>,
     pub contact: Option<Vec<String>>,
@@ -32,7 +28,6 @@ pub struct JsonWebKey {
     pub crv: String,
     pub kty: String,
     pub x: String,
-    pub y: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

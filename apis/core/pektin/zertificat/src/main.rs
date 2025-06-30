@@ -6,12 +6,11 @@ use lib::{
 use mows_common_rust::{
     get_current_config_cloned, observability::init_observability, reqwest::new_reqwest_client,
 };
-use p256::ecdsa::SigningKey;
-use rand_core::OsRng;
+
 use serde::Deserialize;
 use serde_json::json;
 use std::vec;
-use tracing::instrument;
+use tracing::{debug, info, instrument};
 use zertificat::{
     config::config,
     types::{MaybeVaultCert, VaultCert, VaultCertInfo},
@@ -25,14 +24,13 @@ async fn main() -> anyhow::Result<()> {
     let config = get_current_config_cloned!(config());
     init_observability().await;
 
-    // daily procedure to see if there is something to do
     loop {
         match run_procedure().await {
             Ok(_) => {
-                println!("procedure executed successfully");
+                info!("Procedure executed successfully");
             }
             Err(e) => {
-                println!("procedure failed:\n{e}");
+                info!("Procedure failed: {:?}", e);
             }
         };
         std::thread::sleep(std::time::Duration::from_secs(config.wait_minutes * 60));
@@ -45,25 +43,25 @@ async fn run_procedure() -> anyhow::Result<()> {
     // get certificate config from vault
     let vault_token = vault_k8s_login(false)
         .await
-        .context("failed to login to vault")?
+        .context("Failed to login to vault")?
         .client_token;
     let domains = get_pektin_domains()
         .await
-        .context("failed to get pektin domains")?;
+        .context("Failed to get pektin domains")?;
     let maybe_vault_certificates = get_certificates(&domains, &vault_token)
         .await
-        .context("failed to get certificates from vault")?;
+        .context("Failed to get certificates from vault")?;
     // check certificate presence in vault
     for maybe_cert in maybe_vault_certificates {
         if maybe_cert.cert.is_none() || maybe_cert.key.is_none() || maybe_cert.info.is_none() {
             // generate new certificate
             let cert = generate_certificate(&maybe_cert.domain)
                 .await
-                .context("failed to generate certificate")?;
+                .context("Failed to generate certificate")?;
             // set cert in vault
             update_kv_value(&config.vault_uri, &vault_token, &cert.domain, &cert)
                 .await
-                .context("failed to update certificate in vault")?;
+                .context("Failed to update certificate in vault")?;
         } else {
             let cert = VaultCert {
                 cert: maybe_cert.cert.unwrap().to_string(),
@@ -71,7 +69,7 @@ async fn run_procedure() -> anyhow::Result<()> {
                 info: match serde_json::from_value(maybe_cert.info.unwrap()) {
                     Ok(info) => info,
                     Err(e) => {
-                        bail!("failed to deserialize VaultCert info: {}", e);
+                        bail!("Failed to deserialize VaultCert info: {}", e);
                     }
                 },
                 domain: maybe_cert.domain,
@@ -83,14 +81,14 @@ async fn run_procedure() -> anyhow::Result<()> {
             if current_time > cert.info.created + sixty_days_secs {
                 // generate new certificate
                 let cert = generate_certificate(&cert.domain).await.context(format!(
-                    "failed to generate certificate for {}",
+                    "Failed to generate certificate for {}",
                     &cert.domain
                 ))?;
                 // set cert in vault
                 update_kv_value(&config.vault_uri, &vault_token, &cert.domain, &cert)
                     .await
                     .context(format!(
-                        "failed to update certificate in vault for {}",
+                        "Failed to update certificate in vault for {}",
                         &cert.domain
                     ))?;
             }
@@ -102,19 +100,18 @@ async fn run_procedure() -> anyhow::Result<()> {
 
 #[instrument]
 pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
-    println!("generating certificate for {}", domain);
+    info!("Generating certificate for {}", domain);
     let config = get_current_config_cloned!(config());
-    let communication_signing_key = SigningKey::random(&mut OsRng);
 
     let acme_url = match config.use_local_pebble {
         true => "http://pektin-pebble:14000/dir",
         false => &config.acme_url,
     };
 
-    let mut client = AcmeClient::new(&acme_url, &communication_signing_key, &config.acme_email)
+    let mut client = AcmeClient::new(&acme_url, &config.acme_email)
         .await
         .context(format!(
-            "failed to create acme client for domain: {}",
+            "Failed to create acme client for domain: {}",
             domain
         ))?;
 
@@ -132,7 +129,7 @@ pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
     let cert = client
         .create_certificate_with_defaults(&identifiers)
         .context(format!(
-            "failed to create certificate for domain: {}",
+            "Failed to create certificate for domain: {}",
             domain
         ))?;
 
@@ -142,7 +139,7 @@ pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
         })
         .await
         .context(format!(
-            "failed to sign certificate for domain with ACME provider: {}",
+            "Failed to sign certificate for domain with ACME provider: {}",
             domain
         ))?;
     let current_time = chrono::offset::Utc::now().timestamp_millis() / 1000;
@@ -160,8 +157,8 @@ pub async fn generate_certificate(domain: &str) -> anyhow::Result<VaultCert> {
 pub async fn handle_challenges_with_pektin(
     user_challenges: UserChallenges,
 ) -> anyhow::Result<Vec<String>> {
-    println!("setting following challenges to pektin");
-    println!("{:#?}", user_challenges);
+    debug!("Setting following challenges to pektin");
+    debug!("{:#?}", user_challenges);
 
     let vault_token = vault_k8s_login(true).await?.client_token;
 
@@ -209,7 +206,7 @@ async fn set_pektin_record(vault_token: &str, challenge: &UserChallenges) -> any
         .await?;
 
     if !resp.status().is_success() {
-        bail!("failed to set pektin record: {}", resp.text().await?);
+        bail!("Failed to set pektin record: {}", resp.text().await?);
     }
     Ok(())
 }
@@ -288,7 +285,7 @@ async fn get_pektin_domains() -> anyhow::Result<Vec<String>> {
         Ok(v) => v,
         Err(e) => {
             bail!(
-                "failed to parse pektin search response: {} \ntext was: {}",
+                "Failed to parse pektin search response: {} \ntext was: {}",
                 e,
                 text
             );

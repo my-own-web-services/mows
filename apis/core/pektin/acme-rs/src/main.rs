@@ -1,11 +1,8 @@
 use lib::types::{Identifier, UserChallenges};
 use lib::AcmeClient;
-use p256::ecdsa::SigningKey;
-use rand_core::OsRng; // requires 'getrandom' feature
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let communication_signing_key = SigningKey::random(&mut OsRng);
     let email = "acme-test@y.gy";
     //let endpoint = "https://localhost:14000/dir";
     let endpoint = "https://acme-staging-v02.api.letsencrypt.org/directory";
@@ -15,7 +12,7 @@ async fn main() -> anyhow::Result<()> {
         ident_type: "dns".to_string(),
     }];
 
-    let mut client = AcmeClient::new(endpoint, &communication_signing_key, email).await?;
+    let mut client = AcmeClient::new(endpoint, email).await?;
 
     let cert = client.create_certificate_with_defaults(&identifiers)?;
 
@@ -33,13 +30,13 @@ pub async fn handle_challenges_manually(
 ) -> anyhow::Result<Vec<String>> {
     // handle challenges here
 
-    let mut fullfilled = Vec::new();
+    let mut fulfilled = Vec::new();
     for challenge in user_challenges.dns {
         println!("{:?}", challenge);
-        fullfilled.push(challenge.url.to_string());
+        fulfilled.push(challenge.url.to_string());
     }
     println!("Press enter to continue");
     std::io::stdin().read_line(&mut String::new()).ok();
 
-    Ok(fullfilled)
+    Ok(fulfilled)
 }

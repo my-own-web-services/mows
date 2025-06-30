@@ -115,7 +115,7 @@ spec:
                     data:
                         CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
                         CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"
-                SecretReadableByFilezController:
+                secret-readable-by-filez-controller:
                     data:
                         CONSOLE_ACCESS_KEY: "{% .secrets.filezUser.username %}"
                         CONSOLE_SECRET_KEY: "{% .secrets.filezUser.password %}"

@@ -31,7 +31,7 @@ pub struct FilezResourceStatus {
 }
 
 /// We have a cluster role that allows the filez controller to read all secrets in the cluster that are named with this identifier.
-pub const FILEZ_CLUSTER_ROLE_SECRET_IDENTIFIER: &str = "SecretReadableByFilezController";
+pub const FILEZ_CLUSTER_ROLE_SECRET_IDENTIFIER: &str = "secret-readable-by-filez-controller";
 
 pub struct SecretReadableByFilezController {
     pub secrets: HashMap<String, String>,

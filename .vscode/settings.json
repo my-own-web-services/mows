@@ -5,14 +5,14 @@
             "splitTerminals": [
                 {
                     "name": "manager",
-                    "commands": ["cd manager"]
+                    "commands": ["cd manager","bash scripts/start-manager.sh"],
                 }
             ]
         },
         {
             "splitTerminals": [
                 {
-                    "name": "root"
+                    "name": "mows"
                 }
             ]
         }

@@ -20,6 +20,8 @@ zertificat:
   name: pektin-zertificat
   replicaCount: 1
   vaultUrl: http://vault.mows-core-secrets-vault:8200
+  logFilter: error
+  tracingFilter: error
 
 db:
   enabled: true
