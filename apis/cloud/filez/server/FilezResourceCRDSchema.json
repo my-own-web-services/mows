@@ -1,0 +1,211 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FilezResource",
+  "description": "Auto-generated derived type for FilezResourceSpec via `CustomResource`",
+  "type": "object",
+  "required": [
+    "spec"
+  ],
+  "properties": {
+    "spec": {
+      "$ref": "#/definitions/FilezResourceSpec"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/FilezResourceStatus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "FilezApp": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "trusted",
+        "type"
+      ],
+      "properties": {
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "trusted": {
+          "type": "boolean"
+        },
+        "type": {
+          "$ref": "#/definitions/FilezAppType"
+        }
+      }
+    },
+    "FilezAppType": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "Frontend"
+          ],
+          "properties": {
+            "Frontend": {
+              "$ref": "#/definitions/FilezAppTypeFrontend"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Backend"
+          ],
+          "properties": {
+            "Backend": {
+              "$ref": "#/definitions/FilezAppTypeBackend"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "FilezAppTypeBackend": {
+      "type": "object"
+    },
+    "FilezAppTypeFrontend": {
+      "type": "object",
+      "required": [
+        "origins"
+      ],
+      "properties": {
+        "origins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "FilezResourceSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "storageLocation"
+          ],
+          "properties": {
+            "storageLocation": {
+              "$ref": "#/definitions/StorageProviderConfig"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "filezApp"
+          ],
+          "properties": {
+            "filezApp": {
+              "$ref": "#/definitions/FilezApp"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "FilezResourceStatus": {
+      "type": "object",
+      "required": [
+        "created"
+      ],
+      "properties": {
+        "created": {
+          "type": "boolean"
+        }
+      }
+    },
+    "StorageProviderConfig": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "Minio"
+          ],
+          "properties": {
+            "Minio": {
+              "$ref": "#/definitions/StorageProviderConfigMinio"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "StorageProviderConfigMinio": {
+      "type": "object",
+      "required": [
+        "bucket",
+        "endpoint",
+        "id",
+        "password",
+        "username"
+      ],
+      "properties": {
+        "bucket": {
+          "$ref": "#/definitions/ValueOrSecretReference"
+        },
+        "endpoint": {
+          "$ref": "#/definitions/ValueOrSecretReference"
+        },
+        "id": {
+          "$ref": "#/definitions/ValueOrSecretReference"
+        },
+        "password": {
+          "$ref": "#/definitions/ValueOrSecretReference"
+        },
+        "username": {
+          "$ref": "#/definitions/ValueOrSecretReference"
+        }
+      }
+    },
+    "ValueOrSecretReference": {
+      "description": "When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "properties": {
+            "value": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "secret"
+          ],
+          "properties": {
+            "secret": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

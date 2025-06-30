@@ -1,3 +1,4 @@
+use super::{crd::FilezResource, errors::ControllerError};
 use kube::ResourceExt;
 use opentelemetry::trace::TraceId;
 use prometheus_client::{
@@ -7,8 +8,6 @@ use prometheus_client::{
 };
 use std::sync::Arc;
 use tokio::time::Instant;
-
-use super::{crd::FilezResource, errors::ControllerError};
 
 #[derive(Clone)]
 pub struct Metrics {

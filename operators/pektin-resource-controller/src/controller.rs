@@ -1,6 +1,6 @@
 use crate::{
     config::config,
-    crd::{PektinDns, PektinDnsSpec, PektinDnsStatus},
+    crd::{PektinResource, PektinResourceSpec, PektinResourceStatus},
     reconcile::plain::handle_plain,
     utils::get_error_type,
     Error, Metrics, Result,
@@ -56,7 +56,10 @@ pub async fn get_vault_token() -> Result<String, Error> {
 }
 
 #[instrument(skip(kube_client))]
-pub async fn reconcile_resource(pektin_dns: &PektinDns, kube_client: &kube::Client) -> Result<(), Error> {
+pub async fn reconcile_resource(
+    pektin_dns: &PektinResource,
+    kube_client: &kube::Client,
+) -> Result<(), Error> {
     let vault_token = get_vault_token().await?;
     let resource_namespace = pektin_dns.metadata.namespace.as_deref().unwrap_or("default");
 
@@ -64,13 +67,13 @@ pub async fn reconcile_resource(pektin_dns: &PektinDns, kube_client: &kube::Clie
         Some(v) => v,
         None => {
             return Err(Error::GenericError(
-                "Failed to get resource name from PektinDns metadata".to_string(),
+                "Failed to get resource name from PektinResource metadata".to_string(),
             ))
         }
     };
 
     match &pektin_dns.spec {
-        PektinDnsSpec::Plain(db_entries) => handle_plain(&vault_token, db_entries).await?,
+        PektinResourceSpec::Plain(db_entries) => handle_plain(&vault_token, db_entries).await?,
     }
 
     Ok(())
@@ -88,18 +91,18 @@ pub struct Context {
 }
 
 #[instrument(skip(ctx), fields(trace_id))]
-async fn reconcile(resource: Arc<PektinDns>, ctx: Arc<Context>) -> Result<Action> {
+async fn reconcile(resource: Arc<PektinResource>, ctx: Arc<Context>) -> Result<Action> {
     let trace_id = get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
     let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
     ctx.diagnostics.write().await.last_event = Utc::now();
-    let ns = resource.namespace().unwrap(); // vault resources are namespace scoped
-    let vault_resources: Api<PektinDns> = Api::namespaced(ctx.client.clone(), &ns);
+    let ns = resource.namespace().unwrap();
+    let pektin_dns_resources_api: Api<PektinResource> = Api::namespaced(ctx.client.clone(), &ns);
 
     info!("Reconciling Document \"{}\" in {}", resource.name_any(), ns);
-    finalizer(&vault_resources, FINALIZER, resource, |event| async {
+    finalizer(&pektin_dns_resources_api, FINALIZER, resource, |event| async {
         match event {
             Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
             Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
@@ -110,7 +113,7 @@ async fn reconcile(resource: Arc<PektinDns>, ctx: Arc<Context>) -> Result<Action
 }
 
 fn error_policy(
-    resource: Arc<PektinDns>,
+    resource: Arc<PektinResource>,
     error: &Error,
     ctx: Arc<Context>,
     reconcile_interval_seconds: u64,
@@ -121,7 +124,7 @@ fn error_policy(
     Action::requeue(Duration::from_secs(reconcile_interval_seconds))
 }
 
-impl PektinDns {
+impl PektinResource {
     // Reconcile (for non-finalizer related changes)
     #[instrument(skip(ctx))]
     async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
@@ -129,15 +132,15 @@ impl PektinDns {
         let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);
         let ns = self.namespace().unwrap();
         let name = self.name_any();
-        let pektin_resources_api: Api<PektinDns> = Api::namespaced(kube_client.clone(), &ns);
+        let pektin_resources_api: Api<PektinResource> = Api::namespaced(kube_client.clone(), &ns);
 
         match reconcile_resource(self, &kube_client).await {
             Ok(_) => {
                 info!("Reconcile successful");
                 let new_status = Patch::Apply(json!({
                     "apiVersion": "pektin.k8s.mows.cloud/v1",
-                    "kind": "PektinDns",
-                    "status": PektinDnsStatus {
+                    "kind": "PektinResource",
+                    "status": PektinResourceStatus {
                         created: true
                     }
                 }));
@@ -163,8 +166,8 @@ impl PektinDns {
                 error!("Reconcile failed: {:?}", e);
                 let new_status = Patch::Apply(json!({
                     "apiVersion": "pektin.k8s.mows.cloud/v1",
-                    "kind": "PektinDns",
-                    "status": PektinDnsStatus {
+                    "kind": "PektinResource",
+                    "status": PektinResourceStatus {
                         created: false
                     }
                 }));
@@ -234,7 +237,7 @@ impl Default for Diagnostics {
     }
 }
 impl Diagnostics {
-    fn recorder(&self, client: Client, doc: &PektinDns) -> Recorder {
+    fn recorder(&self, client: Client, doc: &PektinResource) -> Recorder {
         Recorder::new(client, self.reporter.clone(), doc.object_ref(&()))
     }
 }
@@ -276,7 +279,7 @@ impl State {
 /// Initialize the controller and shared state (given the crd is installed)
 pub async fn run(state: State) {
     let client = Client::try_default().await.expect("failed to create kube Client");
-    let pektin_resource = Api::<PektinDns>::all(client.clone());
+    let pektin_resource = Api::<PektinResource>::all(client.clone());
     if let Err(e) = pektin_resource.list(&ListParams::default().limit(1)).await {
         error!("CRD is not queryable; {e:?}. Is the CRD installed?");
         info!("Installation: cargo run --bin crdgen | kubectl apply -f -");

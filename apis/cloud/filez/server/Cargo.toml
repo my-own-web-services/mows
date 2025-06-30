@@ -13,6 +13,11 @@ path = "src/server.rs"
 name = "crdgen"
 path = "src/controller/crdgen.rs"
 
+[[bin]]
+name = "schemagen"
+path = "src/controller/schemagen.rs"
+
+
 [lib]
 name = "server_lib"
 path = "src/lib.rs"

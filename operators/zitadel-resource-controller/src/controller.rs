@@ -96,18 +96,18 @@ pub struct Context {
 }
 
 #[instrument(skip(ctx), fields(trace_id))]
-async fn reconcile(vault_resource: Arc<ZitadelResource>, ctx: Arc<Context>) -> Result<Action> {
+async fn reconcile(resource: Arc<ZitadelResource>, ctx: Arc<Context>) -> Result<Action> {
     let trace_id = get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
     let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
     ctx.diagnostics.write().await.last_event = Utc::now();
-    let ns = vault_resource.namespace().unwrap(); // vault resources are namespace scoped
-    let vault_resources: Api<ZitadelResource> = Api::namespaced(ctx.client.clone(), &ns);
+    let ns = resource.namespace().unwrap();
+    let zitadel_resource_api: Api<ZitadelResource> = Api::namespaced(ctx.client.clone(), &ns);
 
-    info!("Reconciling Document \"{}\" in {}", vault_resource.name_any(), ns);
-    finalizer(&vault_resources, FINALIZER, vault_resource, |event| async {
+    info!("Reconciling Document \"{}\" in {}", resource.name_any(), ns);
+    finalizer(&zitadel_resource_api, FINALIZER, resource, |event| async {
         match event {
             Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
             Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
@@ -118,13 +118,13 @@ async fn reconcile(vault_resource: Arc<ZitadelResource>, ctx: Arc<Context>) -> R
 }
 
 fn error_policy(
-    vault_resource: Arc<ZitadelResource>,
+    resource: Arc<ZitadelResource>,
     error: &ControllerError,
     ctx: Arc<Context>,
     reconcile_interval_seconds: u64,
 ) -> Action {
     warn!("reconcile failed: {:?}", error);
-    ctx.metrics.reconcile.set_failure(&vault_resource, error);
+    ctx.metrics.reconcile.set_failure(&resource, error);
 
     Action::requeue(Duration::from_secs(reconcile_interval_seconds))
 }
@@ -137,7 +137,7 @@ impl ZitadelResource {
         let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);
         let ns = self.namespace().unwrap();
         let name = self.name_any();
-        let vault_resources: Api<ZitadelResource> = Api::namespaced(kube_client.clone(), &ns);
+        let zitadel_resource_api: Api<ZitadelResource> = Api::namespaced(kube_client.clone(), &ns);
 
         match apply_resource(self, &kube_client).await {
             Ok(_) => {
@@ -151,7 +151,7 @@ impl ZitadelResource {
                 }));
 
                 let ps = PatchParams::apply(FINALIZER).force();
-                let _o = vault_resources
+                let _o = zitadel_resource_api
                     .patch_status(&name, &ps, &new_status)
                     .await
                     .map_err(ControllerError::KubeError)?;
@@ -178,7 +178,7 @@ impl ZitadelResource {
                 }));
 
                 let ps = PatchParams::apply(FINALIZER).force();
-                let _o = vault_resources
+                let _o = zitadel_resource_api
                     .patch_status(&name, &ps, &new_status)
                     .await
                     .map_err(ControllerError::KubeError)?;

@@ -1,3 +1,5 @@
+namespace: mows-core-storage-filez
+
 server:
     enabled: true
     image: 192.168.112.5:5000/filez-server

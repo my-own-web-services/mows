@@ -4,9 +4,9 @@ set -euo pipefail
 
 export SERVICE_NAME="vault-resource-controller"
 
-cargo run --bin crdgen > charts/${SERVICE_NAME}/templates/CRD.yaml
+cargo run --bin crdgen > charts/${SERVICE_NAME}/templates/VaultResourceCRD.yaml
 
-cargo run --bin schemagen > crd_schema.json
+cargo run --bin schemagen > VaultResourceCRDSchema.json
 
 docker buildx bake ${BAKE_ARGS:-default}
 

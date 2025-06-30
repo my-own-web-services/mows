@@ -70,6 +70,7 @@ impl SecretReadableByFilezController {
 
 /// When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, Eq, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub enum ValueOrSecretReference {
     Value(String),
     Secret(String),

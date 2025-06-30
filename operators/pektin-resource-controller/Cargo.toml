@@ -26,6 +26,11 @@ doc = false
 name = "crdgen"
 path = "src/crdgen.rs"
 
+[[bin]]
+doc = false
+name = "schemagen"
+path = "src/schemagen.rs"
+
 [lib]
 name = "controller"
 path = "src/lib.rs"
