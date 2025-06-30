@@ -777,7 +777,7 @@ impl Cluster {
             &CrdHandling::WithoutCrd,
         )
         .await?;
-        debug!("Installing FileZ");
+        debug!("Installing Filez");
         self.install_with_package_manager(
             "file:///packages/core/storage/filez",
             "mows-core-storage-filez",

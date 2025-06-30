@@ -33,3 +33,4 @@ tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 data-encoding = { workspace = true, features = ["default"] }
 time = { workspace = true, features = ["std"] }
 rand_core = { version = "0.6.4", features = ["getrandom"] }
+tracing = { workspace = true, features = ["default"] }

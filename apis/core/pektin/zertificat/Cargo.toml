@@ -15,10 +15,7 @@ tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal"] }
 data-encoding = { workspace = true, features = ["default"] }
 reqwest = { workspace = true, features = ["rustls-tls"] }
 acme-rs = { workspace = true, features = ["acmeRsStd"] }
-rand = { workspace = true, features = ["default"] }
-p256 = { workspace = true, features = ["std", "ecdsa"] }
 chrono = { workspace = true, features = ["default"] }
 vaultrs = { workspace = true, features = ["rustls"] }
 mows-common-rust = { workspace = true, features = ["default"] }
 tracing = { workspace = true, features = ["default"] }
-rand_core = { version = "0.6.4", features = ["getrandom"] }

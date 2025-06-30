@@ -33,5 +33,9 @@ spec:
               value: https://acme-v02.api.letsencrypt.org/directory #https://acme-staging-v02.api.letsencrypt.org/directory
             - name: ACME_EMAIL
               value: pektin-zertificat@vindelicum.eu
+            - name: LOG_FILTER
+              value: "{{ .Values.zertificat.logFilter }}"
+            - name: TRACING_FILTER
+              value: "{{ .Values.zertificat.tracingFilter }}"
               
 
