@@ -30,7 +30,7 @@ path = "src/crdgen.rs"
 [[bin]]
 doc = false
 name = "schemagen"
-path = "src/schema_gen.rs"
+path = "src/schemagen.rs"
 
 [lib]
 name = "controller"

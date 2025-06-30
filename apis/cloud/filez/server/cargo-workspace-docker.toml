@@ -46,6 +46,11 @@ default-features = false
 features = ["default"]
 version = "2.9.0"
 
+[workspace.dependencies.futures]
+default-features = false
+features = ["default"]
+version = "0.3.31"
+
 [workspace.dependencies.futures-util]
 default-features = false
 features = ["default"]
@@ -107,6 +112,10 @@ version = "=0.26.0"
 default-features = false
 version = "0.7.0"
 
+[workspace.dependencies.prometheus-client]
+default-features = false
+version = "0.22.3"
+
 [workspace.dependencies.rand]
 default-features = false
 features = ["default"]
@@ -126,6 +135,11 @@ version = "0.12.15"
 default-features = false
 features = ["opentelemetry_0_28"]
 version = "0.5.7"
+
+[workspace.dependencies.schemars]
+default-features = false
+features = ["chrono"]
+version = "0.8.22"
 
 [workspace.dependencies.serde]
 default-features = false
@@ -186,7 +200,7 @@ version = "2.5.4"
 
 [workspace.dependencies.utoipa]
 default-features = false
-features = ["chrono", "uuid"]
+features = ["chrono", "uuid", "openapi_extensions"]
 version = "5.3.1"
 
 [workspace.dependencies.utoipa-axum]

@@ -10,6 +10,17 @@
  * ---------------------------------------------------------------
  */
 
+export enum UpdateFilesMetaTypeTagsMethod {
+  Add = "Add",
+  Remove = "Remove",
+  Set = "Set",
+}
+
+export enum SortOrder {
+  Ascending = "Ascending",
+  Descending = "Descending",
+}
+
 export enum ApiResponseStatus {
   Success = "Success",
   Error = "Error",
@@ -40,9 +51,40 @@ export interface ApiResponseCreateFileResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseEmptyApiResponse {
+  /** @default null */
+  data?: any;
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseGetFileMetaResBody {
   data?: {
-    files_meta: (null | File)[];
+    files_meta: Record<string, FileMeta>;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseGetUsersResBody {
+  data?: {
+    users_meta: Record<string, UserMeta>;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseHealthResBody {
+  data?: object;
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseListFilesResponseBody {
+  data?: {
+    files: File[];
+    /** @format int64 */
+    total_count: number;
   };
   message: string;
   status: ApiResponseStatus;
@@ -131,9 +173,7 @@ export type AuthReason =
 
 export interface CheckResourceAccessRequestBody {
   action: string;
-  /** @format uuid */
-  requesting_app_id?: string | null;
-  requesting_app_trusted?: boolean | null;
+  requesting_app_origin?: string | null;
   resource_ids: string[];
   resource_type: string;
 }
@@ -145,6 +185,7 @@ export interface CheckResourceAccessResponseBody {
 export interface CreateFileRequestBody {
   file_name: string;
   mime_type?: string | null;
+  sha256_digest?: string | null;
   /** @format date-time */
   time_created?: string | null;
   /** @format date-time */
@@ -155,25 +196,116 @@ export interface CreateFileResponseBody {
   file_id: string;
 }
 
+/** @default null */
+export type EmptyApiResponse = any;
+
 export interface File {
   /** @format date-time */
   created_time: string;
-  file_name: string;
   /** @format uuid */
   id: string;
+  metadata: FileMetadata;
   mime_type: string;
   /** @format date-time */
   modified_time: string;
+  name: string;
   /** @format uuid */
   owner_id: string;
+  sha256_digest?: string | null;
+  /** @format int64 */
+  size: number;
+  storage: StorageLocation;
+}
+
+export interface FileMeta {
+  file: File;
+  tags: Record<string, string>;
+}
+
+export interface FileMetadata {
+  /** @format uuid */
+  default_preview_app_id?: string | null;
+  /** Extracted data from the file, such as text content, metadata, etc. */
+  extracted_data: any;
+  /**
+   * Place for apps to store custom data related to the file.
+   * every app is identified by its id, and can only access its own data.
+   */
+  private_app_data: Record<string, any>;
+  /** Apps can provide and request shared app data from other apps on creation */
+  shared_app_data: Record<string, any>;
 }
 
 export interface GetFileMetaResBody {
-  files_meta: (null | File)[];
+  files_meta: Record<string, FileMeta>;
 }
 
 export interface GetFilesMetaRequestBody {
   file_ids: string[];
+}
+
+export interface GetUsersReqBody {
+  user_ids: string[];
+}
+
+export interface GetUsersResBody {
+  users_meta: Record<string, UserMeta>;
+}
+
+export type HealthResBody = object;
+
+export interface ListFilesRequestBody {
+  /** @format uuid */
+  file_group_id: string;
+  /** @format int64 */
+  from_index?: number | null;
+  /** @format int64 */
+  limit?: number | null;
+  sort_by?: string | null;
+  sort_order?: null | SortOrder;
+}
+
+export interface ListFilesResponseBody {
+  files: File[];
+  /** @format int64 */
+  total_count: number;
+}
+
+export interface StorageLocation {
+  /** app_id -> provider_id */
+  locations: Record<string, string>;
+}
+
+export interface UpdateFilesMetaRequestBody {
+  file_ids: string[];
+  files_meta: UpdateFilesMetaType;
+}
+
+export type UpdateFilesMetaType = {
+  Tags: UpdateFilesMetaTypeTags;
+};
+
+export interface UpdateFilesMetaTypeTags {
+  method: UpdateFilesMetaTypeTagsMethod;
+  tags: Record<string, string>;
+}
+
+export interface User {
+  /** @format date-time */
+  created_time: string;
+  deleted: boolean;
+  display_name: string;
+  external_user_id?: string | null;
+  /** @format uuid */
+  id: string;
+  /** @format date-time */
+  modified_time: string;
+  /** @format int64 */
+  storage_limit: number;
+}
+
+export interface UserMeta {
+  user: User;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -458,17 +590,35 @@ export class Api<
     /**
      * No description
      *
+     * @name ListFiles
+     * @request POST:/api/file_groups/list_files
+     */
+    listFiles: (data: ListFilesRequestBody, params: RequestParams = {}) =>
+      this.request<ApiResponseListFilesResponseBody, any>({
+        path: `/api/file_groups/list_files`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @name GetFileContent
-     * @request GET:/api/files/content/get/{file_id}
+     * @request GET:/api/files/content/get/{file_id}/{app_id}/{app_path}
      */
     getFileContent: (
       fileId: string,
+      appId: string | null,
+      appPath: string | null,
       d: boolean | null,
       c: number | null,
       params: RequestParams = {},
     ) =>
       this.request<void, void>({
-        path: `/api/files/content/get/${fileId}`,
+        path: `/api/files/content/get/${fileId}/${appId}/${appPath}`,
         method: "GET",
         ...params,
       }),
@@ -492,17 +642,77 @@ export class Api<
      * No description
      *
      * @name GetFilesMetadata
-     * @request POST:/api/files/info/get
+     * @request POST:/api/files/meta/get
      */
     getFilesMetadata: (
       data: GetFilesMetaRequestBody,
       params: RequestParams = {},
     ) =>
       this.request<ApiResponseGetFileMetaResBody, any>({
-        path: `/api/files/info/get`,
+        path: `/api/files/meta/get`,
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name UpdateFilesMetadata
+     * @request POST:/api/files/meta/update
+     */
+    updateFilesMetadata: (
+      data: UpdateFilesMetaRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseEmptyApiResponse, any>({
+        path: `/api/files/meta/update`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name TusHead
+     * @request HEAD:/api/files/tus/head/{file_id}
+     */
+    tusHead: (fileId: string, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/files/tus/head/${fileId}`,
+        method: "HEAD",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name TusPatch
+     * @request PATCH:/api/files/tus/patch/{file_id}
+     */
+    tusPatch: (fileId: string, data: any, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/files/tus/patch/${fileId}`,
+        method: "PATCH",
+        body: data,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetHealth
+     * @request GET:/api/health
+     */
+    getHealth: (params: RequestParams = {}) =>
+      this.request<ApiResponseHealthResBody, any>({
+        path: `/api/health`,
+        method: "GET",
         format: "json",
         ...params,
       }),
@@ -517,6 +727,22 @@ export class Api<
       this.request<ApiResponseApplyUserResponseBody, any>({
         path: `/api/users/apply`,
         method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetUsers
+     * @request POST:/api/users/get
+     */
+    getUsers: (data: GetUsersReqBody, params: RequestParams = {}) =>
+      this.request<ApiResponseGetUsersResBody, any>({
+        path: `/api/users/get`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),

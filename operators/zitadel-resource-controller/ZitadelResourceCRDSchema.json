@@ -1,0 +1,477 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ZitadelResource",
+  "description": "Auto-generated derived type for ZitadelResourceSpec via `CustomResource`",
+  "type": "object",
+  "required": [
+    "spec"
+  ],
+  "properties": {
+    "spec": {
+      "$ref": "#/definitions/ZitadelResourceSpec"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ZitadelResourceStatus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "ClientDataTargetVault": {
+      "type": "object",
+      "required": [
+        "kubernetesAuthEngineName",
+        "secretEngineName",
+        "secretEngineSubPath"
+      ],
+      "properties": {
+        "kubernetesAuthEngineName": {
+          "type": "string"
+        },
+        "secretEngineName": {
+          "description": "The name of the vault engine in the same namespace mows-core-secrets-vrc/{RESOURCE_NAMESPACE}/{engine_name} the zitadel controller cant create the vault engine, it must be created before with a vault resource, the vault resource must have the same namespace as the zitadel resource",
+          "type": "string"
+        },
+        "secretEngineSubPath": {
+          "type": "string"
+        }
+      }
+    },
+    "ComplementTokenFlow": {
+      "type": "object",
+      "properties": {
+        "preAccessTokenCreation": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "preUserinfoCreation": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "LoginVersion": {
+      "type": "string",
+      "enum": [
+        "version1",
+        "version2"
+      ]
+    },
+    "OidcAppType": {
+      "type": "string",
+      "enum": [
+        "web",
+        "userAgent",
+        "native"
+      ]
+    },
+    "OidcAuthMethodType": {
+      "type": "string",
+      "enum": [
+        "basic",
+        "post",
+        "none",
+        "privateKeyJwt"
+      ]
+    },
+    "OidcGrantType": {
+      "type": "string",
+      "enum": [
+        "authorizationCode",
+        "implicit",
+        "refreshToken",
+        "deviceCode",
+        "tokenExchange"
+      ]
+    },
+    "OidcResponseType": {
+      "type": "string",
+      "enum": [
+        "code",
+        "idToken",
+        "idTokenToken"
+      ]
+    },
+    "OidcTokenType": {
+      "type": "string",
+      "enum": [
+        "bearer",
+        "jwt"
+      ]
+    },
+    "RawZitadelAction": {
+      "type": "object",
+      "required": [
+        "script"
+      ],
+      "properties": {
+        "allowedToFail": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "script": {
+          "type": "string"
+        },
+        "timeoutSeconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        }
+      }
+    },
+    "RawZitadelActionAndFlow": {
+      "type": "object",
+      "required": [
+        "actions",
+        "flow"
+      ],
+      "properties": {
+        "actions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/RawZitadelAction"
+          }
+        },
+        "flow": {
+          "$ref": "#/definitions/RawZitadelActionFlow"
+        }
+      }
+    },
+    "RawZitadelActionFlow": {
+      "type": "object",
+      "properties": {
+        "complementToken": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ComplementTokenFlow"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RawZitadelApplication": {
+      "type": "object",
+      "required": [
+        "clientDataTarget",
+        "method",
+        "name"
+      ],
+      "properties": {
+        "clientDataTarget": {
+          "$ref": "#/definitions/RawZitadelApplicationClientDataTarget"
+        },
+        "method": {
+          "$ref": "#/definitions/RawZitadelApplicationMethod"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "RawZitadelApplicationApi": {
+      "type": "object",
+      "required": [
+        "authenticationMethod"
+      ],
+      "properties": {
+        "authenticationMethod": {
+          "type": "string"
+        }
+      }
+    },
+    "RawZitadelApplicationClientDataTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "vault"
+          ],
+          "properties": {
+            "vault": {
+              "$ref": "#/definitions/ClientDataTargetVault"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "RawZitadelApplicationMethod": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "oidc"
+          ],
+          "properties": {
+            "oidc": {
+              "$ref": "#/definitions/RawZitadelApplicationOidc"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "api"
+          ],
+          "properties": {
+            "api": {
+              "$ref": "#/definitions/RawZitadelApplicationApi"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "RawZitadelApplicationOidc": {
+      "type": "object",
+      "required": [
+        "accessTokenType",
+        "appType",
+        "authenticationMethod",
+        "grantTypes",
+        "redirectUris",
+        "responseTypes"
+      ],
+      "properties": {
+        "accessTokenRoleAssertion": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "accessTokenType": {
+          "$ref": "#/definitions/OidcTokenType"
+        },
+        "additionalOrigins": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "appType": {
+          "$ref": "#/definitions/OidcAppType"
+        },
+        "authenticationMethod": {
+          "$ref": "#/definitions/OidcAuthMethodType"
+        },
+        "backChannelLogoutUri": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clockSkewSeconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "devMode": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "grantTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OidcGrantType"
+          }
+        },
+        "idTokenRoleAssertion": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "idTokenUserinfoAssertion": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "loginVersion": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/LoginVersion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "postLogoutRedirectUris": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "redirectUris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "responseTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OidcResponseType"
+          }
+        },
+        "skipNativeAppSuccessPage": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "RawZitadelProject": {
+      "type": "object",
+      "required": [
+        "adminRoles",
+        "applications",
+        "projectRoleAssertion",
+        "projectRoleCheck",
+        "roles"
+      ],
+      "properties": {
+        "actionFlow": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RawZitadelActionAndFlow"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "adminRoles": {
+          "description": "the roles to assign to the \"zitadel-admin\"",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "applications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RawZitadelApplication"
+          }
+        },
+        "projectRoleAssertion": {
+          "type": "boolean"
+        },
+        "projectRoleCheck": {
+          "type": "boolean"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RawZitadelProjectRole"
+          }
+        }
+      }
+    },
+    "RawZitadelProjectRole": {
+      "type": "object",
+      "required": [
+        "displayName",
+        "group",
+        "key"
+      ],
+      "properties": {
+        "displayName": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      }
+    },
+    "RawZitadelResource": {
+      "type": "object",
+      "required": [
+        "resource"
+      ],
+      "properties": {
+        "resource": {
+          "$ref": "#/definitions/RawZitadelResourceSelector"
+        }
+      }
+    },
+    "RawZitadelResourceSelector": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "project"
+          ],
+          "properties": {
+            "project": {
+              "$ref": "#/definitions/RawZitadelProject"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ZitadelResourceSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "raw"
+          ],
+          "properties": {
+            "raw": {
+              "$ref": "#/definitions/RawZitadelResource"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ZitadelResourceStatus": {
+      "description": "The status object of `ZitadelResource`",
+      "type": "object",
+      "required": [
+        "created"
+      ],
+      "properties": {
+        "created": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

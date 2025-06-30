@@ -1,0 +1,480 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PektinResource",
+  "description": "Auto-generated derived type for PektinResourceSpec via `CustomResource`",
+  "type": "object",
+  "required": [
+    "spec"
+  ],
+  "properties": {
+    "spec": {
+      "$ref": "#/definitions/PektinResourceSpec"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PektinResourceStatus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "ARecord": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "string",
+          "format": "ipv4"
+        }
+      }
+    },
+    "AaaaRecord": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "string",
+          "format": "ipv6"
+        }
+      }
+    },
+    "CaaRecord": {
+      "type": "object",
+      "required": [
+        "issuer_critical",
+        "tag",
+        "value"
+      ],
+      "properties": {
+        "issuer_critical": {
+          "type": "boolean"
+        },
+        "tag": {
+          "$ref": "#/definitions/Property"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "CertUsage": {
+      "type": "string",
+      "enum": [
+        "CA",
+        "Service",
+        "TrustAnchor",
+        "DomainIssued"
+      ]
+    },
+    "CnameRecord": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "KubePektinDbEntry": {
+      "type": "object",
+      "required": [
+        "name",
+        "rr_set",
+        "ttl"
+      ],
+      "properties": {
+        "meta": {
+          "default": "",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "rr_set": {
+          "$ref": "#/definitions/KubePektinRrSet"
+        },
+        "ttl": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    },
+    "KubePektinRrSet": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "A"
+          ],
+          "properties": {
+            "A": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ARecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "AAAA"
+          ],
+          "properties": {
+            "AAAA": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AaaaRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "CAA"
+          ],
+          "properties": {
+            "CAA": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/CaaRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "CNAME"
+          ],
+          "properties": {
+            "CNAME": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/CnameRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "MX"
+          ],
+          "properties": {
+            "MX": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MxRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "NS"
+          ],
+          "properties": {
+            "NS": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/NsRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "OPENPGPKEY"
+          ],
+          "properties": {
+            "OPENPGPKEY": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/OpenpgpkeyRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "SOA"
+          ],
+          "properties": {
+            "SOA": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SoaRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "SRV"
+          ],
+          "properties": {
+            "SRV": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SrvRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "TLSA"
+          ],
+          "properties": {
+            "TLSA": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/TlsaRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "TXT"
+          ],
+          "properties": {
+            "TXT": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/TxtRecord"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Matching": {
+      "type": "string",
+      "enum": [
+        "Raw",
+        "Sha256",
+        "Sha512"
+      ]
+    },
+    "MxRecord": {
+      "type": "object",
+      "required": [
+        "exchange",
+        "preference"
+      ],
+      "properties": {
+        "exchange": {
+          "type": "string"
+        },
+        "preference": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        }
+      }
+    },
+    "NsRecord": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "OpenpgpkeyRecord": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "PektinResourceSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "plain"
+          ],
+          "properties": {
+            "plain": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/KubePektinDbEntry"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "PektinResourceStatus": {
+      "type": "object",
+      "required": [
+        "created"
+      ],
+      "properties": {
+        "created": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Property": {
+      "type": "string",
+      "enum": [
+        "iodef",
+        "issue",
+        "issuewild"
+      ]
+    },
+    "Selector": {
+      "type": "string",
+      "enum": [
+        "Full",
+        "Spki"
+      ]
+    },
+    "SoaRecord": {
+      "type": "object",
+      "required": [
+        "expire",
+        "minimum",
+        "mname",
+        "refresh",
+        "retry",
+        "rname",
+        "serial"
+      ],
+      "properties": {
+        "expire": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "minimum": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "mname": {
+          "type": "string"
+        },
+        "refresh": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "retry": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rname": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    },
+    "SrvRecord": {
+      "type": "object",
+      "required": [
+        "port",
+        "priority",
+        "target",
+        "weight"
+      ],
+      "properties": {
+        "port": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "priority": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "target": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        }
+      }
+    },
+    "TlsaRecord": {
+      "type": "object",
+      "required": [
+        "cert_data",
+        "cert_usage",
+        "matching",
+        "selector"
+      ],
+      "properties": {
+        "cert_data": {
+          "type": "string"
+        },
+        "cert_usage": {
+          "$ref": "#/definitions/CertUsage"
+        },
+        "matching": {
+          "$ref": "#/definitions/Matching"
+        },
+        "selector": {
+          "$ref": "#/definitions/Selector"
+        }
+      }
+    },
+    "TxtRecord": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
