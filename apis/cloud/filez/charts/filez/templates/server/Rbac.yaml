@@ -14,7 +14,7 @@ rules:
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get"]
-    resourceNames: ["SecretReadableByFilezController"]
+    resourceNames: ["secret-readable-by-filez-controller"]
 
 
 

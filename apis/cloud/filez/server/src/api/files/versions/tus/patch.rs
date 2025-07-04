@@ -1,8 +1,10 @@
 use crate::{
-    apps::FilezApp,
     config::TUS_VERSION,
     errors::FilezError,
-    models::{AccessPolicyAction, AccessPolicyResourceType},
+    models::{
+        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsApp,
+    },
     state::ServerState,
     with_timing,
 };
@@ -12,14 +14,16 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
+use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     patch,
     request_body(content_type = "application/octet-stream"),
-    path = "/api/files/tus/patch/{file_id}",
+      path = "/api/files/versions/tus/patch/{file_id}/{version}",
     params(
-        ("file_id" = Uuid, Path, description = "The ID of the file to check for upload status")
+        ("file_id" = Uuid, Path, description = "The ID of the file to patch"),
+        ("version" = Option<u32>, Path, description = "The version of the file to patch, if applicable"),
     ),
     responses(
         (status = 204, description = "File was successfully patched"),
@@ -30,13 +34,9 @@ use zitadel::axum::introspection::IntrospectedUser;
 )]
 pub async fn tus_patch(
     external_user: IntrospectedUser,
-    State(ServerState {
-        db,
-        storage_locations,
-        ..
-    }): State<ServerState>,
+    State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(file_id): Path<uuid::Uuid>,
+    Path((file_id, version)): Path<(Uuid, Option<u32>)>,
     request_headers: HeaderMap,
     request: Request,
 ) -> Result<impl IntoResponse, FilezError> {
@@ -89,7 +89,7 @@ pub async fn tus_patch(
     );
 
     let requesting_app = with_timing!(
-        FilezApp::get_app_from_headers(&request_headers).await?,
+        MowsApp::get_from_headers(&db, &request_headers).await?,
         "Database operation to get app from headers",
         timing
     );
@@ -101,7 +101,8 @@ pub async fn tus_patch(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             &vec![file_id],
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilesContentTusPatch).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileVersionsContentTusPatch)
+                .unwrap(),
         )
         .await?
         .verify()?,
@@ -109,24 +110,7 @@ pub async fn tus_patch(
         timing
     );
 
-    let file = with_timing!(
-        db.get_file_by_id(file_id).await?,
-        "Database operation to get file by ID",
-        timing
-    )
-    .ok_or(FilezError::ResourceNotFound(format!(
-        "File with ID {} not found",
-        file_id
-    )))?;
-
-    file.continue_file_creation(
-        storage_locations,
-        request,
-        timing,
-        request_upload_offset,
-        content_length,
-    )
-    .await?;
+    todo!("Implement file version patching logic here");
 
     let mut response_headers = HeaderMap::new();
 

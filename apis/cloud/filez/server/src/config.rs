@@ -22,9 +22,6 @@ pub struct FilezServerConfig {
     pub oidc_client_id: String,
     pub oidc_client_secret: String,
     pub oidc_issuer: String,
-    pub minio_username: String,
-    pub minio_password: String,
-    pub minio_endpoint: String,
     pub default_storage_limit: i64,
     pub reconcile_interval_seconds: u64,
 }
@@ -52,9 +49,6 @@ pub fn from_env() -> anyhow::Result<FilezServerConfig> {
         oidc_client_id: load_env("a", "OIDC_CLIENT_ID", false, true)?,
         oidc_client_secret: load_env("a", "OIDC_CLIENT_SECRET", true, true)?,
         oidc_issuer: load_env("http://localhost", "OIDC_ISSUER", false, true)?,
-        minio_username: load_env("a", "MINIO_USERNAME", false, true)?,
-        minio_password: load_env("a", "MINIO_PASSWORD", true, true)?,
-        minio_endpoint: load_env("http://localhost:9000", "MINIO_ENDPOINT", false, true)?,
         default_storage_limit: load_env("10737418240", "DEFAULT_STORAGE_LIMIT", false, true)?
             .parse::<i64>()?,
         reconcile_interval_seconds: load_env("60", "RECONCILE_INTERVAL_SECONDS", false, true)?

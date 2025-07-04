@@ -23,7 +23,8 @@ insecurePebbleRoots = []
 sha2 = { workspace = true, features = ["default"] }
 reqwest = { workspace = true, features = ["rustls-tls"] }
 serde = { workspace = true, features = ["derive", "std"] }
-rcgen = { version = "0.12.1", features = ["x509-parser", "pem", "default"] }
+# DONT UPDATE
+rcgen = { version = "0.9.3", features = ["x509-parser", "pem", "default"] }
 p256 = { workspace = true, features = ["std", "ecdsa"] }
 rand = { workspace = true, features = ["default"] }
 serde_json = { workspace = true, features = ["default"] }

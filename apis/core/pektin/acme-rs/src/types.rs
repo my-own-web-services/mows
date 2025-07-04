@@ -28,6 +28,7 @@ pub struct JsonWebKey {
     pub crv: String,
     pub kty: String,
     pub x: String,
+    pub y: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

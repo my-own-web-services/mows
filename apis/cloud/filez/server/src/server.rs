@@ -57,13 +57,15 @@ async fn main() -> Result<(), anyhow::Error> {
         // THIS IS NOT THE REASON why the error occurs.
         // often it is the order of the extractors in the route handlers
         // FILES
-        .routes(routes!(api::files::get::get_file_content))
         .routes(routes!(api::files::create::create_file))
         .routes(routes!(api::files::meta::get::get_files_metadata))
         .routes(routes!(api::files::meta::update::update_files_metadata))
+        // FILE VERSIONS
+        .routes(routes!(api::files::versions::get::get_file_content))
+        .routes(routes!(api::files::versions::create::create_file_version))
         // tus
-        .routes(routes!(api::files::tus::head::tus_head))
-        .routes(routes!(api::files::tus::patch::tus_patch))
+        .routes(routes!(api::files::versions::tus::head::tus_head))
+        .routes(routes!(api::files::versions::tus::patch::tus_patch))
         // FILE GROUPS
         .routes(routes!(api::file_groups::list_files::list_files))
         // USERS

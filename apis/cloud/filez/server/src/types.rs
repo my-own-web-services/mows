@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::api::files::create::CreateFileRequestBody;
+use crate::api::files::{create::{CreateFileRequestBody, CreateFileResponseBody}, versions::create::{CreateFileVersionRequestBody, CreateFileVersionResponseBody}};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -11,6 +11,9 @@ use crate::api::files::create::CreateFileRequestBody;
     components(
         schemas(
             CreateFileRequestBody,
+            CreateFileResponseBody,
+            CreateFileVersionRequestBody,
+            CreateFileVersionResponseBody,
         )
     ),
 )]

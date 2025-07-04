@@ -1,7 +1,10 @@
 use super::errors::ControllerError;
 use crate::{
-    apps::FilezApp,
-    storage::{config::StorageProviderConfig, errors::StorageError},
+    models::apps::{MowsApp, MowsAppConfig},
+    storage::{
+        config::{StorageProviderConfig, StorageProviderConfigCrd},
+        errors::StorageError,
+    },
 };
 use k8s_openapi::api::core::v1::Secret;
 use kube::CustomResource;
@@ -21,8 +24,8 @@ use utoipa::ToSchema;
 #[kube(status = "FilezResourceStatus", shortname = "fr")]
 #[serde(rename_all = "camelCase")]
 pub enum FilezResourceSpec {
-    StorageLocation(StorageProviderConfig),
-    FilezApp(FilezApp),
+    StorageLocation(StorageProviderConfigCrd),
+    MowsApp(MowsAppConfig),
 }
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]

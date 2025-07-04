@@ -1,4 +1,5 @@
-use tracing::debug;
+use anyhow::Context;
+use tracing::{debug, trace};
 
 use crate::{
     crd::{self, RawZitadelResource},
@@ -21,6 +22,8 @@ pub async fn cleanup_raw(
         crd::RawZitadelResourceSelector::Project(_) => {
             let project_name = get_zitadel_project_name(resource_namespace, resource_name);
 
+            trace!("Cleaning up Zitadel project: {}", project_name);
+
             let project_org = zitadel_client.get_org_by_name(&project_name).await?;
 
             zitadel_client.delete_org(&project_org.id).await?;
@@ -41,16 +44,52 @@ pub async fn apply_raw(
         crd::RawZitadelResourceSelector::Project(raw_zitadel_project) => {
             let project_name = get_zitadel_project_name(resource_namespace, resource_name);
 
-            let project_org_id = zitadel_client.apply_org(&project_name).await?;
+            debug!(
+                "Applying Zitadel project: {} in namespace: {}",
+                project_name, resource_namespace
+            );
+
+            let project_org_id = zitadel_client.apply_org(&project_name).await.context(format!(
+                "Failed to apply Zitadel project org for project: {} in namespace: {}",
+                project_name, resource_namespace
+            ))?;
+
+            debug!(
+                "Applied Zitadel project org: {} with ID: {}",
+                project_name, project_org_id
+            );
 
             if let Some(action_flow) = &raw_zitadel_project.action_flow {
+                debug!(
+                    "Applying action flow for project: {} with actions: {:?}",
+                    project_name, action_flow.actions
+                );
+
                 let action_names_and_ids = zitadel_client
                     .apply_actions(&project_org_id, &action_flow.actions)
-                    .await?;
+                    .await
+                    .context(format!(
+                        "Failed to apply actions for project: {} in namespace: {}",
+                        project_name, resource_namespace
+                    ))?;
+
+                debug!(
+                    "Applied actions for project: {} with names and IDs: {:?}",
+                    project_name, action_names_and_ids
+                );
 
                 zitadel_client
                     .apply_flow(&project_org_id, &action_flow.flow, &action_names_and_ids)
-                    .await?;
+                    .await
+                    .context(format!(
+                        "Failed to apply action flow for project: {} in namespace: {}",
+                        project_name, resource_namespace
+                    ))?;
+
+                debug!(
+                    "Applied action flow for project: {} with flow: {:?}",
+                    project_name, action_flow.flow
+                );
             }
 
             let project_id = zitadel_client
@@ -60,13 +99,36 @@ pub async fn apply_raw(
                     raw_zitadel_project.project_role_assertion,
                     raw_zitadel_project.project_role_check,
                 )
-                .await?;
+                .await
+                .context(format!(
+                    "Failed to apply Zitadel project for project: {} in namespace: {}",
+                    project_name, resource_namespace
+                ))?;
+
+            debug!(
+                "Applied Zitadel project: {} with ID: {}",
+                project_name, project_id
+            );
 
             zitadel_client
                 .apply_project_roles(&project_org_id, &project_id, &raw_zitadel_project.roles)
-                .await?;
+                .await
+                .context(format!(
+                    "Failed to apply project roles for project: {} in namespace: {}",
+                    project_name, resource_namespace
+                ))?;
+
+            debug!(
+                "Applied project roles for project: {} with ID: {}",
+                project_name, project_id
+            );
 
             let admin_org = zitadel_client.get_admin_org().await?;
+
+            debug!(
+                "Admin org for project: {} is: {} with ID: {}",
+                project_name, admin_org.name, admin_org.id
+            );
 
             zitadel_client
                 .apply_admin_org_project_grant(
@@ -75,9 +137,23 @@ pub async fn apply_raw(
                     &project_id,
                     &raw_zitadel_project.admin_roles,
                 )
-                .await?;
+                .await
+                .context(format!(
+                    "Failed to apply admin org project grant for project: {} in namespace: {}",
+                    project_name, resource_namespace
+                ))?;
 
-            let admin_user = zitadel_client.get_admin_user(&admin_org).await?;
+            debug!(
+                "Applied admin org project grant for project: {} with ID: {}",
+                project_name, project_id
+            );
+
+            let admin_user = zitadel_client.get_admin_user(&admin_org).await.context(format!(
+                "Failed to get admin user for project: {} in namespace: {}",
+                project_name, resource_namespace
+            ))?;
+
+            debug!("Admin user has id: {}", admin_user.user_id);
 
             zitadel_client
                 .apply_admin_grant(
@@ -86,13 +162,26 @@ pub async fn apply_raw(
                     &admin_user.user_id,
                     &raw_zitadel_project.admin_roles,
                 )
-                .await?;
+                .await
+                .context(format!(
+                    "Failed to apply admin grant for project: {} in namespace: {}",
+                    project_name, resource_namespace
+                ))?;
+
+            debug!(
+                "Applied admin grant for project: {} with ID: {}",
+                project_name, project_id
+            );
 
             // zitadel-admin@zitadel.zitadel.vindelicorum.eu
 
             let mut present_applications = zitadel_client
                 .get_project_applications(&project_org_id, &project_id)
-                .await?
+                .await
+                .context(format!(
+                    "Failed to get present applications for project: {} in namespace: {}",
+                    project_name, resource_namespace
+                ))?
                 .into_iter();
 
             // create applications
@@ -106,30 +195,34 @@ pub async fn apply_raw(
 
                 // create application
                 match &resource_application.method {
-                    crd::RawZitadelApplicationMethod::Oidc(oidc_config) => {
-                        zitadel_client
-                            .apply_oidc_application(
-                                &resource_namespace,
-                                &project_org_id,
-                                &project_id,
-                                &resource_application.name,
-                                &oidc_config,
-                                &resource_application.client_data_target,
-                            )
-                            .await?
-                    }
-                    crd::RawZitadelApplicationMethod::Api(api_config) => {
-                        zitadel_client
-                            .apply_api_application(
-                                &resource_namespace,
-                                &project_org_id,
-                                &project_id,
-                                &resource_application.name,
-                                &api_config,
-                                &resource_application.client_data_target,
-                            )
-                            .await?
-                    }
+                    crd::RawZitadelApplicationMethod::Oidc(oidc_config) => zitadel_client
+                        .apply_oidc_application(
+                            &resource_namespace,
+                            &project_org_id,
+                            &project_id,
+                            &resource_application.name,
+                            &oidc_config,
+                            &resource_application.client_data_target,
+                        )
+                        .await
+                        .context(format!(
+                            "Failed to apply OIDC application: {} for project: {} in namespace: {}",
+                            resource_application.name, project_name, resource_namespace
+                        ))?,
+                    crd::RawZitadelApplicationMethod::Api(api_config) => zitadel_client
+                        .apply_api_application(
+                            &resource_namespace,
+                            &project_org_id,
+                            &project_id,
+                            &resource_application.name,
+                            &api_config,
+                            &resource_application.client_data_target,
+                        )
+                        .await
+                        .context(format!(
+                            "Failed to apply API application: {} for project: {} in namespace: {}",
+                            resource_application.name, project_name, resource_namespace
+                        ))?,
                 };
             }
         }

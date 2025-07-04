@@ -11,7 +11,7 @@ dependencies = [
  "p256",
  "rand 0.9.1",
  "rand_core 0.6.4",
- "rcgen 0.12.1",
+ "rcgen 0.9.3",
  "reqwest 0.12.19",
  "serde",
  "serde_json",
@@ -414,11 +414,11 @@ dependencies = [
 
 [[package]]
 name = "asn1-rs"
-version = "0.5.2"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f6fd5ddaf0351dff5b8da21b2fb4ff8e08ddd02857f0bf69c47639106c0fff0"
+checksum = "30ff05a702273012438132f449575dbc804e27b2f3cbe3069aa237d26c98fa33"
 dependencies = [
- "asn1-rs-derive 0.4.0",
+ "asn1-rs-derive 0.1.0",
  "asn1-rs-impl 0.1.0",
  "displaydoc",
  "nom",
@@ -446,9 +446,9 @@ dependencies = [
 
 [[package]]
 name = "asn1-rs-derive"
-version = "0.4.0"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "726535892e8eae7e70657b4c8ea93d26b8553afb1ce617caee529ef96d7dee6c"
+checksum = "db8b7511298d5b7784b40b092d9e9dcd3a627a5707e4b5e507931ab0d44eeebf"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1571,11 +1571,11 @@ dependencies = [
 
 [[package]]
 name = "der-parser"
-version = "8.2.0"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbd676fbbab537128ef0278adb5576cf363cff6aa22a7b24effe97347cfab61e"
+checksum = "fe398ac75057914d7d07307bf67dc7f3f574a26783b4fc7805a20ffa9f506e82"
 dependencies = [
- "asn1-rs 0.5.2",
+ "asn1-rs 0.3.1",
  "displaydoc",
  "nom",
  "num-bigint",
@@ -3288,7 +3288,7 @@ checksum = "5a87cc7a48537badeae96744432de36f4be2b4a34a05a5ef32e9dd8a1c169dde"
 dependencies = [
  "base64 0.22.1",
  "js-sys",
- "pem",
+ "pem 3.0.5",
  "ring 0.17.14",
  "serde",
  "serde_json",
@@ -3344,7 +3344,7 @@ dependencies = [
  "jsonpath-rust",
  "k8s-openapi",
  "kube-core",
- "pem",
+ "pem 3.0.5",
  "rustls 0.23.27",
  "rustls-pemfile 2.2.0",
  "secrecy",
@@ -3791,7 +3791,7 @@ dependencies = [
  "opentelemetry 0.26.0",
  "opentelemetry-otlp",
  "opentelemetry_sdk 0.26.0",
- "pem",
+ "pem 3.0.5",
  "rand 0.9.1",
  "rcgen 0.13.2",
  "reqwest 0.12.19",
@@ -4021,11 +4021,11 @@ dependencies = [
 
 [[package]]
 name = "oid-registry"
-version = "0.6.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bedf36ffb6ba96c2eb7144ef6270557b52e54b20c0a8e1eb2ff99a6c6959bff"
+checksum = "38e20717fa0541f39bd146692035c37bedfa532b3e5071b35761082407546b2a"
 dependencies = [
- "asn1-rs 0.5.2",
+ "asn1-rs 0.3.1",
 ]
 
 [[package]]
@@ -4533,6 +4533,15 @@ dependencies = [
  "tracing",
  "tracing-actix-web",
  "vaultrs",
+]
+
+[[package]]
+name = "pem"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8835c273a76a90455d7344889b0964598e3316e2a79ede8e36f16bdcf2228b8"
+dependencies = [
+ "base64 0.13.1",
 ]
 
 [[package]]
@@ -5069,14 +5078,14 @@ dependencies = [
 
 [[package]]
 name = "rcgen"
-version = "0.12.1"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48406db8ac1f3cbc7dcdb56ec355343817958a356ff430259bb07baf7607e1e1"
+checksum = "6413f3de1edee53342e6138e75b56d32e7bc6e332b3bd62d497b1929d4cfbcdd"
 dependencies = [
- "pem",
- "ring 0.17.14",
+ "pem 1.1.1",
+ "ring 0.16.20",
  "time",
- "x509-parser 0.15.1",
+ "x509-parser 0.13.2",
  "yasna",
 ]
 
@@ -5086,7 +5095,7 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75e669e5202259b5314d1ea5397316ad400819437857b90861765f24c4cf80a2"
 dependencies = [
- "pem",
+ "pem 3.0.5",
  "ring 0.17.14",
  "rustls-pki-types",
  "time",
@@ -8045,16 +8054,17 @@ checksum = "ea2f10b9bb0928dfb1b42b65e1f9e36f7f54dbdf08457afefb38afcdec4fa2bb"
 
 [[package]]
 name = "x509-parser"
-version = "0.15.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7069fba5b66b9193bd2c5d3d4ff12b839118f6bcbef5328efafafb5395cf63da"
+checksum = "9fb9bace5b5589ffead1afb76e43e34cff39cd0f3ce7e170ae0c29e53b88eb1c"
 dependencies = [
- "asn1-rs 0.5.2",
+ "asn1-rs 0.3.1",
+ "base64 0.13.1",
  "data-encoding",
- "der-parser 8.2.0",
+ "der-parser 7.0.0",
  "lazy_static",
  "nom",
- "oid-registry 0.6.1",
+ "oid-registry 0.4.0",
  "ring 0.16.20",
  "rusticata-macros",
  "thiserror 1.0.69",
@@ -8294,7 +8304,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zitadel_resource_controller"
+name = "zitadel-resource-controller"
 version = "0.14.0"
 dependencies = [
  "actix-web",

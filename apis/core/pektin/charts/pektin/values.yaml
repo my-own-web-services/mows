@@ -5,6 +5,8 @@ api:
   name: pektin-api
   replicaCount: 1
   vaultUrl: http://vault.mows-core-secrets-vault:8200
+  logFilter: error
+  tracingFilter: error
 
 server:
   enabled: true
@@ -12,6 +14,8 @@ server:
   imagePullPolicy: Always
   name: pektin-server
   replicaCount: 1
+  logFilter: error
+  tracingFilter: error
 
 zertificat:
   enabled: true
@@ -20,6 +24,8 @@ zertificat:
   name: pektin-zertificat
   replicaCount: 1
   vaultUrl: http://vault.mows-core-secrets-vault:8200
+  acmeUrl: https://acme-staging-v02.api.letsencrypt.org/directory #https://acme-v02.api.letsencrypt.org/directory #
+  acmeEmail: zertificat@example.com
   logFilter: error
   tracingFilter: error
 

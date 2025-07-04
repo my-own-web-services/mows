@@ -1,20 +1,4 @@
 diesel::table! {
-    files {
-        id -> Uuid,
-        owner_id -> Uuid,
-        mime_type -> Text,
-        name -> Text,
-        created_time -> Timestamp,
-        modified_time -> Timestamp,
-        size -> Numeric,
-        metadata -> Jsonb,
-        storage -> Jsonb,
-        sha256_digest -> Nullable<Text>,
-    }
-}
-diesel::joinable!(files -> users (owner_id));
-
-diesel::table! {
     users {
         id -> Uuid,
         external_user_id -> Nullable<Text>,
@@ -27,14 +11,41 @@ diesel::table! {
 }
 
 diesel::table! {
-    file_file_group_members (file_id, file_group_id) {
-        file_id -> Uuid,
-        file_group_id -> Uuid,
+    files {
+        id -> Uuid,
+        owner_id -> Uuid,
+        mime_type -> Text,
+        name -> Text,
         created_time -> Timestamp,
+        modified_time -> Timestamp,
+        metadata -> Jsonb,
     }
 }
-diesel::joinable!(file_file_group_members -> files (file_id));
-diesel::joinable!(file_file_group_members -> file_groups (file_group_id));
+diesel::joinable!(files -> users (owner_id));
+
+diesel::table! {
+    file_versions (file_id, version, app_id, app_path) {
+        file_id -> Uuid,
+        version -> Integer,
+        app_id -> Uuid,
+        app_path -> Nullable<Text>,
+        metadata -> Jsonb,
+        created_time -> Timestamp,
+        modified_time -> Timestamp,
+        size -> Numeric,
+        storage_id -> Uuid,
+    }
+}
+
+diesel::table! {
+    storage_locations {
+        id -> Uuid,
+        name -> Text,
+        provider_config -> Jsonb,
+        created_time -> Timestamp,
+        modified_time -> Timestamp,
+    }
+}
 
 diesel::table! {
     file_groups {
@@ -47,6 +58,16 @@ diesel::table! {
     }
 }
 diesel::joinable!(file_groups -> users (owner_id));
+
+diesel::table! {
+    file_file_group_members (file_id, file_group_id) {
+        file_id -> Uuid,
+        file_group_id -> Uuid,
+        created_time -> Timestamp,
+    }
+}
+diesel::joinable!(file_file_group_members -> files (file_id));
+diesel::joinable!(file_file_group_members -> file_groups (file_group_id));
 
 diesel::table! {
     user_groups  {
@@ -97,7 +118,7 @@ diesel::table! {
         subject_type -> Text,
         subject_id -> Uuid,
 
-        context_app_id -> Nullable<Text>,
+        context_app_id -> Nullable<Uuid>,
 
         resource_type -> Text,
         resource_id -> Uuid,
@@ -143,6 +164,18 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    apps {
+        id -> Uuid,
+        name -> Text,
+        origins -> Nullable<Array<Text>>,
+        trusted -> Bool,
+        description -> Nullable<Text>,
+        created_time -> Timestamp,
+        modified_time -> Timestamp,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     files,
     users,
@@ -155,4 +188,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     access_policies,
     file_group_file_sort_orders,
     file_group_file_sort_order_items,
+    file_versions,
+    storage_locations,
+    jobs,
+    apps,
 );

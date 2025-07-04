@@ -1,7 +1,11 @@
 use crate::{
-    apps::FilezApp,
     errors::FilezError,
-    models::{AccessPolicyAction, AccessPolicyResourceType},
+    models::{
+        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsApp,
+        file_versions::FileVersion,
+        files::FilezFile,
+    },
     state::ServerState,
     utils::parse_range,
     with_timing,
@@ -23,7 +27,7 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 #[derive(Deserialize, IntoParams)]
-pub struct GetFileRequestQueryParams {
+pub struct GetFileVersionRequestQueryParams {
     /// download the file/set the content disposition header to attachment
     pub d: Option<bool>,
     /// request setting the caching headers for max-age in seconds
@@ -32,12 +36,13 @@ pub struct GetFileRequestQueryParams {
 
 #[utoipa::path(
     get,
-    path = "/api/files/content/get/{file_id}/{app_id}/{app_path}",
+    path = "/api/files/versions/get/content/{file_id}/{version}/{app_id}/{app_path}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to retrieve content for"),
-        ("app_id" = Option<String>, Path, description = "The type of preview to retrieve, if applicable"),
-        ("app_path" = Option<String>, Path, description = "The path to the file preview, if applicable"),
-        GetFileRequestQueryParams
+        ("version" = Option<u32>, Path, description = "The version of the file to retrieve, if applicable"),
+        ("app_id" = Option<Uuid>, Path),
+        ("app_path" = Option<String>, Path),
+        GetFileVersionRequestQueryParams
     ),
     responses(
         (status = 200, description = "Gets a single files data/content from the server" ),
@@ -47,14 +52,15 @@ pub struct GetFileRequestQueryParams {
 )]
 pub async fn get_file_content(
     external_user: IntrospectedUser,
-    State(ServerState {
-        db,
-        storage_locations,
-        ..
-    }): State<ServerState>,
+    State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path((file_id, app_id, app_path)): Path<(Uuid, Option<String>, Option<String>)>,
-    Query(params): Query<GetFileRequestQueryParams>,
+    Path((file_id, version, app_id, app_path)): Path<(
+        Uuid,
+        Option<u32>,
+        Option<Uuid>,
+        Option<String>,
+    )>,
+    Query(params): Query<GetFileVersionRequestQueryParams>,
     request_headers: HeaderMap,
 ) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
@@ -64,7 +70,7 @@ pub async fn get_file_content(
     );
 
     let requesting_app = with_timing!(
-        FilezApp::get_app_from_headers(&request_headers).await?,
+        MowsApp::get_from_headers(&db, &request_headers).await?,
         "Database operation to get app from headers",
         timing
     );
@@ -76,7 +82,8 @@ pub async fn get_file_content(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             &vec![file_id],
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilesContentGet).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileVersionsContentGet)
+                .unwrap(),
         )
         .await?
         .verify()?,
@@ -85,14 +92,23 @@ pub async fn get_file_content(
     );
 
     let file_meta = with_timing!(
-        db.get_file_by_id(file_id).await?,
+        FilezFile::get_by_id(&db, file_id).await,
+        "Database operation to get file",
+        timing
+    )?;
+
+    let file_version_meta = with_timing!(
+        FileVersion::get(
+            &db,
+            &file_id,
+            version,
+            &app_id.as_ref().unwrap_or(&Uuid::nil()),
+            &app_path
+        )
+        .await,
         "Database operation to get file metadata",
         timing
-    )
-    .ok_or(FilezError::ResourceNotFound(format!(
-        "File with ID {} not found",
-        file_id
-    )))?;
+    )?;
 
     // Create headers
     let mut response_headers = HeaderMap::new();
@@ -163,13 +179,16 @@ pub async fn get_file_content(
 
             let end = parsed_range
                 .end
-                .unwrap_or(&file_meta.size - BigDecimal::from(1));
+                .unwrap_or(&file_version_meta.size - BigDecimal::from(1));
 
             response_headers.insert(
                 header::CONTENT_RANGE,
-                format!("bytes {}-{}/{}", parsed_range.start, end, file_meta.size)
-                    .parse()
-                    .expect("String to HeaderValue conversion failed"),
+                format!(
+                    "bytes {}-{}/{}",
+                    parsed_range.start, end, file_version_meta.size
+                )
+                .parse()
+                .expect("String to HeaderValue conversion failed"),
             );
             Some((parsed_range.start.to_u64(), end.to_u64()))
         } else {
@@ -179,9 +198,7 @@ pub async fn get_file_content(
         None
     };
 
-    let body = file_meta
-        .get_content(storage_locations, timing, range, app_id, app_path)
-        .await?;
+    let body = file_version_meta.get_content(&db, timing, &range).await?;
 
     if range.is_some() {
         Ok((StatusCode::PARTIAL_CONTENT, response_headers, body).into_response())

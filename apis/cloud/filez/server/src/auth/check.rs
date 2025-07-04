@@ -1,10 +1,5 @@
-use crate::models::AccessPolicyEffect;
-use crate::{
-    db::Db,
-    errors::FilezError,
-    models::{AccessPolicy, AccessPolicySubjectType},
-    schema,
-};
+use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPolicySubjectType};
+use crate::{db::Db, errors::FilezError, schema};
 use diesel::QueryDsl;
 use diesel::{
     pg::sql_types, prelude::QueryableByName, BoolExpressionMethods, ExpressionMethods,
@@ -20,7 +15,7 @@ pub async fn check_resources_access_control(
     db: &Db,
     requesting_user_id: &Uuid,
     user_group_ids: &[Uuid],
-    context_app_id: &str,
+    context_app_id: &Uuid,
     context_app_trusted: bool,
     resource_type: &str,
     requested_resource_ids: &[Uuid],

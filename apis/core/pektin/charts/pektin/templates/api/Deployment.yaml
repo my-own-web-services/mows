@@ -36,8 +36,6 @@ spec:
                 secretKeyRef:
                   name: pektin-db-api-password
                   key: data
-            - name: RUST_LOG
-              value: "main=debug,pektin_api=debug,pektin_common=debug"
             - name: VAULT_KUBERNETES_AUTH_PATH
               value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes"
             - name: VAULT_URL
@@ -48,7 +46,10 @@ spec:
               value: "db-pektin-api"
             - name: DB_HOSTNAME
               value: "pektin-db.{{ .Release.Namespace }}.svc.cluster.local"
-
+            - name: LOG_FILTER
+              value: "{{ .Values.api.logFilter }}"
+            - name: TRACING_FILTER
+              value: "{{ .Values.api.tracingFilter }}"
 
           
             

@@ -9,19 +9,23 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    apps::FilezApp,
     config::TUS_VERSION,
     errors::FilezError,
-    models::{AccessPolicyAction, AccessPolicyResourceType},
+    models::{
+        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsApp,
+        file_versions::FileVersion,
+    },
     state::ServerState,
     with_timing,
 };
 
 #[utoipa::path(
     head,
-    path = "/api/files/tus/head/{file_id}",
+    path = "/api/files/versions/tus/head/{file_id}/{version}/{job_id}",
     params(
-        ("file_id" = Uuid, Path, description = "The ID of the file to check for upload status")
+        ("file_id" = Uuid, Path, description = "The ID of the file to check for upload status"),
+        ("version" = Option<u32>, Path, description = "The version of the file, if applicable"),
     ),
     responses(
         (status = 200, description = "File exists and is ready to resume upload"),
@@ -32,13 +36,9 @@ use crate::{
 )]
 pub async fn tus_head(
     external_user: IntrospectedUser,
-    State(ServerState {
-        db,
-        storage_locations,
-        ..
-    }): State<ServerState>,
+    State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(file_id): Path<Uuid>,
+    Path((file_id, version)): Path<(Uuid, Option<u32>)>,
     request_headers: HeaderMap,
 ) -> Result<impl IntoResponse, FilezError> {
     if request_headers
@@ -60,7 +60,7 @@ pub async fn tus_head(
     );
 
     let requesting_app = with_timing!(
-        FilezApp::get_app_from_headers(&request_headers).await?,
+        MowsApp::get_from_headers(&db, &request_headers).await?,
         "Database operation to get app from headers",
         timing
     );
@@ -72,26 +72,22 @@ pub async fn tus_head(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             &vec![file_id],
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilesContentTusHead).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileVersionsContentTusHead)
+                .unwrap(),
         )
         .await?
         .verify()?,
         "Database operation to check access control",
         timing
     );
-
-    let file = with_timing!(
-        db.get_file_by_id(file_id).await?,
-        "Database operation to get file by ID",
+    let file_version_meta = with_timing!(
+        FileVersion::get(&db, &file_id, version, &Uuid::nil(), &None).await,
+        "Database operation to get file metadata",
         timing
-    )
-    .ok_or(FilezError::ResourceNotFound(format!(
-        "File with ID {} not found",
-        file_id
-    )))?;
+    )?;
 
-    let real_content_size = file
-        .get_file_size_from_content(storage_locations, timing, None)
+    let real_content_size = file_version_meta
+        .get_file_size_from_content(&db, timing)
         .await?;
 
     let mut response_headers = HeaderMap::new();
@@ -103,7 +99,10 @@ pub async fn tus_head(
     );
 
     response_headers.insert("Cache-Control", "no-store".parse().unwrap());
-    response_headers.insert("Upload-Length", file.size.to_string().parse().unwrap());
+    response_headers.insert(
+        "Upload-Length",
+        file_version_meta.size.to_string().parse().unwrap(),
+    );
 
     Ok((StatusCode::OK, response_headers, ()))
 }
