@@ -25,7 +25,7 @@ export default class Dev extends Component<DevProps, DevState> {
         this.userManager = new UserManager({
             userStore: new WebStorageStateStore({ store: window.localStorage }),
             authority: "https://zitadel.vindelicorum.eu",
-            client_id: "324938566448775334",
+            client_id: "326972155784921775",
             redirect_uri: window.location.origin,
             response_type: "code",
             scope: "openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-auth:aud",
@@ -61,6 +61,9 @@ export default class Dev extends Component<DevProps, DevState> {
                 } else {
                     this.setState({ user: null });
                 }
+
+                // Clear the URL to prevent reprocessing on refresh
+                window.history.replaceState({}, document.title, window.location.pathname);
             });
         }
     };
@@ -118,7 +121,7 @@ export default class Dev extends Component<DevProps, DevState> {
             console.log("File created:", res);
 
             const res2 = await this.client.api
-                .getFileContent(res.data.data?.file_id ?? "", null, null)
+                .getFileContent(res.data.data?.file_id ?? "", null, null, null, null)
                 .catch((error) => {
                     console.error("Error fetching file:", error);
                 });

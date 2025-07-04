@@ -3,7 +3,7 @@ use crate::{
     auth::check::{check_resources_access_control, AuthResult},
     config::{config, FilezServerConfig},
     errors::FilezError,
-    models::{File, FileTagMember, Tag, User},
+    models::{file_tag_members::FileTagMember, files::FilezFile, tags::Tag, users::FilezUser},
     schema::{self, files},
     types::SortOrder,
 };
@@ -72,13 +72,13 @@ impl Db {
         limit: Option<i64>,
         sort_by: Option<&str>,
         sort_order: Option<SortOrder>,
-    ) -> Result<Vec<File>, FilezError> {
+    ) -> Result<Vec<FilezFile>, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let mut query = schema::file_file_group_members::table
             .inner_join(files::table.on(schema::file_file_group_members::file_id.eq(files::id)))
             .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
-            .select(File::as_select())
+            .select(FilezFile::as_select())
             .into_boxed();
 
         match (sort_by, sort_order) {
@@ -106,7 +106,7 @@ impl Db {
             query = query.limit(limit);
         }
 
-        let files_list = query.load::<File>(&mut conn).await?;
+        let files_list = query.load::<FilezFile>(&mut conn).await?;
 
         Ok(files_list)
     }
@@ -114,16 +114,17 @@ impl Db {
     pub async fn get_files_metadata(
         &self,
         file_ids: &Vec<Uuid>,
-    ) -> Result<HashMap<Uuid, File>, FilezError> {
+    ) -> Result<HashMap<Uuid, FilezFile>, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let result = files::table
             .filter(files::id.eq_any(file_ids))
-            .select(File::as_select())
-            .load::<File>(&mut conn)
+            .select(FilezFile::as_select())
+            .load::<FilezFile>(&mut conn)
             .await?;
 
-        let result: HashMap<Uuid, File> = result.into_iter().map(|file| (file.id, file)).collect();
+        let result: HashMap<Uuid, FilezFile> =
+            result.into_iter().map(|file| (file.id, file)).collect();
 
         Ok(result)
     }
@@ -159,40 +160,15 @@ impl Db {
         Ok(file_tags)
     }
 
-    pub async fn get_file_by_id(&self, file_id: uuid::Uuid) -> Result<Option<File>, FilezError> {
-        let mut conn = self.pool.get().await?;
-
-        let result = files::table
-            .filter(files::id.eq(file_id))
-            .select(File::as_select())
-            .first::<File>(&mut conn)
-            .await
-            .optional()?;
-
-        Ok(result)
-    }
-
-    pub async fn create_file(&self, new_file: &File) -> Result<File, FilezError> {
-        let mut conn = self.pool.get().await?;
-
-        let result = diesel::insert_into(files::table)
-            .values(new_file)
-            .returning(File::as_returning())
-            .get_result::<File>(&mut conn)
-            .await?;
-
-        Ok(result)
-    }
-
     pub async fn get_user_by_external_id(
         &self,
         external_user_id: &str,
-    ) -> Result<User, FilezError> {
+    ) -> Result<FilezUser, FilezError> {
         let mut conn = self.pool.get().await?;
 
         let result = schema::users::table
             .filter(schema::users::external_user_id.eq(external_user_id))
-            .first::<User>(&mut conn)
+            .first::<FilezUser>(&mut conn)
             .await?;
 
         Ok(result)
@@ -210,7 +186,7 @@ impl Db {
         // Check if the user already exists
         let existing_user = schema::users::table
             .filter(schema::users::external_user_id.eq(external_user_id))
-            .first::<User>(&mut conn)
+            .first::<FilezUser>(&mut conn)
             .await
             .optional()?;
 
@@ -223,7 +199,7 @@ impl Db {
             return Ok(user.id);
         };
         // If the user does not exist, create a new user
-        let new_user = User::new(
+        let new_user = FilezUser::new(
             Some(external_user_id.to_string()),
             display_name,
             config.default_storage_limit,
@@ -231,7 +207,7 @@ impl Db {
 
         let result = diesel::insert_into(schema::users::table)
             .values(&new_user)
-            .get_result::<User>(&mut conn)
+            .get_result::<FilezUser>(&mut conn)
             .await?;
         Ok(result.id)
     }
@@ -269,7 +245,7 @@ impl Db {
     pub async fn check_resources_access_control(
         &self,
         requesting_user_id: &Uuid,
-        requesting_app_id: &str,
+        requesting_app_id: &Uuid,
         requesting_app_trusted: bool,
         resource_type: &str,
         requested_resource_ids: &[Uuid],
@@ -293,14 +269,7 @@ impl Db {
     pub async fn get_user_used_storage(&self, user_id: &Uuid) -> Result<BigDecimal, FilezError> {
         let mut conn = self.pool.get().await?;
 
-        let used_storage = schema::files::table
-            .filter(schema::files::owner_id.eq(user_id))
-            .select(diesel::dsl::sum(schema::files::size))
-            .first::<Option<BigDecimal>>(&mut conn)
-            .await?
-            .unwrap_or_else(|| BigDecimal::from(0));
-
-        Ok(used_storage)
+        todo!();
     }
 
     pub async fn update_files_tags(
@@ -411,14 +380,15 @@ impl Db {
     pub async fn get_users_by_ids(
         &self,
         user_ids: &[Uuid],
-    ) -> Result<HashMap<Uuid, User>, FilezError> {
+    ) -> Result<HashMap<Uuid, FilezUser>, FilezError> {
         let mut conn = self.pool.get().await?;
 
-        let users: Vec<User> = schema::users::table
+        let users: Vec<FilezUser> = schema::users::table
             .filter(schema::users::id.eq_any(user_ids))
             .load(&mut conn)
             .await?;
-        let user_map: HashMap<Uuid, User> = users.into_iter().map(|user| (user.id, user)).collect();
+        let user_map: HashMap<Uuid, FilezUser> =
+            users.into_iter().map(|user| (user.id, user)).collect();
         Ok(user_map)
     }
 }

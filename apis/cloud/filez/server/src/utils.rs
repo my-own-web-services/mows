@@ -84,16 +84,11 @@ pub fn parse_range(range: &str) -> anyhow::Result<Range> {
     })
 }
 
-pub async fn is_dev_origin(config: &crate::config::FilezServerConfig, origin: &str) -> Option<Url> {
+pub async fn is_dev_origin(config: &crate::config::FilezServerConfig, origin: &Url) -> Option<Url> {
     if config.enable_dev {
         for dev_origin_url in config.dev_allow_origins.iter() {
-            if dev_origin_url.as_str() == origin {
-                match Url::parse(origin) {
-                    Ok(url) => return Some(url),
-                    Err(e) => {
-                        tracing::error!("Invalid dev origin URL {}: `{}`", e, origin);
-                    }
-                }
+            if dev_origin_url == origin {
+                return Some(dev_origin_url.clone());
             }
         }
     }

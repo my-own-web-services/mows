@@ -1,9 +1,4 @@
-use crate::{
-    apps::FilezApp,
-    config::config,
-    state::ServerState,
-    storage::state::{StorageLocationsState, StorageProvider},
-};
+use crate::{config::config, db::Db, state::ServerState};
 use chrono::{DateTime, Utc};
 use crd::{FilezResource, FilezResourceSpec, FilezResourceStatus, SecretReadableByFilezController};
 use errors::{get_error_type, ControllerError, Result};
@@ -23,7 +18,7 @@ use metrics::Metrics;
 use mows_common_rust::{get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
 use serde_json::json;
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::sync::RwLock;
 use tracing::{error, field, info, instrument, warn, Span};
 
@@ -42,51 +37,10 @@ async fn inner_reconcile(
     let full_name = format!("{}-{}", namespace, name);
     match resource.spec {
         FilezResourceSpec::StorageLocation(ref incoming_provider_config) => {
-            let locations_config = ctx.storage_locations.locations.read().await.clone();
-
-            let filez_secrets =
-                SecretReadableByFilezController::fetch_map(&ctx.client, namespace).await?;
-
-            match locations_config.get(&full_name) {
-                Some((_, location_config)) => {
-                    // Update existing storage location if the config has changed
-                    if location_config != incoming_provider_config {
-                        let provider = StorageProvider::initialize(
-                            incoming_provider_config,
-                            &filez_secrets,
-                            &full_name,
-                        )
-                        .await?;
-                        let mut locations = ctx.storage_locations.locations.write().await;
-                        locations.insert(full_name, (provider, incoming_provider_config.clone()));
-                    }
-                }
-                None => {
-                    // Insert new storage location
-                    let provider = StorageProvider::initialize(
-                        incoming_provider_config,
-                        &filez_secrets,
-                        &full_name,
-                    )
-                    .await?;
-                    ctx.storage_locations
-                        .locations
-                        .write()
-                        .await
-                        .insert(full_name, (provider, incoming_provider_config.clone()));
-                }
-            }
+            todo!()
         }
-        FilezResourceSpec::FilezApp(ref incoming_app) => {
-            // insert or update the app in the state
-            let mut apps = ctx.apps.write().await;
-            if let Some(existing_app) = apps.get_mut(&full_name) {
-                // Update existing app
-                *existing_app = incoming_app.clone();
-            } else {
-                // Insert new app
-                apps.insert(full_name, incoming_app.clone());
-            }
+        FilezResourceSpec::MowsApp(ref incoming_app) => {
+            todo!()
         }
     }
     Ok(())
@@ -175,14 +129,10 @@ impl FilezResource {
     async fn cleanup(&self, ctx: Arc<ControllerContext>) -> Result<Action> {
         match self.spec {
             FilezResourceSpec::StorageLocation(_) => {
-                ctx.storage_locations
-                    .locations
-                    .write()
-                    .await
-                    .remove(&self.name_any());
+                todo!()
             }
-            FilezResourceSpec::FilezApp(_) => {
-                ctx.apps.write().await.remove(&self.name_any());
+            FilezResourceSpec::MowsApp(_) => {
+                todo!()
             }
         }
 
@@ -228,9 +178,7 @@ pub struct ControllerContext {
     pub metrics: Arc<Metrics>,
 
     /// Apps state
-    pub apps: Arc<RwLock<HashMap<String, FilezApp>>>,
-
-    pub storage_locations: StorageLocationsState,
+    pub db: Db,
 }
 
 /// Diagnostics to be exposed by the web server
@@ -284,26 +232,10 @@ pub async fn sync_state_with_kubernetes(state: &ServerState) -> Result<()> {
 
         match resource.spec {
             FilezResourceSpec::StorageLocation(provider_config) => {
-                let provider =
-                    match StorageProvider::initialize(&provider_config, &filez_secrets, &full_name)
-                        .await
-                    {
-                        Ok(provider) => provider,
-                        Err(e) => {
-                            error!("Failed to initialize storage provider: {e:?}");
-                            continue;
-                        }
-                    };
-
-                state
-                    .storage_locations
-                    .locations
-                    .write()
-                    .await
-                    .insert(full_name, (provider, provider_config));
+                todo!()
             }
-            FilezResourceSpec::FilezApp(app) => {
-                state.apps.write().await.insert(full_name, app);
+            FilezResourceSpec::MowsApp(app) => {
+                todo!()
             }
         }
     }

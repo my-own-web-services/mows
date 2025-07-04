@@ -5,9 +5,9 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    apps::FilezApp,
     auth::check::AuthEvaluation,
     errors::FilezError,
+    models::apps::MowsApp,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
     with_timing,
@@ -23,7 +23,7 @@ use crate::{
 )]
 pub async fn check_resource_access(
     external_user: IntrospectedUser,
-    headers: HeaderMap,
+    request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<CheckResourceAccessRequestBody>,
@@ -34,18 +34,11 @@ pub async fn check_resource_access(
         timing
     );
 
-    let requesting_app = match req_body.requesting_app_origin {
-        Some(origin) => with_timing!(
-            FilezApp::get_app_by_origin(&origin).await?,
-            "Database operation to get app by origin",
-            timing
-        ),
-        None => with_timing!(
-            FilezApp::get_app_from_headers(&headers).await?,
-            "Database operation to get app by external ID",
-            timing
-        ),
-    };
+    let requesting_app = with_timing!(
+        MowsApp::get_from_headers(&db, &request_headers).await?,
+        "Database operation to get app from headers",
+        timing
+    );
 
     let auth_result = with_timing!(
         db.check_resources_access_control(

@@ -1,5 +1,5 @@
 [package]
-name = "zitadel_resource_controller"
+name = "zitadel-resource-controller"
 version = "0.14.0"
 edition = { workspace = true }
 publish = false
@@ -7,7 +7,7 @@ publish = false
 
 [[bin]]
 doc = false
-name = "controller"
+name = "zitadel-resource-controller"
 path = "src/main.rs"
 
 [[bin]]

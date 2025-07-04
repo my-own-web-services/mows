@@ -2,7 +2,6 @@ pub mod api;
 pub mod auth {
     pub mod check;
 }
-pub mod apps;
 pub mod config;
 pub mod controller;
 pub mod db;

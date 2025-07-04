@@ -21,6 +21,17 @@ pub struct CommonConfig {
     pub constants: MowsConstants,
 }
 
+pub fn better_trace_filter(filter: String) -> String {
+    filter
+        .replace("-", "_")
+        .replace(" ", "")
+        .replace("\n", "")
+        .replace("\t", "")
+        .replace("\r", "")
+        .trim_end_matches(',')
+        .to_string()
+}
+
 pub fn from_env(log_vars: bool) -> Result<CommonConfig, MowsError> {
     Ok(CommonConfig {
         otel_endpoint_url: load_env(
@@ -29,8 +40,8 @@ pub fn from_env(log_vars: bool) -> Result<CommonConfig, MowsError> {
             false,
             log_vars,
         )?,
-        log_filter: load_env("info", "LOG_FILTER", false, log_vars)?,
-        tracing_filter: load_env("info", "TRACING_FILTER", false, log_vars)?,
+        log_filter: better_trace_filter(load_env("info", "LOG_FILTER", false, log_vars)?),
+        tracing_filter: better_trace_filter(load_env("info", "TRACING_FILTER", false, log_vars)?),
         service_name: load_env(env!("CARGO_PKG_NAME"), "SERVICE_NAME", false, log_vars)?,
         service_version: load_env(
             env!("CARGO_PKG_VERSION"),

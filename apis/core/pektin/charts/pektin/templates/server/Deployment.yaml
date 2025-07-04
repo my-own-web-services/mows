@@ -43,5 +43,9 @@ spec:
                 secretKeyRef:
                   name: pektin-db-server-password
                   key: data
+            - name: LOG_FILTER
+              value: "{{ .Values.server.logFilter }}"
+            - name: TRACING_FILTER
+              value: "{{ .Values.server.tracingFilter }}"
 
 

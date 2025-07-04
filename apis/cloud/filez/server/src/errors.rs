@@ -1,6 +1,7 @@
 use axum::response::IntoResponse;
 
 use crate::{
+    models::apps::errors::FilezAppError,
     storage::errors::StorageError,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
 };
@@ -38,6 +39,12 @@ pub enum FilezError {
     // unauthorized
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
+    #[error("FilezApp Error: {0}")]
+    FilezAppError(#[from] FilezAppError),
+    #[error("FilezVersion Error: {0}")]
+    FilezVersionError(#[from] crate::models::file_versions::errors::FileVersionError),
+    #[error("FilezFile Error: {0}")]
+    FilezFileError(#[from] crate::models::files::errors::FilezFileError),
 }
 
 impl IntoResponse for FilezError {
@@ -51,13 +58,11 @@ impl IntoResponse for FilezError {
             FilezError::ParseError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::SerdeJsonError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::MimeError(_) => axum::http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
-            FilezError::GenericError(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             FilezError::ResourceNotFound(_) => axum::http::StatusCode::NOT_FOUND,
-            FilezError::IoError(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            FilezError::StorageError(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             FilezError::InvalidRequest(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::UnsupportedMediaType(_) => axum::http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
             FilezError::Unauthorized(_) => axum::http::StatusCode::UNAUTHORIZED,
+            _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         let body: ApiResponse<EmptyApiResponse> = ApiResponse {

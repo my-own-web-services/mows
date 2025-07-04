@@ -5,9 +5,12 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    apps::FilezApp,
     errors::FilezError,
-    models::{AccessPolicyAction, AccessPolicyResourceType, File},
+    models::{
+        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsApp,
+        files::FilezFile,
+    },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, SortOrder},
     with_timing,
@@ -35,7 +38,7 @@ pub async fn list_files(
     );
 
     let requesting_app = with_timing!(
-        FilezApp::get_app_from_headers(&request_headers).await?,
+        MowsApp::get_from_headers(&db, &request_headers).await?,
         "Database operation to get app from headers",
         timing
     );
@@ -90,6 +93,6 @@ pub struct ListFilesRequestBody {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListFilesResponseBody {
-    pub files: Vec<File>,
+    pub files: Vec<FilezFile>,
     pub total_count: i64,
 }

@@ -3,12 +3,15 @@ pub mod files {
         pub mod get;
         pub mod update;
     }
-    pub mod create;
-    pub mod get;
-    pub mod tus {
-        pub mod head;
-        pub mod patch;
+    pub mod versions {
+        pub mod create;
+        pub mod get;
+        pub mod tus {
+            pub mod head;
+            pub mod patch;
+        }
     }
+    pub mod create;
 }
 pub mod users {
     pub mod apply;

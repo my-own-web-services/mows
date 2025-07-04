@@ -7,9 +7,11 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    apps::FilezApp,
     errors::FilezError,
-    models::{AccessPolicyAction, AccessPolicyResourceType},
+    models::{
+        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsApp,
+    },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
@@ -28,7 +30,7 @@ pub async fn update_files_metadata(
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<UpdateFilesMetaRequestBody>,
+    Json(request_body): Json<UpdateFilesMetaRequestBody>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
     let requesting_user = with_timing!(
         db.get_user_by_external_id(&external_user.user_id).await?,
@@ -37,7 +39,7 @@ pub async fn update_files_metadata(
     );
 
     let requesting_app = with_timing!(
-        FilezApp::get_app_from_headers(&request_headers).await?,
+        MowsApp::get_from_headers(&db, &request_headers).await?,
         "Database operation to get app from headers",
         timing
     );
@@ -48,7 +50,7 @@ pub async fn update_files_metadata(
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            &req_body.file_ids,
+            &request_body.file_ids,
             &serde_variant::to_variant_name(&AccessPolicyAction::FilesMetaUpdate).unwrap(),
         )
         .await?
@@ -57,11 +59,11 @@ pub async fn update_files_metadata(
         timing
     );
 
-    match req_body.files_meta {
+    match request_body.files_meta {
         UpdateFilesMetaType::Tags(tags_meta) => {
             with_timing!(
                 db.update_files_tags(
-                    &req_body.file_ids,
+                    &request_body.file_ids,
                     &tags_meta.tags,
                     &tags_meta.method,
                     &requesting_user.id,

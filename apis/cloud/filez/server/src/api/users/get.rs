@@ -1,7 +1,10 @@
 use crate::{
-    apps::FilezApp,
     errors::FilezError,
-    models::{AccessPolicyAction, AccessPolicyResourceType, User},
+    models::{
+        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsApp,
+        users::FilezUser,
+    },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
     with_timing,
@@ -35,7 +38,7 @@ pub async fn get_users(
     );
 
     let requesting_app = with_timing!(
-        FilezApp::get_app_from_headers(&request_headers).await?,
+        MowsApp::get_from_headers(&db, &request_headers).await?,
         "Database operation to get app from headers",
         timing
     );
@@ -93,5 +96,5 @@ pub struct GetUsersResBody {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct UserMeta {
-    pub user: User,
+    pub user: FilezUser,
 }
