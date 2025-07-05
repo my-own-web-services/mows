@@ -7,9 +7,11 @@ use zitadel::axum::introspection::IntrospectedUser;
 use crate::{
     errors::FilezError,
     models::{
-        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
+        file_groups::FileGroup,
         files::FilezFile,
+        users::FilezUser,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, SortOrder},
@@ -32,7 +34,7 @@ pub async fn list_files(
     Json(req_body): Json<ListFilesRequestBody>,
 ) -> Result<Json<ApiResponse<ListFilesResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
         timing
     );
@@ -44,12 +46,13 @@ pub async fn list_files(
     );
 
     with_timing!(
-        db.check_resources_access_control(
+        AccessPolicy::check(
+            &db,
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
-            &vec![req_body.file_group_id],
+            Some(&vec![req_body.file_group_id]),
             &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupListItems).unwrap(),
         )
         .await?
@@ -58,7 +61,8 @@ pub async fn list_files(
         timing
     );
 
-    let list_files_query = db.list_files_by_file_group(
+    let list_files_query = FileGroup::list_files(
+        &db,
         &req_body.file_group_id,
         req_body.from_index,
         req_body.limit,
@@ -66,13 +70,13 @@ pub async fn list_files(
         req_body.sort_order,
     );
 
-    let file_group_item_count_query = db.get_file_group_item_count(&req_body.file_group_id);
+    let file_group_item_count_query = FileGroup::get_file_count(&db, &req_body.file_group_id);
 
     // join the two futures to run them concurrently
     let (files, total_count) = match tokio::join!(list_files_query, file_group_item_count_query) {
         (Ok(files), Ok(total_count)) => (files, total_count),
-        (Err(e), _) => return Err(e),
-        (_, Err(e)) => return Err(e),
+        (Err(e), _) => return Err(e.into()),
+        (_, Err(e)) => return Err(e.into()),
     };
 
     return Ok(Json(ApiResponse {

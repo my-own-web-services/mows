@@ -1,5 +1,6 @@
 use crate::{
     errors::FilezError,
+    models::users::FilezUser,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
     with_timing,
@@ -23,7 +24,8 @@ pub async fn apply_user(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
 ) -> Result<Json<ApiResponse<ApplyUserResponseBody>>, FilezError> {
     let user_id = with_timing!(
-        db.apply_user(
+        FilezUser::apply(
+            &db,
             &external_user.user_id,
             &external_user.preferred_username.unwrap_or("".to_string()),
         )

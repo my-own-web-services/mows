@@ -1,3 +1,5 @@
+use crate::{db::Db, schema::file_versions};
+use axum::extract::Request;
 use bigdecimal::BigDecimal;
 use diesel::{
     pg::Pg,
@@ -12,9 +14,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{db::Db, schema::file_versions};
-
-use super::storage_locations::StorageLocation;
+use super::{files::FilezFile, storage_locations::StorageLocation};
 
 pub mod errors;
 
@@ -124,6 +124,32 @@ impl FileVersion {
             .await?;
 
         Ok(size)
+    }
+
+    pub async fn update_content(
+        &self,
+        db: &Db,
+        timing: axum_server_timing::ServerTimingExtension,
+        request: Request,
+        offset: u64,
+        length: u64,
+    ) -> Result<(), FileVersionError> {
+        let storage_location = StorageLocation::get_by_id(db, &self.storage_id).await?;
+
+        let file = FilezFile::get_by_id(db, self.file_id).await?;
+
+        storage_location
+            .update_content(
+                &self.full_file_path(),
+                timing,
+                request,
+                &file.mime_type,
+                offset,
+                length,
+            )
+            .await?;
+
+        Ok(())
     }
 
     pub async fn create(

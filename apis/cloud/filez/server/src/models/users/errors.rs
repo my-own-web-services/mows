@@ -1,5 +1,5 @@
 #[derive(Debug, thiserror::Error)]
-pub enum UserError {
+pub enum FilezUserError {
     #[error("User not found: {0}")]
     NotFound(String),
     #[error("Database error: {0}")]

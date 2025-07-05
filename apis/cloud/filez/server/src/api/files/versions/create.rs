@@ -4,6 +4,7 @@ use crate::{
         apps::MowsApp,
         file_versions::{FileVersion, FileVersionMetadata},
         files::FilezFile,
+        users::FilezUser,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
@@ -38,7 +39,7 @@ pub async fn create_file_version(
     Json(request_body): Json<CreateFileVersionRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
         timing
     );

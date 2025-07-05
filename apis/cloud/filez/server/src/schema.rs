@@ -44,8 +44,10 @@ diesel::table! {
         provider_config -> Jsonb,
         created_time -> Timestamp,
         modified_time -> Timestamp,
+        owner_id -> Uuid,
     }
 }
+diesel::joinable!(storage_locations -> users (owner_id));
 
 diesel::table! {
     file_groups {
@@ -121,7 +123,7 @@ diesel::table! {
         context_app_id -> Nullable<Uuid>,
 
         resource_type -> Text,
-        resource_id -> Uuid,
+        resource_id -> Nullable<Uuid>,
 
         action -> Text,
 

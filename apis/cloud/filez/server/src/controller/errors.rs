@@ -11,6 +11,10 @@ pub enum ControllerError {
     MissingResourceName(String),
     #[error("Storage Error: {0}")]
     StorageError(#[from] crate::storage::errors::StorageError),
+    #[error("MowsApp Error: {0}")]
+    MowsAppError(#[from] crate::models::apps::errors::MowsAppError),
+    #[error("Storage Location Error: {0}")]
+    StorageLocationError(#[from] crate::models::storage_locations::errors::StorageLocationError),
 }
 pub type Result<T, E = ControllerError> = std::result::Result<T, E>;
 

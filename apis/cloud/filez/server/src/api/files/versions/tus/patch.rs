@@ -2,8 +2,10 @@ use crate::{
     config::TUS_VERSION,
     errors::FilezError,
     models::{
-        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
+        file_versions::FileVersion,
+        users::FilezUser,
     },
     state::ServerState,
     with_timing,
@@ -83,7 +85,7 @@ pub async fn tus_patch(
         })?;
 
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
         timing
     );
@@ -95,12 +97,13 @@ pub async fn tus_patch(
     );
 
     with_timing!(
-        db.check_resources_access_control(
+        AccessPolicy::check(
+            &db,
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            &vec![file_id],
+            Some(&vec![file_id]),
             &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileVersionsContentTusPatch)
                 .unwrap(),
         )
@@ -110,7 +113,19 @@ pub async fn tus_patch(
         timing
     );
 
-    todo!("Implement file version patching logic here");
+    let file_version = with_timing!(
+        FileVersion::get(&db, &file_id, version, &Uuid::nil(), &None).await?,
+        "Database operation to get file version",
+        timing
+    );
+
+    with_timing!(
+        file_version
+            .update_content(&db, timing, request, request_upload_offset, content_length)
+            .await?,
+        "File version content update",
+        timing
+    );
 
     let mut response_headers = HeaderMap::new();
 

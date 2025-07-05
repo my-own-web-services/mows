@@ -9,9 +9,10 @@ use zitadel::axum::introspection::IntrospectedUser;
 use crate::{
     errors::FilezError,
     models::{
-        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
         files::FilezFile,
+        users::FilezUser,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
@@ -34,7 +35,7 @@ pub async fn get_files_metadata(
     Json(req_body): Json<GetFilesMetaRequestBody>,
 ) -> Result<Json<ApiResponse<GetFileMetaResBody>>, FilezError> {
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
         timing
     );
@@ -46,12 +47,13 @@ pub async fn get_files_metadata(
     );
 
     with_timing!(
-        db.check_resources_access_control(
+        AccessPolicy::check(
+            &db,
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            &req_body.file_ids,
+            Some(&req_body.file_ids),
             &serde_variant::to_variant_name(&AccessPolicyAction::FilesMetaGet).unwrap(),
         )
         .await?
@@ -61,13 +63,13 @@ pub async fn get_files_metadata(
     );
 
     let files_meta_result = with_timing!(
-        db.get_files_metadata(&req_body.file_ids).await?,
+        FilezFile::get_many_by_id(&db, &req_body.file_ids).await?,
         "Database operation to get files metadata",
         timing
     );
 
     let file_tags = with_timing!(
-        db.get_files_tags(&req_body.file_ids).await?,
+        FilezFile::get_tags(&db, &req_body.file_ids).await?,
         "Database operation to get files tags",
         timing
     );

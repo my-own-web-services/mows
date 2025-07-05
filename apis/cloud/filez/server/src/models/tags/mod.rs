@@ -12,13 +12,13 @@ use crate::utils::get_uuid;
 #[derive(Queryable, Selectable, Clone, Insertable, Debug, QueryableByName)]
 #[diesel(check_for_backend(Pg))]
 #[diesel(table_name = crate::schema::tags)]
-pub struct Tag {
+pub struct FilezTag {
     pub id: Uuid,
     pub key: String,
     pub value: String,
 }
 
-impl Tag {
+impl FilezTag {
     pub fn new(key: &str, value: &str) -> Self {
         Self {
             id: get_uuid(),

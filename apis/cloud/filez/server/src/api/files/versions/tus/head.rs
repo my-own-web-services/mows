@@ -12,9 +12,10 @@ use crate::{
     config::TUS_VERSION,
     errors::FilezError,
     models::{
-        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
         file_versions::FileVersion,
+        users::FilezUser,
     },
     state::ServerState,
     with_timing,
@@ -54,7 +55,7 @@ pub async fn tus_head(
     };
 
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
         timing
     );
@@ -66,12 +67,13 @@ pub async fn tus_head(
     );
 
     with_timing!(
-        db.check_resources_access_control(
+        AccessPolicy::check(
+            &db,
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            &vec![file_id],
+            Some(&vec![file_id]),
             &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileVersionsContentTusHead)
                 .unwrap(),
         )
@@ -80,15 +82,14 @@ pub async fn tus_head(
         "Database operation to check access control",
         timing
     );
-    let file_version_meta = with_timing!(
+
+    let file_version = with_timing!(
         FileVersion::get(&db, &file_id, version, &Uuid::nil(), &None).await,
         "Database operation to get file metadata",
         timing
     )?;
 
-    let real_content_size = file_version_meta
-        .get_file_size_from_content(&db, timing)
-        .await?;
+    let real_content_size = file_version.get_file_size_from_content(&db, timing).await?;
 
     let mut response_headers = HeaderMap::new();
 
@@ -101,7 +102,7 @@ pub async fn tus_head(
     response_headers.insert("Cache-Control", "no-store".parse().unwrap());
     response_headers.insert(
         "Upload-Length",
-        file_version_meta.size.to_string().parse().unwrap(),
+        file_version.size.to_string().parse().unwrap(),
     );
 
     Ok((StatusCode::OK, response_headers, ()))

@@ -1,7 +1,7 @@
 use axum::response::IntoResponse;
 
 use crate::{
-    models::apps::errors::FilezAppError,
+    models::apps::errors::MowsAppError,
     storage::errors::StorageError,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
 };
@@ -39,12 +39,22 @@ pub enum FilezError {
     // unauthorized
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
-    #[error("FilezApp Error: {0}")]
-    FilezAppError(#[from] FilezAppError),
-    #[error("FilezVersion Error: {0}")]
-    FilezVersionError(#[from] crate::models::file_versions::errors::FileVersionError),
+    #[error(" MowsApp Error: {0}")]
+    MowsAppError(#[from] MowsAppError),
+    #[error("FileVersion Error: {0}")]
+    FileVersionError(#[from] crate::models::file_versions::errors::FileVersionError),
     #[error("FilezFile Error: {0}")]
     FilezFileError(#[from] crate::models::files::errors::FilezFileError),
+    #[error("FilezUser Error: {0}")]
+    FilezUserError(#[from] crate::models::users::errors::FilezUserError),
+    #[error("StorageLocation Error: {0}")]
+    StorageLocationError(#[from] crate::models::storage_locations::errors::StorageLocationError),
+    #[error("FileGroup Error: {0}")]
+    FileGroupError(#[from] crate::models::file_groups::errors::FileGroupError),
+    #[error("FilezTag Error: {0}")]
+    FilezTagError(#[from] crate::models::tags::errors::FilezTagError),
+    #[error("UserGroup Error: {0}")]
+    UserGroupError(#[from] crate::models::user_groups::errors::UserGroupError),
 }
 
 impl IntoResponse for FilezError {

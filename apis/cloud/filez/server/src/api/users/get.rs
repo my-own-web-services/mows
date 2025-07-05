@@ -1,7 +1,7 @@
 use crate::{
     errors::FilezError,
     models::{
-        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
         users::FilezUser,
     },
@@ -32,7 +32,7 @@ pub async fn get_users(
     Json(req_body): Json<GetUsersReqBody>,
 ) -> Result<Json<ApiResponse<GetUsersResBody>>, FilezError> {
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
         timing
     );
@@ -44,12 +44,13 @@ pub async fn get_users(
     );
 
     with_timing!(
-        db.check_resources_access_control(
+        AccessPolicy::check(
+            &db,
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::User).unwrap(),
-            &req_body.user_ids,
+            Some(&req_body.user_ids),
             &serde_variant::to_variant_name(&AccessPolicyAction::UsersGet).unwrap(),
         )
         .await?
@@ -59,7 +60,7 @@ pub async fn get_users(
     );
 
     let users = with_timing!(
-        db.get_users_by_ids(&req_body.user_ids).await?,
+        FilezUser::get_many_by_id(&db, &req_body.user_ids).await?,
         "Database operation to get users by IDs",
         timing
     );
