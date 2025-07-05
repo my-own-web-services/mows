@@ -1,10 +1,11 @@
 use crate::{
     errors::FilezError,
     models::{
-        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
         file_versions::FileVersion,
         files::FilezFile,
+        users::FilezUser,
     },
     state::ServerState,
     utils::parse_range,
@@ -64,7 +65,7 @@ pub async fn get_file_content(
     request_headers: HeaderMap,
 ) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
         timing
     );
@@ -76,12 +77,13 @@ pub async fn get_file_content(
     );
 
     with_timing!(
-        db.check_resources_access_control(
+        AccessPolicy::check(
+            &db,
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            &vec![file_id],
+            Some(&vec![file_id]),
             &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileVersionsContentGet)
                 .unwrap(),
         )

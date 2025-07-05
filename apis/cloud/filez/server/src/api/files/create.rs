@@ -1,6 +1,11 @@
 use crate::{
     errors::FilezError,
-    models::files::FilezFile,
+    models::{
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsApp,
+        files::FilezFile,
+        users::FilezUser,
+    },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
     validation::validate_file_name,
@@ -31,14 +36,36 @@ use zitadel::axum::introspection::IntrospectedUser;
 )]
 pub async fn create_file(
     external_user: IntrospectedUser,
-    headers: HeaderMap,
+    request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
+        timing
+    );
+
+    let requesting_app = with_timing!(
+        MowsApp::get_from_headers(&db, &request_headers).await?,
+        "Database operation to get app from headers",
+        timing
+    );
+
+    with_timing!(
+        AccessPolicy::check(
+            &db,
+            &requesting_user.id,
+            &requesting_app.id,
+            requesting_app.trusted,
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            None,
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileCreate).unwrap(),
+        )
+        .await?
+        .verify()?,
+        "Database operation to check access control",
         timing
     );
 

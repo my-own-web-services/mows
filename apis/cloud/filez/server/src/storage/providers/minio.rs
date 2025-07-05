@@ -1,22 +1,16 @@
-use crate::{
-    controller::crd::ValueOrSecretReference, models::files::FilezFile,
-    storage::errors::StorageError, with_timing,
-};
+use crate::controller::crd::SecretReadableByFilezController;
+use crate::{controller::crd::ValueOrSecretReference, storage::errors::StorageError, with_timing};
 use anyhow::Context;
 use axum::body::Body;
 use axum::extract::Request;
-use bigdecimal::{BigDecimal, ToPrimitive};
+use bigdecimal::BigDecimal;
 use futures::StreamExt;
 use futures_util::TryStreamExt;
 use minio::s3::{builders::ObjectContent, types::S3Api};
 use minio::s3::{creds::StaticProvider, http::BaseUrl, ClientBuilder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use std::{
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::str::FromStr;
 use utoipa::ToSchema;
 
 use super::StorageProvider;
@@ -35,6 +29,20 @@ pub struct StorageProviderConfigMinioCrd {
     pub username: ValueOrSecretReference,
     pub password: ValueOrSecretReference,
     pub bucket: ValueOrSecretReference,
+}
+
+impl StorageProviderConfigMinioCrd {
+    pub fn convert_secrets(
+        self,
+        secret: SecretReadableByFilezController,
+    ) -> Result<StorageProviderConfigMinio, StorageError> {
+        Ok(StorageProviderConfigMinio {
+            endpoint: self.endpoint.get_value(&secret)?,
+            username: self.username.get_value(&secret)?,
+            password: self.password.get_value(&secret)?,
+            bucket: self.bucket.get_value(&secret)?,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -107,132 +115,96 @@ impl StorageProviderMinio {
 
         Ok(object_size)
     }
+    pub async fn update_content(
+        &self,
+        full_file_path: &str,
+        timing: axum_server_timing::ServerTimingExtension,
+        request: Request,
+        mime_type: &str,
+        offset: u64,
+        length: u64,
+    ) -> Result<(), StorageError> {
+        let get_object_result = with_timing!(
+            self.client
+                .get_object(&self.bucket, full_file_path)
+                .send()
+                .await,
+            "MinIO operation to get existing file content",
+            timing
+        );
 
-    // pub async fn continue_file_creation(
-    //     &self,
-    //     file: &FilezFile,
-    //     request: Request,
-    //     timing: axum_server_timing::ServerTimingExtension,
-    //     offset: u64,
-    //     length: u64,
-    // ) -> Result<(), StorageError> {
-    //     todo!();
+        match get_object_result {
+            Ok(get_object_response) => {
+                if get_object_response.object_size != offset {
+                    return Err(StorageError::OffsetMismatch {
+                        expected: offset,
+                        calculated: get_object_response.object_size,
+                    });
+                }
 
-    //     let object_id = file.id.to_string();
+                let (existing_content_stream, _size) =
+                    get_object_response.content.to_stream().await?;
 
-    //     let get_object_response = with_timing!(
-    //         self.client
-    //             .get_object(&self.bucket, &object_id)
-    //             .send()
-    //             .await?,
-    //         "MinIO operation to get existing file content for continuation",
-    //         timing
-    //     );
+                let existing_stream = existing_content_stream
+                    .map_err(|e| tokio::io::Error::new(tokio::io::ErrorKind::Other, e));
 
-    //     if get_object_response.object_size != offset {
-    //         return Err(StorageError::OffsetMismatch {
-    //             expected: offset,
-    //             calculated: get_object_response.object_size,
-    //         });
-    //     }
+                let new_content_stream = request
+                    .into_body()
+                    .into_data_stream()
+                    .map_err(|err| tokio::io::Error::new(tokio::io::ErrorKind::Other, err));
 
-    //     let (existing_content_stream, _size) = get_object_response.content.to_stream().await?;
+                let combined_stream = existing_stream.chain(new_content_stream);
 
-    //     let existing_stream = existing_content_stream
-    //         .map_err(|e| tokio::io::Error::new(tokio::io::ErrorKind::Other, e));
+                let total_size = offset + length;
+                let object_content =
+                    ObjectContent::new_from_stream(combined_stream, Some(total_size));
 
-    //     let new_content_stream = request
-    //         .into_body()
-    //         .into_data_stream()
-    //         .map_err(|err| tokio::io::Error::new(tokio::io::ErrorKind::Other, err));
+                with_timing!(
+                    self.client
+                        .put_object_content(&self.bucket, full_file_path, object_content)
+                        .content_type(mime_type.to_string())
+                        .send()
+                        .await?,
+                    "MinIO operation to overwrite with continued file content",
+                    timing
+                );
 
-    //     let combined_stream = existing_stream.chain(new_content_stream);
+                Ok(())
+            }
+            Err(e) => {
+                if e.to_string().contains("NoSuchKey") {
+                    if offset != 0 {
+                        return Err(StorageError::OffsetMismatch {
+                            expected: offset,
+                            calculated: 0,
+                        });
+                    }
 
-    //     let total_size = offset + length;
-    //     let object_content = ObjectContent::new_from_stream(combined_stream, Some(total_size));
+                    let new_content_stream = request
+                        .into_body()
+                        .into_data_stream()
+                        .map_err(|err| tokio::io::Error::new(tokio::io::ErrorKind::Other, err));
 
-    //     with_timing!(
-    //         self.client
-    //             .put_object_content(&self.bucket, &object_id, object_content)
-    //             .content_type(file.mime_type.clone())
-    //             .send()
-    //             .await?,
-    //         "MinIO operation to overwrite with continued file content",
-    //         timing
-    //     );
-    //     Ok(())
-    // }
+                    let total_size = length;
+                    let object_content =
+                        ObjectContent::new_from_stream(new_content_stream, Some(total_size));
 
-    // pub async fn create_file(
-    //     &self,
-    //     file: &FilezFile,
-    //     request: Request,
-    //     timing: axum_server_timing::ServerTimingExtension,
-    //     sha256_digest: Option<String>,
-    // ) -> Result<(), StorageError> {
-    //     todo!();
+                    with_timing!(
+                        self.client
+                            .put_object_content(&self.bucket, full_file_path, object_content)
+                            .content_type(mime_type.to_string())
+                            .send()
+                            .await?,
+                        "MinIO operation to create new file content",
+                        timing
+                    );
 
-    //     if let Some(expected_digest) = sha256_digest {
-    //         let hash_creator = Arc::new(Mutex::new(Sha256::new()));
-
-    //         let stream_body = request.into_body().into_data_stream();
-
-    //         let hash_creator_clone = Arc::clone(&hash_creator);
-    //         let instrumented_stream = stream_body.map_ok(move |chunk| {
-    //             hash_creator_clone.lock().unwrap().update(&chunk);
-    //             chunk
-    //         });
-
-    //         let stream = instrumented_stream
-    //             .map_err(|err| tokio::io::Error::new(tokio::io::ErrorKind::Other, err));
-
-    //         let object_content = ObjectContent::new_from_stream(stream, file.size.to_u64());
-
-    //         with_timing!(
-    //             self.client
-    //                 .put_object_content(&self.bucket, &file.id.to_string(), object_content)
-    //                 .content_type(file.mime_type.clone())
-    //                 .send()
-    //                 .await?,
-    //             "MinIO operation to upload the file content",
-    //             timing
-    //         );
-
-    //         let calculated_hash = Arc::try_unwrap(hash_creator)
-    //             .expect("Arc should have only one strong reference")
-    //             .into_inner()
-    //             .expect("Mutex should not be poisoned")
-    //             .finalize();
-
-    //         let calculated_digest_hex = format!("{:x}", calculated_hash);
-
-    //         if !calculated_digest_hex.eq_ignore_ascii_case(&expected_digest) {
-    //             return Err(StorageError::DigestMismatch {
-    //                 expected: expected_digest,
-    //                 calculated: calculated_digest_hex,
-    //             });
-    //         }
-    //     } else {
-    //         let stream = request
-    //             .into_body()
-    //             .into_data_stream()
-    //             .map_err(|err| tokio::io::Error::new(tokio::io::ErrorKind::Other, err));
-
-    //         let object_content = ObjectContent::new_from_stream(stream, file.size.to_u64());
-
-    //         with_timing!(
-    //             self.client
-    //                 .put_object_content(&self.bucket, &file.id.to_string(), object_content)
-    //                 .content_type(file.mime_type.clone())
-    //                 .send()
-    //                 .await?,
-    //             "MinIO operation to upload the file content",
-    //             timing
-    //         );
-    //     }
-
-    //     Ok(())
-    // }
+                    return Ok(());
+                }
+                Err(e.into())
+            }
+        }
+    }
 
     pub async fn get_health(&self) -> anyhow::Result<String> {
         self.client

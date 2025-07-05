@@ -8,4 +8,6 @@ pub enum FileVersionError {
     DeadpoolError(#[from] diesel_async::pooled_connection::deadpool::PoolError),
     #[error(transparent)]
     StorageLocationError(#[from] crate::models::storage_locations::errors::StorageLocationError),
+    #[error("File Error: {0}")]
+    FileError(#[from] crate::models::files::errors::FilezFileError),
 }

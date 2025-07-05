@@ -1,4 +1,9 @@
-use crate::{config::config, db::Db, state::ServerState};
+use crate::{
+    config::config,
+    db::Db,
+    models::{apps::MowsApp, storage_locations::StorageLocation},
+    state::ServerState,
+};
 use chrono::{DateTime, Utc};
 use crd::{FilezResource, FilezResourceSpec, FilezResourceStatus, SecretReadableByFilezController};
 use errors::{get_error_type, ControllerError, Result};
@@ -35,12 +40,21 @@ async fn inner_reconcile(
     namespace: &str,
 ) -> Result<(), ControllerError> {
     let full_name = format!("{}-{}", namespace, name);
-    match resource.spec {
-        FilezResourceSpec::StorageLocation(ref incoming_provider_config) => {
-            todo!()
+    match &resource.spec {
+        FilezResourceSpec::StorageLocation(incoming_provider_config) => {
+            let filez_secrets =
+                SecretReadableByFilezController::fetch_map(&ctx.client, namespace).await?;
+
+            StorageLocation::create_or_update(
+                &ctx.db,
+                &full_name,
+                filez_secrets,
+                &incoming_provider_config,
+            )
+            .await?;
         }
-        FilezResourceSpec::MowsApp(ref incoming_app) => {
-            todo!()
+        FilezResourceSpec::MowsApp(incoming_app) => {
+            MowsApp::create_or_update(&ctx.db, incoming_app, &full_name).await?;
         }
     }
     Ok(())
@@ -127,12 +141,17 @@ impl FilezResource {
         )))
     }
     async fn cleanup(&self, ctx: Arc<ControllerContext>) -> Result<Action> {
+        let full_name = format!(
+            "{}-{}",
+            self.namespace().unwrap_or_default(),
+            self.name_any()
+        );
         match self.spec {
             FilezResourceSpec::StorageLocation(_) => {
-                todo!()
+                StorageLocation::delete(&ctx.db, &full_name).await?;
             }
             FilezResourceSpec::MowsApp(_) => {
-                todo!()
+                MowsApp::delete(&ctx.db, &full_name).await?;
             }
         }
 
@@ -201,46 +220,6 @@ impl Diagnostics {
     pub fn recorder(&self, client: Client, resource: &FilezResource) -> Recorder {
         Recorder::new(client, self.reporter.clone(), resource.object_ref(&()))
     }
-}
-
-pub async fn sync_state_with_kubernetes(state: &ServerState) -> Result<()> {
-    let client = Client::try_default().await.map_err(|e| {
-        error!("Failed to create Kubernetes client: {e:?}");
-        ControllerError::KubeError(e)
-    })?;
-    let apps = Api::<FilezResource>::all(client.clone());
-    let list_params = ListParams::default();
-    let resources = apps.list(&list_params).await.map_err(|e| {
-        error!("Failed to list Filez resources: {e:?}");
-        ControllerError::KubeError(e)
-    })?;
-
-    for resource in resources {
-        let name = resource
-            .metadata
-            .name
-            .clone()
-            .ok_or(ControllerError::MissingResourceName(
-                resource.metadata.name.clone().unwrap_or_default(),
-            ))?;
-
-        let namespace = resource.metadata.namespace.clone().unwrap_or_default();
-
-        let filez_secrets = SecretReadableByFilezController::fetch_map(&client, &namespace).await?;
-
-        let full_name = format!("{}-{}", namespace, name);
-
-        match resource.spec {
-            FilezResourceSpec::StorageLocation(provider_config) => {
-                todo!()
-            }
-            FilezResourceSpec::MowsApp(app) => {
-                todo!()
-            }
-        }
-    }
-
-    Ok(())
 }
 
 pub async fn run(state: ServerState) -> Result<()> {

@@ -1,5 +1,5 @@
 #[derive(Debug, thiserror::Error)]
-pub enum TagError {
+pub enum FilezTagError {
     #[error("Tag not found: {0}")]
     NotFound(String),
     #[error("Database error: {0}")]

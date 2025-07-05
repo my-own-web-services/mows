@@ -5,9 +5,12 @@ use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
-    auth::check::AuthEvaluation,
     errors::FilezError,
-    models::apps::MowsApp,
+    models::{
+        access_policies::{check::AuthEvaluation, AccessPolicy},
+        apps::MowsApp,
+        users::FilezUser,
+    },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
     with_timing,
@@ -29,7 +32,7 @@ pub async fn check_resource_access(
     Json(req_body): Json<CheckResourceAccessRequestBody>,
 ) -> Result<Json<ApiResponse<CheckResourceAccessResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
         timing
     );
@@ -41,12 +44,13 @@ pub async fn check_resource_access(
     );
 
     let auth_result = with_timing!(
-        db.check_resources_access_control(
+        AccessPolicy::check(
+            &db,
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
             &req_body.resource_type,
-            &req_body.resource_ids,
+            req_body.resource_ids.as_deref(),
             &req_body.action,
         )
         .await?,
@@ -65,7 +69,7 @@ pub async fn check_resource_access(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct CheckResourceAccessRequestBody {
-    pub resource_ids: Vec<Uuid>,
+    pub resource_ids: Option<Vec<Uuid>>,
     pub resource_type: String,
     pub action: String,
     pub requesting_app_origin: Option<String>,

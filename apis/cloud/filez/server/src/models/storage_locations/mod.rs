@@ -1,17 +1,23 @@
 pub mod errors;
 use crate::{
-    storage::{config::StorageProviderConfig, providers::StorageProvider},
+    controller::crd::SecretReadableByFilezController,
+    storage::{
+        config::{StorageProviderConfig, StorageProviderConfigCrd},
+        providers::StorageProvider,
+    },
     utils::get_uuid,
 };
+use axum::extract::Request;
 use bigdecimal::BigDecimal;
 use diesel::{
     pg::Pg,
-    prelude::{Insertable, Queryable, QueryableByName},
-    query_dsl::methods::FilterDsl,
-    ExpressionMethods, Selectable,
+    prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
+    query_dsl::methods::{FilterDsl, SelectDsl},
+    ExpressionMethods, Selectable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use errors::StorageLocationError;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -26,6 +32,7 @@ use uuid::Uuid;
     Insertable,
     Debug,
     QueryableByName,
+    AsChangeset,
 )]
 #[diesel(table_name = crate::schema::storage_locations)]
 #[diesel(check_for_backend(Pg))]
@@ -37,43 +44,68 @@ pub struct StorageLocation {
     pub modified_time: chrono::NaiveDateTime,
 }
 
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq)]
+pub struct StorageLocationConfigCrd {
+    pub provider_config: StorageProviderConfigCrd,
+}
+
 impl StorageLocation {
-    pub async fn create(
+    pub async fn delete(db: &crate::db::Db, name: &str) -> Result<(), StorageLocationError> {
+        let mut connection = db.pool.get().await?;
+        diesel::delete(crate::schema::storage_locations::table)
+            .filter(crate::schema::storage_locations::name.eq(name))
+            .execute(&mut connection)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn create_or_update(
         db: &crate::db::Db,
-        name: &str,
-        provider: StorageProviderConfig,
-    ) -> Result<Self, StorageLocationError> {
-        // check if a storage location with the same name already exists
-        let existing_location = crate::schema::storage_locations::table
-            .filter(crate::schema::storage_locations::name.eq(&name))
-            .first::<StorageLocation>(&mut db.pool.get().await?)
+        full_name: &str,
+        secrets: SecretReadableByFilezController,
+        storage_location_config_crd: &StorageLocationConfigCrd,
+    ) -> Result<(), StorageLocationError> {
+        let mut connection = db.pool.get().await?;
+
+        let provider = storage_location_config_crd
+            .provider_config
+            .convert_secrets(secrets)?;
+
+        let existing_storage_location = crate::schema::storage_locations::table
+            .filter(crate::schema::storage_locations::name.eq(full_name))
+            .select(StorageLocation::as_select())
+            .first::<StorageLocation>(&mut connection)
             .await
             .ok();
 
-        if existing_location.is_some() {
-            return Err(StorageLocationError::NotFound(
-                "Storage location with this name already exists".to_string(),
-            ));
+        match existing_storage_location {
+            Some(mut storage_location) => {
+                storage_location.modified_time = chrono::Local::now().naive_local();
+
+                storage_location.provider_config = provider.clone();
+                diesel::update(crate::schema::storage_locations::table)
+                    .filter(crate::schema::storage_locations::id.eq(storage_location.id))
+                    .set(&storage_location)
+                    .execute(&mut connection)
+                    .await?;
+            }
+            None => {
+                let new_storage_location = StorageLocation {
+                    id: get_uuid(),
+                    name: full_name.to_string(),
+                    provider_config: provider.clone(),
+                    created_time: chrono::Local::now().naive_local(),
+                    modified_time: chrono::Local::now().naive_local(),
+                };
+                diesel::insert_into(crate::schema::storage_locations::table)
+                    .values(&new_storage_location)
+                    .execute(&mut connection)
+                    .await?;
+            }
         }
 
-        let storage_location = Self {
-            id: get_uuid(),
-            name: name.to_string(),
-            provider_config: provider,
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
-        };
-
-        let mut connection = db.pool.get().await?;
-
-        // Insert the new storage location into the database
-        diesel::insert_into(crate::schema::storage_locations::table)
-            .values(&storage_location)
-            .execute(&mut connection)
-            .await
-            .map_err(StorageLocationError::DatabaseError)?;
-
-        Ok(storage_location)
+        Ok(())
     }
 
     pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<Self, StorageLocationError> {
@@ -81,6 +113,7 @@ impl StorageLocation {
 
         let storage_location = crate::schema::storage_locations::table
             .filter(crate::schema::storage_locations::id.eq(id))
+            .select(StorageLocation::as_select())
             .first::<StorageLocation>(&mut connection)
             .await
             .map_err(|e| match e {
@@ -115,5 +148,20 @@ impl StorageLocation {
     ) -> Result<BigDecimal, StorageLocationError> {
         let provider = self.initialize_provider().await?;
         Ok(provider.get_file_size(full_file_path, timing).await?)
+    }
+
+    pub async fn update_content(
+        &self,
+        full_file_path: &str,
+        timing: axum_server_timing::ServerTimingExtension,
+        request: Request,
+        mime_type: &str,
+        offset: u64,
+        length: u64,
+    ) -> Result<(), StorageLocationError> {
+        let provider = self.initialize_provider().await?;
+        Ok(provider
+            .update_content(full_file_path, timing, request, mime_type, offset, length)
+            .await?)
     }
 }

@@ -1,6 +1,9 @@
 use super::errors::ControllerError;
 use crate::{
-    models::apps::{MowsApp, MowsAppConfig},
+    models::{
+        apps::{MowsApp, MowsAppConfig},
+        storage_locations::StorageLocationConfigCrd,
+    },
     storage::{
         config::{StorageProviderConfig, StorageProviderConfigCrd},
         errors::StorageError,
@@ -24,7 +27,7 @@ use utoipa::ToSchema;
 #[kube(status = "FilezResourceStatus", shortname = "fr")]
 #[serde(rename_all = "camelCase")]
 pub enum FilezResourceSpec {
-    StorageLocation(StorageProviderConfigCrd),
+    StorageLocation(StorageLocationConfigCrd),
     MowsApp(MowsAppConfig),
 }
 

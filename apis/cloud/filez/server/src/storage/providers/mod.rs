@@ -1,4 +1,5 @@
 pub mod minio;
+use axum::extract::Request;
 use bigdecimal::BigDecimal;
 
 use super::{
@@ -42,6 +43,24 @@ impl StorageProvider {
         match self {
             StorageProvider::Minio(provider) => {
                 provider.get_file_size(full_file_path, timing).await
+            }
+        }
+    }
+
+    pub async fn update_content(
+        &self,
+        full_file_path: &str,
+        timing: axum_server_timing::ServerTimingExtension,
+        request: Request,
+        mime_type: &str,
+        offset: u64,
+        length: u64,
+    ) -> Result<(), StorageError> {
+        match self {
+            StorageProvider::Minio(provider) => {
+                provider
+                    .update_content(full_file_path, timing, request, mime_type, offset, length)
+                    .await
             }
         }
     }

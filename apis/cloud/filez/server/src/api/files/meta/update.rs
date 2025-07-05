@@ -9,8 +9,10 @@ use zitadel::axum::introspection::IntrospectedUser;
 use crate::{
     errors::FilezError,
     models::{
-        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
+        files::FilezFile,
+        users::FilezUser,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -33,7 +35,7 @@ pub async fn update_files_metadata(
     Json(request_body): Json<UpdateFilesMetaRequestBody>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
     let requesting_user = with_timing!(
-        db.get_user_by_external_id(&external_user.user_id).await?,
+        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
         timing
     );
@@ -45,12 +47,13 @@ pub async fn update_files_metadata(
     );
 
     with_timing!(
-        db.check_resources_access_control(
+        AccessPolicy::check(
+            &db,
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            &request_body.file_ids,
+            Some(&request_body.file_ids),
             &serde_variant::to_variant_name(&AccessPolicyAction::FilesMetaUpdate).unwrap(),
         )
         .await?
@@ -62,7 +65,8 @@ pub async fn update_files_metadata(
     match request_body.files_meta {
         UpdateFilesMetaType::Tags(tags_meta) => {
             with_timing!(
-                db.update_files_tags(
+                FilezFile::update_tags(
+                    &db,
                     &request_body.file_ids,
                     &tags_meta.tags,
                     &tags_meta.method,

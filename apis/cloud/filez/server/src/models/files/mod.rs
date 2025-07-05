@@ -4,10 +4,10 @@ use std::collections::HashMap;
 
 use axum::body::Body;
 use diesel::{
+    insert_into,
     pg::Pg,
     prelude::{Insertable, Queryable, QueryableByName},
-    query_dsl::methods::{FilterDsl, SelectDsl},
-    ExpressionMethods, Selectable, SelectableHelper,
+    ExpressionMethods, JoinOnDsl, QueryDsl, Selectable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 
@@ -18,9 +18,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::utils::get_uuid;
+use crate::{api::files::meta::update::UpdateFilesMetaTypeTagsMethod, db, schema, utils::get_uuid};
 
-use super::users::FilezUser;
+use super::{file_tag_members::FileTagMember, tags::FilezTag, users::FilezUser};
 
 #[derive(
     Serialize,
@@ -89,6 +89,153 @@ impl FilezFile {
             .filter(crate::schema::files::id.eq(file_id))
             .execute(&mut db.pool.get().await?)
             .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_tags(
+        db: &crate::db::Db,
+        file_ids: &[Uuid],
+    ) -> Result<HashMap<Uuid, HashMap<String, String>>, FilezFileError> {
+        let mut conn = db.pool.get().await?;
+
+        let tags: Vec<(Uuid, String, String)> = schema::file_tag_members::table
+            .inner_join(
+                schema::tags::table.on(schema::file_tag_members::tag_id.eq(schema::tags::id)),
+            )
+            .filter(schema::file_tag_members::file_id.eq_any(file_ids))
+            .select((
+                schema::file_tag_members::file_id,
+                schema::tags::key,
+                schema::tags::value,
+            ))
+            .load(&mut conn)
+            .await?;
+
+        let mut file_tags: HashMap<Uuid, HashMap<String, String>> = HashMap::new();
+
+        for (file_id, key, value) in tags {
+            file_tags
+                .entry(file_id)
+                .or_insert_with(HashMap::new)
+                .insert(key, value);
+        }
+
+        Ok(file_tags)
+    }
+
+    pub async fn get_many_by_id(
+        db: &crate::db::Db,
+        file_ids: &Vec<Uuid>,
+    ) -> Result<HashMap<Uuid, FilezFile>, FilezFileError> {
+        let mut conn = db.pool.get().await?;
+
+        let result = schema::files::table
+            .filter(schema::files::id.eq_any(file_ids))
+            .select(FilezFile::as_select())
+            .load::<FilezFile>(&mut conn)
+            .await?;
+
+        let result: HashMap<Uuid, FilezFile> =
+            result.into_iter().map(|file| (file.id, file)).collect();
+
+        Ok(result)
+    }
+
+    pub async fn update_tags(
+        db: &crate::db::Db,
+        file_ids: &[Uuid],
+        tags: &HashMap<String, String>,
+        method: &UpdateFilesMetaTypeTagsMethod,
+        created_by_user_id: &Uuid,
+    ) -> Result<(), FilezFileError> {
+        let mut conn = db.pool.get().await?;
+
+        match method {
+            UpdateFilesMetaTypeTagsMethod::Add => {
+                let tags_to_insert = tags
+                    .iter()
+                    .map(|(key, value)| FilezTag::new(key, value))
+                    .collect::<Vec<FilezTag>>();
+                insert_into(schema::tags::table)
+                    .values(tags_to_insert)
+                    .on_conflict_do_nothing()
+                    .execute(&mut conn)
+                    .await?;
+
+                let database_tags: Vec<FilezTag> = schema::tags::table
+                    .filter(schema::tags::key.eq_any(tags.keys()))
+                    .filter(schema::tags::value.eq_any(tags.values()))
+                    .load(&mut conn)
+                    .await?;
+
+                let file_tag_members: Vec<FileTagMember> = database_tags
+                    .iter()
+                    .flat_map(|tag| {
+                        file_ids.iter().map(|file_id| {
+                            FileTagMember::new(*file_id, tag.id, *created_by_user_id)
+                        })
+                    })
+                    .collect();
+
+                insert_into(schema::file_tag_members::table)
+                    .values(file_tag_members)
+                    .on_conflict_do_nothing()
+                    .execute(&mut conn)
+                    .await?;
+            }
+            UpdateFilesMetaTypeTagsMethod::Remove => {
+                diesel::delete(schema::file_tag_members::table)
+                    .filter(schema::file_tag_members::file_id.eq_any(file_ids))
+                    .filter(
+                        schema::file_tag_members::tag_id.eq_any(
+                            schema::tags::table
+                                .filter(schema::tags::key.eq_any(tags.keys()))
+                                .filter(schema::tags::value.eq_any(tags.values()))
+                                .select(schema::tags::id),
+                        ),
+                    )
+                    .execute(&mut conn)
+                    .await?;
+            }
+            UpdateFilesMetaTypeTagsMethod::Set => {
+                diesel::delete(schema::file_tag_members::table)
+                    .filter(schema::file_tag_members::file_id.eq_any(file_ids))
+                    .execute(&mut conn)
+                    .await?;
+
+                let tags_to_insert = tags
+                    .iter()
+                    .map(|(key, value)| FilezTag::new(key, value))
+                    .collect::<Vec<FilezTag>>();
+
+                insert_into(schema::tags::table)
+                    .values(tags_to_insert)
+                    .on_conflict_do_nothing()
+                    .execute(&mut conn)
+                    .await?;
+
+                let database_tags: Vec<FilezTag> = schema::tags::table
+                    .filter(schema::tags::key.eq_any(tags.keys()))
+                    .filter(schema::tags::value.eq_any(tags.values()))
+                    .load(&mut conn)
+                    .await?;
+
+                let file_tag_members: Vec<FileTagMember> = database_tags
+                    .iter()
+                    .flat_map(|tag| {
+                        file_ids.iter().map(|file_id| {
+                            FileTagMember::new(*file_id, tag.id, *created_by_user_id)
+                        })
+                    })
+                    .collect();
+
+                insert_into(schema::file_tag_members::table)
+                    .values(file_tag_members)
+                    .execute(&mut conn)
+                    .await?;
+            }
+        }
 
         Ok(())
     }

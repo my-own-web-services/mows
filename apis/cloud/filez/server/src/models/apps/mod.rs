@@ -1,18 +1,19 @@
-use crate::{config::config, utils::is_dev_origin};
+use crate::{
+    config::config,
+    utils::{get_uuid, is_dev_origin},
+};
 use diesel::{
     pg::Pg,
-    prelude::{Insertable, Queryable, QueryableByName},
+    prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
     query_dsl::methods::{FilterDsl, SelectDsl},
-    PgArrayExpressionMethods, Selectable, SelectableHelper,
+    ExpressionMethods, PgArrayExpressionMethods, Selectable, SelectableHelper,
 };
-use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
-use errors::FilezAppError;
+use errors::MowsAppError;
 use mows_common_rust::get_current_config_cloned;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, str::FromStr, sync::Arc};
-use tokio::sync::RwLock;
+use std::str::FromStr;
 use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -29,6 +30,7 @@ pub mod errors;
     Clone,
     QueryableByName,
     Debug,
+    AsChangeset,
 )]
 #[diesel(table_name = crate::schema::apps)]
 #[diesel(check_for_backend(Pg))]
@@ -38,11 +40,12 @@ pub struct MowsApp {
     pub description: Option<String>,
     pub trusted: bool,
     pub origins: Option<Vec<String>>,
+    pub created_time: chrono::NaiveDateTime,
+    pub modified_time: chrono::NaiveDateTime,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq)]
 pub struct MowsAppConfig {
-    pub name: String,
     pub description: Option<String>,
     pub trusted: bool,
     pub origins: Option<Vec<String>>,
@@ -57,6 +60,8 @@ impl MowsApp {
             description: Some("First party app for Filez".to_string()),
             origins: Some(vec![config.primary_origin.to_string()]),
             trusted: true,
+            created_time: chrono::Local::now().naive_local(),
+            modified_time: chrono::Local::now().naive_local(),
         }
     }
     pub fn dev(dev_origin: &Url) -> Self {
@@ -66,6 +71,8 @@ impl MowsApp {
             description: Some("Development allowed filez app".to_string()),
             origins: Some(vec![dev_origin.to_string()]),
             trusted: true,
+            created_time: chrono::Local::now().naive_local(),
+            modified_time: chrono::Local::now().naive_local(),
         }
     }
 
@@ -76,13 +83,25 @@ impl MowsApp {
             description: Some("App with no origins".to_string()),
             origins: None,
             trusted: true,
+            created_time: chrono::Local::now().naive_local(),
+            modified_time: chrono::Local::now().naive_local(),
         }
+    }
+
+    pub async fn delete(db: &crate::db::Db, name: &str) -> Result<(), MowsAppError> {
+        let mut connection = db.pool.get().await?;
+        diesel::delete(crate::schema::apps::table)
+            .filter(crate::schema::apps::name.eq(name))
+            .execute(&mut connection)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn get_from_headers(
         db: &crate::db::Db,
         request_headers: &axum::http::HeaderMap,
-    ) -> Result<MowsApp, FilezAppError> {
+    ) -> Result<MowsApp, MowsAppError> {
         match request_headers
             .get("origin")
             .and_then(|v| v.to_str().ok())
@@ -108,7 +127,7 @@ impl MowsApp {
     pub async fn get_app_by_origin(
         db: &crate::db::Db,
         origin: &Url,
-    ) -> Result<MowsApp, FilezAppError> {
+    ) -> Result<MowsApp, MowsAppError> {
         let mut connection = db.pool.get().await?;
 
         let app = crate::schema::apps::table
@@ -118,5 +137,57 @@ impl MowsApp {
             .await?;
 
         Ok(app)
+    }
+
+    pub async fn create_or_update(
+        db: &crate::db::Db,
+        app_config: &MowsAppConfig,
+        full_name: &str,
+    ) -> Result<MowsApp, MowsAppError> {
+        let mut connection = db.pool.get().await?;
+
+        let existing_app = crate::schema::apps::table
+            .filter(crate::schema::apps::name.eq(&full_name))
+            .select(MowsApp::as_select())
+            .first::<MowsApp>(&mut connection)
+            .await
+            .ok();
+
+        match existing_app {
+            Some(mut app) => {
+                app.description = app_config.description.clone();
+                app.trusted = app_config.trusted;
+                app.origins = app_config.origins.clone();
+
+                app.modified_time = chrono::Local::now().naive_local();
+
+                // filter
+                diesel::update(crate::schema::apps::table)
+                    .filter(crate::schema::apps::id.eq(app.id))
+                    .set(&app)
+                    .execute(&mut connection)
+                    .await?;
+
+                Ok(app)
+            }
+            None => {
+                let new_app = MowsApp {
+                    id: get_uuid(),
+                    name: full_name.to_string(),
+                    description: app_config.description.clone(),
+                    trusted: app_config.trusted,
+                    origins: app_config.origins.clone(),
+                    created_time: chrono::Local::now().naive_local(),
+                    modified_time: chrono::Local::now().naive_local(),
+                };
+
+                diesel::insert_into(crate::schema::apps::table)
+                    .values(&new_app)
+                    .execute(&mut connection)
+                    .await?;
+
+                Ok(new_app)
+            }
+        }
     }
 }
