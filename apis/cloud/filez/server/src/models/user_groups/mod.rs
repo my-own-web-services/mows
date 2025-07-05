@@ -1,14 +1,12 @@
 pub mod errors;
 
-use std::collections::HashMap;
 
 use diesel::{
     pg::Pg,
-    prelude::{Insertable, Queryable, QueryableByName},
+    prelude::{Insertable, Queryable},
     query_dsl::methods::{FilterDsl, SelectDsl},
     ExpressionMethods, Selectable,
 };
-use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
 use errors::UserGroupError;
 use serde::{Deserialize, Serialize};

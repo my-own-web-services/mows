@@ -2,7 +2,6 @@ pub mod errors;
 
 use std::collections::HashMap;
 
-use axum::body::Body;
 use diesel::{
     insert_into,
     pg::Pg,
@@ -18,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{api::files::meta::update::UpdateFilesMetaTypeTagsMethod, db, schema, utils::get_uuid};
+use crate::{api::files::meta::update::UpdateFilesMetaTypeTagsMethod, schema, utils::get_uuid};
 
 use super::{file_tag_members::FileTagMember, tags::FilezTag, users::FilezUser};
 

@@ -1,20 +1,18 @@
 pub mod errors;
 
-use std::collections::HashMap;
 
 use diesel::{
     pg::Pg,
-    prelude::{Insertable, Queryable, QueryableByName},
+    prelude::{Insertable, Queryable},
     ExpressionMethods, JoinOnDsl, QueryDsl, Selectable, SelectableHelper,
 };
-use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
 use errors::FileGroupError;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{db, schema, types::SortOrder, utils::get_uuid};
+use crate::{schema, types::SortOrder, utils::get_uuid};
 
 use super::{files::FilezFile, users::FilezUser};
 
