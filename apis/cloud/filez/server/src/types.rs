@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::api::files::{create::{CreateFileRequestBody, CreateFileResponseBody}, versions::create::{CreateFileVersionRequestBody, CreateFileVersionResponseBody}};
+use crate::api::files::{
+    create::{CreateFileRequestBody, CreateFileResponseBody},
+    versions::create::{CreateFileVersionRequestBody, CreateFileVersionResponseBody},
+};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -19,23 +22,23 @@ use crate::api::files::{create::{CreateFileRequestBody, CreateFileResponseBody},
 )]
 pub struct ApiDoc;
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub enum SortOrder {
+#[derive(Serialize, Deserialize, ToSchema, Clone, Eq, PartialEq, Debug)]
+pub enum SortDirection {
     Ascending,
     Descending,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ApiResponse<T> {
     pub message: String,
     pub status: ApiResponseStatus,
     pub data: Option<T>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct EmptyApiResponse;
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ApiResponseStatus {
     Success,
     Error,

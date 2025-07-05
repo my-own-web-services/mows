@@ -74,8 +74,31 @@ pub enum AccessPolicyAction {
     #[serde(rename = "filez.users.get")]
     UsersGet,
 
-    #[serde(rename = "filez.file_groups.list_items")]
-    FileGroupListItems,
+    #[serde(rename = "filez.file_groups.create")]
+    FileGroupCreate,
+    #[serde(rename = "filez.file_groups.read")]
+    FileGroupRead,
+    #[serde(rename = "filez.file_groups.update")]
+    FileGroupUpdate,
+    #[serde(rename = "filez.file_groups.delete")]
+    FileGroupDelete,
+    #[serde(rename = "filez.file_groups.list")]
+    FileGroupList,
+    #[serde(rename = "filez.file_groups.list_files")]
+    FileGroupListFiles,
+
+    #[serde(rename = "filez.user_groups.create")]
+    UserGroupCreate,
+    #[serde(rename = "filez.user_groups.read")]
+    UserGroupRead,
+    #[serde(rename = "filez.user_groups.update")]
+    UserGroupUpdate,
+    #[serde(rename = "filez.user_groups.delete")]
+    UserGroupDelete,
+    #[serde(rename = "filez.user_groups.list")]
+    UserGroupList,
+    #[serde(rename = "filez.user_groups.list_users")]
+    UserGroupListUsers,
 }
 
 #[derive(Queryable, Selectable, Clone, Insertable, Debug, QueryableByName)]

@@ -22,9 +22,14 @@ pub mod auth {
     pub mod check_resource_access;
 }
 
-pub mod user_groups {}
+pub mod user_groups;
 
 pub mod file_groups {
+    pub mod create;
+    pub mod delete;
+    pub mod get;
+    pub mod list;
     pub mod list_files;
+    pub mod update;
 }
 pub mod health;

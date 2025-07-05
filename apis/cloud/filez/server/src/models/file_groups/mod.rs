@@ -1,22 +1,32 @@
 pub mod errors;
 
-
+use crate::{
+    api::file_groups::list_files::{ListFilesSortBy, ListFilesSorting},
+    schema,
+    types::SortDirection,
+    utils::get_uuid,
+    utils::InvalidEnumType,
+};
 use diesel::{
+    deserialize::FromSqlRow,
+    expression::AsExpression,
     pg::Pg,
     prelude::{Insertable, Queryable},
-    ExpressionMethods, JoinOnDsl, QueryDsl, Selectable, SelectableHelper,
+    sql_types::SmallInt,
+    AsChangeset, ExpressionMethods, JoinOnDsl, QueryDsl, Selectable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use diesel_enum::DbEnum;
 use errors::FileGroupError;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{schema, types::SortOrder, utils::get_uuid};
-
 use super::{files::FilezFile, users::FilezUser};
 
-#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
+#[derive(
+    Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug, AsChangeset,
+)]
 #[diesel(table_name = crate::schema::file_groups)]
 #[diesel(check_for_backend(Pg))]
 pub struct FileGroup {
@@ -25,18 +35,127 @@ pub struct FileGroup {
     pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
+    #[diesel(sql_type = diesel::sql_types::SmallInt)]
+    pub group_type: FileGroupType,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    AsExpression,
+    FromSqlRow,
+    DbEnum,
+    Deserialize,
+    ToSchema,
+)]
+#[diesel(sql_type = SmallInt)]
+#[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
+#[diesel_enum(error_type = InvalidEnumType)]
+pub enum FileGroupType {
+    Manual,
+    Dynamic,
 }
 
 impl FileGroup {
-    pub fn new(owner: &FilezUser, name: &str) -> Self {
+    pub fn new(owner: &FilezUser, name: &str, group_type: FileGroupType) -> Self {
         Self {
             id: get_uuid(),
             owner_id: owner.id.clone(),
             name: name.to_string(),
             created_time: chrono::Utc::now().naive_utc(),
             modified_time: chrono::Utc::now().naive_utc(),
+            group_type,
         }
     }
+
+    pub async fn create(db: &crate::db::Db, file_group: &FileGroup) -> Result<(), FileGroupError> {
+        let mut conn = db.pool.get().await?;
+        diesel::insert_into(schema::file_groups::table)
+            .values(file_group)
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<FileGroup, FileGroupError> {
+        let mut conn = db.pool.get().await?;
+        let file_group = schema::file_groups::table
+            .filter(schema::file_groups::id.eq(id))
+            .select(FileGroup::as_select())
+            .get_result::<FileGroup>(&mut conn)
+            .await?;
+        Ok(file_group)
+    }
+
+    pub async fn list(
+        db: &crate::db::Db,
+        from_index: Option<i64>,
+        limit: Option<i64>,
+        sort_by: Option<&str>,
+        sort_order: Option<SortDirection>,
+    ) -> Result<Vec<FileGroup>, FileGroupError> {
+        let mut conn = db.pool.get().await?;
+        let mut query = schema::file_groups::table
+            .select(FileGroup::as_select())
+            .into_boxed();
+
+        match (sort_by, sort_order) {
+            (Some("created_time"), Some(SortDirection::Ascending)) => {
+                query = query.order_by(schema::file_groups::created_time.asc());
+            }
+            (Some("created_time"), Some(SortDirection::Descending)) => {
+                query = query.order_by(schema::file_groups::created_time.desc());
+            }
+            (Some("name"), Some(SortDirection::Ascending)) => {
+                query = query.order_by(schema::file_groups::name.asc());
+            }
+            (Some("name"), Some(SortDirection::Descending)) => {
+                query = query.order_by(schema::file_groups::name.desc());
+            }
+            _ => {
+                query = query.order_by(schema::file_groups::created_time.desc());
+            }
+        };
+
+        if let Some(from_index) = from_index {
+            query = query.offset(from_index);
+        }
+        if let Some(limit) = limit {
+            query = query.limit(limit);
+        }
+
+        let file_groups = query.load::<FileGroup>(&mut conn).await?;
+        Ok(file_groups)
+    }
+
+    pub async fn update(
+        db: &crate::db::Db,
+        file_group_id: &Uuid,
+        name: &str,
+    ) -> Result<(), FileGroupError> {
+        let mut conn = db.pool.get().await?;
+        diesel::update(schema::file_groups::table.find(file_group_id))
+            .set((
+                schema::file_groups::name.eq(name),
+                schema::file_groups::modified_time.eq(chrono::Utc::now().naive_utc()),
+            ))
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete(db: &crate::db::Db, file_group_id: &Uuid) -> Result<(), FileGroupError> {
+        let mut conn = db.pool.get().await?;
+        diesel::delete(schema::file_groups::table.find(file_group_id))
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+
     pub async fn get_file_count(
         db: &crate::db::Db,
         file_group_id: &Uuid,
@@ -57,47 +176,115 @@ impl FileGroup {
         file_group_id: &Uuid,
         from_index: Option<i64>,
         limit: Option<i64>,
-        sort_by: Option<&str>,
-        sort_order: Option<SortOrder>,
+        sort: Option<ListFilesSorting>,
     ) -> Result<Vec<FilezFile>, FileGroupError> {
         let mut conn = db.pool.get().await?;
+        match sort {
+            Some(ListFilesSorting::StoredSortOrder(stored_sort_order)) => {
+                let sort_direction = stored_sort_order
+                    .sort_order
+                    .unwrap_or(SortDirection::Descending);
+                let sort_order_id = stored_sort_order.id;
 
-        let mut query = schema::file_file_group_members::table
-            .inner_join(
-                schema::files::table
-                    .on(schema::file_file_group_members::file_id.eq(schema::files::id)),
-            )
-            .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
-            .select(FilezFile::as_select())
-            .into_boxed();
+                let mut query = schema::file_group_file_sort_order_items::table
+                    .inner_join(schema::files::table.on(
+                        schema::file_group_file_sort_order_items::file_id.eq(schema::files::id),
+                    ))
+                    .inner_join(
+                        schema::file_group_file_sort_orders::table
+                            .on(schema::file_group_file_sort_order_items::sort_order_id
+                                .eq(schema::file_group_file_sort_orders::id)),
+                    )
+                    .filter(schema::file_group_file_sort_orders::file_group_id.eq(file_group_id))
+                    .filter(schema::file_group_file_sort_orders::id.eq(sort_order_id))
+                    .select(FilezFile::as_select())
+                    .into_boxed();
 
-        match (sort_by, sort_order) {
-            (Some("created_time"), Some(SortOrder::Ascending)) => {
-                query = query.order_by(schema::files::created_time.asc());
+                match sort_direction {
+                    SortDirection::Ascending => {
+                        query = query
+                            .order_by(schema::file_group_file_sort_order_items::position.asc());
+                    }
+                    SortDirection::Descending => {
+                        query = query
+                            .order_by(schema::file_group_file_sort_order_items::position.desc());
+                    }
+                }
+                if let Some(from_index) = from_index {
+                    query = query.offset(from_index);
+                }
+                if let Some(limit) = limit {
+                    query = query.limit(limit);
+                }
+
+                let files_list = query.load::<FilezFile>(&mut conn).await?;
+
+                Ok(files_list)
             }
-            (Some("created_time"), Some(SortOrder::Descending)) => {
+            Some(ListFilesSorting::SortOrder(sort)) => {
+                let mut query = schema::file_file_group_members::table
+                    .inner_join(
+                        schema::files::table
+                            .on(schema::file_file_group_members::file_id.eq(schema::files::id)),
+                    )
+                    .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
+                    .select(FilezFile::as_select())
+                    .into_boxed();
+
+                let sort_direction = sort.sort_order.unwrap_or(SortDirection::Descending);
+                match (sort.sort_by, sort_direction) {
+                    (ListFilesSortBy::Name, SortDirection::Ascending) => {
+                        query = query.order_by(schema::files::name.asc());
+                    }
+                    (ListFilesSortBy::Name, SortDirection::Descending) => {
+                        query = query.order_by(schema::files::name.desc());
+                    }
+                    (ListFilesSortBy::CreatedAt, SortDirection::Ascending) => {
+                        query = query.order_by(schema::files::created_time.asc());
+                    }
+                    (ListFilesSortBy::CreatedAt, SortDirection::Descending) => {
+                        query = query.order_by(schema::files::created_time.desc());
+                    }
+                    (ListFilesSortBy::UpdatedAt, SortDirection::Ascending) => {
+                        query = query.order_by(schema::files::modified_time.asc());
+                    }
+                    (ListFilesSortBy::UpdatedAt, SortDirection::Descending) => {
+                        query = query.order_by(schema::files::modified_time.desc());
+                    }
+                }
+                if let Some(from_index) = from_index {
+                    query = query.offset(from_index);
+                }
+                if let Some(limit) = limit {
+                    query = query.limit(limit);
+                }
+
+                let files_list = query.load::<FilezFile>(&mut conn).await?;
+
+                Ok(files_list)
+            }
+            None => {
+                let mut query = schema::file_file_group_members::table
+                    .inner_join(
+                        schema::files::table
+                            .on(schema::file_file_group_members::file_id.eq(schema::files::id)),
+                    )
+                    .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
+                    .select(FilezFile::as_select())
+                    .into_boxed();
                 query = query.order_by(schema::files::created_time.desc());
-            }
-            (Some("name"), Some(SortOrder::Ascending)) => {
-                query = query.order_by(schema::files::name.asc());
-            }
-            (Some("name"), Some(SortOrder::Descending)) => {
-                query = query.order_by(schema::files::name.desc());
-            }
-            _ => {
-                query = query.order_by(schema::files::created_time.desc());
-            }
-        };
 
-        if let Some(from_index) = from_index {
-            query = query.offset(from_index);
+                if let Some(from_index) = from_index {
+                    query = query.offset(from_index);
+                }
+                if let Some(limit) = limit {
+                    query = query.limit(limit);
+                }
+
+                let files_list = query.load::<FilezFile>(&mut conn).await?;
+
+                Ok(files_list)
+            }
         }
-        if let Some(limit) = limit {
-            query = query.limit(limit);
-        }
-
-        let files_list = query.load::<FilezFile>(&mut conn).await?;
-
-        Ok(files_list)
     }
 }

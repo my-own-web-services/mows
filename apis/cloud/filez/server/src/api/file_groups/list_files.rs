@@ -14,7 +14,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus, SortOrder},
+    types::{ApiResponse, ApiResponseStatus, SortDirection},
     with_timing,
 };
 
@@ -53,7 +53,7 @@ pub async fn list_files(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
             Some(&vec![req_body.file_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupListItems).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupListFiles).unwrap(),
         )
         .await?
         .verify()?,
@@ -66,18 +66,21 @@ pub async fn list_files(
         &req_body.file_group_id,
         req_body.from_index,
         req_body.limit,
-        req_body.sort_by.as_deref(),
-        req_body.sort_order,
+        req_body.sort,
     );
 
     let file_group_item_count_query = FileGroup::get_file_count(&db, &req_body.file_group_id);
 
     // join the two futures to run them concurrently
-    let (files, total_count) = match tokio::join!(list_files_query, file_group_item_count_query) {
-        (Ok(files), Ok(total_count)) => (files, total_count),
-        (Err(e), _) => return Err(e.into()),
-        (_, Err(e)) => return Err(e.into()),
-    };
+    let (files, total_count): (Vec<FilezFile>, i64) = with_timing!(
+        match tokio::join!(list_files_query, file_group_item_count_query) {
+            (Ok(files), Ok(total_count)) => (files, total_count),
+            (Err(e), _) => return Err(e.into()),
+            (_, Err(e)) => return Err(e.into()),
+        },
+        "Database operations to list files and get file count",
+        timing
+    );
 
     return Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
@@ -91,8 +94,32 @@ pub struct ListFilesRequestBody {
     pub file_group_id: Uuid,
     pub from_index: Option<i64>,
     pub limit: Option<i64>,
-    pub sort_by: Option<String>,
-    pub sort_order: Option<SortOrder>,
+    pub sort: Option<ListFilesSorting>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub enum ListFilesSorting {
+    StoredSortOrder(ListFilesStoredSortOrder),
+    SortOrder(ListFilesSortOrder),
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct ListFilesSortOrder {
+    pub sort_by: ListFilesSortBy,
+    pub sort_order: Option<SortDirection>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub enum ListFilesSortBy {
+    Name,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct ListFilesStoredSortOrder {
+    pub id: Uuid,
+    pub sort_order: Option<SortDirection>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
