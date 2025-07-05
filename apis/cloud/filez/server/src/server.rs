@@ -67,10 +67,22 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::files::versions::tus::head::tus_head))
         .routes(routes!(api::files::versions::tus::patch::tus_patch))
         // FILE GROUPS
+        .routes(routes!(api::file_groups::create::create_file_group))
+        .routes(routes!(api::file_groups::get::get_file_group))
+        .routes(routes!(api::file_groups::update::update_file_group))
+        .routes(routes!(api::file_groups::delete::delete_file_group))
+        .routes(routes!(api::file_groups::list::list_file_groups))
         .routes(routes!(api::file_groups::list_files::list_files))
         // USERS
         .routes(routes!(api::users::apply::apply_user))
         .routes(routes!(api::users::get::get_users))
+        // USER GROUPS
+        .routes(routes!(api::user_groups::create::create_user_group))
+        .routes(routes!(api::user_groups::get::get_user_group))
+        .routes(routes!(api::user_groups::update_user_group::update_user_group))
+        .routes(routes!(api::user_groups::delete::delete_user_group))
+        .routes(routes!(api::user_groups::list::list_user_groups))
+        .routes(routes!(api::user_groups::list_users::list_users))
         // AUTH
         .routes(routes!(
             api::auth::check_resource_access::check_resource_access

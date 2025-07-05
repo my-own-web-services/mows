@@ -57,6 +57,7 @@ diesel::table! {
         created_time -> Timestamp,
         modified_time -> Timestamp,
         description -> Nullable<Text>,
+        group_type -> SmallInt,
     }
 }
 diesel::joinable!(file_groups -> users (owner_id));
