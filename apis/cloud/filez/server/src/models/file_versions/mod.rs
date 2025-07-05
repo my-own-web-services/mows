@@ -4,7 +4,7 @@ use bigdecimal::BigDecimal;
 use diesel::{
     pg::Pg,
     prelude::{Insertable, Queryable, QueryableByName},
-    query_dsl::methods::{FilterDsl, OrderDsl, SelectDsl},
+    query_dsl::methods::{FilterDsl, SelectDsl},
     ExpressionMethods, Selectable,
 };
 use diesel_as_jsonb::AsJsonb;

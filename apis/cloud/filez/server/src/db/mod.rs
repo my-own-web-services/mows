@@ -1,18 +1,10 @@
-use crate::{
-    config::FilezServerConfig,
-    errors::FilezError,
-    schema::{self, files},
-    types::SortOrder,
-};
+use crate::{config::FilezServerConfig, errors::FilezError};
 use anyhow::Context;
-use diesel::prelude::*;
 use diesel_async::{
     async_connection_wrapper::AsyncConnectionWrapper, AsyncConnection, RunQueryDsl,
 };
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use std::collections::HashMap;
-use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct Db {

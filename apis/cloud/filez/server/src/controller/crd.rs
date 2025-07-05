@@ -1,13 +1,10 @@
 use super::errors::ControllerError;
 use crate::{
     models::{
-        apps::{MowsApp, MowsAppConfig},
+        apps::MowsAppConfig,
         storage_locations::StorageLocationConfigCrd,
     },
-    storage::{
-        config::{StorageProviderConfig, StorageProviderConfigCrd},
-        errors::StorageError,
-    },
+    storage::errors::StorageError,
 };
 use k8s_openapi::api::core::v1::Secret;
 use kube::CustomResource;

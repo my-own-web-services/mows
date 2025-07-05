@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{config::config, errors::FilezError, schema, utils::get_uuid};
+use crate::{config::config, schema, utils::get_uuid};
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(table_name = crate::schema::users)]
