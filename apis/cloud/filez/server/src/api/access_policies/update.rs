@@ -76,7 +76,7 @@ pub async fn update_access_policy(
             req_body.context_app_id,
             req_body.resource_type,
             req_body.resource_id,
-            &req_body.action,
+            req_body.actions,
             req_body.effect,
         )
         .await?,
@@ -105,6 +105,6 @@ pub struct UpdateAccessPolicyRequestBody {
     pub context_app_id: Option<Uuid>,
     pub resource_type: AccessPolicyResourceType,
     pub resource_id: Option<Uuid>,
-    pub action: String,
+    pub actions: Vec<AccessPolicyAction>,
     pub effect: AccessPolicyEffect,
 }

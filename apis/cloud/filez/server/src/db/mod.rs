@@ -6,12 +6,12 @@ use diesel_async::{
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
+
 #[derive(Clone)]
 pub struct Db {
     pub pool: Pool<diesel_async::AsyncPgConnection>,
 }
-
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
 impl Db {
     pub async fn new(pool: Pool<diesel_async::AsyncPgConnection>) -> Self {

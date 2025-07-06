@@ -63,6 +63,7 @@ pub async fn list_file_groups(
         FileGroup::list_with_user_access(
             &db,
             &requesting_user.id,
+            &requesting_app.id,
             request_body.from_index,
             request_body.limit,
             request_body.sort_by,

@@ -62,6 +62,7 @@ pub async fn list_user_groups(
         UserGroup::list_with_user_access(
             &db,
             &requesting_user.id,
+            &requesting_app.id,
             req_body.from_index,
             req_body.limit,
             req_body.sort_by,

@@ -22,80 +22,6 @@
     }
   },
   "definitions": {
-    "FilezApp": {
-      "type": "object",
-      "required": [
-        "id",
-        "name",
-        "trusted",
-        "type"
-      ],
-      "properties": {
-        "description": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "trusted": {
-          "type": "boolean"
-        },
-        "type": {
-          "$ref": "#/definitions/FilezAppType"
-        }
-      }
-    },
-    "FilezAppType": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": [
-            "Frontend"
-          ],
-          "properties": {
-            "Frontend": {
-              "$ref": "#/definitions/FilezAppTypeFrontend"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "Backend"
-          ],
-          "properties": {
-            "Backend": {
-              "$ref": "#/definitions/FilezAppTypeBackend"
-            }
-          },
-          "additionalProperties": false
-        }
-      ]
-    },
-    "FilezAppTypeBackend": {
-      "type": "object"
-    },
-    "FilezAppTypeFrontend": {
-      "type": "object",
-      "required": [
-        "origins"
-      ],
-      "properties": {
-        "origins": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
     "FilezResourceSpec": {
       "oneOf": [
         {
@@ -105,7 +31,7 @@
           ],
           "properties": {
             "storageLocation": {
-              "$ref": "#/definitions/StorageProviderConfig"
+              "$ref": "#/definitions/StorageLocationConfigCrd"
             }
           },
           "additionalProperties": false
@@ -113,11 +39,11 @@
         {
           "type": "object",
           "required": [
-            "filezApp"
+            "mowsApp"
           ],
           "properties": {
-            "filezApp": {
-              "$ref": "#/definitions/FilezApp"
+            "mowsApp": {
+              "$ref": "#/definitions/MowsAppConfig"
             }
           },
           "additionalProperties": false
@@ -135,7 +61,44 @@
         }
       }
     },
-    "StorageProviderConfig": {
+    "MowsAppConfig": {
+      "type": "object",
+      "required": [
+        "trusted"
+      ],
+      "properties": {
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "origins": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "trusted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "StorageLocationConfigCrd": {
+      "type": "object",
+      "required": [
+        "provider_config"
+      ],
+      "properties": {
+        "provider_config": {
+          "$ref": "#/definitions/StorageProviderConfigCrd"
+        }
+      }
+    },
+    "StorageProviderConfigCrd": {
       "oneOf": [
         {
           "type": "object",
@@ -144,14 +107,14 @@
           ],
           "properties": {
             "Minio": {
-              "$ref": "#/definitions/StorageProviderConfigMinio"
+              "$ref": "#/definitions/StorageProviderConfigMinioCrd"
             }
           },
           "additionalProperties": false
         }
       ]
     },
-    "StorageProviderConfigMinio": {
+    "StorageProviderConfigMinioCrd": {
       "type": "object",
       "required": [
         "bucket",

@@ -24,109 +24,93 @@ spec:
             - required:
               - storageLocation
             - required:
-              - filezApp
+              - mowsApp
             properties:
-              filezApp:
+              mowsApp:
                 properties:
                   description:
                     nullable: true
                     type: string
-                  id:
-                    type: string
-                  name:
-                    type: string
+                  origins:
+                    items:
+                      type: string
+                    nullable: true
+                    type: array
                   trusted:
                     type: boolean
-                  type:
+                required:
+                - trusted
+                type: object
+              storageLocation:
+                properties:
+                  provider_config:
                     oneOf:
                     - required:
-                      - Frontend
-                    - required:
-                      - Backend
+                      - Minio
                     properties:
-                      Backend:
-                        type: object
-                      Frontend:
+                      Minio:
                         properties:
-                          origins:
-                            items:
-                              type: string
-                            type: array
+                          bucket:
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            oneOf:
+                            - required:
+                              - value
+                            - required:
+                              - secret
+                            properties:
+                              secret:
+                                type: string
+                              value:
+                                type: string
+                            type: object
+                          endpoint:
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            oneOf:
+                            - required:
+                              - value
+                            - required:
+                              - secret
+                            properties:
+                              secret:
+                                type: string
+                              value:
+                                type: string
+                            type: object
+                          password:
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            oneOf:
+                            - required:
+                              - value
+                            - required:
+                              - secret
+                            properties:
+                              secret:
+                                type: string
+                              value:
+                                type: string
+                            type: object
+                          username:
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            oneOf:
+                            - required:
+                              - value
+                            - required:
+                              - secret
+                            properties:
+                              secret:
+                                type: string
+                              value:
+                                type: string
+                            type: object
                         required:
-                        - origins
+                        - bucket
+                        - endpoint
+                        - password
+                        - username
                         type: object
                     type: object
                 required:
-                - id
-                - name
-                - trusted
-                - type
-                type: object
-              storageLocation:
-                oneOf:
-                - required:
-                  - Minio
-                properties:
-                  Minio:
-                    properties:
-                      bucket:
-                        description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
-                        oneOf:
-                        - required:
-                          - value
-                        - required:
-                          - secret
-                        properties:
-                          secret:
-                            type: string
-                          value:
-                            type: string
-                        type: object
-                      endpoint:
-                        description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
-                        oneOf:
-                        - required:
-                          - value
-                        - required:
-                          - secret
-                        properties:
-                          secret:
-                            type: string
-                          value:
-                            type: string
-                        type: object
-                      password:
-                        description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
-                        oneOf:
-                        - required:
-                          - value
-                        - required:
-                          - secret
-                        properties:
-                          secret:
-                            type: string
-                          value:
-                            type: string
-                        type: object
-                      username:
-                        description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
-                        oneOf:
-                        - required:
-                          - value
-                        - required:
-                          - secret
-                        properties:
-                          secret:
-                            type: string
-                          value:
-                            type: string
-                        type: object
-                    required:
-                    - bucket
-                    - endpoint
-                    - password
-                    - username
-                    type: object
+                - provider_config
                 type: object
             type: object
           status:

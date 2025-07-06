@@ -125,7 +125,7 @@ diesel::table! {
         resource_type -> Text,
         resource_id -> Nullable<Uuid>,
 
-        action -> Text,
+        actions -> Array<Text>,
 
         effect -> Text,
     }

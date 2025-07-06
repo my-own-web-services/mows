@@ -89,19 +89,11 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(
             api::access_policies::check_resource_access::check_resource_access
         ))
-        .routes(routes!(
-            api::access_policies::create::create_access_policy
-        ))
+        .routes(routes!(api::access_policies::create::create_access_policy))
         .routes(routes!(api::access_policies::get::get_access_policy))
-        .routes(routes!(
-            api::access_policies::update::update_access_policy
-        ))
-        .routes(routes!(
-            api::access_policies::delete::delete_access_policy
-        ))
-        .routes(routes!(
-            api::access_policies::list::list_access_policies
-        ))
+        .routes(routes!(api::access_policies::update::update_access_policy))
+        .routes(routes!(api::access_policies::delete::delete_access_policy))
+        .routes(routes!(api::access_policies::list::list_access_policies))
         // HEALTH
         .routes(routes!(api::health::get_health))
         .with_state(server_state.clone())

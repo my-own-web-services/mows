@@ -1,7 +1,11 @@
 pub mod errors;
-use super::users::FilezUser;
+use super::{
+    access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+    users::FilezUser,
+};
 use crate::{
     api::user_groups::list::ListUserGroupsSortBy,
+    errors::FilezError,
     schema::{self},
     types::SortDirection,
     utils::get_uuid,
@@ -67,14 +71,26 @@ impl UserGroup {
     pub async fn list_with_user_access(
         db: &crate::db::Db,
         requesting_user_id: &Uuid,
+        app_id: &Uuid,
         from_index: Option<i64>,
         limit: Option<i64>,
         sort_by: Option<ListUserGroupsSortBy>,
         sort_order: Option<SortDirection>,
-    ) -> Result<Vec<UserGroup>, UserGroupError> {
+    ) -> Result<Vec<UserGroup>, FilezError> {
         let mut conn = db.pool.get().await?;
+
+        let resources_with_access = AccessPolicy::get_resources_with_access(
+            db,
+            requesting_user_id,
+            app_id,
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupList).unwrap(),
+        )
+        // box this
+        .await?;
+
         let mut query = schema::user_groups::table
-            .filter(schema::user_groups::owner_id.eq(requesting_user_id))
+            .filter(schema::user_groups::id.eq_any(resources_with_access))
             .select(UserGroup::as_select())
             .into_boxed();
 
