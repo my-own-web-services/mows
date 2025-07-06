@@ -2103,11 +2103,13 @@ dependencies = [
  "hyper 0.14.32",
  "lazy_static",
  "mime_guess",
+ "mows-common-rust",
  "percent-encoding",
  "serde",
  "serde_yaml",
  "tikv-jemallocator",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -1,14 +1,14 @@
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-    name: {{ .Values.server.name }}-ingress
+    name: {{ .Values.web.name }}-ingress
 spec:
     entryPoints:
         - websecure
     routes:
         - kind: Rule
-          match: Host(`{{ .Values.server.subdomain }}.{§ .config.domain §}`)
+          match: Host(`{{ .Values.web.subdomain }}.{§ .config.domain §}`)
           services:
               - kind: Service
-                name: {{ .Values.server.name }}
+                name: {{ .Values.web.name }}
                 port: 80

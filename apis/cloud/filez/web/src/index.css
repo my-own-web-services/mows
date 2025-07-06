@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-    font-family: "Space Mono", system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-family: "Inter", system-ui, Avenir, Helvetica, Arial, sans-serif;
 
     color-scheme: light dark;
 
@@ -21,12 +21,6 @@ body,
     height: 100%;
     width: 100%;
     box-sizing: border-box;
-}
-
-/* Target elements starting with tp- class */
-.tp-dfwv {
-    z-index: 10;
-    overflow: hidden;
 }
 
 .active {

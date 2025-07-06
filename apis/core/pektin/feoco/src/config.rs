@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fs::read_to_string};
 
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 #[derive(Deserialize, Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,6 +42,8 @@ pub fn read_config() -> Config {
                 .replace("  ", " "),
         );
     }
+
+    info!("Config loaded: {:#?}", config);
 
     config
 }

@@ -131,7 +131,7 @@ export default withToasterHook(
 
         devCreateMachines = async () => {
             let machines: MachineCreationReqType[] = Array(3).fill({
-                LocalQemu: { memory: 4, cpus: 3 }
+                LocalQemu: { memory: 16, cpus: 4 }
             });
             let creation_config: MachineCreationReqBody = {
                 machines

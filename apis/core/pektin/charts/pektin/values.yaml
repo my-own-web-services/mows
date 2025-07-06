@@ -24,7 +24,7 @@ zertificat:
   name: pektin-zertificat
   replicaCount: 1
   vaultUrl: http://vault.mows-core-secrets-vault:8200
-  acmeUrl: https://acme-staging-v02.api.letsencrypt.org/directory #https://acme-v02.api.letsencrypt.org/directory #
+  acmeUrl: https://acme-staging-v02.api.letsencrypt.org/directory # https://acme-v02.api.letsencrypt.org/directory
   acmeEmail: zertificat@example.com
   logFilter: error
   tracingFilter: error

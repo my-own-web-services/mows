@@ -1,5 +1,5 @@
 use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPolicySubjectType};
-use crate::{db::Db, errors::FilezError, schema};
+use crate::{db::Db, schema};
 use diesel::{
     pg::sql_types, prelude::QueryableByName, BoolExpressionMethods, ExpressionMethods,
     SelectableHelper,
@@ -36,44 +36,51 @@ pub async fn check_resources_access_control(
                 });
             };
 
-            // 1. Fetch Owner Information for all requested resources
-            let owners_query_string = format!(
+            let owners_map: HashMap<Uuid, Uuid> = if let Some(owner_col) =
+                resource_auth_info.resource_table_owner_column
+            {
+                // 1. Fetch Owner Information for all requested resources
+                let owners_query_string = format!(
         "SELECT {id_col} as resource_id, {owner_col} as owner_id FROM {table_name} WHERE {id_col} = ANY($1)",
         table_name = resource_auth_info.resource_table,
         id_col = resource_auth_info.resource_table_id_column,
-        owner_col = resource_auth_info.resource_table_owner_column
+        owner_col = owner_col
     );
 
-            let resource_owners_vec: Vec<ResourceOwnerInfo> =
-                diesel::sql_query(&owners_query_string)
-                    .bind::<sql_types::Array<sql_types::Uuid>, _>(requested_resource_ids)
-                    .load::<ResourceOwnerInfo>(&mut conn)
-                    .await?;
+                let resource_owners_vec: Vec<ResourceOwnerInfo> =
+                    diesel::sql_query(&owners_query_string)
+                        .bind::<sql_types::Array<sql_types::Uuid>, _>(requested_resource_ids)
+                        .load::<ResourceOwnerInfo>(&mut conn)
+                        .await?;
 
-            // if the app is trusted and all requested resources are owned by the requesting user, return early
-            if context_app_trusted
-                && resource_owners_vec.len() == requested_resource_ids.len()
-                && resource_owners_vec
-                    .iter()
-                    .all(|ro| ro.owner_id == *requesting_user_id)
-            {
-                return Ok(AuthResult {
-                    access_granted: true,
-                    evaluations: requested_resource_ids
+                // if the app is trusted and all requested resources are owned by the requesting user, return early
+                if context_app_trusted
+                    && resource_owners_vec.len() == requested_resource_ids.len()
+                    && resource_owners_vec
                         .iter()
-                        .map(|&id| AuthEvaluation {
-                            resource_id: Some(id),
-                            is_allowed: true,
-                            reason: AuthReason::Owned,
-                        })
-                        .collect(),
-                });
-            }
+                        .all(|ro| ro.owner_id == *requesting_user_id)
+                {
+                    return Ok(AuthResult {
+                        access_granted: true,
+                        evaluations: requested_resource_ids
+                            .iter()
+                            .map(|&id| AuthEvaluation {
+                                resource_id: Some(id),
+                                is_allowed: true,
+                                reason: AuthReason::Owned,
+                            })
+                            .collect(),
+                    });
+                }
 
-            let owners_map: HashMap<Uuid, Uuid> = resource_owners_vec
-                .into_iter()
-                .map(|r| (r.resource_id, r.owner_id))
-                .collect();
+                resource_owners_vec
+                    .into_iter()
+                    .map(|r| (r.resource_id, r.owner_id))
+                    .collect()
+            } else {
+                // If no owner column is defined, we assume no ownership check is needed
+                HashMap::new()
+            };
 
             // 2. Fetch relevant Access Policies (Direct on Resource)
 
@@ -527,7 +534,7 @@ pub struct AuthEvaluation {
 pub struct ResourceAuthInfo {
     pub resource_table: &'static str,
     pub resource_table_id_column: &'static str,
-    pub resource_table_owner_column: &'static str,
+    pub resource_table_owner_column: Option<&'static str>,
     pub resource_type_policy_str: &'static str,
 
     // For resources that can be part of groups
@@ -542,7 +549,7 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, AccessPoli
         "file" => ResourceAuthInfo {
             resource_table: "files",
             resource_table_id_column: "id",
-            resource_table_owner_column: "owner_id",
+            resource_table_owner_column: Some("owner_id"),
             resource_type_policy_str: serde_variant::to_variant_name(
                 &AccessPolicyResourceType::File,
             )
@@ -557,7 +564,7 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, AccessPoli
         "file_group" => ResourceAuthInfo {
             resource_table: "file_groups",
             resource_table_id_column: "id",
-            resource_table_owner_column: "owner_id",
+            resource_table_owner_column: Some("owner_id"),
             resource_type_policy_str: serde_variant::to_variant_name(
                 &AccessPolicyResourceType::FileGroup,
             )
@@ -570,7 +577,7 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, AccessPoli
         "user" => ResourceAuthInfo {
             resource_table: "users",
             resource_table_id_column: "id",
-            resource_table_owner_column: "id", // Users own themselves
+            resource_table_owner_column: Some("id"), // Users own themselves
             resource_type_policy_str: serde_variant::to_variant_name(
                 &AccessPolicyResourceType::User,
             )
@@ -583,7 +590,7 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, AccessPoli
         "user_group" => ResourceAuthInfo {
             resource_table: "user_groups",
             resource_table_id_column: "id",
-            resource_table_owner_column: "owner_id",
+            resource_table_owner_column: Some("owner_id"),
             resource_type_policy_str: serde_variant::to_variant_name(
                 &AccessPolicyResourceType::UserGroup,
             )
@@ -596,7 +603,7 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, AccessPoli
         "storage_location" => ResourceAuthInfo {
             resource_table: "storage_locations",
             resource_table_id_column: "id",
-            resource_table_owner_column: "owner_id",
+            resource_table_owner_column: None,
             resource_type_policy_str: serde_variant::to_variant_name(
                 &AccessPolicyResourceType::StorageLocation,
             )
@@ -610,7 +617,7 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, AccessPoli
         "access_policy" => ResourceAuthInfo {
             resource_table: "access_policies",
             resource_table_id_column: "id",
-            resource_table_owner_column: "owner_id",
+            resource_table_owner_column: Some("owner_id"),
             resource_type_policy_str: serde_variant::to_variant_name(
                 &AccessPolicyResourceType::AccessPolicy,
             )

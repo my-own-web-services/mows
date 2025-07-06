@@ -1,11 +1,12 @@
 ARG PROFILE="release"
-ARG SERVICE_NAME="zitadel-controller"
+ARG SERVICE_NAME="feoco"
 ARG SERVICE_VERSION="0.1.0"
-ARG BINARY_NAME="server"
+ARG BINARY_NAME="feoco"
 ARG APP_STAGE_IMAGE="scratch"
 
 FROM scratch AS sources
 COPY --from=lock ./Cargo.lock ./
+COPY --from=mows-common-rust . mows-common-rust
 COPY cargo-workspace-docker.toml ./Cargo.toml
 
 FROM clux/muslrust:nightly AS chef-builder
@@ -54,12 +55,12 @@ ARG SERVICE_NAME
 ARG SERVICE_VERSION
 ARG BINARY_NAME
 WORKDIR /app
-COPY --from=builder /${BINARY_NAME} ./server
+COPY --from=builder /${BINARY_NAME} ./feoco
 COPY --from=builder /etc/passwd /etc/passwd
 USER ${SERVICE_NAME}
 ENV SERVICE_NAME=${SERVICE_NAME}
 ENV SERVICE_VERSION=${SERVICE_VERSION}
 STOPSIGNAL SIGTERM
 # run it 
-ENTRYPOINT ["./server"]
+ENTRYPOINT ["./feoco"]
 

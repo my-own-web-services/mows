@@ -1,8 +1,57 @@
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/700.css";
+import { User, WebStorageStateStore } from "oidc-client-ts";
 import { render } from "preact";
+import { useEffect, useState } from "preact/hooks";
+import { AuthProvider, AuthProviderProps } from "react-oidc-context";
 import App from "./App.tsx";
 import "./index.css";
-//@ts-ignore
-import "@fontsource/space-mono/400.css";
-import "@fontsource/space-mono/700.css";
+import { getClientConfig } from "./utils.ts";
 
-render(<App />, document.getElementById("root")!);
+const onSigninCallback = (_user: User | void): void => {
+    window.history.replaceState({}, document.title, window.location.pathname);
+};
+
+const AuthProviderWrapper = () => {
+    const [oidcConfig, setOidcConfig] = useState<AuthProviderProps | null>(null);
+
+    useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const { oidcIssuerUrl, oidcClientId } = await getClientConfig();
+
+                const config: AuthProviderProps = {
+                    userStore: new WebStorageStateStore({ store: window.localStorage }),
+                    authority: oidcIssuerUrl,
+                    client_id: oidcClientId,
+                    redirect_uri: window.location.origin + "/auth/callback",
+                    response_type: "code",
+                    scope: "openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-auth:aud",
+                    post_logout_redirect_uri: window.location.origin,
+                    response_mode: "query",
+                    automaticSilentRenew: true,
+                    onSigninCallback
+                };
+                setOidcConfig(config);
+            } catch (error) {
+                console.error("Failed to fetch OIDC config", error);
+                // Handle error appropriately, maybe render an error message
+            }
+        };
+
+        fetchConfig();
+    }, []);
+
+    if (!oidcConfig) {
+        // You can render a loading indicator here
+        return <></>;
+    }
+
+    return (
+        <AuthProvider {...oidcConfig}>
+            <App />
+        </AuthProvider>
+    );
+};
+
+render(<AuthProviderWrapper />, document.getElementById("root")!);

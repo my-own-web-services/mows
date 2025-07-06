@@ -104,6 +104,18 @@ async fn main() -> Result<(), anyhow::Error> {
         .layer(
             CorsLayer::new()
                 .allow_origin(
+                    /*
+                                        AllowOrigin::async_predicate(
+                        |origin: HeaderValue, parts: &RequestParts| {
+                            let path = parts.uri.path().to_owned();
+
+                            async move {
+                                // fetch list of origins that are allowed for this path
+                                let origins = client.fetch_allowed_origins_for_path(path).await;
+                                origins.contains(&origin)
+                            }
+                        },
+                    )*/
                     origins
                         .iter()
                         .map(|origin| {

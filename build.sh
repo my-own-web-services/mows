@@ -68,3 +68,6 @@ cd ./apis/cloud/filez/server && bash build.sh ; cd ../../../../
 
 printf "${SCRIPT_INFO_COLOR}Building filez-server-codegen...${SCRIPT_RESET_COLOR}\n"
 cd ./apis/cloud/filez/server && bash scripts/codegen.sh ; cd ../../../../
+
+printf "${SCRIPT_INFO_COLOR}Building filez-web...${SCRIPT_RESET_COLOR}\n"
+cd ./apis/cloud/filez/web && bash build.sh ; cd ../../../../

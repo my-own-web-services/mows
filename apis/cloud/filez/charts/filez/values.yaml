@@ -1,11 +1,11 @@
 namespace: mows-core-storage-filez
 
 server:
-    enabled: true
     image: 192.168.112.5:5000/filez-server
     imagePullPolicy: Always
     name: filez-server
     replicaCount: 1
+    subdomain: filez-server
     tracing:
         filter: "trace,hyper=info,h2=info"
     log:
@@ -14,9 +14,16 @@ server:
         enabled: true
         allowedCorsOrigins: "http://localhost:5174,http://localhost:5173"
 
+web:
+    image: 192.168.112.5:5000/filez-web
+    imagePullPolicy: Always
+    name: filez-web
+    replicaCount: 1
+    subdomain: filez-web
+
 webFrontend:
     dev:
         enabled: true
         allowedRedirectOrigins:
-            - "http://localhost:5174"
-            - http://localhost:5173
+            - "http://localhost:5174/auth/callback"
+            - http://localhost:5173/auth/callback

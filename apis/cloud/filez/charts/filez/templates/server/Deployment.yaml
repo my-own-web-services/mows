@@ -40,20 +40,20 @@ spec:
                         -   name: OIDC_CLIENT_ID
                             valueFrom:
                                 secretKeyRef:
-                                    name: filez-auth
+                                    name: {{ .Values.server.name }}-auth
                                     key: serverClientId
                         -   name: OIDC_CLIENT_SECRET
                             valueFrom:
                                 secretKeyRef:
-                                    name: filez-auth
+                                    name: {{ .Values.server.name }}-auth
                                     key: serverClientSecret
                         -   name: OIDC_ISSUER
                             valueFrom:
                                 secretKeyRef:
-                                    name: filez-auth
+                                    name: {{ .Values.server.name }}-auth
                                     key: issuer
                         -   name: PRIMARY_ORIGIN
-                            value: "https://filez-api.{§ .config.domain §}"
+                            value: "https://{{ .Values.web.subdomain }}.{§ .config.domain §}"
                         -   name: ENABLE_DEV
                             value: {{ .Values.server.dev.enabled | quote }}
                         -   name: DEV_ALLOW_ORIGINS

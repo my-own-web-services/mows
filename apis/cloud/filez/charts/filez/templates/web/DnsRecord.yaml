@@ -2,10 +2,10 @@
 apiVersion: pektin.k8s.mows.cloud/v1
 kind: PektinResource
 metadata:
-    name: {{ .Values.server.name }}-dns
+    name: {{ .Values.web.name }}-dns
 spec:
     plain:
-        - name: "{{ .Values.server.subdomain }}.{§ .config.domain §}."
+        - name: "{{ .Values.web.subdomain }}.{§ .config.domain §}."
           meta: ""
           ttl: 60
           rr_set:
