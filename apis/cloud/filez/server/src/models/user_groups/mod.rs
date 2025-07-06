@@ -1,9 +1,14 @@
 pub mod errors;
-
+use super::users::FilezUser;
+use crate::{
+    api::user_groups::list::ListUserGroupsSortBy,
+    schema::{self},
+    types::SortDirection,
+    utils::get_uuid,
+};
 use diesel::{
     pg::Pg,
     prelude::{Insertable, Queryable},
-    query_dsl::methods::{FindDsl, SelectDsl},
     AsChangeset, ExpressionMethods, JoinOnDsl, QueryDsl, Selectable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -11,10 +16,6 @@ use errors::UserGroupError;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-use crate::{schema, types::SortDirection, utils::get_uuid};
-
-use super::users::FilezUser;
 
 #[derive(
     Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Debug, Insertable, AsChangeset,
@@ -54,44 +55,50 @@ impl UserGroup {
         user_group_id: &Uuid,
     ) -> Result<UserGroup, UserGroupError> {
         let mut conn = db.pool.get().await?;
-        let user_group = SelectDsl::select(
-            QueryDsl::filter(
-                schema::user_groups::table,
-                schema::user_groups::id.eq(user_group_id),
-            ),
-            UserGroup::as_select(),
-        )
-        .get_result::<UserGroup>(&mut conn)
-        .await?;
+        let user_group = schema::user_groups::table
+            .filter(schema::user_groups::id.eq(user_group_id))
+            .select(UserGroup::as_select())
+            .first::<UserGroup>(&mut conn)
+            .await?;
+
         Ok(user_group)
     }
 
-    pub async fn list(
+    pub async fn list_with_user_access(
         db: &crate::db::Db,
+        requesting_user_id: &Uuid,
         from_index: Option<i64>,
         limit: Option<i64>,
-        sort_by: Option<&str>,
+        sort_by: Option<ListUserGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<UserGroup>, UserGroupError> {
         let mut conn = db.pool.get().await?;
-        let mut query =
-            SelectDsl::select(schema::user_groups::table, UserGroup::as_select()).into_boxed();
+        let mut query = schema::user_groups::table
+            .filter(schema::user_groups::owner_id.eq(requesting_user_id))
+            .select(UserGroup::as_select())
+            .into_boxed();
+
+        let sort_by = sort_by.unwrap_or(ListUserGroupsSortBy::CreatedTime);
+        let sort_order = sort_order.unwrap_or(SortDirection::Descending);
 
         match (sort_by, sort_order) {
-            (Some("created_time"), Some(SortDirection::Ascending)) => {
+            (ListUserGroupsSortBy::CreatedTime, SortDirection::Ascending) => {
                 query = query.order_by(schema::user_groups::created_time.asc());
             }
-            (Some("created_time"), Some(SortDirection::Descending)) => {
+            (ListUserGroupsSortBy::CreatedTime, SortDirection::Descending) => {
                 query = query.order_by(schema::user_groups::created_time.desc());
             }
-            (Some("name"), Some(SortDirection::Ascending)) => {
+            (ListUserGroupsSortBy::Name, SortDirection::Ascending) => {
                 query = query.order_by(schema::user_groups::name.asc());
             }
-            (Some("name"), Some(SortDirection::Descending)) => {
+            (ListUserGroupsSortBy::Name, SortDirection::Descending) => {
                 query = query.order_by(schema::user_groups::name.desc());
             }
-            _ => {
-                query = query.order_by(schema::user_groups::created_time.desc());
+            (ListUserGroupsSortBy::ModifiedTime, SortDirection::Ascending) => {
+                query = query.order_by(schema::user_groups::modified_time.asc());
+            }
+            (ListUserGroupsSortBy::ModifiedTime, SortDirection::Descending) => {
+                query = query.order_by(schema::user_groups::modified_time.desc());
             }
         };
 
@@ -112,39 +119,44 @@ impl UserGroup {
         name: &str,
     ) -> Result<(), UserGroupError> {
         let mut conn = db.pool.get().await?;
-        diesel::update(FindDsl::find(schema::user_groups::table, user_group_id))
-            .set((
-                schema::user_groups::name.eq(name),
-                schema::user_groups::modified_time.eq(chrono::Utc::now().naive_utc()),
-            ))
-            .execute(&mut conn)
-            .await?;
+        diesel::update(
+            schema::user_groups::table.filter(schema::user_groups::id.eq(user_group_id)),
+        )
+        .set((
+            schema::user_groups::name.eq(name),
+            schema::user_groups::modified_time.eq(chrono::Utc::now().naive_utc()),
+        ))
+        .execute(&mut conn)
+        .await?;
         Ok(())
     }
 
     pub async fn delete(db: &crate::db::Db, user_group_id: &Uuid) -> Result<(), UserGroupError> {
         let mut conn = db.pool.get().await?;
-        diesel::delete(FindDsl::find(schema::user_groups::table, user_group_id))
-            .execute(&mut conn)
-            .await?;
+        diesel::delete(
+            schema::user_groups::table.filter(schema::user_groups::id.eq(user_group_id)),
+        )
+        .execute(&mut conn)
+        .await?;
         Ok(())
     }
 
+    /// Retrieves all user group IDs that the specified user is a member of
     pub async fn get_all_by_user_id(
         db: &crate::db::Db,
         user_id: &Uuid,
     ) -> Result<Vec<Uuid>, UserGroupError> {
         let mut conn = db.pool.get().await?;
 
-        let user_groups = SelectDsl::select(
-            QueryDsl::filter(
-                schema::user_user_group_members::table,
-                schema::user_user_group_members::user_id.eq(user_id),
-            ),
-            schema::user_user_group_members::user_group_id,
-        )
-        .load::<Uuid>(&mut conn)
-        .await?;
+        let user_groups = schema::user_groups::table
+            .inner_join(
+                schema::user_user_group_members::table
+                    .on(schema::user_groups::id.eq(schema::user_user_group_members::user_group_id)),
+            )
+            .filter(schema::user_user_group_members::user_id.eq(user_id))
+            .select(schema::user_groups::id)
+            .load::<Uuid>(&mut conn)
+            .await?;
 
         Ok(user_groups)
     }
@@ -174,16 +186,18 @@ impl UserGroup {
     ) -> Result<Vec<FilezUser>, UserGroupError> {
         let mut conn = db.pool.get().await?;
 
-        let mut query = SelectDsl::select(
-            schema::user_user_group_members::table
-                .inner_join(
-                    schema::users::table
-                        .on(schema::user_user_group_members::user_id.eq(schema::users::id)),
-                )
-                .filter(schema::user_user_group_members::user_group_id.eq(user_group_id)),
-            FilezUser::as_select(),
-        )
-        .into_boxed();
+        let mut query = schema::user_groups::table
+            .inner_join(
+                schema::user_user_group_members::table
+                    .on(schema::user_groups::id.eq(schema::user_user_group_members::user_group_id)),
+            )
+            .inner_join(
+                schema::users::table
+                    .on(schema::user_user_group_members::user_id.eq(schema::users::id)),
+            )
+            .filter(schema::user_user_group_members::user_group_id.eq(user_group_id))
+            .select(FilezUser::as_select())
+            .into_boxed();
 
         match (sort_by, sort_order) {
             (Some("created_time"), Some(SortDirection::Ascending)) => {

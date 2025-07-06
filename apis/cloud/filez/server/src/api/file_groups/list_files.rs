@@ -112,8 +112,8 @@ pub struct ListFilesSortOrder {
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub enum ListFilesSortBy {
     Name,
-    CreatedAt,
-    UpdatedAt,
+    CreatedTime,
+    ModifiedTime,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

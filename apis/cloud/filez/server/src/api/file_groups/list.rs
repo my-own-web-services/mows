@@ -60,11 +60,12 @@ pub async fn list_file_groups(
     );
 
     let file_groups = with_timing!(
-        FileGroup::list(
+        FileGroup::list_with_user_access(
             &db,
+            &requesting_user.id,
             request_body.from_index,
             request_body.limit,
-            request_body.sort_by.as_deref(),
+            request_body.sort_by,
             request_body.sort_order,
         )
         .await?,
@@ -83,11 +84,18 @@ pub async fn list_file_groups(
 pub struct ListFileGroupsRequestBody {
     pub from_index: Option<i64>,
     pub limit: Option<i64>,
-    pub sort_by: Option<String>,
+    pub sort_by: Option<ListFileGroupsSortBy>,
     pub sort_order: Option<SortDirection>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListFileGroupsResponseBody {
     pub file_groups: Vec<FileGroup>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub enum ListFileGroupsSortBy {
+    Name,
+    CreatedTime,
+    ModifiedTime,
 }

@@ -1,35 +1,35 @@
+use axum::{extract::State, http::HeaderMap, Extension, Json};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use zitadel::axum::introspection::IntrospectedUser;
+
 use crate::{
     errors::FilezError,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
-        user_groups::UserGroup,
         users::FilezUser,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, SortDirection},
     with_timing,
 };
-use axum::{extract::State, http::HeaderMap, Extension, Json};
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
-    path = "/api/user_groups/list",
-    request_body = ListUserGroupsRequestBody,
+    path = "/api/access_policies/list",
+    request_body = ListAccessPoliciesRequestBody,
     responses(
-        (status = 200, description = "Lists user groups", body = ApiResponse<ListUserGroupsResponseBody>),
+        (status = 200, description = "Lists access policies", body = ApiResponse<ListAccessPoliciesResponseBody>),
     )
 )]
-pub async fn list_user_groups(
+pub async fn list_access_policies(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<ListUserGroupsRequestBody>,
-) -> Result<Json<ApiResponse<ListUserGroupsResponseBody>>, FilezError> {
+    Json(request_body): Json<ListAccessPoliciesRequestBody>,
+) -> Result<Json<ApiResponse<ListAccessPoliciesResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
         "Database operation to get user by external ID",
@@ -48,9 +48,9 @@ pub async fn list_user_groups(
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupList).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPolicyList).unwrap(),
         )
         .await?
         .verify()?,
@@ -58,43 +58,43 @@ pub async fn list_user_groups(
         timing
     );
 
-    let user_groups = with_timing!(
-        UserGroup::list_with_user_access(
+    let access_policies = with_timing!(
+        AccessPolicy::list_with_user_access(
             &db,
             &requesting_user.id,
-            req_body.from_index,
-            req_body.limit,
-            req_body.sort_by,
-            req_body.sort_order,
+            request_body.from_index,
+            request_body.limit,
+            request_body.sort_by,
+            request_body.sort_order,
         )
         .await?,
-        "Database operation to list user groups",
+        "Database operation to list access policies",
         timing
     );
 
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
-        message: "User groups listed".to_string(),
-        data: Some(ListUserGroupsResponseBody { user_groups }),
+        message: "Access policies listed".to_string(),
+        data: Some(ListAccessPoliciesResponseBody { access_policies }),
     }))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct ListUserGroupsRequestBody {
+pub struct ListAccessPoliciesRequestBody {
     pub from_index: Option<i64>,
     pub limit: Option<i64>,
-    pub sort_by: Option<ListUserGroupsSortBy>,
+    pub sort_by: Option<ListAccessPoliciesSortBy>,
     pub sort_order: Option<SortDirection>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct ListUserGroupsResponseBody {
-    pub user_groups: Vec<UserGroup>,
+pub struct ListAccessPoliciesResponseBody {
+    pub access_policies: Vec<AccessPolicy>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub enum ListUserGroupsSortBy {
-    Name,
+pub enum ListAccessPoliciesSortBy {
     CreatedTime,
     ModifiedTime,
+    Name,
 }

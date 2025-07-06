@@ -20,7 +20,7 @@ use crate::{
 };
 
 #[utoipa::path(
-    post,
+    put,
     path = "/api/files/meta/update",
     request_body = UpdateFilesMetaRequestBody,
     responses(

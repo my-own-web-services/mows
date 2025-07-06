@@ -1,22 +1,38 @@
 pub mod check;
 pub mod errors;
 use crate::{
+    api::access_policies::list::ListAccessPoliciesSortBy,
     db::Db,
     errors::FilezError,
+    schema::{access_policies, file_versions::app_id},
+    types::SortDirection,
     utils::{get_uuid, InvalidEnumType},
 };
 use check::{check_resources_access_control, AuthResult};
 use diesel::{
-    deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::Text,
+    deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::Text, update,
+    AsChangeset,
 };
+use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::user_groups::UserGroup;
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, AsExpression, FromSqlRow, DbEnum, Serialize, Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    AsExpression,
+    FromSqlRow,
+    DbEnum,
+    Serialize,
+    Deserialize,
+    ToSchema,
 )]
 #[diesel(sql_type = Text)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
@@ -27,7 +43,17 @@ pub enum AccessPolicySubjectType {
 }
 
 #[derive(
-    Debug, Serialize, Clone, Copy, PartialEq, Eq, AsExpression, FromSqlRow, DbEnum, Deserialize,
+    Debug,
+    Serialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    AsExpression,
+    FromSqlRow,
+    DbEnum,
+    Deserialize,
+    ToSchema,
 )]
 #[diesel(sql_type = Text)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
@@ -39,10 +65,21 @@ pub enum AccessPolicyResourceType {
     User,
     UserGroup,
     StorageLocation,
+    AccessPolicy,
 }
 
 #[derive(
-    Debug, Serialize, Clone, Copy, PartialEq, Eq, AsExpression, FromSqlRow, DbEnum, Deserialize,
+    Debug,
+    Serialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    AsExpression,
+    FromSqlRow,
+    DbEnum,
+    Deserialize,
+    ToSchema,
 )]
 #[diesel(sql_type = Text)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
@@ -52,7 +89,7 @@ pub enum AccessPolicyEffect {
     Allow,
 }
 
-#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq, Deserialize, ToSchema)]
 pub enum AccessPolicyAction {
     #[serde(rename = "filez.files.versions.content.get")]
     FilezFileVersionsContentGet,
@@ -99,9 +136,31 @@ pub enum AccessPolicyAction {
     UserGroupList,
     #[serde(rename = "filez.user_groups.list_users")]
     UserGroupListUsers,
+
+    #[serde(rename = "filez.access_policies.create")]
+    AccessPolicyCreate,
+    #[serde(rename = "filez.access_policies.read")]
+    AccessPolicyRead,
+    #[serde(rename = "filez.access_policies.update")]
+    AccessPolicyUpdate,
+    #[serde(rename = "filez.access_policies.delete")]
+    AccessPolicyDelete,
+    #[serde(rename = "filez.access_policies.list")]
+    AccessPolicyList,
 }
 
-#[derive(Queryable, Selectable, Clone, Insertable, Debug, QueryableByName)]
+#[derive(
+    Queryable,
+    Selectable,
+    Clone,
+    Insertable,
+    Debug,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    AsChangeset,
+)]
 #[diesel(check_for_backend(Pg))]
 #[diesel(table_name = crate::schema::access_policies)]
 pub struct AccessPolicy {
@@ -150,6 +209,127 @@ impl AccessPolicy {
             action: action.to_string(),
             effect,
         }
+    }
+
+    pub async fn create(db: &Db, access_policy: &AccessPolicy) -> Result<(), FilezError> {
+        let mut conn = db.pool.get().await?;
+        diesel::insert_into(access_policies::table)
+            .values(access_policy)
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_by_id(db: &Db, id: &Uuid) -> Result<AccessPolicy, FilezError> {
+        let mut conn = db.pool.get().await?;
+        let access_policy = access_policies::table
+            .filter(access_policies::id.eq(id))
+            .select(AccessPolicy::as_select())
+            .first::<AccessPolicy>(&mut conn)
+            .await?;
+        Ok(access_policy)
+    }
+
+    /// Lists all resource ids that the user has access to, for a specific resource type.
+    pub async fn get_resources_with_access(
+        db: &Db,
+        requesting_user_id: &Uuid,
+        requesting_app_id: &Uuid,
+        resource_type: &str,
+        action_to_perform: &str,
+    ) -> Result<Vec<Uuid>, FilezError> {
+        let user_group_ids = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
+
+        todo!()
+    }
+
+    pub async fn list_with_user_access(
+        db: &Db,
+        requesting_user_id: &Uuid,
+        from_index: Option<i64>,
+        limit: Option<i64>,
+        sort_by: Option<ListAccessPoliciesSortBy>,
+        sort_order: Option<SortDirection>,
+    ) -> Result<Vec<AccessPolicy>, FilezError> {
+        let mut conn = db.pool.get().await?;
+
+        let mut query = access_policies::table
+            .select(AccessPolicy::as_select())
+            .filter(access_policies::owner_id.eq(requesting_user_id))
+            .into_boxed();
+
+        let sort_by = sort_by.unwrap_or(ListAccessPoliciesSortBy::CreatedTime);
+        let sort_order = sort_order.unwrap_or(SortDirection::Descending);
+
+        match (sort_by, sort_order) {
+            (ListAccessPoliciesSortBy::CreatedTime, SortDirection::Ascending) => {
+                query = query.order_by(access_policies::created_time.asc());
+            }
+            (ListAccessPoliciesSortBy::CreatedTime, SortDirection::Descending) => {
+                query = query.order_by(access_policies::created_time.desc());
+            }
+            (ListAccessPoliciesSortBy::Name, SortDirection::Ascending) => {
+                query = query.order_by(access_policies::name.asc());
+            }
+            (ListAccessPoliciesSortBy::Name, SortDirection::Descending) => {
+                query = query.order_by(access_policies::name.desc());
+            }
+            (ListAccessPoliciesSortBy::ModifiedTime, SortDirection::Ascending) => {
+                query = query.order_by(access_policies::modified_time.asc());
+            }
+            (ListAccessPoliciesSortBy::ModifiedTime, SortDirection::Descending) => {
+                query = query.order_by(access_policies::modified_time.desc());
+            }
+        };
+
+        if let Some(from_index) = from_index {
+            query = query.offset(from_index);
+        }
+
+        if let Some(limit) = limit {
+            query = query.limit(limit);
+        }
+
+        let access_policies = query.load::<AccessPolicy>(&mut conn).await?;
+        Ok(access_policies)
+    }
+
+    pub async fn update(
+        db: &Db,
+        id: &Uuid,
+        name: &str,
+        subject_type: AccessPolicySubjectType,
+        subject_id: Uuid,
+        context_app_id: Option<Uuid>,
+        resource_type: AccessPolicyResourceType,
+        resource_id: Option<Uuid>,
+        action: &str,
+        effect: AccessPolicyEffect,
+    ) -> Result<(), FilezError> {
+        let mut conn = db.pool.get().await?;
+        update(access_policies::table.filter(access_policies::id.eq(id)))
+            .set((
+                access_policies::name.eq(name),
+                access_policies::subject_type.eq(subject_type),
+                access_policies::subject_id.eq(subject_id),
+                access_policies::context_app_id.eq(context_app_id),
+                access_policies::resource_type.eq(resource_type),
+                access_policies::resource_id.eq(resource_id),
+                access_policies::action.eq(action),
+                access_policies::effect.eq(effect),
+                access_policies::modified_time.eq(chrono::Utc::now().naive_utc()),
+            ))
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete(db: &Db, id: &Uuid) -> Result<(), FilezError> {
+        let mut conn = db.pool.get().await?;
+        diesel::delete(access_policies::table.filter(access_policies::id.eq(id)))
+            .execute(&mut conn)
+            .await?;
+        Ok(())
     }
 
     pub async fn check(

@@ -1,10 +1,23 @@
+use crate::{
+    api::{
+        access_policies::{
+            create::CreateAccessPolicyRequestBody, list::ListAccessPoliciesRequestBody,
+            update::UpdateAccessPolicyRequestBody,
+        },
+        file_groups::create::CreateFileGroupRequestBody,
+        files::{
+            create::{CreateFileRequestBody, CreateFileResponseBody},
+            versions::create::{CreateFileVersionRequestBody, CreateFileVersionResponseBody},
+        },
+        user_groups::create::CreateUserGroupRequestBody,
+    },
+    models::{
+        access_policies::AccessPolicy, file_groups::FileGroup, user_groups::UserGroup,
+        users::FilezUser,
+    },
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-
-use crate::api::files::{
-    create::{CreateFileRequestBody, CreateFileResponseBody},
-    versions::create::{CreateFileVersionRequestBody, CreateFileVersionResponseBody},
-};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -13,10 +26,21 @@ use crate::api::files::{
     ),
     components(
         schemas(
+            // REQUESTS
             CreateFileRequestBody,
             CreateFileResponseBody,
             CreateFileVersionRequestBody,
             CreateFileVersionResponseBody,
+            CreateFileGroupRequestBody,
+            CreateUserGroupRequestBody,
+            CreateAccessPolicyRequestBody,
+            UpdateAccessPolicyRequestBody,
+            ListAccessPoliciesRequestBody,
+            // RESPONSES
+            FileGroup,
+            UserGroup,
+            FilezUser,
+            AccessPolicy,
         )
     ),
 )]

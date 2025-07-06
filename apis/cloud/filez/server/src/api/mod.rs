@@ -18,8 +18,13 @@ pub mod users {
     pub mod get;
 }
 
-pub mod auth {
+pub mod access_policies {
     pub mod check_resource_access;
+    pub mod create;
+    pub mod delete;
+    pub mod get;
+    pub mod list;
+    pub mod update;
 }
 
 pub mod user_groups;

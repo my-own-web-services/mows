@@ -79,13 +79,28 @@ async fn main() -> Result<(), anyhow::Error> {
         // USER GROUPS
         .routes(routes!(api::user_groups::create::create_user_group))
         .routes(routes!(api::user_groups::get::get_user_group))
-        .routes(routes!(api::user_groups::update_user_group::update_user_group))
+        .routes(routes!(
+            api::user_groups::update_user_group::update_user_group
+        ))
         .routes(routes!(api::user_groups::delete::delete_user_group))
         .routes(routes!(api::user_groups::list::list_user_groups))
         .routes(routes!(api::user_groups::list_users::list_users))
-        // AUTH
+        // ACCESS POLICIES
         .routes(routes!(
-            api::auth::check_resource_access::check_resource_access
+            api::access_policies::check_resource_access::check_resource_access
+        ))
+        .routes(routes!(
+            api::access_policies::create::create_access_policy
+        ))
+        .routes(routes!(api::access_policies::get::get_access_policy))
+        .routes(routes!(
+            api::access_policies::update::update_access_policy
+        ))
+        .routes(routes!(
+            api::access_policies::delete::delete_access_policy
+        ))
+        .routes(routes!(
+            api::access_policies::list::list_access_policies
         ))
         // HEALTH
         .routes(routes!(api::health::get_health))
