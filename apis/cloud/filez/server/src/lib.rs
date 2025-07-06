@@ -9,7 +9,6 @@ pub mod previews;
 pub mod schema;
 pub mod state;
 pub mod storage;
-pub mod tests;
 pub mod types;
 pub mod utils;
 pub mod validation;

@@ -1,8 +1,5 @@
 pub mod errors;
-
-use std::collections::HashMap;
-
-use bigdecimal::BigDecimal;
+use crate::{schema, utils::get_uuid};
 use diesel::{
     pg::Pg,
     prelude::{Insertable, Queryable},
@@ -11,12 +8,10 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use errors::FilezUserError;
-use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-use crate::{config::config, schema, utils::get_uuid};
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(table_name = crate::schema::users)]
@@ -28,12 +23,10 @@ pub struct FilezUser {
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
     pub deleted: bool,
-    #[schema(value_type=i64)]
-    pub storage_limit: BigDecimal,
 }
 
 impl FilezUser {
-    pub fn new(external_user_id: Option<String>, display_name: &str, storage_limit: i64) -> Self {
+    pub fn new(external_user_id: Option<String>, display_name: &str) -> Self {
         Self {
             id: get_uuid(),
             external_user_id,
@@ -41,7 +34,6 @@ impl FilezUser {
             created_time: chrono::Utc::now().naive_utc(),
             modified_time: chrono::Utc::now().naive_utc(),
             deleted: false,
-            storage_limit: BigDecimal::from(storage_limit),
         }
     }
 
@@ -52,9 +44,6 @@ impl FilezUser {
     ) -> Result<uuid::Uuid, FilezUserError> {
         let mut conn = db.pool.get().await?;
 
-        let config = get_current_config_cloned!(config());
-
-        // Check if the user already exists
         let existing_user = crate::schema::users::table
             .filter(crate::schema::users::external_user_id.eq(external_user_id))
             .first::<FilezUser>(&mut conn)
@@ -62,19 +51,14 @@ impl FilezUser {
             .optional()?;
 
         if let Some(user) = existing_user {
-            // update the existing users display name
             diesel::update(crate::schema::users::table.find(user.id))
                 .set(crate::schema::users::display_name.eq(display_name))
                 .execute(&mut conn)
                 .await?;
             return Ok(user.id);
         };
-        // If the user does not exist, create a new user
-        let new_user = FilezUser::new(
-            Some(external_user_id.to_string()),
-            display_name,
-            config.default_storage_limit,
-        );
+
+        let new_user = FilezUser::new(Some(external_user_id.to_string()), display_name);
 
         let result = diesel::insert_into(crate::schema::users::table)
             .values(&new_user)

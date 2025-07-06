@@ -1,11 +1,13 @@
 pub mod errors;
 
 use crate::{
-    api::file_groups::list_files::{ListFilesSortBy, ListFilesSorting},
+    api::file_groups::{
+        list::ListFileGroupsSortBy,
+        list_files::{ListFilesSortBy, ListFilesSorting},
+    },
     schema,
     types::SortDirection,
-    utils::get_uuid,
-    utils::InvalidEnumType,
+    utils::{get_uuid, InvalidEnumType},
 };
 use diesel::{
     deserialize::FromSqlRow,
@@ -91,33 +93,41 @@ impl FileGroup {
         Ok(file_group)
     }
 
-    pub async fn list(
+    pub async fn list_with_user_access(
         db: &crate::db::Db,
+        requesting_user_id: &Uuid,
         from_index: Option<i64>,
         limit: Option<i64>,
-        sort_by: Option<&str>,
+        sort_by: Option<ListFileGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<FileGroup>, FileGroupError> {
         let mut conn = db.pool.get().await?;
         let mut query = schema::file_groups::table
+            .filter(schema::file_groups::owner_id.eq(requesting_user_id))
             .select(FileGroup::as_select())
             .into_boxed();
 
+        let sort_by = sort_by.unwrap_or(ListFileGroupsSortBy::CreatedTime);
+        let sort_order = sort_order.unwrap_or(SortDirection::Descending);
+
         match (sort_by, sort_order) {
-            (Some("created_time"), Some(SortDirection::Ascending)) => {
-                query = query.order_by(schema::file_groups::created_time.asc());
-            }
-            (Some("created_time"), Some(SortDirection::Descending)) => {
-                query = query.order_by(schema::file_groups::created_time.desc());
-            }
-            (Some("name"), Some(SortDirection::Ascending)) => {
+            (ListFileGroupsSortBy::Name, SortDirection::Ascending) => {
                 query = query.order_by(schema::file_groups::name.asc());
             }
-            (Some("name"), Some(SortDirection::Descending)) => {
+            (ListFileGroupsSortBy::Name, SortDirection::Descending) => {
                 query = query.order_by(schema::file_groups::name.desc());
             }
-            _ => {
+            (ListFileGroupsSortBy::CreatedTime, SortDirection::Ascending) => {
+                query = query.order_by(schema::file_groups::created_time.asc());
+            }
+            (ListFileGroupsSortBy::CreatedTime, SortDirection::Descending) => {
                 query = query.order_by(schema::file_groups::created_time.desc());
+            }
+            (ListFileGroupsSortBy::ModifiedTime, SortDirection::Ascending) => {
+                query = query.order_by(schema::file_groups::modified_time.asc());
+            }
+            (ListFileGroupsSortBy::ModifiedTime, SortDirection::Descending) => {
+                query = query.order_by(schema::file_groups::modified_time.desc());
             }
         };
 
@@ -239,16 +249,16 @@ impl FileGroup {
                     (ListFilesSortBy::Name, SortDirection::Descending) => {
                         query = query.order_by(schema::files::name.desc());
                     }
-                    (ListFilesSortBy::CreatedAt, SortDirection::Ascending) => {
+                    (ListFilesSortBy::CreatedTime, SortDirection::Ascending) => {
                         query = query.order_by(schema::files::created_time.asc());
                     }
-                    (ListFilesSortBy::CreatedAt, SortDirection::Descending) => {
+                    (ListFilesSortBy::CreatedTime, SortDirection::Descending) => {
                         query = query.order_by(schema::files::created_time.desc());
                     }
-                    (ListFilesSortBy::UpdatedAt, SortDirection::Ascending) => {
+                    (ListFilesSortBy::ModifiedTime, SortDirection::Ascending) => {
                         query = query.order_by(schema::files::modified_time.asc());
                     }
-                    (ListFilesSortBy::UpdatedAt, SortDirection::Descending) => {
+                    (ListFilesSortBy::ModifiedTime, SortDirection::Descending) => {
                         query = query.order_by(schema::files::modified_time.desc());
                     }
                 }

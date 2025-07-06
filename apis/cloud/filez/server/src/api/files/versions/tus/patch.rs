@@ -119,13 +119,9 @@ pub async fn tus_patch(
         timing
     );
 
-    with_timing!(
-        file_version
-            .update_content(&db, timing, request, request_upload_offset, content_length)
-            .await?,
-        "File version content update",
-        timing
-    );
+    file_version
+        .update_content(&db, timing, request, request_upload_offset, content_length)
+        .await?;
 
     let mut response_headers = HeaderMap::new();
 

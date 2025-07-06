@@ -6,7 +6,6 @@ diesel::table! {
         created_time -> Timestamp,
         modified_time -> Timestamp,
         deleted -> Bool,
-        storage_limit -> Numeric,
     }
 }
 
