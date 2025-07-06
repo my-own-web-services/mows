@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ .Values.web.name }}
+spec:
+    replicas: {{ .Values.web.replicaCount }}
+    selector:
+        matchLabels:
+            app: {{ .Values.web.name }}
+    template:
+        metadata:
+            labels:
+                app: {{ .Values.web.name }}
+        spec:
+            volumes:
+                -   name: {{ .Values.web.name }}-client-config
+                    secret:
+                        secretName: {{ .Values.web.name }}-client-config
+                -   name: {{ .Values.web.name }}-server-config
+                    configMap:
+                        name: {{ .Values.web.name }}-server-config
+            containers:
+                -   name: {{ .Values.web.name }}
+                    image: "{{ .Values.web.image }}"
+                    imagePullPolicy: {{ .Values.web.imagePullPolicy }}
+                    securityContext:
+                        allowPrivilegeEscalation: false
+                        readOnlyRootFilesystem: true
+                        runAsNonRoot: true
+                        runAsUser: 50003
+                    ports:
+                        -   name: http
+                            containerPort: 80
+                            protocol: TCP
+                    resources:
+                        limits:
+                            memory: 128Mi
+                            cpu: 500m
+                    volumeMounts:
+                        -   name: {{ .Values.web.name }}-client-config
+                            mountPath: /public/client-config.json
+                            subPath: client-config.json
+                            readOnly: true
+                        -   name: {{ .Values.web.name }}-server-config
+                            mountPath: /config.yaml
+                            subPath: config.yaml
+                            readOnly: true
+                    env:
+                        -   name: SERVICE_NAME
+                            value: {{ .Values.web.name }}
+                        -   name: CSP_CONNECT_SRC
+                            value: "https://{{ .Values.server.subdomain }}.{§ .config.domain §} https://zitadel.{§ .config.domain §}"
+

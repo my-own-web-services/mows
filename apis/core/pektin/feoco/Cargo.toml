@@ -1,5 +1,5 @@
 [[bin]]
-name = "server"
+name = "feoco"
 path = "src/main.rs"
 
 [package]
@@ -34,6 +34,8 @@ serde_yaml = { workspace = true }
 lazy_static = { workspace = true }
 hashbrown = { version = "0.13", features = ["ahash"] }
 percent-encoding = { version = "2.1.0" }
+tracing = { workspace = true, features = ["default"] }
+mows-common-rust = { workspace = true }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.6.0"

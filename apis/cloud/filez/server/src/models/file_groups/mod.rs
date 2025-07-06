@@ -118,7 +118,7 @@ impl FileGroup {
         .await?;
 
         let mut query = schema::file_groups::table
-            .filter(schema::file_groups::owner_id.eq(requesting_user_id))
+            .filter(schema::file_groups::id.eq_any(resources_with_access))
             .select(FileGroup::as_select())
             .into_boxed();
 

@@ -1,0 +1,20 @@
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: {{ .Values.web.name }}-auth-sync
+spec:
+    secretSync:
+        kvMapping:
+            filezWeb:
+                engine: filez-auth
+                path: "{{ .Values.web.name }}"
+        targets:
+            secrets:
+                {{ .Values.web.name }}-client-config:
+                    data:
+                        client-config.json: >
+                            { 
+                                "oidcClientId": "{% .secrets.filezWeb.clientId %}",
+                                "oidcIssuerUrl": "https://zitadel.{§ .config.domain §}",
+                                "serverUrl": "https://{{ .Values.server.subdomain }}.{§ .config.domain §}"
+                            }

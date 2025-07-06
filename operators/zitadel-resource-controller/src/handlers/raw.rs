@@ -22,13 +22,18 @@ pub async fn cleanup_raw(
         crd::RawZitadelResourceSelector::Project(_) => {
             let project_name = get_zitadel_project_name(resource_namespace, resource_name);
 
-            trace!("Cleaning up Zitadel project: {}", project_name);
+            debug!("Cleaning up Zitadel project: {}", project_name);
 
             let project_org = zitadel_client.get_org_by_name(&project_name).await?;
 
             zitadel_client.delete_org(&project_org.id).await?;
         }
     };
+
+    debug!(
+        "Cleaned up Zitadel resource: {} in namespace: {}",
+        resource_name, resource_namespace
+    );
 
     Ok(())
 }

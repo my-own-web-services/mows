@@ -16,7 +16,7 @@ headers:
 
             manifest-src 'self';
 
-            connect-src 'self'; 
+            connect-src 'self' $CSP_CONNECT_SRC; 
 
             img-src 'self'; 
 
@@ -33,6 +33,6 @@ headers:
         x-download-options: noopen
         x-xss-protection: 1; mode=block
         referrer-policy: no-referrer
-        permissions-policy: accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=(), conversion-measurement=(), focus-without-user-activation=(), hid=(), idle-detection=(), interest-cohort=(), serial=(), sync-script=(), trust-token-redemption=(), window-placement=(), vertical-scroll=()
+        permissions-policy: accelerometer=(), all-screens-capture=(), ambient-light-sensor=(), attribution-reporting=(), autoplay=(), bluetooth=(), browsing-topics=(), camera=(), captured-surface-control=(), ch-dpr=(), ch-device-memory=(), ch-downlink=(), ch-ect=(), ch-prefers-color-scheme=(), ch-prefers-reduced-motion=(), ch-prefers-reduced-transparency=(), ch-rtt=(), ch-save-data=(), ch-ua=(), ch-ua-arch=(), ch-ua-bitness=(), ch-ua-platform=(), ch-ua-model=(), ch-ua-mobile=(), ch-ua-form-factors=(), ch-ua-full-version=(), ch-ua-full-version-list=(), ch-ua-platform-version=(), ch-ua-wow64=(), ch-viewport-height=(), ch-viewport-width=(), ch-width=(), clipboard-read=(), clipboard-write=(), compute-pressure=(), controlled-frame=(), cross-origin-isolated=(), deferred-fetch=(), digital-credentials-get=(), direct-sockets=(), direct-sockets-private=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-out-of-viewport=(), execution-while-not-rendered=(), fenced-unpartitioned-storage-read=(), focus-without-user-activation=(), fullscreen=(), frobulate=(), gamepad=(), geolocation=(), gyroscope=(), hid=(), identity-credentials-get=(), idle-detection=(), interest-cohort=(), join-ad-interest-group=(), keyboard-map=(), local-fonts=(), magnetometer=(), media-playback-while-not-visible=(), microphone=(), midi=(), otp-credentials=(), payment=(), picture-in-picture=(), popins=(), private-aggregation=(), private-state-token-issuance=(), private-state-token-redemption=(), publickey-credentials-create=(), publickey-credentials-get=(), run-ad-auction=(), screen-wake-lock=(), serial=(), shared-autofill=(), shared-storage=(), shared-storage-select-url=(), smart-card=(), speaker-selection=(), storage-access=(), sub-apps=(), sync-xhr=(), unload=(), usb=(), usb-unrestricted=(), vertical-scroll=(), web-app-installation=(), web-printing=(), web-share=(), window-management=(), xr-spatial-tracking=()
 # prevent all matching paths from beeing served from memory and read them from disk instead; if the path is included it is matched
 noMemory: [".png", ".jpg", ".avif", ".webp", ".svg"]

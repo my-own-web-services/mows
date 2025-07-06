@@ -1,3 +1,4 @@
+use mows_common_rust::observability::init_observability;
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
 
@@ -11,6 +12,7 @@ use hyper::{
     HeaderMap,
 };
 use percent_encoding::{utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
+use tracing::{info, trace};
 use std::{convert::Infallible, io::Read};
 use std::{io::Cursor, str::FromStr};
 
@@ -51,7 +53,7 @@ use hyper::{Body, Request, Response, Server};
 mod config;
 use crate::config::{read_config, Config};
 mod lib;
-use crate::lib::COMPRESSABLE_MIME_TYPES;
+use crate::lib::COMPRESSIBLE_MIME_TYPES;
 
 lazy_static! {
     pub static ref CONFIG: Config = read_config();
@@ -62,11 +64,15 @@ lazy_static! {
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        init_observability().await;
+
     // reference variables declared with lazy_static because they are initialized on first access
     let _ = &PAGES.0.len();
     let _ = &CONFIG.headers;
     let _ = &DOCUMENT_MAP.len();
     let _ = &ALL_MAP.len();
+
+
 
     let make_svc =
         make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(handle_request)) });
@@ -87,13 +93,13 @@ async fn shutdown_signal() {
         .expect("failed to install CTRL+C signal handler");
 }
 
-async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    let fsmap = &PAGES.0;
+async fn handle_request(request: Request<Body>) -> Result<Response<Body>, Infallible> {
+    let memory_map = &PAGES.0;
     let on_disk_map = &PAGES.1;
-    let mut path = req.uri().path();
-    let on_disk = on_disk_map.contains_key(path);
-    let in_memory = fsmap.contains_key(path);
-    let request_headers = req.headers();
+    let mut request_path = request.uri().path();
+    let on_disk = on_disk_map.contains_key(request_path);
+    let in_memory = memory_map.contains_key(request_path);
+    let request_headers = request.headers();
     let accept_gzip = request_headers
         .get("accept-encoding")
         .unwrap_or(&HeaderValue::from_static(""))
@@ -107,46 +113,46 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
         .unwrap()
         .contains("br");
 
-    let mut res = Response::builder().status(200);
+    let mut response = Response::builder().status(200);
 
     if !in_memory && !on_disk {
-        path = "/index.html";
+        request_path = "/index.html";
     };
 
-    let content_type = mime_guess::from_path(path).first_or_octet_stream();
+    let content_type = mime_guess::from_path(request_path).first_or_octet_stream();
 
     if content_type == "text/html" {
-        res.headers_mut().unwrap().extend(DOCUMENT_MAP.clone());
-        res = res.header("content-type", format!("{}; charset=utf-8",content_type.as_ref()));
+        response.headers_mut().unwrap().extend(DOCUMENT_MAP.clone());
+        response = response.header("content-type", format!("{}; charset=utf-8",content_type.as_ref()));
     } else {
-        res.headers_mut().unwrap().extend(ALL_MAP.clone());
-        res = res.header("content-type", content_type.as_ref());
+        response.headers_mut().unwrap().extend(ALL_MAP.clone());
+        response = response.header("content-type", content_type.as_ref());
     }
 
     
 
     if on_disk {
-        let file = std::fs::read(on_disk_map.get(path).unwrap()).unwrap();
+        let file = std::fs::read(on_disk_map.get(request_path).unwrap()).unwrap();
 
-        let res = res.body(Body::from(file)).unwrap();
-        Ok(res)
+        let response = response.body(Body::from(file)).unwrap();
+        Ok(response)
     } else {
-        let access_path = if COMPRESSABLE_MIME_TYPES.contains(&content_type.as_ref()) {
+        let access_path = if COMPRESSIBLE_MIME_TYPES.contains(&content_type.as_ref()) {
             if accept_br {
-                res = res.header("content-encoding", "br");
-                format!("{}_br", path)
+                response = response.header("content-encoding", "br");
+                format!("{}_br", request_path)
             } else if accept_gzip {
-                res = res.header("content-encoding", "gzip");
-                format!("{}_gz", path)
+                response = response.header("content-encoding", "gzip");
+                format!("{}_gz", request_path)
             } else {
-                String::from(path)
+                String::from(request_path)
             }
         } else {
-            String::from(path)
+            String::from(request_path)
         };
 
-        let res = res
-            .body(Body::from(fsmap.get(&access_path).unwrap().clone()))
+        let res = response
+            .body(Body::from(memory_map.get(&access_path).unwrap().clone()))
             .unwrap();
         Ok(res)
     }
@@ -178,8 +184,8 @@ pub fn create_header_map(map_type: HeaderMapType) -> HeaderMap<HeaderValue> {
 }
 
 pub fn read_to_memory() -> (HashMap<String, Vec<u8>>, HashMap<String, String>) {
-    let mut fsmap: HashMap<String, Vec<u8>> = HashMap::new();
-    let mut not_in_mem_map: HashMap<String, String> = HashMap::new();
+    let mut memory_map: HashMap<String, Vec<u8>> = HashMap::new();
+    let mut not_in_memory_map: HashMap<String, String> = HashMap::new();
     let config = &CONFIG;
     let mut file_content_size: u128 = 0;
     let mut file_content_size_compressed_gz: u128 = 0;
@@ -199,23 +205,23 @@ pub fn read_to_memory() -> (HashMap<String, Vec<u8>>, HashMap<String, String>) {
             let path_url_encoded =
                 utf8_percent_encode(path_repl_base_path, URL_ENCODING).to_string();
 
-            println!("{}", path_url_encoded);
+            trace!("Loaded: {}", path_url_encoded);
 
-            let is_compressable_type = COMPRESSABLE_MIME_TYPES.contains(
+            let is_compressible_type = COMPRESSIBLE_MIME_TYPES.contains(
                 &mime_guess::from_path(path_str)
                     .first_or_octet_stream()
                     .as_ref(),
             );
 
             if no_memory {
-                not_in_mem_map.insert(path_url_encoded, path_str.into());
+                not_in_memory_map.insert(path_url_encoded, path_str.into());
             } else {
                 file_content_size += file_content.len() as u128;
-                if is_compressable_type {
-                    let mut z = GzEncoder::new(Vec::new(), Compression::best());
-                    z.write_all(file_content.as_slice()).unwrap();
+                if is_compressible_type {
+                    let mut zip_encoder = GzEncoder::new(Vec::new(), Compression::best());
+                    zip_encoder.write_all(file_content.as_slice()).unwrap();
 
-                    let file_content_gz = z.finish().unwrap();
+                    let file_content_gz = zip_encoder.finish().unwrap();
                     file_content_size_compressed_gz += file_content_gz.len() as u128;
 
                     let reader = Cursor::new(&file_content);
@@ -225,15 +231,15 @@ pub fn read_to_memory() -> (HashMap<String, Vec<u8>>, HashMap<String, String>) {
                         .unwrap();
                     file_content_size_compressed_br += file_content_br.len() as u128;
 
-                    fsmap.insert(format!("{}_gz", path_url_encoded), file_content_gz);
-                    fsmap.insert(format!("{}_br", path_url_encoded), file_content_br);
+                    memory_map.insert(format!("{}_gz", path_url_encoded), file_content_gz);
+                    memory_map.insert(format!("{}_br", path_url_encoded), file_content_br);
                 }
-                fsmap.insert(path_url_encoded, file_content);
+                memory_map.insert(path_url_encoded, file_content);
             }
         }
     }
 
-    println!(
+    info!(
         "\n\nIn memory size: {} KiB\nIn memory size compressed gzip: {} KiB\nIn memory size compressed brotli: {} KiB\nTotal memory size: {} KiB",
         file_content_size / 1024 ,
         file_content_size_compressed_gz / 1024 ,
@@ -243,5 +249,5 @@ pub fn read_to_memory() -> (HashMap<String, Vec<u8>>, HashMap<String, String>) {
             
     );
 
-    (fsmap, not_in_mem_map)
+    (memory_map, not_in_memory_map)
 }

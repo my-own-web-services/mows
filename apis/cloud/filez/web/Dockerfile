@@ -8,6 +8,6 @@ COPY . .
 RUN pnpm build
 
 # 1. execution stage
-FROM pektin/feoco
+FROM localhost:5000/feoco
 COPY --from=build-stage /app/dist/ /public/
 COPY server/config.yml /

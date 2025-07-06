@@ -5,13 +5,14 @@ metadata:
     name: minio-filez-default
 spec:
     storageLocation:
-        Minio:
-            bucket:
-                value: "filez"
-            endpoint:
-                value: "https://api-minio.{§ .config.domain §}"
-            password:
-                secret: CONSOLE_SECRET_KEY
-            username:
-                secret: CONSOLE_ACCESS_KEY
+        provider_config:
+            Minio:
+                bucket:
+                    value: "filez"
+                endpoint:
+                    value: "https://api-minio.{§ .config.domain §}"
+                password:
+                    secret: CONSOLE_SECRET_KEY
+                username:
+                    secret: CONSOLE_ACCESS_KEY
             

@@ -1,3 +1,5 @@
 zertificat:
   logFilter: "acme_rs=trace,zertificat=trace"
   tracingFilter: trace
+  acmeEmail: zertificat@vindelicum.eu
+  acmeUrl: https://acme-v02.api.letsencrypt.org/directory

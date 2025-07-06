@@ -45,21 +45,17 @@ spec:
 apiVersion: vault.k8s.mows.cloud/v1
 kind: VaultResource
 metadata:
-    name: filez-auth-sync
+    name: {{ .Values.server.name }}-auth-sync
 spec:
     secretSync:
         kvMapping:
-            frontend:
-                engine: filez-auth
-                path: "filez-web-frontend"
             server:
                 engine: filez-auth
-                path: "filez-server"
+                path: "{{ .Values.server.name }}"
         targets:
             secrets:
-                filez-auth:
+                {{ .Values.server.name }}-auth:
                     data:
-                        webFrontendClientId: "{% .secrets.frontend.clientId %}"
                         serverClientId: "{% .secrets.server.clientId %}"
                         serverClientSecret: "{% .secrets.server.clientSecret %}"
                         issuer: "https://zitadel.{§ .config.domain §}"

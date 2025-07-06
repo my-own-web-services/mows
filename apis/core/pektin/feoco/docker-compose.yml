@@ -7,6 +7,7 @@ services:
                 - ${REGISTRY:-localhost:5000}/${SERVICE_NAME}
             additional_contexts:
                 lock: ../../../../
+                mows-common-rust: ../../../../utils/mows-common-rust
             args:
                 - PROFILE=release # dev or release
                 - SERVICE_NAME=${SERVICE_NAME}

@@ -251,25 +251,27 @@ impl AccessPolicy {
         let mut allowed_ids: HashSet<Uuid> = HashSet::new();
         let mut denied_ids: HashSet<Uuid> = HashSet::new();
 
-        // 1. Get resources owned by the user
-        let owned_query_string = format!(
-            "SELECT {id_col} as id FROM {table_name} WHERE {owner_col} = $1",
-            table_name = resource_auth_info.resource_table,
-            id_col = resource_auth_info.resource_table_id_column,
-            owner_col = resource_auth_info.resource_table_owner_column
-        );
+        if let Some(owner_col) = resource_auth_info.resource_table_owner_column {
+            // 1. Get resources owned by the user
+            let owned_query_string = format!(
+                "SELECT {id_col} as id FROM {table_name} WHERE {owner_col} = $1",
+                table_name = resource_auth_info.resource_table,
+                id_col = resource_auth_info.resource_table_id_column,
+                owner_col = owner_col
+            );
 
-        #[derive(QueryableByName, Debug)]
-        struct ResourceId {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            id: Uuid,
+            #[derive(QueryableByName, Debug)]
+            struct ResourceId {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                id: Uuid,
+            }
+
+            let owned_ids: Vec<ResourceId> = diesel::sql_query(&owned_query_string)
+                .bind::<diesel::sql_types::Uuid, _>(requesting_user_id)
+                .load::<ResourceId>(&mut conn)
+                .await?;
+            allowed_ids.extend(owned_ids.into_iter().map(|r| r.id));
         }
-
-        let owned_ids: Vec<ResourceId> = diesel::sql_query(&owned_query_string)
-            .bind::<diesel::sql_types::Uuid, _>(requesting_user_id)
-            .load::<ResourceId>(&mut conn)
-            .await?;
-        allowed_ids.extend(owned_ids.into_iter().map(|r| r.id));
 
         // 2. Get resources with direct policies
         let direct_policies = schema::access_policies::table

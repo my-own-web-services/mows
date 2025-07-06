@@ -2,7 +2,7 @@ use std::fs::DirEntry;
 
 pub const BASE_PATH: &str = "/public";
 
-pub const COMPRESSABLE_MIME_TYPES: [&str; 15] = [
+pub const COMPRESSIBLE_MIME_TYPES: [&str; 15] = [
     "text/css",
     "application/javascript",
     "text/html",

@@ -15,25 +15,25 @@ spec:
                         displayName: Users
                 adminRoles: ["users"]
                 applications:
-                    -   name: filez-server
+                    -   name: {{ .Values.server.name }}
                         clientDataTarget: 
                             vault:
                                 secretEngineName: filez-auth
-                                secretEngineSubPath: filez-server
+                                secretEngineSubPath: {{ .Values.server.name }}
                                 kubernetesAuthEngineName: zitadel-controller-service-account
                         method:
                             api:
                                 authenticationMethod: basic
-                    -   name: filez-web-frontend
+                    -   name: {{ .Values.web.name }}
                         clientDataTarget: 
                             vault:
                                 secretEngineName: filez-auth
-                                secretEngineSubPath: filez-web-frontend
+                                secretEngineSubPath: {{ .Values.web.name }}
                                 kubernetesAuthEngineName: zitadel-controller-service-account
                         method:
                             oidc:
                                 redirectUris:
-                                    - https://filez-web.{§ .config.domain §}/auth/callback
+                                    - https://{{ .Values.web.subdomain }}.{§ .config.domain §}/auth/callback
                                     {{- if .Values.webFrontend.dev.enabled }}
                                     {{- range .Values.webFrontend.dev.allowedRedirectOrigins }}
                                     - {{ . | quote }}
@@ -46,7 +46,7 @@ spec:
                                 grantTypes:
                                     - authorizationCode
                                 postLogoutRedirectUris:
-                                    - https://filez-web.{§ .config.domain §}
+                                    - https://{{ .Values.web.subdomain }}.{§ .config.domain §}
                                     {{- if .Values.webFrontend.dev.enabled }}
                                     {{- range .Values.webFrontend.dev.allowedRedirectOrigins }}
                                     - {{ . | quote }}
