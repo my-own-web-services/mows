@@ -12,8 +12,6 @@ pub enum FilezError {
     DatabaseError(#[from] diesel::result::Error),
     #[error(transparent)]
     DeadpoolError(#[from] diesel_async::pooled_connection::deadpool::PoolError),
-    #[error("Auth Evaluation Error: {0}")]
-    AuthEvaluationError(String),
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
     #[error("Parse Error: {0}")]
@@ -55,6 +53,8 @@ pub enum FilezError {
     FilezTagError(#[from] crate::models::tags::errors::FilezTagError),
     #[error("UserGroup Error: {0}")]
     UserGroupError(#[from] crate::models::user_groups::errors::UserGroupError),
+    #[error("AccessPolicy Error: {0}")]
+    AccessPolicyError(#[from] crate::models::access_policies::errors::AccessPolicyError),
 }
 
 impl IntoResponse for FilezError {
@@ -63,7 +63,12 @@ impl IntoResponse for FilezError {
             FilezError::DatabaseError(_) | FilezError::DeadpoolError(_) => {
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR
             }
-            FilezError::AuthEvaluationError(_) => axum::http::StatusCode::UNAUTHORIZED,
+            FilezError::AccessPolicyError(ref e) => match e {
+                crate::models::access_policies::errors::AccessPolicyError::AuthEvaluationError(
+                    _,
+                ) => axum::http::StatusCode::FORBIDDEN,
+                _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            },
             FilezError::UrlParseError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::ParseError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::SerdeJsonError(_) => axum::http::StatusCode::BAD_REQUEST,

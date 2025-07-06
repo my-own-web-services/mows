@@ -24,7 +24,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::{files::FilezFile, users::FilezUser};
+use super::{
+    access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+    files::FilezFile,
+    users::FilezUser,
+};
 
 #[derive(
     Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug, AsChangeset,
@@ -96,12 +100,23 @@ impl FileGroup {
     pub async fn list_with_user_access(
         db: &crate::db::Db,
         requesting_user_id: &Uuid,
+        app_id: &Uuid,
         from_index: Option<i64>,
         limit: Option<i64>,
         sort_by: Option<ListFileGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<FileGroup>, FileGroupError> {
         let mut conn = db.pool.get().await?;
+
+        let resources_with_access = AccessPolicy::get_resources_with_access(
+            db,
+            requesting_user_id,
+            app_id,
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupList).unwrap(),
+        )
+        .await?;
+
         let mut query = schema::file_groups::table
             .filter(schema::file_groups::owner_id.eq(requesting_user_id))
             .select(FileGroup::as_select())

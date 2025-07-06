@@ -6,4 +6,6 @@ pub enum UserGroupError {
     DatabaseError(#[from] diesel::result::Error),
     #[error("Deadpool connection error: {0}")]
     DeadpoolError(#[from] diesel_async::pooled_connection::deadpool::PoolError),
+    #[error("AccessPolicy Error: {0}")]
+    AccessPolicyError(#[from] Box<crate::models::access_policies::errors::AccessPolicyError>),
 }

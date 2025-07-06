@@ -6,4 +6,10 @@ pub enum AccessPolicyError {
     DatabaseError(#[from] diesel::result::Error),
     #[error("Deadpool connection error: {0}")]
     DeadpoolError(#[from] diesel_async::pooled_connection::deadpool::PoolError),
+    #[error("Unsupported resource type: {0}")]
+    ResourceAuthInfoError(String),
+    #[error("Auth evaluation error: {0}")]
+    AuthEvaluationError(String),
+    #[error("UserGroup Error: {0}")]
+    UserGroupError(#[from] crate::models::user_groups::errors::UserGroupError),
 }
