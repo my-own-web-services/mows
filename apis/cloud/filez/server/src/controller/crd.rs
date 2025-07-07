@@ -1,9 +1,6 @@
-use super::errors::ControllerError;
 use crate::{
-    models::{
-        apps::MowsAppConfig,
-        storage_locations::StorageLocationConfigCrd,
-    },
+    errors::FilezError,
+    models::{apps::MowsAppConfig, storage_locations::StorageLocationConfigCrd},
     storage::errors::StorageError,
 };
 use k8s_openapi::api::core::v1::Secret;
@@ -44,7 +41,7 @@ impl SecretReadableByFilezController {
     pub async fn fetch_map(
         kube_client: &kube::Client,
         namespace: &str,
-    ) -> Result<SecretReadableByFilezController, ControllerError> {
+    ) -> Result<SecretReadableByFilezController, FilezError> {
         let secrets_api: kube::api::Api<Secret> =
             kube::api::Api::namespaced(kube_client.clone(), namespace);
 

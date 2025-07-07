@@ -1,5 +1,4 @@
-pub mod errors;
-use crate::{schema, utils::get_uuid};
+use crate::{errors::FilezError, schema, utils::get_uuid};
 use diesel::{
     pg::Pg,
     prelude::{Insertable, Queryable},
@@ -7,7 +6,6 @@ use diesel::{
     ExpressionMethods, OptionalExtension, Selectable,
 };
 use diesel_async::RunQueryDsl;
-use errors::FilezUserError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use utoipa::ToSchema;
@@ -41,7 +39,7 @@ impl FilezUser {
         db: &crate::db::Db,
         external_user_id: &str,
         display_name: &str,
-    ) -> Result<uuid::Uuid, FilezUserError> {
+    ) -> Result<uuid::Uuid, FilezError> {
         let mut conn = db.pool.get().await?;
 
         let existing_user = crate::schema::users::table
@@ -70,7 +68,7 @@ impl FilezUser {
     pub async fn get_many_by_id(
         db: &crate::db::Db,
         user_ids: &[Uuid],
-    ) -> Result<HashMap<Uuid, FilezUser>, FilezUserError> {
+    ) -> Result<HashMap<Uuid, FilezUser>, FilezError> {
         let mut conn = db.pool.get().await?;
 
         let users: Vec<FilezUser> = schema::users::table
@@ -85,7 +83,7 @@ impl FilezUser {
     pub async fn get_by_external_id(
         db: &crate::db::Db,
         external_user_id: &str,
-    ) -> Result<FilezUser, FilezUserError> {
+    ) -> Result<FilezUser, FilezError> {
         let mut conn = db.pool.get().await?;
 
         let result = schema::users::table

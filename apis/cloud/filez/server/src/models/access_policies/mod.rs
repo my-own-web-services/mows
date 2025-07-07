@@ -1,5 +1,4 @@
 pub mod check;
-pub mod errors;
 use crate::{
     api::access_policies::list::ListAccessPoliciesSortBy,
     db::Db,
@@ -15,7 +14,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
-use errors::AccessPolicyError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use utoipa::ToSchema;
@@ -243,7 +241,7 @@ impl AccessPolicy {
         context_app_id: &Uuid,
         resource_type: &str,
         action_to_perform: &str,
-    ) -> Result<Vec<Uuid>, AccessPolicyError> {
+    ) -> Result<Vec<Uuid>, FilezError> {
         let mut conn = db.pool.get().await?;
         let resource_auth_info = check::get_auth_info(resource_type)?;
         let user_group_ids = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
@@ -380,7 +378,7 @@ impl AccessPolicy {
         limit: Option<i64>,
         sort_by: Option<ListAccessPoliciesSortBy>,
         sort_order: Option<SortDirection>,
-    ) -> Result<Vec<AccessPolicy>, AccessPolicyError> {
+    ) -> Result<Vec<AccessPolicy>, FilezError> {
         let mut conn = db.pool.get().await?;
 
         let resources_with_access = Self::get_resources_with_access(
@@ -480,7 +478,7 @@ impl AccessPolicy {
         resource_type: &str,
         requested_resource_ids: Option<&[Uuid]>,
         action_to_perform: &str,
-    ) -> Result<AuthResult, AccessPolicyError> {
+    ) -> Result<AuthResult, FilezError> {
         let user_group_ids = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
 
         check_resources_access_control(

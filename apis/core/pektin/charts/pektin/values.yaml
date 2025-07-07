@@ -5,7 +5,7 @@ api:
   name: pektin-api
   replicaCount: 1
   vaultUrl: http://vault.mows-core-secrets-vault:8200
-  logFilter: error
+  logFilter: error,pektin-api=trace
   tracingFilter: error
 
 server:

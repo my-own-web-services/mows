@@ -1,5 +1,6 @@
 use crate::{
     config::config,
+    errors::FilezError,
     utils::{get_uuid, is_dev_origin},
 };
 use diesel::{
@@ -9,7 +10,6 @@ use diesel::{
     ExpressionMethods, PgArrayExpressionMethods, Selectable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use errors::MowsAppError;
 use mows_common_rust::get_current_config_cloned;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -17,8 +17,6 @@ use std::str::FromStr;
 use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-pub mod errors;
 
 #[derive(
     Serialize,
@@ -88,7 +86,7 @@ impl MowsApp {
         }
     }
 
-    pub async fn delete(db: &crate::db::Db, name: &str) -> Result<(), MowsAppError> {
+    pub async fn delete(db: &crate::db::Db, name: &str) -> Result<(), FilezError> {
         let mut connection = db.pool.get().await?;
         diesel::delete(crate::schema::apps::table)
             .filter(crate::schema::apps::name.eq(name))
@@ -101,7 +99,7 @@ impl MowsApp {
     pub async fn get_from_headers(
         db: &crate::db::Db,
         request_headers: &axum::http::HeaderMap,
-    ) -> Result<MowsApp, MowsAppError> {
+    ) -> Result<MowsApp, FilezError> {
         match request_headers
             .get("origin")
             .and_then(|v| v.to_str().ok())
@@ -127,7 +125,7 @@ impl MowsApp {
     pub async fn get_app_by_origin(
         db: &crate::db::Db,
         origin: &Url,
-    ) -> Result<MowsApp, MowsAppError> {
+    ) -> Result<MowsApp, FilezError> {
         let mut connection = db.pool.get().await?;
 
         let app = crate::schema::apps::table
@@ -143,7 +141,7 @@ impl MowsApp {
         db: &crate::db::Db,
         app_config: &MowsAppConfig,
         full_name: &str,
-    ) -> Result<MowsApp, MowsAppError> {
+    ) -> Result<MowsApp, FilezError> {
         let mut connection = db.pool.get().await?;
 
         let existing_app = crate::schema::apps::table

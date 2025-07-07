@@ -1,10 +1,11 @@
 use std::{collections::HashMap, ops::Deref};
 
 use actix_web::{post, web, HttpRequest, Responder};
+use opentelemetry::trace;
 use pektin_common::deadpool_redis::redis::AsyncCommands;
 use pektin_common::{DbEntry, PektinCommonError, RrSet};
 use serde_json::json;
-use tracing::{debug, info_span, instrument, Instrument};
+use tracing::{debug, info_span, instrument, trace, Instrument};
 
 use crate::db::get_zone_dnskey_records;
 use crate::dnssec::create_nsec3_chain;
@@ -176,34 +177,38 @@ pub async fn set(
             match rrsig_records {
                 Err(e) => return internal_err(e.to_string()),
                 Ok(rrsig_records) if !rrsig_records.is_empty() => {
+                    trace!("RRSIG records to be set: {:?}", rrsig_records);
                     if let Err(e) = dnssec_con.mset::<_, _, ()>(&rrsig_records).await {
                         return internal_err(PektinCommonError::from(e).to_string());
                     }
                 }
                 _ => {
-                    println!("{:?}", req_body.records);
+                    debug!("No RRSIG records to be set.");
                 }
             }
 
             let res = match entries {
                 Err(e) => internal_err(e.to_string()),
-                Ok(entries) => match con.mset(&entries).await {
-                    Ok(()) => {
-                        let messages = entries[0..entries_length]
-                            .iter()
-                            .map(|_| "set record")
-                            .collect();
-                        success("set records", messages)
-                    }
-                    Err(e) => {
-                        let to_be_deleted: Vec<String> = entries[entries_length..]
-                            .to_vec()
-                            .iter()
-                            .map(|e| e.0.clone())
-                            .collect();
-                        match dnssec_con.del::<_, u32>(to_be_deleted).await {
-                            Err(ee) => internal_err(format!("FATAL: POSSIBLE INCONSISTENCY: Setting non DNSSEC records failed, while setting DNSSEC records succeeded. The removal of the successful set DNSSEC records failed again. {}{}", PektinCommonError::from(e), ee)),
-                            Ok(_) => internal_err(PektinCommonError::from(e).to_string()),
+                Ok(entries) => {
+                    trace!("Entries to be set: {:?}", entries);
+                    match con.mset(&entries).await {
+                        Ok(()) => {
+                            let messages = entries[0..entries_length]
+                                .iter()
+                                .map(|_| "set record")
+                                .collect();
+                            success("set records", messages)
+                        }
+                        Err(e) => {
+                            let to_be_deleted: Vec<String> = entries[entries_length..]
+                                .to_vec()
+                                .iter()
+                                .map(|e| e.0.clone())
+                                .collect();
+                            match dnssec_con.del::<_, u32>(to_be_deleted).await {
+                                Err(ee) => internal_err(format!("FATAL: POSSIBLE INCONSISTENCY: Setting non DNSSEC records failed, while setting DNSSEC records succeeded. The removal of the successful set DNSSEC records failed again. {}{}", PektinCommonError::from(e), ee)),
+                                Ok(_) => internal_err(PektinCommonError::from(e).to_string()),
+                            }
                         }
                     }
                 },

@@ -1,4 +1,6 @@
-use super::{crd::FilezResource, errors::ControllerError};
+use crate::errors::FilezError;
+
+use super::crd::FilezResource;
 use kube::ResourceExt;
 use opentelemetry::trace::TraceId;
 use prometheus_client::{
@@ -82,7 +84,7 @@ impl ReconcileMetrics {
         self
     }
 
-    pub fn set_failure(&self, doc: &FilezResource, e: &ControllerError) {
+    pub fn set_failure(&self, doc: &FilezResource, e: &FilezError) {
         self.failures
             .get_or_create(&ErrorLabels {
                 instance: doc.name_any(),

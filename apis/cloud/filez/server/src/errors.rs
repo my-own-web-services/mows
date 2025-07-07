@@ -1,60 +1,67 @@
+use std::fmt::{Debug, Formatter};
+
 use axum::response::IntoResponse;
 
 use crate::{
-    models::apps::errors::MowsAppError,
     storage::errors::StorageError,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum FilezError {
-    #[error(transparent)]
+    #[error("Database Error: {0}")]
     DatabaseError(#[from] diesel::result::Error),
-    #[error(transparent)]
+
+    #[error("Deadpool Error: {0}")]
     DeadpoolError(#[from] diesel_async::pooled_connection::deadpool::PoolError),
-    #[error(transparent)]
+
+    #[error("Url Parse Error: {0}")]
     UrlParseError(#[from] url::ParseError),
+
     #[error("Parse Error: {0}")]
     ParseError(String),
-    #[error(transparent)]
+
+    #[error("Serde JSON Error: {0}")]
     SerdeJsonError(#[from] serde_json::Error),
-    #[error(transparent)]
+
+    #[error("Mime Error: {0}")]
     MimeError(#[from] mime_guess::mime::FromStrError),
-    #[error(transparent)]
+
+    #[error("Generic Error: {0}")]
     GenericError(#[from] anyhow::Error),
+
     #[error("Resource not found: {0}")]
     ResourceNotFound(String),
+
     #[error("IO Error: {0}")]
     IoError(#[from] std::io::Error),
-    #[error(transparent)]
+
+    #[error("Storage Error: {0}")]
     StorageError(#[from] StorageError),
-    // invalid request
+
     #[error("Invalid request: {0}")]
     InvalidRequest(String),
-    // unsupported media type
+
     #[error("Unsupported media type: {0}")]
     UnsupportedMediaType(String),
-    // unauthorized
+
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
-    #[error(" MowsApp Error: {0}")]
-    MowsAppError(#[from] MowsAppError),
-    #[error("FileVersion Error: {0}")]
-    FileVersionError(#[from] crate::models::file_versions::errors::FileVersionError),
-    #[error("FilezFile Error: {0}")]
-    FilezFileError(#[from] crate::models::files::errors::FilezFileError),
-    #[error("FilezUser Error: {0}")]
-    FilezUserError(#[from] crate::models::users::errors::FilezUserError),
-    #[error("StorageLocation Error: {0}")]
-    StorageLocationError(#[from] crate::models::storage_locations::errors::StorageLocationError),
-    #[error("FileGroup Error: {0}")]
-    FileGroupError(#[from] crate::models::file_groups::errors::FileGroupError),
-    #[error("FilezTag Error: {0}")]
-    FilezTagError(#[from] crate::models::tags::errors::FilezTagError),
-    #[error("UserGroup Error: {0}")]
-    UserGroupError(#[from] crate::models::user_groups::errors::UserGroupError),
-    #[error("AccessPolicy Error: {0}")]
-    AccessPolicyError(#[from] crate::models::access_policies::errors::AccessPolicyError),
+
+    #[error("Unsupported resource type: {0}")]
+    ResourceAuthInfoError(String),
+
+    #[error("Auth evaluation error: {0}")]
+    AuthEvaluationError(String),
+
+    #[error("Kube Error: {0}")]
+    ControllerKubeError(#[from] kube::Error),
+
+    #[error("Finalizer Error: {0}")]
+    ControllerFinalizerError(#[from] Box<kube::runtime::finalizer::Error<FilezError>>),
+
+    #[error("Missing resource name: {0}")]
+    ControllerMissingResourceName(String),
 }
 
 impl IntoResponse for FilezError {
@@ -63,12 +70,7 @@ impl IntoResponse for FilezError {
             FilezError::DatabaseError(_) | FilezError::DeadpoolError(_) => {
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR
             }
-            FilezError::AccessPolicyError(ref e) => match e {
-                crate::models::access_policies::errors::AccessPolicyError::AuthEvaluationError(
-                    _,
-                ) => axum::http::StatusCode::FORBIDDEN,
-                _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            },
+
             FilezError::UrlParseError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::ParseError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::SerdeJsonError(_) => axum::http::StatusCode::BAD_REQUEST,
@@ -87,4 +89,32 @@ impl IntoResponse for FilezError {
         };
         (status, axum::Json(body)).into_response()
     }
+}
+
+impl FilezError {
+    pub fn metric_label(&self) -> String {
+        format!("{self:?}").to_lowercase()
+    }
+}
+
+struct TypedDebugWrapper<'a, T: ?Sized>(&'a T);
+
+impl<T: Debug> Debug for TypedDebugWrapper<'_, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}::{:?}", core::any::type_name::<T>(), self.0)
+    }
+}
+
+trait TypedDebug: Debug {
+    fn typed_debug(&self) -> TypedDebugWrapper<'_, Self> {
+        TypedDebugWrapper(self)
+    }
+}
+
+impl<T: ?Sized + Debug> TypedDebug for T {}
+
+pub fn get_error_type(e: &FilezError) -> String {
+    let reason = format!("{:?}", e.typed_debug());
+    let reason = reason.split_at(reason.find('(').unwrap_or(0)).0;
+    reason.to_string()
 }

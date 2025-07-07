@@ -1,12 +1,12 @@
 use crate::{
     config::config,
     db::Db,
+    errors::{get_error_type, FilezError},
     models::{apps::MowsApp, storage_locations::StorageLocation},
     state::ServerState,
 };
 use chrono::{DateTime, Utc};
 use crd::{FilezResource, FilezResourceSpec, FilezResourceStatus, SecretReadableByFilezController};
-use errors::{get_error_type, ControllerError, Result};
 use futures::StreamExt;
 use kube::{
     api::{Api, ListParams, Patch, PatchParams},
@@ -28,8 +28,9 @@ use tokio::sync::RwLock;
 use tracing::{error, field, info, instrument, warn, Span};
 
 pub mod crd;
-pub mod errors;
 pub mod metrics;
+
+pub type Result<T, E = FilezError> = std::result::Result<T, E>;
 
 pub static FINALIZER: &str = "filez.k8s.mows.cloud";
 
@@ -38,7 +39,7 @@ async fn inner_reconcile(
     ctx: &ControllerContext,
     name: &str,
     namespace: &str,
-) -> Result<(), ControllerError> {
+) -> Result<(), FilezError> {
     let full_name = format!("{}-{}", namespace, name);
     match &resource.spec {
         FilezResourceSpec::StorageLocation(incoming_provider_config) => {
@@ -68,7 +69,9 @@ impl FilezResource {
         let filez_resources_api: Api<FilezResource> =
             Api::namespaced(kube_client.clone(), &self.namespace().unwrap_or_default());
         let name = self.metadata.name.clone().ok_or_else(|| {
-            ControllerError::MissingResourceName(self.metadata.name.clone().unwrap_or_default())
+            FilezError::ControllerMissingResourceName(
+                self.metadata.name.clone().unwrap_or_default(),
+            )
         })?;
 
         let namespace = self
@@ -225,7 +228,7 @@ impl Diagnostics {
 pub async fn run(state: ServerState) -> Result<()> {
     let client = Client::try_default().await.map_err(|e| {
         error!("Failed to create Kubernetes client: {e:?}");
-        ControllerError::KubeError(e)
+        FilezError::ControllerKubeError(e)
     })?;
     let filez_resource = Api::<FilezResource>::all(client.clone());
     if let Err(e) = filez_resource.list(&ListParams::default().limit(1)).await {
@@ -282,12 +285,12 @@ async fn reconcile(
         }
     })
     .await
-    .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
+    .map_err(|e| FilezError::ControllerFinalizerError(Box::new(e)))
 }
 
 fn error_policy(
     vault_resource: Arc<FilezResource>,
-    error: &ControllerError,
+    error: &FilezError,
     ctx: Arc<ControllerContext>,
     reconcile_interval_seconds: u64,
 ) -> Action {

@@ -114,7 +114,7 @@ pub enum PektinApiError {
     IoError(#[from] std::io::Error),
     // TODO: change this to a manual From impl, also this is not really Vault-specific
     #[error("Error contacting Vault: {0}")]
-    Vault(#[from] reqwest::Error),
+    VaultOldImpl(#[from] reqwest::Error),
     #[error("Invalid Base64")]
     Base64(#[from] data_encoding::DecodeError),
     #[error("Could not parse the signature received from Vault")]
