@@ -1,6 +1,6 @@
-pub mod errors;
 use crate::{
     controller::crd::SecretReadableByFilezController,
+    errors::FilezError,
     storage::{
         config::{StorageProviderConfig, StorageProviderConfigCrd},
         providers::StorageProvider,
@@ -16,7 +16,6 @@ use diesel::{
     ExpressionMethods, Selectable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use errors::StorageLocationError;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -50,7 +49,7 @@ pub struct StorageLocationConfigCrd {
 }
 
 impl StorageLocation {
-    pub async fn delete(db: &crate::db::Db, name: &str) -> Result<(), StorageLocationError> {
+    pub async fn delete(db: &crate::db::Db, name: &str) -> Result<(), FilezError> {
         let mut connection = db.pool.get().await?;
         diesel::delete(crate::schema::storage_locations::table)
             .filter(crate::schema::storage_locations::name.eq(name))
@@ -65,7 +64,7 @@ impl StorageLocation {
         full_name: &str,
         secrets: SecretReadableByFilezController,
         storage_location_config_crd: &StorageLocationConfigCrd,
-    ) -> Result<(), StorageLocationError> {
+    ) -> Result<(), FilezError> {
         let mut connection = db.pool.get().await?;
 
         let provider = storage_location_config_crd
@@ -108,7 +107,7 @@ impl StorageLocation {
         Ok(())
     }
 
-    pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<Self, StorageLocationError> {
+    pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<Self, FilezError> {
         let mut connection = db.pool.get().await?;
 
         let storage_location = crate::schema::storage_locations::table
@@ -117,17 +116,17 @@ impl StorageLocation {
             .first::<StorageLocation>(&mut connection)
             .await
             .map_err(|e| match e {
-                diesel::result::Error::NotFound => StorageLocationError::NotFound(format!(
+                diesel::result::Error::NotFound => FilezError::ResourceNotFound(format!(
                     "Storage location not found for id: {}",
                     id
                 )),
-                _ => StorageLocationError::from(e),
+                _ => FilezError::from(e),
             })?;
 
         Ok(storage_location)
     }
 
-    pub async fn initialize_provider(&self) -> Result<StorageProvider, StorageLocationError> {
+    pub async fn initialize_provider(&self) -> Result<StorageProvider, FilezError> {
         Ok(StorageProvider::initialize(&self.provider_config, &self.id.to_string()).await?)
     }
 
@@ -136,7 +135,7 @@ impl StorageLocation {
         full_file_path: &str,
         timing: axum_server_timing::ServerTimingExtension,
         range: &Option<(Option<u64>, Option<u64>)>,
-    ) -> Result<axum::body::Body, StorageLocationError> {
+    ) -> Result<axum::body::Body, FilezError> {
         let provider = self.initialize_provider().await?;
         Ok(provider.get_content(full_file_path, timing, range).await?)
     }
@@ -145,7 +144,7 @@ impl StorageLocation {
         &self,
         full_file_path: &str,
         timing: axum_server_timing::ServerTimingExtension,
-    ) -> Result<BigDecimal, StorageLocationError> {
+    ) -> Result<BigDecimal, FilezError> {
         let provider = self.initialize_provider().await?;
         Ok(provider.get_file_size(full_file_path, timing).await?)
     }
@@ -158,7 +157,7 @@ impl StorageLocation {
         mime_type: &str,
         offset: u64,
         length: u64,
-    ) -> Result<(), StorageLocationError> {
+    ) -> Result<(), FilezError> {
         let provider = self.initialize_provider().await?;
         Ok(provider
             .update_content(full_file_path, timing, request, mime_type, offset, length)

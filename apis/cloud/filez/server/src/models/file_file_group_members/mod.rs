@@ -1,5 +1,3 @@
-pub mod errors;
-
 use diesel::{
     pg::Pg,
     prelude::{Associations, Insertable, Queryable},

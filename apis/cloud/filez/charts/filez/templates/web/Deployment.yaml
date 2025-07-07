@@ -16,9 +16,6 @@ spec:
                 -   name: {{ .Values.web.name }}-client-config
                     secret:
                         secretName: {{ .Values.web.name }}-client-config
-                -   name: {{ .Values.web.name }}-server-config
-                    configMap:
-                        name: {{ .Values.web.name }}-server-config
             containers:
                 -   name: {{ .Values.web.name }}
                     image: "{{ .Values.web.image }}"
@@ -40,10 +37,6 @@ spec:
                         -   name: {{ .Values.web.name }}-client-config
                             mountPath: /public/client-config.json
                             subPath: client-config.json
-                            readOnly: true
-                        -   name: {{ .Values.web.name }}-server-config
-                            mountPath: /config.yaml
-                            subPath: config.yaml
                             readOnly: true
                     env:
                         -   name: SERVICE_NAME

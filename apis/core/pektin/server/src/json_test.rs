@@ -13,7 +13,7 @@ use std::str::FromStr;
 use url::Url;
 
 fn main() -> PektinResult<()> {
-    let name = Name::from_str("vonforell.de.")?;
+    let name = Name::from_str("")?;
 
     let a = RData::A(Ipv4Addr::from_str("2.56.96.115").unwrap());
     let aaaa = RData::AAAA(Ipv6Addr::from_str("2a03:4000:3e:dd::1").unwrap());

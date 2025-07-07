@@ -33,9 +33,9 @@ use tracing_actix_web::TracingLogger;
 async fn main() -> anyhow::Result<()> {
     init_observability().await;
 
-    println!("Loading config...");
+    debug!("Loading config...");
     let config = get_current_config_cloned!();
-    println!("Config loaded successfully.\n");
+    debug!("Config loaded successfully.\n");
 
     // the db pool needs to be created in the HttpServer::new closure because of trait bounds.
     // in there, we cannot use the ? operator. to notify the user about a potentially invalid db

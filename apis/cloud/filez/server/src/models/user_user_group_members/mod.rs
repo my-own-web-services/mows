@@ -1,5 +1,3 @@
-pub mod errors;
-
 use std::fs::File;
 
 use diesel::{

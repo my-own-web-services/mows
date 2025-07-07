@@ -1,4 +1,4 @@
-use crate::{db::Db, schema::file_versions};
+use crate::{db::Db, errors::FilezError, schema::file_versions};
 use axum::extract::Request;
 use bigdecimal::BigDecimal;
 use diesel::{
@@ -9,14 +9,11 @@ use diesel::{
 };
 use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
-use errors::FileVersionError;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::{files::FilezFile, storage_locations::StorageLocation};
-
-pub mod errors;
 
 #[derive(
     Serialize,
@@ -54,7 +51,7 @@ impl FileVersion {
         version: Option<u32>,
         app_id: &Uuid,
         app_path: &Option<String>,
-    ) -> Result<FileVersion, FileVersionError> {
+    ) -> Result<FileVersion, FilezError> {
         let mut connection = db.pool.get().await?;
 
         // if the version is None, we fetch the latest version
@@ -79,11 +76,11 @@ impl FileVersion {
             .first::<FileVersion>(&mut connection)
             .await
             .map_err(|e| match e {
-                diesel::result::Error::NotFound => FileVersionError::NotFound(format!(
+                diesel::result::Error::NotFound => FilezError::ResourceNotFound(format!(
                     "FileVersion not found for file_id: {}, version: {}",
                     file_id, version
                 )),
-                _ => FileVersionError::from(e),
+                _ => FilezError::from(e),
             })?;
 
         Ok(file_version)
@@ -104,7 +101,7 @@ impl FileVersion {
         db: &Db,
         timing: axum_server_timing::ServerTimingExtension,
         range: &Option<(Option<u64>, Option<u64>)>,
-    ) -> Result<axum::body::Body, FileVersionError> {
+    ) -> Result<axum::body::Body, FilezError> {
         let storage_location = StorageLocation::get_by_id(db, &self.storage_id).await?;
         let content = storage_location
             .get_content(&self.full_file_path(), timing, range)
@@ -117,7 +114,7 @@ impl FileVersion {
         &self,
         db: &Db,
         timing: axum_server_timing::ServerTimingExtension,
-    ) -> Result<BigDecimal, FileVersionError> {
+    ) -> Result<BigDecimal, FilezError> {
         let storage_location = StorageLocation::get_by_id(db, &self.storage_id).await?;
         let size = storage_location
             .get_file_size(&self.full_file_path(), timing)
@@ -133,7 +130,7 @@ impl FileVersion {
         request: Request,
         offset: u64,
         length: u64,
-    ) -> Result<(), FileVersionError> {
+    ) -> Result<(), FilezError> {
         let storage_location = StorageLocation::get_by_id(db, &self.storage_id).await?;
 
         let file = FilezFile::get_by_id(db, self.file_id).await?;
@@ -160,7 +157,7 @@ impl FileVersion {
         metadata: FileVersionMetadata,
         size: BigDecimal,
         storage_id: Uuid,
-    ) -> Result<FileVersion, FileVersionError> {
+    ) -> Result<FileVersion, FilezError> {
         let mut connection = db.pool.get().await?;
 
         let version_number = file_versions::table

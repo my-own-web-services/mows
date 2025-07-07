@@ -1,7 +1,4 @@
-use crate::{
-    controller::crd::SecretReadableByFilezController,
-    models::storage_locations::errors::StorageLocationError,
-};
+use crate::{controller::crd::SecretReadableByFilezController, errors::FilezError};
 
 use super::providers::minio::{StorageProviderConfigMinio, StorageProviderConfigMinioCrd};
 use diesel_as_jsonb::AsJsonb;
@@ -23,7 +20,7 @@ impl StorageProviderConfigCrd {
     pub fn convert_secrets(
         &self,
         secrets: SecretReadableByFilezController,
-    ) -> Result<StorageProviderConfig, StorageLocationError> {
+    ) -> Result<StorageProviderConfig, FilezError> {
         let provider_config = match self {
             StorageProviderConfigCrd::Minio(config) => {
                 StorageProviderConfig::Minio(config.clone().convert_secrets(secrets)?)

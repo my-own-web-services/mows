@@ -6,11 +6,11 @@ use pektin_common::deadpool_redis::Connection;
 use pektin_common::proto::rr::Name;
 use pektin_common::{get_authoritative_zones, DbEntry, PektinCommonError, RrSet};
 use tokio::time::sleep;
-use tracing::{debug, error};
+use tracing::{debug, error, trace};
 
 use crate::db::{get_or_mget_records, get_zone_dnskey_records};
 use crate::dnssec::sign_db_entry;
-use crate::errors_and_responses::PektinApiResult;
+use crate::errors_and_responses::{PektinApiError, PektinApiResult};
 use crate::types::AppState;
 use crate::utils::find_authoritative_zone;
 
@@ -82,12 +82,21 @@ async fn signing_task_run(state: &AppState, threshold: Duration) -> PektinApiRes
         })
         .collect();
 
-    dnssec_con
-        .set_multiple::<_, _, ()>(&rrsig_records?)
-        .await
-        .map_err(PektinCommonError::from)?;
-
-    Ok(())
+    match rrsig_records {
+        Err(e) => return Err(PektinApiError::GenericError(e.to_string())),
+        Ok(rrsig_records) if !rrsig_records.is_empty() => {
+            trace!("RRSIG records to be set: {:?}", rrsig_records);
+            dnssec_con
+                .mset::<_, _, ()>(&rrsig_records)
+                .await
+                .map_err(PektinCommonError::from)?;
+            Ok(())
+        }
+        _ => {
+            debug!("No RRSIG records to be set.");
+            return Ok(());
+        }
+    }
 }
 
 async fn get_records_to_be_resigned(
@@ -111,7 +120,14 @@ async fn get_records_to_be_resigned(
             },
         ) => {
             let expiring_records = rr_set.iter().filter(|record| {
-                let expiration = Utc.timestamp(record.signature_expiration as i64, 0);
+                let expiration = Utc
+                    .timestamp_opt(record.signature_expiration as i64, 0)
+                    .single();
+                if expiration.is_none() {
+                    return false;
+                }
+                let expiration = expiration.unwrap();
+
                 expiration - now < threshold
             });
             if expiring_records.count() > 0 {

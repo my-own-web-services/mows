@@ -50,13 +50,6 @@ pub fn from_env() -> PektinApiResult<ApiConfig> {
             "VAULT_SIGNER_SECRET_MOUNT_PATH",
             false,
         )?,
-        otel_endpoint_url: load_env(
-            "http://mows-core-tracing-jaeger-collector.mows-core-tracing:4317",
-            "OTEL_ENDPOINT_URL",
-            false,
-        )?,
-        log_filter: load_env("info", "LOG_FILTER", false)?,
-        tracing_filter: load_env("info", "TRACING_FILTER", false)?,
     })
 }
 
@@ -78,7 +71,4 @@ pub struct ApiConfig {
     pub vault_kubernetes_auth_role: String,
     pub policy_vault_path: String,
     pub vault_signing_secret_mount_path: String,
-    pub otel_endpoint_url: String,
-    pub log_filter: String,
-    pub tracing_filter: String,
 }

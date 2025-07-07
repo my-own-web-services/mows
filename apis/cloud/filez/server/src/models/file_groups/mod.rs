@@ -1,10 +1,9 @@
-pub mod errors;
-
 use crate::{
     api::file_groups::{
         list::ListFileGroupsSortBy,
         list_files::{ListFilesSortBy, ListFilesSorting},
     },
+    errors::FilezError,
     schema,
     types::SortDirection,
     utils::{get_uuid, InvalidEnumType},
@@ -19,7 +18,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
-use errors::FileGroupError;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -78,7 +76,7 @@ impl FileGroup {
         }
     }
 
-    pub async fn create(db: &crate::db::Db, file_group: &FileGroup) -> Result<(), FileGroupError> {
+    pub async fn create(db: &crate::db::Db, file_group: &FileGroup) -> Result<(), FilezError> {
         let mut conn = db.pool.get().await?;
         diesel::insert_into(schema::file_groups::table)
             .values(file_group)
@@ -87,7 +85,7 @@ impl FileGroup {
         Ok(())
     }
 
-    pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<FileGroup, FileGroupError> {
+    pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<FileGroup, FilezError> {
         let mut conn = db.pool.get().await?;
         let file_group = schema::file_groups::table
             .filter(schema::file_groups::id.eq(id))
@@ -105,7 +103,7 @@ impl FileGroup {
         limit: Option<i64>,
         sort_by: Option<ListFileGroupsSortBy>,
         sort_order: Option<SortDirection>,
-    ) -> Result<Vec<FileGroup>, FileGroupError> {
+    ) -> Result<Vec<FileGroup>, FilezError> {
         let mut conn = db.pool.get().await?;
 
         let resources_with_access = AccessPolicy::get_resources_with_access(
@@ -161,7 +159,7 @@ impl FileGroup {
         db: &crate::db::Db,
         file_group_id: &Uuid,
         name: &str,
-    ) -> Result<(), FileGroupError> {
+    ) -> Result<(), FilezError> {
         let mut conn = db.pool.get().await?;
         diesel::update(schema::file_groups::table.find(file_group_id))
             .set((
@@ -173,7 +171,7 @@ impl FileGroup {
         Ok(())
     }
 
-    pub async fn delete(db: &crate::db::Db, file_group_id: &Uuid) -> Result<(), FileGroupError> {
+    pub async fn delete(db: &crate::db::Db, file_group_id: &Uuid) -> Result<(), FilezError> {
         let mut conn = db.pool.get().await?;
         diesel::delete(schema::file_groups::table.find(file_group_id))
             .execute(&mut conn)
@@ -184,7 +182,7 @@ impl FileGroup {
     pub async fn get_file_count(
         db: &crate::db::Db,
         file_group_id: &Uuid,
-    ) -> Result<i64, FileGroupError> {
+    ) -> Result<i64, FilezError> {
         let mut conn = db.pool.get().await?;
 
         let count = schema::file_file_group_members::table
@@ -202,7 +200,7 @@ impl FileGroup {
         from_index: Option<i64>,
         limit: Option<i64>,
         sort: Option<ListFilesSorting>,
-    ) -> Result<Vec<FilezFile>, FileGroupError> {
+    ) -> Result<Vec<FilezFile>, FilezError> {
         let mut conn = db.pool.get().await?;
         match sort {
             Some(ListFilesSorting::StoredSortOrder(stored_sort_order)) => {

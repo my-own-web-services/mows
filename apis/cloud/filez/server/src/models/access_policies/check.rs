@@ -1,3 +1,4 @@
+use crate::errors::FilezError;
 use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPolicySubjectType};
 use crate::{db::Db, schema};
 use diesel::{
@@ -11,7 +12,6 @@ use std::collections::{HashMap, HashSet};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::errors::AccessPolicyError;
 use super::AccessPolicyResourceType;
 
 pub async fn check_resources_access_control(
@@ -23,7 +23,7 @@ pub async fn check_resources_access_control(
     resource_type: &str,
     requested_resource_ids: Option<&[Uuid]>,
     action_to_perform: &str,
-) -> Result<AuthResult, AccessPolicyError> {
+) -> Result<AuthResult, FilezError> {
     let mut conn = db.pool.get().await?;
     let resource_auth_info = get_auth_info(resource_type)?;
 
@@ -107,13 +107,9 @@ pub async fn check_resources_access_control(
             let mut direct_policies_map: HashMap<Uuid, Vec<AccessPolicy>> = HashMap::new();
             for policy in direct_policies {
                 direct_policies_map
-                    .entry(
-                        policy
-                            .resource_id
-                            .ok_or(AccessPolicyError::AuthEvaluationError(
-                                "Direct policy missing resource_id".to_string(),
-                            ))?,
-                    )
+                    .entry(policy.resource_id.ok_or(FilezError::AuthEvaluationError(
+                        "Direct policy missing resource_id".to_string(),
+                    ))?)
                     .or_default()
                     .push(policy);
             }
@@ -186,11 +182,9 @@ pub async fn check_resources_access_control(
 
                     for policy in resource_group_policies {
                         resource_group_policies_map
-                            .entry(policy.resource_id.ok_or(
-                                AccessPolicyError::AuthEvaluationError(
-                                    "Resource group policy missing resource_id".to_string(),
-                                ),
-                            )?)
+                            .entry(policy.resource_id.ok_or(FilezError::AuthEvaluationError(
+                                "Resource group policy missing resource_id".to_string(),
+                            ))?)
                             .or_default()
                             .push(policy);
                     }
@@ -544,7 +538,7 @@ pub struct ResourceAuthInfo {
     pub resource_group_type_policy_str: Option<&'static str>,
 }
 
-pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, AccessPolicyError> {
+pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, FilezError> {
     Ok(match resource_type {
         "file" => ResourceAuthInfo {
             resource_table: "files",
@@ -628,9 +622,7 @@ pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, AccessPoli
             resource_group_type_policy_str: None,
         },
         _ => {
-            return Err(AccessPolicyError::ResourceAuthInfoError(
-                resource_type.to_string(),
-            ));
+            return Err(FilezError::ResourceAuthInfoError(resource_type.to_string()));
         }
     })
 }
@@ -649,13 +641,11 @@ impl AuthResult {
     pub fn is_denied(&self) -> bool {
         !self.access_granted
     }
-    pub fn verify(&self) -> Result<(), AccessPolicyError> {
+    pub fn verify(&self) -> Result<(), FilezError> {
         if self.is_allowed() {
             Ok(())
         } else {
-            Err(AccessPolicyError::AuthEvaluationError(
-                "Access denied".to_string(),
-            ))
+            Err(FilezError::AuthEvaluationError("Access denied".to_string()))
         }
     }
 }

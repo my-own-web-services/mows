@@ -1,8 +1,9 @@
+use opentelemetry::trace;
 use pektin_common::deadpool_redis::redis::{AsyncCommands, FromRedisValue, Value};
 use pektin_common::proto::rr::Name;
 use pektin_common::{deadpool_redis, DnskeyRecord, PektinCommonError, RrSet};
 use pektin_common::{deadpool_redis::Connection, DbEntry};
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, trace};
 
 use crate::errors_and_responses::{PektinApiError, PektinApiResult};
 use crate::types::RecordIdentifier;
@@ -12,9 +13,15 @@ pub async fn get_or_mget_records(
     keys: &[String],
     con: &mut Connection,
 ) -> Result<Vec<Option<DbEntry>>, PektinCommonError> {
-    // if only one key comes back in the response, db returns an error because it cannot parse the reponse as a vector,
+    // if only one key comes back in the response, db returns an error because it cannot parse the response as a vector,
     // and there were also issues with a "too many arguments for a GET command" error. we therefore roll our own implementation
     // using only low-level commands.
+    if keys.is_empty() {
+        return Ok(vec![]);
+    }
+
+    trace!("get_or_mget_records: {:?}", keys);
+
     if keys.len() == 1 {
         debug!("using GET command");
 
@@ -121,7 +128,7 @@ pub async fn get_zone_keys(
 
     // TODO filter out DNSSEC records
 
-    // if the queries contains one or more pairs of zones where one zone is a subzone of the
+    // if the queries contains one or more pairs of zones where one zone is a sub-zone of the
     // other (e.g. we have a SOA record for both example.com. and a.example.com.), we don't
     // want the records of the child zone (e.g. a.example.com.) to appear in the parent zone's
     // records (e.g. example.com.)

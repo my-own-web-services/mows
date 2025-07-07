@@ -1,5 +1,3 @@
-pub mod errors;
-
 use std::collections::HashMap;
 
 use diesel::{
@@ -11,13 +9,15 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 use diesel_as_jsonb::AsJsonb;
-use errors::FilezFileError;
 use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{api::files::meta::update::UpdateFilesMetaTypeTagsMethod, schema, utils::get_uuid};
+use crate::{
+    api::files::meta::update::UpdateFilesMetaTypeTagsMethod, errors::FilezError, schema,
+    utils::get_uuid,
+};
 
 use super::{file_tag_members::FileTagMember, tags::FilezTag, users::FilezUser};
 
@@ -57,10 +57,7 @@ impl FilezFile {
         }
     }
 
-    pub async fn get_by_id(
-        db: &crate::db::Db,
-        file_id: uuid::Uuid,
-    ) -> Result<Self, FilezFileError> {
+    pub async fn get_by_id(db: &crate::db::Db, file_id: uuid::Uuid) -> Result<Self, FilezError> {
         Ok(crate::schema::files::table
             .filter(crate::schema::files::id.eq(file_id))
             .select(FilezFile::as_select())
@@ -68,7 +65,7 @@ impl FilezFile {
             .await?)
     }
 
-    pub async fn create(&self, db: &crate::db::Db) -> Result<FilezFile, FilezFileError> {
+    pub async fn create(&self, db: &crate::db::Db) -> Result<FilezFile, FilezError> {
         Ok(diesel::insert_into(crate::schema::files::table)
             .values(self)
             .returning(FilezFile::as_returning())
@@ -76,7 +73,7 @@ impl FilezFile {
             .await?)
     }
 
-    pub async fn delete(db: &crate::db::Db, file_id: uuid::Uuid) -> Result<(), FilezFileError> {
+    pub async fn delete(db: &crate::db::Db, file_id: uuid::Uuid) -> Result<(), FilezError> {
         // delete the file and all versions associated with it
 
         diesel::delete(crate::schema::file_versions::table)
@@ -95,7 +92,7 @@ impl FilezFile {
     pub async fn get_tags(
         db: &crate::db::Db,
         file_ids: &[Uuid],
-    ) -> Result<HashMap<Uuid, HashMap<String, String>>, FilezFileError> {
+    ) -> Result<HashMap<Uuid, HashMap<String, String>>, FilezError> {
         let mut conn = db.pool.get().await?;
 
         let tags: Vec<(Uuid, String, String)> = schema::file_tag_members::table
@@ -126,7 +123,7 @@ impl FilezFile {
     pub async fn get_many_by_id(
         db: &crate::db::Db,
         file_ids: &Vec<Uuid>,
-    ) -> Result<HashMap<Uuid, FilezFile>, FilezFileError> {
+    ) -> Result<HashMap<Uuid, FilezFile>, FilezError> {
         let mut conn = db.pool.get().await?;
 
         let result = schema::files::table
@@ -147,7 +144,7 @@ impl FilezFile {
         tags: &HashMap<String, String>,
         method: &UpdateFilesMetaTypeTagsMethod,
         created_by_user_id: &Uuid,
-    ) -> Result<(), FilezFileError> {
+    ) -> Result<(), FilezError> {
         let mut conn = db.pool.get().await?;
 
         match method {
