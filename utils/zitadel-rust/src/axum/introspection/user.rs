@@ -69,7 +69,7 @@ impl IntoResponse for IntrospectionGuardError {
 #[derive(Debug)]
 pub struct IntrospectedUser {
     /// UserID of the introspected user (OIDC Field "sub").
-    pub user_id: String,
+    pub user_id: Option<String>,
     pub username: Option<String>,
     pub name: Option<String>,
     pub given_name: Option<String>,
@@ -185,7 +185,7 @@ where
             Ok(res) => match res.active() {
                 true if res.sub().is_some() => Ok(res.into()),
                 false => Err(IntrospectionGuardError::Inactive),
-                _ => Err(IntrospectionGuardError::NoUserId),
+                _ => Ok(res.into()),
             },
             Err(e) => return Err(IntrospectionGuardError::Introspection(e.to_string())),
         };
@@ -197,7 +197,7 @@ where
 impl From<ZitadelIntrospectionResponse> for IntrospectedUser {
     fn from(response: ZitadelIntrospectionResponse) -> Self {
         Self {
-            user_id: response.sub().unwrap().to_string(),
+            user_id: response.sub().map(|s| s.to_string()),
             username: response.username().map(|s| s.to_string()),
             name: response.extra_fields().name.clone(),
             given_name: response.extra_fields().given_name.clone(),

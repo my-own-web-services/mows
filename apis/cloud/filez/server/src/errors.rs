@@ -70,7 +70,6 @@ impl IntoResponse for FilezError {
             FilezError::DatabaseError(_) | FilezError::DeadpoolError(_) => {
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR
             }
-
             FilezError::UrlParseError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::ParseError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::SerdeJsonError(_) => axum::http::StatusCode::BAD_REQUEST,

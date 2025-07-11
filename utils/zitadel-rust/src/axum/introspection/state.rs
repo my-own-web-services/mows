@@ -24,17 +24,15 @@ pub(crate) struct IntrospectionConfig {
 
 impl IntrospectionState {
     pub async fn get_introspection_uri(&self) -> Result<IntrospectionUrl, IntrospectionGuardError> {
-        // First, check if we already have the URI (read lock)
-
         let config = self.config.read().await;
         if let Some(introspection_uri) = &config.introspection_uri {
             return Ok(introspection_uri.clone());
         }
 
-        // Discover the URI
         let metadata = discover(&config.authority.clone()).await?;
 
-        // Update the config (write lock)
+        drop(config);
+
         {
             let mut config = self.config.write().await;
             config.introspection_uri = metadata

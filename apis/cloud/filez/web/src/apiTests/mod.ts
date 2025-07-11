@@ -1,13 +1,10 @@
 import { Api } from "../api-client";
+import { testUsers } from "./Users";
 
 export const runTests = async (filezClient: Api<unknown>) => {
     console.log("Running API tests...");
 
-    testUsers(filezClient);
+    await testUsers(filezClient);
 
     console.log("API tests completed.");
-};
-
-const testUsers = async (filezClient: Api<unknown>) => {
-    console.log("Testing users...");
 };
