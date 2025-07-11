@@ -13,10 +13,13 @@ spec:
                     -   key: users
                         group: users
                         displayName: Users
-                adminRoles: ["users"]
+                    -   key: superadmins
+                        group: superadmins
+                        displayName: Super Admins
+                adminRoles: ["users","superadmins"]
                 applications:
                     -   name: {{ .Values.server.name }}
-                        clientDataTarget: 
+                        clientDataTarget:
                             vault:
                                 secretEngineName: filez-auth
                                 secretEngineSubPath: {{ .Values.server.name }}
@@ -59,4 +62,3 @@ spec:
                                 {{- if .Values.webFrontend.dev.enabled }}
                                 devMode: true
                                 {{- end }}
-          

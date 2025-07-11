@@ -85,7 +85,7 @@ pub async fn tus_patch(
         })?;
 
     let requesting_user = with_timing!(
-        FilezUser::get_by_external_id(&db, &external_user.user_id).await?,
+        FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
         "Database operation to get user by external ID",
         timing
     );

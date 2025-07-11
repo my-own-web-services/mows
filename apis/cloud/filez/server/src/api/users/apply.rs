@@ -24,12 +24,7 @@ pub async fn apply_user(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
 ) -> Result<Json<ApiResponse<ApplyUserResponseBody>>, FilezError> {
     let user_id = with_timing!(
-        FilezUser::apply(
-            &db,
-            &external_user.user_id,
-            &external_user.preferred_username.unwrap_or("".to_string()),
-        )
-        .await?,
+        FilezUser::apply(&db, external_user).await?,
         "Database operation to apply user",
         timing
     );

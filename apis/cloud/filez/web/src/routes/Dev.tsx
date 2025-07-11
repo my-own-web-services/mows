@@ -22,6 +22,7 @@ export default class Dev extends Component<DevProps, DevState> {
 
     runTestSuite = async () => {
         if (!this.props.filezClient) {
+            console.error("Filez client is not initialized.");
             return;
         }
         await runTests(this.props.filezClient);

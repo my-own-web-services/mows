@@ -13,13 +13,14 @@ interface AppProps {
     readonly auth?: AuthState;
 }
 
-interface AppState {}
+interface AppState {
+    readonly filezClient: Api<unknown> | null;
+}
 class App extends Component<AppProps, AppState> {
-    filezClient: Api<unknown> | null = null;
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            user: null
+            filezClient: null
         };
     }
 
@@ -30,8 +31,8 @@ class App extends Component<AppProps, AppState> {
         previousState: Readonly<AppState>,
         snapshot: any
     ) => {
-        if (!this.filezClient && this.props.auth?.user) {
-            this.filezClient = new Api({
+        if (!this.state.filezClient && this.props.auth?.user) {
+            const filezClient = new Api({
                 baseUrl: "https://filez-server.vindelicorum.eu",
                 baseApiParams: { secure: true },
                 securityWorker: async () => ({
@@ -41,8 +42,11 @@ class App extends Component<AppProps, AppState> {
                     }
                 })
             });
-            console.log("Api client initialized with user token");
-            await this.filezClient.api.applyUser();
+
+            this.setState({ filezClient }, async () => {
+                console.log("Api client initialized with user token");
+                await this.state.filezClient?.api.applyUser();
+            });
         }
     };
 
@@ -54,7 +58,7 @@ class App extends Component<AppProps, AppState> {
             >
                 <Router>
                     <Route path="/" component={Home} />
-                    <Dev path="/dev" filezClient={this.filezClient} />
+                    <Dev path="/dev" filezClient={this.state.filezClient} />
                     <Auth path="/auth/:remaining_path*" />
                 </Router>
             </div>

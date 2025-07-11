@@ -2,6 +2,7 @@ diesel::table! {
     users {
         id -> Uuid,
         external_user_id -> Nullable<Text>,
+        pre_identifier_email -> Nullable<Text>,
         display_name -> Text,
         created_time -> Timestamp,
         modified_time -> Timestamp,
@@ -128,6 +129,21 @@ diesel::table! {
         effect -> Text,
     }
 }
+
+diesel::table! {
+    storage_quotas (subject_type, subject_id, storage_location_id) {
+        subject_type -> Text,
+        subject_id -> Uuid,
+        storage_location_id -> Uuid,
+
+        created_time -> Timestamp,
+        modified_time -> Timestamp,
+
+        quota_bytes -> Numeric,
+        ignore_quota -> Bool,
+    }
+}
+diesel::joinable!(storage_quotas -> storage_locations (storage_location_id));
 
 diesel::table! {
     file_group_file_sort_orders {
