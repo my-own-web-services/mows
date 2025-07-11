@@ -24,7 +24,7 @@ use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
-    path = "/api/files/versions/create/",
+    path = "/api/files/versions/create",
     request_body = CreateFileVersionRequestBody,
     description = "Create a new file version entry in the database",
     responses(

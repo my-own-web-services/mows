@@ -18,7 +18,7 @@ use crate::{
 
 #[utoipa::path(
     post,
-    path = "/api/user_groups",
+    path = "/api/user_groups/create",
     request_body = CreateUserGroupRequestBody,
     responses(
         (status = 200, description = "Creates a new user group", body = ApiResponse<UserGroup>),

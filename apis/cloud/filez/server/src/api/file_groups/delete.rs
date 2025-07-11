@@ -22,7 +22,7 @@ use crate::{
 
 #[utoipa::path(
     delete,
-    path = "/api/file_groups/{file_group_id}",
+    path = "/api/file_groups/delete/{file_group_id}",
     responses(
         (status = 200, description = "Deletes a file group", body = ApiResponse<String>),
     )

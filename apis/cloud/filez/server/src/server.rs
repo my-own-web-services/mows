@@ -79,9 +79,7 @@ async fn main() -> Result<(), anyhow::Error> {
         // USER GROUPS
         .routes(routes!(api::user_groups::create::create_user_group))
         .routes(routes!(api::user_groups::get::get_user_group))
-        .routes(routes!(
-            api::user_groups::update_user_group::update_user_group
-        ))
+        .routes(routes!(api::user_groups::update::update_user_group))
         .routes(routes!(api::user_groups::delete::delete_user_group))
         .routes(routes!(api::user_groups::list::list_user_groups))
         .routes(routes!(api::user_groups::list_users::list_users))

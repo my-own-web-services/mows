@@ -21,7 +21,7 @@ use crate::{
 
 #[utoipa::path(
     post,
-    path = "/api/access_policies",
+    path = "/api/access_policies/create",
     request_body = CreateAccessPolicyRequestBody,
     responses(
         (status = 200, description = "Creates a new access policy", body = ApiResponse<AccessPolicy>),

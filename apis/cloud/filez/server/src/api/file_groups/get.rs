@@ -22,7 +22,7 @@ use crate::{
 
 #[utoipa::path(
     get,
-    path = "/api/file_groups/{file_group_id}",
+    path = "/api/file_groups/get/{file_group_id}",
     responses(
         (status = 200, description = "Gets a file group by ID", body = ApiResponse<FileGroup>),
     )

@@ -21,7 +21,7 @@ use crate::{
 
 #[utoipa::path(
     delete,
-    path = "/api/access_policies/{access_policy_id}",
+    path = "/api/access_policies/delete/{access_policy_id}",
     responses(
         (status = 200, description = "Deletes a access policy", body = ApiResponse<String>),
     )

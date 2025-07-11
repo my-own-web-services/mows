@@ -9,8 +9,12 @@ use crate::{
 };
 use check::{check_resources_access_control, AuthResult};
 use diesel::{
-    deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::Text, update,
-    AsChangeset,
+    deserialize::FromSqlRow,
+    expression::AsExpression,
+    pg::Pg,
+    prelude::*,
+    sql_types::{SmallInt, Text},
+    update, AsChangeset,
 };
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
@@ -20,6 +24,22 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::user_groups::UserGroup;
+
+// macro to filter for subject type
+#[macro_export]
+macro_rules! filter_subject {
+    ($requesting_user_id:expr, $user_group_ids:expr) => {
+        schema::access_policies::subject_type
+            .eq(AccessPolicySubjectType::Public)
+            .or(schema::access_policies::subject_type.eq(AccessPolicySubjectType::ServerMember))
+            .or(schema::access_policies::subject_type
+                .eq(AccessPolicySubjectType::User)
+                .and(schema::access_policies::subject_id.eq($requesting_user_id)))
+            .or(schema::access_policies::subject_type
+                .eq(AccessPolicySubjectType::UserGroup)
+                .and(schema::access_policies::subject_id.eq_any($user_group_ids)))
+    };
+}
 
 #[derive(
     Debug,
@@ -34,12 +54,14 @@ use super::user_groups::UserGroup;
     Deserialize,
     ToSchema,
 )]
-#[diesel(sql_type = Text)]
+#[diesel(sql_type = SmallInt)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
 pub enum AccessPolicySubjectType {
-    User,
-    UserGroup,
+    User = 0,
+    UserGroup = 1,
+    ServerMember = 2,
+    Public = 3,
 }
 
 #[derive(
@@ -81,12 +103,12 @@ pub enum AccessPolicyResourceType {
     Deserialize,
     ToSchema,
 )]
-#[diesel(sql_type = Text)]
+#[diesel(sql_type = SmallInt)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
 pub enum AccessPolicyEffect {
-    Deny,
-    Allow,
+    Deny = 0,
+    Allow = 1,
 }
 
 #[derive(DbEnum, Debug, Serialize, Clone, Copy, PartialEq, Eq, Deserialize, ToSchema)]
@@ -113,6 +135,14 @@ pub enum AccessPolicyAction {
 
     #[serde(rename = "filez.users.get")]
     UsersGet,
+    #[serde(rename = "filez.users.list")]
+    UsersList,
+    #[serde(rename = "filez.users.create")]
+    UsersCreate,
+    #[serde(rename = "filez.users.update")]
+    UsersUpdate,
+    #[serde(rename = "filez.users.delete")]
+    UsersDelete,
 
     #[serde(rename = "filez.file_groups.create")]
     FileGroupCreate,
@@ -173,7 +203,7 @@ pub struct AccessPolicy {
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
 
-    #[diesel(sql_type = diesel::sql_types::Text)]
+    #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
 
@@ -205,8 +235,8 @@ impl AccessPolicy {
             name: name.to_string(),
             created_time: chrono::Utc::now().naive_utc(),
             modified_time: chrono::Utc::now().naive_utc(),
-            subject_type,
             subject_id,
+            subject_type,
             context_app_id,
             resource_type,
             resource_id,
@@ -279,14 +309,7 @@ impl AccessPolicy {
             )
             .filter(schema::access_policies::context_app_id.eq(context_app_id))
             .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-            .filter(
-                schema::access_policies::subject_type
-                    .eq(AccessPolicySubjectType::User)
-                    .and(schema::access_policies::subject_id.eq(requesting_user_id))
-                    .or(schema::access_policies::subject_type
-                        .eq(AccessPolicySubjectType::UserGroup)
-                        .and(schema::access_policies::subject_id.eq_any(&user_group_ids))),
-            )
+            .filter(filter_subject!(requesting_user_id, &user_group_ids))
             .select((
                 schema::access_policies::resource_id,
                 schema::access_policies::effect,
@@ -339,7 +362,7 @@ impl AccessPolicy {
             struct GroupPolicyResult {
                 #[diesel(sql_type = diesel::sql_types::Uuid)]
                 id: Uuid,
-                #[diesel(sql_type = diesel::sql_types::Text)]
+                #[diesel(sql_type = diesel::sql_types::SmallInt)]
                 effect: AccessPolicyEffect,
             }
 

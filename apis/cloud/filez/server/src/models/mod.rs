@@ -9,5 +9,6 @@ pub mod storage_locations;
 pub mod storage_quotas;
 pub mod tags;
 pub mod user_groups;
+pub mod user_relations;
 pub mod user_user_group_members;
 pub mod users;

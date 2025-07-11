@@ -1,4 +1,7 @@
-use crate::{config::config, errors::FilezError, schema, utils::get_uuid};
+use crate::{
+    api::users::list::ListUsersSortBy, config::config, errors::FilezError, schema,
+    types::SortDirection, utils::get_uuid,
+};
 use axum::http::HeaderMap;
 use diesel::{
     pg::Pg,
@@ -27,19 +30,75 @@ pub struct FilezUser {
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
     pub deleted: bool,
+    pub profile_picture: Option<Uuid>,
+}
+
+#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Debug)]
+#[diesel(table_name = crate::schema::users)]
+#[diesel(check_for_backend(Pg))]
+pub struct ListedFilezUser {
+    pub id: Uuid,
+    pub display_name: String,
+    pub created_time: chrono::NaiveDateTime,
 }
 
 impl FilezUser {
-    pub fn new(external_user_id: Option<String>, display_name: &str) -> Self {
+    pub fn new(
+        external_user_id: Option<String>,
+        pre_identifier_email: Option<String>,
+        display_name: Option<String>,
+    ) -> Self {
         Self {
             id: get_uuid(),
             external_user_id,
-            pre_identifier_email: None,
-            display_name: display_name.to_string(),
+            pre_identifier_email,
+            display_name: display_name.unwrap_or_else(|| "".to_string()),
             created_time: chrono::Utc::now().naive_utc(),
             modified_time: chrono::Utc::now().naive_utc(),
             deleted: false,
+            profile_picture: None,
         }
+    }
+
+    pub async fn list_with_user_access(
+        db: &crate::db::Db,
+        requesting_user_id: &Uuid,
+        app_id: &Uuid,
+        from_index: Option<i64>,
+        limit: Option<i64>,
+        sort_by: Option<ListUsersSortBy>,
+        sort_order: Option<SortDirection>,
+    ) -> Result<Vec<ListedFilezUser>, FilezError> {
+        todo!()
+    }
+
+    pub async fn delete(db: &crate::db::Db, user_id: &Uuid) -> Result<(), FilezError> {
+        let mut conn = db.pool.get().await?;
+        diesel::update(crate::schema::users::table.find(user_id))
+            .set((
+                crate::schema::users::deleted.eq(true),
+                crate::schema::users::modified_time.eq(chrono::Utc::now().naive_utc()),
+            ))
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn create(
+        db: &crate::db::Db,
+        email: &str,
+        requesting_user_id: &Uuid,
+    ) -> Result<Self, FilezError> {
+        let mut conn = db.pool.get().await?;
+        let new_user = Self::new(None, Some(email.to_string()), None);
+
+        let result = diesel::insert_into(crate::schema::users::table)
+            .values(&new_user)
+            .get_result::<FilezUser>(&mut conn)
+            .await?;
+
+        debug!("Created new user with ID: {}", result.id);
+        Ok(result)
     }
 
     pub async fn apply(
@@ -112,7 +171,7 @@ impl FilezUser {
             return Ok(user.id);
         };
 
-        let new_user = FilezUser::new(Some(external_user_id.to_string()), &display_name);
+        let new_user = FilezUser::new(Some(external_user_id.to_string()), None, Some(display_name));
 
         let result = diesel::insert_into(crate::schema::users::table)
             .values(&new_user)

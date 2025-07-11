@@ -15,7 +15,11 @@ pub mod files {
 }
 pub mod users {
     pub mod apply;
+    pub mod create;
+    pub mod delete;
     pub mod get;
+    pub mod list;
+    pub mod update;
 }
 
 pub mod access_policies {
@@ -27,7 +31,14 @@ pub mod access_policies {
     pub mod update;
 }
 
-pub mod user_groups;
+pub mod user_groups {
+    pub mod create;
+    pub mod delete;
+    pub mod get;
+    pub mod list;
+    pub mod list_users;
+    pub mod update;
+}
 
 pub mod file_groups {
     pub mod create;
