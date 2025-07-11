@@ -24,7 +24,7 @@ use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     put,
-    path = "/api/access_policies/{access_policy_id}",
+    path = "/api/access_policies/update/{access_policy_id}",
     request_body = UpdateAccessPolicyRequestBody,
     responses(
         (status = 200, description = "Updates a access policy", body = ApiResponse<AccessPolicy>),

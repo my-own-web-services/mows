@@ -21,7 +21,7 @@ use crate::{
 
 #[utoipa::path(
     get,
-    path = "/api/access_policies/{access_policy_id}",
+    path = "/api/access_policies/get/{access_policy_id}",
     responses(
         (status = 200, description = "Gets a access policy by ID", body = ApiResponse<AccessPolicy>),
     )

@@ -18,7 +18,7 @@ use crate::{
 
 #[utoipa::path(
     post,
-    path = "/api/file_groups",
+    path = "/api/file_groups/create",
     request_body = CreateFileGroupRequestBody,
     responses(
         (status = 200, description = "Creates a new file group", body = ApiResponse<FileGroup>),

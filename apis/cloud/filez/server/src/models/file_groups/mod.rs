@@ -60,8 +60,8 @@ pub struct FileGroup {
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
 pub enum FileGroupType {
-    Manual,
-    Dynamic,
+    Manual = 0,
+    Dynamic = 1,
 }
 
 impl FileGroup {

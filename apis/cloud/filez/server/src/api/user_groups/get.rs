@@ -21,7 +21,7 @@ use crate::{
 
 #[utoipa::path(
     get,
-    path = "/api/user_groups/{user_group_id}",
+    path = "/api/user_groups/get/{user_group_id}",
     responses(
         (status = 200, description = "Gets a user group by ID", body = ApiResponse<UserGroup>),
     )

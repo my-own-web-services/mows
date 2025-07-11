@@ -1,9 +1,10 @@
+use super::AccessPolicyResourceType;
 use crate::errors::FilezError;
+use crate::filter_subject;
 use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPolicySubjectType};
 use crate::{db::Db, schema};
 use diesel::{
-    pg::sql_types, prelude::QueryableByName, BoolExpressionMethods, ExpressionMethods,
-    SelectableHelper,
+    pg::sql_types, prelude::*, BoolExpressionMethods, ExpressionMethods, SelectableHelper,
 };
 use diesel::{PgArrayExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -11,8 +12,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-use super::AccessPolicyResourceType;
 
 pub async fn check_resources_access_control(
     db: &Db,
@@ -92,14 +91,7 @@ pub async fn check_resources_access_control(
                 )
                 .filter(schema::access_policies::context_app_id.eq(context_app_id))
                 .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-                .filter(
-                    schema::access_policies::subject_type
-                        .eq(AccessPolicySubjectType::User)
-                        .and(schema::access_policies::subject_id.eq(&requesting_user_id))
-                        .or(schema::access_policies::subject_type
-                            .eq(AccessPolicySubjectType::UserGroup)
-                            .and(schema::access_policies::subject_id.eq_any(user_group_ids))),
-                )
+                .filter(filter_subject!(requesting_user_id, user_group_ids))
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut conn)
                 .await?;
@@ -166,16 +158,7 @@ pub async fn check_resources_access_control(
                         )
                         .filter(schema::access_policies::context_app_id.eq(context_app_id))
                         .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-                        .filter(
-                            schema::access_policies::subject_type
-                                .eq(AccessPolicySubjectType::User)
-                                .and(schema::access_policies::subject_id.eq(&requesting_user_id))
-                                .or(schema::access_policies::subject_type
-                                    .eq(AccessPolicySubjectType::UserGroup)
-                                    .and(
-                                        schema::access_policies::subject_id.eq_any(user_group_ids),
-                                    )),
-                        )
+                        .filter(filter_subject!(requesting_user_id, user_group_ids))
                         .select(AccessPolicy::as_select())
                         .load::<AccessPolicy>(&mut conn)
                         .await?;
@@ -229,6 +212,16 @@ pub async fn check_resources_access_control(
                                         via_user_group_id: policy.subject_id,
                                     }
                                 }
+                                AccessPolicySubjectType::Public => {
+                                    AuthReason::AllowedByPubliclyAccessible {
+                                        policy_id: policy.id,
+                                    }
+                                }
+                                AccessPolicySubjectType::ServerMember => {
+                                    AuthReason::AllowedByServerAccessible {
+                                        policy_id: policy.id,
+                                    }
+                                }
                             };
                             break;
                         }
@@ -262,6 +255,16 @@ pub async fn check_resources_access_control(
                                                 policy_id: policy.id,
                                                 via_user_group_id: policy.subject_id,
                                                 on_resource_group_id: resource_group_id.clone(),
+                                            }
+                                        }
+                                        AccessPolicySubjectType::Public => {
+                                            AuthReason::AllowedByPubliclyAccessible {
+                                                policy_id: policy.id,
+                                            }
+                                        }
+                                        AccessPolicySubjectType::ServerMember => {
+                                            AuthReason::AllowedByServerAccessible {
+                                                policy_id: policy.id,
                                             }
                                         }
                                     };
@@ -310,6 +313,16 @@ pub async fn check_resources_access_control(
                                         via_user_group_id: policy.subject_id,
                                     }
                                 }
+                                AccessPolicySubjectType::Public => {
+                                    AuthReason::AllowedByPubliclyAccessible {
+                                        policy_id: policy.id,
+                                    }
+                                }
+                                AccessPolicySubjectType::ServerMember => {
+                                    AuthReason::AllowedByServerAccessible {
+                                        policy_id: policy.id,
+                                    }
+                                }
                             };
                             break;
                         }
@@ -344,6 +357,16 @@ pub async fn check_resources_access_control(
                                                 on_resource_group_id: *rg_id,
                                             }
                                         }
+                                        AccessPolicySubjectType::Public => {
+                                            AuthReason::AllowedByPubliclyAccessible {
+                                                policy_id: policy.id,
+                                            }
+                                        }
+                                        AccessPolicySubjectType::ServerMember => {
+                                            AuthReason::AllowedByServerAccessible {
+                                                policy_id: policy.id,
+                                            }
+                                        }
                                     };
                                     break;
                                 }
@@ -375,14 +398,7 @@ pub async fn check_resources_access_control(
                 )
                 .filter(schema::access_policies::context_app_id.eq(context_app_id))
                 .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-                .filter(
-                    schema::access_policies::subject_type
-                        .eq(AccessPolicySubjectType::User)
-                        .and(schema::access_policies::subject_id.eq(requesting_user_id))
-                        .or(schema::access_policies::subject_type
-                            .eq(AccessPolicySubjectType::UserGroup)
-                            .and(schema::access_policies::subject_id.eq_any(user_group_ids))),
-                )
+                .filter(filter_subject!(requesting_user_id, user_group_ids))
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut conn)
                 .await?;
@@ -402,6 +418,14 @@ pub async fn check_resources_access_control(
                             AuthReason::DeniedByDirectGroupPolicy {
                                 policy_id: deny_policy.id,
                                 via_user_group_id: deny_policy.subject_id,
+                            }
+                        }
+                        AccessPolicySubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
+                            policy_id: deny_policy.id,
+                        },
+                        AccessPolicySubjectType::ServerMember => {
+                            AuthReason::DeniedByServerAccessible {
+                                policy_id: deny_policy.id,
                             }
                         }
                     },
@@ -427,6 +451,16 @@ pub async fn check_resources_access_control(
                             AuthReason::AllowedByDirectGroupPolicy {
                                 policy_id: allow_policy.id,
                                 via_user_group_id: allow_policy.subject_id,
+                            }
+                        }
+                        AccessPolicySubjectType::Public => {
+                            AuthReason::AllowedByPubliclyAccessible {
+                                policy_id: allow_policy.id,
+                            }
+                        }
+                        AccessPolicySubjectType::ServerMember => {
+                            AuthReason::AllowedByServerAccessible {
+                                policy_id: allow_policy.id,
                             }
                         }
                     },
@@ -482,6 +516,12 @@ struct ResourceGroupMembership {
 #[derive(Debug, Serialize, Clone, PartialEq, Eq, Deserialize, ToSchema)]
 pub enum AuthReason {
     Owned,
+    AllowedByPubliclyAccessible {
+        policy_id: Uuid,
+    },
+    AllowedByServerAccessible {
+        policy_id: Uuid,
+    },
     AllowedByDirectUserPolicy {
         policy_id: Uuid,
     },
@@ -497,6 +537,12 @@ pub enum AuthReason {
         policy_id: Uuid,
         via_user_group_id: Uuid,
         on_resource_group_id: Uuid,
+    },
+    DeniedByPubliclyAccessible {
+        policy_id: Uuid,
+    },
+    DeniedByServerAccessible {
+        policy_id: Uuid,
     },
     DeniedByDirectUserPolicy {
         policy_id: Uuid,

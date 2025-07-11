@@ -7,6 +7,17 @@ diesel::table! {
         created_time -> Timestamp,
         modified_time -> Timestamp,
         deleted -> Bool,
+        profile_picture -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
+    user_relations (user_id, friend_id) {
+        user_id -> Uuid,
+        friend_id -> Uuid,
+        created_time -> Timestamp,
+        modified_time -> Timestamp,
+        status -> SmallInt,
     }
 }
 
@@ -116,7 +127,7 @@ diesel::table! {
         created_time -> Timestamp,
         modified_time -> Timestamp,
 
-        subject_type -> Text,
+        subject_type -> SmallInt,
         subject_id -> Uuid,
 
         context_app_id -> Nullable<Uuid>,
@@ -126,7 +137,7 @@ diesel::table! {
 
         actions -> Array<Text>,
 
-        effect -> Text,
+        effect -> SmallInt,
     }
 }
 

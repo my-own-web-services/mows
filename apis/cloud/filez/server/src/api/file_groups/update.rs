@@ -23,7 +23,7 @@ use crate::{
 
 #[utoipa::path(
     put,
-    path = "/api/file_groups/{file_group_id}",
+    path = "/api/file_groups/update/{file_group_id}",
     request_body = UpdateFileGroupRequestBody,
     responses(
         (status = 200, description = "Updates a file group", body = ApiResponse<FileGroup>),
