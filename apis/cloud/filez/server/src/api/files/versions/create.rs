@@ -1,9 +1,9 @@
 use crate::{
     errors::FilezError,
     models::{
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
         file_versions::{FileVersion, FileVersionMetadata},
-        files::FilezFile,
         users::FilezUser,
     },
     state::ServerState,
@@ -50,23 +50,27 @@ pub async fn create_file_version(
         timing
     );
 
-    let file = with_timing!(
-        FilezFile::get_by_id(&db, request_body.file_id).await?,
-        "Database operation to get file by ID",
+    with_timing!(
+        AccessPolicy::check(
+            &db,
+            &requesting_user.id,
+            &requesting_app.id,
+            requesting_app.trusted,
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            None,
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsCreate).unwrap(),
+        )
+        .await?
+        .verify()?,
+        "Database operation to check access control",
         timing
     );
-
-    if file.owner_id != requesting_user.id {
-        return Err(FilezError::Unauthorized(
-            "You are not the owner of this file".to_string(),
-        ));
-    }
 
     let db_created_file_version = with_timing!(
         FileVersion::create(
             &db,
             request_body.file_id,
-            Some(requesting_app.id),
+            requesting_app.id,
             request_body.app_path,
             request_body.metadata,
             request_body.size,

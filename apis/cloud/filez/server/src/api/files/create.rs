@@ -61,7 +61,7 @@ pub async fn create_file(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileCreate).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesCreate).unwrap(),
         )
         .await?
         .verify()?,

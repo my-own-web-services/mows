@@ -105,21 +105,26 @@ impl MowsApp {
             .and_then(|v| v.to_str().ok())
             .map(|s| s.to_string())
         {
-            Some(origin) => {
-                let config = get_current_config_cloned!(config());
-
-                let origin_url = Url::from_str(&origin)?;
-
-                if origin_url == config.primary_origin {
-                    return Ok(MowsApp::first_party().await);
-                } else if let Some(dev_origin) = is_dev_origin(&config, &origin_url).await {
-                    return Ok(MowsApp::dev(&dev_origin));
-                }
-                let app = MowsApp::get_app_by_origin(db, &origin_url).await?;
-                Ok(app)
-            }
+            Some(origin) => Self::get_from_origin_string(db, &origin).await,
             None => Ok(MowsApp::no_origin()),
         }
+    }
+
+    pub async fn get_from_origin_string(
+        db: &crate::db::Db,
+        origin: &str,
+    ) -> Result<MowsApp, FilezError> {
+        let config = get_current_config_cloned!(config());
+
+        let origin_url = Url::from_str(&origin)?;
+
+        if origin_url == config.primary_origin {
+            return Ok(MowsApp::first_party().await);
+        } else if let Some(dev_origin) = is_dev_origin(&config, &origin_url).await {
+            return Ok(MowsApp::dev(&dev_origin));
+        }
+        let app = MowsApp::get_app_by_origin(db, &origin_url).await?;
+        Ok(app)
     }
 
     pub async fn get_app_by_origin(

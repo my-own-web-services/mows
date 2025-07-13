@@ -24,7 +24,7 @@ use crate::{
     path = "/api/files/meta/get",
     request_body = GetFilesMetaRequestBody,
     responses(
-        (status = 200, description = "Gets the metadata for any number of files", body = ApiResponse<GetFileMetaResBody>),
+        (status = 200, description = "Gets the metadata for any number of files", body = ApiResponse<GetFilesMetaResBody>),
     )
 )]
 pub async fn get_files_metadata(
@@ -33,7 +33,7 @@ pub async fn get_files_metadata(
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(req_body): Json<GetFilesMetaRequestBody>,
-) -> Result<Json<ApiResponse<GetFileMetaResBody>>, FilezError> {
+) -> Result<Json<ApiResponse<GetFilesMetaResBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
         "Database operation to get user by external ID",
@@ -54,7 +54,7 @@ pub async fn get_files_metadata(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             Some(&req_body.file_ids),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilesMetaGet).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesMetaGet).unwrap(),
         )
         .await?
         .verify()?,
@@ -101,7 +101,7 @@ pub async fn get_files_metadata(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
         message: "Got Files metadata".to_string(),
-        data: Some(GetFileMetaResBody { files_meta }),
+        data: Some(GetFilesMetaResBody { files_meta }),
     }))
 }
 
@@ -111,7 +111,7 @@ pub struct GetFilesMetaRequestBody {
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetFileMetaResBody {
+pub struct GetFilesMetaResBody {
     pub files_meta: HashMap<Uuid, FileMeta>,
 }
 

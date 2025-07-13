@@ -23,7 +23,7 @@ use crate::{
 
 #[utoipa::path(
     head,
-    path = "/api/files/versions/tus/head/{file_id}/{version}/{job_id}",
+    path = "/api/files/versions/content/tus/head/{file_id}/{version}/{job_id}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to check for upload status"),
         ("version" = Option<u32>, Path, description = "The version of the file, if applicable"),
@@ -74,7 +74,7 @@ pub async fn tus_head(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             Some(&vec![file_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileVersionsContentTusHead)
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsContentTusHead)
                 .unwrap(),
         )
         .await?

@@ -24,6 +24,7 @@ use uuid::Uuid;
 
 use super::{
     access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+    file_file_group_members::FileFileGroupMember,
     files::FilezFile,
     users::FilezUser,
 };
@@ -192,6 +193,40 @@ impl FileGroup {
             .await?;
 
         Ok(count)
+    }
+
+    pub async fn add_files(
+        db: &crate::db::Db,
+        file_group_id: &Uuid,
+        file_ids: &Vec<Uuid>,
+    ) -> Result<(), FilezError> {
+        let mut conn = db.pool.get().await?;
+        let new_members = file_ids
+            .iter()
+            .map(|file_id| FileFileGroupMember::new(file_id, file_group_id))
+            .collect::<Vec<FileFileGroupMember>>();
+
+        diesel::insert_into(schema::file_file_group_members::table)
+            .values(&new_members)
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn remove_files(
+        db: &crate::db::Db,
+        file_group_id: &Uuid,
+        file_ids: &Vec<Uuid>,
+    ) -> Result<(), FilezError> {
+        let mut conn = db.pool.get().await?;
+        diesel::delete(
+            schema::file_file_group_members::table
+                .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
+                .filter(schema::file_file_group_members::file_id.eq_any(file_ids)),
+        )
+        .execute(&mut conn)
+        .await?;
+        Ok(())
     }
 
     pub async fn list_files(
