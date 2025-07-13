@@ -52,7 +52,7 @@ pub async fn update_user_group_members(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
             Some(&vec![request_body.user_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupUpdateMembers).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupsUpdateMembers).unwrap(),
         )
         .await?
         .verify()?,

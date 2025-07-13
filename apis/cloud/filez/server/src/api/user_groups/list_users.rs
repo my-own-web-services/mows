@@ -57,7 +57,7 @@ pub async fn list_users(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
             Some(&vec![user_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupListUsers).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupsListUsers).unwrap(),
         )
         .await?
         .verify()?,

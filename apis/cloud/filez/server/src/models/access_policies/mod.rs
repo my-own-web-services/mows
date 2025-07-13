@@ -88,6 +88,7 @@ pub enum AccessPolicyResourceType {
     UserGroup,
     StorageLocation,
     AccessPolicy,
+    StorageQuota,
 }
 
 #[derive(
@@ -159,45 +160,56 @@ pub enum AccessPolicyAction {
     UsersDelete,
 
     #[serde(rename = "filez.file_groups.create")]
-    FileGroupCreate,
-    #[serde(rename = "filez.file_groups.read")]
-    FileGroupRead,
+    FileGroupsCreate,
+    #[serde(rename = "filez.file_groups.get")]
+    FileGroupsGet,
     #[serde(rename = "filez.file_groups.update")]
-    FileGroupUpdate,
+    FileGroupsUpdate,
     #[serde(rename = "filez.file_groups.delete")]
-    FileGroupDelete,
+    FileGroupsDelete,
     #[serde(rename = "filez.file_groups.list")]
-    FileGroupList,
+    FileGroupsList,
     #[serde(rename = "filez.file_groups.list_files")]
-    FileGroupListFiles,
+    FileGroupsListFiles,
     #[serde(rename = "filez.file_groups.update_members")]
-    FileGroupUpdateMembers,
+    FileGroupsUpdateMembers,
 
     #[serde(rename = "filez.user_groups.create")]
-    UserGroupCreate,
-    #[serde(rename = "filez.user_groups.read")]
-    UserGroupRead,
+    UserGroupsCreate,
+    #[serde(rename = "filez.user_groups.get")]
+    UserGroupsGet,
     #[serde(rename = "filez.user_groups.update")]
-    UserGroupUpdate,
+    UserGroupsUpdate,
     #[serde(rename = "filez.user_groups.delete")]
-    UserGroupDelete,
+    UserGroupsDelete,
     #[serde(rename = "filez.user_groups.list")]
-    UserGroupList,
+    UserGroupsList,
     #[serde(rename = "filez.user_groups.list_users")]
-    UserGroupListUsers,
+    UserGroupsListUsers,
     #[serde(rename = "filez.user_groups.update_members")]
-    UserGroupUpdateMembers,
+    UserGroupsUpdateMembers,
 
     #[serde(rename = "filez.access_policies.create")]
-    AccessPolicyCreate,
-    #[serde(rename = "filez.access_policies.read")]
-    AccessPolicyRead,
+    AccessPoliciesCreate,
+    #[serde(rename = "filez.access_policies.get")]
+    AccessPoliciesGet,
     #[serde(rename = "filez.access_policies.update")]
-    AccessPolicyUpdate,
+    AccessPoliciesUpdate,
     #[serde(rename = "filez.access_policies.delete")]
-    AccessPolicyDelete,
+    AccessPoliciesDelete,
     #[serde(rename = "filez.access_policies.list")]
-    AccessPolicyList,
+    AccessPoliciesList,
+
+    #[serde(rename = "filez.storage_quotas.create")]
+    StorageQuotasCreate,
+    #[serde(rename = "filez.storage_quotas.get")]
+    StorageQuotasGet,
+    #[serde(rename = "filez.storage_quotas.update")]
+    StorageQuotasUpdate,
+    #[serde(rename = "filez.storage_quotas.delete")]
+    StorageQuotasDelete,
+    #[serde(rename = "filez.storage_quotas.list")]
+    StorageQuotasList,
 }
 
 #[derive(
@@ -427,7 +439,7 @@ impl AccessPolicy {
             requesting_user_id,
             app_id,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
-            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPolicyList).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPoliciesList).unwrap(),
         )
         .await?;
 

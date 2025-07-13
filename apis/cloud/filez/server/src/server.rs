@@ -105,6 +105,20 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::access_policies::update::update_access_policy))
         .routes(routes!(api::access_policies::delete::delete_access_policy))
         .routes(routes!(api::access_policies::list::list_access_policies))
+        // STORAGE QUOTAS
+        .routes(routes!(
+            api::storage_quotas::create::create_storage_quota
+        ))
+        .routes(routes!(api::storage_quotas::get::get_storage_quota))
+        .routes(routes!(
+            api::storage_quotas::update::update_storage_quota
+        ))
+        .routes(routes!(
+            api::storage_quotas::delete::delete_storage_quota
+        ))
+        .routes(routes!(
+            api::storage_quotas::list::list_storage_quotas
+        ))
         // HEALTH
         .routes(routes!(api::health::get_health))
         .with_state(server_state.clone())

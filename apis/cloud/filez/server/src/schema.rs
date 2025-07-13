@@ -144,7 +144,7 @@ diesel::table! {
 
 diesel::table! {
     storage_quotas (subject_type, subject_id, storage_location_id) {
-        subject_type -> Text,
+        subject_type -> SmallInt,
         subject_id -> Uuid,
         storage_location_id -> Uuid,
 

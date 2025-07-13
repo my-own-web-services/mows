@@ -112,7 +112,7 @@ impl FileGroup {
             requesting_user_id,
             app_id,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupList).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsList).unwrap(),
         )
         .await?;
 

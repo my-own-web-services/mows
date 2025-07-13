@@ -1,36 +1,39 @@
 use axum::{extract::State, http::HeaderMap, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
     errors::FilezError,
     models::{
-        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{
+            AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectType,
+        },
         apps::MowsApp,
-        user_groups::UserGroup,
+        storage_quotas::StorageQuota,
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
 #[utoipa::path(
     post,
-    path = "/api/user_groups/create",
-    request_body = CreateUserGroupRequestBody,
+    path = "/api/storage_quotas/create",
+    request_body = CreateStorageQuotaRequestBody,
     responses(
-        (status = 200, description = "Creates a new user group", body = ApiResponse<UserGroup>),
+        (status = 200, description = "Creates a new storage quota", body = ApiResponse<EmptyApiResponse>),
     )
 )]
-pub async fn create_user_group(
+pub async fn create_storage_quota(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<CreateUserGroupRequestBody>,
-) -> Result<Json<ApiResponse<UserGroup>>, FilezError> {
+    Json(request_body): Json<CreateStorageQuotaRequestBody>,
+) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
         "Database operation to get user by external ID",
@@ -49,9 +52,9 @@ pub async fn create_user_group(
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::StorageQuota).unwrap(),
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupsCreate).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::StorageQuotasCreate).unwrap()
         )
         .await?
         .verify()?,
@@ -59,26 +62,32 @@ pub async fn create_user_group(
         timing
     );
 
-    let user_group = with_timing!(
-        UserGroup::new(&requesting_user, &req_body.name),
-        "Creating new user group",
-        timing
+    let storage_quota = StorageQuota::new(
+        request_body.subject_type,
+        request_body.subject_id,
+        request_body.storage_location_id,
+        request_body.quota_bytes.into(),
+        request_body.ignore_quota,
     );
 
     with_timing!(
-        UserGroup::create(&db, &user_group).await?,
-        "Database operation to create user group",
+        StorageQuota::create(&db, &storage_quota).await?,
+        "Database operation to create storage quota",
         timing
     );
 
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
-        message: "User group created".to_string(),
-        data: Some(user_group),
+        message: "Storage quota created".to_string(),
+        data: None,
     }))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct CreateUserGroupRequestBody {
-    pub name: String,
+pub struct CreateStorageQuotaRequestBody {
+    pub subject_type: AccessPolicySubjectType,
+    pub subject_id: Uuid,
+    pub storage_location_id: Uuid,
+    pub quota_bytes: i64,
+    pub ignore_quota: bool,
 }
