@@ -22,7 +22,7 @@ use zitadel::axum::introspection::IntrospectedUser;
 #[utoipa::path(
     patch,
     request_body(content_type = "application/octet-stream"),
-      path = "/api/files/versions/tus/patch/{file_id}/{version}",
+      path = "/api/files/versions/content/tus/patch/{file_id}/{version}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to patch"),
         ("version" = Option<u32>, Path, description = "The version of the file to patch, if applicable"),
@@ -104,7 +104,7 @@ pub async fn tus_patch(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             Some(&vec![file_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFileVersionsContentTusPatch)
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsContentTusPatch)
                 .unwrap(),
         )
         .await?

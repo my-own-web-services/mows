@@ -181,6 +181,16 @@ impl FilezResource {
     }
 }
 
+pub async fn get_controller_health() -> Result<(), FilezError> {
+    let kube_client = Client::try_default().await?;
+    let filez_resource = Api::<FilezResource>::all(kube_client.clone());
+    if let Err(e) = filez_resource.list(&ListParams::default().limit(1)).await {
+        error!("CRD is not queryable; {e:?}. Is the CRD installed?");
+        return Err(FilezError::ControllerKubeError(e));
+    }
+    Ok(())
+}
+
 #[derive(Clone, Default)]
 pub struct ControllerState {
     /// Diagnostics populated by the reconciler

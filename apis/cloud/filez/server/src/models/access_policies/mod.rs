@@ -116,22 +116,36 @@ pub enum AccessPolicyEffect {
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
 pub enum AccessPolicyAction {
-    #[serde(rename = "filez.files.versions.content.get")]
-    FilezFileVersionsContentGet,
-    #[serde(rename = "filez.files.versions.content.tus.head")]
-    FilezFileVersionsContentTusHead,
-    #[serde(rename = "filez.files.versions.content.tus.patch")]
-    FilezFileVersionsContentTusPatch,
-
-    /// For a file creation action, the resource ID is the requesting users ID.
     #[serde(rename = "filez.files.create")]
-    FilezFileCreate,
+    FilezFilesCreate,
+    #[serde(rename = "filez.files.delete")]
+    FilezFilesDelete,
+    #[serde(rename = "filez.files.get")]
+    FilezFilesGet,
+    #[serde(rename = "filez.files.update")]
+    FilezFilesUpdate,
+
     #[serde(rename = "filez.files.meta.get")]
-    FilesMetaGet,
+    FilezFilesMetaGet,
     #[serde(rename = "filez.files.meta.list")]
-    FilesMetaList,
+    FilezFilesMetaList,
     #[serde(rename = "filez.files.meta.update")]
-    FilesMetaUpdate,
+    FilezFilesMetaUpdate,
+
+    #[serde(rename = "filez.files.versions.content.get")]
+    FilezFilesVersionsContentGet,
+    #[serde(rename = "filez.files.versions.content.tus.head")]
+    FilezFilesVersionsContentTusHead,
+    #[serde(rename = "filez.files.versions.content.tus.patch")]
+    FilezFilesVersionsContentTusPatch,
+    #[serde(rename = "filez.files.versions.delete")]
+    FilezFilesVersionsDelete,
+    #[serde(rename = "filez.files.versions.get")]
+    FilezFilesVersionsGet,
+    #[serde(rename = "filez.files.versions.update")]
+    FilezFilesVersionsUpdate,
+    #[serde(rename = "filez.files.versions.create")]
+    FilezFilesVersionsCreate,
 
     #[serde(rename = "filez.users.get")]
     UsersGet,
@@ -156,6 +170,8 @@ pub enum AccessPolicyAction {
     FileGroupList,
     #[serde(rename = "filez.file_groups.list_files")]
     FileGroupListFiles,
+    #[serde(rename = "filez.file_groups.update_members")]
+    FileGroupUpdateMembers,
 
     #[serde(rename = "filez.user_groups.create")]
     UserGroupCreate,
@@ -169,6 +185,8 @@ pub enum AccessPolicyAction {
     UserGroupList,
     #[serde(rename = "filez.user_groups.list_users")]
     UserGroupListUsers,
+    #[serde(rename = "filez.user_groups.update_members")]
+    UserGroupUpdateMembers,
 
     #[serde(rename = "filez.access_policies.create")]
     AccessPolicyCreate,

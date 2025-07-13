@@ -115,6 +115,24 @@ impl StorageProviderMinio {
 
         Ok(object_size)
     }
+
+    pub async fn delete_content(
+        &self,
+        full_file_path: &str,
+        timing: &axum_server_timing::ServerTimingExtension,
+    ) -> Result<(), StorageError> {
+        with_timing!(
+            self.client
+                .delete_object(&self.bucket, full_file_path)
+                .send()
+                .await?,
+            "MinIO operation to delete file content",
+            timing
+        );
+
+        Ok(())
+    }
+
     pub async fn update_content(
         &self,
         full_file_path: &str,

@@ -8,6 +8,7 @@ diesel::table! {
         modified_time -> Timestamp,
         deleted -> Bool,
         profile_picture -> Nullable<Uuid>,
+        created_by -> Nullable<Uuid>,
     }
 }
 

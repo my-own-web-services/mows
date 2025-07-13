@@ -1,5 +1,5 @@
 use anyhow::Context;
-use axum::http::HeaderValue;
+use axum::http::{request::Parts, HeaderValue};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
@@ -9,6 +9,7 @@ use server_lib::{
     config::config,
     controller,
     db::Db,
+    models::apps::MowsApp,
     state::ServerState,
     types::ApiDoc,
     utils::shutdown_signal,
@@ -16,7 +17,7 @@ use server_lib::{
 use std::net::SocketAddr;
 use tower_http::{
     compression::CompressionLayer,
-    cors::{Any, CorsLayer},
+    cors::{AllowOrigin, Any, CorsLayer},
     decompression::DecompressionLayer,
 };
 use tracing::info;
@@ -51,6 +52,8 @@ async fn main() -> Result<(), anyhow::Error> {
         .await
         .context("Failed to create server state")?;
 
+    let db_for_cors_layer = server_state.db.clone();
+
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         // NOTE!
         // Sometimes when something is wrong with the extractors a warning will appear of an axum version mismatch.
@@ -61,11 +64,15 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::files::meta::get::get_files_metadata))
         .routes(routes!(api::files::meta::update::update_files_metadata))
         // FILE VERSIONS
-        .routes(routes!(api::files::versions::get::get_file_content))
+        .routes(routes!(
+            api::files::versions::content::get::get_file_content
+        ))
         .routes(routes!(api::files::versions::create::create_file_version))
         // tus
-        .routes(routes!(api::files::versions::tus::head::tus_head))
-        .routes(routes!(api::files::versions::tus::patch::tus_patch))
+        .routes(routes!(api::files::versions::content::tus::head::tus_head))
+        .routes(routes!(
+            api::files::versions::content::tus::patch::tus_patch
+        ))
         // FILE GROUPS
         .routes(routes!(api::file_groups::create::create_file_group))
         .routes(routes!(api::file_groups::get::get_file_group))
@@ -73,6 +80,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::file_groups::delete::delete_file_group))
         .routes(routes!(api::file_groups::list::list_file_groups))
         .routes(routes!(api::file_groups::list_files::list_files))
+        .routes(routes!(
+            api::file_groups::update_members::update_file_group_members
+        ))
         // USERS
         .routes(routes!(api::users::apply::apply_user))
         .routes(routes!(api::users::get::get_users))
@@ -83,6 +93,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::user_groups::delete::delete_user_group))
         .routes(routes!(api::user_groups::list::list_user_groups))
         .routes(routes!(api::user_groups::list_users::list_users))
+        .routes(routes!(
+            api::user_groups::update_members::update_user_group_members
+        ))
         // ACCESS POLICIES
         .routes(routes!(
             api::access_policies::check_resource_access::check_resource_access
@@ -101,27 +114,21 @@ async fn main() -> Result<(), anyhow::Error> {
         .layer(OtelAxumLayer::default())
         .layer(
             CorsLayer::new()
-                .allow_origin(
-                    /*
-                                        AllowOrigin::async_predicate(
-                        |origin: HeaderValue, parts: &RequestParts| {
-                            let path = parts.uri.path().to_owned();
-
-                            async move {
-                                // fetch list of origins that are allowed for this path
-                                let origins = client.fetch_allowed_origins_for_path(path).await;
-                                origins.contains(&origin)
-                            }
-                        },
-                    )*/
-                    origins
-                        .iter()
-                        .map(|origin| {
-                            HeaderValue::from_str(origin.origin().ascii_serialization().as_str())
-                                .unwrap()
-                        })
-                        .collect::<Vec<HeaderValue>>(),
-                )
+                .allow_origin(AllowOrigin::async_predicate(
+                    move |origin: HeaderValue, _: &Parts| async move {
+                        let origin = match origin.to_str() {
+                            Ok(s) => s,
+                            Err(_) => return false,
+                        };
+                        if let Ok(_) =
+                            MowsApp::get_from_origin_string(&db_for_cors_layer, &origin).await
+                        {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    },
+                ))
                 .allow_methods(Any)
                 .allow_headers(Any),
         )

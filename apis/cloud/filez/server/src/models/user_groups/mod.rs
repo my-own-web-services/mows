@@ -1,5 +1,6 @@
 use super::{
     access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+    user_user_group_members::UserUserGroupMember,
     users::FilezUser,
 };
 use crate::{
@@ -149,6 +150,40 @@ impl UserGroup {
         let mut conn = db.pool.get().await?;
         diesel::delete(
             schema::user_groups::table.filter(schema::user_groups::id.eq(user_group_id)),
+        )
+        .execute(&mut conn)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn add_users(
+        db: &crate::db::Db,
+        user_group_id: &Uuid,
+        user_ids: &Vec<Uuid>,
+    ) -> Result<(), FilezError> {
+        let mut conn = db.pool.get().await?;
+        let new_members = user_ids
+            .iter()
+            .map(|user_id| UserUserGroupMember::new(user_id, user_group_id))
+            .collect::<Vec<UserUserGroupMember>>();
+
+        diesel::insert_into(schema::user_user_group_members::table)
+            .values(&new_members)
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn remove_users(
+        db: &crate::db::Db,
+        user_group_id: &Uuid,
+        user_ids: &Vec<Uuid>,
+    ) -> Result<(), FilezError> {
+        let mut conn = db.pool.get().await?;
+        diesel::delete(
+            schema::user_user_group_members::table
+                .filter(schema::user_user_group_members::user_group_id.eq(user_group_id))
+                .filter(schema::user_user_group_members::user_id.eq_any(user_ids)),
         )
         .execute(&mut conn)
         .await?;

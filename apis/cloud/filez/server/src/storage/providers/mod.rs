@@ -64,4 +64,16 @@ impl StorageProvider {
             }
         }
     }
+
+    pub async fn delete_content(
+        &self,
+        full_file_path: &str,
+        timing: &axum_server_timing::ServerTimingExtension,
+    ) -> Result<(), StorageError> {
+        match self {
+            StorageProvider::Minio(provider) => {
+                provider.delete_content(full_file_path, timing).await
+            }
+        }
+    }
 }

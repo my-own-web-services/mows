@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use diesel::{
     insert_into,
     pg::Pg,
-    prelude::{Insertable, Queryable, QueryableByName},
+    prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
     ExpressionMethods, JoinOnDsl, QueryDsl, Selectable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -31,6 +31,7 @@ use super::{file_tag_members::FileTagMember, tags::FilezTag, users::FilezUser};
     Clone,
     QueryableByName,
     Debug,
+    AsChangeset,
 )]
 #[diesel(table_name = crate::schema::files)]
 #[diesel(check_for_backend(Pg))]
@@ -74,8 +75,6 @@ impl FilezFile {
     }
 
     pub async fn delete(db: &crate::db::Db, file_id: uuid::Uuid) -> Result<(), FilezError> {
-        // delete the file and all versions associated with it
-
         diesel::delete(crate::schema::file_versions::table)
             .filter(crate::schema::file_versions::file_id.eq(file_id))
             .execute(&mut db.pool.get().await?)
@@ -87,6 +86,17 @@ impl FilezFile {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn update(&mut self, db: &crate::db::Db) -> Result<FilezFile, FilezError> {
+        self.modified_time = chrono::Utc::now().naive_utc();
+
+        Ok(diesel::update(crate::schema::files::table)
+            .filter(crate::schema::files::id.eq(self.id))
+            .set(self.clone())
+            .returning(FilezFile::as_returning())
+            .get_result::<FilezFile>(&mut db.pool.get().await?)
+            .await?)
     }
 
     pub async fn get_tags(

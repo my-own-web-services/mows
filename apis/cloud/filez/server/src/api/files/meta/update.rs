@@ -54,7 +54,7 @@ pub async fn update_files_metadata(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             Some(&request_body.file_ids),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilesMetaUpdate).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesMetaUpdate).unwrap(),
         )
         .await?
         .verify()?,

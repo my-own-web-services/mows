@@ -23,19 +23,19 @@ use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
-    path = "/api/files/versions/get",
-    request_body = GetFileVersionsRequestBody,
-    description = "Get file versions from the server",
+    path = "/api/files/versions/delete",
+    request_body = DeleteFileVersionsRequestBody,
+    description = "Delete file versions in the database",
     responses(
-        (status = 200, description = "Got file versions from the server", body = ApiResponse<GetFileVersionsResponseBody>),
+        (status = 200, description = "Deleted file versions on the server", body = ApiResponse<DeleteFileVersionsResponseBody>),
     )
 )]
-pub async fn get_file_versions(
+pub async fn delete_file_versions(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(request_body): Json<GetFileVersionsRequestBody>,
+    Json(request_body): Json<DeleteFileVersionsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -59,7 +59,7 @@ pub async fn get_file_versions(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
             Some(&file_ids),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsGet).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsDelete).unwrap(),
         )
         .await?
         .verify()?,
@@ -67,30 +67,26 @@ pub async fn get_file_versions(
         timing
     );
 
-    let file_versions = with_timing!(
-        FileVersion::get_many(&db, &request_body.versions).await?,
-        "Database operation to get file versions",
-        timing
-    );
+    FileVersion::delete_many(&db, &request_body.versions, &timing).await?;
 
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
             status: ApiResponseStatus::Success,
-            message: "Got File Versions".to_string(),
-            data: Some(GetFileVersionsResponseBody {
-                versions: file_versions,
+            message: "Deleted File Versions".to_string(),
+            data: Some(DeleteFileVersionsResponseBody {
+                versions: request_body.versions,
             }),
         }),
     ))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetFileVersionsRequestBody {
+pub struct DeleteFileVersionsRequestBody {
     pub versions: Vec<FileVersionsQuery>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetFileVersionsResponseBody {
-    pub versions: Vec<FileVersion>,
+pub struct DeleteFileVersionsResponseBody {
+    pub versions: Vec<FileVersionsQuery>,
 }

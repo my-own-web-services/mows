@@ -31,6 +31,7 @@ pub struct FilezUser {
     pub modified_time: chrono::NaiveDateTime,
     pub deleted: bool,
     pub profile_picture: Option<Uuid>,
+    pub created_by: Option<Uuid>,
 }
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Debug)]
@@ -47,6 +48,7 @@ impl FilezUser {
         external_user_id: Option<String>,
         pre_identifier_email: Option<String>,
         display_name: Option<String>,
+        created_by: Option<Uuid>,
     ) -> Self {
         Self {
             id: get_uuid(),
@@ -57,17 +59,18 @@ impl FilezUser {
             modified_time: chrono::Utc::now().naive_utc(),
             deleted: false,
             profile_picture: None,
+            created_by,
         }
     }
 
     pub async fn list_with_user_access(
-        db: &crate::db::Db,
-        requesting_user_id: &Uuid,
-        app_id: &Uuid,
-        from_index: Option<i64>,
-        limit: Option<i64>,
-        sort_by: Option<ListUsersSortBy>,
-        sort_order: Option<SortDirection>,
+        _db: &crate::db::Db,
+        _requesting_user_id: &Uuid,
+        _app_id: &Uuid,
+        _from_index: Option<i64>,
+        _limit: Option<i64>,
+        _sort_by: Option<ListUsersSortBy>,
+        _sort_order: Option<SortDirection>,
     ) -> Result<Vec<ListedFilezUser>, FilezError> {
         todo!()
     }
@@ -90,7 +93,12 @@ impl FilezUser {
         requesting_user_id: &Uuid,
     ) -> Result<Self, FilezError> {
         let mut conn = db.pool.get().await?;
-        let new_user = Self::new(None, Some(email.to_string()), None);
+        let new_user = Self::new(
+            None,
+            Some(email.to_string()),
+            None,
+            Some(*requesting_user_id),
+        );
 
         let result = diesel::insert_into(crate::schema::users::table)
             .values(&new_user)
@@ -171,7 +179,12 @@ impl FilezUser {
             return Ok(user.id);
         };
 
-        let new_user = FilezUser::new(Some(external_user_id.to_string()), None, Some(display_name));
+        let new_user = FilezUser::new(
+            Some(external_user_id.to_string()),
+            None,
+            Some(display_name),
+            None,
+        );
 
         let result = diesel::insert_into(crate::schema::users::table)
             .values(&new_user)
@@ -184,9 +197,9 @@ impl FilezUser {
     }
 
     pub async fn apply_admin_privileges(
-        db: &crate::db::Db,
-        external_user_id: &str,
-        project_roles: Option<HashMap<String, HashMap<String, String>>>,
+        _db: &crate::db::Db,
+        _external_user_id: &str,
+        _project_roles: Option<HashMap<String, HashMap<String, String>>>,
     ) -> Result<(), FilezError> {
         let config = get_current_config_cloned!(config());
         if config.enable_dev {}

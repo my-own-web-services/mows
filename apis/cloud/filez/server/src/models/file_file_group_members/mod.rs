@@ -1,21 +1,16 @@
 use diesel::{
     pg::Pg,
-    prelude::{Associations, Insertable, Queryable},
-    Selectable,
+    prelude::{Insertable, Queryable},
+    AsChangeset, Selectable,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::models::{file_groups::FileGroup, files::FilezFile};
-
 #[derive(
-    Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Associations, Insertable, Debug,
+    Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug, AsChangeset,
 )]
 #[diesel(table_name = crate::schema::file_file_group_members)]
-#[diesel(belongs_to(FilezFile, foreign_key = file_id))]
-#[diesel(belongs_to(FileGroup, foreign_key = file_group_id))]
-#[diesel(primary_key(file_id, file_group_id))]
 #[diesel(check_for_backend(Pg))]
 pub struct FileFileGroupMember {
     pub file_id: Uuid,
@@ -24,10 +19,10 @@ pub struct FileFileGroupMember {
 }
 
 impl FileFileGroupMember {
-    pub fn new(file_id: Uuid, file_group_id: Uuid) -> Self {
+    pub fn new(file_id: &Uuid, file_group_id: &Uuid) -> Self {
         Self {
-            file_id,
-            file_group_id,
+            file_id: file_id.clone(),
+            file_group_id: file_group_id.clone(),
             created_time: chrono::Utc::now().naive_utc(),
         }
     }

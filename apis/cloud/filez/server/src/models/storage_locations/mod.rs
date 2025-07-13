@@ -59,6 +59,15 @@ impl StorageLocation {
         Ok(())
     }
 
+    pub async fn delete_content(
+        &self,
+        full_file_path: &str,
+        timing: &axum_server_timing::ServerTimingExtension,
+    ) -> Result<(), FilezError> {
+        let provider = self.initialize_provider().await?;
+        Ok(provider.delete_content(full_file_path, timing).await?)
+    }
+
     pub async fn create_or_update(
         db: &crate::db::Db,
         full_name: &str,
