@@ -9,11 +9,12 @@ use crate::{
             create::{CreateFileRequestBody, CreateFileResponseBody},
             versions::create::{CreateFileVersionRequestBody, CreateFileVersionResponseBody},
         },
+        storage_quotas::create::CreateStorageQuotaRequestBody,
         user_groups::create::CreateUserGroupRequestBody,
     },
     models::{
-        access_policies::AccessPolicy, file_groups::FileGroup, user_groups::UserGroup,
-        users::FilezUser,
+        access_policies::AccessPolicy, file_groups::FileGroup, storage_quotas::StorageQuota,
+        user_groups::UserGroup, users::FilezUser,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -36,11 +37,13 @@ use utoipa::ToSchema;
             CreateAccessPolicyRequestBody,
             UpdateAccessPolicyRequestBody,
             ListAccessPoliciesRequestBody,
+            CreateStorageQuotaRequestBody,
             // RESPONSES
             FileGroup,
             UserGroup,
             FilezUser,
             AccessPolicy,
+            StorageQuota,
         )
     ),
 )]

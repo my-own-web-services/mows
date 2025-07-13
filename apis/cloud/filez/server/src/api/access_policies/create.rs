@@ -54,7 +54,7 @@ pub async fn create_access_policy(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPolicyCreate).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPoliciesCreate).unwrap(),
         )
         .await?
         .verify()?,

@@ -83,7 +83,7 @@ impl UserGroup {
             requesting_user_id,
             app_id,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
-            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupList).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupsList).unwrap(),
         )
         // box this
         .await?;

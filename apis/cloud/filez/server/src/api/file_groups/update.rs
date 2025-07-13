@@ -57,7 +57,7 @@ pub async fn update_file_group(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
             Some(&vec![file_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupUpdate).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsUpdate).unwrap(),
         )
         .await?
         .verify()?,

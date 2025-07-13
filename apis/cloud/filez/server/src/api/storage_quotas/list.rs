@@ -1,13 +1,17 @@
 use axum::{extract::State, http::HeaderMap, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
     errors::FilezError,
     models::{
-        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{
+            AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectType,
+        },
         apps::MowsApp,
+        storage_quotas::StorageQuota,
         users::FilezUser,
     },
     state::ServerState,
@@ -16,20 +20,20 @@ use crate::{
 };
 
 #[utoipa::path(
-    post,
-    path = "/api/access_policies/list",
-    request_body = ListAccessPoliciesRequestBody,
+    get,
+    path = "/api/storage_quotas/list",
+    request_body = ListStorageQuotasRequestBody,
     responses(
-        (status = 200, description = "Lists access policies", body = ApiResponse<ListAccessPoliciesResponseBody>),
+        (status = 200, description = "Lists storage quotas", body = ApiResponse<Vec<StorageQuota>>),
     )
 )]
-pub async fn list_access_policies(
+pub async fn list_storage_quotas(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(request_body): Json<ListAccessPoliciesRequestBody>,
-) -> Result<Json<ApiResponse<ListAccessPoliciesResponseBody>>, FilezError> {
+    Json(request_body): Json<ListStorageQuotasRequestBody>,
+) -> Result<Json<ApiResponse<Vec<StorageQuota>>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
         "Database operation to get user by external ID",
@@ -48,18 +52,17 @@ pub async fn list_access_policies(
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyResourceType::StorageQuota).unwrap(),
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPoliciesList).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::StorageQuotasList).unwrap()
         )
         .await?
         .verify()?,
-        "Database operation to check access control",
+        "Access policy check for listing storage quotas",
         timing
     );
-
-    let access_policies = with_timing!(
-        AccessPolicy::list_with_user_access(
+    let storage_quotas = with_timing!(
+        StorageQuota::list_with_user_access(
             &db,
             &requesting_user.id,
             &requesting_app.id,
@@ -69,33 +72,33 @@ pub async fn list_access_policies(
             request_body.sort_order,
         )
         .await?,
-        "Database operation to list access policies",
+        "Database operation to list storage quotas",
         timing
     );
 
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
-        message: "Access policies listed".to_string(),
-        data: Some(ListAccessPoliciesResponseBody { access_policies }),
+        message: "Storage quotas retrieved".to_string(),
+        data: Some(storage_quotas),
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct ListAccessPoliciesRequestBody {
+#[derive(serde::Serialize, serde::Deserialize, ToSchema, Clone)]
+pub struct ListStorageQuotasRequestBody {
     pub from_index: Option<i64>,
     pub limit: Option<i64>,
-    pub sort_by: Option<ListAccessPoliciesSortBy>,
+    pub sort_by: Option<ListStorageQuotasSortBy>,
     pub sort_order: Option<SortDirection>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct ListAccessPoliciesResponseBody {
-    pub access_policies: Vec<AccessPolicy>,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub enum ListAccessPoliciesSortBy {
+pub enum ListStorageQuotasSortBy {
     CreatedTime,
     ModifiedTime,
     Name,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct ListStorageQuotasResponseBody {
+    pub storage_quotas: Vec<StorageQuota>,
 }

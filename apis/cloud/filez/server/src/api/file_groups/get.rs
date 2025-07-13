@@ -54,7 +54,7 @@ pub async fn get_file_group(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
             Some(&vec![file_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupRead).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsGet).unwrap(),
         )
         .await?
         .verify()?,

@@ -53,7 +53,7 @@ pub async fn delete_user_group(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
             Some(&vec![user_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupDelete).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupsDelete).unwrap(),
         )
         .await?
         .verify()?,

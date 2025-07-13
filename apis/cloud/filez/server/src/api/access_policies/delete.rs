@@ -23,7 +23,7 @@ use crate::{
     delete,
     path = "/api/access_policies/delete/{access_policy_id}",
     responses(
-        (status = 200, description = "Deletes a access policy", body = ApiResponse<String>),
+        (status = 200, description = "Deletes a access policy", body = ApiResponse<Uuid>),
     )
 )]
 pub async fn delete_access_policy(
@@ -32,7 +32,7 @@ pub async fn delete_access_policy(
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(access_policy_id): Path<Uuid>,
-) -> Result<Json<ApiResponse<String>>, FilezError> {
+) -> Result<Json<ApiResponse<Uuid>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
         "Database operation to get user by external ID",
@@ -53,7 +53,7 @@ pub async fn delete_access_policy(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
             Some(&vec![access_policy_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPolicyDelete).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPoliciesDelete).unwrap(),
         )
         .await?
         .verify()?,
@@ -70,6 +70,6 @@ pub async fn delete_access_policy(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
         message: "Access policy deleted".to_string(),
-        data: Some(access_policy_id.to_string()),
+        data: Some(access_policy_id),
     }))
 }

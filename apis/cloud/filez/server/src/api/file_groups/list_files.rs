@@ -53,7 +53,7 @@ pub async fn list_files(
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
             Some(&vec![req_body.file_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupListFiles).unwrap(),
+            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsListFiles).unwrap(),
         )
         .await?
         .verify()?,
