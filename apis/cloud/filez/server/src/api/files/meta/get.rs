@@ -32,7 +32,7 @@ pub async fn get_files_metadata(
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<GetFilesMetaRequestBody>,
+    Json(request_body): Json<GetFilesMetaRequestBody>,
 ) -> Result<Json<ApiResponse<GetFilesMetaResBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -53,7 +53,7 @@ pub async fn get_files_metadata(
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            Some(&req_body.file_ids),
+            Some(&request_body.file_ids),
             &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesMetaGet).unwrap(),
         )
         .await?
@@ -63,20 +63,20 @@ pub async fn get_files_metadata(
     );
 
     let files_meta_result = with_timing!(
-        FilezFile::get_many_by_id(&db, &req_body.file_ids).await?,
+        FilezFile::get_many_by_id(&db, &request_body.file_ids).await?,
         "Database operation to get files metadata",
         timing
     );
 
     let file_tags = with_timing!(
-        FilezFile::get_tags(&db, &req_body.file_ids).await?,
+        FilezFile::get_tags(&db, &request_body.file_ids).await?,
         "Database operation to get files tags",
         timing
     );
 
     let mut files_meta: HashMap<Uuid, FileMeta> = HashMap::new();
 
-    for requested_file_id in &req_body.file_ids {
+    for requested_file_id in &request_body.file_ids {
         let file_meta = files_meta_result
             .get(requested_file_id)
             .cloned()

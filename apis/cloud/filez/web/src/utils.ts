@@ -1,4 +1,7 @@
-interface ClientConfig {
+import { AuthState } from "react-oidc-context";
+import { Api } from "./api-client";
+
+export interface ClientConfig {
     serverUrl: string;
     oidcClientId: string;
     oidcIssuerUrl: string;
@@ -24,4 +27,27 @@ export const fetchAndUpdateClientConfig = async (): Promise<ClientConfig> => {
     const config: ClientConfig = await response.json();
     localStorage.setItem("clientConfig", JSON.stringify(config));
     return config;
+};
+
+export const impersonateUser = (userId: string) => {
+    return {
+        "X-Filez-Impersonate-User": userId
+    };
+};
+
+export const createFilezClient = (serverUrl: string, auth?: AuthState) => {
+    return new Api({
+        baseUrl: serverUrl,
+        baseApiParams: { secure: true },
+        securityWorker: async () => ({
+            // https://github.com/acacode/swagger-typescript-api/issues/300
+            headers: {
+                ...(auth?.user?.access_token
+                    ? {
+                          Authorization: `Bearer ${auth?.user?.access_token}`
+                      }
+                    : {})
+            }
+        })
+    });
 };

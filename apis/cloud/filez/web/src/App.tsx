@@ -6,11 +6,13 @@ import { Api } from "./api-client";
 import Auth from "./routes/Auth";
 import Dev from "./routes/Dev";
 import Home from "./routes/Home";
+import { createFilezClient, impersonateUser } from "./utils";
 
 interface AppProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly auth?: AuthState;
+    readonly serverUrl: string;
 }
 
 interface AppState {
@@ -31,21 +33,14 @@ class App extends Component<AppProps, AppState> {
         previousState: Readonly<AppState>,
         snapshot: any
     ) => {
-        if (!this.state.filezClient && this.props.auth?.user) {
-            const filezClient = new Api({
-                baseUrl: "https://filez-server.vindelicorum.eu",
-                baseApiParams: { secure: true },
-                securityWorker: async () => ({
-                    // https://github.com/acacode/swagger-typescript-api/issues/300
-                    headers: {
-                        Authorization: `Bearer ${this.props.auth?.user?.access_token ?? ""}`
-                    }
-                })
-            });
+        if (!this.state.filezClient && this.props.auth?.user && this.props.serverUrl) {
+            const filezClient = createFilezClient(this.props.serverUrl, this.props.auth);
 
             this.setState({ filezClient }, async () => {
                 console.log("Api client initialized with user token");
-                await this.state.filezClient?.api.applyUser();
+                await this.state.filezClient?.api.applyUser({
+                    headers: { ...impersonateUser("test") }
+                });
             });
         }
     };

@@ -6,7 +6,7 @@ use url::Url;
 
 pub const TUS_VERSION: &str = "1.0.0";
 
-pub const FILEZ_SERVER_APP_ID: &str = "filez-server";
+pub const IMPERSONATE_USER_HEADER: &str = "X-Filez-Impersonate-User";
 
 pub fn config() -> &'static RwLock<FilezServerConfig> {
     static CONFIG: OnceLock<RwLock<FilezServerConfig>> = OnceLock::new();

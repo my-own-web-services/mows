@@ -16,8 +16,11 @@ use diesel::{
     sql_types::SmallInt,
     AsChangeset, ExpressionMethods, JoinOnDsl, QueryDsl, Selectable, SelectableHelper,
 };
+use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
+use kube::core::dynamic;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -42,7 +45,11 @@ pub struct FileGroup {
     pub modified_time: chrono::NaiveDateTime,
     #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub group_type: FileGroupType,
+    pub dynamic_group_rule: Option<DynamicGroupRule>,
 }
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq, AsJsonb)]
+pub struct DynamicGroupRule {}
 
 #[derive(
     Debug,
@@ -66,7 +73,12 @@ pub enum FileGroupType {
 }
 
 impl FileGroup {
-    pub fn new(owner: &FilezUser, name: &str, group_type: FileGroupType) -> Self {
+    pub fn new(
+        owner: &FilezUser,
+        name: &str,
+        group_type: FileGroupType,
+        dynamic_group_rule: Option<DynamicGroupRule>,
+    ) -> Self {
         Self {
             id: get_uuid(),
             owner_id: owner.id.clone(),
@@ -74,6 +86,7 @@ impl FileGroup {
             created_time: chrono::Utc::now().naive_utc(),
             modified_time: chrono::Utc::now().naive_utc(),
             group_type,
+            dynamic_group_rule,
         }
     }
 

@@ -68,6 +68,7 @@ diesel::table! {
         modified_time -> Timestamp,
         description -> Nullable<Text>,
         group_type -> SmallInt,
+        dynamic_group_rule -> Nullable<Jsonb>,
     }
 }
 diesel::joinable!(file_groups -> users (owner_id));

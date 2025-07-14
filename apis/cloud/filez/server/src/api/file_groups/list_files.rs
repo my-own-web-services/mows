@@ -31,7 +31,7 @@ pub async fn list_files(
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<ListFilesRequestBody>,
+    Json(request_body): Json<ListFilesRequestBody>,
 ) -> Result<Json<ApiResponse<ListFilesResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -52,7 +52,7 @@ pub async fn list_files(
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
-            Some(&vec![req_body.file_group_id]),
+            Some(&vec![request_body.file_group_id]),
             &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsListFiles).unwrap(),
         )
         .await?
@@ -63,13 +63,13 @@ pub async fn list_files(
 
     let list_files_query = FileGroup::list_files(
         &db,
-        &req_body.file_group_id,
-        req_body.from_index,
-        req_body.limit,
-        req_body.sort,
+        &request_body.file_group_id,
+        request_body.from_index,
+        request_body.limit,
+        request_body.sort,
     );
 
-    let file_group_item_count_query = FileGroup::get_file_count(&db, &req_body.file_group_id);
+    let file_group_item_count_query = FileGroup::get_file_count(&db, &request_body.file_group_id);
 
     // join the two futures to run them concurrently
     let (files, total_count): (Vec<FilezFile>, i64) = with_timing!(

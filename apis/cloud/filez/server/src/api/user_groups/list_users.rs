@@ -35,7 +35,7 @@ pub async fn list_users(
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(user_group_id): Path<Uuid>,
-    Json(req_body): Json<ListUsersRequestBody>,
+    Json(request_body): Json<ListUsersRequestBody>,
 ) -> Result<Json<ApiResponse<ListUsersResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -68,10 +68,10 @@ pub async fn list_users(
     let list_users_query = UserGroup::list_users(
         &db,
         &user_group_id,
-        req_body.from_index,
-        req_body.limit,
-        req_body.sort_by.as_deref(),
-        req_body.sort_order,
+        request_body.from_index,
+        request_body.limit,
+        request_body.sort_by.as_deref(),
+        request_body.sort_order,
     );
 
     let user_group_item_count_query = UserGroup::get_user_count(&db, &user_group_id);

@@ -29,7 +29,7 @@ pub async fn check_resource_access(
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<CheckResourceAccessRequestBody>,
+    Json(request_body): Json<CheckResourceAccessRequestBody>,
 ) -> Result<Json<ApiResponse<CheckResourceAccessResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -49,9 +49,9 @@ pub async fn check_resource_access(
             &requesting_user.id,
             &requesting_app.id,
             requesting_app.trusted,
-            &req_body.resource_type,
-            req_body.resource_ids.as_deref(),
-            &req_body.action,
+            &request_body.resource_type,
+            request_body.resource_ids.as_deref(),
+            &request_body.action,
         )
         .await?,
         "Database operation to check resources access control",

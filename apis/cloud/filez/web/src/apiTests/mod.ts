@@ -12,7 +12,7 @@ export const runTests = async (filezClient: Api<unknown>) => {
 const allroundTest = async (filezClient: Api<unknown>) => {
     console.log("Running all-round test...");
     // Create 2 users: Alice and Bob
-    const alice = await filezClient.api.createUser({});
+    //const alice = await filezClient.api.createUser({});
 };
 
 // create 2 users alice and bob
