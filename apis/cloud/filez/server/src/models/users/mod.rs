@@ -1,6 +1,10 @@
 use crate::{
-    api::users::list::ListUsersSortBy, config::config, errors::FilezError, schema,
-    types::SortDirection, utils::get_uuid,
+    api::users::list::ListUsersSortBy,
+    config::{config, IMPERSONATE_USER_HEADER},
+    errors::FilezError,
+    schema,
+    types::SortDirection,
+    utils::get_uuid,
 };
 use axum::http::HeaderMap;
 use diesel::{
@@ -231,13 +235,13 @@ impl FilezUser {
         match &external_user.user_id {
             Some(_) => {
                 if let Some(impersonation_user_id) = request_headers
-                    .get("X-Filez-Impersonate-User-Id")
-                    .and_then(|v| v.to_str().ok())
+                    .get(IMPERSONATE_USER_HEADER)
+                    .and_then(|v| v.to_str().ok().and_then(|s| s.parse::<Uuid>().ok()))
                 {
                     if let Some(project_roles) = &external_user.project_roles {
                         if project_roles.contains_key("admin") {
                             let result = schema::users::table
-                                .filter(schema::users::external_user_id.eq(impersonation_user_id))
+                                .filter(schema::users::id.eq(impersonation_user_id))
                                 .first::<FilezUser>(&mut conn)
                                 .await?;
 

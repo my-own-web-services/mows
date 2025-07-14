@@ -36,7 +36,7 @@ pub async fn update_access_policy(
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(access_policy_id): Path<Uuid>,
-    Json(req_body): Json<UpdateAccessPolicyRequestBody>,
+    Json(request_body): Json<UpdateAccessPolicyRequestBody>,
 ) -> Result<Json<ApiResponse<AccessPolicy>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -70,14 +70,14 @@ pub async fn update_access_policy(
         AccessPolicy::update(
             &db,
             &access_policy_id,
-            &req_body.name,
-            req_body.subject_type,
-            req_body.subject_id,
-            req_body.context_app_id,
-            req_body.resource_type,
-            req_body.resource_id,
-            req_body.actions,
-            req_body.effect,
+            &request_body.name,
+            request_body.subject_type,
+            request_body.subject_id,
+            request_body.context_app_id,
+            request_body.resource_type,
+            request_body.resource_id,
+            request_body.actions,
+            request_body.effect,
         )
         .await?,
         "Database operation to update access policy",

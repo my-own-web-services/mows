@@ -35,7 +35,7 @@ pub async fn update_file_group(
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(file_group_id): Path<Uuid>,
-    Json(req_body): Json<UpdateFileGroupRequestBody>,
+    Json(request_body): Json<UpdateFileGroupRequestBody>,
 ) -> Result<Json<ApiResponse<FileGroup>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -66,7 +66,7 @@ pub async fn update_file_group(
     );
 
     with_timing!(
-        FileGroup::update(&db, &file_group_id, &req_body.name).await?,
+        FileGroup::update(&db, &file_group_id, &request_body.name).await?,
         "Database operation to update file group",
         timing
     );

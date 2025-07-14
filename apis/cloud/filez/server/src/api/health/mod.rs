@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     controller::get_controller_health,
     errors::FilezError,
@@ -7,6 +9,7 @@ use crate::{
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[utoipa::path(
     get,
@@ -55,14 +58,20 @@ pub async fn get_health(
         },
     };
 
-    let all_healthy =
-        database_health.healthy && zitadel_health.healthy && controller_health.healthy;
+    let storage_providers_health = HashMap::new();
+
+    let all_healthy = database_health.healthy
+        && zitadel_health.healthy
+        && controller_health.healthy
+        && storage_providers_health
+            .values()
+            .all(|health: &HealthStatus| health.healthy);
 
     return Ok((
         if all_healthy {
             StatusCode::OK
         } else {
-            StatusCode::INTERNAL_SERVER_ERROR
+            StatusCode::SERVICE_UNAVAILABLE
         },
         Json(ApiResponse {
             status: ApiResponseStatus::Success,
@@ -71,6 +80,7 @@ pub async fn get_health(
                 database: database_health,
                 zitadel: zitadel_health,
                 controller: controller_health,
+                storage_providers: storage_providers_health,
             }),
         }),
     ));
@@ -81,6 +91,7 @@ pub struct HealthResBody {
     pub database: HealthStatus,
     pub zitadel: HealthStatus,
     pub controller: HealthStatus,
+    pub storage_providers: HashMap<Uuid, HealthStatus>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

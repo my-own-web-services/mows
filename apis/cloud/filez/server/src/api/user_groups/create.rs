@@ -29,7 +29,7 @@ pub async fn create_user_group(
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<CreateUserGroupRequestBody>,
+    Json(request_body): Json<CreateUserGroupRequestBody>,
 ) -> Result<Json<ApiResponse<UserGroup>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -60,7 +60,7 @@ pub async fn create_user_group(
     );
 
     let user_group = with_timing!(
-        UserGroup::new(&requesting_user, &req_body.name),
+        UserGroup::new(&requesting_user, &request_body.name),
         "Creating new user group",
         timing
     );

@@ -28,7 +28,7 @@ pub async fn list_user_groups(
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<ListUserGroupsRequestBody>,
+    Json(request_body): Json<ListUserGroupsRequestBody>,
 ) -> Result<Json<ApiResponse<ListUserGroupsResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -63,10 +63,10 @@ pub async fn list_user_groups(
             &db,
             &requesting_user.id,
             &requesting_app.id,
-            req_body.from_index,
-            req_body.limit,
-            req_body.sort_by,
-            req_body.sort_order,
+            request_body.from_index,
+            request_body.limit,
+            request_body.sort_by,
+            request_body.sort_order,
         )
         .await?,
         "Database operation to list user groups",

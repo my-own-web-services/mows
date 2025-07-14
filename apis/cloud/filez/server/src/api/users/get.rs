@@ -29,7 +29,7 @@ pub async fn get_users(
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<GetUsersReqBody>,
+    Json(request_body): Json<GetUsersReqBody>,
 ) -> Result<Json<ApiResponse<GetUsersResBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -50,7 +50,7 @@ pub async fn get_users(
             &requesting_app.id,
             requesting_app.trusted,
             &serde_variant::to_variant_name(&AccessPolicyResourceType::User).unwrap(),
-            Some(&req_body.user_ids),
+            Some(&request_body.user_ids),
             &serde_variant::to_variant_name(&AccessPolicyAction::UsersGet).unwrap(),
         )
         .await?
@@ -60,14 +60,14 @@ pub async fn get_users(
     );
 
     let users = with_timing!(
-        FilezUser::get_many_by_id(&db, &req_body.user_ids).await?,
+        FilezUser::get_many_by_id(&db, &request_body.user_ids).await?,
         "Database operation to get users by IDs",
         timing
     );
 
     let mut users_meta = HashMap::new();
 
-    for requested_user_id in &req_body.user_ids {
+    for requested_user_id in &request_body.user_ids {
         if let Some(user) = users.get(requested_user_id) {
             users_meta.insert(*requested_user_id, UserMeta { user: user.clone() });
         } else {

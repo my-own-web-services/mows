@@ -8,7 +8,7 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
-        file_groups::{FileGroup, FileGroupType},
+        file_groups::{DynamicGroupRule, FileGroup, FileGroupType},
         users::FilezUser,
     },
     state::ServerState,
@@ -29,7 +29,7 @@ pub async fn create_file_group(
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<CreateFileGroupRequestBody>,
+    Json(request_body): Json<CreateFileGroupRequestBody>,
 ) -> Result<Json<ApiResponse<FileGroup>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -59,7 +59,12 @@ pub async fn create_file_group(
         timing
     );
 
-    let file_group = FileGroup::new(&requesting_user, &req_body.name, req_body.group_type);
+    let file_group = FileGroup::new(
+        &requesting_user,
+        &request_body.name,
+        request_body.group_type,
+        request_body.dynamic_group_rule,
+    );
 
     with_timing!(
         FileGroup::create(&db, &file_group).await?,
@@ -78,4 +83,5 @@ pub async fn create_file_group(
 pub struct CreateFileGroupRequestBody {
     pub name: String,
     pub group_type: FileGroupType,
+    pub dynamic_group_rule: Option<DynamicGroupRule>,
 }

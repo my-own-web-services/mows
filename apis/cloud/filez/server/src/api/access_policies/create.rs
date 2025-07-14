@@ -32,7 +32,7 @@ pub async fn create_access_policy(
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(req_body): Json<CreateAccessPolicyRequestBody>,
+    Json(request_body): Json<CreateAccessPolicyRequestBody>,
 ) -> Result<Json<ApiResponse<AccessPolicy>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -63,14 +63,14 @@ pub async fn create_access_policy(
     );
 
     let access_policy = AccessPolicy::new(
-        &req_body.name,
-        req_body.subject_type,
-        req_body.subject_id,
-        req_body.context_app_id,
-        req_body.resource_type,
-        req_body.resource_id,
-        req_body.actions,
-        req_body.effect,
+        &request_body.name,
+        request_body.subject_type,
+        request_body.subject_id,
+        request_body.context_app_id,
+        request_body.resource_type,
+        request_body.resource_id,
+        request_body.actions,
+        request_body.effect,
     );
 
     with_timing!(
