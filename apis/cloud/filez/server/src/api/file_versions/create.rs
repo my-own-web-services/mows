@@ -3,7 +3,7 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
-        file_versions::{FileVersion, FileVersionsQuery},
+        file_versions::{FileVersion, FileVersionMetadata},
         users::FilezUser,
     },
     state::ServerState,
@@ -23,19 +23,19 @@ use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
-    path = "/api/files/versions/get",
-    request_body = GetFileVersionsRequestBody,
-    description = "Get file versions from the server",
+    path = "/api/file_versions/create",
+    request_body = CreateFileVersionRequestBody,
+    description = "Create a new file version entry in the database",
     responses(
-        (status = 200, description = "Got file versions from the server", body = ApiResponse<GetFileVersionsResponseBody>),
+        (status = 201, description = "Created a file version on the server", body = ApiResponse<CreateFileVersionResponseBody> ),
     )
 )]
-pub async fn get_file_versions(
+pub async fn create_file_version(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(request_body): Json<GetFileVersionsRequestBody>,
+    Json(request_body): Json<CreateFileVersionRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -49,17 +49,15 @@ pub async fn get_file_versions(
         timing
     );
 
-    let file_ids: Vec<Uuid> = request_body.versions.iter().map(|v| v.file_id).collect();
-
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
-            Some(&file_ids),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsGet).unwrap(),
+            AccessPolicyResourceType::File,
+            None,
+            AccessPolicyAction::FilezFilesVersionsCreate,
         )
         .await?
         .verify()?,
@@ -67,30 +65,43 @@ pub async fn get_file_versions(
         timing
     );
 
-    let file_versions = with_timing!(
-        FileVersion::get_many(&db, &request_body.versions).await?,
-        "Database operation to get file versions",
+    let db_created_file_version = with_timing!(
+        FileVersion::create(
+            &db,
+            request_body.file_id,
+            requesting_app.id,
+            request_body.app_path,
+            request_body.metadata,
+            request_body.size.into(),
+            request_body.storage_location_id,
+        )
+        .await?,
+        "Database operation to create file version",
         timing
     );
 
     Ok((
-        StatusCode::OK,
+        StatusCode::CREATED,
         Json(ApiResponse {
             status: ApiResponseStatus::Success,
-            message: "Got File Versions".to_string(),
-            data: Some(GetFileVersionsResponseBody {
-                versions: file_versions,
+            message: "Created File Version".to_string(),
+            data: Some(CreateFileVersionResponseBody {
+                version: db_created_file_version.version,
             }),
         }),
     ))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetFileVersionsRequestBody {
-    pub versions: Vec<FileVersionsQuery>,
+pub struct CreateFileVersionRequestBody {
+    pub file_id: Uuid,
+    pub app_path: Option<String>,
+    pub metadata: FileVersionMetadata,
+    pub size: i64,
+    pub storage_location_id: Uuid,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetFileVersionsResponseBody {
-    pub versions: Vec<FileVersion>,
+pub struct CreateFileVersionResponseBody {
+    pub version: i32,
 }

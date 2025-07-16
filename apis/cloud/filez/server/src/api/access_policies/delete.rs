@@ -15,7 +15,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
@@ -24,6 +24,7 @@ use crate::{
     path = "/api/access_policies/delete/{access_policy_id}",
     responses(
         (status = 200, description = "Deletes a access policy", body = ApiResponse<Uuid>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn delete_access_policy(
@@ -48,12 +49,12 @@ pub async fn delete_access_policy(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
+            AccessPolicyResourceType::AccessPolicy,
             Some(&vec![access_policy_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPoliciesDelete).unwrap(),
+            AccessPolicyAction::AccessPoliciesDelete,
         )
         .await?
         .verify()?,

@@ -1,4 +1,3 @@
-
 use crate::{
     errors::FilezError,
     models::{
@@ -8,7 +7,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{
@@ -29,6 +28,7 @@ use zitadel::axum::introspection::IntrospectedUser;
     description = "Delete a file entry in the database",
     responses(
         (status = 200, description = "Deleted a file on the server", body = ApiResponse<DeleteFileResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn delete_file(
@@ -53,12 +53,12 @@ pub async fn delete_file(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             Some(&vec![request_body.file_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesDelete).unwrap(),
+            AccessPolicyAction::FilezFilesDelete,
         )
         .await?
         .verify()?,

@@ -8,6 +8,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
+    types::{ApiResponse, EmptyApiResponse},
     utils::parse_range,
     with_timing,
 };
@@ -37,7 +38,7 @@ pub struct GetFileVersionRequestQueryParams {
 
 #[utoipa::path(
     get,
-    path = "/api/files/versions/content/get/{file_id}/{version}/{app_id}/{app_path}",
+    path = "/api/file_versions/content/get/{file_id}/{version}/{app_id}/{app_path}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to retrieve content for"),
         ("version" = Option<u32>, Path, description = "The version of the file to retrieve, if applicable"),
@@ -46,12 +47,13 @@ pub struct GetFileVersionRequestQueryParams {
         GetFileVersionRequestQueryParams
     ),
     responses(
-        (status = 200, description = "Gets a single files data/content from the server" ),
-        (status = 404, description = "File not found"),
-        (status = 500, description = "Internal server error retrieving file content")
+        (status = 200, description = "Gets a single files data/content from the server", body = Vec<u8> ),
+        (status = 206, description = "Partial content returned due to range request", body = Vec<u8>),
+        (status = 404, description = "File not found", body = ApiResponse<EmptyApiResponse>),
+        (status = 500, description = "Internal server error retrieving file content", body = ApiResponse<EmptyApiResponse>)
     )
 )]
-pub async fn get_file_content(
+pub async fn get_file_version_content(
     external_user: IntrospectedUser,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
@@ -79,13 +81,12 @@ pub async fn get_file_content(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             Some(&vec![file_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsContentGet)
-                .unwrap(),
+            AccessPolicyAction::FilezFilesVersionsContentGet,
         )
         .await?
         .verify()?,

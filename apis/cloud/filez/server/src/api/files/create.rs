@@ -56,12 +56,12 @@ pub async fn create_file(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesCreate).unwrap(),
+            AccessPolicyAction::FilezFilesCreate,
         )
         .await?
         .verify()?,
@@ -100,7 +100,8 @@ pub async fn create_file(
             status: ApiResponseStatus::Success,
             message: "Created File".to_string(),
             data: Some(CreateFileResponseBody {
-                file_id: db_created_file.id.to_string(),
+                id: db_created_file.id.to_string(),
+                mime_type: db_created_file.mime_type.to_string(),
             }),
         }),
     ))
@@ -116,5 +117,6 @@ pub struct CreateFileRequestBody {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct CreateFileResponseBody {
-    pub file_id: String,
+    pub id: String,
+    pub mime_type: String,
 }

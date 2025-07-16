@@ -5,10 +5,8 @@ use crate::{
             update::UpdateAccessPolicyRequestBody,
         },
         file_groups::create::CreateFileGroupRequestBody,
-        files::{
-            create::{CreateFileRequestBody, CreateFileResponseBody},
-            versions::create::{CreateFileVersionRequestBody, CreateFileVersionResponseBody},
-        },
+        file_versions::create::{CreateFileVersionRequestBody, CreateFileVersionResponseBody},
+        files::create::{CreateFileRequestBody, CreateFileResponseBody},
         storage_quotas::create::CreateStorageQuotaRequestBody,
         user_groups::create::CreateUserGroupRequestBody,
     },

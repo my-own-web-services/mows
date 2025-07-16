@@ -7,12 +7,14 @@ use zitadel::axum::introspection::IntrospectedUser;
 use crate::{
     errors::FilezError,
     models::{
-        access_policies::{check::AuthEvaluation, AccessPolicy},
+        access_policies::{
+            check::AuthEvaluation, AccessPolicy, AccessPolicyAction, AccessPolicyResourceType,
+        },
         apps::MowsApp,
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
@@ -22,6 +24,7 @@ use crate::{
     request_body = CheckResourceAccessRequestBody,
     responses(
         (status = 200, description = "Checks if the requested resources are available to this user", body = ApiResponse<CheckResourceAccessResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn check_resource_access(
@@ -46,12 +49,12 @@ pub async fn check_resource_access(
     let auth_result = with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &request_body.resource_type,
+            request_body.resource_type,
             request_body.resource_ids.as_deref(),
-            &request_body.action,
+            request_body.action,
         )
         .await?,
         "Database operation to check resources access control",
@@ -70,8 +73,8 @@ pub async fn check_resource_access(
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct CheckResourceAccessRequestBody {
     pub resource_ids: Option<Vec<Uuid>>,
-    pub resource_type: String,
-    pub action: String,
+    pub resource_type: AccessPolicyResourceType,
+    pub action: AccessPolicyAction,
     pub requesting_app_origin: Option<String>,
 }
 

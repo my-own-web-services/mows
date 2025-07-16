@@ -2,7 +2,7 @@ use crate::{
     errors::FilezError,
     models::users::FilezUser,
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{extract::State, Extension, Json};
@@ -16,6 +16,7 @@ use zitadel::axum::introspection::IntrospectedUser;
     path = "/api/users/apply",
     responses(
         (status = 200, description = "Applied own user", body = ApiResponse<ApplyUserResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn apply_user(

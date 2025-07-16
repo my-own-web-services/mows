@@ -6,7 +6,7 @@ use crate::{
         users::{FilezUser, ListedFilezUser},
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus, SortDirection},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
 use axum::{extract::State, http::HeaderMap, Extension, Json};
@@ -20,6 +20,7 @@ use zitadel::axum::introspection::IntrospectedUser;
     request_body = ListUsersRequestBody,
     responses(
         (status = 200, description = "Lists all Users", body = ApiResponse<ListUsersResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn list_users(
@@ -44,12 +45,12 @@ pub async fn list_users(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::User).unwrap(),
+            AccessPolicyResourceType::User,
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::UsersList).unwrap(),
+            AccessPolicyAction::UsersList,
         )
         .await?
         .verify()?,

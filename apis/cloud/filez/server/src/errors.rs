@@ -67,9 +67,11 @@ pub enum FilezError {
 impl IntoResponse for FilezError {
     fn into_response(self) -> axum::response::Response {
         let status = match self {
-            FilezError::DatabaseError(_) | FilezError::DeadpoolError(_) => {
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR
-            }
+            FilezError::DatabaseError(ref db_error) => match db_error {
+                diesel::result::Error::NotFound => axum::http::StatusCode::NOT_FOUND,
+                _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            },
+            FilezError::DeadpoolError(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             FilezError::UrlParseError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::ParseError(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::SerdeJsonError(_) => axum::http::StatusCode::BAD_REQUEST,
@@ -78,6 +80,7 @@ impl IntoResponse for FilezError {
             FilezError::InvalidRequest(_) => axum::http::StatusCode::BAD_REQUEST,
             FilezError::UnsupportedMediaType(_) => axum::http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
             FilezError::Unauthorized(_) => axum::http::StatusCode::UNAUTHORIZED,
+            FilezError::AuthEvaluationError(_) => axum::http::StatusCode::UNAUTHORIZED,
             _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
         };
 

@@ -17,7 +17,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
@@ -27,6 +27,7 @@ use crate::{
     request_body = UpdateUserGroupRequestBody,
     responses(
         (status = 200, description = "Updates a user group", body = ApiResponse<UserGroup>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn update_user_group(
@@ -52,12 +53,12 @@ pub async fn update_user_group(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
+            AccessPolicyResourceType::UserGroup,
             Some(&vec![user_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupsUpdate).unwrap(),
+            AccessPolicyAction::UserGroupsUpdate,
         )
         .await?
         .verify()?,

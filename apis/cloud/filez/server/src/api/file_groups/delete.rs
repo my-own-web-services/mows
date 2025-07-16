@@ -16,7 +16,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
@@ -25,6 +25,7 @@ use crate::{
     path = "/api/file_groups/delete/{file_group_id}",
     responses(
         (status = 200, description = "Deletes a file group", body = ApiResponse<String>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn delete_file_group(
@@ -49,12 +50,12 @@ pub async fn delete_file_group(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
+            AccessPolicyResourceType::FileGroup,
             Some(&vec![file_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsDelete).unwrap(),
+            AccessPolicyAction::FileGroupsDelete,
         )
         .await?
         .verify()?,

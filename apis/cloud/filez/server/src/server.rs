@@ -42,9 +42,15 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     // run pending migrations
-    Db::run_migrations(&config)
-        .await
-        .context("Failed to run migrations")?;
+    match Db::run_migrations(&config).await {
+        Ok(_) => info!("Migrations completed successfully"),
+        Err(e) => {
+            Db::drop_if_dev_mode(&config).await?;
+            Db::run_migrations(&config).await?;
+        }
+    }
+
+    // TODO:
 
     // create the bucket if it does not exist in the background
 
@@ -61,17 +67,27 @@ async fn main() -> Result<(), anyhow::Error> {
         // often it is the order of the extractors in the route handlers
         // FILES
         .routes(routes!(api::files::create::create_file))
+        .routes(routes!(api::files::get::get_files))
+        .routes(routes!(api::files::update::update_file))
+        .routes(routes!(api::files::delete::delete_file))
+        // metadata
         .routes(routes!(api::files::meta::get::get_files_metadata))
         .routes(routes!(api::files::meta::update::update_files_metadata))
         // FILE VERSIONS
+        .routes(routes!(api::file_versions::get::get_file_versions))
+        .routes(routes!(api::file_versions::create::create_file_version))
+        .routes(routes!(api::file_versions::delete::delete_file_versions))
+        .routes(routes!(api::file_versions::update::update_file_versions))
+        //  content
         .routes(routes!(
-            api::files::versions::content::get::get_file_content
+            api::file_versions::content::get::get_file_version_content
         ))
-        .routes(routes!(api::files::versions::create::create_file_version))
-        // tus
-        .routes(routes!(api::files::versions::content::tus::head::tus_head))
+        //    tus
         .routes(routes!(
-            api::files::versions::content::tus::patch::tus_patch
+            api::file_versions::content::tus::head::file_versions_content_tus_head
+        ))
+        .routes(routes!(
+            api::file_versions::content::tus::patch::file_versions_content_tus_patch
         ))
         // FILE GROUPS
         .routes(routes!(api::file_groups::create::create_file_group))
@@ -86,13 +102,19 @@ async fn main() -> Result<(), anyhow::Error> {
         // USERS
         .routes(routes!(api::users::apply::apply_user))
         .routes(routes!(api::users::get::get_users))
+        .routes(routes!(api::users::create::create_user))
+        //.routes(routes!(api::users::update::update_user))
+        .routes(routes!(api::users::delete::delete_user))
+        .routes(routes!(api::users::list::list_users))
         // USER GROUPS
         .routes(routes!(api::user_groups::create::create_user_group))
         .routes(routes!(api::user_groups::get::get_user_group))
         .routes(routes!(api::user_groups::update::update_user_group))
         .routes(routes!(api::user_groups::delete::delete_user_group))
         .routes(routes!(api::user_groups::list::list_user_groups))
-        .routes(routes!(api::user_groups::list_users::list_users))
+        .routes(routes!(
+            api::user_groups::list_users::list_users_by_user_group
+        ))
         .routes(routes!(
             api::user_groups::update_members::update_user_group_members
         ))
@@ -106,18 +128,14 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::access_policies::delete::delete_access_policy))
         .routes(routes!(api::access_policies::list::list_access_policies))
         // STORAGE QUOTAS
-        .routes(routes!(
-            api::storage_quotas::create::create_storage_quota
-        ))
+        .routes(routes!(api::storage_quotas::create::create_storage_quota))
         .routes(routes!(api::storage_quotas::get::get_storage_quota))
+        .routes(routes!(api::storage_quotas::update::update_storage_quota))
+        .routes(routes!(api::storage_quotas::delete::delete_storage_quota))
+        .routes(routes!(api::storage_quotas::list::list_storage_quotas))
+        // STORAGE LOCATIONS
         .routes(routes!(
-            api::storage_quotas::update::update_storage_quota
-        ))
-        .routes(routes!(
-            api::storage_quotas::delete::delete_storage_quota
-        ))
-        .routes(routes!(
-            api::storage_quotas::list::list_storage_quotas
+            api::storage_locations::list::list_storage_locations
         ))
         // HEALTH
         .routes(routes!(api::health::get_health))

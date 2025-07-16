@@ -1,20 +1,17 @@
 use crate::{
+    api::storage_locations::list::ListStorageLocationsSortBy,
     controller::crd::SecretReadableByFilezController,
     errors::FilezError,
     storage::{
         config::{StorageProviderConfig, StorageProviderConfigCrd},
         providers::StorageProvider,
     },
+    types::SortDirection,
     utils::get_uuid,
 };
 use axum::extract::Request;
 use bigdecimal::BigDecimal;
-use diesel::{
-    pg::Pg,
-    prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
-    query_dsl::methods::{FilterDsl, SelectDsl},
-    ExpressionMethods, Selectable, SelectableHelper,
-};
+use diesel::{pg::Pg, prelude::*};
 use diesel_async::RunQueryDsl;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -39,6 +36,26 @@ pub struct StorageLocation {
     pub id: Uuid,
     pub name: String,
     pub provider_config: StorageProviderConfig,
+    pub created_time: chrono::NaiveDateTime,
+    pub modified_time: chrono::NaiveDateTime,
+}
+
+#[derive(
+    Serialize,
+    Deserialize,
+    Queryable,
+    Selectable,
+    ToSchema,
+    Clone,
+    Debug,
+    QueryableByName,
+    AsChangeset,
+)]
+#[diesel(table_name = crate::schema::storage_locations)]
+#[diesel(check_for_backend(Pg))]
+pub struct StorageLocationListItem {
+    pub id: Uuid,
+    pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
 }
@@ -133,6 +150,51 @@ impl StorageLocation {
             })?;
 
         Ok(storage_location)
+    }
+
+    pub async fn list(
+        db: &crate::db::Db,
+        sort_by: Option<ListStorageLocationsSortBy>,
+        sort_order: Option<SortDirection>,
+    ) -> Result<Vec<StorageLocationListItem>, FilezError> {
+        let mut connection = db.pool.get().await?;
+        let mut query = crate::schema::storage_locations::table.into_boxed();
+
+        if let Some(sort_by) = sort_by {
+            match sort_by {
+                ListStorageLocationsSortBy::CreatedTime => {
+                    query = match sort_order {
+                        Some(SortDirection::Ascending) => {
+                            query.order(crate::schema::storage_locations::created_time.asc())
+                        }
+                        _ => query.order(crate::schema::storage_locations::created_time.desc()),
+                    };
+                }
+                ListStorageLocationsSortBy::ModifiedTime => {
+                    query = match sort_order {
+                        Some(SortDirection::Ascending) => {
+                            query.order(crate::schema::storage_locations::modified_time.asc())
+                        }
+                        _ => query.order(crate::schema::storage_locations::modified_time.desc()),
+                    };
+                }
+                ListStorageLocationsSortBy::Name => {
+                    query = match sort_order {
+                        Some(SortDirection::Ascending) => {
+                            query.order(crate::schema::storage_locations::name.asc())
+                        }
+                        _ => query.order(crate::schema::storage_locations::name.desc()),
+                    };
+                }
+            }
+        }
+
+        let storage_locations = query
+            .select(StorageLocationListItem::as_select())
+            .load::<StorageLocationListItem>(&mut connection)
+            .await?;
+
+        Ok(storage_locations)
     }
 
     pub async fn initialize_provider(&self) -> Result<StorageProvider, FilezError> {

@@ -9,7 +9,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     validation::validate_file_name,
     with_timing,
 };
@@ -31,6 +31,7 @@ use zitadel::axum::introspection::IntrospectedUser;
     description = "Update a file entry in the database",
     responses(
         (status = 200, description = "Updated a file on the server", body = ApiResponse<UpdateFileResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn update_file(
@@ -55,12 +56,12 @@ pub async fn update_file(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             Some(&vec![request_body.file_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesUpdate).unwrap(),
+            AccessPolicyAction::FilezFilesUpdate,
         )
         .await?
         .verify()?,

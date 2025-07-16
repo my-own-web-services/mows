@@ -23,7 +23,7 @@ use crate::{
 
 #[utoipa::path(
     head,
-    path = "/api/files/versions/content/tus/head/{file_id}/{version}/{job_id}",
+    path = "/api/file_versions/content/tus/{file_id}/{version}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to check for upload status"),
         ("version" = Option<u32>, Path, description = "The version of the file, if applicable"),
@@ -35,7 +35,7 @@ use crate::{
         (status = 400, description = "Bad request, missing or invalid headers"),
     )
 )]
-pub async fn tus_head(
+pub async fn file_versions_content_tus_head(
     external_user: IntrospectedUser,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
@@ -69,13 +69,12 @@ pub async fn tus_head(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             Some(&vec![file_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsContentTusHead)
-                .unwrap(),
+            AccessPolicyAction::FilezFilesVersionsContentTusHead,
         )
         .await?
         .verify()?,

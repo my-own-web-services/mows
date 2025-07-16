@@ -1,30 +1,23 @@
 use axum::{extract::State, http::HeaderMap, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
     errors::FilezError,
-    models::{
-        access_policies::{
-            AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectType,
-        },
-        apps::MowsApp,
-        storage_quotas::StorageQuota,
-        users::FilezUser,
-    },
+    models::{apps::MowsApp, storage_quotas::StorageQuota, users::FilezUser},
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus, SortDirection},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
 
 #[utoipa::path(
-    get,
+    post,
     path = "/api/storage_quotas/list",
     request_body = ListStorageQuotasRequestBody,
     responses(
         (status = 200, description = "Lists storage quotas", body = ApiResponse<Vec<StorageQuota>>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn list_storage_quotas(
@@ -46,26 +39,10 @@ pub async fn list_storage_quotas(
         timing
     );
 
-    with_timing!(
-        AccessPolicy::check(
-            &db,
-            &requesting_user.id,
-            &requesting_app.id,
-            requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::StorageQuota).unwrap(),
-            None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::StorageQuotasList).unwrap()
-        )
-        .await?
-        .verify()?,
-        "Access policy check for listing storage quotas",
-        timing
-    );
     let storage_quotas = with_timing!(
         StorageQuota::list_with_user_access(
             &db,
             &requesting_user.id,
-            &requesting_app.id,
             request_body.from_index,
             request_body.limit,
             request_body.sort_by,
@@ -95,7 +72,9 @@ pub struct ListStorageQuotasRequestBody {
 pub enum ListStorageQuotasSortBy {
     CreatedTime,
     ModifiedTime,
-    Name,
+    SubjectType,
+    SubjectId,
+    StorageLocationId,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

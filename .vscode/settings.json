@@ -5,7 +5,7 @@
             "splitTerminals": [
                 {
                     "name": "manager",
-                    "commands": ["cd manager","bash scripts/start-manager.sh"],
+                    "commands": ["cd manager", "SKIP_BUILD=true bash scripts/start-manager.sh"]
                 }
             ]
         },

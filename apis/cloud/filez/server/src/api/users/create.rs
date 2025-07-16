@@ -6,7 +6,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{extract::State, http::HeaderMap, Extension, Json};
@@ -21,6 +21,7 @@ use zitadel::axum::introspection::IntrospectedUser;
     request_body = CreateUserRequestBody,
     responses(
         (status = 200, description = "Creates a User", body = ApiResponse<CreateUserResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn create_user(
@@ -45,23 +46,25 @@ pub async fn create_user(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::User).unwrap(),
+            AccessPolicyResourceType::User,
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::UsersCreate).unwrap(),
+            AccessPolicyAction::UsersCreate,
         )
         .await?
         .verify()?,
         "Database operation to check access control",
         timing
     );
+
     let new_user = with_timing!(
         FilezUser::create(&db, &request_body.email, &requesting_user.id).await?,
         "Database operation to create user",
         timing
     );
+
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
         message: "User created successfully".to_string(),

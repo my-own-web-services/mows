@@ -1,7 +1,8 @@
-use super::AccessPolicyResourceType;
+use super::{AccessPolicyAction, AccessPolicyResourceType};
 use crate::errors::FilezError;
-use crate::filter_subject;
+use crate::filter_subject_access_policies;
 use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPolicySubjectType};
+use crate::models::users::FilezUser;
 use crate::{db::Db, schema};
 use diesel::{
     pg::sql_types, prelude::*, BoolExpressionMethods, ExpressionMethods, SelectableHelper,
@@ -15,16 +16,30 @@ use uuid::Uuid;
 
 pub async fn check_resources_access_control(
     db: &Db,
-    requesting_user_id: &Uuid,
+    requesting_user: &FilezUser,
     user_group_ids: &[Uuid],
     context_app_id: &Uuid,
     context_app_trusted: bool,
-    resource_type: &str,
+    resource_type: AccessPolicyResourceType,
     requested_resource_ids: Option<&[Uuid]>,
-    action_to_perform: &str,
+    action_to_perform: AccessPolicyAction,
 ) -> Result<AuthResult, FilezError> {
     let mut conn = db.pool.get().await?;
     let resource_auth_info = get_auth_info(resource_type)?;
+
+    let requesting_user_id = &requesting_user.id;
+
+    if requesting_user.super_admin {
+        // Super admins bypass all access control checks
+        return Ok(AuthResult {
+            access_granted: true,
+            evaluations: vec![AuthEvaluation {
+                resource_id: None,
+                is_allowed: true,
+                reason: AuthReason::SuperAdmin,
+            }],
+        });
+    }
 
     match requested_resource_ids {
         Some(requested_resource_ids) => {
@@ -86,12 +101,14 @@ pub async fn check_resources_access_control(
             let direct_policies = schema::access_policies::table
                 .filter(schema::access_policies::resource_id.eq_any(requested_resource_ids))
                 .filter(
-                    schema::access_policies::resource_type
-                        .eq(&resource_auth_info.resource_type_policy_str),
+                    schema::access_policies::resource_type.eq(&resource_auth_info.resource_type),
                 )
                 .filter(schema::access_policies::context_app_id.eq(context_app_id))
                 .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-                .filter(filter_subject!(requesting_user_id, user_group_ids))
+                .filter(filter_subject_access_policies!(
+                    requesting_user_id,
+                    user_group_ids
+                ))
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut conn)
                 .await?;
@@ -121,7 +138,7 @@ pub async fn check_resources_access_control(
                 resource_auth_info.group_membership_table,
                 resource_auth_info.group_membership_table_resource_id_column,
                 resource_auth_info.group_membership_table_group_id_column,
-                resource_auth_info.resource_group_type_policy_str,
+                resource_auth_info.resource_group_type,
             ) {
                 let resource_group_memberships_query_string = format!(
             "SELECT {resource_id_column} as resource_id, {group_id_column} as group_id FROM {table_name} WHERE {resource_id_column} = ANY($1)",
@@ -158,7 +175,10 @@ pub async fn check_resources_access_control(
                         )
                         .filter(schema::access_policies::context_app_id.eq(context_app_id))
                         .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-                        .filter(filter_subject!(requesting_user_id, user_group_ids))
+                        .filter(filter_subject_access_policies!(
+                            requesting_user_id,
+                            user_group_ids
+                        ))
                         .select(AccessPolicy::as_select())
                         .load::<AccessPolicy>(&mut conn)
                         .await?;
@@ -393,12 +413,14 @@ pub async fn check_resources_access_control(
             let type_level_policies = schema::access_policies::table
                 .filter(schema::access_policies::resource_id.is_null())
                 .filter(
-                    schema::access_policies::resource_type
-                        .eq(&resource_auth_info.resource_type_policy_str),
+                    schema::access_policies::resource_type.eq(&resource_auth_info.resource_type),
                 )
                 .filter(schema::access_policies::context_app_id.eq(context_app_id))
                 .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-                .filter(filter_subject!(requesting_user_id, user_group_ids))
+                .filter(filter_subject_access_policies!(
+                    requesting_user_id,
+                    user_group_ids
+                ))
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut conn)
                 .await?;
@@ -515,6 +537,7 @@ struct ResourceGroupMembership {
 
 #[derive(Debug, Serialize, Clone, PartialEq, Eq, Deserialize, ToSchema)]
 pub enum AuthReason {
+    SuperAdmin,
     Owned,
     AllowedByPubliclyAccessible {
         policy_id: Uuid,
@@ -575,101 +598,90 @@ pub struct ResourceAuthInfo {
     pub resource_table: &'static str,
     pub resource_table_id_column: &'static str,
     pub resource_table_owner_column: Option<&'static str>,
-    pub resource_type_policy_str: &'static str,
+    pub resource_type: AccessPolicyResourceType,
 
     // For resources that can be part of groups
     pub group_membership_table: Option<&'static str>,
     pub group_membership_table_resource_id_column: Option<&'static str>,
     pub group_membership_table_group_id_column: Option<&'static str>,
-    pub resource_group_type_policy_str: Option<&'static str>,
+    pub resource_group_type: Option<AccessPolicyResourceType>,
 }
 
-pub fn get_auth_info(resource_type: &str) -> Result<ResourceAuthInfo, FilezError> {
+pub fn get_auth_info(
+    resource_type: AccessPolicyResourceType,
+) -> Result<ResourceAuthInfo, FilezError> {
     Ok(match resource_type {
-        "file" => ResourceAuthInfo {
+        AccessPolicyResourceType::File => ResourceAuthInfo {
             resource_table: "files",
             resource_table_id_column: "id",
             resource_table_owner_column: Some("owner_id"),
-            resource_type_policy_str: serde_variant::to_variant_name(
-                &AccessPolicyResourceType::File,
-            )
-            .unwrap(),
+            resource_type: AccessPolicyResourceType::File,
             group_membership_table: Some("file_file_group_members"),
             group_membership_table_resource_id_column: Some("file_id"),
             group_membership_table_group_id_column: Some("file_group_id"),
-            resource_group_type_policy_str: Some(
-                serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
-            ),
+            resource_group_type: Some(AccessPolicyResourceType::FileGroup),
         },
-        "file_group" => ResourceAuthInfo {
+        AccessPolicyResourceType::FileGroup => ResourceAuthInfo {
             resource_table: "file_groups",
             resource_table_id_column: "id",
             resource_table_owner_column: Some("owner_id"),
-            resource_type_policy_str: serde_variant::to_variant_name(
-                &AccessPolicyResourceType::FileGroup,
-            )
-            .unwrap(),
+            resource_type: AccessPolicyResourceType::FileGroup,
             group_membership_table: None,
             group_membership_table_resource_id_column: None,
             group_membership_table_group_id_column: None,
-            resource_group_type_policy_str: None,
+            resource_group_type: None,
         },
-        "user" => ResourceAuthInfo {
+        AccessPolicyResourceType::User => ResourceAuthInfo {
             resource_table: "users",
             resource_table_id_column: "id",
             resource_table_owner_column: Some("id"), // Users own themselves
-            resource_type_policy_str: serde_variant::to_variant_name(
-                &AccessPolicyResourceType::User,
-            )
-            .unwrap(),
+            resource_type: AccessPolicyResourceType::User,
             group_membership_table: None,
             group_membership_table_resource_id_column: None,
             group_membership_table_group_id_column: None,
-            resource_group_type_policy_str: None,
+            resource_group_type: None,
         },
-        "user_group" => ResourceAuthInfo {
+        AccessPolicyResourceType::UserGroup => ResourceAuthInfo {
             resource_table: "user_groups",
             resource_table_id_column: "id",
             resource_table_owner_column: Some("owner_id"),
-            resource_type_policy_str: serde_variant::to_variant_name(
-                &AccessPolicyResourceType::UserGroup,
-            )
-            .unwrap(),
+            resource_type: AccessPolicyResourceType::UserGroup,
             group_membership_table: None,
             group_membership_table_resource_id_column: None,
             group_membership_table_group_id_column: None,
-            resource_group_type_policy_str: None,
+            resource_group_type: None,
         },
-        "storage_location" => ResourceAuthInfo {
+        AccessPolicyResourceType::StorageLocation => ResourceAuthInfo {
             resource_table: "storage_locations",
             resource_table_id_column: "id",
             resource_table_owner_column: None,
-            resource_type_policy_str: serde_variant::to_variant_name(
-                &AccessPolicyResourceType::StorageLocation,
-            )
-            .unwrap(),
+            resource_type: AccessPolicyResourceType::StorageLocation,
 
             group_membership_table: None,
             group_membership_table_resource_id_column: None,
             group_membership_table_group_id_column: None,
-            resource_group_type_policy_str: None,
+            resource_group_type: None,
         },
-        "access_policy" => ResourceAuthInfo {
+        AccessPolicyResourceType::AccessPolicy => ResourceAuthInfo {
             resource_table: "access_policies",
             resource_table_id_column: "id",
             resource_table_owner_column: Some("owner_id"),
-            resource_type_policy_str: serde_variant::to_variant_name(
-                &AccessPolicyResourceType::AccessPolicy,
-            )
-            .unwrap(),
+            resource_type: AccessPolicyResourceType::AccessPolicy,
             group_membership_table: None,
             group_membership_table_resource_id_column: None,
             group_membership_table_group_id_column: None,
-            resource_group_type_policy_str: None,
+            resource_group_type: None,
         },
-        _ => {
-            return Err(FilezError::ResourceAuthInfoError(resource_type.to_string()));
-        }
+        AccessPolicyResourceType::StorageQuota => ResourceAuthInfo {
+            resource_table: "storage_quotas",
+            resource_table_id_column: "id",
+            resource_table_owner_column: Some("owner_id"),
+            resource_type: AccessPolicyResourceType::StorageQuota,
+            group_membership_table: None,
+            group_membership_table_resource_id_column: None,
+            group_membership_table_group_id_column: None,
+            resource_group_type: None,
+        },
     })
 }
 

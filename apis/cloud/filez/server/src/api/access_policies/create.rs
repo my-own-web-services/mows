@@ -15,7 +15,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
@@ -25,6 +25,7 @@ use crate::{
     request_body = CreateAccessPolicyRequestBody,
     responses(
         (status = 200, description = "Creates a new access policy", body = ApiResponse<AccessPolicy>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn create_access_policy(
@@ -49,12 +50,12 @@ pub async fn create_access_policy(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
+            AccessPolicyResourceType::AccessPolicy,
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPoliciesCreate).unwrap(),
+            AccessPolicyAction::AccessPoliciesCreate,
         )
         .await?
         .verify()?,
@@ -64,6 +65,7 @@ pub async fn create_access_policy(
 
     let access_policy = AccessPolicy::new(
         &request_body.name,
+        requesting_user.id,
         request_body.subject_type,
         request_body.subject_id,
         request_body.context_app_id,

@@ -19,7 +19,6 @@ use diesel::{
 use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
-use kube::core::dynamic;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -124,8 +123,8 @@ impl FileGroup {
             db,
             requesting_user_id,
             app_id,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsList).unwrap(),
+            AccessPolicyResourceType::FileGroup,
+            AccessPolicyAction::FileGroupsList,
         )
         .await?;
 

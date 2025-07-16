@@ -29,7 +29,7 @@ use crate::{
         (status = 200, description = "Lists the users in a given group", body = ApiResponse<ListUsersResponseBody>),
     )
 )]
-pub async fn list_users(
+pub async fn list_users_by_user_group(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
@@ -52,12 +52,12 @@ pub async fn list_users(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
+            AccessPolicyResourceType::UserGroup,
             Some(&vec![user_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupsListUsers).unwrap(),
+            AccessPolicyAction::UserGroupsListUsers,
         )
         .await?
         .verify()?,

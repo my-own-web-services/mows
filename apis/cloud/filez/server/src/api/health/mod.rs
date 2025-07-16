@@ -15,7 +15,8 @@ use uuid::Uuid;
     get,
     path = "/api/health",
     responses(
-        (status = 200, description = "", body = ApiResponse<HealthResBody>),
+        (status = 200, description = "Service healthy", body = ApiResponse<HealthResBody>),
+        (status = 503, description = "Service unavailable", body = ApiResponse<HealthResBody>),
     )
 )]
 pub async fn get_health(

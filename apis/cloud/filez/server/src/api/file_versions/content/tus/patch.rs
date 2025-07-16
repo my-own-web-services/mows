@@ -22,7 +22,7 @@ use zitadel::axum::introspection::IntrospectedUser;
 #[utoipa::path(
     patch,
     request_body(content_type = "application/octet-stream"),
-      path = "/api/files/versions/content/tus/patch/{file_id}/{version}",
+    path = "/api/file_versions/content/tus/{file_id}/{version}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to patch"),
         ("version" = Option<u32>, Path, description = "The version of the file to patch, if applicable"),
@@ -34,7 +34,7 @@ use zitadel::axum::introspection::IntrospectedUser;
         (status = 400, description = "Bad request, missing or invalid headers"),
     )
 )]
-pub async fn tus_patch(
+pub async fn file_versions_content_tus_patch(
     external_user: IntrospectedUser,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
@@ -99,13 +99,12 @@ pub async fn tus_patch(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             Some(&vec![file_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsContentTusPatch)
-                .unwrap(),
+            AccessPolicyAction::FilezFilesVersionsContentTusPatch,
         )
         .await?
         .verify()?,

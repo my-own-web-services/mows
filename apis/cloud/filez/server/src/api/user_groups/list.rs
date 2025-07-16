@@ -7,7 +7,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus, SortDirection},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
 use axum::{extract::State, http::HeaderMap, Extension, Json};
@@ -21,6 +21,7 @@ use zitadel::axum::introspection::IntrospectedUser;
     request_body = ListUserGroupsRequestBody,
     responses(
         (status = 200, description = "Lists user groups", body = ApiResponse<ListUserGroupsResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn list_user_groups(
@@ -45,12 +46,12 @@ pub async fn list_user_groups(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::UserGroup).unwrap(),
+            AccessPolicyResourceType::UserGroup,
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::UserGroupsList).unwrap(),
+            AccessPolicyAction::UserGroupsList,
         )
         .await?
         .verify()?,

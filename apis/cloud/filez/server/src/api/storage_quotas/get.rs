@@ -14,7 +14,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
@@ -24,6 +24,7 @@ use crate::{
     request_body = GetStorageQuotaRequestBody,
     responses(
         (status = 200, description = "Gets a storage quota", body = ApiResponse<StorageQuota>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn get_storage_quota(
@@ -48,12 +49,12 @@ pub async fn get_storage_quota(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::StorageQuota).unwrap(),
+            AccessPolicyResourceType::StorageQuota,
             Some(&[request_body.subject_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::StorageQuotasGet).unwrap()
+            AccessPolicyAction::StorageQuotasGet
         )
         .await?
         .verify()?,
