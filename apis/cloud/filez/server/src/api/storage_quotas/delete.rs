@@ -24,6 +24,7 @@ use crate::{
     request_body = DeleteStorageQuotaRequestBody,
     responses(
         (status = 200, description = "Deletes a storage quota", body = ApiResponse<EmptyApiResponse>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn delete_storage_quota(
@@ -48,12 +49,12 @@ pub async fn delete_storage_quota(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::StorageQuota).unwrap(),
+            AccessPolicyResourceType::StorageQuota,
             Some(&[request_body.subject_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::StorageQuotasDelete).unwrap()
+            AccessPolicyAction::StorageQuotasDelete
         )
         .await?
         .verify()?,

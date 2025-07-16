@@ -14,7 +14,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus, SortDirection},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
 
@@ -24,6 +24,7 @@ use crate::{
     request_body = ListFilesRequestBody,
     responses(
         (status = 200, description = "Lists the files in a given group", body = ApiResponse<ListFilesResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn list_files(
@@ -48,12 +49,12 @@ pub async fn list_files(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
+            AccessPolicyResourceType::FileGroup,
             Some(&vec![request_body.file_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsListFiles).unwrap(),
+            AccessPolicyAction::FileGroupsListFiles,
         )
         .await?
         .verify()?,

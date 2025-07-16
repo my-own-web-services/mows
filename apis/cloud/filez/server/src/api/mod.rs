@@ -3,24 +3,27 @@ pub mod files {
         pub mod get;
         pub mod update;
     }
-    pub mod versions {
-        pub mod create;
-        pub mod delete;
-        pub mod get;
-        pub mod update;
-        pub mod content {
-            pub mod get;
-            pub mod tus {
-                pub mod head;
-                pub mod patch;
-            }
-        }
-    }
+
     pub mod create;
     pub mod delete;
     pub mod get;
     pub mod update;
 }
+
+pub mod file_versions {
+    pub mod create;
+    pub mod delete;
+    pub mod get;
+    pub mod update;
+    pub mod content {
+        pub mod get;
+        pub mod tus {
+            pub mod head;
+            pub mod patch;
+        }
+    }
+}
+
 pub mod users {
     pub mod apply;
     pub mod create;
@@ -65,6 +68,10 @@ pub mod storage_quotas {
     pub mod get;
     pub mod list;
     pub mod update;
+}
+
+pub mod storage_locations {
+    pub mod list;
 }
 
 pub mod health;

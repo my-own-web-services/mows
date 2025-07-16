@@ -9,6 +9,7 @@ diesel::table! {
         deleted -> Bool,
         profile_picture -> Nullable<Uuid>,
         created_by -> Nullable<Uuid>,
+        super_admin -> Bool,
     }
 }
 
@@ -134,17 +135,21 @@ diesel::table! {
 
         context_app_id -> Nullable<Uuid>,
 
-        resource_type -> Text,
+        resource_type -> SmallInt,
         resource_id -> Nullable<Uuid>,
 
-        actions -> Array<Text>,
+        actions -> Array<SmallInt>,
 
         effect -> SmallInt,
     }
 }
 
 diesel::table! {
-    storage_quotas (subject_type, subject_id, storage_location_id) {
+    storage_quotas  {
+        id -> Uuid,
+        owner_id -> Uuid,
+        name -> Text,
+
         subject_type -> SmallInt,
         subject_id -> Uuid,
         storage_location_id -> Uuid,

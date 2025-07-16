@@ -3,7 +3,7 @@ use crate::{
     api::access_policies::list::ListAccessPoliciesSortBy,
     db::Db,
     errors::FilezError,
-    schema,
+    schema::{self},
     types::SortDirection,
     utils::{get_uuid, InvalidEnumType},
 };
@@ -23,11 +23,11 @@ use std::collections::HashSet;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::user_groups::UserGroup;
+use super::{user_groups::UserGroup, users::FilezUser};
 
 // macro to filter for subject type
 #[macro_export]
-macro_rules! filter_subject {
+macro_rules! filter_subject_access_policies {
     ($requesting_user_id:expr, $user_group_ids:expr) => {
         schema::access_policies::subject_type
             .eq(AccessPolicySubjectType::Public)
@@ -77,10 +77,9 @@ pub enum AccessPolicySubjectType {
     Deserialize,
     ToSchema,
 )]
-#[diesel(sql_type = Text)]
+#[diesel(sql_type = SmallInt)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
-#[serde(rename_all = "snake_case")]
 pub enum AccessPolicyResourceType {
     File,
     FileGroup,
@@ -113,103 +112,63 @@ pub enum AccessPolicyEffect {
 }
 
 #[derive(DbEnum, Debug, Serialize, Clone, Copy, PartialEq, Eq, Deserialize, ToSchema)]
-#[diesel(sql_type = Text)]
+#[diesel(sql_type = SmallInt)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
 pub enum AccessPolicyAction {
-    #[serde(rename = "filez.files.create")]
     FilezFilesCreate,
-    #[serde(rename = "filez.files.delete")]
     FilezFilesDelete,
-    #[serde(rename = "filez.files.get")]
     FilezFilesGet,
-    #[serde(rename = "filez.files.update")]
     FilezFilesUpdate,
 
-    #[serde(rename = "filez.files.meta.get")]
     FilezFilesMetaGet,
-    #[serde(rename = "filez.files.meta.list")]
     FilezFilesMetaList,
-    #[serde(rename = "filez.files.meta.update")]
     FilezFilesMetaUpdate,
 
-    #[serde(rename = "filez.files.versions.content.get")]
     FilezFilesVersionsContentGet,
-    #[serde(rename = "filez.files.versions.content.tus.head")]
     FilezFilesVersionsContentTusHead,
-    #[serde(rename = "filez.files.versions.content.tus.patch")]
     FilezFilesVersionsContentTusPatch,
-    #[serde(rename = "filez.files.versions.delete")]
     FilezFilesVersionsDelete,
-    #[serde(rename = "filez.files.versions.get")]
     FilezFilesVersionsGet,
-    #[serde(rename = "filez.files.versions.update")]
     FilezFilesVersionsUpdate,
-    #[serde(rename = "filez.files.versions.create")]
     FilezFilesVersionsCreate,
 
-    #[serde(rename = "filez.users.get")]
     UsersGet,
-    #[serde(rename = "filez.users.list")]
     UsersList,
-    #[serde(rename = "filez.users.create")]
     UsersCreate,
-    #[serde(rename = "filez.users.update")]
     UsersUpdate,
-    #[serde(rename = "filez.users.delete")]
     UsersDelete,
 
-    #[serde(rename = "filez.file_groups.create")]
     FileGroupsCreate,
-    #[serde(rename = "filez.file_groups.get")]
     FileGroupsGet,
-    #[serde(rename = "filez.file_groups.update")]
     FileGroupsUpdate,
-    #[serde(rename = "filez.file_groups.delete")]
     FileGroupsDelete,
-    #[serde(rename = "filez.file_groups.list")]
     FileGroupsList,
-    #[serde(rename = "filez.file_groups.list_files")]
     FileGroupsListFiles,
-    #[serde(rename = "filez.file_groups.update_members")]
     FileGroupsUpdateMembers,
 
-    #[serde(rename = "filez.user_groups.create")]
     UserGroupsCreate,
-    #[serde(rename = "filez.user_groups.get")]
     UserGroupsGet,
-    #[serde(rename = "filez.user_groups.update")]
     UserGroupsUpdate,
-    #[serde(rename = "filez.user_groups.delete")]
     UserGroupsDelete,
-    #[serde(rename = "filez.user_groups.list")]
     UserGroupsList,
-    #[serde(rename = "filez.user_groups.list_users")]
     UserGroupsListUsers,
-    #[serde(rename = "filez.user_groups.update_members")]
     UserGroupsUpdateMembers,
 
-    #[serde(rename = "filez.access_policies.create")]
     AccessPoliciesCreate,
-    #[serde(rename = "filez.access_policies.get")]
     AccessPoliciesGet,
-    #[serde(rename = "filez.access_policies.update")]
     AccessPoliciesUpdate,
-    #[serde(rename = "filez.access_policies.delete")]
     AccessPoliciesDelete,
-    #[serde(rename = "filez.access_policies.list")]
     AccessPoliciesList,
 
-    #[serde(rename = "filez.storage_quotas.create")]
     StorageQuotasCreate,
-    #[serde(rename = "filez.storage_quotas.get")]
     StorageQuotasGet,
-    #[serde(rename = "filez.storage_quotas.update")]
     StorageQuotasUpdate,
-    #[serde(rename = "filez.storage_quotas.delete")]
     StorageQuotasDelete,
-    #[serde(rename = "filez.storage_quotas.list")]
     StorageQuotasList,
+
+    StorageLocationsGet,
+    StorageLocationsList,
 }
 
 #[derive(
@@ -229,6 +188,7 @@ pub enum AccessPolicyAction {
 pub struct AccessPolicy {
     pub id: Uuid,
     pub name: String,
+    pub owner_id: Uuid,
 
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
@@ -239,11 +199,11 @@ pub struct AccessPolicy {
 
     pub context_app_id: Option<Uuid>,
 
-    #[diesel(sql_type = diesel::sql_types::Text)]
+    #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub resource_type: AccessPolicyResourceType,
     pub resource_id: Option<Uuid>,
 
-    #[diesel(sql_type = diesel::sql_types::Array<diesel::sql_types::Text>)]
+    #[diesel(sql_type = diesel::sql_types::Array<diesel::sql_types::SmallInt>)]
     pub actions: Vec<AccessPolicyAction>,
 
     pub effect: AccessPolicyEffect,
@@ -252,6 +212,7 @@ pub struct AccessPolicy {
 impl AccessPolicy {
     pub fn new(
         name: &str,
+        owner_id: Uuid,
         subject_type: AccessPolicySubjectType,
         subject_id: Uuid,
         context_app_id: Option<Uuid>,
@@ -262,6 +223,7 @@ impl AccessPolicy {
     ) -> Self {
         Self {
             id: get_uuid(),
+            owner_id,
             name: name.to_string(),
             created_time: chrono::Utc::now().naive_utc(),
             modified_time: chrono::Utc::now().naive_utc(),
@@ -299,8 +261,8 @@ impl AccessPolicy {
         db: &Db,
         requesting_user_id: &Uuid,
         context_app_id: &Uuid,
-        resource_type: &str,
-        action_to_perform: &str,
+        resource_type: AccessPolicyResourceType,
+        action_to_perform: AccessPolicyAction,
     ) -> Result<Vec<Uuid>, FilezError> {
         let mut conn = db.pool.get().await?;
         let resource_auth_info = check::get_auth_info(resource_type)?;
@@ -333,13 +295,13 @@ impl AccessPolicy {
 
         // 2. Get resources with direct policies
         let direct_policies = schema::access_policies::table
-            .filter(
-                schema::access_policies::resource_type
-                    .eq(resource_auth_info.resource_type_policy_str.to_string()),
-            )
+            .filter(schema::access_policies::resource_type.eq(resource_auth_info.resource_type))
             .filter(schema::access_policies::context_app_id.eq(context_app_id))
             .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-            .filter(filter_subject!(requesting_user_id, &user_group_ids))
+            .filter(filter_subject_access_policies!(
+                requesting_user_id,
+                &user_group_ids
+            ))
             .select((
                 schema::access_policies::resource_id,
                 schema::access_policies::effect,
@@ -365,12 +327,12 @@ impl AccessPolicy {
             Some(group_membership_table),
             Some(group_membership_table_resource_id_column),
             Some(group_membership_table_group_id_column),
-            Some(resource_group_type_policy_str),
+            Some(resource_group_type),
         ) = (
             resource_auth_info.group_membership_table,
             resource_auth_info.group_membership_table_resource_id_column,
             resource_auth_info.group_membership_table_group_id_column,
-            resource_auth_info.resource_group_type_policy_str,
+            resource_auth_info.resource_group_type,
         ) {
             let group_policies_query = format!(
                 "SELECT gm.{resource_id_col} as id, ap.effect
@@ -397,9 +359,9 @@ impl AccessPolicy {
             }
 
             let group_policies: Vec<GroupPolicyResult> = diesel::sql_query(&group_policies_query)
-                .bind::<diesel::sql_types::Text, _>(resource_group_type_policy_str)
+                .bind::<diesel::sql_types::SmallInt, _>(resource_group_type)
                 .bind::<diesel::sql_types::Uuid, _>(context_app_id)
-                .bind::<diesel::sql_types::Array<Text>, _>(vec![action_to_perform])
+                .bind::<diesel::sql_types::Array<SmallInt>, _>(vec![action_to_perform])
                 .bind::<diesel::sql_types::Uuid, _>(requesting_user_id)
                 .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(user_group_ids)
                 .load(&mut conn)
@@ -438,8 +400,8 @@ impl AccessPolicy {
             db,
             requesting_user_id,
             app_id,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
-            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPoliciesList).unwrap(),
+            AccessPolicyResourceType::AccessPolicy,
+            AccessPolicyAction::AccessPoliciesList,
         )
         .await?;
 
@@ -503,7 +465,7 @@ impl AccessPolicy {
                 schema::access_policies::name.eq(name),
                 schema::access_policies::subject_type.eq(subject_type),
                 schema::access_policies::subject_id.eq(subject_id),
-                schema::access_policies::context_app_id.eq(context_app_id),
+                schema::access_policies::context_app_id.eq(context_app_id.unwrap_or(Uuid::nil())),
                 schema::access_policies::resource_type.eq(resource_type),
                 schema::access_policies::resource_id.eq(resource_id),
                 schema::access_policies::actions.eq(actions),
@@ -525,18 +487,18 @@ impl AccessPolicy {
 
     pub async fn check(
         db: &Db,
-        requesting_user_id: &Uuid,
+        requesting_user: &FilezUser,
         context_app_id: &Uuid,
         context_app_trusted: bool,
-        resource_type: &str,
+        resource_type: AccessPolicyResourceType,
         requested_resource_ids: Option<&[Uuid]>,
-        action_to_perform: &str,
+        action_to_perform: AccessPolicyAction,
     ) -> Result<AuthResult, FilezError> {
-        let user_group_ids = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
+        let user_group_ids = UserGroup::get_all_by_user_id(db, &requesting_user.id).await?;
 
         check_resources_access_control(
             db,
-            requesting_user_id,
+            requesting_user,
             &user_group_ids,
             context_app_id,
             context_app_trusted,

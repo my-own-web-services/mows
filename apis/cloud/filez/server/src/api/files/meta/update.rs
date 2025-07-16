@@ -25,6 +25,7 @@ use crate::{
     request_body = UpdateFilesMetaRequestBody,
     responses(
         (status = 200, description = "Updates the metadata for any number of files", body = ApiResponse<EmptyApiResponse>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn update_files_metadata(
@@ -49,12 +50,12 @@ pub async fn update_files_metadata(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             Some(&request_body.file_ids),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesMetaUpdate).unwrap(),
+            AccessPolicyAction::FilezFilesMetaUpdate,
         )
         .await?
         .verify()?,

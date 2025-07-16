@@ -25,6 +25,7 @@ use crate::{
     request_body = CreateStorageQuotaRequestBody,
     responses(
         (status = 200, description = "Creates a new storage quota", body = ApiResponse<EmptyApiResponse>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn create_storage_quota(
@@ -49,12 +50,12 @@ pub async fn create_storage_quota(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::StorageQuota).unwrap(),
+            AccessPolicyResourceType::StorageQuota,
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::StorageQuotasCreate).unwrap()
+            AccessPolicyAction::StorageQuotasCreate
         )
         .await?
         .verify()?,
@@ -63,6 +64,7 @@ pub async fn create_storage_quota(
     );
 
     let storage_quota = StorageQuota::new(
+        requesting_user.id,
         request_body.subject_type,
         request_body.subject_id,
         request_body.storage_location_id,

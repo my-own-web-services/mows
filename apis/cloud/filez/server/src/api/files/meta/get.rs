@@ -15,7 +15,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
@@ -25,6 +25,7 @@ use crate::{
     request_body = GetFilesMetaRequestBody,
     responses(
         (status = 200, description = "Gets the metadata for any number of files", body = ApiResponse<GetFilesMetaResBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn get_files_metadata(
@@ -49,12 +50,12 @@ pub async fn get_files_metadata(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             Some(&request_body.file_ids),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesMetaGet).unwrap(),
+            AccessPolicyAction::FilezFilesMetaGet,
         )
         .await?
         .verify()?,

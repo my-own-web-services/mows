@@ -3,11 +3,11 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
-        file_versions::{FileVersion, UpdateFileVersion},
+        file_versions::{FileVersion, FileVersionsQuery},
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{
@@ -23,19 +23,20 @@ use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
-    path = "/api/files/versions/update",
-    request_body = UpdateFileVersionsRequestBody,
-    description = "Update file versions in the database",
+    path = "/api/file_versions/get",
+    request_body = GetFileVersionsRequestBody,
+    description = "Get file versions from the server",
     responses(
-        (status = 200, description = "Updated file versions on the server", body = ApiResponse<UpdateFileVersionsResponseBody>),
+        (status = 200, description = "Got file versions from the server", body = ApiResponse<GetFileVersionsResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
-pub async fn update_file_versions(
+pub async fn get_file_versions(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(request_body): Json<UpdateFileVersionsRequestBody>,
+    Json(request_body): Json<GetFileVersionsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -54,12 +55,12 @@ pub async fn update_file_versions(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             Some(&file_ids),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsUpdate).unwrap(),
+            AccessPolicyAction::FilezFilesVersionsGet,
         )
         .await?
         .verify()?,
@@ -67,9 +68,9 @@ pub async fn update_file_versions(
         timing
     );
 
-    let updated_versions = with_timing!(
-        FileVersion::update_many(&db, &request_body.versions).await?,
-        "Database operation to update file versions",
+    let file_versions = with_timing!(
+        FileVersion::get_many(&db, &request_body.versions).await?,
+        "Database operation to get file versions",
         timing
     );
 
@@ -77,20 +78,20 @@ pub async fn update_file_versions(
         StatusCode::OK,
         Json(ApiResponse {
             status: ApiResponseStatus::Success,
-            message: "Updated File Versions".to_string(),
-            data: Some(UpdateFileVersionsResponseBody {
-                versions: updated_versions,
+            message: "Got File Versions".to_string(),
+            data: Some(GetFileVersionsResponseBody {
+                versions: file_versions,
             }),
         }),
     ))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct UpdateFileVersionsRequestBody {
-    pub versions: Vec<UpdateFileVersion>,
+pub struct GetFileVersionsRequestBody {
+    pub versions: Vec<FileVersionsQuery>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct UpdateFileVersionsResponseBody {
+pub struct GetFileVersionsResponseBody {
     pub versions: Vec<FileVersion>,
 }

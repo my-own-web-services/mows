@@ -15,7 +15,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
@@ -24,6 +24,7 @@ use crate::{
     path = "/api/access_policies/get/{access_policy_id}",
     responses(
         (status = 200, description = "Gets a access policy by ID", body = ApiResponse<AccessPolicy>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn get_access_policy(
@@ -48,12 +49,12 @@ pub async fn get_access_policy(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
+            AccessPolicyResourceType::AccessPolicy,
             Some(&vec![access_policy_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPoliciesGet).unwrap(),
+            AccessPolicyAction::AccessPoliciesGet,
         )
         .await?
         .verify()?,

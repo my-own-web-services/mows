@@ -3,11 +3,11 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
-        file_versions::{FileVersion, FileVersionsQuery},
+        file_versions::{FileVersion, UpdateFileVersion},
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{
@@ -23,19 +23,20 @@ use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
-    path = "/api/files/versions/delete",
-    request_body = DeleteFileVersionsRequestBody,
-    description = "Delete file versions in the database",
+    path = "/api/file_versions/update",
+    request_body = UpdateFileVersionsRequestBody,
+    description = "Update file versions in the database",
     responses(
-        (status = 200, description = "Deleted file versions on the server", body = ApiResponse<DeleteFileVersionsResponseBody>),
+        (status = 200, description = "Updated file versions on the server", body = ApiResponse<UpdateFileVersionsResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
-pub async fn delete_file_versions(
+pub async fn update_file_versions(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(request_body): Json<DeleteFileVersionsRequestBody>,
+    Json(request_body): Json<UpdateFileVersionsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
@@ -54,12 +55,12 @@ pub async fn delete_file_versions(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::File).unwrap(),
+            AccessPolicyResourceType::File,
             Some(&file_ids),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FilezFilesVersionsDelete).unwrap(),
+            AccessPolicyAction::FilezFilesVersionsUpdate,
         )
         .await?
         .verify()?,
@@ -67,26 +68,30 @@ pub async fn delete_file_versions(
         timing
     );
 
-    FileVersion::delete_many(&db, &request_body.versions, &timing).await?;
+    let updated_versions = with_timing!(
+        FileVersion::update_many(&db, &request_body.versions).await?,
+        "Database operation to update file versions",
+        timing
+    );
 
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
             status: ApiResponseStatus::Success,
-            message: "Deleted File Versions".to_string(),
-            data: Some(DeleteFileVersionsResponseBody {
-                versions: request_body.versions,
+            message: "Updated File Versions".to_string(),
+            data: Some(UpdateFileVersionsResponseBody {
+                versions: updated_versions,
             }),
         }),
     ))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct DeleteFileVersionsRequestBody {
-    pub versions: Vec<FileVersionsQuery>,
+pub struct UpdateFileVersionsRequestBody {
+    pub versions: Vec<UpdateFileVersion>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct DeleteFileVersionsResponseBody {
-    pub versions: Vec<FileVersionsQuery>,
+pub struct UpdateFileVersionsResponseBody {
+    pub versions: Vec<FileVersion>,
 }

@@ -21,6 +21,12 @@ export enum SortDirection {
   Descending = "Descending",
 }
 
+export enum ListUsersSortBy {
+  CreatedTime = "CreatedTime",
+  ModifiedTime = "ModifiedTime",
+  Name = "Name",
+}
+
 export enum ListUserGroupsSortBy {
   Name = "Name",
   CreatedTime = "CreatedTime",
@@ -28,6 +34,14 @@ export enum ListUserGroupsSortBy {
 }
 
 export enum ListStorageQuotasSortBy {
+  CreatedTime = "CreatedTime",
+  ModifiedTime = "ModifiedTime",
+  SubjectType = "SubjectType",
+  SubjectId = "SubjectId",
+  StorageLocationId = "StorageLocationId",
+}
+
+export enum ListStorageLocationsSortBy {
   CreatedTime = "CreatedTime",
   ModifiedTime = "ModifiedTime",
   Name = "Name",
@@ -127,6 +141,8 @@ export enum AccessPolicyAction {
   FilezStorageQuotasUpdate = "filez.storage_quotas.update",
   FilezStorageQuotasDelete = "filez.storage_quotas.delete",
   FilezStorageQuotasList = "filez.storage_quotas.list",
+  FilezStorageLocationsGet = "filez.storage_locations.get",
+  FilezStorageLocationsList = "filez.storage_locations.list",
 }
 
 export interface AccessPolicy {
@@ -192,7 +208,8 @@ export interface ApiResponseCheckResourceAccessResponseBody {
 
 export interface ApiResponseCreateFileResponseBody {
   data?: {
-    file_id: string;
+    id: string;
+    mime_type: string;
   };
   message: string;
   status: ApiResponseStatus;
@@ -202,6 +219,41 @@ export interface ApiResponseCreateFileVersionResponseBody {
   data?: {
     /** @format int32 */
     version: number;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseCreateUserResponseBody {
+  data?: {
+    /** @format uuid */
+    id: string;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseDeleteFileResponseBody {
+  data?: {
+    /** @format uuid */
+    file_id: string;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseDeleteFileVersionsResponseBody {
+  data?: {
+    versions: FileVersionsQuery[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseDeleteUserResponseBody {
+  data?: {
+    /** @format uuid */
+    user_id: string;
   };
   message: string;
   status: ApiResponseStatus;
@@ -232,9 +284,25 @@ export interface ApiResponseFileGroup {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseGetFileVersionsResponseBody {
+  data?: {
+    versions: FileVersion[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseGetFilesMetaResBody {
   data?: {
     files_meta: Record<string, FileMeta>;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseGetFilesResponseBody {
+  data?: {
+    files: Record<string, FilezFile>;
   };
   message: string;
   status: ApiResponseStatus;
@@ -285,6 +353,14 @@ export interface ApiResponseListFilesResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseListStorageLocationsResponseBody {
+  data?: {
+    storage_locations: StorageLocationListItem[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseListUserGroupsResponseBody {
   data?: {
     user_groups: UserGroup[];
@@ -307,6 +383,8 @@ export interface ApiResponseStorageQuota {
   data?: {
     /** @format date-time */
     created_time: string;
+    /** @format uuid */
+    id: string;
     ignore_quota: boolean;
     /** @format date-time */
     modified_time: string;
@@ -324,6 +402,22 @@ export interface ApiResponseStorageQuota {
 
 export interface ApiResponseString {
   data?: string;
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseUpdateFileResponseBody {
+  data?: {
+    file: FilezFile;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseUpdateFileVersionsResponseBody {
+  data?: {
+    versions: FileVersion[];
+  };
   message: string;
   status: ApiResponseStatus;
 }
@@ -348,6 +442,8 @@ export interface ApiResponseVecStorageQuota {
   data?: {
     /** @format date-time */
     created_time: string;
+    /** @format uuid */
+    id: string;
     ignore_quota: boolean;
     /** @format date-time */
     modified_time: string;
@@ -509,7 +605,8 @@ export interface CreateFileRequestBody {
 }
 
 export interface CreateFileResponseBody {
-  file_id: string;
+  id: string;
+  mime_type: string;
 }
 
 export interface CreateFileVersionRequestBody {
@@ -520,7 +617,7 @@ export interface CreateFileVersionRequestBody {
   /** @format int64 */
   size: number;
   /** @format uuid */
-  storage_id: string;
+  storage_location_id: string;
 }
 
 export interface CreateFileVersionResponseBody {
@@ -543,12 +640,60 @@ export interface CreateUserGroupRequestBody {
   name: string;
 }
 
+export interface CreateUserRequestBody {
+  email: string;
+}
+
+export interface CreateUserResponseBody {
+  /** @format uuid */
+  id: string;
+}
+
+export interface DeleteFileRequestBody {
+  /** @format uuid */
+  file_id: string;
+}
+
+export interface DeleteFileResponseBody {
+  /** @format uuid */
+  file_id: string;
+}
+
+export interface DeleteFileVersionsRequestBody {
+  versions: FileVersionsQuery[];
+}
+
+export interface DeleteFileVersionsResponseBody {
+  versions: FileVersionsQuery[];
+}
+
 export interface DeleteStorageQuotaRequestBody {
   /** @format uuid */
   storage_location_id: string;
   /** @format uuid */
   subject_id: string;
   subject_type: AccessPolicySubjectType;
+}
+
+export type DeleteUserMethod =
+  | {
+      /** @format uuid */
+      ById: string;
+    }
+  | {
+      ByExternalId: string;
+    }
+  | {
+      ByEmail: string;
+    };
+
+export interface DeleteUserRequestBody {
+  method: DeleteUserMethod;
+}
+
+export interface DeleteUserResponseBody {
+  /** @format uuid */
+  user_id: string;
 }
 
 export type DynamicGroupRule = object;
@@ -589,7 +734,36 @@ export interface FileMetadata {
   shared_app_data: Record<string, any>;
 }
 
+export interface FileVersion {
+  /** @format uuid */
+  app_id: string;
+  app_path?: string | null;
+  /** @format date-time */
+  created_time: string;
+  /** @format uuid */
+  file_id: string;
+  metadata: FileVersionMetadata;
+  /** @format date-time */
+  modified_time: string;
+  /** @format int64 */
+  size: number;
+  /** @format uuid */
+  storage_id: string;
+  /** @format int32 */
+  version: number;
+}
+
 export type FileVersionMetadata = object;
+
+export interface FileVersionsQuery {
+  /** @format uuid */
+  app_id: string;
+  app_path?: string | null;
+  /** @format uuid */
+  file_id: string;
+  /** @format int32 */
+  version: number;
+}
 
 export interface FilezFile {
   /** @format date-time */
@@ -623,12 +797,24 @@ export interface FilezUser {
   profile_picture?: string | null;
 }
 
+export interface GetFileVersionsRequestBody {
+  versions: FileVersionsQuery[];
+}
+
+export interface GetFileVersionsResponseBody {
+  versions: FileVersion[];
+}
+
 export interface GetFilesMetaRequestBody {
   file_ids: string[];
 }
 
 export interface GetFilesMetaResBody {
   files_meta: Record<string, FileMeta>;
+}
+
+export interface GetFilesResponseBody {
+  files: Record<string, FilezFile>;
 }
 
 export interface GetStorageQuotaRequestBody {
@@ -720,6 +906,15 @@ export interface ListFilesStoredSortOrder {
   sort_order?: null | SortDirection;
 }
 
+export interface ListStorageLocationsRequestBody {
+  sort_by?: null | ListStorageLocationsSortBy;
+  sort_order?: null | SortDirection;
+}
+
+export interface ListStorageLocationsResponseBody {
+  storage_locations: StorageLocationListItem[];
+}
+
 export interface ListStorageQuotasRequestBody {
   /** @format int64 */
   from_index?: number | null;
@@ -757,9 +952,29 @@ export interface ListUsersResponseBody {
   users: FilezUser[];
 }
 
+export interface ListedFilezUser {
+  /** @format date-time */
+  created_time: string;
+  display_name: string;
+  /** @format uuid */
+  id: string;
+}
+
+export interface StorageLocationListItem {
+  /** @format date-time */
+  created_time: string;
+  /** @format uuid */
+  id: string;
+  /** @format date-time */
+  modified_time: string;
+  name: string;
+}
+
 export interface StorageQuota {
   /** @format date-time */
   created_time: string;
+  /** @format uuid */
+  id: string;
   ignore_quota: boolean;
   /** @format date-time */
   modified_time: string;
@@ -795,6 +1010,37 @@ export interface UpdateFileGroupMembersRequestBody {
 
 export interface UpdateFileGroupRequestBody {
   name: string;
+}
+
+export interface UpdateFileRequestBody {
+  /** @format uuid */
+  file_id: string;
+  file_name?: string | null;
+  metadata?: null | FileMetadata;
+  mime_type?: string | null;
+}
+
+export interface UpdateFileResponseBody {
+  file: FilezFile;
+}
+
+export interface UpdateFileVersion {
+  /** @format uuid */
+  app_id: string;
+  app_path?: string | null;
+  /** @format uuid */
+  file_id: string;
+  metadata?: null | FileVersionMetadata;
+  /** @format int32 */
+  version: number;
+}
+
+export interface UpdateFileVersionsRequestBody {
+  versions: UpdateFileVersion[];
+}
+
+export interface UpdateFileVersionsResponseBody {
+  versions: FileVersion[];
 }
 
 export interface UpdateFilesMetaRequestBody {
@@ -1119,7 +1365,10 @@ export class Api<
       data: CheckResourceAccessRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseCheckResourceAccessResponseBody, any>({
+      this.request<
+        ApiResponseCheckResourceAccessResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/access_policies/check`,
         method: "POST",
         body: data,
@@ -1138,7 +1387,7 @@ export class Api<
       data: CreateAccessPolicyRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseAccessPolicy, any>({
+      this.request<ApiResponseAccessPolicy, ApiResponseEmptyApiResponse>({
         path: `/api/access_policies/create`,
         method: "POST",
         body: data,
@@ -1154,7 +1403,7 @@ export class Api<
      * @request DELETE:/api/access_policies/delete/{access_policy_id}
      */
     deleteAccessPolicy: (accessPolicyId: string, params: RequestParams = {}) =>
-      this.request<ApiResponseString, any>({
+      this.request<ApiResponseString, ApiResponseEmptyApiResponse>({
         path: `/api/access_policies/delete/${accessPolicyId}`,
         method: "DELETE",
         format: "json",
@@ -1168,7 +1417,7 @@ export class Api<
      * @request GET:/api/access_policies/get/{access_policy_id}
      */
     getAccessPolicy: (accessPolicyId: string, params: RequestParams = {}) =>
-      this.request<ApiResponseAccessPolicy, any>({
+      this.request<ApiResponseAccessPolicy, ApiResponseEmptyApiResponse>({
         path: `/api/access_policies/get/${accessPolicyId}`,
         method: "GET",
         format: "json",
@@ -1185,7 +1434,10 @@ export class Api<
       data: ListAccessPoliciesRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseListAccessPoliciesResponseBody, any>({
+      this.request<
+        ApiResponseListAccessPoliciesResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/access_policies/list`,
         method: "POST",
         body: data,
@@ -1205,7 +1457,7 @@ export class Api<
       data: UpdateAccessPolicyRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseAccessPolicy, any>({
+      this.request<ApiResponseAccessPolicy, ApiResponseEmptyApiResponse>({
         path: `/api/access_policies/update/${accessPolicyId}`,
         method: "PUT",
         body: data,
@@ -1224,7 +1476,7 @@ export class Api<
       data: CreateFileGroupRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseFileGroup, any>({
+      this.request<ApiResponseFileGroup, ApiResponseEmptyApiResponse>({
         path: `/api/file_groups/create`,
         method: "POST",
         body: data,
@@ -1240,7 +1492,7 @@ export class Api<
      * @request DELETE:/api/file_groups/delete/{file_group_id}
      */
     deleteFileGroup: (fileGroupId: string, params: RequestParams = {}) =>
-      this.request<ApiResponseString, any>({
+      this.request<ApiResponseString, ApiResponseEmptyApiResponse>({
         path: `/api/file_groups/delete/${fileGroupId}`,
         method: "DELETE",
         format: "json",
@@ -1254,7 +1506,7 @@ export class Api<
      * @request GET:/api/file_groups/get/{file_group_id}
      */
     getFileGroup: (fileGroupId: string, params: RequestParams = {}) =>
-      this.request<ApiResponseFileGroup, any>({
+      this.request<ApiResponseFileGroup, ApiResponseEmptyApiResponse>({
         path: `/api/file_groups/get/${fileGroupId}`,
         method: "GET",
         format: "json",
@@ -1271,7 +1523,10 @@ export class Api<
       data: ListFileGroupsRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseListFileGroupsResponseBody, any>({
+      this.request<
+        ApiResponseListFileGroupsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/file_groups/list`,
         method: "POST",
         body: data,
@@ -1287,7 +1542,10 @@ export class Api<
      * @request POST:/api/file_groups/list_files
      */
     listFiles: (data: ListFilesRequestBody, params: RequestParams = {}) =>
-      this.request<ApiResponseListFilesResponseBody, any>({
+      this.request<
+        ApiResponseListFilesResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/file_groups/list_files`,
         method: "POST",
         body: data,
@@ -1307,7 +1565,7 @@ export class Api<
       data: UpdateFileGroupRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseFileGroup, any>({
+      this.request<ApiResponseFileGroup, ApiResponseEmptyApiResponse>({
         path: `/api/file_groups/update/${fileGroupId}`,
         method: "PUT",
         body: data,
@@ -1326,8 +1584,147 @@ export class Api<
       data: UpdateFileGroupMembersRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseEmptyApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/file_groups/update_members`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetFileVersionContent
+     * @request GET:/api/file_versions/content/get/{file_id}/{version}/{app_id}/{app_path}
+     */
+    getFileVersionContent: (
+      fileId: string,
+      version: number | null,
+      appId: string | null,
+      appPath: string | null,
+      d: boolean | null,
+      c: number | null,
+      params: RequestParams = {},
+    ) =>
+      this.request<number[], ApiResponseEmptyApiResponse>({
+        path: `/api/file_versions/content/get/${fileId}/${version}/${appId}/${appPath}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name FileVersionsContentTusHead
+     * @request HEAD:/api/file_versions/content/tus/{file_id}/{version}
+     */
+    fileVersionsContentTusHead: (
+      fileId: string,
+      version: number | null,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, void>({
+        path: `/api/file_versions/content/tus/${fileId}/${version}`,
+        method: "HEAD",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name FileVersionsContentTusPatch
+     * @request PATCH:/api/file_versions/content/tus/{file_id}/{version}
+     */
+    fileVersionsContentTusPatch: (
+      fileId: string,
+      version: number | null,
+      data: any,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, void>({
+        path: `/api/file_versions/content/tus/${fileId}/${version}`,
+        method: "PATCH",
+        body: data,
+        ...params,
+      }),
+
+    /**
+     * @description Create a new file version entry in the database
+     *
+     * @name CreateFileVersion
+     * @request POST:/api/file_versions/create
+     */
+    createFileVersion: (
+      data: CreateFileVersionRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseCreateFileVersionResponseBody, any>({
+        path: `/api/file_versions/create`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Delete file versions in the database
+     *
+     * @name DeleteFileVersions
+     * @request POST:/api/file_versions/delete
+     */
+    deleteFileVersions: (
+      data: DeleteFileVersionsRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseDeleteFileVersionsResponseBody, any>({
+        path: `/api/file_versions/delete`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Get file versions from the server
+     *
+     * @name GetFileVersions
+     * @request POST:/api/file_versions/get
+     */
+    getFileVersions: (
+      data: GetFileVersionsRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        ApiResponseGetFileVersionsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/file_versions/get`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Update file versions in the database
+     *
+     * @name UpdateFileVersions
+     * @request POST:/api/file_versions/update
+     */
+    updateFileVersions: (
+      data: UpdateFileVersionsRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        ApiResponseUpdateFileVersionsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/file_versions/update`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -1352,6 +1749,42 @@ export class Api<
       }),
 
     /**
+     * @description Delete a file entry in the database
+     *
+     * @name DeleteFile
+     * @request POST:/api/files/delete
+     */
+    deleteFile: (data: DeleteFileRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseDeleteFileResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/files/delete`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Get files from the server
+     *
+     * @name GetFiles
+     * @request POST:/api/files/get
+     */
+    getFiles: (params: RequestParams = {}) =>
+      this.request<
+        ApiResponseGetFilesResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/files/get`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * No description
      *
      * @name GetFilesMetadata
@@ -1361,14 +1794,16 @@ export class Api<
       data: GetFilesMetaRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseGetFilesMetaResBody, any>({
-        path: `/api/files/meta/get`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
+      this.request<ApiResponseGetFilesMetaResBody, ApiResponseEmptyApiResponse>(
+        {
+          path: `/api/files/meta/get`,
+          method: "POST",
+          body: data,
+          type: ContentType.Json,
+          format: "json",
+          ...params,
+        },
+      ),
 
     /**
      * No description
@@ -1380,7 +1815,7 @@ export class Api<
       data: UpdateFilesMetaRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseEmptyApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/files/meta/update`,
         method: "PUT",
         body: data,
@@ -1390,75 +1825,17 @@ export class Api<
       }),
 
     /**
-     * No description
+     * @description Update a file entry in the database
      *
-     * @name GetFileContent
-     * @request GET:/api/files/versions/content/get/{file_id}/{version}/{app_id}/{app_path}
+     * @name UpdateFile
+     * @request POST:/api/files/update
      */
-    getFileContent: (
-      fileId: string,
-      version: number | null,
-      appId: string | null,
-      appPath: string | null,
-      d: boolean | null,
-      c: number | null,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, void>({
-        path: `/api/files/versions/content/get/${fileId}/${version}/${appId}/${appPath}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TusHead
-     * @request HEAD:/api/files/versions/content/tus/head/{file_id}/{version}/{job_id}
-     */
-    tusHead: (
-      fileId: string,
-      version: number | null,
-      jobId: string,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, void>({
-        path: `/api/files/versions/content/tus/head/${fileId}/${version}/${jobId}`,
-        method: "HEAD",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TusPatch
-     * @request PATCH:/api/files/versions/content/tus/patch/{file_id}/{version}
-     */
-    tusPatch: (
-      fileId: string,
-      version: number | null,
-      data: any,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, void>({
-        path: `/api/files/versions/content/tus/patch/${fileId}/${version}`,
-        method: "PATCH",
-        body: data,
-        ...params,
-      }),
-
-    /**
-     * @description Create a new file version entry in the database
-     *
-     * @name CreateFileVersion
-     * @request POST:/api/files/versions/create
-     */
-    createFileVersion: (
-      data: CreateFileVersionRequestBody,
-      params: RequestParams = {},
-    ) =>
-      this.request<ApiResponseCreateFileVersionResponseBody, any>({
-        path: `/api/files/versions/create`,
+    updateFile: (data: UpdateFileRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseUpdateFileResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/files/update`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -1473,9 +1850,28 @@ export class Api<
      * @request GET:/api/health
      */
     getHealth: (params: RequestParams = {}) =>
-      this.request<ApiResponseHealthResBody, any>({
+      this.request<ApiResponseHealthResBody, ApiResponseHealthResBody>({
         path: `/api/health`,
         method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name ListStorageLocations
+     * @request POST:/api/storage_locations/list
+     */
+    listStorageLocations: (
+      data: ListStorageLocationsRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseListStorageLocationsResponseBody, any>({
+        path: `/api/storage_locations/list`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -1490,7 +1886,7 @@ export class Api<
       data: CreateStorageQuotaRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseEmptyApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/storage_quotas/create`,
         method: "POST",
         body: data,
@@ -1509,7 +1905,7 @@ export class Api<
       data: DeleteStorageQuotaRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseEmptyApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/storage_quotas/delete`,
         method: "DELETE",
         body: data,
@@ -1528,7 +1924,7 @@ export class Api<
       data: GetStorageQuotaRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseStorageQuota, any>({
+      this.request<ApiResponseStorageQuota, ApiResponseEmptyApiResponse>({
         path: `/api/storage_quotas/get`,
         method: "GET",
         body: data,
@@ -1541,15 +1937,15 @@ export class Api<
      * No description
      *
      * @name ListStorageQuotas
-     * @request GET:/api/storage_quotas/list
+     * @request POST:/api/storage_quotas/list
      */
     listStorageQuotas: (
       data: ListStorageQuotasRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseVecStorageQuota, any>({
+      this.request<ApiResponseVecStorageQuota, ApiResponseEmptyApiResponse>({
         path: `/api/storage_quotas/list`,
-        method: "GET",
+        method: "POST",
         body: data,
         type: ContentType.Json,
         format: "json",
@@ -1566,7 +1962,7 @@ export class Api<
       data: UpdateStorageQuotaRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseStorageQuota, any>({
+      this.request<ApiResponseStorageQuota, ApiResponseEmptyApiResponse>({
         path: `/api/storage_quotas/update`,
         method: "PUT",
         body: data,
@@ -1585,7 +1981,7 @@ export class Api<
       data: CreateUserGroupRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseUserGroup, any>({
+      this.request<ApiResponseUserGroup, ApiResponseEmptyApiResponse>({
         path: `/api/user_groups/create`,
         method: "POST",
         body: data,
@@ -1601,7 +1997,7 @@ export class Api<
      * @request DELETE:/api/user_groups/delete/{user_group_id}
      */
     deleteUserGroup: (userGroupId: string, params: RequestParams = {}) =>
-      this.request<ApiResponseString, any>({
+      this.request<ApiResponseString, ApiResponseEmptyApiResponse>({
         path: `/api/user_groups/delete/${userGroupId}`,
         method: "DELETE",
         format: "json",
@@ -1615,7 +2011,7 @@ export class Api<
      * @request GET:/api/user_groups/get/{user_group_id}
      */
     getUserGroup: (userGroupId: string, params: RequestParams = {}) =>
-      this.request<ApiResponseUserGroup, any>({
+      this.request<ApiResponseUserGroup, ApiResponseEmptyApiResponse>({
         path: `/api/user_groups/get/${userGroupId}`,
         method: "GET",
         format: "json",
@@ -1632,7 +2028,10 @@ export class Api<
       data: ListUserGroupsRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseListUserGroupsResponseBody, any>({
+      this.request<
+        ApiResponseListUserGroupsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/user_groups/list`,
         method: "POST",
         body: data,
@@ -1644,10 +2043,10 @@ export class Api<
     /**
      * No description
      *
-     * @name ListUsers
+     * @name ListUsersByUserGroup
      * @request POST:/api/user_groups/list_users/{user_group_id}
      */
-    listUsers: (
+    listUsersByUserGroup: (
       userGroupId: string,
       data: ListUsersRequestBody,
       params: RequestParams = {},
@@ -1671,7 +2070,7 @@ export class Api<
       data: UpdateUserGroupMembersRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseEmptyApiResponse, any>({
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/user_groups/update_members`,
         method: "POST",
         body: data,
@@ -1691,7 +2090,7 @@ export class Api<
       data: UpdateUserGroupRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseUserGroup, any>({
+      this.request<ApiResponseUserGroup, ApiResponseEmptyApiResponse>({
         path: `/api/user_groups/${userGroupId}`,
         method: "PUT",
         body: data,
@@ -1707,9 +2106,50 @@ export class Api<
      * @request POST:/api/users/apply
      */
     applyUser: (params: RequestParams = {}) =>
-      this.request<ApiResponseApplyUserResponseBody, any>({
+      this.request<
+        ApiResponseApplyUserResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/users/apply`,
         method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name CreateUser
+     * @request POST:/api/users/create
+     */
+    createUser: (data: CreateUserRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseCreateUserResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/users/create`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name DeleteUser
+     * @request POST:/api/users/delete
+     */
+    deleteUser: (data: DeleteUserRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseDeleteUserResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/users/delete`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -1721,8 +2161,27 @@ export class Api<
      * @request POST:/api/users/get
      */
     getUsers: (data: GetUsersReqBody, params: RequestParams = {}) =>
-      this.request<ApiResponseGetUsersResBody, any>({
+      this.request<ApiResponseGetUsersResBody, ApiResponseEmptyApiResponse>({
         path: `/api/users/get`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name ListUsers
+     * @request POST:/api/users/list
+     */
+    listUsers: (data: ListUsersRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseListUsersResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/users/list`,
         method: "POST",
         body: data,
         type: ContentType.Json,

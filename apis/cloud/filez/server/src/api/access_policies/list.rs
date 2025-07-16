@@ -11,7 +11,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus, SortDirection},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
 
@@ -21,6 +21,7 @@ use crate::{
     request_body = ListAccessPoliciesRequestBody,
     responses(
         (status = 200, description = "Lists access policies", body = ApiResponse<ListAccessPoliciesResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn list_access_policies(
@@ -45,12 +46,12 @@ pub async fn list_access_policies(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::AccessPolicy).unwrap(),
+            AccessPolicyResourceType::AccessPolicy,
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::AccessPoliciesList).unwrap(),
+            AccessPolicyAction::AccessPoliciesList,
         )
         .await?
         .verify()?,

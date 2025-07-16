@@ -2,6 +2,7 @@ use crate::{
     api::users::list::ListUsersSortBy,
     config::{config, IMPERSONATE_USER_HEADER},
     errors::FilezError,
+    models::access_policies::AccessPolicy,
     schema,
     types::SortDirection,
     utils::get_uuid,
@@ -14,7 +15,7 @@ use diesel::{
     ExpressionMethods, OptionalExtension, Selectable,
 };
 use diesel_async::RunQueryDsl;
-use mows_common_rust::get_current_config_cloned;
+use mows_common_rust::{config, get_current_config_cloned};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, warn};
@@ -27,6 +28,7 @@ use zitadel::axum::introspection::IntrospectedUser;
 #[diesel(check_for_backend(Pg))]
 pub struct FilezUser {
     pub id: Uuid,
+
     pub external_user_id: Option<String>,
     /// Used to create a user before the external user ID is known, when the user then logs in with a verified email address the email is switched to the external user ID
     pub pre_identifier_email: Option<String>,
@@ -36,6 +38,7 @@ pub struct FilezUser {
     pub deleted: bool,
     pub profile_picture: Option<Uuid>,
     pub created_by: Option<Uuid>,
+    pub super_admin: bool,
 }
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Debug)]
@@ -53,6 +56,7 @@ impl FilezUser {
         pre_identifier_email: Option<String>,
         display_name: Option<String>,
         created_by: Option<Uuid>,
+        super_admin: bool,
     ) -> Self {
         Self {
             id: get_uuid(),
@@ -64,7 +68,29 @@ impl FilezUser {
             deleted: false,
             profile_picture: None,
             created_by,
+            super_admin,
         }
+    }
+
+    pub async fn get_by_external_id(
+        db: &crate::db::Db,
+        external_user_id: &str,
+    ) -> Result<Self, FilezError> {
+        let mut conn = db.pool.get().await?;
+        let user = schema::users::table
+            .filter(schema::users::external_user_id.eq(external_user_id))
+            .first::<FilezUser>(&mut conn)
+            .await?;
+        Ok(user)
+    }
+
+    pub async fn get_by_email(db: &crate::db::Db, email: &str) -> Result<Self, FilezError> {
+        let mut conn = db.pool.get().await?;
+        let user = schema::users::table
+            .filter(schema::users::pre_identifier_email.eq(email.to_lowercase()))
+            .first::<FilezUser>(&mut conn)
+            .await?;
+        Ok(user)
     }
 
     pub async fn list_with_user_access(
@@ -102,6 +128,7 @@ impl FilezUser {
             Some(email.to_string()),
             None,
             Some(*requesting_user_id),
+            false,
         );
 
         let result = diesel::insert_into(crate::schema::users::table)
@@ -118,13 +145,32 @@ impl FilezUser {
         external_user: IntrospectedUser,
     ) -> Result<uuid::Uuid, FilezError> {
         let mut conn = db.pool.get().await?;
+
+        let config = get_current_config_cloned!(config());
+
+        debug!(
+            "Trying to apply user with external user id: {:?}",
+            external_user.user_id
+        );
+
         let external_user_id = external_user
             .user_id
             .as_ref()
             .ok_or_else(|| FilezError::Unauthorized("External user ID is missing".to_string()))?;
 
         let display_name = external_user.preferred_username.unwrap_or("".to_string());
-        let project_roles = external_user.project_roles.clone();
+
+        let is_super_admin = (config.enable_dev && display_name == "ZITADEL Admin")
+            || external_user
+                .project_roles
+                .as_ref()
+                .and_then(|roles| roles.get("admin"))
+                .is_some();
+
+        debug!(
+            "Applying user with external_user_id: {}, display_name: {}",
+            external_user_id, display_name
+        );
 
         let existing_user = crate::schema::users::table
             .filter(crate::schema::users::external_user_id.eq(external_user_id))
@@ -134,6 +180,10 @@ impl FilezUser {
 
         // If no user is found, we check if the email is verified and use it to find the user
         if existing_user.is_none() {
+            debug!(
+                "No existing user found with external_user_id: {}",
+                external_user_id
+            );
             if external_user
                 .email_verified
                 .is_some_and(|verified| verified)
@@ -148,6 +198,8 @@ impl FilezUser {
                     .first::<FilezUser>(&mut conn)
                     .await
                     .optional()?;
+
+                debug!("Found user by email: {:?}", maybe_email_identified_user);
 
                 if let Some(email_identified_user) = maybe_email_identified_user {
                     // If we found a user by email, we update their external_user_id and clear the pre_identifier_email
@@ -164,30 +216,38 @@ impl FilezUser {
                     return Ok(email_identified_user.id);
                 };
             } else {
-                return Err(FilezError::Unauthorized(
-                    "Users Email is not verified".to_string(),
-                ));
+                debug!(
+                    "User with external_user_id: {} has not verified their email",
+                    external_user_id
+                );
             };
         };
 
         if let Some(user) = existing_user {
+            debug!("Found existing user: {:?}", user);
+
             if user.display_name != display_name {
                 diesel::update(crate::schema::users::table.find(user.id))
                     .set((
                         crate::schema::users::display_name.eq(display_name),
                         crate::schema::users::modified_time.eq(chrono::Utc::now().naive_utc()),
+                        crate::schema::users::super_admin.eq(is_super_admin),
                     ))
                     .execute(&mut conn)
                     .await?;
             }
+
             return Ok(user.id);
         };
+
+        debug!("No existing user found, creating new user");
 
         let new_user = FilezUser::new(
             Some(external_user_id.to_string()),
             None,
             Some(display_name),
             None,
+            is_super_admin,
         );
 
         let result = diesel::insert_into(crate::schema::users::table)
@@ -195,19 +255,7 @@ impl FilezUser {
             .get_result::<FilezUser>(&mut conn)
             .await?;
 
-        Self::apply_admin_privileges(db, external_user_id, project_roles).await?;
-
         Ok(result.id)
-    }
-
-    pub async fn apply_admin_privileges(
-        _db: &crate::db::Db,
-        _external_user_id: &str,
-        _project_roles: Option<HashMap<String, HashMap<String, String>>>,
-    ) -> Result<(), FilezError> {
-        let config = get_current_config_cloned!(config());
-        if config.enable_dev {}
-        Ok(())
     }
 
     pub async fn get_many_by_id(

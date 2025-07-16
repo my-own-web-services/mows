@@ -5,14 +5,9 @@ use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
     errors::FilezError,
-    models::{
-        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        apps::MowsApp,
-        file_groups::FileGroup,
-        users::FilezUser,
-    },
+    models::{apps::MowsApp, file_groups::FileGroup, users::FilezUser},
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus, SortDirection},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
 
@@ -22,6 +17,7 @@ use crate::{
     request_body = ListFileGroupsRequestBody,
     responses(
         (status = 200, description = "Lists file groups", body = ApiResponse<ListFileGroupsResponseBody>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn list_file_groups(
@@ -40,22 +36,6 @@ pub async fn list_file_groups(
     let requesting_app = with_timing!(
         MowsApp::get_from_headers(&db, &request_headers).await?,
         "Database operation to get app from headers",
-        timing
-    );
-
-    with_timing!(
-        AccessPolicy::check(
-            &db,
-            &requesting_user.id,
-            &requesting_app.id,
-            requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
-            None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsList).unwrap(),
-        )
-        .await?
-        .verify()?,
-        "Database operation to check access control",
         timing
     );
 

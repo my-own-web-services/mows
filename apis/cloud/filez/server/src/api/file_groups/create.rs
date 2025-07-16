@@ -12,7 +12,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 
@@ -22,6 +22,7 @@ use crate::{
     request_body = CreateFileGroupRequestBody,
     responses(
         (status = 200, description = "Creates a new file group", body = ApiResponse<FileGroup>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn create_file_group(
@@ -46,12 +47,12 @@ pub async fn create_file_group(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
+            AccessPolicyResourceType::FileGroup,
             None,
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsCreate).unwrap(),
+            AccessPolicyAction::FileGroupsCreate,
         )
         .await?
         .verify()?,

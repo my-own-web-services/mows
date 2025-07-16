@@ -23,6 +23,7 @@ use crate::{
     request_body = UpdateFileGroupMembersRequestBody,
     responses(
         (status = 200, description = "Updates the members of a file group", body = ApiResponse<EmptyApiResponse>),
+        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
 pub async fn update_file_group_members(
@@ -47,12 +48,12 @@ pub async fn update_file_group_members(
     with_timing!(
         AccessPolicy::check(
             &db,
-            &requesting_user.id,
+            &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            &serde_variant::to_variant_name(&AccessPolicyResourceType::FileGroup).unwrap(),
+            AccessPolicyResourceType::FileGroup,
             Some(&vec![request_body.file_group_id]),
-            &serde_variant::to_variant_name(&AccessPolicyAction::FileGroupsUpdateMembers).unwrap(),
+            AccessPolicyAction::FileGroupsUpdateMembers,
         )
         .await?
         .verify()?,

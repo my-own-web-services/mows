@@ -3,34 +3,33 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
+        storage_locations::{StorageLocation, StorageLocationListItem},
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
+    types::{ApiResponse, ApiResponseStatus, SortDirection},
     with_timing,
 };
 use axum::{extract::State, http::HeaderMap, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
-    path = "/api/users/delete",
-    request_body = DeleteUserRequestBody,
+    path = "/api/storage_locations/list",
+    request_body = ListStorageLocationsRequestBody,
     responses(
-        (status = 200, description = "Deletes a User", body = ApiResponse<DeleteUserResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (status = 200, description = "Lists all Storage Locations", body = ApiResponse<ListStorageLocationsResponseBody>),
     )
 )]
-pub async fn delete_user(
+pub async fn list_storage_locations(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(request_body): Json<DeleteUserRequestBody>,
-) -> Result<Json<ApiResponse<DeleteUserResponseBody>>, FilezError> {
+    Json(request_body): Json<ListStorageLocationsRequestBody>,
+) -> Result<Json<ApiResponse<ListStorageLocationsResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
         "Database operation to get user by external ID",
@@ -43,53 +42,49 @@ pub async fn delete_user(
         timing
     );
 
-    let user_id = match request_body.method {
-        DeleteUserMethod::ById(id) => id,
-        DeleteUserMethod::ByExternalId(external_id) => {
-            FilezUser::get_by_external_id(&db, &external_id).await?.id
-        }
-        DeleteUserMethod::ByEmail(email) => FilezUser::get_by_email(&db, &email).await?.id,
-    };
-
     with_timing!(
         AccessPolicy::check(
             &db,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
-            AccessPolicyResourceType::User,
-            Some(&[user_id]),
-            AccessPolicyAction::UsersDelete,
+            AccessPolicyResourceType::StorageLocation,
+            None,
+            AccessPolicyAction::StorageLocationsList,
         )
         .await?
         .verify()?,
         "Database operation to check access control",
         timing
     );
-    with_timing!(
-        FilezUser::delete(&db, &user_id).await?,
-        "Database operation to delete user",
+
+    let storage_locations = with_timing!(
+        StorageLocation::list(&db, request_body.sort_by, request_body.sort_order,).await?,
+        "Database operation to list storage locations",
         timing
     );
+
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
-        message: "User deleted successfully".to_string(),
-        data: Some(DeleteUserResponseBody { user_id }),
+        message: "Storage locations listed".to_string(),
+        data: Some(ListStorageLocationsResponseBody { storage_locations }),
     }))
 }
+
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct DeleteUserRequestBody {
-    pub method: DeleteUserMethod,
+pub struct ListStorageLocationsRequestBody {
+    pub sort_by: Option<ListStorageLocationsSortBy>,
+    pub sort_order: Option<SortDirection>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub enum DeleteUserMethod {
-    ById(Uuid),
-    ByExternalId(String),
-    ByEmail(String),
+pub struct ListStorageLocationsResponseBody {
+    pub storage_locations: Vec<StorageLocationListItem>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct DeleteUserResponseBody {
-    pub user_id: Uuid,
+pub enum ListStorageLocationsSortBy {
+    CreatedTime,
+    ModifiedTime,
+    Name,
 }
