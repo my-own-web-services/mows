@@ -75,7 +75,7 @@ pub async fn init_observability() {
         .with_timer(ChronoLocal::new("%H:%M:%S".to_string()))
         .with_file(true)
         .with_line_number(true)
-        .with_target(false)
+        .with_target(true)
         .with_filter(log_filter);
 
     // Decide on layers

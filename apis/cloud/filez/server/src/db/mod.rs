@@ -1,3 +1,4 @@
+use crate::models::apps::MowsApp;
 use crate::{config::FilezServerConfig, errors::FilezError};
 use anyhow::Context;
 use diesel::sql_query;
@@ -6,7 +7,6 @@ use diesel_async::{
 };
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use url::Url;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
@@ -69,6 +69,10 @@ impl Db {
             }
         };
         Ok(())
+    }
+
+    pub async fn create_filez_server_app(&self) -> Result<MowsApp, FilezError> {
+        MowsApp::create_filez_server_app(&self).await
     }
 
     pub async fn get_health(&self) -> Result<(), FilezError> {

@@ -83,13 +83,13 @@ export enum AccessPolicySubjectType {
 }
 
 export enum AccessPolicyResourceType {
-  File = "file",
-  FileGroup = "file_group",
-  User = "user",
-  UserGroup = "user_group",
-  StorageLocation = "storage_location",
-  AccessPolicy = "access_policy",
-  StorageQuota = "storage_quota",
+  File = "File",
+  FileGroup = "FileGroup",
+  User = "User",
+  UserGroup = "UserGroup",
+  StorageLocation = "StorageLocation",
+  AccessPolicy = "AccessPolicy",
+  StorageQuota = "StorageQuota",
 }
 
 export enum AccessPolicyEffect {
@@ -98,51 +98,51 @@ export enum AccessPolicyEffect {
 }
 
 export enum AccessPolicyAction {
-  FilezFilesCreate = "filez.files.create",
-  FilezFilesDelete = "filez.files.delete",
-  FilezFilesGet = "filez.files.get",
-  FilezFilesUpdate = "filez.files.update",
-  FilezFilesMetaGet = "filez.files.meta.get",
-  FilezFilesMetaList = "filez.files.meta.list",
-  FilezFilesMetaUpdate = "filez.files.meta.update",
-  FilezFilesVersionsContentGet = "filez.files.versions.content.get",
-  FilezFilesVersionsContentTusHead = "filez.files.versions.content.tus.head",
-  FilezFilesVersionsContentTusPatch = "filez.files.versions.content.tus.patch",
-  FilezFilesVersionsDelete = "filez.files.versions.delete",
-  FilezFilesVersionsGet = "filez.files.versions.get",
-  FilezFilesVersionsUpdate = "filez.files.versions.update",
-  FilezFilesVersionsCreate = "filez.files.versions.create",
-  FilezUsersGet = "filez.users.get",
-  FilezUsersList = "filez.users.list",
-  FilezUsersCreate = "filez.users.create",
-  FilezUsersUpdate = "filez.users.update",
-  FilezUsersDelete = "filez.users.delete",
-  FilezFileGroupsCreate = "filez.file_groups.create",
-  FilezFileGroupsGet = "filez.file_groups.get",
-  FilezFileGroupsUpdate = "filez.file_groups.update",
-  FilezFileGroupsDelete = "filez.file_groups.delete",
-  FilezFileGroupsList = "filez.file_groups.list",
-  FilezFileGroupsListFiles = "filez.file_groups.list_files",
-  FilezFileGroupsUpdateMembers = "filez.file_groups.update_members",
-  FilezUserGroupsCreate = "filez.user_groups.create",
-  FilezUserGroupsGet = "filez.user_groups.get",
-  FilezUserGroupsUpdate = "filez.user_groups.update",
-  FilezUserGroupsDelete = "filez.user_groups.delete",
-  FilezUserGroupsList = "filez.user_groups.list",
-  FilezUserGroupsListUsers = "filez.user_groups.list_users",
-  FilezUserGroupsUpdateMembers = "filez.user_groups.update_members",
-  FilezAccessPoliciesCreate = "filez.access_policies.create",
-  FilezAccessPoliciesGet = "filez.access_policies.get",
-  FilezAccessPoliciesUpdate = "filez.access_policies.update",
-  FilezAccessPoliciesDelete = "filez.access_policies.delete",
-  FilezAccessPoliciesList = "filez.access_policies.list",
-  FilezStorageQuotasCreate = "filez.storage_quotas.create",
-  FilezStorageQuotasGet = "filez.storage_quotas.get",
-  FilezStorageQuotasUpdate = "filez.storage_quotas.update",
-  FilezStorageQuotasDelete = "filez.storage_quotas.delete",
-  FilezStorageQuotasList = "filez.storage_quotas.list",
-  FilezStorageLocationsGet = "filez.storage_locations.get",
-  FilezStorageLocationsList = "filez.storage_locations.list",
+  FilezFilesCreate = "FilezFilesCreate",
+  FilezFilesDelete = "FilezFilesDelete",
+  FilezFilesGet = "FilezFilesGet",
+  FilezFilesUpdate = "FilezFilesUpdate",
+  FilezFilesMetaGet = "FilezFilesMetaGet",
+  FilezFilesMetaList = "FilezFilesMetaList",
+  FilezFilesMetaUpdate = "FilezFilesMetaUpdate",
+  FilezFilesVersionsContentGet = "FilezFilesVersionsContentGet",
+  FilezFilesVersionsContentTusHead = "FilezFilesVersionsContentTusHead",
+  FilezFilesVersionsContentTusPatch = "FilezFilesVersionsContentTusPatch",
+  FilezFilesVersionsDelete = "FilezFilesVersionsDelete",
+  FilezFilesVersionsGet = "FilezFilesVersionsGet",
+  FilezFilesVersionsUpdate = "FilezFilesVersionsUpdate",
+  FilezFilesVersionsCreate = "FilezFilesVersionsCreate",
+  UsersGet = "UsersGet",
+  UsersList = "UsersList",
+  UsersCreate = "UsersCreate",
+  UsersUpdate = "UsersUpdate",
+  UsersDelete = "UsersDelete",
+  FileGroupsCreate = "FileGroupsCreate",
+  FileGroupsGet = "FileGroupsGet",
+  FileGroupsUpdate = "FileGroupsUpdate",
+  FileGroupsDelete = "FileGroupsDelete",
+  FileGroupsList = "FileGroupsList",
+  FileGroupsListFiles = "FileGroupsListFiles",
+  FileGroupsUpdateMembers = "FileGroupsUpdateMembers",
+  UserGroupsCreate = "UserGroupsCreate",
+  UserGroupsGet = "UserGroupsGet",
+  UserGroupsUpdate = "UserGroupsUpdate",
+  UserGroupsDelete = "UserGroupsDelete",
+  UserGroupsList = "UserGroupsList",
+  UserGroupsListUsers = "UserGroupsListUsers",
+  UserGroupsUpdateMembers = "UserGroupsUpdateMembers",
+  AccessPoliciesCreate = "AccessPoliciesCreate",
+  AccessPoliciesGet = "AccessPoliciesGet",
+  AccessPoliciesUpdate = "AccessPoliciesUpdate",
+  AccessPoliciesDelete = "AccessPoliciesDelete",
+  AccessPoliciesList = "AccessPoliciesList",
+  StorageQuotasCreate = "StorageQuotasCreate",
+  StorageQuotasGet = "StorageQuotasGet",
+  StorageQuotasUpdate = "StorageQuotasUpdate",
+  StorageQuotasDelete = "StorageQuotasDelete",
+  StorageQuotasList = "StorageQuotasList",
+  StorageLocationsGet = "StorageLocationsGet",
+  StorageLocationsList = "StorageLocationsList",
 }
 
 export interface AccessPolicy {
@@ -157,6 +157,8 @@ export interface AccessPolicy {
   /** @format date-time */
   modified_time: string;
   name: string;
+  /** @format uuid */
+  owner_id: string;
   /** @format uuid */
   resource_id?: string | null;
   resource_type: AccessPolicyResourceType;
@@ -179,6 +181,8 @@ export interface ApiResponseAccessPolicy {
     modified_time: string;
     name: string;
     /** @format uuid */
+    owner_id: string;
+    /** @format uuid */
     resource_id?: string | null;
     resource_type: AccessPolicyResourceType;
     /** @format uuid */
@@ -191,8 +195,7 @@ export interface ApiResponseAccessPolicy {
 
 export interface ApiResponseApplyUserResponseBody {
   data?: {
-    /** @format uuid */
-    user_id: string;
+    user: FilezUser;
   };
   message: string;
   status: ApiResponseStatus;
@@ -219,6 +222,14 @@ export interface ApiResponseCreateFileVersionResponseBody {
   data?: {
     /** @format int32 */
     version: number;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseCreateStorageQuotaResponseBody {
+  data?: {
+    storage_quota: StorageQuota;
   };
   message: string;
   status: ApiResponseStatus;
@@ -385,9 +396,11 @@ export interface ApiResponseStorageQuota {
     created_time: string;
     /** @format uuid */
     id: string;
-    ignore_quota: boolean;
     /** @format date-time */
     modified_time: string;
+    name: string;
+    /** @format uuid */
+    owner_id: string;
     /** @format int64 */
     quota_bytes: number;
     /** @format uuid */
@@ -444,9 +457,11 @@ export interface ApiResponseVecStorageQuota {
     created_time: string;
     /** @format uuid */
     id: string;
-    ignore_quota: boolean;
     /** @format date-time */
     modified_time: string;
+    name: string;
+    /** @format uuid */
+    owner_id: string;
     /** @format int64 */
     quota_bytes: number;
     /** @format uuid */
@@ -460,8 +475,7 @@ export interface ApiResponseVecStorageQuota {
 }
 
 export interface ApplyUserResponseBody {
-  /** @format uuid */
-  user_id: string;
+  user: FilezUser;
 }
 
 export interface AuthEvaluation {
@@ -472,6 +486,7 @@ export interface AuthEvaluation {
 }
 
 export type AuthReason =
+  | "SuperAdmin"
   | "Owned"
   | {
       AllowedByPubliclyAccessible: {
@@ -565,10 +580,10 @@ export type AuthReason =
   | "ResourceNotFound";
 
 export interface CheckResourceAccessRequestBody {
-  action: string;
+  action: AccessPolicyAction;
   requesting_app_origin?: string | null;
   resource_ids?: any[] | null;
-  resource_type: string;
+  resource_type: AccessPolicyResourceType;
 }
 
 export interface CheckResourceAccessResponseBody {
@@ -617,7 +632,7 @@ export interface CreateFileVersionRequestBody {
   /** @format int64 */
   size: number;
   /** @format uuid */
-  storage_location_id: string;
+  storage_quota_id: string;
 }
 
 export interface CreateFileVersionResponseBody {
@@ -626,7 +641,7 @@ export interface CreateFileVersionResponseBody {
 }
 
 export interface CreateStorageQuotaRequestBody {
-  ignore_quota: boolean;
+  name: string;
   /** @format int64 */
   quota_bytes: number;
   /** @format uuid */
@@ -634,6 +649,10 @@ export interface CreateStorageQuotaRequestBody {
   /** @format uuid */
   subject_id: string;
   subject_type: AccessPolicySubjectType;
+}
+
+export interface CreateStorageQuotaResponseBody {
+  storage_quota: StorageQuota;
 }
 
 export interface CreateUserGroupRequestBody {
@@ -737,7 +756,7 @@ export interface FileMetadata {
 export interface FileVersion {
   /** @format uuid */
   app_id: string;
-  app_path?: string | null;
+  app_path: string;
   /** @format date-time */
   created_time: string;
   /** @format uuid */
@@ -748,7 +767,9 @@ export interface FileVersion {
   /** @format int64 */
   size: number;
   /** @format uuid */
-  storage_id: string;
+  storage_location_id: string;
+  /** @format uuid */
+  storage_quota_id: string;
   /** @format int32 */
   version: number;
 }
@@ -795,6 +816,7 @@ export interface FilezUser {
   pre_identifier_email?: string | null;
   /** @format uuid */
   profile_picture?: string | null;
+  super_admin: boolean;
 }
 
 export interface GetFileVersionsRequestBody {
@@ -975,9 +997,11 @@ export interface StorageQuota {
   created_time: string;
   /** @format uuid */
   id: string;
-  ignore_quota: boolean;
   /** @format date-time */
   modified_time: string;
+  name: string;
+  /** @format uuid */
+  owner_id: string;
   /** @format int64 */
   quota_bytes: number;
   /** @format uuid */
@@ -1146,6 +1170,7 @@ export enum ContentType {
   UrlEncoded = "application/x-www-form-urlencoded",
   Text = "text/plain",
   Binary = "application/octet-stream",
+  BinaryWithOffset = "application/offset+octet-stream",
 }
 
 export class HttpClient<SecurityDataType = unknown> {
@@ -1232,6 +1257,7 @@ export class HttpClient<SecurityDataType = unknown> {
       }, new FormData()),
     [ContentType.UrlEncoded]: (input: any) => this.toQueryString(input),
     [ContentType.Binary]: (input: any) => input,
+    [ContentType.BinaryWithOffset]: (input: any) => input,
   };
 
   protected mergeRequestParams(
@@ -1886,7 +1912,10 @@ export class Api<
       data: CreateStorageQuotaRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+      this.request<
+        ApiResponseCreateStorageQuotaResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/storage_quotas/create`,
         method: "POST",
         body: data,

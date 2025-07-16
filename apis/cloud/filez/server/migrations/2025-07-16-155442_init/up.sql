@@ -1,5 +1,6 @@
 -- Your SQL goes here
 
+
 CREATE TABLE "users"(
 	"id" UUID NOT NULL PRIMARY KEY,
 	"external_user_id" TEXT,
@@ -24,7 +25,6 @@ CREATE TABLE "files"(
 	FOREIGN KEY ("owner_id") REFERENCES "users"("id")
 );
 
-
 CREATE TABLE "file_groups"(
 	"id" UUID NOT NULL PRIMARY KEY,
 	"owner_id" UUID NOT NULL,
@@ -37,42 +37,28 @@ CREATE TABLE "file_groups"(
 	FOREIGN KEY ("owner_id") REFERENCES "users"("id")
 );
 
-CREATE TABLE "file_file_group_members"(
-	"file_id" UUID NOT NULL,
-	"file_group_id" UUID NOT NULL,
+CREATE TABLE "storage_locations"(
+	"id" UUID NOT NULL PRIMARY KEY,
+	"name" TEXT NOT NULL,
+	"provider_config" JSONB NOT NULL,
 	"created_time" TIMESTAMP NOT NULL,
-	PRIMARY KEY("file_id", "file_group_id"),
-	FOREIGN KEY ("file_id") REFERENCES "files"("id"),
-	FOREIGN KEY ("file_group_id") REFERENCES "file_groups"("id")
+	"modified_time" TIMESTAMP NOT NULL
 );
 
-CREATE TABLE "file_versions"(
-	"file_id" UUID NOT NULL,
-	"version" INTEGER NOT NULL,
-	"app_id" UUID NOT NULL,
-	"app_path" TEXT,
-	"metadata" JSONB NOT NULL,
+CREATE TABLE "storage_quotas"(
+	"id" UUID NOT NULL PRIMARY KEY,
+	"owner_id" UUID NOT NULL,
+	"name" TEXT NOT NULL,
+	"subject_type" SMALLINT NOT NULL,
+	"subject_id" UUID NOT NULL,
+	"storage_location_id" UUID NOT NULL,
 	"created_time" TIMESTAMP NOT NULL,
 	"modified_time" TIMESTAMP NOT NULL,
-	"size" NUMERIC NOT NULL,
-	"storage_id" UUID NOT NULL,
-	PRIMARY KEY("file_id", "version", "app_id", "app_path")
-);
-
-CREATE TABLE "user_user_group_members"(
-	"user_id" UUID NOT NULL,
-	"user_group_id" UUID NOT NULL,
-	"created_time" TIMESTAMP NOT NULL,
-	PRIMARY KEY("user_id", "user_group_id")
+	"quota_bytes" NUMERIC NOT NULL,
+	FOREIGN KEY ("storage_location_id") REFERENCES "storage_locations"("id")
 );
 
 
-
-CREATE TABLE "tags"(
-	"id" UUID NOT NULL PRIMARY KEY,
-	"key" TEXT NOT NULL,
-	"value" TEXT NOT NULL
-);
 
 CREATE TABLE "file_group_file_sort_orders"(
 	"id" UUID NOT NULL PRIMARY KEY,
@@ -82,36 +68,6 @@ CREATE TABLE "file_group_file_sort_orders"(
 	"created_by_user_id" UUID NOT NULL,
 	FOREIGN KEY ("file_group_id") REFERENCES "file_groups"("id"),
 	FOREIGN KEY ("created_by_user_id") REFERENCES "users"("id")
-);
-
-
-CREATE TABLE "storage_locations"(
-	"id" UUID NOT NULL PRIMARY KEY,
-	"name" TEXT NOT NULL,
-	"provider_config" JSONB NOT NULL,
-	"created_time" TIMESTAMP NOT NULL,
-	"modified_time" TIMESTAMP NOT NULL
-);
-
-CREATE TABLE "jobs"(
-	"id" UUID NOT NULL PRIMARY KEY,
-	"owner_id" UUID NOT NULL,
-	"name" TEXT NOT NULL,
-	"status" JSONB NOT NULL,
-	"created_time" TIMESTAMP NOT NULL,
-	"modified_time" TIMESTAMP NOT NULL,
-	"start_time" TIMESTAMP,
-	"end_time" TIMESTAMP
-);
-
-CREATE TABLE "user_groups"(
-	"id" UUID NOT NULL PRIMARY KEY,
-	"owner_id" UUID NOT NULL,
-	"name" TEXT NOT NULL,
-	"created_time" TIMESTAMP NOT NULL,
-	"modified_time" TIMESTAMP NOT NULL,
-	"description" TEXT,
-	FOREIGN KEY ("owner_id") REFERENCES "users"("id")
 );
 
 
@@ -144,29 +100,6 @@ CREATE TABLE "apps"(
 	"modified_time" TIMESTAMP NOT NULL
 );
 
-CREATE TABLE "storage_quotas"(
-	"id" UUID NOT NULL PRIMARY KEY,
-	"owner_id" UUID NOT NULL,
-	"name" TEXT NOT NULL,
-	"subject_type" SMALLINT NOT NULL,
-	"subject_id" UUID NOT NULL,
-	"storage_location_id" UUID NOT NULL,
-	"created_time" TIMESTAMP NOT NULL,
-	"modified_time" TIMESTAMP NOT NULL,
-	"quota_bytes" NUMERIC NOT NULL,
-	"ignore_quota" BOOL NOT NULL,
-	FOREIGN KEY ("storage_location_id") REFERENCES "storage_locations"("id")
-);
-
-CREATE TABLE "user_relations"(
-	"user_id" UUID NOT NULL,
-	"friend_id" UUID NOT NULL,
-	"created_time" TIMESTAMP NOT NULL,
-	"modified_time" TIMESTAMP NOT NULL,
-	"status" SMALLINT NOT NULL,
-	PRIMARY KEY("user_id", "friend_id")
-);
-
 CREATE TABLE "access_policies"(
 	"id" UUID NOT NULL PRIMARY KEY,
 	"owner_id" UUID NOT NULL,
@@ -182,4 +115,75 @@ CREATE TABLE "access_policies"(
 	"effect" SMALLINT NOT NULL
 );
 
+CREATE TABLE "file_versions"(
+	"file_id" UUID NOT NULL,
+	"version" INTEGER NOT NULL,
+	"app_id" UUID NOT NULL,
+	"app_path" TEXT NOT NULL,
+	"metadata" JSONB NOT NULL,
+	"created_time" TIMESTAMP NOT NULL,
+	"modified_time" TIMESTAMP NOT NULL,
+	"size" NUMERIC NOT NULL,
+	"storage_location_id" UUID NOT NULL,
+	"storage_quota_id" UUID NOT NULL,
+	PRIMARY KEY("file_id", "version", "app_id", "app_path"),
+	FOREIGN KEY ("file_id") REFERENCES "files"("id"),
+	FOREIGN KEY ("app_id") REFERENCES "apps"("id"),
+	FOREIGN KEY ("storage_location_id") REFERENCES "storage_locations"("id"),
+	FOREIGN KEY ("storage_quota_id") REFERENCES "storage_quotas"("id")
+);
+
+CREATE TABLE "jobs"(
+	"id" UUID NOT NULL PRIMARY KEY,
+	"owner_id" UUID NOT NULL,
+	"name" TEXT NOT NULL,
+	"status" JSONB NOT NULL,
+	"created_time" TIMESTAMP NOT NULL,
+	"modified_time" TIMESTAMP NOT NULL,
+	"start_time" TIMESTAMP,
+	"end_time" TIMESTAMP
+);
+
+CREATE TABLE "user_relations"(
+	"user_id" UUID NOT NULL,
+	"friend_id" UUID NOT NULL,
+	"created_time" TIMESTAMP NOT NULL,
+	"modified_time" TIMESTAMP NOT NULL,
+	"status" SMALLINT NOT NULL,
+	PRIMARY KEY("user_id", "friend_id")
+);
+
+CREATE TABLE "user_groups"(
+	"id" UUID NOT NULL PRIMARY KEY,
+	"owner_id" UUID NOT NULL,
+	"name" TEXT NOT NULL,
+	"created_time" TIMESTAMP NOT NULL,
+	"modified_time" TIMESTAMP NOT NULL,
+	"description" TEXT,
+	FOREIGN KEY ("owner_id") REFERENCES "users"("id")
+);
+
+CREATE TABLE "file_file_group_members"(
+	"file_id" UUID NOT NULL,
+	"file_group_id" UUID NOT NULL,
+	"created_time" TIMESTAMP NOT NULL,
+	PRIMARY KEY("file_id", "file_group_id"),
+	FOREIGN KEY ("file_id") REFERENCES "files"("id"),
+	FOREIGN KEY ("file_group_id") REFERENCES "file_groups"("id")
+);
+
+
+
+CREATE TABLE "user_user_group_members"(
+	"user_id" UUID NOT NULL,
+	"user_group_id" UUID NOT NULL,
+	"created_time" TIMESTAMP NOT NULL,
+	PRIMARY KEY("user_id", "user_group_id")
+);
+
+CREATE TABLE "tags"(
+	"id" UUID NOT NULL PRIMARY KEY,
+	"key" TEXT NOT NULL,
+	"value" TEXT NOT NULL
+);
 

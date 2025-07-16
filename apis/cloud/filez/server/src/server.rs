@@ -1,10 +1,7 @@
 use anyhow::Context;
-use axum::http::{request::Parts, HeaderValue};
+use axum::http::{header::CONTENT_SECURITY_POLICY, request::Parts, HeaderValue};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
-use mows_common_rust::{
-    config::common_config, get_current_config_cloned, observability::init_observability,
-};
-use server_lib::{
+use filez_server_lib::{
     api::{self},
     config::config,
     controller,
@@ -14,17 +11,20 @@ use server_lib::{
     types::ApiDoc,
     utils::shutdown_signal,
 };
+use mows_common_rust::{
+    config::common_config, get_current_config_cloned, observability::init_observability,
+};
 use std::net::SocketAddr;
 use tower_http::{
     compression::CompressionLayer,
     cors::{AllowOrigin, Any, CorsLayer},
     decompression::DecompressionLayer,
+    set_header::SetResponseHeaderLayer,
 };
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
-use utoipa_swagger_ui::SwaggerUi;
 
 #[tracing::instrument]
 #[tokio::main]
@@ -44,15 +44,11 @@ async fn main() -> Result<(), anyhow::Error> {
     // run pending migrations
     match Db::run_migrations(&config).await {
         Ok(_) => info!("Migrations completed successfully"),
-        Err(e) => {
+        Err(_) => {
             Db::drop_if_dev_mode(&config).await?;
             Db::run_migrations(&config).await?;
         }
     }
-
-    // TODO:
-
-    // create the bucket if it does not exist in the background
 
     let server_state = ServerState::new(&config)
         .await
@@ -165,9 +161,17 @@ async fn main() -> Result<(), anyhow::Error> {
                 .allow_headers(Any),
         )
         .layer(axum_server_timing::ServerTimingLayer::new("FilezService"))
+        .layer(SetResponseHeaderLayer::overriding(
+            CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'none'"),
+        ))
         .split_for_parts();
 
-    let router = router.merge(SwaggerUi::new("/swagger-ui").url("/apidoc/openapi.json", api));
+    let router = router.merge(
+        utoipa_swagger_ui::SwaggerUi::new("/swagger-ui")
+            .config(utoipa_swagger_ui::Config::default().validator_url("none"))
+            .url("/api-docs/openapi.json", api),
+    );
 
     info!("Starting server");
 

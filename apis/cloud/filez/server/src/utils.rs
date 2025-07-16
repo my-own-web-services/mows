@@ -1,8 +1,18 @@
 use anyhow::bail;
+use axum::http::{HeaderName, HeaderValue};
 use bigdecimal::BigDecimal;
+use serde::{
+    de::{self, Deserializer, Visitor},
+    Deserialize,
+};
+use std::fmt;
+use std::str::FromStr;
 use tokio::signal::{self};
 use url::Url;
+use utoipa::ToSchema;
 use uuid::Timestamp;
+
+use crate::errors::FilezError;
 
 pub fn get_uuid() -> uuid::Uuid {
     let ts = Timestamp::now(uuid::NoContext);
@@ -93,4 +103,83 @@ pub async fn is_dev_origin(config: &crate::config::FilezServerConfig, origin: &U
         }
     }
     return None;
+}
+
+pub fn safe_parse_mime_type(mime_type: &str) -> HeaderValue {
+    let unsafe_mime_types = vec!["text/javascript", "text/css", "text/html", "text/xml"];
+
+    if unsafe_mime_types.contains(&mime_type) {
+        HeaderValue::from_static("text/plain")
+    } else {
+        mime_type.parse::<HeaderValue>().unwrap()
+    }
+}
+
+/// A "fake" Option type that can be deserialized from a URL path.
+/// It treats the literal string "null" as `None` and any other value
+/// as `Some(T)`, attempting to parse it using `FromStr`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ToSchema)]
+pub enum OptionalPath<T> {
+    Some(T),
+    None,
+}
+
+// Helper visitor for the deserializer
+struct FakeOptionVisitor<T> {
+    _marker: std::marker::PhantomData<T>,
+}
+
+impl<'de, T> Visitor<'de> for FakeOptionVisitor<T>
+where
+    T: FromStr,
+    <T as FromStr>::Err: fmt::Display,
+{
+    type Value = OptionalPath<T>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter
+            .write_str("a string literal 'null' or a value that can be parsed into the inner type")
+    }
+
+    // This is the core logic. It's called when Serde encounters a string.
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        if value.eq_ignore_ascii_case("null") {
+            Ok(OptionalPath::None)
+        } else {
+            // Attempt to parse the string into the inner type T
+            T::from_str(value)
+                .map(OptionalPath::Some)
+                .map_err(|e| de::Error::custom(format!("failed to parse '{}': {}", value, e)))
+        }
+    }
+}
+
+// The custom Deserialize implementation
+impl<'de, T> Deserialize<'de> for OptionalPath<T>
+where
+    T: FromStr,
+    <T as FromStr>::Err: fmt::Display,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // We tell Serde to expect a string and use our visitor to handle it.
+        deserializer.deserialize_str(FakeOptionVisitor {
+            _marker: std::marker::PhantomData,
+        })
+    }
+}
+
+// Optional: Implement `Into<Option<T>>` for easy conversion to a standard `Option`.
+impl<T> From<OptionalPath<T>> for Option<T> {
+    fn from(fake_option: OptionalPath<T>) -> Self {
+        match fake_option {
+            OptionalPath::Some(value) => Some(value),
+            OptionalPath::None => None,
+        }
+    }
 }

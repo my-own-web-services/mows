@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::{files::FilezFile, storage_locations::StorageLocation};
+use super::{files::FilezFile, storage_locations::StorageLocation, storage_quotas::StorageQuota};
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct FileVersionsQuery {
@@ -50,19 +50,46 @@ pub struct FileVersion {
     pub file_id: Uuid,
     pub version: i32,
     pub app_id: Uuid,
-    pub app_path: Option<String>,
+    pub app_path: String,
     pub metadata: FileVersionMetadata,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
     #[schema(value_type=i64)]
     pub size: BigDecimal,
-    pub storage_id: Uuid,
+    pub storage_location_id: Uuid,
+    pub storage_quota_id: Uuid,
 }
 
 #[derive(Serialize, Deserialize, AsJsonb, Clone, Debug, ToSchema)]
 pub struct FileVersionMetadata {}
 
 impl FileVersion {
+    pub fn new(
+        file_id: Uuid,
+        version: i32,
+        app_id: Uuid,
+        app_path: Option<String>,
+        metadata: FileVersionMetadata,
+        created_time: chrono::NaiveDateTime,
+        modified_time: chrono::NaiveDateTime,
+        size: BigDecimal,
+        storage_id: Uuid,
+        storage_quota_id: Uuid,
+    ) -> Self {
+        Self {
+            file_id,
+            version,
+            app_id,
+            app_path: app_path.unwrap_or("".to_string()),
+            metadata,
+            created_time,
+            modified_time,
+            size,
+            storage_location_id: storage_id,
+            storage_quota_id,
+        }
+    }
+
     pub async fn get(
         db: &Db,
         file_id: &Uuid,
@@ -71,6 +98,8 @@ impl FileVersion {
         app_path: &Option<String>,
     ) -> Result<FileVersion, FilezError> {
         let mut connection = db.pool.get().await?;
+
+        let app_path = app_path.as_ref().map(|path| path.as_str()).unwrap_or("");
 
         // if the version is None, we fetch the latest version
         let version = if version.is_none() {
@@ -107,10 +136,7 @@ impl FileVersion {
     fn full_file_path(&self) -> String {
         format!(
             "{}/{}/{}/{}",
-            self.file_id,
-            self.version,
-            self.app_id,
-            self.app_path.as_deref().unwrap_or("")
+            self.file_id, self.version, self.app_id, self.app_path
         )
     }
 
@@ -120,7 +146,7 @@ impl FileVersion {
         timing: axum_server_timing::ServerTimingExtension,
         range: &Option<(Option<u64>, Option<u64>)>,
     ) -> Result<axum::body::Body, FilezError> {
-        let storage_location = StorageLocation::get_by_id(db, &self.storage_id).await?;
+        let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
         let content = storage_location
             .get_content(&self.full_file_path(), timing, range)
             .await?;
@@ -133,7 +159,7 @@ impl FileVersion {
         db: &Db,
         timing: axum_server_timing::ServerTimingExtension,
     ) -> Result<BigDecimal, FilezError> {
-        let storage_location = StorageLocation::get_by_id(db, &self.storage_id).await?;
+        let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
         let size = storage_location
             .get_file_size(&self.full_file_path(), timing)
             .await?;
@@ -149,7 +175,7 @@ impl FileVersion {
         offset: u64,
         length: u64,
     ) -> Result<(), FilezError> {
-        let storage_location = StorageLocation::get_by_id(db, &self.storage_id).await?;
+        let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
 
         let file = FilezFile::get_by_id(db, self.file_id).await?;
 
@@ -174,9 +200,11 @@ impl FileVersion {
         app_path: Option<String>,
         metadata: FileVersionMetadata,
         size: BigDecimal,
-        storage_id: Uuid,
+        storage_quota_id: Uuid,
     ) -> Result<FileVersion, FilezError> {
         let mut connection = db.pool.get().await?;
+
+        let storage_id = StorageQuota::get_storage_location_id(db, &storage_quota_id).await?;
 
         let version_number = file_versions::table
             .filter(file_versions::file_id.eq(file_id))
@@ -185,17 +213,18 @@ impl FileVersion {
             .await?;
         let new_version_number = version_number.map_or(0, |v| v + 1);
 
-        let new_file_version = FileVersion {
+        let new_file_version = FileVersion::new(
             file_id,
-            version: new_version_number,
+            new_version_number,
             app_id,
             app_path,
             metadata,
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
+            chrono::Utc::now().naive_utc(),
+            chrono::Utc::now().naive_utc(),
             size,
             storage_id,
-        };
+            storage_quota_id,
+        );
 
         let created_version = diesel::insert_into(file_versions::table)
             .values(new_file_version)
@@ -218,7 +247,10 @@ impl FileVersion {
                     .filter(file_versions::file_id.eq(version_query.file_id))
                     .filter(file_versions::version.eq(version_query.version))
                     .filter(file_versions::app_id.eq(version_query.app_id))
-                    .filter(file_versions::app_path.eq(&version_query.app_path))
+                    .filter(
+                        file_versions::app_path
+                            .eq(&version_query.app_path.clone().unwrap_or("".to_string()))
+                    )
                     .first::<FileVersion>(&mut connection)
                     .await?,
                 "Database operation to get file version",
@@ -233,7 +265,10 @@ impl FileVersion {
                         .filter(file_versions::file_id.eq(version_query.file_id))
                         .filter(file_versions::version.eq(version_query.version))
                         .filter(file_versions::app_id.eq(version_query.app_id))
-                        .filter(file_versions::app_path.eq(&version_query.app_path)),
+                        .filter(
+                            file_versions::app_path
+                                .eq(&version_query.app_path.clone().unwrap_or("".to_string()))
+                        ),
                 )
                 .execute(&mut connection)
                 .await?,
@@ -257,7 +292,9 @@ impl FileVersion {
                 .filter(file_versions::file_id.eq(request.file_id))
                 .filter(file_versions::version.eq(request.version))
                 .filter(file_versions::app_id.eq(request.app_id))
-                .filter(file_versions::app_path.eq(&request.app_path))
+                .filter(
+                    file_versions::app_path.eq(&request.app_path.clone().unwrap_or("".to_string())),
+                )
                 .first::<FileVersion>(&mut connection)
                 .await?;
             results.push(file_version);
@@ -271,7 +308,7 @@ impl FileVersion {
         db: &Db,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), FilezError> {
-        let storage_location = StorageLocation::get_by_id(db, &self.storage_id).await?;
+        let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
         storage_location
             .delete_content(&self.full_file_path(), timing)
             .await?;
@@ -291,7 +328,12 @@ impl FileVersion {
                 .filter(file_versions::file_id.eq(file_version_update.file_id))
                 .filter(file_versions::version.eq(file_version_update.version))
                 .filter(file_versions::app_id.eq(file_version_update.app_id))
-                .filter(file_versions::app_path.eq(&file_version_update.app_path))
+                .filter(
+                    file_versions::app_path.eq(&file_version_update
+                        .app_path
+                        .clone()
+                        .unwrap_or("".to_string())),
+                )
                 .first::<FileVersion>(&mut connection)
                 .await?;
 
@@ -306,7 +348,12 @@ impl FileVersion {
                     .filter(file_versions::file_id.eq(file_version_update.file_id))
                     .filter(file_versions::version.eq(file_version_update.version))
                     .filter(file_versions::app_id.eq(file_version_update.app_id))
-                    .filter(file_versions::app_path.eq(&file_version_update.app_path)),
+                    .filter(
+                        file_versions::app_path.eq(&file_version_update
+                            .app_path
+                            .clone()
+                            .unwrap_or("".to_string())),
+                    ),
             )
             .set(file_version)
             .get_result::<FileVersion>(&mut connection)

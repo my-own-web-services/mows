@@ -62,6 +62,9 @@ pub enum FilezError {
 
     #[error("Missing resource name: {0}")]
     ControllerMissingResourceName(String),
+
+    #[error("Storage quota exceeded: {0}")]
+    StorageQuotaExceeded(String),
 }
 
 impl IntoResponse for FilezError {
@@ -81,6 +84,7 @@ impl IntoResponse for FilezError {
             FilezError::UnsupportedMediaType(_) => axum::http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
             FilezError::Unauthorized(_) => axum::http::StatusCode::UNAUTHORIZED,
             FilezError::AuthEvaluationError(_) => axum::http::StatusCode::UNAUTHORIZED,
+            FilezError::StorageQuotaExceeded(_) => axum::http::StatusCode::PAYLOAD_TOO_LARGE,
             _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
         };
 

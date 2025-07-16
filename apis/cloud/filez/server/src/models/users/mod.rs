@@ -2,7 +2,6 @@ use crate::{
     api::users::list::ListUsersSortBy,
     config::{config, IMPERSONATE_USER_HEADER},
     errors::FilezError,
-    models::access_policies::AccessPolicy,
     schema,
     types::SortDirection,
     utils::get_uuid,
@@ -15,7 +14,7 @@ use diesel::{
     ExpressionMethods, OptionalExtension, Selectable,
 };
 use diesel_async::RunQueryDsl;
-use mows_common_rust::{config, get_current_config_cloned};
+use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, warn};
@@ -143,7 +142,7 @@ impl FilezUser {
     pub async fn apply(
         db: &crate::db::Db,
         external_user: IntrospectedUser,
-    ) -> Result<uuid::Uuid, FilezError> {
+    ) -> Result<FilezUser, FilezError> {
         let mut conn = db.pool.get().await?;
 
         let config = get_current_config_cloned!(config());
@@ -158,7 +157,7 @@ impl FilezUser {
             .as_ref()
             .ok_or_else(|| FilezError::Unauthorized("External user ID is missing".to_string()))?;
 
-        let display_name = external_user.preferred_username.unwrap_or("".to_string());
+        let display_name = external_user.name.unwrap_or("".to_string());
 
         let is_super_admin = (config.enable_dev && display_name == "ZITADEL Admin")
             || external_user
@@ -203,17 +202,21 @@ impl FilezUser {
 
                 if let Some(email_identified_user) = maybe_email_identified_user {
                     // If we found a user by email, we update their external_user_id and clear the pre_identifier_email
-                    diesel::update(crate::schema::users::table.find(email_identified_user.id))
-                        .set((
-                            crate::schema::users::external_user_id.eq(external_user_id.to_string()),
-                            crate::schema::users::pre_identifier_email.eq(None::<String>),
-                            crate::schema::users::display_name.eq(display_name),
-                            crate::schema::users::modified_time.eq(chrono::Utc::now().naive_utc()),
-                        ))
-                        .execute(&mut conn)
-                        .await?;
+                    let updated_user =
+                        diesel::update(crate::schema::users::table.find(email_identified_user.id))
+                            .set((
+                                crate::schema::users::external_user_id
+                                    .eq(external_user_id.to_string()),
+                                crate::schema::users::pre_identifier_email.eq(None::<String>),
+                                crate::schema::users::display_name.eq(display_name),
+                                crate::schema::users::modified_time
+                                    .eq(chrono::Utc::now().naive_utc()),
+                            ))
+                            .returning(crate::schema::users::all_columns)
+                            .get_result(&mut conn)
+                            .await?;
 
-                    return Ok(email_identified_user.id);
+                    return Ok(updated_user);
                 };
             } else {
                 debug!(
@@ -237,7 +240,7 @@ impl FilezUser {
                     .await?;
             }
 
-            return Ok(user.id);
+            return Ok(user);
         };
 
         debug!("No existing user found, creating new user");
@@ -255,7 +258,7 @@ impl FilezUser {
             .get_result::<FilezUser>(&mut conn)
             .await?;
 
-        Ok(result.id)
+        Ok(result)
     }
 
     pub async fn get_many_by_id(
@@ -286,21 +289,25 @@ impl FilezUser {
                     .get(IMPERSONATE_USER_HEADER)
                     .and_then(|v| v.to_str().ok().and_then(|s| s.parse::<Uuid>().ok()))
                 {
-                    if let Some(project_roles) = &external_user.project_roles {
-                        if project_roles.contains_key("admin") {
-                            let result = schema::users::table
-                                .filter(schema::users::id.eq(impersonation_user_id))
-                                .first::<FilezUser>(&mut conn)
-                                .await?;
+                    let requesting_user = schema::users::table
+                        .filter(schema::users::external_user_id.eq(external_user.user_id.clone()))
+                        .first::<FilezUser>(&mut conn)
+                        .await?;
 
-                            debug!(
-                                "User with external_user_id `{}` is impersonating user with ID `{}`",
-                                external_user.user_id.clone().unwrap(),
-                                impersonation_user_id
-                            );
-                            return Ok(result);
-                        }
+                    if requesting_user.super_admin {
+                        let result = schema::users::table
+                            .filter(schema::users::id.eq(impersonation_user_id))
+                            .first::<FilezUser>(&mut conn)
+                            .await?;
+
+                        debug!(
+                            "User with external_user_id `{}` is impersonating user with ID `{}`",
+                            external_user.user_id.clone().unwrap(),
+                            impersonation_user_id
+                        );
+                        return Ok(result);
                     }
+
                     warn!(
                         "User with external_user_id `{}` tried to impersonate user with ID `{}`!",
                         external_user.user_id.clone().unwrap(),
@@ -310,11 +317,11 @@ impl FilezUser {
                         "Impersonation is not allowed for this user".to_string(),
                     ));
                 } else {
-                    let result = schema::users::table
+                    let requesting_user = schema::users::table
                         .filter(schema::users::external_user_id.eq(external_user.user_id.clone()))
                         .first::<FilezUser>(&mut conn)
                         .await?;
-                    Ok(result)
+                    Ok(requesting_user)
                 }
             }
             None => {

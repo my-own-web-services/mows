@@ -53,7 +53,7 @@ impl MowsApp {
     pub async fn first_party() -> Self {
         let config = get_current_config_cloned!(config());
         Self {
-            id: Uuid::default(),
+            id: Uuid::nil(),
             name: "The Filez primary origin".to_string(),
             description: Some("First party app for Filez".to_string()),
             origins: Some(vec![config.primary_origin.to_string()]),
@@ -64,7 +64,7 @@ impl MowsApp {
     }
     pub fn dev(dev_origin: &Url) -> Self {
         Self {
-            id: Uuid::default(),
+            id: Uuid::nil(),
             name: "Filez Dev App".to_string(),
             description: Some("Development allowed filez app".to_string()),
             origins: Some(vec![dev_origin.to_string()]),
@@ -76,7 +76,7 @@ impl MowsApp {
 
     pub fn no_origin() -> Self {
         Self {
-            id: Uuid::default(),
+            id: Uuid::nil(),
             name: "Filez App with no origin".to_string(),
             description: Some("App with no origins".to_string()),
             origins: None,
@@ -94,6 +94,39 @@ impl MowsApp {
             .await?;
 
         Ok(())
+    }
+    pub async fn create_filez_server_app(db: &crate::db::Db) -> Result<MowsApp, FilezError> {
+        let app_id = Uuid::nil();
+        let mut connection = db.pool.get().await?;
+        let existing_app = crate::schema::apps::table
+            .filter(crate::schema::apps::id.eq(app_id))
+            .select(MowsApp::as_select())
+            .first::<MowsApp>(&mut connection)
+            .await
+            .ok();
+
+        match existing_app {
+            Some(app) => Ok(app),
+            None => {
+                let config = get_current_config_cloned!(config());
+                let new_app = MowsApp {
+                    id: app_id,
+                    name: "Filez Server App".to_string(),
+                    description: Some("Filez server app for first party requests".to_string()),
+                    trusted: true,
+                    origins: Some(vec![config.primary_origin.to_string()]),
+                    created_time: chrono::Local::now().naive_local(),
+                    modified_time: chrono::Local::now().naive_local(),
+                };
+
+                diesel::insert_into(crate::schema::apps::table)
+                    .values(&new_app)
+                    .execute(&mut connection)
+                    .await?;
+
+                Ok(new_app)
+            }
+        }
     }
 
     pub async fn get_from_headers(

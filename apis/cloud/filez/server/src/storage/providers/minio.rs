@@ -4,6 +4,7 @@ use anyhow::Context;
 use axum::body::Body;
 use axum::extract::Request;
 use bigdecimal::BigDecimal;
+use diesel_async::RunQueryDsl;
 use futures::StreamExt;
 use futures_util::TryStreamExt;
 use minio::s3::{builders::ObjectContent, types::S3Api};
@@ -64,6 +65,14 @@ impl StorageProviderMinio {
         .provider(Some(Box::new(static_provider)))
         .build()
         .context("Failed to create MinIO client.")?;
+
+        if !client.bucket_exists(&config.bucket).send().await?.exists {
+            client
+                .create_bucket(&config.bucket)
+                .send()
+                .await
+                .context("Failed to create MinIO bucket.")?;
+        }
 
         Ok(StorageProvider::Minio(StorageProviderMinio {
             client,

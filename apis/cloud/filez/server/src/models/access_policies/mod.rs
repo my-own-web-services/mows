@@ -82,6 +82,7 @@ pub enum AccessPolicySubjectType {
 #[diesel_enum(error_type = InvalidEnumType)]
 pub enum AccessPolicyResourceType {
     File,
+    // FileVersion policies are set related to the file itself, not the version
     FileGroup,
     User,
     UserGroup,
