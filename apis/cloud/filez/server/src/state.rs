@@ -51,6 +51,11 @@ impl ServerState {
             .context("Failed to create Postgres connection pool")?;
         let db = Db::new(pool).await;
 
+        match db.create_filez_server_app().await {
+            Ok(_) => tracing::info!("Filez server app created successfully"),
+            Err(e) => tracing::warn!("Failed to create Filez server app: {}", e),
+        }
+
         Ok(Self {
             db,
             introspection_state,

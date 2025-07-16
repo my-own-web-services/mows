@@ -24,7 +24,7 @@ use crate::{
     path = "/api/storage_quotas/create",
     request_body = CreateStorageQuotaRequestBody,
     responses(
-        (status = 200, description = "Creates a new storage quota", body = ApiResponse<EmptyApiResponse>),
+        (status = 200, description = "Creates a new storage quota", body = ApiResponse<CreateStorageQuotaResponseBody>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
@@ -34,7 +34,7 @@ pub async fn create_storage_quota(
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateStorageQuotaRequestBody>,
-) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
+) -> Result<Json<ApiResponse<CreateStorageQuotaResponseBody>>, FilezError> {
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
         "Database operation to get user by external ID",
@@ -65,11 +65,11 @@ pub async fn create_storage_quota(
 
     let storage_quota = StorageQuota::new(
         requesting_user.id,
+        request_body.name,
         request_body.subject_type,
         request_body.subject_id,
         request_body.storage_location_id,
         request_body.quota_bytes.into(),
-        request_body.ignore_quota,
     );
 
     with_timing!(
@@ -81,7 +81,7 @@ pub async fn create_storage_quota(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
         message: "Storage quota created".to_string(),
-        data: None,
+        data: Some(CreateStorageQuotaResponseBody { storage_quota }),
     }))
 }
 
@@ -91,5 +91,10 @@ pub struct CreateStorageQuotaRequestBody {
     pub subject_id: Uuid,
     pub storage_location_id: Uuid,
     pub quota_bytes: i64,
-    pub ignore_quota: bool,
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct CreateStorageQuotaResponseBody {
+    pub storage_quota: StorageQuota,
 }

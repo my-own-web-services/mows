@@ -21,7 +21,7 @@ use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     patch,
-    request_body(content_type = "application/octet-stream"),
+    request_body(content_type = "application/offset+octet-stream"),
     path = "/api/file_versions/content/tus/{file_id}/{version}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to patch"),

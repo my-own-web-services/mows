@@ -41,14 +41,19 @@ diesel::table! {
         file_id -> Uuid,
         version -> Integer,
         app_id -> Uuid,
-        app_path -> Nullable<Text>,
+        app_path -> Text,
         metadata -> Jsonb,
         created_time -> Timestamp,
         modified_time -> Timestamp,
         size -> Numeric,
-        storage_id -> Uuid,
+        storage_location_id -> Uuid,
+        storage_quota_id -> Uuid,
     }
 }
+diesel::joinable!(file_versions -> files (file_id));
+diesel::joinable!(file_versions -> apps (app_id));
+diesel::joinable!(file_versions -> storage_locations (storage_location_id));
+diesel::joinable!(file_versions -> storage_quotas (storage_quota_id));
 
 diesel::table! {
     storage_locations {
@@ -158,7 +163,6 @@ diesel::table! {
         modified_time -> Timestamp,
 
         quota_bytes -> Numeric,
-        ignore_quota -> Bool,
     }
 }
 diesel::joinable!(storage_quotas -> storage_locations (storage_location_id));

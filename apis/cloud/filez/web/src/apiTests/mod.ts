@@ -2,7 +2,8 @@ import {
     AccessPolicyAction,
     AccessPolicyResourceType,
     AccessPolicySubjectType,
-    Api
+    Api,
+    ContentType
 } from "../api-client";
 import { impersonateUser } from "../utils";
 
@@ -23,7 +24,7 @@ const allroundTest = async (filezClient: Api<unknown>) => {
     await filezClient.api.listAccessPolicies({});
 
     await filezClient.api.checkResourceAccess({
-        action: AccessPolicyAction.FilezUsersDelete,
+        action: AccessPolicyAction.UsersDelete,
         resource_type: AccessPolicyResourceType.User
     });
 
@@ -76,15 +77,23 @@ const allroundTest = async (filezClient: Api<unknown>) => {
     }
 
     // Create a storage quota for Alice
-    await filezClient.api.createStorageQuota({
-        ignore_quota: false,
-        quota_bytes: 10_000_000,
-        subject_type: AccessPolicySubjectType.User,
-        subject_id: alice.id,
-        storage_location_id
-    });
+    const alice_quota = (
+        await filezClient.api.createStorageQuota({
+            quota_bytes: 10_000_000,
+            subject_type: AccessPolicySubjectType.User,
+            subject_id: alice.id,
+            storage_location_id,
+            name: "Alice's Storage Quota"
+        })
+    ).data?.data?.storage_quota;
 
-    console.log(`Created storage quota for Alice (${alice.id}) at location ${storage_location_id}`);
+    if (!alice_quota) {
+        throw new Error("Failed to create storage quota for Alice.");
+    }
+
+    console.log(
+        `Created storage quota: ${alice_quota.id} for Alice(${alice.id}) at location ${storage_location_id}`
+    );
 
     // Impersonate Alice
 
@@ -96,7 +105,7 @@ const allroundTest = async (filezClient: Api<unknown>) => {
 
     const aliceFile = (
         await filezClient.api.createFile(
-            { file_name: "aliceFile1", mime_type: "text/plain" },
+            { file_name: "aliceFile1", mime_type: "text/html" },
             impersonateAliceParams
         )
     ).data?.data;
@@ -108,7 +117,23 @@ const allroundTest = async (filezClient: Api<unknown>) => {
 
     // Create a file version for Alice's file
 
-    const aliceFileVersionContent = new Blob(["Hello, Alice!"], { type: "text/plain" });
+    const aliceFileVersionContent = new Blob(
+        [
+            `<!DOCTYPE html>
+<html>
+<body>
+
+<h1>My First Heading</h1>
+
+<p>My first paragraph.</p>
+
+</body>
+</html>
+
+`
+        ],
+        { type: "text/html" }
+    );
 
     const aliceFileVersion = (
         await filezClient.api.createFileVersion(
@@ -116,7 +141,7 @@ const allroundTest = async (filezClient: Api<unknown>) => {
                 file_id: aliceFile.id,
                 metadata: {},
                 size: aliceFileVersionContent.size,
-                storage_location_id
+                storage_quota_id: alice_quota.id
             },
             impersonateAliceParams
         )
@@ -130,7 +155,14 @@ const allroundTest = async (filezClient: Api<unknown>) => {
         aliceFile.id,
         aliceFileVersion.version,
         aliceFileVersionContent,
-        impersonateAliceParams
+        {
+            headers: {
+                "Tus-Resumable": "1.0.0",
+                "Upload-Offset": "0",
+                ...impersonateAliceParams.headers // Include impersonation headers
+            },
+            type: ContentType.BinaryWithOffset
+        }
     );
 
     if (!upload) {
@@ -141,7 +173,7 @@ const allroundTest = async (filezClient: Api<unknown>) => {
     const content = (
         await filezClient.api.getFileVersionContent(
             aliceFile.id,
-            aliceFileVersion.version,
+            null,
             null,
             null,
             null,

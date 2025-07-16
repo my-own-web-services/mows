@@ -1,6 +1,7 @@
 use bigdecimal::BigDecimal;
 use diesel::{prelude::*, AsChangeset};
 use diesel_async::RunQueryDsl;
+use k8s_openapi::api::storage;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -40,6 +41,7 @@ macro_rules! filter_subject_storage_quotas {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct StorageQuota {
     pub id: Uuid,
+    pub name: String,
     pub owner_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub subject_type: AccessPolicySubjectType,
@@ -48,7 +50,6 @@ pub struct StorageQuota {
 
     #[schema(value_type=i64)]
     pub quota_bytes: BigDecimal,
-    pub ignore_quota: bool,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
 }
@@ -56,20 +57,20 @@ pub struct StorageQuota {
 impl StorageQuota {
     pub fn new(
         owner_id: Uuid,
+        name: String,
         subject_type: AccessPolicySubjectType,
         subject_id: Uuid,
         storage_location_id: Uuid,
         quota_bytes: BigDecimal,
-        ignore_quota: bool,
     ) -> Self {
         Self {
             id: get_uuid(),
+            name,
             owner_id,
             subject_type,
             subject_id,
             storage_location_id,
             quota_bytes,
-            ignore_quota,
             created_time: chrono::Local::now().naive_local(),
             modified_time: chrono::Local::now().naive_local(),
         }
@@ -81,6 +82,70 @@ impl StorageQuota {
             .values(storage_quota)
             .execute(&mut conn)
             .await?;
+        Ok(())
+    }
+
+    pub async fn get_storage_location_id(
+        db: &Db,
+        storage_quota_id: &Uuid,
+    ) -> Result<Uuid, FilezError> {
+        let mut conn = db.pool.get().await?;
+        let storage_location_id = schema::storage_quotas::table
+            .filter(schema::storage_quotas::id.eq(storage_quota_id))
+            .select(schema::storage_quotas::storage_location_id)
+            .first::<Uuid>(&mut conn)
+            .await?;
+        Ok(storage_location_id)
+    }
+
+    pub async fn check_quota(
+        db: &Db,
+        requesting_user_id: &Uuid,
+        storage_quota_id: &Uuid,
+        size: BigDecimal,
+    ) -> Result<(), FilezError> {
+        let mut conn = db.pool.get().await?;
+
+        let user_groups = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
+        let storage_quota = schema::storage_quotas::table
+            .filter(schema::storage_quotas::id.eq(storage_quota_id))
+            .select(StorageQuota::as_select())
+            .first::<StorageQuota>(&mut conn)
+            .await?;
+
+        if storage_quota.subject_type == AccessPolicySubjectType::User
+            && storage_quota.subject_id != *requesting_user_id
+        {
+            return Err(FilezError::Unauthorized(
+                "You do not have access to this storage quota".to_string(),
+            ));
+        }
+
+        if storage_quota.subject_type == AccessPolicySubjectType::UserGroup
+            && !user_groups
+                .iter()
+                .any(|group_id| *group_id == storage_quota.subject_id)
+        {
+            return Err(FilezError::Unauthorized(
+                "You do not have access to this storage quota".to_string(),
+            ));
+        }
+
+        // get the sum of the size of all file_versions using this storage quota
+        let total_size: BigDecimal = schema::file_versions::table
+            .filter(schema::file_versions::storage_quota_id.eq(storage_quota.id))
+            .select(diesel::dsl::sum(schema::file_versions::size))
+            .first::<Option<BigDecimal>>(&mut conn)
+            .await?
+            .unwrap_or_else(|| BigDecimal::from(0));
+
+        if total_size.clone() + size > storage_quota.quota_bytes {
+            return Err(FilezError::StorageQuotaExceeded(format!(
+                "Storage quota exceeded for {}: {} bytes used, {} bytes allowed",
+                storage_quota.name, total_size, storage_quota.quota_bytes
+            )));
+        }
+
         Ok(())
     }
 
@@ -190,7 +255,6 @@ impl StorageQuota {
         )
         .set((
             schema::storage_quotas::quota_bytes.eq(quota_bytes),
-            schema::storage_quotas::ignore_quota.eq(ignore_quota),
             schema::storage_quotas::modified_time.eq(chrono::Local::now().naive_local()),
         ))
         .returning(StorageQuota::as_select())

@@ -8,7 +8,6 @@ use crate::{
 use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
@@ -24,7 +23,7 @@ pub async fn apply_user(
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
 ) -> Result<Json<ApiResponse<ApplyUserResponseBody>>, FilezError> {
-    let user_id = with_timing!(
+    let user = with_timing!(
         FilezUser::apply(&db, external_user).await?,
         "Database operation to apply user",
         timing
@@ -32,11 +31,11 @@ pub async fn apply_user(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
         message: "User applied successfully".to_string(),
-        data: Some(ApplyUserResponseBody { user_id }),
+        data: Some(ApplyUserResponseBody { user }),
     }))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ApplyUserResponseBody {
-    pub user_id: Uuid,
+    pub user: FilezUser,
 }

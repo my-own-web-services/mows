@@ -4,6 +4,7 @@ use crate::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
         file_versions::{FileVersion, FileVersionMetadata},
+        storage_quotas::StorageQuota,
         users::FilezUser,
     },
     state::ServerState,
@@ -56,12 +57,24 @@ pub async fn create_file_version(
             &requesting_app.id,
             requesting_app.trusted,
             AccessPolicyResourceType::File,
-            None,
+            Some(&vec![request_body.file_id]),
             AccessPolicyAction::FilezFilesVersionsCreate,
         )
         .await?
         .verify()?,
         "Database operation to check access control",
+        timing
+    );
+
+    with_timing!(
+        StorageQuota::check_quota(
+            &db,
+            &requesting_user.id,
+            &request_body.storage_quota_id,
+            request_body.size.into()
+        )
+        .await?,
+        "Database operation to check storage quota",
         timing
     );
 
@@ -73,7 +86,7 @@ pub async fn create_file_version(
             request_body.app_path,
             request_body.metadata,
             request_body.size.into(),
-            request_body.storage_location_id,
+            request_body.storage_quota_id,
         )
         .await?,
         "Database operation to create file version",
@@ -98,7 +111,7 @@ pub struct CreateFileVersionRequestBody {
     pub app_path: Option<String>,
     pub metadata: FileVersionMetadata,
     pub size: i64,
-    pub storage_location_id: Uuid,
+    pub storage_quota_id: Uuid,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

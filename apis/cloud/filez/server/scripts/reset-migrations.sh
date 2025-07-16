@@ -14,5 +14,7 @@ diesel setup
 
 diesel migration generate --diff-schema init
 
-# replace TEXT NOT NULL[] with TEXT[] NOT NULL in the generated migration file
-sed -i 's/TEXT NOT NULL\[\]/TEXT\[\] NOT NULL/g' ./migrations/*/up.sql
+# replace SMALLINT NOT NULL[] with SMALLINT[] NOT NULL in the generated migration file
+sed -i 's/SMALLINT NOT NULL\[\]/SMALLINT\[\] NOT NULL/g' ./migrations/*/up.sql
+
+

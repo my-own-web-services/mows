@@ -12,7 +12,13 @@ docker run -d --rm -p 8088:8080 --name filez-server-codegen-server filez-server-
 sleep 2
 
 rm -f openapi.json
-curl -o openapi.json http://localhost:8088/apidoc/openapi.json
+curl -o openapi.json http://localhost:8088/api-docs/openapi.json -v
+
+# exit if the file is empty
+if [ ! -s openapi.json ]; then
+  echo "Error: openapi.json is empty or does not exist."
+  exit 1
+fi
 
 docker build -t filez-server-codegen ./codegen -f codegen/codegen.Dockerfile
 mkdir -p tmp

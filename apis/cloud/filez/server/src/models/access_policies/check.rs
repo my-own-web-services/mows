@@ -33,11 +33,21 @@ pub async fn check_resources_access_control(
         // Super admins bypass all access control checks
         return Ok(AuthResult {
             access_granted: true,
-            evaluations: vec![AuthEvaluation {
-                resource_id: None,
-                is_allowed: true,
-                reason: AuthReason::SuperAdmin,
-            }],
+            evaluations: match requested_resource_ids {
+                Some(ids) => ids
+                    .iter()
+                    .map(|&id| AuthEvaluation {
+                        resource_id: Some(id),
+                        is_allowed: true,
+                        reason: AuthReason::SuperAdmin,
+                    })
+                    .collect(),
+                None => vec![AuthEvaluation {
+                    resource_id: None,
+                    is_allowed: true,
+                    reason: AuthReason::SuperAdmin,
+                }],
+            },
         });
     }
 

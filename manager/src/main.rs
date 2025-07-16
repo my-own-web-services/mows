@@ -90,7 +90,11 @@ async fn main() -> Result<(), anyhow::Error> {
         )
         .split_for_parts();
 
-    let router = router.merge(SwaggerUi::new("/swagger-ui").url("/apidoc/openapi.json", api));
+    let router = router.merge(
+        utoipa_swagger_ui::SwaggerUi::new("/swagger-ui")
+            .config(utoipa_swagger_ui::Config::default().validator_url("none"))
+            .url("/api-docs/openapi.json", api),
+    );
 
     info!("Open {} in your browser", ic.primary_origin);
 

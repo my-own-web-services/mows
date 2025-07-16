@@ -9,7 +9,7 @@ use crate::{
     },
     state::ServerState,
     types::{ApiResponse, EmptyApiResponse},
-    utils::parse_range,
+    utils::{parse_range, safe_parse_mime_type, OptionalPath},
     with_timing,
 };
 use axum::{
@@ -41,8 +41,8 @@ pub struct GetFileVersionRequestQueryParams {
     path = "/api/file_versions/content/get/{file_id}/{version}/{app_id}/{app_path}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to retrieve content for"),
-        ("version" = Option<u32>, Path, description = "The version of the file to retrieve, if applicable"),
-        ("app_id" = Option<Uuid>, Path),
+        ("version" = Option<u32>, Path, description = "The version of the file to retrieve, if left empty, the latest version will be returned"),
+        ("app_id" = Option<Uuid>, Path, description = "The ID of the application that uploaded the file, if left empty, the app id is the filez server itself"),
         ("app_path" = Option<String>, Path),
         GetFileVersionRequestQueryParams
     ),
@@ -59,13 +59,17 @@ pub async fn get_file_version_content(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path((file_id, version, app_id, app_path)): Path<(
         Uuid,
-        Option<u32>,
-        Option<Uuid>,
-        Option<String>,
+        OptionalPath<u32>,
+        OptionalPath<Uuid>,
+        OptionalPath<String>,
     )>,
     Query(params): Query<GetFileVersionRequestQueryParams>,
     request_headers: HeaderMap,
 ) -> Result<impl IntoResponse, FilezError> {
+    let version: Option<u32> = version.into();
+    let app_id: Option<Uuid> = app_id.into();
+    let app_path: Option<String> = app_path.into();
+
     let requesting_user = with_timing!(
         FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
         "Database operation to get user by external ID",
@@ -117,10 +121,7 @@ pub async fn get_file_version_content(
     let mut response_headers = HeaderMap::new();
     response_headers.insert(
         header::CONTENT_TYPE,
-        file_meta
-            .mime_type
-            .parse()
-            .expect("String to HeaderValue conversion failed"),
+        safe_parse_mime_type(&file_meta.mime_type),
     );
 
     if params.d.unwrap_or(false) {

@@ -19,7 +19,7 @@ path = "src/controller/schemagen.rs"
 
 
 [lib]
-name = "server_lib"
+name = "filez_server_lib"
 path = "src/lib.rs"
 
 
@@ -31,7 +31,11 @@ default = ["timing"]
 [dependencies]
 serde = { workspace = true, features = ["default"] }
 serde_json = { workspace = true, features = ["default"] }
-utoipa-swagger-ui = { workspace = true, features = ["axum"] }
+utoipa-swagger-ui = { workspace = true, features = [
+    "axum",
+    "debug-embed",
+    "vendored",
+] }
 utoipa = { workspace = true, features = [
     "chrono",
     "uuid",
@@ -49,6 +53,7 @@ tower-http = { workspace = true, features = [
     "cors",
     "compression-full",
     "decompression-full",
+    "set-header",
 ] }
 
 mime_guess = { workspace = true, features = ["default"] }
@@ -89,6 +94,7 @@ sha2 = { workspace = true, features = ["default"] }
 
 
 axum-server-timing = { git = "https://github.com/JensWalter/axum-server-timing/", rev = "ec8362e98a0e98f7724ca1f9413c128e581461ad", optional = true }
+
 
 minio = { version = "0.3.0", features = [
     "rustls-tls",

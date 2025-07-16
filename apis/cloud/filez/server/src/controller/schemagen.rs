@@ -1,5 +1,5 @@
+use filez_server_lib::controller::crd::FilezResource;
 use schemars::schema_for;
-use server_lib::controller::crd::FilezResource;
 fn main() {
     print!(
         "{}",
