@@ -2,8 +2,15 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ .Values.server.name }}
+    {{- if .Values.server.dev.autoUpdate }}
+    annotations:
+        keel.sh/policy: force
+        keel.sh/trigger: poll
+        keel.sh/pollSchedule: "@every 1s"
+    {{- end }}
 spec:
     replicas: {{ .Values.server.replicaCount }}
+    revisionHistoryLimit: 0
     selector:
         matchLabels:
             app: {{ .Values.server.name }}

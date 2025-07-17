@@ -9,10 +9,11 @@ server:
     tracing:
         filter: "trace,hyper=info,h2=info"
     log:
-        filter: "error,filez-server=debug,filez-server::controller=error,zitadel=debug"
+        filter: "error,filez-server=debug,filez_server_lib::controller=error,zitadel=debug"
     dev:
         enabled: true
         allowedCorsOrigins: "http://localhost:5174,http://localhost:5173"
+        autoUpdate: true
 
 web:
     image: 192.168.112.5:5000/filez-web

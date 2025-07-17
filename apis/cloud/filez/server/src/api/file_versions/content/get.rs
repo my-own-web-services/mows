@@ -55,7 +55,11 @@ pub struct GetFileVersionRequestQueryParams {
 )]
 pub async fn get_file_version_content(
     external_user: IntrospectedUser,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState {
+        db,
+        storage_location_providers,
+        ..
+    }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path((file_id, version, app_id, app_path)): Path<(
         Uuid,
@@ -202,7 +206,9 @@ pub async fn get_file_version_content(
         None
     };
 
-    let body = file_version_meta.get_content(&db, timing, &range).await?;
+    let body = file_version_meta
+        .get_content(&storage_location_providers, &db, timing, &range)
+        .await?;
 
     if range.is_some() {
         Ok((StatusCode::PARTIAL_CONTENT, response_headers, body).into_response())

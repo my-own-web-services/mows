@@ -1,4 +1,6 @@
-use crate::{db::Db, errors::FilezError, schema::file_versions, with_timing};
+use crate::{
+    db::Db, errors::FilezError, schema::file_versions, state::StorageLocationState, with_timing,
+};
 use axum::extract::Request;
 use bigdecimal::BigDecimal;
 use diesel::{
@@ -142,13 +144,19 @@ impl FileVersion {
 
     pub async fn get_content(
         &self,
+        storage_locations_provider_state: &StorageLocationState,
         db: &Db,
         timing: axum_server_timing::ServerTimingExtension,
         range: &Option<(Option<u64>, Option<u64>)>,
     ) -> Result<axum::body::Body, FilezError> {
         let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
         let content = storage_location
-            .get_content(&self.full_file_path(), timing, range)
+            .get_content(
+                storage_locations_provider_state,
+                &self.full_file_path(),
+                timing,
+                range,
+            )
             .await?;
 
         Ok(content)
@@ -156,12 +164,18 @@ impl FileVersion {
 
     pub async fn get_file_size_from_content(
         &self,
+        storage_locations_provider_state: &StorageLocationState,
+
         db: &Db,
         timing: axum_server_timing::ServerTimingExtension,
     ) -> Result<BigDecimal, FilezError> {
         let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
         let size = storage_location
-            .get_file_size(&self.full_file_path(), timing)
+            .get_file_size(
+                storage_locations_provider_state,
+                &self.full_file_path(),
+                timing,
+            )
             .await?;
 
         Ok(size)
@@ -169,6 +183,8 @@ impl FileVersion {
 
     pub async fn update_content(
         &self,
+        storage_locations_provider_state: &StorageLocationState,
+
         db: &Db,
         timing: axum_server_timing::ServerTimingExtension,
         request: Request,
@@ -181,6 +197,7 @@ impl FileVersion {
 
         storage_location
             .update_content(
+                storage_locations_provider_state,
                 &self.full_file_path(),
                 timing,
                 request,
@@ -235,6 +252,7 @@ impl FileVersion {
     }
 
     pub async fn delete_many(
+        storage_locations_provider_state: &StorageLocationState,
         db: &Db,
         file_versions_query: &Vec<FileVersionsQuery>,
         timing: &axum_server_timing::ServerTimingExtension,
@@ -257,7 +275,9 @@ impl FileVersion {
                 timing
             );
 
-            file_version.delete_content(db, timing).await?;
+            file_version
+                .delete_content(storage_locations_provider_state, db, timing)
+                .await?;
 
             with_timing!(
                 diesel::delete(
@@ -305,12 +325,17 @@ impl FileVersion {
 
     pub async fn delete_content(
         &self,
+        storage_locations_provider_state: &StorageLocationState,
         db: &Db,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), FilezError> {
         let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
         storage_location
-            .delete_content(&self.full_file_path(), timing)
+            .delete_content(
+                storage_locations_provider_state,
+                &self.full_file_path(),
+                timing,
+            )
             .await?;
 
         Ok(())

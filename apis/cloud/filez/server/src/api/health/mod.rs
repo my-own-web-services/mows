@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::{
     controller::get_controller_health,
     errors::FilezError,
+    models::storage_locations::StorageLocation,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
 };
@@ -23,6 +24,7 @@ pub async fn get_health(
     State(ServerState {
         db,
         introspection_state,
+        storage_location_providers,
         ..
     }): State<ServerState>,
 ) -> Result<impl IntoResponse, FilezError> {
@@ -59,12 +61,13 @@ pub async fn get_health(
         },
     };
 
-    let storage_providers_health = HashMap::new();
+    let storage_locations_health =
+        StorageLocation::get_all_storage_locations_health(&storage_location_providers).await?;
 
     let all_healthy = database_health.healthy
         && zitadel_health.healthy
         && controller_health.healthy
-        && storage_providers_health
+        && storage_locations_health
             .values()
             .all(|health: &HealthStatus| health.healthy);
 
@@ -81,7 +84,7 @@ pub async fn get_health(
                 database: database_health,
                 zitadel: zitadel_health,
                 controller: controller_health,
-                storage_providers: storage_providers_health,
+                storage_locations: storage_locations_health,
             }),
         }),
     ));
@@ -92,7 +95,7 @@ pub struct HealthResBody {
     pub database: HealthStatus,
     pub zitadel: HealthStatus,
     pub controller: HealthStatus,
-    pub storage_providers: HashMap<Uuid, HealthStatus>,
+    pub storage_locations: HashMap<Uuid, HealthStatus>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

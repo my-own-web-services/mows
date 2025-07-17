@@ -37,7 +37,11 @@ use crate::{
 )]
 pub async fn file_versions_content_tus_head(
     external_user: IntrospectedUser,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState {
+        db,
+        storage_location_providers,
+        ..
+    }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path((file_id, version)): Path<(Uuid, Option<u32>)>,
     request_headers: HeaderMap,
@@ -88,7 +92,9 @@ pub async fn file_versions_content_tus_head(
         timing
     )?;
 
-    let real_content_size = file_version.get_file_size_from_content(&db, timing).await?;
+    let real_content_size = file_version
+        .get_file_size_from_content(&storage_location_providers, &db, timing)
+        .await?;
 
     let mut response_headers = HeaderMap::new();
 

@@ -1,19 +1,21 @@
-use std::sync::Arc;
-
-use anyhow::Context;
-use axum::extract::FromRef;
-use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
-use kube::Client;
-use zitadel::{
-    axum::introspection::{IntrospectionState, IntrospectionStateBuilder},
-    oidc::introspection::cache::in_memory::InMemoryIntrospectionCache,
-};
-
 use crate::{
     config::FilezServerConfig,
     controller::{ControllerContext, ControllerState, Diagnostics},
     db::Db,
     errors::FilezError,
+    models::storage_locations::StorageLocation,
+    storage::providers::StorageProvider,
+};
+use anyhow::Context;
+use axum::extract::FromRef;
+use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
+use kube::Client;
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::RwLock;
+use uuid::Uuid;
+use zitadel::{
+    axum::introspection::{IntrospectionState, IntrospectionStateBuilder},
+    oidc::introspection::cache::in_memory::InMemoryIntrospectionCache,
 };
 
 #[derive(Clone)]
@@ -21,7 +23,10 @@ pub struct ServerState {
     pub db: Db,
     pub introspection_state: zitadel::axum::introspection::IntrospectionState,
     pub controller_state: ControllerState,
+    pub storage_location_providers: StorageLocationState,
 }
+
+pub type StorageLocationState = Arc<RwLock<HashMap<Uuid, StorageProvider>>>;
 
 impl FromRef<ServerState> for IntrospectionState {
     fn from_ref(app_state: &ServerState) -> IntrospectionState {
@@ -41,14 +46,15 @@ impl ServerState {
             .await
             .context("Failed to create introspection state")?;
 
-        // create the postgres connection pool
         let connection_manager =
             AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(
                 config.db_url.clone(),
             );
+
         let pool = Pool::builder(connection_manager)
             .build()
             .context("Failed to create Postgres connection pool")?;
+
         let db = Db::new(pool).await;
 
         match db.create_filez_server_app().await {
@@ -56,10 +62,13 @@ impl ServerState {
             Err(e) => tracing::warn!("Failed to create Filez server app: {}", e),
         }
 
+        let storage_location_providers = StorageLocation::initialize_all_providers(&db).await?;
+
         Ok(Self {
             db,
             introspection_state,
             controller_state: ControllerState::default(),
+            storage_location_providers,
         })
     }
 
@@ -82,6 +91,7 @@ impl ServerState {
             metrics: self.controller_state.metrics.clone(),
             diagnostics: self.controller_state.diagnostics.clone(),
             db: self.db.clone(),
+            storage_location_providers: self.storage_location_providers.clone(),
         })
     }
 }

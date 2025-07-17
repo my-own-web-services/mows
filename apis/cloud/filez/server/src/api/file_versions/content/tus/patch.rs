@@ -36,7 +36,11 @@ use zitadel::axum::introspection::IntrospectedUser;
 )]
 pub async fn file_versions_content_tus_patch(
     external_user: IntrospectedUser,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState {
+        db,
+        storage_location_providers,
+        ..
+    }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path((file_id, version)): Path<(Uuid, Option<u32>)>,
     request_headers: HeaderMap,
@@ -119,7 +123,14 @@ pub async fn file_versions_content_tus_patch(
     );
 
     file_version
-        .update_content(&db, timing, request, request_upload_offset, content_length)
+        .update_content(
+            &storage_location_providers,
+            &db,
+            timing,
+            request,
+            request_upload_offset,
+            content_length,
+        )
         .await?;
 
     let mut response_headers = HeaderMap::new();

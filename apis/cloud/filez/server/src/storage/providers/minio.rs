@@ -1,10 +1,10 @@
+use crate::api::health::HealthStatus;
 use crate::controller::crd::SecretReadableByFilezController;
 use crate::{controller::crd::ValueOrSecretReference, storage::errors::StorageError, with_timing};
 use anyhow::Context;
 use axum::body::Body;
 use axum::extract::Request;
 use bigdecimal::BigDecimal;
-use diesel_async::RunQueryDsl;
 use futures::StreamExt;
 use futures_util::TryStreamExt;
 use minio::s3::{builders::ObjectContent, types::S3Api};
@@ -233,12 +233,16 @@ impl StorageProviderMinio {
         }
     }
 
-    pub async fn get_health(&self) -> anyhow::Result<String> {
-        self.client
-            .bucket_exists(&self.bucket)
-            .send()
-            .await
-            .map_err(|e| anyhow::anyhow!("MinIO health check failed: {}", e))?;
-        Ok("MinIO is healthy".to_string())
+    pub async fn get_health(&self) -> HealthStatus {
+        match self.client.bucket_exists(&self.bucket).send().await {
+            Ok(_) => HealthStatus {
+                healthy: true,
+                response: "Healthy".to_string(),
+            },
+            Err(e) => HealthStatus {
+                healthy: false,
+                response: e.to_string(),
+            },
+        }
     }
 }
