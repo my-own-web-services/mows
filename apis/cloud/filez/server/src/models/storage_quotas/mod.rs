@@ -1,7 +1,6 @@
 use bigdecimal::BigDecimal;
 use diesel::{prelude::*, AsChangeset};
 use diesel_async::RunQueryDsl;
-use k8s_openapi::api::storage;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -242,7 +241,6 @@ impl StorageQuota {
         subject_id: &Uuid,
         storage_location_id: &Uuid,
         quota_bytes: BigDecimal,
-        ignore_quota: bool,
     ) -> Result<StorageQuota, FilezError> {
         let mut conn = db.pool.get().await?;
         let updated_quota = diesel::update(

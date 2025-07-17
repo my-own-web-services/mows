@@ -9,11 +9,7 @@ use crate::{
 };
 use check::{check_resources_access_control, AuthResult};
 use diesel::{
-    deserialize::FromSqlRow,
-    expression::AsExpression,
-    pg::Pg,
-    prelude::*,
-    sql_types::{SmallInt, Text},
+    deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::SmallInt,
     update, AsChangeset,
 };
 use diesel_async::RunQueryDsl;

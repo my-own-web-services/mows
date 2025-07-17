@@ -1,5 +1,5 @@
 use anyhow::bail;
-use axum::http::{HeaderName, HeaderValue};
+use axum::http::HeaderValue;
 use bigdecimal::BigDecimal;
 use serde::{
     de::{self, Deserializer, Visitor},
@@ -11,8 +11,6 @@ use tokio::signal::{self};
 use url::Url;
 use utoipa::ToSchema;
 use uuid::Timestamp;
-
-use crate::errors::FilezError;
 
 pub fn get_uuid() -> uuid::Uuid {
     let ts = Timestamp::now(uuid::NoContext);

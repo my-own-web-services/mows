@@ -1,0 +1,16 @@
+manifestVersion: "0.1"
+metadata:
+    name: keel
+    description: ""
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            keelHelmRepo:
+                helm:
+                    urls:
+                        - https://charts.keel.sh
+                    sha256Digest: 01d0d946d4f983b19ca53cc3565a14219c6bd902fbe8543a86ee53a9c8192361
+                    version: "1.0.5"
+                    releaseName: mows-core-utils-keel
+                    chartName: keel

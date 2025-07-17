@@ -69,7 +69,6 @@ pub async fn update_storage_quota(
             &request_body.subject_id,
             &request_body.storage_location_id,
             request_body.quota_bytes.into(),
-            request_body.ignore_quota,
         )
         .await?,
         "Database operation to update storage quota",
@@ -89,5 +88,4 @@ pub struct UpdateStorageQuotaRequestBody {
     pub subject_id: Uuid,
     pub storage_location_id: Uuid,
     pub quota_bytes: i64,
-    pub ignore_quota: bool,
 }

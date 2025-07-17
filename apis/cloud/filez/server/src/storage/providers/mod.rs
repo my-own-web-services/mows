@@ -2,6 +2,8 @@ pub mod minio;
 use axum::extract::Request;
 use bigdecimal::BigDecimal;
 
+use crate::api::health::HealthStatus;
+
 use super::{
     config::StorageProviderConfig, errors::StorageError, providers::minio::StorageProviderMinio,
 };
@@ -12,6 +14,12 @@ pub enum StorageProvider {
 }
 
 impl StorageProvider {
+    pub async fn get_health(&self) -> HealthStatus {
+        match self {
+            StorageProvider::Minio(provider) => provider.get_health().await,
+        }
+    }
+
     pub async fn initialize(
         provider_config: &StorageProviderConfig,
         id: &str,

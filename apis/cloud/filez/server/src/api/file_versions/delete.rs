@@ -33,7 +33,11 @@ use zitadel::axum::introspection::IntrospectedUser;
 pub async fn delete_file_versions(
     external_user: IntrospectedUser,
     request_headers: HeaderMap,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState {
+        db,
+        storage_location_providers,
+        ..
+    }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<DeleteFileVersionsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
@@ -67,7 +71,13 @@ pub async fn delete_file_versions(
         timing
     );
 
-    FileVersion::delete_many(&db, &request_body.versions, &timing).await?;
+    FileVersion::delete_many(
+        &storage_location_providers,
+        &db,
+        &request_body.versions,
+        &timing,
+    )
+    .await?;
 
     Ok((
         StatusCode::OK,

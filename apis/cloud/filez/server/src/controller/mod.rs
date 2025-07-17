@@ -3,7 +3,7 @@ use crate::{
     db::Db,
     errors::{get_error_type, FilezError},
     models::{apps::MowsApp, storage_locations::StorageLocation},
-    state::ServerState,
+    state::{ServerState, StorageLocationState},
 };
 use chrono::{DateTime, Utc};
 use crd::{FilezResource, FilezResourceSpec, FilezResourceStatus, SecretReadableByFilezController};
@@ -47,6 +47,7 @@ async fn inner_reconcile(
                 SecretReadableByFilezController::fetch_map(&ctx.client, namespace).await?;
 
             StorageLocation::create_or_update(
+                &ctx.storage_location_providers,
                 &ctx.db,
                 &full_name,
                 filez_secrets,
@@ -151,7 +152,8 @@ impl FilezResource {
         );
         match self.spec {
             FilezResourceSpec::StorageLocation(_) => {
-                StorageLocation::delete(&ctx.db, &full_name).await?;
+                StorageLocation::delete(&ctx.storage_location_providers, &ctx.db, &full_name)
+                    .await?;
             }
             FilezResourceSpec::MowsApp(_) => {
                 MowsApp::delete(&ctx.db, &full_name).await?;
@@ -208,9 +210,8 @@ pub struct ControllerContext {
     pub diagnostics: Arc<RwLock<Diagnostics>>,
     /// Prometheus metrics
     pub metrics: Arc<Metrics>,
-
-    /// Apps state
     pub db: Db,
+    pub storage_location_providers: StorageLocationState,
 }
 
 /// Diagnostics to be exposed by the web server
