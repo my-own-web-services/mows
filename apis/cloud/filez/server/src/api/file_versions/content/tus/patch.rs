@@ -16,9 +16,9 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
+use bigdecimal::ToPrimitive;
 use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
-
 #[utoipa::path(
     patch,
     request_body(content_type = "application/offset+octet-stream"),
@@ -121,6 +121,13 @@ pub async fn file_versions_content_tus_patch(
         "Database operation to get file version",
         timing
     );
+
+    if request_upload_offset + content_length > file_version.size.to_u64().unwrap() {
+        return Err(FilezError::FileVersionSizeExceeded {
+            allowed: file_version.size.to_u64().unwrap(),
+            received: request_upload_offset + content_length,
+        });
+    }
 
     file_version
         .update_content(

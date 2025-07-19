@@ -87,6 +87,7 @@ pub async fn create_file_version(
             request_body.metadata,
             request_body.size.into(),
             request_body.storage_quota_id,
+            request_body.content_expected_sha256_digest
         )
         .await?,
         "Database operation to create file version",
@@ -112,6 +113,7 @@ pub struct CreateFileVersionRequestBody {
     pub metadata: FileVersionMetadata,
     pub size: i64,
     pub storage_quota_id: Uuid,
+    pub content_expected_sha256_digest: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

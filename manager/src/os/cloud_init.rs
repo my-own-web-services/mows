@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
+use tracing_subscriber::fmt::format;
 use utoipa::ToSchema;
 
 use crate::{
@@ -156,9 +157,13 @@ Name=enp1s0
 [Network]
 Gateway=192.168.112.1
 DHCP=yes
+IPv6AcceptRA=yes
 
 [DHCPv4]
 UseRoutes=true
+UseDNS=true
+
+[DHCPv6]
 UseDNS=true
 "#);
 
@@ -167,9 +172,10 @@ UseDNS=true
 Name=enp2s0
 
 [Network]
+Address={}/64
 Address={}/24
 "#,
-            internal_ips.legacy
+            internal_ips.ip, internal_ips.legacy
         );
 
         let mut k3s_registries_yaml_string = String::new();
@@ -251,10 +257,12 @@ Address={}/24
             debug,
             users: vec![user],
             k3s: K3s::new(
+                node_hostname,
                 node_hostname == primary_hostname,
                 primary_hostname,
                 k3s_token,
                 vip,
+                internal_ips,
             ),
             hostname: node_hostname.to_string(),
             install: Install::new(&get_device_string(virt, 0)),
@@ -293,11 +301,22 @@ impl Install {
 }
 
 impl K3s {
-    pub fn new(primary: bool, primary_hostname: &str, k3s_token: &str, vip: &Vip) -> K3s {
+    pub fn new(
+        node_name: &str,
+        primary: bool,
+        primary_hostname: &str,
+        k3s_token: &str,
+        vip: &Vip,
+        internal_ips: &InternalIps,
+    ) -> K3s {
         let tls_san = match &vip.controlplane.legacy_ip {
             Some(ip) => Some(format!("--tls-san={}", ip)),
             None => None,
         };
+
+        let node_ip = format!("--node-ip={}", internal_ips.legacy);
+        let node_name = format!("--node-name={}", node_name);
+        let node_external_ip = format!("--node-external-ip={}", internal_ips.legacy);
 
         let mut base_args = vec![
             "--flannel-backend=none",
@@ -308,9 +327,11 @@ impl K3s {
             "--disable traefik",
             "--disable servicelb",
             "--etcd-expose-metrics=true",
-            "--cluster-cidr=10.42.0.0/16", // ,2001:cafe:42::/56 TODO implement ipv6
-            "--service-cidr=10.43.0.0/16", // ,2001:cafe:43::/112
-                                           //"--kube-controller-manager-arg=pod-eviction-timeout=30s",
+            "--cluster-cidr=10.42.0.0/16", //2001:cafe:42::/56,
+            "--service-cidr=10.43.0.0/16", //2001:cafe:43::/112,
+            &node_ip,
+            &node_name,
+            &node_external_ip,
         ];
 
         if let Some(tls_san) = &tls_san {

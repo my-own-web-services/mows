@@ -777,6 +777,15 @@ impl Cluster {
             &CrdHandling::WithoutCrd,
         )
         .await?;
+
+        debug!("Installing keel");
+        self.install_with_package_manager(
+            "file:///packages/core/utils/keel",
+            "mows-core-utils-keel",
+            &CrdHandling::WithoutCrd,
+        )
+        .await?;
+
         debug!("Installing Filez");
         self.install_with_package_manager(
             "file:///packages/core/storage/filez",

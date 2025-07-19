@@ -14,7 +14,8 @@ diesel setup
 
 diesel migration generate --diff-schema init
 
-# replace SMALLINT NOT NULL[] with SMALLINT[] NOT NULL in the generated migration file
+
 sed -i 's/SMALLINT NOT NULL\[\]/SMALLINT\[\] NOT NULL/g' ./migrations/*/up.sql
 
 
+# sed -i -e '/FOREIGN KEY/s/)$/) ON DELETE CASCADE/' ./migrations/*/up.sql

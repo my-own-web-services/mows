@@ -93,7 +93,7 @@ pub async fn file_versions_content_tus_head(
     )?;
 
     let real_content_size = file_version
-        .get_file_size_from_content(&storage_location_providers, &db, timing)
+        .get_file_size_from_content(&storage_location_providers, &db, &timing)
         .await?;
 
     let mut response_headers = HeaderMap::new();
