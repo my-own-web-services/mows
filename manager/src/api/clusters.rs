@@ -1,4 +1,8 @@
-use std::{collections::HashMap, net::Ipv4Addr};
+use std::{
+    collections::HashMap,
+    net::{Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+};
 
 use crate::{
     cluster::cluster::ClusterStatus,
@@ -181,9 +185,7 @@ pub async fn handle_dev_create_cluster_from_all_machines_in_inventory() -> anyho
             primary_hostname = Some(hostname.clone());
         }
 
-        let internal_ips = InternalIps {
-            legacy: Ipv4Addr::new(10, 41, 0, 1 + u8::try_from(i)?),
-        };
+        let internal_ips = InternalIps::from_index(i.try_into().unwrap());
 
         machine
             .configure_install(

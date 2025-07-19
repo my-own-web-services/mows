@@ -46,7 +46,7 @@ impl StorageProvider {
     pub async fn get_file_size(
         &self,
         full_file_path: &str,
-        timing: axum_server_timing::ServerTimingExtension,
+        timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<BigDecimal, StorageError> {
         match self {
             StorageProvider::Minio(provider) => {

@@ -159,7 +159,7 @@ const allroundTest = async (filezClient: Api<unknown>) => {
             headers: {
                 "Tus-Resumable": "1.0.0",
                 "Upload-Offset": "0",
-                ...impersonateAliceParams.headers // Include impersonation headers
+                ...impersonateAliceParams.headers
             },
             type: ContentType.BinaryWithOffset
         }
@@ -170,7 +170,7 @@ const allroundTest = async (filezClient: Api<unknown>) => {
     }
     console.log(`Uploaded content for Alice's file version: ${aliceFileVersion.version}`);
 
-    const content = (
+    const content = await (
         await filezClient.api.getFileVersionContent(
             aliceFile.id,
             null,
@@ -180,10 +180,89 @@ const allroundTest = async (filezClient: Api<unknown>) => {
             null,
             impersonateAliceParams
         )
-    ).data;
+    ).blob();
+
+    if (!content) {
+        throw new Error("Failed to get content for Alice's file version.");
+    }
+
+    if (aliceFileVersionContent.size !== content.size) {
+        throw new Error(
+            "Content size mismatch for Alice's file version. Expected: " +
+                aliceFileVersionContent.size +
+                ", got: " +
+                content.size
+        );
+    }
+
+    const aliceUpdatedFileVersionContentTooBig = new Blob(
+        [
+            `<!DOCTYPE html>
+<html>
+<body>
+
+<h1>My First Heading</h1>
+<h1>My First Heading</h1>
+
+<p>My first paragraph.</p>
+
+</body>
+</html>
+
+`
+        ],
+        { type: "text/html" }
+    );
+
+    const updateUploadTooBig = await filezClient.api
+        .fileVersionsContentTusPatch(
+            aliceFile.id,
+            aliceFileVersion.version,
+            aliceUpdatedFileVersionContentTooBig,
+            {
+                headers: {
+                    "Tus-Resumable": "1.0.0",
+                    "Upload-Offset": "0",
+                    ...impersonateAliceParams.headers
+                },
+                type: ContentType.BinaryWithOffset
+            }
+        )
+        .catch((response) => {
+            if (response?.status !== 413) {
+                throw new Error(
+                    "Failed to update content for Alice's file version. Expected 413, got: " +
+                        response.status
+                );
+            }
+        });
+
+    if (updateUploadTooBig) {
+        throw new Error(
+            "Expected an error when trying to update content for Alice's file version with a larger size."
+        );
+    }
+
+    const aliceUpdatedFileVersionContent = new Blob([`Hi!`], { type: "text/html" });
+
+    const updateUpload = await filezClient.api.fileVersionsContentTusPatch(
+        aliceFile.id,
+        aliceFileVersion.version,
+        aliceUpdatedFileVersionContent,
+        {
+            headers: {
+                "Tus-Resumable": "1.0.0",
+                "Upload-Offset": "0",
+                ...impersonateAliceParams.headers
+            },
+            type: ContentType.BinaryWithOffset
+        }
+    );
+    if (!updateUpload) {
+        throw new Error("Failed to update content for Alice's file version.");
+    }
 };
 
-// get the content for this version
 // update the content
 
 // create 10 files

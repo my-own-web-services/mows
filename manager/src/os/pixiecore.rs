@@ -1,4 +1,9 @@
-use std::{net::Ipv4Addr, os::unix::fs::PermissionsExt, path::Path};
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    os::unix::fs::PermissionsExt,
+    path::Path,
+    str::FromStr,
+};
 
 use anyhow::Context;
 use mows_common_rust::utils::generate_id;
@@ -70,15 +75,15 @@ impl PixiecoreBootConfig {
     }
 
     pub async fn new_default() -> anyhow::Result<Self> {
+        todo!();
+
         let kairos_version = "v3.0.14";
         let k3s_version = "k3sv1.29.3+k3s1";
         let os = "opensuse-tumbleweed";
         let k3s_token = generate_id(100);
         let hostname = "default_netboot_system";
 
-        let internal_ips = InternalIps {
-            legacy: Ipv4Addr::new(10, 41, 0, 1),
-        };
+        let internal_ips = InternalIps::from_index(0);
 
         let vip = Vip {
             controlplane: VipIp {

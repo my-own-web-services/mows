@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::OnceLock;
 use tokio::fs;
 use tokio::sync::RwLock;
@@ -270,6 +271,17 @@ pub struct ClusterNode {
 pub struct InternalIps {
     #[schema(schema_with = ipv4adr_to_schema)]
     pub legacy: Ipv4Addr,
+    #[schema(schema_with = ipv6adr_to_schema)]
+    pub ip: Ipv6Addr,
+}
+
+impl InternalIps {
+    pub fn from_index(index: u8) -> Self {
+        let legacy = Ipv4Addr::new(10, 41, 0, 1 + index);
+        let ip = Ipv6Addr::from_str(&format!("2001:cafe:41::{}", 1 + index))
+            .expect("Invalid IPv6 address");
+        InternalIps { legacy, ip }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema, PartialEq)]

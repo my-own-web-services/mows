@@ -1,4 +1,7 @@
-use std::net::Ipv4Addr;
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+};
 
 use anyhow::bail;
 use axum::{extract::Path, Json};
@@ -70,6 +73,7 @@ pub async fn get_boot_config(mac_addr: String) -> Result<PixiecoreBootConfig, an
 
 pub async fn handle_local_boot_request(mac_addr: &str) -> Result<(), anyhow::Error> {
     let ic = &INTERNAL_CONFIG;
+    todo!("Implement local boot request handling for physical machines");
 
     let machine = Machine::new(&MachineCreationReqType::LocalPhysical(
         LocalMachineProviderPhysicalConfig {
@@ -92,9 +96,7 @@ pub async fn handle_local_boot_request(mac_addr: &str) -> Result<(), anyhow::Err
 
         let cluster_node_count = cluster.cluster_nodes.len();
 
-        let internal_ips = InternalIps {
-            legacy: Ipv4Addr::new(10, 41, 0, 1 + u8::try_from(cluster_node_count)?),
-        };
+        let internal_ips = InternalIps::from_index(cluster_node_count.try_into().unwrap());
 
         cluster.cluster_nodes.insert(
             machine.id.clone(),

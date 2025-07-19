@@ -109,20 +109,26 @@ impl StorageProviderMinio {
     pub async fn get_file_size(
         &self,
         full_file_path: &str,
-        timing: axum_server_timing::ServerTimingExtension,
+        timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<BigDecimal, StorageError> {
         let get_object_response = with_timing!(
             self.client
                 .get_object(&self.bucket, full_file_path)
                 .send()
-                .await?,
+                .await,
             "MinIO operation to get file size",
             timing
         );
 
-        let object_size = BigDecimal::from(get_object_response.object_size);
-
-        Ok(object_size)
+        match get_object_response {
+            Ok(response) => Ok(BigDecimal::from(response.object_size)),
+            Err(e) => {
+                if e.to_string().contains("NoSuchKey") {
+                    return Ok(BigDecimal::from(0));
+                }
+                return Err(e.into());
+            }
+        }
     }
 
     pub async fn delete_content(

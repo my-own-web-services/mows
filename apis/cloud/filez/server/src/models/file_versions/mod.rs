@@ -60,6 +60,8 @@ pub struct FileVersion {
     pub size: BigDecimal,
     pub storage_location_id: Uuid,
     pub storage_quota_id: Uuid,
+    pub content_valid: bool,
+    pub content_expected_sha256_digest: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, AsJsonb, Clone, Debug, ToSchema)]
@@ -77,6 +79,7 @@ impl FileVersion {
         size: BigDecimal,
         storage_id: Uuid,
         storage_quota_id: Uuid,
+        content_expected_sha256_digest: Option<String>,
     ) -> Self {
         Self {
             file_id,
@@ -89,6 +92,8 @@ impl FileVersion {
             size,
             storage_location_id: storage_id,
             storage_quota_id,
+            content_expected_sha256_digest,
+            content_valid: false,
         }
     }
 
@@ -165,9 +170,8 @@ impl FileVersion {
     pub async fn get_file_size_from_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-
         db: &Db,
-        timing: axum_server_timing::ServerTimingExtension,
+        timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<BigDecimal, FilezError> {
         let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
         let size = storage_location
@@ -218,6 +222,7 @@ impl FileVersion {
         metadata: FileVersionMetadata,
         size: BigDecimal,
         storage_quota_id: Uuid,
+        content_expected_sha256_digest: Option<String>,
     ) -> Result<FileVersion, FilezError> {
         let mut connection = db.pool.get().await?;
 
@@ -241,6 +246,7 @@ impl FileVersion {
             size,
             storage_id,
             storage_quota_id,
+            content_expected_sha256_digest,
         );
 
         let created_version = diesel::insert_into(file_versions::table)

@@ -292,9 +292,8 @@ impl StorageLocation {
     pub async fn get_file_size(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-
         full_file_path: &str,
-        timing: axum_server_timing::ServerTimingExtension,
+        timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<BigDecimal, FilezError> {
         let provider = self
             .get_provider_from_state(storage_locations_provider_state)

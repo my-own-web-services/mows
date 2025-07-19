@@ -10,6 +10,18 @@ http://mows-core-gitea-http.mows-core-gitea:3000/gitea_admin/test.git
 
 `v4l2-ctl --device /dev/video0 --info --concise --verbose`
 
+## ipv6 fix
+
+sudo ip6tables -I FORWARD 1 \
+ -s 2001:168:112::/64 \
+ -d ::/0 \
+ -j ACCEPT
+
+sudo ip6tables -I FORWARD 1 \
+ -d 2001:168:112::/64 \
+ -s ::/0 \
+ -j ACCEPT
+
 ## ip ranges
 
 192.168.112.
