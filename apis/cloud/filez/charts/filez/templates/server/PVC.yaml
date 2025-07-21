@@ -1,0 +1,12 @@
+{{- if .Values.server.localStorage.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: filez-default-storage
+spec:
+    accessModes:
+        - ReadWriteMany
+    resources:
+        requests:
+            storage: {{ .Values.server.localStorage.size }}
+{{- end }}

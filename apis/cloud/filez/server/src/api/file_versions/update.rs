@@ -3,7 +3,7 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
-        file_versions::{FileVersion, UpdateFileVersion},
+        file_versions::{FileVersion, FileVersionIdentifier, FileVersionMetadata},
         users::FilezUser,
     },
     state::ServerState,
@@ -28,7 +28,11 @@ use zitadel::axum::introspection::IntrospectedUser;
     description = "Update file versions in the database",
     responses(
         (status = 200, description = "Updated file versions on the server", body = ApiResponse<UpdateFileVersionsResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (status = 400, description = "Bad Request", body = ApiResponse<EmptyApiResponse>),
+        (status = 401, description = "Unauthorized", body = ApiResponse<EmptyApiResponse>),
+        (status = 403, description = "Forbidden", body = ApiResponse<EmptyApiResponse>),
+        (status = 404, description = "Not Found", body = ApiResponse<EmptyApiResponse>),
+        (status = 500, description = "Internal Server Error", body = ApiResponse<EmptyApiResponse>)
     )
 )]
 pub async fn update_file_versions(
@@ -50,7 +54,11 @@ pub async fn update_file_versions(
         timing
     );
 
-    let file_ids: Vec<Uuid> = request_body.versions.iter().map(|v| v.file_id).collect();
+    let file_ids: Vec<Uuid> = request_body
+        .versions
+        .iter()
+        .map(|v| v.identifier.file_id)
+        .collect();
 
     with_timing!(
         AccessPolicy::check(
@@ -94,4 +102,10 @@ pub struct UpdateFileVersionsRequestBody {
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct UpdateFileVersionsResponseBody {
     pub versions: Vec<FileVersion>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct UpdateFileVersion {
+    pub identifier: FileVersionIdentifier,
+    pub new_metadata: Option<FileVersionMetadata>,
 }

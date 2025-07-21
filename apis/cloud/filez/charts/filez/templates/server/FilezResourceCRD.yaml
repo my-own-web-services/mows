@@ -43,11 +43,31 @@ spec:
                 type: object
               storageLocation:
                 properties:
-                  provider_config:
+                  providerConfig:
                     oneOf:
                     - required:
                       - Minio
+                    - required:
+                      - Filesystem
                     properties:
+                      Filesystem:
+                        properties:
+                          rootPath:
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            oneOf:
+                            - required:
+                              - value
+                            - required:
+                              - secret
+                            properties:
+                              secret:
+                                type: string
+                              value:
+                                type: string
+                            type: object
+                        required:
+                        - rootPath
+                        type: object
                       Minio:
                         properties:
                           bucket:
@@ -110,7 +130,7 @@ spec:
                         type: object
                     type: object
                 required:
-                - provider_config
+                - providerConfig
                 type: object
             type: object
           status:

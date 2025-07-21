@@ -28,7 +28,26 @@ pub async fn get_health(
         ..
     }): State<ServerState>,
 ) -> Result<impl IntoResponse, FilezError> {
-    let database_health = match db.get_health().await {
+    let (
+        database_health_future,
+        zitadel_health_future,
+        controller_health_future,
+        storage_locations_health_future,
+    ) = (
+        db.get_health(),
+        introspection_state.get_health(),
+        get_controller_health(),
+        StorageLocation::get_all_storage_locations_health(&storage_location_providers),
+    );
+
+    let (database_health, zitadel_health, controller_health, storage_locations_health) = tokio::join!(
+        database_health_future,
+        zitadel_health_future,
+        controller_health_future,
+        storage_locations_health_future
+    );
+
+    let database_health = match database_health {
         Ok(_) => HealthStatus {
             healthy: true,
             response: "Healthy".to_string(),
@@ -39,7 +58,7 @@ pub async fn get_health(
         },
     };
 
-    let zitadel_health = match introspection_state.get_health().await {
+    let zitadel_health = match zitadel_health {
         Ok(_) => HealthStatus {
             healthy: true,
             response: "Healthy".to_string(),
@@ -50,7 +69,7 @@ pub async fn get_health(
         },
     };
 
-    let controller_health = match get_controller_health().await {
+    let controller_health = match controller_health {
         Ok(_) => HealthStatus {
             healthy: true,
             response: "Healthy".to_string(),
@@ -60,9 +79,6 @@ pub async fn get_health(
             response: e.to_string(),
         },
     };
-
-    let storage_locations_health =
-        StorageLocation::get_all_storage_locations_health(&storage_location_providers).await?;
 
     let all_healthy = database_health.healthy
         && zitadel_health.healthy
@@ -81,6 +97,7 @@ pub async fn get_health(
             status: ApiResponseStatus::Success,
             message: "Health check successful".to_string(),
             data: Some(HealthResBody {
+                all_healthy,
                 database: database_health,
                 zitadel: zitadel_health,
                 controller: controller_health,
@@ -92,6 +109,7 @@ pub async fn get_health(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct HealthResBody {
+    pub all_healthy: bool,
     pub database: HealthStatus,
     pub zitadel: HealthStatus,
     pub controller: HealthStatus,

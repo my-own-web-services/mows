@@ -78,9 +78,7 @@ pub async fn create_file(
             ))?,
     };
 
-    validate_file_name(&request_body.file_name)
-        .await
-        .map_err(|e| FilezError::ParseError(format!("Invalid file name: {}", e)))?;
+    validate_file_name(&request_body.file_name)?;
 
     // Create a new file entry in the database
     let new_file = FilezFile::new(&requesting_user, &mime_type, &request_body.file_name);

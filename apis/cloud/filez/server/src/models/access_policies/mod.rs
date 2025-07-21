@@ -235,20 +235,20 @@ impl AccessPolicy {
     }
 
     pub async fn create(db: &Db, access_policy: &AccessPolicy) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::insert_into(schema::access_policies::table)
             .values(access_policy)
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
 
     pub async fn get_by_id(db: &Db, id: &Uuid) -> Result<AccessPolicy, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let access_policy = schema::access_policies::table
             .filter(schema::access_policies::id.eq(id))
             .select(AccessPolicy::as_select())
-            .first::<AccessPolicy>(&mut conn)
+            .first::<AccessPolicy>(&mut connection)
             .await?;
         Ok(access_policy)
     }
@@ -261,7 +261,7 @@ impl AccessPolicy {
         resource_type: AccessPolicyResourceType,
         action_to_perform: AccessPolicyAction,
     ) -> Result<Vec<Uuid>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let resource_auth_info = check::get_auth_info(resource_type)?;
         let user_group_ids = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
 
@@ -285,7 +285,7 @@ impl AccessPolicy {
 
             let owned_ids: Vec<ResourceId> = diesel::sql_query(&owned_query_string)
                 .bind::<diesel::sql_types::Uuid, _>(requesting_user_id)
-                .load::<ResourceId>(&mut conn)
+                .load::<ResourceId>(&mut connection)
                 .await?;
             allowed_ids.extend(owned_ids.into_iter().map(|r| r.id));
         }
@@ -303,7 +303,7 @@ impl AccessPolicy {
                 schema::access_policies::resource_id,
                 schema::access_policies::effect,
             ))
-            .load::<(Option<Uuid>, AccessPolicyEffect)>(&mut conn)
+            .load::<(Option<Uuid>, AccessPolicyEffect)>(&mut connection)
             .await?;
 
         for (resource_id, effect) in direct_policies {
@@ -361,7 +361,7 @@ impl AccessPolicy {
                 .bind::<diesel::sql_types::Array<SmallInt>, _>(vec![action_to_perform])
                 .bind::<diesel::sql_types::Uuid, _>(requesting_user_id)
                 .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(user_group_ids)
-                .load(&mut conn)
+                .load(&mut connection)
                 .await?;
 
             for result in group_policies {
@@ -391,7 +391,7 @@ impl AccessPolicy {
         sort_by: Option<ListAccessPoliciesSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<AccessPolicy>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let resources_with_access = Self::get_resources_with_access(
             db,
@@ -439,7 +439,7 @@ impl AccessPolicy {
             query = query.limit(limit);
         }
 
-        let access_policies = query.load::<AccessPolicy>(&mut conn).await?;
+        let access_policies = query.load::<AccessPolicy>(&mut connection).await?;
         Ok(access_policies)
     }
 
@@ -455,7 +455,7 @@ impl AccessPolicy {
         actions: Vec<AccessPolicyAction>,
         effect: AccessPolicyEffect,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         update(schema::access_policies::table.filter(schema::access_policies::id.eq(id)))
             .set((
@@ -469,15 +469,15 @@ impl AccessPolicy {
                 schema::access_policies::effect.eq(effect),
                 schema::access_policies::modified_time.eq(chrono::Utc::now().naive_utc()),
             ))
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
 
     pub async fn delete(db: &Db, id: &Uuid) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::delete(schema::access_policies::table.filter(schema::access_policies::id.eq(id)))
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }

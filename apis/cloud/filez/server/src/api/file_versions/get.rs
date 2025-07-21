@@ -3,7 +3,7 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
-        file_versions::{FileVersion, FileVersionsQuery},
+        file_versions::{FileVersion, FileVersionIdentifier},
         users::FilezUser,
     },
     state::ServerState,
@@ -28,7 +28,11 @@ use zitadel::axum::introspection::IntrospectedUser;
     description = "Get file versions from the server",
     responses(
         (status = 200, description = "Got file versions from the server", body = ApiResponse<GetFileVersionsResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (status = 400, description = "Bad Request", body = ApiResponse<EmptyApiResponse>),
+        (status = 401, description = "Unauthorized", body = ApiResponse<EmptyApiResponse>),
+        (status = 403, description = "Forbidden", body = ApiResponse<EmptyApiResponse>),
+        (status = 404, description = "Not Found", body = ApiResponse<EmptyApiResponse>),
+        (status = 500, description = "Internal Server Error", body = ApiResponse<EmptyApiResponse>)
     )
 )]
 pub async fn get_file_versions(
@@ -88,7 +92,7 @@ pub async fn get_file_versions(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct GetFileVersionsRequestBody {
-    pub versions: Vec<FileVersionsQuery>,
+    pub versions: Vec<FileVersionIdentifier>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]

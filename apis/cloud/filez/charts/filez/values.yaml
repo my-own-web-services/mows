@@ -6,6 +6,9 @@ server:
     name: filez-server
     replicaCount: 1
     subdomain: filez-server
+    localStorage:
+        enabled: true
+        size: 10Gi
     tracing:
         filter: "trace,hyper=info,h2=info"
     log:

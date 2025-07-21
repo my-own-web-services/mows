@@ -90,10 +90,10 @@
     "StorageLocationConfigCrd": {
       "type": "object",
       "required": [
-        "provider_config"
+        "providerConfig"
       ],
       "properties": {
-        "provider_config": {
+        "providerConfig": {
           "$ref": "#/definitions/StorageProviderConfigCrd"
         }
       }
@@ -111,8 +111,31 @@
             }
           },
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Filesystem"
+          ],
+          "properties": {
+            "Filesystem": {
+              "$ref": "#/definitions/StorageProviderConfigFileSystemCrd"
+            }
+          },
+          "additionalProperties": false
         }
       ]
+    },
+    "StorageProviderConfigFileSystemCrd": {
+      "type": "object",
+      "required": [
+        "rootPath"
+      ],
+      "properties": {
+        "rootPath": {
+          "$ref": "#/definitions/ValueOrSecretReference"
+        }
+      }
     },
     "StorageProviderConfigMinioCrd": {
       "type": "object",

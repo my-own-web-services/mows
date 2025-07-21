@@ -90,20 +90,20 @@ impl FileGroup {
     }
 
     pub async fn create(db: &crate::db::Db, file_group: &FileGroup) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::insert_into(schema::file_groups::table)
             .values(file_group)
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
 
     pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<FileGroup, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let file_group = schema::file_groups::table
             .filter(schema::file_groups::id.eq(id))
             .select(FileGroup::as_select())
-            .get_result::<FileGroup>(&mut conn)
+            .get_result::<FileGroup>(&mut connection)
             .await?;
         Ok(file_group)
     }
@@ -117,7 +117,7 @@ impl FileGroup {
         sort_by: Option<ListFileGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<FileGroup>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let resources_with_access = AccessPolicy::get_resources_with_access(
             db,
@@ -164,7 +164,7 @@ impl FileGroup {
             query = query.limit(limit);
         }
 
-        let file_groups = query.load::<FileGroup>(&mut conn).await?;
+        let file_groups = query.load::<FileGroup>(&mut connection).await?;
         Ok(file_groups)
     }
 
@@ -173,21 +173,21 @@ impl FileGroup {
         file_group_id: &Uuid,
         name: &str,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::update(schema::file_groups::table.find(file_group_id))
             .set((
                 schema::file_groups::name.eq(name),
                 schema::file_groups::modified_time.eq(chrono::Utc::now().naive_utc()),
             ))
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
 
     pub async fn delete(db: &crate::db::Db, file_group_id: &Uuid) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::delete(schema::file_groups::table.find(file_group_id))
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
@@ -196,12 +196,12 @@ impl FileGroup {
         db: &crate::db::Db,
         file_group_id: &Uuid,
     ) -> Result<i64, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let count = schema::file_file_group_members::table
             .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
             .count()
-            .get_result::<i64>(&mut conn)
+            .get_result::<i64>(&mut connection)
             .await?;
 
         Ok(count)
@@ -212,7 +212,7 @@ impl FileGroup {
         file_group_id: &Uuid,
         file_ids: &Vec<Uuid>,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let new_members = file_ids
             .iter()
             .map(|file_id| FileFileGroupMember::new(file_id, file_group_id))
@@ -220,7 +220,7 @@ impl FileGroup {
 
         diesel::insert_into(schema::file_file_group_members::table)
             .values(&new_members)
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
@@ -230,13 +230,13 @@ impl FileGroup {
         file_group_id: &Uuid,
         file_ids: &Vec<Uuid>,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::delete(
             schema::file_file_group_members::table
                 .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
                 .filter(schema::file_file_group_members::file_id.eq_any(file_ids)),
         )
-        .execute(&mut conn)
+        .execute(&mut connection)
         .await?;
         Ok(())
     }
@@ -248,7 +248,7 @@ impl FileGroup {
         limit: Option<i64>,
         sort: Option<ListFilesSorting>,
     ) -> Result<Vec<FilezFile>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         match sort {
             Some(ListFilesSorting::StoredSortOrder(stored_sort_order)) => {
                 let sort_direction = stored_sort_order
@@ -287,7 +287,7 @@ impl FileGroup {
                     query = query.limit(limit);
                 }
 
-                let files_list = query.load::<FilezFile>(&mut conn).await?;
+                let files_list = query.load::<FilezFile>(&mut connection).await?;
 
                 Ok(files_list)
             }
@@ -329,7 +329,7 @@ impl FileGroup {
                     query = query.limit(limit);
                 }
 
-                let files_list = query.load::<FilezFile>(&mut conn).await?;
+                let files_list = query.load::<FilezFile>(&mut connection).await?;
 
                 Ok(files_list)
             }
@@ -351,7 +351,7 @@ impl FileGroup {
                     query = query.limit(limit);
                 }
 
-                let files_list = query.load::<FilezFile>(&mut conn).await?;
+                let files_list = query.load::<FilezFile>(&mut connection).await?;
 
                 Ok(files_list)
             }

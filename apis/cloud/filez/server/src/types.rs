@@ -10,6 +10,7 @@ use crate::{
         storage_quotas::create::CreateStorageQuotaRequestBody,
         user_groups::create::CreateUserGroupRequestBody,
     },
+    errors::FilezError,
     models::{
         access_policies::AccessPolicy, file_groups::FileGroup, storage_quotas::StorageQuota,
         user_groups::UserGroup, users::FilezUser,
@@ -67,5 +68,5 @@ pub struct EmptyApiResponse;
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ApiResponseStatus {
     Success,
-    Error,
+    Error(String),
 }

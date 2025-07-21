@@ -25,7 +25,7 @@ use serde::Serialize;
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::RwLock;
-use tracing::{error, field, info, instrument, warn, Span};
+use tracing::{debug, error, field, info, instrument, warn, Span};
 
 pub mod crd;
 pub mod metrics;
@@ -41,10 +41,21 @@ async fn inner_reconcile(
     namespace: &str,
 ) -> Result<(), FilezError> {
     let full_name = format!("{}-{}", namespace, name);
+    debug!("Reconcile resource: {}", full_name);
     match &resource.spec {
         FilezResourceSpec::StorageLocation(incoming_provider_config) => {
+            debug!(
+                "Reconcile StorageLocation resource: {} with config: {:?}",
+                full_name, incoming_provider_config
+            );
+
             let filez_secrets =
                 SecretReadableByFilezController::fetch_map(&ctx.client, namespace).await?;
+            debug!("Fetched secrets for resource: {}", full_name);
+            debug!(
+                "Creating or updating StorageLocation for resource: {} with config: {:?}",
+                full_name, incoming_provider_config
+            );
 
             StorageLocation::create_or_update(
                 &ctx.storage_location_providers,
@@ -305,7 +316,7 @@ fn error_policy(
     ctx: Arc<ControllerContext>,
     reconcile_interval_seconds: u64,
 ) -> Action {
-    warn!("reconcile failed: {:?}", error);
+    error!("reconcile failed: {:?}", error);
     ctx.metrics.reconcile.set_failure(&vault_resource, error);
 
     Action::requeue(Duration::from_secs(reconcile_interval_seconds))

@@ -41,7 +41,7 @@ pub fn from_env() -> anyhow::Result<FilezServerConfig> {
         enable_dev: load_env("false", "ENABLE_DEV", false, true)?.parse::<bool>()?,
         dev_allow_origins,
         db_url: load_env(
-            "postgres://filez:filez@localhost/filez",
+            "postgres://filez:filez@filez-db/filez",
             "DATABASE_URL",
             true,
             true,

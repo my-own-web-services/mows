@@ -51,3 +51,22 @@ export const createFilezClient = (serverUrl: string, auth?: AuthState) => {
         })
     });
 };
+
+export const getBlobSha256Digest = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const arrayBuffer = reader.result as ArrayBuffer;
+            const hashBuffer = crypto.subtle.digest("SHA-256", arrayBuffer);
+            hashBuffer
+                .then((hash) => {
+                    const hashArray = Array.from(new Uint8Array(hash));
+                    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+                    resolve(hashHex);
+                })
+                .catch(reject);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(blob);
+    });
+};

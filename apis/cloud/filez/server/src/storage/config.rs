@@ -1,6 +1,9 @@
 use crate::{controller::crd::SecretReadableByFilezController, errors::FilezError};
 
-use super::providers::minio::{StorageProviderConfigMinio, StorageProviderConfigMinioCrd};
+use super::providers::{
+    filesystem::{StorageProviderConfigFileSystem, StorageProviderConfigFileSystemCrd},
+    minio::{StorageProviderConfigMinio, StorageProviderConfigMinioCrd},
+};
 use diesel_as_jsonb::AsJsonb;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -9,11 +12,13 @@ use utoipa::ToSchema;
 #[derive(Serialize, Deserialize, Debug, ToSchema, Clone, JsonSchema, PartialEq, Eq, AsJsonb)]
 pub enum StorageProviderConfig {
     Minio(StorageProviderConfigMinio),
+    Filesystem(StorageProviderConfigFileSystem),
 }
 
 #[derive(Serialize, Deserialize, Debug, ToSchema, Clone, JsonSchema, PartialEq, Eq)]
 pub enum StorageProviderConfigCrd {
     Minio(StorageProviderConfigMinioCrd),
+    Filesystem(StorageProviderConfigFileSystemCrd),
 }
 
 impl StorageProviderConfigCrd {
@@ -24,6 +29,9 @@ impl StorageProviderConfigCrd {
         let provider_config = match self {
             StorageProviderConfigCrd::Minio(config) => {
                 StorageProviderConfig::Minio(config.clone().convert_secrets(secrets)?)
+            }
+            StorageProviderConfigCrd::Filesystem(config) => {
+                StorageProviderConfig::Filesystem(config.clone().convert_secrets(secrets)?)
             }
         };
 

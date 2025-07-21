@@ -76,10 +76,10 @@ impl StorageQuota {
     }
 
     pub async fn create(db: &Db, storage_quota: &StorageQuota) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::insert_into(schema::storage_quotas::table)
             .values(storage_quota)
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
@@ -88,11 +88,11 @@ impl StorageQuota {
         db: &Db,
         storage_quota_id: &Uuid,
     ) -> Result<Uuid, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let storage_location_id = schema::storage_quotas::table
             .filter(schema::storage_quotas::id.eq(storage_quota_id))
             .select(schema::storage_quotas::storage_location_id)
-            .first::<Uuid>(&mut conn)
+            .first::<Uuid>(&mut connection)
             .await?;
         Ok(storage_location_id)
     }
@@ -103,13 +103,13 @@ impl StorageQuota {
         storage_quota_id: &Uuid,
         size: BigDecimal,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let user_groups = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
         let storage_quota = schema::storage_quotas::table
             .filter(schema::storage_quotas::id.eq(storage_quota_id))
             .select(StorageQuota::as_select())
-            .first::<StorageQuota>(&mut conn)
+            .first::<StorageQuota>(&mut connection)
             .await?;
 
         if storage_quota.subject_type == AccessPolicySubjectType::User
@@ -134,7 +134,7 @@ impl StorageQuota {
         let total_size: BigDecimal = schema::file_versions::table
             .filter(schema::file_versions::storage_quota_id.eq(storage_quota.id))
             .select(diesel::dsl::sum(schema::file_versions::size))
-            .first::<Option<BigDecimal>>(&mut conn)
+            .first::<Option<BigDecimal>>(&mut connection)
             .await?
             .unwrap_or_else(|| BigDecimal::from(0));
 
@@ -156,7 +156,7 @@ impl StorageQuota {
         sort_by: Option<ListStorageQuotasSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<StorageQuota>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let user_groups = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
         // only if the user is subject to an storage quota they have access to it
@@ -211,7 +211,7 @@ impl StorageQuota {
             query = query.limit(limit);
         }
 
-        let storage_quotas = query.load::<StorageQuota>(&mut conn).await?;
+        let storage_quotas = query.load::<StorageQuota>(&mut connection).await?;
         Ok(storage_quotas)
     }
 
@@ -221,7 +221,7 @@ impl StorageQuota {
         subject_id: &Uuid,
         storage_location_id: &Uuid,
     ) -> Result<StorageQuota, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let storage_quota = schema::storage_quotas::table
             .filter(
                 schema::storage_quotas::subject_type
@@ -230,7 +230,7 @@ impl StorageQuota {
                     .and(schema::storage_quotas::storage_location_id.eq(storage_location_id)),
             )
             .select(StorageQuota::as_select())
-            .first::<StorageQuota>(&mut conn)
+            .first::<StorageQuota>(&mut connection)
             .await?;
         Ok(storage_quota)
     }
@@ -242,7 +242,7 @@ impl StorageQuota {
         storage_location_id: &Uuid,
         quota_bytes: BigDecimal,
     ) -> Result<StorageQuota, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let updated_quota = diesel::update(
             schema::storage_quotas::table.filter(
                 schema::storage_quotas::subject_type
@@ -256,7 +256,7 @@ impl StorageQuota {
             schema::storage_quotas::modified_time.eq(chrono::Local::now().naive_local()),
         ))
         .returning(StorageQuota::as_select())
-        .get_result::<StorageQuota>(&mut conn)
+        .get_result::<StorageQuota>(&mut connection)
         .await?;
         Ok(updated_quota)
     }
@@ -267,7 +267,7 @@ impl StorageQuota {
         subject_id: &Uuid,
         storage_location_id: &Uuid,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::delete(
             schema::storage_quotas::table.filter(
                 schema::storage_quotas::subject_type
@@ -276,7 +276,7 @@ impl StorageQuota {
                     .and(schema::storage_quotas::storage_location_id.eq(storage_location_id)),
             ),
         )
-        .execute(&mut conn)
+        .execute(&mut connection)
         .await?;
         Ok(())
     }

@@ -20,6 +20,12 @@ spec:
                 app: {{ .Values.server.name }}
         spec:
             serviceAccountName: {{ .Values.server.name }}
+            {{- if .Values.server.localStorage.enabled }}
+            volumes:
+                -   name: filez-default-storage
+                    persistentVolumeClaim:
+                        claimName: filez-default-storage
+            {{-  end }}
             containers:
                 -   name: {{ .Values.server.name }}
                     image: "{{ .Values.server.image }}"
@@ -29,6 +35,11 @@ spec:
                         readOnlyRootFilesystem: true
                         runAsNonRoot: true
                         runAsUser: 50003
+                    {{- if .Values.server.localStorage.enabled }}
+                    volumeMounts:
+                        -   name: filez-default-storage
+                            mountPath: /data/filez-default-storage
+                    {{- end }}
                     ports:
                         -   name: http
                             containerPort: 8080
@@ -74,3 +85,4 @@ spec:
                             value: {{ .Values.server.tracing.filter | quote }}
                         -   name: LOG_FILTER
                             value: {{ .Values.server.log.filter | quote }}
+                        

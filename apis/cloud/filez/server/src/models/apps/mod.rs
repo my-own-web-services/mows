@@ -87,7 +87,7 @@ impl MowsApp {
     }
 
     pub async fn delete(db: &crate::db::Db, name: &str) -> Result<(), FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::delete(crate::schema::apps::table)
             .filter(crate::schema::apps::name.eq(name))
             .execute(&mut connection)
@@ -97,7 +97,7 @@ impl MowsApp {
     }
     pub async fn create_filez_server_app(db: &crate::db::Db) -> Result<MowsApp, FilezError> {
         let app_id = Uuid::nil();
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let existing_app = crate::schema::apps::table
             .filter(crate::schema::apps::id.eq(app_id))
             .select(MowsApp::as_select())
@@ -164,7 +164,7 @@ impl MowsApp {
         db: &crate::db::Db,
         origin: &Url,
     ) -> Result<MowsApp, FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let app = crate::schema::apps::table
             .filter(crate::schema::apps::origins.contains(vec![origin.to_string()]))
@@ -180,7 +180,7 @@ impl MowsApp {
         app_config: &MowsAppConfig,
         full_name: &str,
     ) -> Result<MowsApp, FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let existing_app = crate::schema::apps::table
             .filter(crate::schema::apps::name.eq(&full_name))

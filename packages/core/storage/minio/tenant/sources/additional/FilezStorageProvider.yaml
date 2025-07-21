@@ -5,7 +5,7 @@ metadata:
     name: minio-filez-default
 spec:
     storageLocation:
-        provider_config:
+        providerConfig:
             Minio:
                 bucket:
                     value: "filez"
@@ -15,4 +15,3 @@ spec:
                     secret: CONSOLE_SECRET_KEY
                 username:
                     secret: CONSOLE_ACCESS_KEY
-            
