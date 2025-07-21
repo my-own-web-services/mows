@@ -3,11 +3,11 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
-        file_versions::{FileVersion, FileVersionsQuery},
+        file_versions::{FileVersion, FileVersionIdentifier},
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{
@@ -28,6 +28,11 @@ use zitadel::axum::introspection::IntrospectedUser;
     description = "Delete file versions in the database",
     responses(
         (status = 200, description = "Deleted file versions on the server", body = ApiResponse<DeleteFileVersionsResponseBody>),
+        (status = 400, description = "Bad Request", body = ApiResponse<EmptyApiResponse>),
+        (status = 401, description = "Unauthorized", body = ApiResponse<EmptyApiResponse>),
+        (status = 403, description = "Forbidden", body = ApiResponse<EmptyApiResponse>),
+        (status = 404, description = "Not Found", body = ApiResponse<EmptyApiResponse>),
+        (status = 500, description = "Internal Server Error", body = ApiResponse<EmptyApiResponse>)
     )
 )]
 pub async fn delete_file_versions(
@@ -93,10 +98,10 @@ pub async fn delete_file_versions(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct DeleteFileVersionsRequestBody {
-    pub versions: Vec<FileVersionsQuery>,
+    pub versions: Vec<FileVersionIdentifier>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct DeleteFileVersionsResponseBody {
-    pub versions: Vec<FileVersionsQuery>,
+    pub versions: Vec<FileVersionIdentifier>,
 }

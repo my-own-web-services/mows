@@ -1,8 +1,10 @@
 use crate::{
-    db::Db, errors::FilezError, schema::file_versions, state::StorageLocationState, with_timing,
+    api::file_versions::update::UpdateFileVersion, db::Db, errors::FilezError,
+    schema::file_versions, state::StorageLocationState, with_timing,
 };
 use axum::extract::Request;
 use bigdecimal::BigDecimal;
+use bigdecimal::ToPrimitive;
 use diesel::{
     pg::Pg,
     prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
@@ -12,26 +14,40 @@ use diesel::{
 use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::{files::FilezFile, storage_locations::StorageLocation, storage_quotas::StorageQuota};
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct FileVersionsQuery {
-    pub file_id: Uuid,
-    pub app_id: Uuid,
-    pub version: i32,
-    pub app_path: Option<String>,
+// macro to select a file version by its identifier
+
+#[macro_export]
+macro_rules! filter_file_version_by_identifier {
+    ($file_version:expr) => {
+        file_versions::table
+            .filter(file_versions::file_id.eq($file_version.file_id))
+            .filter(file_versions::version.eq($file_version.version))
+            .filter(file_versions::app_id.eq($file_version.app_id))
+            .filter(file_versions::app_path.eq(&$file_version.app_path))
+    };
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct UpdateFileVersion {
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+pub struct FileVersionIdentifier {
     pub file_id: Uuid,
     pub version: i32,
     pub app_id: Uuid,
-    pub app_path: Option<String>,
-    pub metadata: Option<FileVersionMetadata>,
+    pub app_path: String,
+}
+
+impl FileVersionIdentifier {
+    pub fn to_string(&self) -> String {
+        format!(
+            "{}/{}/{}/{}",
+            self.file_id, self.version, self.app_id, self.app_path
+        )
+    }
 }
 
 #[derive(
@@ -104,7 +120,7 @@ impl FileVersion {
         app_id: &Uuid,
         app_path: &Option<String>,
     ) -> Result<FileVersion, FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let app_path = app_path.as_ref().map(|path| path.as_str()).unwrap_or("");
 
@@ -140,11 +156,13 @@ impl FileVersion {
         Ok(file_version)
     }
 
-    fn full_file_path(&self) -> String {
-        format!(
-            "{}/{}/{}/{}",
-            self.file_id, self.version, self.app_id, self.app_path
-        )
+    fn get_file_version_identifier(&self) -> FileVersionIdentifier {
+        FileVersionIdentifier {
+            file_id: self.file_id,
+            version: self.version,
+            app_id: self.app_id,
+            app_path: self.app_path.clone(),
+        }
     }
 
     pub async fn get_content(
@@ -158,7 +176,7 @@ impl FileVersion {
         let content = storage_location
             .get_content(
                 storage_locations_provider_state,
-                &self.full_file_path(),
+                &self.get_file_version_identifier(),
                 timing,
                 range,
             )
@@ -177,7 +195,7 @@ impl FileVersion {
         let size = storage_location
             .get_file_size(
                 storage_locations_provider_state,
-                &self.full_file_path(),
+                &self.get_file_version_identifier(),
                 timing,
             )
             .await?;
@@ -185,24 +203,27 @@ impl FileVersion {
         Ok(size)
     }
 
-    pub async fn update_content(
+    pub async fn set(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-
         db: &Db,
-        timing: axum_server_timing::ServerTimingExtension,
+        timing: &axum_server_timing::ServerTimingExtension,
         request: Request,
         offset: u64,
         length: u64,
     ) -> Result<(), FilezError> {
+        if self.content_valid {
+            return Err(FilezError::FileVersionContentAlreadyValid);
+        }
+
         let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
 
         let file = FilezFile::get_by_id(db, self.file_id).await?;
 
         storage_location
-            .update_content(
+            .set_content(
                 storage_locations_provider_state,
-                &self.full_file_path(),
+                &self.get_file_version_identifier(),
                 timing,
                 request,
                 &file.mime_type,
@@ -210,7 +231,53 @@ impl FileVersion {
                 length,
             )
             .await?;
+        // once the last bytes are written, we verify the content and update the content_valid flag
 
+        let file_version_size = self
+            .size
+            .to_u64()
+            .ok_or(FilezError::BigDecimalSizeConversionError)?;
+
+        debug!(
+            "Got offset: {}, length: {}, file_version_size: {} for file version: {:?}",
+            offset, length, file_version_size, self
+        );
+
+        if offset + length == file_version_size {
+            if let Some(expected_sha256_digest) = &self.content_expected_sha256_digest {
+                debug!(
+                    "Verifying content for file version: {:?} with expected digest: {}",
+                    self, expected_sha256_digest
+                );
+                let content_digest = storage_location
+                    .get_content_sha256_digest(
+                        storage_locations_provider_state,
+                        &self.get_file_version_identifier(),
+                        timing,
+                    )
+                    .await?;
+                debug!(
+                    "Content digest for file version: {:?} is: {}",
+                    self, content_digest
+                );
+
+                if &content_digest == expected_sha256_digest {
+                    let mut connection = db.get_connection().await?;
+                    diesel::update(filter_file_version_by_identifier!(self))
+                        .set((
+                            file_versions::content_valid.eq(true),
+                            file_versions::modified_time.eq(chrono::Utc::now().naive_utc()),
+                        ))
+                        .execute(&mut connection)
+                        .await?;
+                } else {
+                    return Err(FilezError::FileVersionContentDigestMismatch {
+                        expected: expected_sha256_digest.clone(),
+                        received: content_digest,
+                    });
+                }
+            }
+        }
         Ok(())
     }
 
@@ -224,7 +291,7 @@ impl FileVersion {
         storage_quota_id: Uuid,
         content_expected_sha256_digest: Option<String>,
     ) -> Result<FileVersion, FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let storage_id = StorageQuota::get_storage_location_id(db, &storage_quota_id).await?;
 
@@ -233,6 +300,7 @@ impl FileVersion {
             .select(diesel::dsl::max(file_versions::version))
             .first::<Option<i32>>(&mut connection)
             .await?;
+
         let new_version_number = version_number.map_or(0, |v| v + 1);
 
         let new_file_version = FileVersion::new(
@@ -260,21 +328,14 @@ impl FileVersion {
     pub async fn delete_many(
         storage_locations_provider_state: &StorageLocationState,
         db: &Db,
-        file_versions_query: &Vec<FileVersionsQuery>,
+        file_versions_query: &Vec<FileVersionIdentifier>,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         for version_query in file_versions_query {
             let file_version = with_timing!(
-                file_versions::table
-                    .filter(file_versions::file_id.eq(version_query.file_id))
-                    .filter(file_versions::version.eq(version_query.version))
-                    .filter(file_versions::app_id.eq(version_query.app_id))
-                    .filter(
-                        file_versions::app_path
-                            .eq(&version_query.app_path.clone().unwrap_or("".to_string()))
-                    )
+                filter_file_version_by_identifier!(version_query)
                     .first::<FileVersion>(&mut connection)
                     .await?,
                 "Database operation to get file version",
@@ -286,18 +347,9 @@ impl FileVersion {
                 .await?;
 
             with_timing!(
-                diesel::delete(
-                    file_versions::table
-                        .filter(file_versions::file_id.eq(version_query.file_id))
-                        .filter(file_versions::version.eq(version_query.version))
-                        .filter(file_versions::app_id.eq(version_query.app_id))
-                        .filter(
-                            file_versions::app_path
-                                .eq(&version_query.app_path.clone().unwrap_or("".to_string()))
-                        ),
-                )
-                .execute(&mut connection)
-                .await?,
+                diesel::delete(filter_file_version_by_identifier!(version_query),)
+                    .execute(&mut connection)
+                    .await?,
                 "Database operation to delete file version",
                 timing
             );
@@ -308,19 +360,13 @@ impl FileVersion {
 
     pub async fn get_many(
         db: &Db,
-        query: &Vec<FileVersionsQuery>,
+        query: &Vec<FileVersionIdentifier>,
     ) -> Result<Vec<FileVersion>, FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let mut results = Vec::new();
 
         for request in query {
-            let file_version = file_versions::table
-                .filter(file_versions::file_id.eq(request.file_id))
-                .filter(file_versions::version.eq(request.version))
-                .filter(file_versions::app_id.eq(request.app_id))
-                .filter(
-                    file_versions::app_path.eq(&request.app_path.clone().unwrap_or("".to_string())),
-                )
+            let file_version = filter_file_version_by_identifier!(request)
                 .first::<FileVersion>(&mut connection)
                 .await?;
             results.push(file_version);
@@ -339,7 +385,7 @@ impl FileVersion {
         storage_location
             .delete_content(
                 storage_locations_provider_state,
-                &self.full_file_path(),
+                &self.get_file_version_identifier(),
                 timing,
             )
             .await?;
@@ -351,41 +397,24 @@ impl FileVersion {
         db: &Db,
         file_versions: &Vec<UpdateFileVersion>,
     ) -> Result<Vec<FileVersion>, FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let mut results = Vec::new();
 
         for file_version_update in file_versions {
-            let mut file_version = file_versions::table
-                .filter(file_versions::file_id.eq(file_version_update.file_id))
-                .filter(file_versions::version.eq(file_version_update.version))
-                .filter(file_versions::app_id.eq(file_version_update.app_id))
-                .filter(
-                    file_versions::app_path.eq(&file_version_update
-                        .app_path
-                        .clone()
-                        .unwrap_or("".to_string())),
-                )
-                .first::<FileVersion>(&mut connection)
-                .await?;
+            let mut file_version =
+                filter_file_version_by_identifier!(file_version_update.identifier)
+                    .first::<FileVersion>(&mut connection)
+                    .await?;
 
-            if let Some(metadata) = &file_version_update.metadata {
+            if let Some(metadata) = &file_version_update.new_metadata {
                 file_version.metadata = metadata.clone();
             }
 
             file_version.modified_time = chrono::Utc::now().naive_utc();
 
-            let updated_version = diesel::update(
-                file_versions::table
-                    .filter(file_versions::file_id.eq(file_version_update.file_id))
-                    .filter(file_versions::version.eq(file_version_update.version))
-                    .filter(file_versions::app_id.eq(file_version_update.app_id))
-                    .filter(
-                        file_versions::app_path.eq(&file_version_update
-                            .app_path
-                            .clone()
-                            .unwrap_or("".to_string())),
-                    ),
-            )
+            let updated_version = diesel::update(filter_file_version_by_identifier!(
+                file_version_update.identifier
+            ))
             .set(file_version)
             .get_result::<FileVersion>(&mut connection)
             .await?;

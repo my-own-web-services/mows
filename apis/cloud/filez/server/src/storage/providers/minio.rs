@@ -11,10 +11,11 @@ use minio::s3::{builders::ObjectContent, types::S3Api};
 use minio::s3::{creds::StaticProvider, http::BaseUrl, ClientBuilder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use std::str::FromStr;
 use utoipa::ToSchema;
 
-use super::StorageProvider;
+use super::{FileVersionIdentifier, StorageProvider};
 
 #[derive(Debug, Clone, Serialize, ToSchema, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct StorageProviderConfigMinio {
@@ -25,6 +26,7 @@ pub struct StorageProviderConfigMinio {
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct StorageProviderConfigMinioCrd {
     pub endpoint: ValueOrSecretReference,
     pub username: ValueOrSecretReference,
@@ -83,10 +85,12 @@ impl StorageProviderMinio {
 
     pub async fn get_content(
         &self,
-        full_file_path: &str,
+        full_file_identifier: &FileVersionIdentifier,
         timing: axum_server_timing::ServerTimingExtension,
         range: &Option<(Option<u64>, Option<u64>)>,
     ) -> Result<Body, StorageError> {
+        let full_file_path = full_file_identifier.to_string();
+
         let mut get_object_query = self.client.get_object(&self.bucket, full_file_path);
 
         if let Some((start, end)) = range {
@@ -106,11 +110,38 @@ impl StorageProviderMinio {
         Ok(Body::from_stream(stream))
     }
 
+    pub async fn get_content_sha256_digest(
+        &self,
+        _full_file_identifier: &FileVersionIdentifier,
+        _timing: &axum_server_timing::ServerTimingExtension,
+    ) -> Result<String, StorageError> {
+        // stream the content through the MinIO client and calculate the SHA256 digest
+
+        let full_file_path = _full_file_identifier.to_string();
+        let get_object_response = self
+            .client
+            .get_object(&self.bucket, full_file_path)
+            .send()
+            .await?;
+        let (content_stream, _size) = get_object_response.content.to_stream().await?;
+        let mut hasher = sha2::Sha256::new();
+        let mut stream =
+            content_stream.map_err(|e| tokio::io::Error::new(tokio::io::ErrorKind::Other, e));
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.map_err(|e| tokio::io::Error::new(tokio::io::ErrorKind::Other, e))?;
+            hasher.update(&chunk);
+        }
+        let digest = hasher.finalize();
+        Ok(format!("{:x}", digest))
+    }
+
     pub async fn get_file_size(
         &self,
-        full_file_path: &str,
+        full_file_identifier: &FileVersionIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<BigDecimal, StorageError> {
+        let full_file_path = full_file_identifier.to_string();
+
         let get_object_response = with_timing!(
             self.client
                 .get_object(&self.bucket, full_file_path)
@@ -133,9 +164,10 @@ impl StorageProviderMinio {
 
     pub async fn delete_content(
         &self,
-        full_file_path: &str,
+        full_file_identifier: &FileVersionIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), StorageError> {
+        let full_file_path = full_file_identifier.to_string();
         with_timing!(
             self.client
                 .delete_object(&self.bucket, full_file_path)
@@ -148,18 +180,20 @@ impl StorageProviderMinio {
         Ok(())
     }
 
-    pub async fn update_content(
+    pub async fn set_content(
         &self,
-        full_file_path: &str,
-        timing: axum_server_timing::ServerTimingExtension,
+        full_file_identifier: &FileVersionIdentifier,
+        timing: &axum_server_timing::ServerTimingExtension,
         request: Request,
         mime_type: &str,
         offset: u64,
         length: u64,
     ) -> Result<(), StorageError> {
+        let full_file_path = full_file_identifier.to_string();
+
         let get_object_result = with_timing!(
             self.client
-                .get_object(&self.bucket, full_file_path)
+                .get_object(&self.bucket, &full_file_path)
                 .send()
                 .await,
             "MinIO operation to get existing file content",
@@ -168,13 +202,6 @@ impl StorageProviderMinio {
 
         match get_object_result {
             Ok(get_object_response) => {
-                if get_object_response.object_size != offset {
-                    return Err(StorageError::OffsetMismatch {
-                        expected: offset,
-                        calculated: get_object_response.object_size,
-                    });
-                }
-
                 let (existing_content_stream, _size) =
                     get_object_response.content.to_stream().await?;
 
@@ -194,7 +221,7 @@ impl StorageProviderMinio {
 
                 with_timing!(
                     self.client
-                        .put_object_content(&self.bucket, full_file_path, object_content)
+                        .put_object_content(&self.bucket, &full_file_path, object_content)
                         .content_type(mime_type.to_string())
                         .send()
                         .await?,

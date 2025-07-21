@@ -8,7 +8,8 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
+    validation::validate_sha256_digest,
     with_timing,
 };
 use axum::{
@@ -28,7 +29,12 @@ use zitadel::axum::introspection::IntrospectedUser;
     request_body = CreateFileVersionRequestBody,
     description = "Create a new file version entry in the database",
     responses(
-        (status = 201, description = "Created a file version on the server", body = ApiResponse<CreateFileVersionResponseBody> ),
+        (status = 201, description = "Created a file version on the server", body = ApiResponse<CreateFileVersionResponseBody>),
+        (status = 400, description = "Bad Request", body = ApiResponse<EmptyApiResponse>),
+        (status = 401, description = "Unauthorized", body = ApiResponse<EmptyApiResponse>),
+        (status = 403, description = "Forbidden", body = ApiResponse<EmptyApiResponse>),
+        (status = 404, description = "Not Found", body = ApiResponse<EmptyApiResponse>),
+        (status = 500, description = "Internal Server Error", body = ApiResponse<EmptyApiResponse>)
     )
 )]
 pub async fn create_file_version(
@@ -49,6 +55,10 @@ pub async fn create_file_version(
         "Database operation to get app from headers",
         timing
     );
+
+    if let Some(expected_sha256_digest) = &request_body.content_expected_sha256_digest {
+        validate_sha256_digest(&expected_sha256_digest)?;
+    }
 
     with_timing!(
         AccessPolicy::check(
@@ -100,7 +110,7 @@ pub async fn create_file_version(
             status: ApiResponseStatus::Success,
             message: "Created File Version".to_string(),
             data: Some(CreateFileVersionResponseBody {
-                version: db_created_file_version.version,
+                version: db_created_file_version,
             }),
         }),
     ))
@@ -118,5 +128,5 @@ pub struct CreateFileVersionRequestBody {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct CreateFileVersionResponseBody {
-    pub version: i32,
+    pub version: FileVersion,
 }

@@ -45,10 +45,10 @@ impl UserGroup {
     }
 
     pub async fn create(db: &crate::db::Db, user_group: &UserGroup) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::insert_into(schema::user_groups::table)
             .values(user_group)
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
@@ -57,11 +57,11 @@ impl UserGroup {
         db: &crate::db::Db,
         user_group_id: &Uuid,
     ) -> Result<UserGroup, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let user_group = schema::user_groups::table
             .filter(schema::user_groups::id.eq(user_group_id))
             .select(UserGroup::as_select())
-            .first::<UserGroup>(&mut conn)
+            .first::<UserGroup>(&mut connection)
             .await?;
 
         Ok(user_group)
@@ -76,7 +76,7 @@ impl UserGroup {
         sort_by: Option<ListUserGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<UserGroup>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let resources_with_access = AccessPolicy::get_resources_with_access(
             db,
@@ -124,7 +124,7 @@ impl UserGroup {
             query = query.limit(limit);
         }
 
-        let user_groups = query.load::<UserGroup>(&mut conn).await?;
+        let user_groups = query.load::<UserGroup>(&mut connection).await?;
         Ok(user_groups)
     }
 
@@ -133,7 +133,7 @@ impl UserGroup {
         user_group_id: &Uuid,
         name: &str,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::update(
             schema::user_groups::table.filter(schema::user_groups::id.eq(user_group_id)),
         )
@@ -141,17 +141,17 @@ impl UserGroup {
             schema::user_groups::name.eq(name),
             schema::user_groups::modified_time.eq(chrono::Utc::now().naive_utc()),
         ))
-        .execute(&mut conn)
+        .execute(&mut connection)
         .await?;
         Ok(())
     }
 
     pub async fn delete(db: &crate::db::Db, user_group_id: &Uuid) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::delete(
             schema::user_groups::table.filter(schema::user_groups::id.eq(user_group_id)),
         )
-        .execute(&mut conn)
+        .execute(&mut connection)
         .await?;
         Ok(())
     }
@@ -161,7 +161,7 @@ impl UserGroup {
         user_group_id: &Uuid,
         user_ids: &Vec<Uuid>,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let new_members = user_ids
             .iter()
             .map(|user_id| UserUserGroupMember::new(user_id, user_group_id))
@@ -169,7 +169,7 @@ impl UserGroup {
 
         diesel::insert_into(schema::user_user_group_members::table)
             .values(&new_members)
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
@@ -179,13 +179,13 @@ impl UserGroup {
         user_group_id: &Uuid,
         user_ids: &Vec<Uuid>,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::delete(
             schema::user_user_group_members::table
                 .filter(schema::user_user_group_members::user_group_id.eq(user_group_id))
                 .filter(schema::user_user_group_members::user_id.eq_any(user_ids)),
         )
-        .execute(&mut conn)
+        .execute(&mut connection)
         .await?;
         Ok(())
     }
@@ -195,7 +195,7 @@ impl UserGroup {
         db: &crate::db::Db,
         user_id: &Uuid,
     ) -> Result<Vec<Uuid>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let user_groups = schema::user_groups::table
             .inner_join(
@@ -204,7 +204,7 @@ impl UserGroup {
             )
             .filter(schema::user_user_group_members::user_id.eq(user_id))
             .select(schema::user_groups::id)
-            .load::<Uuid>(&mut conn)
+            .load::<Uuid>(&mut connection)
             .await?;
 
         Ok(user_groups)
@@ -214,12 +214,12 @@ impl UserGroup {
         db: &crate::db::Db,
         user_group_id: &Uuid,
     ) -> Result<i64, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let count = schema::user_user_group_members::table
             .filter(schema::user_user_group_members::user_group_id.eq(user_group_id))
             .count()
-            .get_result::<i64>(&mut conn)
+            .get_result::<i64>(&mut connection)
             .await?;
 
         Ok(count)
@@ -233,7 +233,7 @@ impl UserGroup {
         sort_by: Option<&str>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<FilezUser>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let mut query = schema::user_groups::table
             .inner_join(
@@ -273,7 +273,7 @@ impl UserGroup {
             query = query.limit(limit);
         }
 
-        let users_list = query.load::<FilezUser>(&mut conn).await?;
+        let users_list = query.load::<FilezUser>(&mut connection).await?;
 
         Ok(users_list)
     }

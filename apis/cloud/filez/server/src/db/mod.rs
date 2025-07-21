@@ -2,6 +2,7 @@ use crate::models::apps::MowsApp;
 use crate::{config::FilezServerConfig, errors::FilezError};
 use anyhow::Context;
 use diesel::sql_query;
+use diesel_async::pooled_connection::deadpool::Object;
 use diesel_async::{
     async_connection_wrapper::AsyncConnectionWrapper, AsyncConnection, RunQueryDsl,
 };
@@ -12,12 +13,19 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
 #[derive(Clone)]
 pub struct Db {
-    pub pool: Pool<diesel_async::AsyncPgConnection>,
+    pub pool: Option<Pool<diesel_async::AsyncPgConnection>>,
 }
 
 impl Db {
-    pub async fn new(pool: Pool<diesel_async::AsyncPgConnection>) -> Self {
+    pub async fn new(pool: Option<Pool<diesel_async::AsyncPgConnection>>) -> Self {
         Self { pool }
+    }
+
+    pub async fn get_connection(&self) -> Result<Object<AsyncPgConnection>, FilezError> {
+        match &self.pool {
+            Some(pool) => pool.get().await.map_err(FilezError::from),
+            None => Err(FilezError::DatabasePoolNotInitialized),
+        }
     }
 
     pub async fn drop_if_dev_mode(config: &FilezServerConfig) -> Result<(), FilezError> {
@@ -76,9 +84,9 @@ impl Db {
     }
 
     pub async fn get_health(&self) -> Result<(), FilezError> {
-        let mut conn = self.pool.get().await?;
+        let mut connection = self.get_connection().await?;
         diesel::select(diesel::dsl::sql::<diesel::sql_types::Bool>("1 = 1"))
-            .get_result::<bool>(&mut conn)
+            .get_result::<bool>(&mut connection)
             .await?;
         Ok(())
     }

@@ -5,7 +5,7 @@ import {
     Api,
     ContentType
 } from "../api-client";
-import { impersonateUser } from "../utils";
+import { getBlobSha256Digest, impersonateUser } from "../utils";
 
 export const runTests = async (filezClient: Api<unknown>) => {
     console.log("Running API tests...");
@@ -141,7 +141,8 @@ const allroundTest = async (filezClient: Api<unknown>) => {
                 file_id: aliceFile.id,
                 metadata: {},
                 size: aliceFileVersionContent.size,
-                storage_quota_id: alice_quota.id
+                storage_quota_id: alice_quota.id,
+                content_expected_sha256_digest: await getBlobSha256Digest(aliceFileVersionContent)
             },
             impersonateAliceParams
         )
@@ -153,7 +154,7 @@ const allroundTest = async (filezClient: Api<unknown>) => {
 
     const upload = await filezClient.api.fileVersionsContentTusPatch(
         aliceFile.id,
-        aliceFileVersion.version,
+        aliceFileVersion.version.version,
         aliceFileVersionContent,
         {
             headers: {
@@ -217,7 +218,7 @@ const allroundTest = async (filezClient: Api<unknown>) => {
     const updateUploadTooBig = await filezClient.api
         .fileVersionsContentTusPatch(
             aliceFile.id,
-            aliceFileVersion.version,
+            aliceFileVersion.version.version,
             aliceUpdatedFileVersionContentTooBig,
             {
                 headers: {
@@ -247,7 +248,7 @@ const allroundTest = async (filezClient: Api<unknown>) => {
 
     const updateUpload = await filezClient.api.fileVersionsContentTusPatch(
         aliceFile.id,
-        aliceFileVersion.version,
+        aliceFileVersion.version.version,
         aliceUpdatedFileVersionContent,
         {
             headers: {
@@ -261,6 +262,18 @@ const allroundTest = async (filezClient: Api<unknown>) => {
     if (!updateUpload) {
         throw new Error("Failed to update content for Alice's file version.");
     }
+
+    const updatedContent = await (
+        await filezClient.api.getFileVersionContent(
+            aliceFile.id,
+            null,
+            null,
+            null,
+            null,
+            null,
+            impersonateAliceParams
+        )
+    ).blob();
 };
 
 // update the content

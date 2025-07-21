@@ -220,8 +220,7 @@ export interface ApiResponseCreateFileResponseBody {
 
 export interface ApiResponseCreateFileVersionResponseBody {
   data?: {
-    /** @format int32 */
-    version: number;
+    version: FileVersion;
   };
   message: string;
   status: ApiResponseStatus;
@@ -255,7 +254,7 @@ export interface ApiResponseDeleteFileResponseBody {
 
 export interface ApiResponseDeleteFileVersionsResponseBody {
   data?: {
-    versions: FileVersionsQuery[];
+    versions: FileVersionIdentifier[];
   };
   message: string;
   status: ApiResponseStatus;
@@ -329,9 +328,10 @@ export interface ApiResponseGetUsersResBody {
 
 export interface ApiResponseHealthResBody {
   data?: {
+    all_healthy: boolean;
     controller: HealthStatus;
     database: HealthStatus;
-    storage_providers: Record<string, HealthStatus>;
+    storage_locations: Record<string, HealthStatus>;
     zitadel: HealthStatus;
   };
   message: string;
@@ -626,6 +626,7 @@ export interface CreateFileResponseBody {
 
 export interface CreateFileVersionRequestBody {
   app_path?: string | null;
+  content_expected_sha256_digest?: string | null;
   /** @format uuid */
   file_id: string;
   metadata: FileVersionMetadata;
@@ -636,8 +637,7 @@ export interface CreateFileVersionRequestBody {
 }
 
 export interface CreateFileVersionResponseBody {
-  /** @format int32 */
-  version: number;
+  version: FileVersion;
 }
 
 export interface CreateStorageQuotaRequestBody {
@@ -679,11 +679,11 @@ export interface DeleteFileResponseBody {
 }
 
 export interface DeleteFileVersionsRequestBody {
-  versions: FileVersionsQuery[];
+  versions: FileVersionIdentifier[];
 }
 
 export interface DeleteFileVersionsResponseBody {
-  versions: FileVersionsQuery[];
+  versions: FileVersionIdentifier[];
 }
 
 export interface DeleteStorageQuotaRequestBody {
@@ -757,6 +757,8 @@ export interface FileVersion {
   /** @format uuid */
   app_id: string;
   app_path: string;
+  content_expected_sha256_digest?: string | null;
+  content_valid: boolean;
   /** @format date-time */
   created_time: string;
   /** @format uuid */
@@ -774,17 +776,17 @@ export interface FileVersion {
   version: number;
 }
 
-export type FileVersionMetadata = object;
-
-export interface FileVersionsQuery {
+export interface FileVersionIdentifier {
   /** @format uuid */
   app_id: string;
-  app_path?: string | null;
+  app_path: string;
   /** @format uuid */
   file_id: string;
   /** @format int32 */
   version: number;
 }
+
+export type FileVersionMetadata = object;
 
 export interface FilezFile {
   /** @format date-time */
@@ -820,7 +822,7 @@ export interface FilezUser {
 }
 
 export interface GetFileVersionsRequestBody {
-  versions: FileVersionsQuery[];
+  versions: FileVersionIdentifier[];
 }
 
 export interface GetFileVersionsResponseBody {
@@ -856,9 +858,10 @@ export interface GetUsersResBody {
 }
 
 export interface HealthResBody {
+  all_healthy: boolean;
   controller: HealthStatus;
   database: HealthStatus;
-  storage_providers: Record<string, HealthStatus>;
+  storage_locations: Record<string, HealthStatus>;
   zitadel: HealthStatus;
 }
 
@@ -1049,14 +1052,8 @@ export interface UpdateFileResponseBody {
 }
 
 export interface UpdateFileVersion {
-  /** @format uuid */
-  app_id: string;
-  app_path?: string | null;
-  /** @format uuid */
-  file_id: string;
-  metadata?: null | FileVersionMetadata;
-  /** @format int32 */
-  version: number;
+  identifier: FileVersionIdentifier;
+  new_metadata?: null | FileVersionMetadata;
 }
 
 export interface UpdateFileVersionsRequestBody {
@@ -1082,7 +1079,6 @@ export interface UpdateFilesMetaTypeTags {
 }
 
 export interface UpdateStorageQuotaRequestBody {
-  ignore_quota: boolean;
   /** @format int64 */
   quota_bytes: number;
   /** @format uuid */
@@ -1658,8 +1654,9 @@ export class Api<
       }),
 
     /**
-     * No description
+     * @description Patch a file version using the TUS protocol. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.
      *
+     * @tags FileVersion
      * @name FileVersionsContentTusPatch
      * @request PATCH:/api/file_versions/content/tus/{file_id}/{version}
      */
@@ -1686,7 +1683,10 @@ export class Api<
       data: CreateFileVersionRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseCreateFileVersionResponseBody, any>({
+      this.request<
+        ApiResponseCreateFileVersionResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/file_versions/create`,
         method: "POST",
         body: data,
@@ -1705,7 +1705,10 @@ export class Api<
       data: DeleteFileVersionsRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseDeleteFileVersionsResponseBody, any>({
+      this.request<
+        ApiResponseDeleteFileVersionsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/file_versions/delete`,
         method: "POST",
         body: data,

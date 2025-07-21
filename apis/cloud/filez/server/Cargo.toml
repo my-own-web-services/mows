@@ -116,3 +116,4 @@ serde_yaml = { workspace = true }
 prometheus-client = { workspace = true }
 opentelemetry = { workspace = true, features = ["trace"] }
 futures = { workspace = true, features = ["default"] }
+tokio-util = { version = "0.7.15", features = ["default"] }

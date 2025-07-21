@@ -75,19 +75,19 @@ impl FilezUser {
         db: &crate::db::Db,
         external_user_id: &str,
     ) -> Result<Self, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let user = schema::users::table
             .filter(schema::users::external_user_id.eq(external_user_id))
-            .first::<FilezUser>(&mut conn)
+            .first::<FilezUser>(&mut connection)
             .await?;
         Ok(user)
     }
 
     pub async fn get_by_email(db: &crate::db::Db, email: &str) -> Result<Self, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let user = schema::users::table
             .filter(schema::users::pre_identifier_email.eq(email.to_lowercase()))
-            .first::<FilezUser>(&mut conn)
+            .first::<FilezUser>(&mut connection)
             .await?;
         Ok(user)
     }
@@ -105,13 +105,13 @@ impl FilezUser {
     }
 
     pub async fn delete(db: &crate::db::Db, user_id: &Uuid) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         diesel::update(crate::schema::users::table.find(user_id))
             .set((
                 crate::schema::users::deleted.eq(true),
                 crate::schema::users::modified_time.eq(chrono::Utc::now().naive_utc()),
             ))
-            .execute(&mut conn)
+            .execute(&mut connection)
             .await?;
         Ok(())
     }
@@ -121,7 +121,7 @@ impl FilezUser {
         email: &str,
         requesting_user_id: &Uuid,
     ) -> Result<Self, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let new_user = Self::new(
             None,
             Some(email.to_string()),
@@ -132,7 +132,7 @@ impl FilezUser {
 
         let result = diesel::insert_into(crate::schema::users::table)
             .values(&new_user)
-            .get_result::<FilezUser>(&mut conn)
+            .get_result::<FilezUser>(&mut connection)
             .await?;
 
         debug!("Created new user with ID: {}", result.id);
@@ -143,7 +143,7 @@ impl FilezUser {
         db: &crate::db::Db,
         external_user: IntrospectedUser,
     ) -> Result<FilezUser, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let config = get_current_config_cloned!(config());
 
@@ -173,7 +173,7 @@ impl FilezUser {
 
         let existing_user = crate::schema::users::table
             .filter(crate::schema::users::external_user_id.eq(external_user_id))
-            .first::<FilezUser>(&mut conn)
+            .first::<FilezUser>(&mut connection)
             .await
             .optional()?;
 
@@ -194,7 +194,7 @@ impl FilezUser {
 
                 let maybe_email_identified_user = crate::schema::users::table
                     .filter(crate::schema::users::pre_identifier_email.eq(lowercased_email))
-                    .first::<FilezUser>(&mut conn)
+                    .first::<FilezUser>(&mut connection)
                     .await
                     .optional()?;
 
@@ -213,7 +213,7 @@ impl FilezUser {
                                     .eq(chrono::Utc::now().naive_utc()),
                             ))
                             .returning(crate::schema::users::all_columns)
-                            .get_result(&mut conn)
+                            .get_result(&mut connection)
                             .await?;
 
                     return Ok(updated_user);
@@ -236,7 +236,7 @@ impl FilezUser {
                         crate::schema::users::modified_time.eq(chrono::Utc::now().naive_utc()),
                         crate::schema::users::super_admin.eq(is_super_admin),
                     ))
-                    .execute(&mut conn)
+                    .execute(&mut connection)
                     .await?;
             }
 
@@ -255,7 +255,7 @@ impl FilezUser {
 
         let result = diesel::insert_into(crate::schema::users::table)
             .values(&new_user)
-            .get_result::<FilezUser>(&mut conn)
+            .get_result::<FilezUser>(&mut connection)
             .await?;
 
         Ok(result)
@@ -265,11 +265,11 @@ impl FilezUser {
         db: &crate::db::Db,
         user_ids: &[Uuid],
     ) -> Result<HashMap<Uuid, FilezUser>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let users: Vec<FilezUser> = schema::users::table
             .filter(schema::users::id.eq_any(user_ids))
-            .load(&mut conn)
+            .load(&mut connection)
             .await?;
         let user_map: HashMap<Uuid, FilezUser> =
             users.into_iter().map(|user| (user.id, user)).collect();
@@ -281,7 +281,7 @@ impl FilezUser {
         external_user: &IntrospectedUser,
         request_headers: &HeaderMap,
     ) -> Result<FilezUser, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         match &external_user.user_id {
             Some(_) => {
@@ -291,13 +291,13 @@ impl FilezUser {
                 {
                     let requesting_user = schema::users::table
                         .filter(schema::users::external_user_id.eq(external_user.user_id.clone()))
-                        .first::<FilezUser>(&mut conn)
+                        .first::<FilezUser>(&mut connection)
                         .await?;
 
                     if requesting_user.super_admin {
                         let result = schema::users::table
                             .filter(schema::users::id.eq(impersonation_user_id))
-                            .first::<FilezUser>(&mut conn)
+                            .first::<FilezUser>(&mut connection)
                             .await?;
 
                         debug!(
@@ -319,7 +319,7 @@ impl FilezUser {
                 } else {
                     let requesting_user = schema::users::table
                         .filter(schema::users::external_user_id.eq(external_user.user_id.clone()))
-                        .first::<FilezUser>(&mut conn)
+                        .first::<FilezUser>(&mut connection)
                         .await?;
                     Ok(requesting_user)
                 }

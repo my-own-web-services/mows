@@ -51,9 +51,13 @@ impl ServerState {
                 config.db_url.clone(),
             );
 
-        let pool = Pool::builder(connection_manager)
-            .build()
-            .context("Failed to create Postgres connection pool")?;
+        let pool = match Pool::builder(connection_manager).build() {
+            Ok(pool) => Some(pool),
+            Err(e) => {
+                tracing::error!("Failed to create database connection pool: {}", e);
+                None
+            }
+        };
 
         let db = Db::new(pool).await;
 
@@ -62,7 +66,14 @@ impl ServerState {
             Err(e) => tracing::warn!("Failed to create Filez server app: {}", e),
         }
 
-        let storage_location_providers = StorageLocation::initialize_all_providers(&db).await?;
+        let storage_location_providers = match StorageLocation::initialize_all_providers(&db).await
+        {
+            Ok(providers) => providers,
+            Err(e) => {
+                tracing::error!("Failed to initialize storage location providers: {}", e);
+                Arc::new(RwLock::new(HashMap::new()))
+            }
+        };
 
         Ok(Self {
             db,

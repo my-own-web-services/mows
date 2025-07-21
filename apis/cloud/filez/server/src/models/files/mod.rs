@@ -59,30 +59,33 @@ impl FilezFile {
     }
 
     pub async fn get_by_id(db: &crate::db::Db, file_id: uuid::Uuid) -> Result<Self, FilezError> {
+        let mut connection = db.get_connection().await?;
         Ok(crate::schema::files::table
             .filter(crate::schema::files::id.eq(file_id))
             .select(FilezFile::as_select())
-            .first::<FilezFile>(&mut db.pool.get().await?)
+            .first::<FilezFile>(&mut connection)
             .await?)
     }
 
     pub async fn create(&self, db: &crate::db::Db) -> Result<FilezFile, FilezError> {
+        let mut connection = db.get_connection().await?;
         Ok(diesel::insert_into(crate::schema::files::table)
             .values(self)
             .returning(FilezFile::as_returning())
-            .get_result::<FilezFile>(&mut db.pool.get().await?)
+            .get_result::<FilezFile>(&mut connection)
             .await?)
     }
 
     pub async fn delete(db: &crate::db::Db, file_id: uuid::Uuid) -> Result<(), FilezError> {
+        let mut connection = db.get_connection().await?;
         diesel::delete(crate::schema::file_versions::table)
             .filter(crate::schema::file_versions::file_id.eq(file_id))
-            .execute(&mut db.pool.get().await?)
+            .execute(&mut connection)
             .await?;
 
         diesel::delete(crate::schema::files::table)
             .filter(crate::schema::files::id.eq(file_id))
-            .execute(&mut db.pool.get().await?)
+            .execute(&mut connection)
             .await?;
 
         Ok(())
@@ -90,12 +93,13 @@ impl FilezFile {
 
     pub async fn update(&mut self, db: &crate::db::Db) -> Result<FilezFile, FilezError> {
         self.modified_time = chrono::Utc::now().naive_utc();
+        let mut connection = db.get_connection().await?;
 
         Ok(diesel::update(crate::schema::files::table)
             .filter(crate::schema::files::id.eq(self.id))
             .set(self.clone())
             .returning(FilezFile::as_returning())
-            .get_result::<FilezFile>(&mut db.pool.get().await?)
+            .get_result::<FilezFile>(&mut connection)
             .await?)
     }
 
@@ -103,7 +107,7 @@ impl FilezFile {
         db: &crate::db::Db,
         file_ids: &[Uuid],
     ) -> Result<HashMap<Uuid, HashMap<String, String>>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let tags: Vec<(Uuid, String, String)> = schema::file_tag_members::table
             .inner_join(
@@ -115,7 +119,7 @@ impl FilezFile {
                 schema::tags::key,
                 schema::tags::value,
             ))
-            .load(&mut conn)
+            .load(&mut connection)
             .await?;
 
         let mut file_tags: HashMap<Uuid, HashMap<String, String>> = HashMap::new();
@@ -134,12 +138,12 @@ impl FilezFile {
         db: &crate::db::Db,
         file_ids: &Vec<Uuid>,
     ) -> Result<HashMap<Uuid, FilezFile>, FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let result = schema::files::table
             .filter(schema::files::id.eq_any(file_ids))
             .select(FilezFile::as_select())
-            .load::<FilezFile>(&mut conn)
+            .load::<FilezFile>(&mut connection)
             .await?;
 
         let result: HashMap<Uuid, FilezFile> =
@@ -155,7 +159,7 @@ impl FilezFile {
         method: &UpdateFilesMetaTypeTagsMethod,
         created_by_user_id: &Uuid,
     ) -> Result<(), FilezError> {
-        let mut conn = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         match method {
             UpdateFilesMetaTypeTagsMethod::Add => {
@@ -166,13 +170,13 @@ impl FilezFile {
                 insert_into(schema::tags::table)
                     .values(tags_to_insert)
                     .on_conflict_do_nothing()
-                    .execute(&mut conn)
+                    .execute(&mut connection)
                     .await?;
 
                 let database_tags: Vec<FilezTag> = schema::tags::table
                     .filter(schema::tags::key.eq_any(tags.keys()))
                     .filter(schema::tags::value.eq_any(tags.values()))
-                    .load(&mut conn)
+                    .load(&mut connection)
                     .await?;
 
                 let file_tag_members: Vec<FileTagMember> = database_tags
@@ -187,7 +191,7 @@ impl FilezFile {
                 insert_into(schema::file_tag_members::table)
                     .values(file_tag_members)
                     .on_conflict_do_nothing()
-                    .execute(&mut conn)
+                    .execute(&mut connection)
                     .await?;
             }
             UpdateFilesMetaTypeTagsMethod::Remove => {
@@ -201,13 +205,13 @@ impl FilezFile {
                                 .select(schema::tags::id),
                         ),
                     )
-                    .execute(&mut conn)
+                    .execute(&mut connection)
                     .await?;
             }
             UpdateFilesMetaTypeTagsMethod::Set => {
                 diesel::delete(schema::file_tag_members::table)
                     .filter(schema::file_tag_members::file_id.eq_any(file_ids))
-                    .execute(&mut conn)
+                    .execute(&mut connection)
                     .await?;
 
                 let tags_to_insert = tags
@@ -218,13 +222,13 @@ impl FilezFile {
                 insert_into(schema::tags::table)
                     .values(tags_to_insert)
                     .on_conflict_do_nothing()
-                    .execute(&mut conn)
+                    .execute(&mut connection)
                     .await?;
 
                 let database_tags: Vec<FilezTag> = schema::tags::table
                     .filter(schema::tags::key.eq_any(tags.keys()))
                     .filter(schema::tags::value.eq_any(tags.values()))
-                    .load(&mut conn)
+                    .load(&mut connection)
                     .await?;
 
                 let file_tag_members: Vec<FileTagMember> = database_tags
@@ -238,7 +242,7 @@ impl FilezFile {
 
                 insert_into(schema::file_tag_members::table)
                     .values(file_tag_members)
-                    .execute(&mut conn)
+                    .execute(&mut connection)
                     .await?;
             }
         }

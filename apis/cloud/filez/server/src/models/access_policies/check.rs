@@ -24,7 +24,7 @@ pub async fn check_resources_access_control(
     requested_resource_ids: Option<&[Uuid]>,
     action_to_perform: AccessPolicyAction,
 ) -> Result<AuthResult, FilezError> {
-    let mut conn = db.pool.get().await?;
+    let mut connection = db.get_connection().await?;
     let resource_auth_info = get_auth_info(resource_type)?;
 
     let requesting_user_id = &requesting_user.id;
@@ -74,7 +74,7 @@ pub async fn check_resources_access_control(
                 let resource_owners_vec: Vec<ResourceOwnerInfo> =
                     diesel::sql_query(&owners_query_string)
                         .bind::<sql_types::Array<sql_types::Uuid>, _>(requested_resource_ids)
-                        .load::<ResourceOwnerInfo>(&mut conn)
+                        .load::<ResourceOwnerInfo>(&mut connection)
                         .await?;
 
                 // if the app is trusted and all requested resources are owned by the requesting user, return early
@@ -120,7 +120,7 @@ pub async fn check_resources_access_control(
                     user_group_ids
                 ))
                 .select(AccessPolicy::as_select())
-                .load::<AccessPolicy>(&mut conn)
+                .load::<AccessPolicy>(&mut connection)
                 .await?;
 
             let mut direct_policies_map: HashMap<Uuid, Vec<AccessPolicy>> = HashMap::new();
@@ -162,7 +162,7 @@ pub async fn check_resources_access_control(
                         .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(
                             requested_resource_ids,
                         )
-                        .load(&mut conn)
+                        .load(&mut connection)
                         .await?;
 
                 for m in resource_group_memberships {
@@ -190,7 +190,7 @@ pub async fn check_resources_access_control(
                             user_group_ids
                         ))
                         .select(AccessPolicy::as_select())
-                        .load::<AccessPolicy>(&mut conn)
+                        .load::<AccessPolicy>(&mut connection)
                         .await?;
 
                     for policy in resource_group_policies {
@@ -432,7 +432,7 @@ pub async fn check_resources_access_control(
                     user_group_ids
                 ))
                 .select(AccessPolicy::as_select())
-                .load::<AccessPolicy>(&mut conn)
+                .load::<AccessPolicy>(&mut connection)
                 .await?;
 
             if let Some(deny_policy) = type_level_policies

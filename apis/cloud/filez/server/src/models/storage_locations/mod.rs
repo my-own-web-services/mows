@@ -22,6 +22,8 @@ use tokio::sync::RwLock;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use super::file_versions::FileVersionIdentifier;
+
 #[derive(
     Serialize,
     Deserialize,
@@ -65,6 +67,7 @@ pub struct StorageLocationListItem {
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct StorageLocationConfigCrd {
     pub provider_config: StorageProviderConfigCrd,
 }
@@ -72,14 +75,24 @@ pub struct StorageLocationConfigCrd {
 impl StorageLocation {
     pub async fn get_all_storage_locations_health(
         storage_location_providers: &StorageLocationState,
-    ) -> Result<HashMap<Uuid, HealthStatus>, FilezError> {
+    ) -> HashMap<Uuid, HealthStatus> {
         let providers = storage_location_providers.read().await;
-        let mut health_map = HashMap::new();
+
+        let mut provider_ids = Vec::new();
+        let mut get_health_futures: Vec<_> = Vec::new();
+
         for (id, provider) in providers.iter() {
-            health_map.insert(*id, provider.get_health().await);
+            provider_ids.push(*id);
+            get_health_futures.push(provider.get_health());
         }
 
-        Ok(health_map)
+        let get_health_results = futures::future::join_all(get_health_futures).await;
+        let mut health_map = HashMap::new();
+        for (id, provider) in provider_ids.iter().zip(get_health_results.iter()) {
+            health_map.insert(*id, provider.clone());
+        }
+
+        health_map
     }
 
     pub async fn delete(
@@ -87,7 +100,7 @@ impl StorageLocation {
         db: &crate::db::Db,
         name: &str,
     ) -> Result<(), FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let storage_location = crate::schema::storage_locations::table
             .filter(crate::schema::storage_locations::name.eq(name))
@@ -109,13 +122,29 @@ impl StorageLocation {
     pub async fn delete_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        full_file_path: &str,
+        file_version_identifier: &FileVersionIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), FilezError> {
         let provider = self
             .get_provider_from_state(storage_locations_provider_state)
             .await?;
-        Ok(provider.delete_content(full_file_path, timing).await?)
+        Ok(provider
+            .delete_content(file_version_identifier, timing)
+            .await?)
+    }
+
+    pub async fn get_content_sha256_digest(
+        &self,
+        storage_locations_provider_state: &StorageLocationState,
+        file_version_identifier: &FileVersionIdentifier,
+        timing: &axum_server_timing::ServerTimingExtension,
+    ) -> Result<String, FilezError> {
+        let provider = self
+            .get_provider_from_state(storage_locations_provider_state)
+            .await?;
+        Ok(provider
+            .get_content_sha256_digest(file_version_identifier, timing)
+            .await?)
     }
 
     pub async fn create_or_update(
@@ -125,7 +154,7 @@ impl StorageLocation {
         secrets: SecretReadableByFilezController,
         storage_location_config_crd: &StorageLocationConfigCrd,
     ) -> Result<(), FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let provider = storage_location_config_crd
             .provider_config
@@ -176,7 +205,7 @@ impl StorageLocation {
     }
 
     pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<Self, FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
 
         let storage_location = crate::schema::storage_locations::table
             .filter(crate::schema::storage_locations::id.eq(id))
@@ -197,7 +226,7 @@ impl StorageLocation {
     pub async fn initialize_all_providers(
         db: &crate::db::Db,
     ) -> Result<StorageLocationState, FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let storage_locations: Vec<StorageLocation> = crate::schema::storage_locations::table
             .select(StorageLocation::as_select())
             .load(&mut connection)
@@ -222,7 +251,7 @@ impl StorageLocation {
         sort_by: Option<ListStorageLocationsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<StorageLocationListItem>, FilezError> {
-        let mut connection = db.pool.get().await?;
+        let mut connection = db.get_connection().await?;
         let mut query = crate::schema::storage_locations::table.into_boxed();
 
         if let Some(sort_by) = sort_by {
@@ -279,34 +308,37 @@ impl StorageLocation {
     pub async fn get_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        full_file_path: &str,
+        file_version_identifier: &FileVersionIdentifier,
         timing: axum_server_timing::ServerTimingExtension,
         range: &Option<(Option<u64>, Option<u64>)>,
     ) -> Result<axum::body::Body, FilezError> {
         let provider = self
             .get_provider_from_state(storage_locations_provider_state)
             .await?;
-        Ok(provider.get_content(full_file_path, timing, range).await?)
+        Ok(provider
+            .get_content(file_version_identifier, timing, range)
+            .await?)
     }
 
     pub async fn get_file_size(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        full_file_path: &str,
+        file_version_identifier: &FileVersionIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<BigDecimal, FilezError> {
         let provider = self
             .get_provider_from_state(storage_locations_provider_state)
             .await?;
-        Ok(provider.get_file_size(full_file_path, timing).await?)
+        Ok(provider
+            .get_file_size(file_version_identifier, timing)
+            .await?)
     }
 
-    pub async fn update_content(
+    pub async fn set_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-
-        full_file_path: &str,
-        timing: axum_server_timing::ServerTimingExtension,
+        file_version_identifier: &FileVersionIdentifier,
+        timing: &axum_server_timing::ServerTimingExtension,
         request: Request,
         mime_type: &str,
         offset: u64,
@@ -316,7 +348,14 @@ impl StorageLocation {
             .get_provider_from_state(storage_locations_provider_state)
             .await?;
         Ok(provider
-            .update_content(full_file_path, timing, request, mime_type, offset, length)
+            .set_content(
+                file_version_identifier,
+                timing,
+                request,
+                mime_type,
+                offset,
+                length,
+            )
             .await?)
     }
 }

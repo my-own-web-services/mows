@@ -21,4 +21,6 @@ pub enum StorageError {
     GenericError(#[from] anyhow::Error),
     #[error("Secret not found from reference: {0}")]
     SecretNotFound(String),
+    #[error("Axum error: {0}")]
+    AxumError(#[from] axum::Error),
 }

@@ -8,6 +8,7 @@ use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tracing::trace;
 use utoipa::ToSchema;
 
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -45,10 +46,27 @@ impl SecretReadableByFilezController {
         let secrets_api: kube::api::Api<Secret> =
             kube::api::Api::namespaced(kube_client.clone(), namespace);
 
-        let secret = secrets_api
-            .get(FILEZ_CLUSTER_ROLE_SECRET_IDENTIFIER)
-            .await?;
-
+        trace!(
+            "Fetching secrets for Filez controller for resource in namespace: {}",
+            namespace
+        );
+        let secret = match secrets_api.get(FILEZ_CLUSTER_ROLE_SECRET_IDENTIFIER).await {
+            Ok(secret) => secret,
+            Err(kube::Error::Api(e)) if e.code == 404 => {
+                trace!("Secret not found, returning empty map");
+                return Ok(SecretReadableByFilezController {
+                    secrets: HashMap::new(),
+                });
+            }
+            Err(e) => {
+                trace!("Error fetching secret: {:?}", e);
+                return Err(e.into());
+            }
+        };
+        trace!(
+            "Fetched secrets for Filez controller for resource in namespace: {}",
+            namespace
+        );
         let mut secret_map = HashMap::new();
 
         if let Some(data) = secret.data {

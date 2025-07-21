@@ -76,9 +76,7 @@ pub async fn update_file(
     );
 
     if let Some(file_name) = &request_body.file_name {
-        validate_file_name(file_name)
-            .await
-            .map_err(|e| FilezError::ParseError(format!("Invalid file name: {}", e)))?;
+        validate_file_name(file_name)?;
         file.name = file_name.clone();
     };
 

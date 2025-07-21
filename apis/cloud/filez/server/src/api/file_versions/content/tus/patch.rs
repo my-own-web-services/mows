@@ -1,6 +1,6 @@
 use crate::{
     config::TUS_VERSION,
-    errors::FilezError,
+    errors::{FileVersionSizeExceededErrorBody, FilezError},
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::MowsApp,
@@ -8,6 +8,7 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
+    types::ApiResponse,
     with_timing,
 };
 use axum::{
@@ -19,7 +20,10 @@ use axum::{
 use bigdecimal::ToPrimitive;
 use uuid::Uuid;
 use zitadel::axum::introspection::IntrospectedUser;
+
 #[utoipa::path(
+    tag = "FileVersion",
+    description = "Patch a file version using the TUS protocol. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.",
     patch,
     request_body(content_type = "application/offset+octet-stream"),
     path = "/api/file_versions/content/tus/{file_id}/{version}",
@@ -32,6 +36,10 @@ use zitadel::axum::introspection::IntrospectedUser;
         (status = 404, description = "File not found"),
         (status = 412, description = "Precondition failed, likely due to missing or invalid Tus-Resumable header"),
         (status = 400, description = "Bad request, missing or invalid headers"),
+        (status = 415, description = "Unsupported media type, Content-Type must be application/offset+octet-stream"),
+        (status = 413, description = "File version size exceeded, the size of the file version exceeds the allowed limit",
+            body = ApiResponse<FileVersionSizeExceededErrorBody>),
+        (status = 500, description = "Internal server error, unexpected error occurred while processing the request")
     )
 )]
 pub async fn file_versions_content_tus_patch(
@@ -130,10 +138,10 @@ pub async fn file_versions_content_tus_patch(
     }
 
     file_version
-        .update_content(
+        .set(
             &storage_location_providers,
             &db,
-            timing,
+            &timing,
             request,
             request_upload_offset,
             content_length,
