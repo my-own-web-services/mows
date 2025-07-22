@@ -115,7 +115,7 @@ impl StorageQuota {
         if storage_quota.subject_type == AccessPolicySubjectType::User
             && storage_quota.subject_id != *requesting_user_id
         {
-            return Err(FilezError::Unauthorized(
+            return Err(FilezError::Forbidden(
                 "You do not have access to this storage quota".to_string(),
             ));
         }
@@ -125,7 +125,7 @@ impl StorageQuota {
                 .iter()
                 .any(|group_id| *group_id == storage_quota.subject_id)
         {
-            return Err(FilezError::Unauthorized(
+            return Err(FilezError::Forbidden(
                 "You do not have access to this storage quota".to_string(),
             ));
         }

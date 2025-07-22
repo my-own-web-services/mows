@@ -98,8 +98,7 @@ pub async fn create_file(
             status: ApiResponseStatus::Success,
             message: "Created File".to_string(),
             data: Some(CreateFileResponseBody {
-                id: db_created_file.id.to_string(),
-                mime_type: db_created_file.mime_type.to_string(),
+                created_file: db_created_file,
             }),
         }),
     ))
@@ -115,6 +114,5 @@ pub struct CreateFileRequestBody {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct CreateFileResponseBody {
-    pub id: String,
-    pub mime_type: String,
+    pub created_file: FilezFile,
 }

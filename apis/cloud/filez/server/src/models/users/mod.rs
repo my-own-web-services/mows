@@ -313,7 +313,7 @@ impl FilezUser {
                         external_user.user_id.clone().unwrap(),
                         impersonation_user_id
                     );
-                    return Err(FilezError::Unauthorized(
+                    return Err(FilezError::Forbidden(
                         "Impersonation is not allowed for this user".to_string(),
                     ));
                 } else {

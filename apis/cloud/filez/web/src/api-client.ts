@@ -70,11 +70,6 @@ export enum FileGroupType {
   Dynamic = "Dynamic",
 }
 
-export enum ApiResponseStatus {
-  Success = "Success",
-  Error = "Error",
-}
-
 export enum AccessPolicySubjectType {
   User = "User",
   UserGroup = "UserGroup",
@@ -167,6 +162,12 @@ export interface AccessPolicy {
   subject_type: AccessPolicySubjectType;
 }
 
+export type ApiResponseStatus =
+  | "Success"
+  | {
+      Error: string;
+    };
+
 export interface ApiResponseAccessPolicy {
   data?: {
     actions: AccessPolicyAction[];
@@ -211,8 +212,7 @@ export interface ApiResponseCheckResourceAccessResponseBody {
 
 export interface ApiResponseCreateFileResponseBody {
   data?: {
-    id: string;
-    mime_type: string;
+    created_file: FilezFile;
   };
   message: string;
   status: ApiResponseStatus;
@@ -289,6 +289,23 @@ export interface ApiResponseFileGroup {
     name: string;
     /** @format uuid */
     owner_id: string;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseFileVersionSizeExceededErrorBody {
+  data?: {
+    /**
+     * @format int64
+     * @min 0
+     */
+    allowed: number;
+    /**
+     * @format int64
+     * @min 0
+     */
+    received: number;
   };
   message: string;
   status: ApiResponseStatus;
@@ -620,14 +637,24 @@ export interface CreateFileRequestBody {
 }
 
 export interface CreateFileResponseBody {
-  id: string;
-  mime_type: string;
+  created_file: FilezFile;
 }
 
 export interface CreateFileVersionRequestBody {
   app_path?: string | null;
+  /**
+   * Optional SHA256 digest of the file content as a lowercase hexadecimal string.
+   * Once the content is fully uploaded it automatically gets validated against this digest.
+   * After successful validation, the versions content_valid field is set to true.
+   * @minLength 64
+   * @maxLength 64
+   * @pattern ^[a-f0-9]{64}$
+   */
   content_expected_sha256_digest?: string | null;
-  /** @format uuid */
+  /**
+   * The ID of the file to create a version for.
+   * @format uuid
+   */
   file_id: string;
   metadata: FileVersionMetadata;
   /** @format int64 */
@@ -787,6 +814,19 @@ export interface FileVersionIdentifier {
 }
 
 export type FileVersionMetadata = object;
+
+export interface FileVersionSizeExceededErrorBody {
+  /**
+   * @format int64
+   * @min 0
+   */
+  allowed: number;
+  /**
+   * @format int64
+   * @min 0
+   */
+  received: number;
+}
 
 export interface FilezFile {
   /** @format date-time */
@@ -1560,10 +1600,13 @@ export class Api<
     /**
      * No description
      *
-     * @name ListFiles
+     * @name ListFilesByFileGroups
      * @request POST:/api/file_groups/list_files
      */
-    listFiles: (data: ListFilesRequestBody, params: RequestParams = {}) =>
+    listFilesByFileGroups: (
+      data: ListFilesRequestBody,
+      params: RequestParams = {},
+    ) =>
       this.request<
         ApiResponseListFilesResponseBody,
         ApiResponseEmptyApiResponse
@@ -1666,7 +1709,7 @@ export class Api<
       data: any,
       params: RequestParams = {},
     ) =>
-      this.request<void, void>({
+      this.request<void, void | ApiResponseFileVersionSizeExceededErrorBody>({
         path: `/api/file_versions/content/tus/${fileId}/${version}`,
         method: "PATCH",
         body: data,

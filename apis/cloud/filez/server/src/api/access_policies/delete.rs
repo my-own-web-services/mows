@@ -1,12 +1,3 @@
-use axum::{
-    extract::{Path, State},
-    http::HeaderMap,
-    Extension, Json,
-};
-
-use uuid::Uuid;
-use zitadel::axum::introspection::IntrospectedUser;
-
 use crate::{
     errors::FilezError,
     models::{
@@ -18,6 +9,13 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
+use axum::{
+    extract::{Path, State},
+    http::HeaderMap,
+    Extension, Json,
+};
+use uuid::Uuid;
+use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     delete,

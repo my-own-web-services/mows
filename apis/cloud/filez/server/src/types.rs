@@ -10,7 +10,6 @@ use crate::{
         storage_quotas::create::CreateStorageQuotaRequestBody,
         user_groups::create::CreateUserGroupRequestBody,
     },
-    errors::FilezError,
     models::{
         access_policies::AccessPolicy, file_groups::FileGroup, storage_quotas::StorageQuota,
         user_groups::UserGroup, users::FilezUser,
@@ -47,7 +46,7 @@ use utoipa::ToSchema;
         )
     ),
 )]
-pub struct ApiDoc;
+pub struct FilezApiDoc;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Eq, PartialEq, Debug)]
 pub enum SortDirection {

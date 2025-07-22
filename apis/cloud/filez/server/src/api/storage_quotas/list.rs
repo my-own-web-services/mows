@@ -1,8 +1,3 @@
-use axum::{extract::State, http::HeaderMap, Extension, Json};
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-use zitadel::axum::introspection::IntrospectedUser;
-
 use crate::{
     errors::FilezError,
     models::{apps::MowsApp, storage_quotas::StorageQuota, users::FilezUser},
@@ -10,6 +5,10 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
+use axum::{extract::State, http::HeaderMap, Extension, Json};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
@@ -60,7 +59,7 @@ pub async fn list_storage_quotas(
     }))
 }
 
-#[derive(serde::Serialize, serde::Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListStorageQuotasRequestBody {
     pub from_index: Option<i64>,
     pub limit: Option<i64>,
