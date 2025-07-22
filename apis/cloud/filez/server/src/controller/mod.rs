@@ -25,12 +25,10 @@ use serde::Serialize;
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::RwLock;
-use tracing::{debug, error, field, info, instrument, warn, Span};
+use tracing::{debug, error, field, info, instrument, Span};
 
 pub mod crd;
 pub mod metrics;
-
-pub type Result<T, E = FilezError> = std::result::Result<T, E>;
 
 pub static FINALIZER: &str = "filez.k8s.mows.cloud";
 
@@ -74,7 +72,7 @@ async fn inner_reconcile(
 }
 
 impl FilezResource {
-    async fn reconcile(&self, ctx: Arc<ControllerContext>) -> Result<Action> {
+    async fn reconcile(&self, ctx: Arc<ControllerContext>) -> Result<Action, FilezError> {
         let kube_client = ctx.client.clone();
 
         let config = get_current_config_cloned!(config());
@@ -155,7 +153,7 @@ impl FilezResource {
             config.reconcile_interval_seconds,
         )))
     }
-    async fn cleanup(&self, ctx: Arc<ControllerContext>) -> Result<Action> {
+    async fn cleanup(&self, ctx: Arc<ControllerContext>) -> Result<Action, FilezError> {
         let full_name = format!(
             "{}-{}",
             self.namespace().unwrap_or_default(),
@@ -247,7 +245,7 @@ impl Diagnostics {
     }
 }
 
-pub async fn run(state: ServerState) -> Result<()> {
+pub async fn run(state: ServerState) -> Result<(), FilezError> {
     let client = Client::try_default().await.map_err(|e| {
         error!("Failed to create Kubernetes client: {e:?}");
         FilezError::ControllerKubeError(e)
@@ -285,7 +283,7 @@ pub async fn run(state: ServerState) -> Result<()> {
 async fn reconcile(
     vault_resource: Arc<FilezResource>,
     ctx: Arc<ControllerContext>,
-) -> Result<Action> {
+) -> Result<Action, FilezError> {
     let trace_id = get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));

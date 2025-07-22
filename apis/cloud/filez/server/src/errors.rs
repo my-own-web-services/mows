@@ -55,6 +55,9 @@ pub enum FilezError {
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
 
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
+
     #[error("Unsupported resource type: {0}")]
     ResourceAuthInfoError(String),
 
@@ -98,6 +101,7 @@ pub struct FileVersionContentDigestMismatchBody {
     pub received: String,
 }
 
+// TODO this can be improved
 impl IntoResponse for FilezError {
     fn into_response(self) -> axum::response::Response {
         let (status, data, error_name) = match &self {
@@ -158,8 +162,13 @@ impl IntoResponse for FilezError {
                 None,
                 "Unauthorized".to_string(),
             ),
+            FilezError::Forbidden(_) => (
+                axum::http::StatusCode::FORBIDDEN,
+                None,
+                "Forbidden".to_string(),
+            ),
             FilezError::AuthEvaluationError(_) => (
-                axum::http::StatusCode::UNAUTHORIZED,
+                axum::http::StatusCode::FORBIDDEN,
                 None,
                 "AuthEvaluationError".to_string(),
             ),

@@ -25,7 +25,7 @@ pub async fn check_resources_access_control(
     action_to_perform: AccessPolicyAction,
 ) -> Result<AuthResult, FilezError> {
     let mut connection = db.get_connection().await?;
-    let resource_auth_info = get_auth_info(resource_type)?;
+    let resource_auth_info = get_auth_info(resource_type);
 
     let requesting_user_id = &requesting_user.id;
 
@@ -617,10 +617,8 @@ pub struct ResourceAuthInfo {
     pub resource_group_type: Option<AccessPolicyResourceType>,
 }
 
-pub fn get_auth_info(
-    resource_type: AccessPolicyResourceType,
-) -> Result<ResourceAuthInfo, FilezError> {
-    Ok(match resource_type {
+pub fn get_auth_info(resource_type: AccessPolicyResourceType) -> ResourceAuthInfo {
+    match resource_type {
         AccessPolicyResourceType::File => ResourceAuthInfo {
             resource_table: "files",
             resource_table_id_column: "id",
@@ -692,7 +690,7 @@ pub fn get_auth_info(
             group_membership_table_group_id_column: None,
             resource_group_type: None,
         },
-    })
+    }
 }
 
 #[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]

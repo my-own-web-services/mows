@@ -262,7 +262,7 @@ impl AccessPolicy {
         action_to_perform: AccessPolicyAction,
     ) -> Result<Vec<Uuid>, FilezError> {
         let mut connection = db.get_connection().await?;
-        let resource_auth_info = check::get_auth_info(resource_type)?;
+        let resource_auth_info = check::get_auth_info(resource_type);
         let user_group_ids = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
 
         let mut allowed_ids: HashSet<Uuid> = HashSet::new();

@@ -118,11 +118,16 @@ pub async fn create_file_version(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct CreateFileVersionRequestBody {
+    /// The ID of the file to create a version for.
     pub file_id: Uuid,
     pub app_path: Option<String>,
     pub metadata: FileVersionMetadata,
     pub size: i64,
     pub storage_quota_id: Uuid,
+    /// Optional SHA256 digest of the file content as a lowercase hexadecimal string.
+    /// Once the content is fully uploaded it automatically gets validated against this digest.
+    /// After successful validation, the versions content_valid field is set to true.
+    #[schema(max_length = 64, min_length = 64, pattern = "^[a-f0-9]{64}$")]
     pub content_expected_sha256_digest: Option<String>,
 }
 

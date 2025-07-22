@@ -8,7 +8,7 @@ use filez_server_lib::{
     db::Db,
     models::apps::MowsApp,
     state::ServerState,
-    types::ApiDoc,
+    types::FilezApiDoc,
     utils::shutdown_signal,
 };
 use mows_common_rust::{
@@ -56,7 +56,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let db_for_cors_layer = server_state.db.clone();
 
-    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+    let (router, api) = OpenApiRouter::with_openapi(FilezApiDoc::openapi())
         // NOTE!
         // Sometimes when something is wrong with the extractors a warning will appear of an axum version mismatch.
         // THIS IS NOT THE REASON why the error occurs.
@@ -91,7 +91,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::file_groups::update::update_file_group))
         .routes(routes!(api::file_groups::delete::delete_file_group))
         .routes(routes!(api::file_groups::list::list_file_groups))
-        .routes(routes!(api::file_groups::list_files::list_files))
+        .routes(routes!(
+            api::file_groups::list_files::list_files_by_file_groups
+        ))
         .routes(routes!(
             api::file_groups::update_members::update_file_group_members
         ))

@@ -249,6 +249,7 @@ impl FileVersion {
                     "Verifying content for file version: {:?} with expected digest: {}",
                     self, expected_sha256_digest
                 );
+
                 let content_digest = storage_location
                     .get_content_sha256_digest(
                         storage_locations_provider_state,
@@ -256,6 +257,7 @@ impl FileVersion {
                         timing,
                     )
                     .await?;
+
                 debug!(
                     "Content digest for file version: {:?} is: {}",
                     self, content_digest
