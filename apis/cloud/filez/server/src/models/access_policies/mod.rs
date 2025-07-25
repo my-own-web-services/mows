@@ -21,9 +21,9 @@ use uuid::Uuid;
 
 use super::{user_groups::UserGroup, users::FilezUser};
 
-/// ```rs
-///filter_subject_access_policies!(requesting_user_id: &Uuid, user_group_ids: Vec<Uuid>)
-///```
+/// ```
+/// filter_subject_access_policies!(requesting_user_id: &Uuid, user_group_ids: Vec<Uuid>)
+/// ```
 #[macro_export]
 macro_rules! filter_subject_access_policies {
     ($requesting_user_id:expr, $user_group_ids:expr) => {{

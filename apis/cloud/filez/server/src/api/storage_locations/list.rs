@@ -1,19 +1,17 @@
 use crate::{
+    auth_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        apps::MowsApp,
         storage_locations::{StorageLocation, StorageLocationListItem},
-        users::FilezUser,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, SortDirection},
     with_timing,
 };
-use axum::{extract::State, http::HeaderMap, Extension, Json};
+use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
@@ -24,24 +22,14 @@ use zitadel::axum::introspection::IntrospectedUser;
     )
 )]
 pub async fn list_storage_locations(
-    external_user: IntrospectedUser,
-    request_headers: HeaderMap,
+    Extension(AuthenticatedUserAndApp {
+        requesting_user,
+        requesting_app,
+    }): Extension<AuthenticatedUserAndApp>,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListStorageLocationsRequestBody>,
 ) -> Result<Json<ApiResponse<ListStorageLocationsResponseBody>>, FilezError> {
-    let requesting_user = with_timing!(
-        FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
-        "Database operation to get user by external ID",
-        timing
-    );
-
-    let requesting_app = with_timing!(
-        MowsApp::get_from_headers(&db, &request_headers).await?,
-        "Database operation to get app from headers",
-        timing
-    );
-
     with_timing!(
         AccessPolicy::check(
             &db,

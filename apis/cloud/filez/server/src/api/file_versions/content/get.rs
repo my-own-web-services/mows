@@ -1,11 +1,10 @@
 use crate::{
+    auth_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        apps::MowsApp,
         file_versions::FileVersion,
         files::FilezFile,
-        users::FilezUser,
     },
     state::ServerState,
     types::{ApiResponse, EmptyApiResponse},
@@ -26,7 +25,6 @@ use bigdecimal::ToPrimitive;
 use serde::Deserialize;
 use utoipa::IntoParams;
 use uuid::Uuid;
-use zitadel::axum::introspection::IntrospectedUser;
 
 #[derive(Deserialize, IntoParams)]
 pub struct GetFileVersionRequestQueryParams {
@@ -54,7 +52,10 @@ pub struct GetFileVersionRequestQueryParams {
     )
 )]
 pub async fn get_file_version_content(
-    external_user: IntrospectedUser,
+    Extension(AuthenticatedUserAndApp {
+        requesting_user,
+        requesting_app,
+    }): Extension<AuthenticatedUserAndApp>,
     State(ServerState {
         db,
         storage_location_providers,
@@ -73,18 +74,6 @@ pub async fn get_file_version_content(
     let version: Option<u32> = version.into();
     let app_id: Option<Uuid> = app_id.into();
     let app_path: Option<String> = app_path.into();
-
-    let requesting_user = with_timing!(
-        FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
-        "Database operation to get user by external ID",
-        timing
-    );
-
-    let requesting_app = with_timing!(
-        MowsApp::get_from_headers(&db, &request_headers).await?,
-        "Database operation to get app from headers",
-        timing
-    );
 
     with_timing!(
         AccessPolicy::check(

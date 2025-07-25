@@ -1,10 +1,9 @@
 use crate::{
+    auth_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        apps::MowsApp,
         files::FilezFile,
-        users::FilezUser,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
@@ -14,7 +13,7 @@ use crate::{
 use anyhow::Context;
 use axum::{
     extract::State,
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     response::IntoResponse,
     Extension, Json,
 };
@@ -23,7 +22,6 @@ use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use utoipa::ToSchema;
-use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
@@ -35,24 +33,14 @@ use zitadel::axum::introspection::IntrospectedUser;
     )
 )]
 pub async fn create_file(
-    external_user: IntrospectedUser,
-    request_headers: HeaderMap,
+    Extension(AuthenticatedUserAndApp {
+        requesting_user,
+        requesting_app,
+    }): Extension<AuthenticatedUserAndApp>,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
-    let requesting_user = with_timing!(
-        FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
-        "Database operation to get user by external ID",
-        timing
-    );
-
-    let requesting_app = with_timing!(
-        MowsApp::get_from_headers(&db, &request_headers).await?,
-        "Database operation to get app from headers",
-        timing
-    );
-
     with_timing!(
         AccessPolicy::check(
             &db,

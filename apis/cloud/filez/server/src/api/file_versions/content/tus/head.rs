@@ -6,16 +6,14 @@ use axum::{
 };
 
 use uuid::Uuid;
-use zitadel::axum::introspection::IntrospectedUser;
 
 use crate::{
+    auth_middleware::AuthenticatedUserAndApp,
     config::TUS_VERSION,
     errors::FilezError,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        apps::MowsApp,
         file_versions::FileVersion,
-        users::FilezUser,
     },
     state::ServerState,
     with_timing,
@@ -36,7 +34,10 @@ use crate::{
     )
 )]
 pub async fn file_versions_content_tus_head(
-    external_user: IntrospectedUser,
+    Extension(AuthenticatedUserAndApp {
+        requesting_user,
+        requesting_app,
+    }): Extension<AuthenticatedUserAndApp>,
     State(ServerState {
         db,
         storage_location_providers,
@@ -57,18 +58,6 @@ pub async fn file_versions_content_tus_head(
         response_headers.insert("Tus-Resumable", TUS_VERSION.parse().unwrap());
         return Ok((StatusCode::PRECONDITION_FAILED, response_headers, ()));
     };
-
-    let requesting_user = with_timing!(
-        FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
-        "Database operation to get user by external ID",
-        timing
-    );
-
-    let requesting_app = with_timing!(
-        MowsApp::get_from_headers(&db, &request_headers).await?,
-        "Database operation to get app from headers",
-        timing
-    );
 
     with_timing!(
         AccessPolicy::check(
