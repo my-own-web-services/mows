@@ -66,9 +66,6 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(api::files::get::get_files))
         .routes(routes!(api::files::update::update_file))
         .routes(routes!(api::files::delete::delete_file))
-        // metadata
-        .routes(routes!(api::files::meta::get::get_files_metadata))
-        .routes(routes!(api::files::meta::update::update_files_metadata))
         // FILE VERSIONS
         .routes(routes!(api::file_versions::get::get_file_versions))
         .routes(routes!(api::file_versions::create::create_file_version))
@@ -135,6 +132,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(
             api::storage_locations::list::list_storage_locations
         ))
+        // TAGS
+        .routes(routes!(api::tags::get::get_tags))
+        .routes(routes!(api::tags::update::update_tags))
         // HEALTH
         .routes(routes!(api::health::get_health))
         .with_state(server_state.clone())

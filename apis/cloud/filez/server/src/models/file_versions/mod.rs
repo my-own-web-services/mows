@@ -1,3 +1,4 @@
+use crate::utils::get_uuid;
 use crate::{
     api::file_versions::update::UpdateFileVersion, db::Db, errors::FilezError,
     schema::file_versions, state::StorageLocationState, with_timing,
@@ -65,6 +66,7 @@ impl FileVersionIdentifier {
 #[diesel(table_name = crate::schema::file_versions)]
 #[diesel(check_for_backend(Pg))]
 pub struct FileVersion {
+    pub id: Uuid,
     pub file_id: Uuid,
     pub version: i32,
     pub app_id: Uuid,
@@ -98,6 +100,7 @@ impl FileVersion {
         content_expected_sha256_digest: Option<String>,
     ) -> Self {
         Self {
+            id: get_uuid(),
             file_id,
             version,
             app_id,
@@ -410,9 +413,14 @@ impl FileVersion {
 
             if let Some(metadata) = &file_version_update.new_metadata {
                 file_version.metadata = metadata.clone();
+                file_version.modified_time = chrono::Utc::now().naive_utc();
             }
 
-            file_version.modified_time = chrono::Utc::now().naive_utc();
+            if let Some(new_digest) = &file_version_update.new_content_expected_sha256_digest {
+                file_version.content_expected_sha256_digest = Some(new_digest.clone());
+                file_version.content_valid = false;
+                file_version.modified_time = chrono::Utc::now().naive_utc();
+            }
 
             let updated_version = diesel::update(filter_file_version_by_identifier!(
                 file_version_update.identifier

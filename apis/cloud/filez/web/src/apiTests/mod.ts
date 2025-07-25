@@ -1,10 +1,12 @@
 import { Api } from "../api-client";
-import { allroundTest10 } from "./misc/10-allround";
+import { tagsTest } from "./misc/20-tags";
 
 export const runTests = async (filezClient: Api<unknown>) => {
     console.log("Running API tests...");
 
-    await allroundTest10(filezClient);
+    //await allroundTest(filezClient);
+
+    await tagsTest(filezClient);
 
     console.log("API tests completed.");
 };

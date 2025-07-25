@@ -9,7 +9,7 @@ import {
 } from "../../api-client";
 import { getBlobSha256Digest, impersonateUser } from "../../utils";
 
-export const allroundTest10 = async (filezClient: Api<unknown>) => {
+export const allroundTest = async (filezClient: Api<unknown>) => {
     console.log("Running all-round test...");
 
     const aliceEmail = "alice@example.com";
@@ -522,12 +522,3 @@ export const allroundTest10 = async (filezClient: Api<unknown>) => {
     console.log("Bob correctly failed to list files in Alice's second file group.");
     console.log("All-round-10 test completed successfully.");
 };
-
-// create 2 file groups
-// add the 10 files to the file groups random 7 into the first 3 in the second
-// list the files of the file groups
-// create a access rule that allows the listing of files in the file group to bob
-
-// impersonate bob
-// try to list the files in the file group
-// try to delete the files in the file group

@@ -4,6 +4,8 @@ use std::path::Path;
 use anyhow::Context;
 use tokio::fs;
 
+/// Generates a random alphanumeric string of the specified length.
+// TODO: Use the OsRng directly for better randomness
 pub fn generate_id(length: usize) -> String {
     const CHARSET: &[u8; 62] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 

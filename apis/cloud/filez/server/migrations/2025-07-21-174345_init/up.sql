@@ -113,6 +113,7 @@ CREATE TABLE "tags"(
 );
 
 CREATE TABLE "file_versions"(
+	"id" UUID NOT NULL UNIQUE,
 	"file_id" UUID NOT NULL,
 	"version" INTEGER NOT NULL,
 	"app_id" UUID NOT NULL,
@@ -133,10 +134,6 @@ CREATE TABLE "file_versions"(
 );
 
 
-
-
-
-
 CREATE TABLE "user_groups"(
 	"id" UUID NOT NULL PRIMARY KEY,
 	"owner_id" UUID NOT NULL,
@@ -150,12 +147,15 @@ CREATE TABLE "user_groups"(
 CREATE TABLE "jobs"(
 	"id" UUID NOT NULL PRIMARY KEY,
 	"owner_id" UUID NOT NULL,
+	"app_id" UUID NOT NULL,
 	"name" TEXT NOT NULL,
 	"status" JSONB NOT NULL,
 	"created_time" TIMESTAMP NOT NULL,
 	"modified_time" TIMESTAMP NOT NULL,
 	"start_time" TIMESTAMP,
-	"end_time" TIMESTAMP
+	"end_time" TIMESTAMP,
+	FOREIGN KEY ("owner_id") REFERENCES "users"("id"),
+	FOREIGN KEY ("app_id") REFERENCES "apps"("id")
 );
 
 CREATE TABLE "user_relations"(
@@ -167,13 +167,14 @@ CREATE TABLE "user_relations"(
 	PRIMARY KEY("user_id", "friend_id")
 );
 
-CREATE TABLE "file_tag_members"(
-	"file_id" UUID NOT NULL,
+CREATE TABLE "tag_members"(
+	"resource_id" UUID NOT NULL,
+	"resource_type" SMALLINT NOT NULL,
 	"tag_id" UUID NOT NULL,
 	"created_time" TIMESTAMP NOT NULL,
 	"created_by_user_id" UUID NOT NULL,
-	PRIMARY KEY("file_id", "tag_id"),
-	FOREIGN KEY ("created_by_user_id") REFERENCES "users"("id")
+	FOREIGN KEY ("created_by_user_id") REFERENCES "users"("id"),
+	FOREIGN KEY ("tag_id") REFERENCES "tags"("id")
 );
 
 CREATE TABLE "access_policies"(

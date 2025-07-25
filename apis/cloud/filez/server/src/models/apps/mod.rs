@@ -32,11 +32,24 @@ use uuid::Uuid;
 )]
 #[diesel(table_name = crate::schema::apps)]
 #[diesel(check_for_backend(Pg))]
+/// # Backend Apps
+/// Pods can authenticate as apps using their Kubernetes service account token
+/// Backend apps can act on behalf of users by picking up jobs created by users
+/// # Frontend Apps
+/// Frontend Apps are recognized by their origin that is sent with the browser request
+/// They can act on behalf of users if an access policy allows it
 pub struct MowsApp {
+    /// Unique identifier for the app in the database, this is used to identify the app in all database operations
     pub id: Uuid,
+    /// Name and Namespace of the app in Kubernetes
+    /// Renaming an app in Kubernetes will not change the name in the database but create a new app with the new name
+    /// Generally the name should not be changed, if it is it can be manually adjusted in the database
     pub name: String,
     pub description: Option<String>,
+    /// If a app is marked as trusted, it can access all resources without any restrictions
     pub trusted: bool,
+    /// Origins are used to identify the app in the browser, all origins must be unique accross all apps
+    /// If an app has no origins, it is considered a backend app
     pub origins: Option<Vec<String>>,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,

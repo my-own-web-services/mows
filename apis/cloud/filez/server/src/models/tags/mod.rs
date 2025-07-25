@@ -1,11 +1,10 @@
+use crate::utils::get_uuid;
 use diesel::{
     pg::Pg,
     prelude::{Insertable, Queryable, QueryableByName},
     Selectable,
 };
 use uuid::Uuid;
-
-use crate::utils::get_uuid;
 
 #[derive(Queryable, Selectable, Clone, Insertable, Debug, QueryableByName)]
 #[diesel(check_for_backend(Pg))]

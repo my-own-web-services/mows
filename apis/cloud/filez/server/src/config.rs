@@ -8,6 +8,8 @@ pub const TUS_VERSION: &str = "1.0.0";
 
 pub const IMPERSONATE_USER_HEADER: &str = "X-Filez-Impersonate-User";
 
+pub const KEY_ACCESS_HEADER: &str = "X-Filez-Key-Access";
+
 pub fn config() -> &'static RwLock<FilezServerConfig> {
     static CONFIG: OnceLock<RwLock<FilezServerConfig>> = OnceLock::new();
     CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))

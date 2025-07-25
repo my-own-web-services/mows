@@ -2,7 +2,7 @@ use super::{AccessPolicyAction, AccessPolicyResourceType};
 use crate::errors::FilezError;
 use crate::filter_subject_access_policies;
 use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPolicySubjectType};
-use crate::models::users::FilezUser;
+use crate::models::users::{FilezUser, FilezUserType};
 use crate::{db::Db, schema};
 use diesel::{
     pg::sql_types, prelude::*, BoolExpressionMethods, ExpressionMethods, SelectableHelper,
@@ -17,7 +17,7 @@ use uuid::Uuid;
 pub async fn check_resources_access_control(
     db: &Db,
     requesting_user: &FilezUser,
-    user_group_ids: &[Uuid],
+    user_group_ids: &Vec<Uuid>,
     context_app_id: &Uuid,
     context_app_trusted: bool,
     resource_type: AccessPolicyResourceType,
@@ -29,7 +29,7 @@ pub async fn check_resources_access_control(
 
     let requesting_user_id = &requesting_user.id;
 
-    if requesting_user.super_admin {
+    if requesting_user.user_type == FilezUserType::SuperAdmin {
         // Super admins bypass all access control checks
         return Ok(AuthResult {
             access_granted: true,
@@ -54,10 +54,9 @@ pub async fn check_resources_access_control(
     match requested_resource_ids {
         Some(requested_resource_ids) => {
             if requested_resource_ids.is_empty() {
-                return Ok(AuthResult {
-                    access_granted: true,
-                    evaluations: Vec::new(),
-                });
+                return Err(FilezError::AuthEvaluationError(
+                    "No resource IDs provided for access control check".to_string(),
+                ));
             };
 
             let owners_map: HashMap<Uuid, Uuid> = if let Some(owner_col) =
@@ -429,7 +428,7 @@ pub async fn check_resources_access_control(
                 .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
                 .filter(filter_subject_access_policies!(
                     requesting_user_id,
-                    user_group_ids
+                    &user_group_ids
                 ))
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut connection)
@@ -707,6 +706,7 @@ impl AuthResult {
     pub fn is_denied(&self) -> bool {
         !self.access_granted
     }
+
     pub fn verify(&self) -> Result<(), FilezError> {
         if self.is_allowed() {
             Ok(())
