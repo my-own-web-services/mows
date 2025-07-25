@@ -21,20 +21,25 @@ use uuid::Uuid;
 
 use super::{user_groups::UserGroup, users::FilezUser};
 
-// macro to filter for subject type
+/// ```rs
+///filter_subject_access_policies!(requesting_user_id: &Uuid, user_group_ids: Vec<Uuid>)
+///```
 #[macro_export]
 macro_rules! filter_subject_access_policies {
-    ($requesting_user_id:expr, $user_group_ids:expr) => {
+    ($requesting_user_id:expr, $user_group_ids:expr) => {{
+        let requesting_user_id: &Uuid = $requesting_user_id;
+        let user_group_ids: &Vec<Uuid> = $user_group_ids;
+
         schema::access_policies::subject_type
             .eq(AccessPolicySubjectType::Public)
             .or(schema::access_policies::subject_type.eq(AccessPolicySubjectType::ServerMember))
             .or(schema::access_policies::subject_type
                 .eq(AccessPolicySubjectType::User)
-                .and(schema::access_policies::subject_id.eq($requesting_user_id)))
+                .and(schema::access_policies::subject_id.eq(requesting_user_id)))
             .or(schema::access_policies::subject_type
                 .eq(AccessPolicySubjectType::UserGroup)
-                .and(schema::access_policies::subject_id.eq_any($user_group_ids)))
-    };
+                .and(schema::access_policies::subject_id.eq_any(user_group_ids)))
+    }};
 }
 
 #[derive(
@@ -77,14 +82,14 @@ pub enum AccessPolicySubjectType {
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
 pub enum AccessPolicyResourceType {
-    File,
-    // FileVersion policies are set related to the file itself, not the version
-    FileGroup,
-    User,
-    UserGroup,
-    StorageLocation,
-    AccessPolicy,
-    StorageQuota,
+    File = 0,
+    // FileVersion policies are related to the file itself, not the version
+    FileGroup = 1,
+    User = 2,
+    UserGroup = 3,
+    StorageLocation = 4,
+    AccessPolicy = 5,
+    StorageQuota = 6,
 }
 
 #[derive(
@@ -113,59 +118,62 @@ pub enum AccessPolicyEffect {
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
 pub enum AccessPolicyAction {
-    FilezFilesCreate,
-    FilezFilesDelete,
-    FilezFilesGet,
-    FilezFilesUpdate,
+    FilezFilesCreate = 0,
+    FilezFilesDelete = 10,
+    FilezFilesGet = 20,
+    FilezFilesUpdate = 30,
 
-    FilezFilesMetaGet,
-    FilezFilesMetaList,
-    FilezFilesMetaUpdate,
+    FilezFilesMetaGet = 40,
+    FilezFilesMetaList = 50,
+    FilezFilesMetaUpdate = 60,
 
-    FilezFilesVersionsContentGet,
-    FilezFilesVersionsContentTusHead,
-    FilezFilesVersionsContentTusPatch,
-    FilezFilesVersionsDelete,
-    FilezFilesVersionsGet,
-    FilezFilesVersionsUpdate,
-    FilezFilesVersionsCreate,
+    FilezFilesVersionsContentGet = 70,
+    FilezFilesVersionsContentTusHead = 80,
+    FilezFilesVersionsContentTusPatch = 90,
+    FilezFilesVersionsDelete = 100,
+    FilezFilesVersionsGet = 110,
+    FilezFilesVersionsUpdate = 120,
+    FilezFilesVersionsCreate = 130,
 
-    UsersGet,
-    UsersList,
-    UsersCreate,
-    UsersUpdate,
-    UsersDelete,
+    UsersGet = 140,
+    UsersList = 150,
+    UsersCreate = 160,
+    UsersUpdate = 170,
+    UsersDelete = 180,
 
-    FileGroupsCreate,
-    FileGroupsGet,
-    FileGroupsUpdate,
-    FileGroupsDelete,
-    FileGroupsList,
-    FileGroupsListFiles,
-    FileGroupsUpdateMembers,
+    FileGroupsCreate = 190,
+    FileGroupsGet = 200,
+    FileGroupsUpdate = 210,
+    FileGroupsDelete = 220,
+    FileGroupsList = 230,
+    FileGroupsListFiles = 240,
+    FileGroupsUpdateMembers = 250,
 
-    UserGroupsCreate,
-    UserGroupsGet,
-    UserGroupsUpdate,
-    UserGroupsDelete,
-    UserGroupsList,
-    UserGroupsListUsers,
-    UserGroupsUpdateMembers,
+    UserGroupsCreate = 260,
+    UserGroupsGet = 270,
+    UserGroupsUpdate = 280,
+    UserGroupsDelete = 290,
+    UserGroupsList = 300,
+    UserGroupsListUsers = 310,
+    UserGroupsUpdateMembers = 320,
 
-    AccessPoliciesCreate,
-    AccessPoliciesGet,
-    AccessPoliciesUpdate,
-    AccessPoliciesDelete,
-    AccessPoliciesList,
+    AccessPoliciesCreate = 330,
+    AccessPoliciesGet = 340,
+    AccessPoliciesUpdate = 350,
+    AccessPoliciesDelete = 360,
+    AccessPoliciesList = 370,
 
-    StorageQuotasCreate,
-    StorageQuotasGet,
-    StorageQuotasUpdate,
-    StorageQuotasDelete,
-    StorageQuotasList,
+    StorageQuotasCreate = 380,
+    StorageQuotasGet = 390,
+    StorageQuotasUpdate = 400,
+    StorageQuotasDelete = 410,
+    StorageQuotasList = 420,
 
-    StorageLocationsGet,
-    StorageLocationsList,
+    StorageLocationsGet = 430,
+    StorageLocationsList = 440,
+
+    TagsUpdate = 450,
+    TagsGet = 460,
 }
 
 #[derive(
@@ -194,10 +202,12 @@ pub struct AccessPolicy {
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
 
+    /// The ID of the application this policy is associated with, if None, the policy applies to all applications.
     pub context_app_id: Option<Uuid>,
 
     #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub resource_type: AccessPolicyResourceType,
+    /// The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
     pub resource_id: Option<Uuid>,
 
     #[diesel(sql_type = diesel::sql_types::Array<diesel::sql_types::SmallInt>)]

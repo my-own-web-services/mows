@@ -1,17 +1,17 @@
 import { Component } from "preact";
 import { Route, Router } from "preact-router";
 import { CSSProperties } from "preact/compat";
-import { AuthState, withAuth } from "react-oidc-context";
+import { AuthContextProps, withAuth } from "react-oidc-context";
 import { Api } from "./api-client";
 import Auth from "./routes/Auth";
 import Dev from "./routes/Dev";
 import Home from "./routes/Home";
-import { createFilezClient, impersonateUser } from "./utils";
+import { createFilezClient } from "./utils";
 
 interface AppProps {
     readonly className?: string;
     readonly style?: CSSProperties;
-    readonly auth?: AuthState;
+    readonly auth?: AuthContextProps;
     readonly serverUrl: string;
 }
 
@@ -38,8 +38,12 @@ class App extends Component<AppProps, AppState> {
 
             this.setState({ filezClient }, async () => {
                 console.log("Api client initialized with user token");
-                await this.state.filezClient?.api.applyUser({
-                    headers: { ...impersonateUser("test") }
+                await this.state.filezClient?.api.applyUser().catch(async (response) => {
+                    if (response.error.message === "Inactive user") {
+                        console.error("User is inactive, signing out.");
+                        localStorage.setItem("redirect_uri", window.location.href);
+                        await this.props.auth?.signinRedirect();
+                    }
                 });
             });
         }

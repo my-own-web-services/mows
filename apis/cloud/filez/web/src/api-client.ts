@@ -10,10 +10,15 @@
  * ---------------------------------------------------------------
  */
 
-export enum UpdateFilesMetaTypeTagsMethod {
-  Add = "Add",
-  Remove = "Remove",
-  Set = "Set",
+export enum TagResourceType {
+  File = "File",
+  FileVersion = "FileVersion",
+  FileGroup = "FileGroup",
+  User = "User",
+  UserGroup = "UserGroup",
+  StorageLocation = "StorageLocation",
+  AccessPolicy = "AccessPolicy",
+  StorageQuota = "StorageQuota",
 }
 
 export enum SortDirection {
@@ -63,6 +68,12 @@ export enum ListAccessPoliciesSortBy {
   CreatedTime = "CreatedTime",
   ModifiedTime = "ModifiedTime",
   Name = "Name",
+}
+
+export enum FilezUserType {
+  SuperAdmin = "SuperAdmin",
+  Regular = "Regular",
+  Password = "Password",
 }
 
 export enum FileGroupType {
@@ -138,11 +149,16 @@ export enum AccessPolicyAction {
   StorageQuotasList = "StorageQuotasList",
   StorageLocationsGet = "StorageLocationsGet",
   StorageLocationsList = "StorageLocationsList",
+  TagsUpdate = "TagsUpdate",
+  TagsGet = "TagsGet",
 }
 
 export interface AccessPolicy {
   actions: AccessPolicyAction[];
-  /** @format uuid */
+  /**
+   * The ID of the application this policy is associated with, if None, the policy applies to all applications.
+   * @format uuid
+   */
   context_app_id?: string | null;
   /** @format date-time */
   created_time: string;
@@ -154,7 +170,10 @@ export interface AccessPolicy {
   name: string;
   /** @format uuid */
   owner_id: string;
-  /** @format uuid */
+  /**
+   * The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
+   * @format uuid
+   */
   resource_id?: string | null;
   resource_type: AccessPolicyResourceType;
   /** @format uuid */
@@ -171,7 +190,10 @@ export type ApiResponseStatus =
 export interface ApiResponseAccessPolicy {
   data?: {
     actions: AccessPolicyAction[];
-    /** @format uuid */
+    /**
+     * The ID of the application this policy is associated with, if None, the policy applies to all applications.
+     * @format uuid
+     */
     context_app_id?: string | null;
     /** @format date-time */
     created_time: string;
@@ -183,7 +205,10 @@ export interface ApiResponseAccessPolicy {
     name: string;
     /** @format uuid */
     owner_id: string;
-    /** @format uuid */
+    /**
+     * The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
+     * @format uuid
+     */
     resource_id?: string | null;
     resource_type: AccessPolicyResourceType;
     /** @format uuid */
@@ -319,17 +344,17 @@ export interface ApiResponseGetFileVersionsResponseBody {
   status: ApiResponseStatus;
 }
 
-export interface ApiResponseGetFilesMetaResBody {
+export interface ApiResponseGetFilesResponseBody {
   data?: {
-    files_meta: Record<string, FileMeta>;
+    files: Record<string, FilezFile>;
   };
   message: string;
   status: ApiResponseStatus;
 }
 
-export interface ApiResponseGetFilesResponseBody {
+export interface ApiResponseGetTagsResponseBody {
   data?: {
-    files: Record<string, FilezFile>;
+    resource_tags: Record<string, Record<string, string>>;
   };
   message: string;
   status: ApiResponseStatus;
@@ -761,11 +786,6 @@ export interface FileGroup {
   owner_id: string;
 }
 
-export interface FileMeta {
-  file: FilezFile;
-  tags: Record<string, string>;
-}
-
 export interface FileMetadata {
   /** @format uuid */
   default_preview_app_id?: string | null;
@@ -790,6 +810,8 @@ export interface FileVersion {
   created_time: string;
   /** @format uuid */
   file_id: string;
+  /** @format uuid */
+  id: string;
   metadata: FileVersionMetadata;
   /** @format date-time */
   modified_time: string;
@@ -849,6 +871,7 @@ export interface FilezUser {
   created_time: string;
   deleted: boolean;
   display_name: string;
+  /** The external user ID, e.g. from ZITADEL or other identity providers */
   external_user_id?: string | null;
   /** @format uuid */
   id: string;
@@ -858,7 +881,7 @@ export interface FilezUser {
   pre_identifier_email?: string | null;
   /** @format uuid */
   profile_picture?: string | null;
-  super_admin: boolean;
+  user_type: FilezUserType;
 }
 
 export interface GetFileVersionsRequestBody {
@@ -867,14 +890,6 @@ export interface GetFileVersionsRequestBody {
 
 export interface GetFileVersionsResponseBody {
   versions: FileVersion[];
-}
-
-export interface GetFilesMetaRequestBody {
-  file_ids: string[];
-}
-
-export interface GetFilesMetaResBody {
-  files_meta: Record<string, FileMeta>;
 }
 
 export interface GetFilesResponseBody {
@@ -887,6 +902,15 @@ export interface GetStorageQuotaRequestBody {
   /** @format uuid */
   subject_id: string;
   subject_type: AccessPolicySubjectType;
+}
+
+export interface GetTagsRequestBody {
+  resource_ids: string[];
+  resource_type: TagResourceType;
+}
+
+export interface GetTagsResponseBody {
+  resource_tags: Record<string, Record<string, string>>;
 }
 
 export interface GetUsersReqBody {
@@ -1093,6 +1117,12 @@ export interface UpdateFileResponseBody {
 
 export interface UpdateFileVersion {
   identifier: FileVersionIdentifier;
+  /**
+   * @minLength 64
+   * @maxLength 64
+   * @pattern ^[a-f0-9]{64}$
+   */
+  new_content_expected_sha256_digest?: string | null;
   new_metadata?: null | FileVersionMetadata;
 }
 
@@ -1104,20 +1134,6 @@ export interface UpdateFileVersionsResponseBody {
   versions: FileVersion[];
 }
 
-export interface UpdateFilesMetaRequestBody {
-  file_ids: string[];
-  files_meta: UpdateFilesMetaType;
-}
-
-export type UpdateFilesMetaType = {
-  Tags: UpdateFilesMetaTypeTags;
-};
-
-export interface UpdateFilesMetaTypeTags {
-  method: UpdateFilesMetaTypeTagsMethod;
-  tags: Record<string, string>;
-}
-
 export interface UpdateStorageQuotaRequestBody {
   /** @format int64 */
   quota_bytes: number;
@@ -1126,6 +1142,24 @@ export interface UpdateStorageQuotaRequestBody {
   /** @format uuid */
   subject_id: string;
   subject_type: AccessPolicySubjectType;
+}
+
+export type UpdateTagsMethod =
+  | {
+      Add: Record<string, string>;
+    }
+  | {
+      Remove: Record<string, string>;
+    }
+  | {
+      Set: Record<string, string>;
+    }
+  | "Clear";
+
+export interface UpdateTagsRequestBody {
+  resource_ids: string[];
+  resource_type: TagResourceType;
+  update_tags: UpdateTagsMethod;
 }
 
 export interface UpdateUserGroupMembersRequestBody {
@@ -1857,46 +1891,6 @@ export class Api<
       }),
 
     /**
-     * No description
-     *
-     * @name GetFilesMetadata
-     * @request POST:/api/files/meta/get
-     */
-    getFilesMetadata: (
-      data: GetFilesMetaRequestBody,
-      params: RequestParams = {},
-    ) =>
-      this.request<ApiResponseGetFilesMetaResBody, ApiResponseEmptyApiResponse>(
-        {
-          path: `/api/files/meta/get`,
-          method: "POST",
-          body: data,
-          type: ContentType.Json,
-          format: "json",
-          ...params,
-        },
-      ),
-
-    /**
-     * No description
-     *
-     * @name UpdateFilesMetadata
-     * @request PUT:/api/files/meta/update
-     */
-    updateFilesMetadata: (
-      data: UpdateFilesMetaRequestBody,
-      params: RequestParams = {},
-    ) =>
-      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
-        path: `/api/files/meta/update`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
      * @description Update a file entry in the database
      *
      * @name UpdateFile
@@ -2040,6 +2034,41 @@ export class Api<
       this.request<ApiResponseStorageQuota, ApiResponseEmptyApiResponse>({
         path: `/api/storage_quotas/update`,
         method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetTags
+     * @request POST:/api/tags/get
+     */
+    getTags: (data: GetTagsRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseGetTagsResponseBody,
+        ApiResponseGetTagsResponseBody
+      >({
+        path: `/api/tags/get`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name UpdateTags
+     * @request POST:/api/tags/update
+     */
+    updateTags: (data: UpdateTagsRequestBody, params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/tags/update`,
+        method: "POST",
         body: data,
         type: ContentType.Json,
         format: "json",

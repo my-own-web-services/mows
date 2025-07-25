@@ -108,4 +108,6 @@ pub struct UpdateFileVersionsResponseBody {
 pub struct UpdateFileVersion {
     pub identifier: FileVersionIdentifier,
     pub new_metadata: Option<FileVersionMetadata>,
+    #[schema(max_length = 64, min_length = 64, pattern = "^[a-f0-9]{64}$")]
+    pub new_content_expected_sha256_digest: Option<String>,
 }

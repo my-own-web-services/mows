@@ -1,9 +1,4 @@
 pub mod files {
-    pub mod meta {
-        pub mod get;
-        pub mod update;
-    }
-
     pub mod create;
     pub mod delete;
     pub mod get;
@@ -72,6 +67,11 @@ pub mod storage_quotas {
 
 pub mod storage_locations {
     pub mod list;
+}
+
+pub mod tags {
+    pub mod get;
+    pub mod update;
 }
 
 pub mod health;

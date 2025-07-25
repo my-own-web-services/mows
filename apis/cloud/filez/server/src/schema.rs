@@ -9,7 +9,7 @@ diesel::table! {
         deleted -> Bool,
         profile_picture -> Nullable<Uuid>,
         created_by -> Nullable<Uuid>,
-        super_admin -> Bool,
+        user_type -> SmallInt,
     }
 }
 
@@ -38,6 +38,7 @@ diesel::joinable!(files -> users (owner_id));
 
 diesel::table! {
     file_versions (file_id, version, app_id, app_path) {
+        id -> Uuid,
         file_id -> Uuid,
         version -> Integer,
         app_id -> Uuid,
@@ -120,14 +121,16 @@ diesel::table! {
 }
 
 diesel::table! {
-    file_tag_members (file_id, tag_id) {
-        file_id -> Uuid,
+    tag_members (resource_id, resource_type, tag_id) {
+        resource_id -> Uuid,
+        resource_type -> SmallInt,
         tag_id -> Uuid,
         created_time -> Timestamp,
         created_by_user_id -> Uuid,
     }
 }
-diesel::joinable!(file_tag_members -> users (created_by_user_id));
+diesel::joinable!(tag_members -> users (created_by_user_id));
+diesel::joinable!(tag_members -> tags (tag_id));
 
 diesel::table! {
     access_policies {
@@ -195,6 +198,7 @@ diesel::table! {
     jobs {
         id -> Uuid,
         owner_id -> Uuid,
+        app_id -> Uuid,
         name -> Text,
         status -> Jsonb,
         created_time -> Timestamp,
@@ -203,6 +207,8 @@ diesel::table! {
         end_time -> Nullable<Timestamp>,
     }
 }
+diesel::joinable!(jobs -> users (owner_id));
+diesel::joinable!(jobs -> apps (app_id));
 
 diesel::table! {
     apps {
@@ -216,6 +222,20 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    key_access {
+        id -> Uuid,
+        owner_id -> Uuid,
+        name -> Text,
+        key_hash -> Text,
+        description -> Nullable<Text>,
+        user_id -> Uuid,
+        created_time -> Timestamp,
+        modified_time -> Timestamp,
+        expiration_time -> Nullable<Timestamp>,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     files,
     users,
@@ -224,7 +244,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     user_groups,
     user_user_group_members,
     tags,
-    file_tag_members,
+    tag_members,
     access_policies,
     file_group_file_sort_orders,
     file_group_file_sort_order_items,
