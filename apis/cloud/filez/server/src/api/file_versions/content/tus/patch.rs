@@ -1,11 +1,10 @@
 use crate::{
+    auth_middleware::AuthenticatedUserAndApp,
     config::TUS_VERSION,
     errors::{FileVersionSizeExceededErrorBody, FilezError},
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        apps::MowsApp,
         file_versions::FileVersion,
-        users::FilezUser,
     },
     state::ServerState,
     types::ApiResponse,
@@ -19,7 +18,6 @@ use axum::{
 };
 use bigdecimal::ToPrimitive;
 use uuid::Uuid;
-use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     tag = "FileVersion",
@@ -43,7 +41,10 @@ use zitadel::axum::introspection::IntrospectedUser;
     )
 )]
 pub async fn file_versions_content_tus_patch(
-    external_user: IntrospectedUser,
+    Extension(AuthenticatedUserAndApp {
+        requesting_user,
+        requesting_app,
+    }): Extension<AuthenticatedUserAndApp>,
     State(ServerState {
         db,
         storage_location_providers,
@@ -95,18 +96,6 @@ pub async fn file_versions_content_tus_patch(
         .ok_or_else(|| {
             FilezError::InvalidRequest("Missing or invalid Content-Length header".to_string())
         })?;
-
-    let requesting_user = with_timing!(
-        FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
-        "Database operation to get user by external ID",
-        timing
-    );
-
-    let requesting_app = with_timing!(
-        MowsApp::get_from_headers(&db, &request_headers).await?,
-        "Database operation to get app from headers",
-        timing
-    );
 
     with_timing!(
         AccessPolicy::check(

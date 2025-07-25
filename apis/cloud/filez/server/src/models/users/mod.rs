@@ -342,7 +342,7 @@ impl FilezUser {
             (None, Some(key_access)) => {
                 KeyAccess::get_user_by_key_access_string(db, key_access).await?
             }
-            (Some(external_user_id), Some(key_access)) => {
+            (Some(_), Some(_)) => {
                 return Err(FilezError::InvalidRequest(
                     "Cannot use both external user ID and key access header".to_string(),
                 ));

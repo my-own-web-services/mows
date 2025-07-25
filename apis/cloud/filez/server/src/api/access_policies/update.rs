@@ -1,12 +1,9 @@
 use crate::{
+    auth_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
-    models::{
-        access_policies::{
-            AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
-            AccessPolicySubjectType,
-        },
-        apps::MowsApp,
-        users::FilezUser,
+    models::access_policies::{
+        AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
+        AccessPolicySubjectType,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -14,13 +11,11 @@ use crate::{
 };
 use axum::{
     extract::{Path, State},
-    http::HeaderMap,
     Extension, Json,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
-use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     put,
@@ -32,25 +27,15 @@ use zitadel::axum::introspection::IntrospectedUser;
     )
 )]
 pub async fn update_access_policy(
-    external_user: IntrospectedUser,
-    request_headers: HeaderMap,
+    Extension(AuthenticatedUserAndApp {
+        requesting_user,
+        requesting_app,
+    }): Extension<AuthenticatedUserAndApp>,
     State(ServerState { db, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(access_policy_id): Path<Uuid>,
     Json(request_body): Json<UpdateAccessPolicyRequestBody>,
 ) -> Result<Json<ApiResponse<AccessPolicy>>, FilezError> {
-    let requesting_user = with_timing!(
-        FilezUser::get_from_external(&db, &external_user, &request_headers).await?,
-        "Database operation to get user by external ID",
-        timing
-    );
-
-    let requesting_app = with_timing!(
-        MowsApp::get_from_headers(&db, &request_headers).await?,
-        "Database operation to get app from headers",
-        timing
-    );
-
     with_timing!(
         AccessPolicy::check(
             &db,
