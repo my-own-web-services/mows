@@ -4,7 +4,7 @@ use crate::{
     http_api::tags::update::UpdateTagsMethod,
     models::tags::FilezTag,
     schema::{self},
-    utils::InvalidEnumType,
+    utils::{get_current_timestamp, InvalidEnumType},
 };
 use diesel::{
     deserialize::FromSqlRow,
@@ -72,7 +72,7 @@ impl TagMember {
             resource_id,
             resource_type,
             tag_id,
-            created_time: chrono::Utc::now().naive_utc(),
+            created_time: get_current_timestamp(),
             created_by_user_id,
         }
     }

@@ -5,9 +5,10 @@ use crate::{
         list::ListFileGroupsSortBy,
         list_files::{ListFilesSortBy, ListFilesSorting},
     },
+    models::apps::MowsApp,
     schema,
     types::SortDirection,
-    utils::{get_uuid, InvalidEnumType},
+    utils::{get_current_timestamp, get_uuid, InvalidEnumType},
 };
 use diesel::{
     deserialize::FromSqlRow,
@@ -82,8 +83,8 @@ impl FileGroup {
             id: get_uuid(),
             owner_id: owner.id.clone(),
             name: name.to_string(),
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
             group_type,
             dynamic_group_rule,
         }
@@ -110,8 +111,8 @@ impl FileGroup {
 
     pub async fn list_with_user_access(
         database: &Database,
-        requesting_user_id: &Uuid,
-        app_id: &Uuid,
+        maybe_requesting_user: Option<&FilezUser>,
+        requesting_app: &MowsApp,
         from_index: Option<i64>,
         limit: Option<i64>,
         sort_by: Option<ListFileGroupsSortBy>,
@@ -121,8 +122,8 @@ impl FileGroup {
 
         let resources_with_access = AccessPolicy::get_resources_with_access(
             database,
-            requesting_user_id,
-            app_id,
+            maybe_requesting_user,
+            requesting_app,
             AccessPolicyResourceType::FileGroup,
             AccessPolicyAction::FileGroupsList,
         )
@@ -177,7 +178,7 @@ impl FileGroup {
         diesel::update(schema::file_groups::table.find(file_group_id))
             .set((
                 schema::file_groups::name.eq(name),
-                schema::file_groups::modified_time.eq(chrono::Utc::now().naive_utc()),
+                schema::file_groups::modified_time.eq(get_current_timestamp()),
             ))
             .execute(&mut connection)
             .await?;

@@ -84,7 +84,8 @@ CREATE TABLE "apps"(
 	"trusted" BOOL NOT NULL,
 	"description" TEXT,
 	"created_time" TIMESTAMP NOT NULL,
-	"modified_time" TIMESTAMP NOT NULL
+	"modified_time" TIMESTAMP NOT NULL,
+	"app_type" SMALLINT NOT NULL
 );
 
 CREATE TABLE "file_group_file_sort_orders"(

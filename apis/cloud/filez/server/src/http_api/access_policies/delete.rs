@@ -1,5 +1,5 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
+    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
     models::access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
     state::ServerState,
@@ -21,20 +21,19 @@ use uuid::Uuid;
     )
 )]
 pub async fn delete_access_policy(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(access_policy_id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<Uuid>>, FilezError> {
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::AccessPolicy,
             Some(&vec![access_policy_id]),
             AccessPolicyAction::AccessPoliciesDelete,

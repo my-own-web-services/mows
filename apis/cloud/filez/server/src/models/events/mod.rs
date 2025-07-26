@@ -17,7 +17,7 @@ use uuid::Uuid;
 use crate::{
     database::Database,
     schema,
-    utils::{get_uuid, InvalidEnumType},
+    utils::{get_current_timestamp, get_uuid, InvalidEnumType},
 };
 
 #[derive(
@@ -105,7 +105,6 @@ pub struct FilezEvent {
 
 impl FilezEvent {
     pub fn new(
-        created_time: chrono::NaiveDateTime,
         event_type: FilezEventActionType,
         user_id: Option<Uuid>,
         resource_ids: Option<Vec<Uuid>>,
@@ -115,7 +114,7 @@ impl FilezEvent {
     ) -> Self {
         Self {
             id: get_uuid(),
-            created_time,
+            created_time: get_current_timestamp(),
             event_type,
             user_id,
             resource_ids,
@@ -136,9 +135,7 @@ impl FilezEvent {
         app_id: Option<Uuid>,
         result: Option<EventResult>,
     ) -> Result<(), crate::errors::FilezError> {
-        let created_time = chrono::Utc::now().naive_utc();
         let event = Self::new(
-            created_time,
             event_type,
             user_id,
             resource_ids,

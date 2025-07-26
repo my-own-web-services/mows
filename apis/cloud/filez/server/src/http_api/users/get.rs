@@ -1,6 +1,6 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         users::FilezUser,
@@ -25,10 +25,10 @@ use uuid::Uuid;
     )
 )]
 pub async fn get_users(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetUsersReqBody>,
@@ -36,9 +36,8 @@ pub async fn get_users(
     with_timing!(
         AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::User,
             Some(&request_body.user_ids),
             AccessPolicyAction::UsersGet,

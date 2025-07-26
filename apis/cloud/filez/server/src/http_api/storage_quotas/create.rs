@@ -4,8 +4,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{
             AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectType,
@@ -27,20 +27,19 @@ use crate::{
     )
 )]
 pub async fn create_storage_quota(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateStorageQuotaRequestBody>,
 ) -> Result<Json<ApiResponse<CreateStorageQuotaResponseBody>>, FilezError> {
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::StorageQuota,
             None,
             AccessPolicyAction::StorageQuotasCreate
@@ -52,7 +51,7 @@ pub async fn create_storage_quota(
     );
 
     let storage_quota = StorageQuota::new(
-        requesting_user.id,
+        requesting_user.unwrap().id,
         request_body.name,
         request_body.subject_type,
         request_body.subject_id,

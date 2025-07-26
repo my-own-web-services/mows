@@ -1,11 +1,12 @@
 use crate::{
-    http_api::users::list::ListUsersSortBy,
     config::{config, IMPERSONATE_USER_HEADER, KEY_ACCESS_HEADER},
     database::Database,
     errors::FilezError,
+    http_api::users::list::ListUsersSortBy,
+    models::apps::MowsApp,
     schema,
     types::SortDirection,
-    utils::{get_uuid, InvalidEnumType},
+    utils::{get_current_timestamp, get_uuid, InvalidEnumType},
 };
 use axum::http::HeaderMap;
 use diesel::{
@@ -91,8 +92,8 @@ impl FilezUser {
             external_user_id,
             pre_identifier_email,
             display_name: display_name.unwrap_or_else(|| "".to_string()),
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
             deleted: false,
             profile_picture: None,
             created_by,
@@ -132,8 +133,8 @@ impl FilezUser {
 
     pub async fn list_with_user_access(
         _database: &Database,
-        _requesting_user_id: &Uuid,
-        _app_id: &Uuid,
+        _maybe_requesting_user: Option<&FilezUser>,
+        _requesting_app: &MowsApp,
         _from_index: Option<i64>,
         _limit: Option<i64>,
         _sort_by: Option<ListUsersSortBy>,
@@ -147,7 +148,7 @@ impl FilezUser {
         diesel::update(crate::schema::users::table.find(user_id))
             .set((
                 crate::schema::users::deleted.eq(true),
-                crate::schema::users::modified_time.eq(chrono::Utc::now().naive_utc()),
+                crate::schema::users::modified_time.eq(get_current_timestamp()),
             ))
             .execute(&mut connection)
             .await?;
@@ -247,8 +248,7 @@ impl FilezUser {
                                     .eq(external_user_id.to_string()),
                                 crate::schema::users::pre_identifier_email.eq(None::<String>),
                                 crate::schema::users::display_name.eq(display_name),
-                                crate::schema::users::modified_time
-                                    .eq(chrono::Utc::now().naive_utc()),
+                                crate::schema::users::modified_time.eq(get_current_timestamp()),
                             ))
                             .returning(crate::schema::users::all_columns)
                             .get_result(&mut connection)
@@ -271,7 +271,7 @@ impl FilezUser {
                 diesel::update(crate::schema::users::table.find(user.id))
                     .set((
                         crate::schema::users::display_name.eq(display_name),
-                        crate::schema::users::modified_time.eq(chrono::Utc::now().naive_utc()),
+                        crate::schema::users::modified_time.eq(get_current_timestamp()),
                         crate::schema::users::user_type.eq(if is_super_admin {
                             FilezUserType::SuperAdmin
                         } else {
@@ -326,7 +326,7 @@ impl FilezUser {
         database: &Database,
         external_user: &IntrospectedUser,
         request_headers: &HeaderMap,
-    ) -> Result<FilezUser, FilezError> {
+    ) -> Result<Option<FilezUser>, FilezError> {
         let mut connection = database.get_connection().await?;
 
         let maybe_key_access = request_headers
@@ -348,11 +348,8 @@ impl FilezUser {
                     "Cannot use both external user ID and key access header".to_string(),
                 ));
             }
-
             (None, None) => {
-                return Err(FilezError::Unauthorized(
-                    "User could not be determined from request headers".to_string(),
-                ));
+                return Ok(None);
             }
         };
 
@@ -371,7 +368,7 @@ impl FilezUser {
                     external_user.user_id.clone().unwrap(),
                     impersonate_user_id
                 );
-                return Ok(impersonated_user);
+                return Ok(Some(impersonated_user));
             } else {
                 warn!(
                     "User with external_user_id `{}` tried to impersonate user with ID `{}`!",
@@ -383,7 +380,7 @@ impl FilezUser {
                 ));
             }
         } else {
-            Ok(original_requesting_user)
+            Ok(Some(original_requesting_user))
         }
     }
 }

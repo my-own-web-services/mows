@@ -1,5 +1,5 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
+    http_api::authentication_middleware::AuthenticationInformation,
     config::TUS_VERSION,
     errors::FilezError,
     models::{
@@ -32,10 +32,10 @@ use uuid::Uuid;
     )
 )]
 pub async fn file_versions_content_tus_head(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState {
         database,
         storage_location_providers,
@@ -58,11 +58,10 @@ pub async fn file_versions_content_tus_head(
     };
 
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::File,
             Some(&vec![file_id]),
             AccessPolicyAction::FilezFilesVersionsContentTusHead,

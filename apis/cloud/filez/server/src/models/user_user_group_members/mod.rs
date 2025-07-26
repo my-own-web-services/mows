@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::utils::get_current_timestamp;
+
 #[derive(
     Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug, AsChangeset,
 )]
@@ -23,7 +25,7 @@ impl UserUserGroupMember {
         Self {
             user_id: user_id.clone(),
             user_group_id: user_group_id.clone(),
-            created_time: chrono::Utc::now().naive_utc(),
+            created_time: get_current_timestamp(),
         }
     }
 }

@@ -5,7 +5,7 @@ use axum::{
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
+    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
@@ -25,20 +25,19 @@ use crate::{
     )
 )]
 pub async fn delete_user_group(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(user_group_id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<String>>, FilezError> {
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::UserGroup,
             Some(&vec![user_group_id]),
             AccessPolicyAction::UserGroupsDelete,

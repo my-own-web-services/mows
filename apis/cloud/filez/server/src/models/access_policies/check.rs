@@ -2,6 +2,7 @@ use super::{AccessPolicyAction, AccessPolicyResourceType};
 use crate::errors::FilezError;
 use crate::filter_subject_access_policies;
 use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPolicySubjectType};
+use crate::models::apps::MowsApp;
 use crate::models::users::{FilezUser, FilezUserType};
 use crate::{database::Database, schema};
 use diesel::{
@@ -16,10 +17,9 @@ use uuid::Uuid;
 
 pub async fn check_resources_access_control(
     database: &Database,
-    requesting_user: &FilezUser,
-    user_group_ids: &Vec<Uuid>,
-    context_app_id: &Uuid,
-    context_app_trusted: bool,
+    maybe_requesting_user: Option<&FilezUser>,
+    maybe_user_group_ids: Option<&Vec<Uuid>>,
+    context_app: &MowsApp,
     resource_type: AccessPolicyResourceType,
     requested_resource_ids: Option<&[Uuid]>,
     action_to_perform: AccessPolicyAction,
@@ -27,28 +27,27 @@ pub async fn check_resources_access_control(
     let mut connection = database.get_connection().await?;
     let resource_auth_info = get_auth_info(resource_type);
 
-    let requesting_user_id = &requesting_user.id;
-
-    if requesting_user.user_type == FilezUserType::SuperAdmin {
-        // Super admins bypass all access control checks
-        return Ok(AuthResult {
-            access_granted: true,
-            evaluations: match requested_resource_ids {
-                Some(ids) => ids
-                    .iter()
-                    .map(|&id| AuthEvaluation {
-                        resource_id: Some(id),
+    if let Some(requesting_user) = maybe_requesting_user {
+        if requesting_user.user_type == FilezUserType::SuperAdmin {
+            return Ok(AuthResult {
+                access_granted: true,
+                evaluations: match requested_resource_ids {
+                    Some(ids) => ids
+                        .iter()
+                        .map(|&id| AuthEvaluation {
+                            resource_id: Some(id),
+                            is_allowed: true,
+                            reason: AuthReason::SuperAdmin,
+                        })
+                        .collect(),
+                    None => vec![AuthEvaluation {
+                        resource_id: None,
                         is_allowed: true,
                         reason: AuthReason::SuperAdmin,
-                    })
-                    .collect(),
-                None => vec![AuthEvaluation {
-                    resource_id: None,
-                    is_allowed: true,
-                    reason: AuthReason::SuperAdmin,
-                }],
-            },
-        });
+                    }],
+                },
+            });
+        }
     }
 
     match requested_resource_ids {
@@ -64,11 +63,11 @@ pub async fn check_resources_access_control(
             {
                 // 1. Fetch Owner Information for all requested resources
                 let owners_query_string = format!(
-        "SELECT {id_col} as resource_id, {owner_col} as owner_id FROM {table_name} WHERE {id_col} = ANY($1)",
-        table_name = resource_auth_info.resource_table,
-        id_col = resource_auth_info.resource_table_id_column,
-        owner_col = owner_col
-    );
+                    "SELECT {id_col} as resource_id, {owner_col} as owner_id FROM {table_name} WHERE {id_col} = ANY($1)",
+                    table_name = resource_auth_info.resource_table,
+                    id_col = resource_auth_info.resource_table_id_column,
+                    owner_col = owner_col
+                );
 
                 let resource_owners_vec: Vec<ResourceOwnerInfo> =
                     diesel::sql_query(&owners_query_string)
@@ -77,11 +76,13 @@ pub async fn check_resources_access_control(
                         .await?;
 
                 // if the app is trusted and all requested resources are owned by the requesting user, return early
-                if context_app_trusted
+                if context_app.trusted
                     && resource_owners_vec.len() == requested_resource_ids.len()
-                    && resource_owners_vec
-                        .iter()
-                        .all(|ro| ro.owner_id == *requesting_user_id)
+                    && maybe_requesting_user.is_some_and(|requesting_user| {
+                        resource_owners_vec
+                            .iter()
+                            .all(|ro| ro.owner_id == requesting_user.id)
+                    })
                 {
                     return Ok(AuthResult {
                         access_granted: true,
@@ -112,11 +113,11 @@ pub async fn check_resources_access_control(
                 .filter(
                     schema::access_policies::resource_type.eq(&resource_auth_info.resource_type),
                 )
-                .filter(schema::access_policies::context_app_id.eq(context_app_id))
+                .filter(schema::access_policies::context_app_ids.contains(vec![context_app.id]))
                 .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
                 .filter(filter_subject_access_policies!(
-                    requesting_user_id,
-                    user_group_ids
+                    maybe_requesting_user,
+                    maybe_user_group_ids
                 ))
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut connection)
@@ -182,11 +183,13 @@ pub async fn check_resources_access_control(
                             schema::access_policies::resource_type
                                 .eq(resource_group_type_policy_str),
                         )
-                        .filter(schema::access_policies::context_app_id.eq(context_app_id))
+                        .filter(
+                            schema::access_policies::context_app_ids.contains(vec![context_app.id]),
+                        )
                         .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
                         .filter(filter_subject_access_policies!(
-                            requesting_user_id,
-                            user_group_ids
+                            maybe_requesting_user,
+                            maybe_user_group_ids
                         ))
                         .select(AccessPolicy::as_select())
                         .load::<AccessPolicy>(&mut connection)
@@ -314,12 +317,15 @@ pub async fn check_resources_access_control(
                 // --- If not denied, check for ALLOW ---
 
                 // B. Check Ownership
-                if let Some(owner_id) = owners_map.get(resource_id) {
-                    if owner_id == requesting_user_id {
-                        current_evaluation.is_allowed = true;
-                        current_evaluation.reason = AuthReason::Owned;
-                        auth_evaluations.push(current_evaluation);
-                        continue;
+
+                if let Some(requesting_user) = maybe_requesting_user {
+                    if let Some(owner_id) = owners_map.get(resource_id) {
+                        if *owner_id == requesting_user.id {
+                            current_evaluation.is_allowed = true;
+                            current_evaluation.reason = AuthReason::Owned;
+                            auth_evaluations.push(current_evaluation);
+                            continue;
+                        }
                     }
                 }
 
@@ -424,11 +430,11 @@ pub async fn check_resources_access_control(
                 .filter(
                     schema::access_policies::resource_type.eq(&resource_auth_info.resource_type),
                 )
-                .filter(schema::access_policies::context_app_id.eq(context_app_id))
+                .filter(schema::access_policies::context_app_ids.contains(vec![context_app.id]))
                 .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
                 .filter(filter_subject_access_policies!(
-                    requesting_user_id,
-                    &user_group_ids
+                    maybe_requesting_user,
+                    maybe_user_group_ids
                 ))
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut connection)

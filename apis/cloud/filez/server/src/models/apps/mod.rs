@@ -2,15 +2,19 @@ use crate::{
     config::config,
     database::Database,
     errors::FilezError,
-    utils::{get_uuid, is_dev_origin},
+    utils::{get_current_timestamp, get_uuid, is_dev_origin, InvalidEnumType},
 };
 use diesel::{
+    deserialize::FromSqlRow,
+    expression::AsExpression,
     pg::Pg,
     prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
     query_dsl::methods::{FilterDsl, SelectDsl},
+    sql_types::SmallInt,
     ExpressionMethods, PgArrayExpressionMethods, Selectable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use diesel_enum::DbEnum;
 use mows_common_rust::get_current_config_cloned;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -54,6 +58,30 @@ pub struct MowsApp {
     pub origins: Option<Vec<String>>,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
+
+    pub app_type: AppType,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    DbEnum,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    AsExpression,
+    FromSqlRow,
+    JsonSchema,
+)]
+#[diesel(sql_type = SmallInt)]
+#[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
+#[diesel_enum(error_type = InvalidEnumType)]
+pub enum AppType {
+    Frontend = 0,
+    Backend = 1,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq)]
@@ -61,6 +89,7 @@ pub struct MowsAppConfig {
     pub description: Option<String>,
     pub trusted: bool,
     pub origins: Option<Vec<String>>,
+    pub app_type: AppType,
 }
 
 impl MowsApp {
@@ -72,8 +101,9 @@ impl MowsApp {
             description: Some("First party app for Filez".to_string()),
             origins: Some(vec![config.primary_origin.to_string()]),
             trusted: true,
-            created_time: chrono::Local::now().naive_local(),
-            modified_time: chrono::Local::now().naive_local(),
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
+            app_type: AppType::Frontend,
         }
     }
     pub fn dev(dev_origin: &Url) -> Self {
@@ -83,8 +113,9 @@ impl MowsApp {
             description: Some("Development allowed filez app".to_string()),
             origins: Some(vec![dev_origin.to_string()]),
             trusted: true,
-            created_time: chrono::Local::now().naive_local(),
-            modified_time: chrono::Local::now().naive_local(),
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
+            app_type: AppType::Frontend,
         }
     }
 
@@ -95,8 +126,9 @@ impl MowsApp {
             description: Some("App with no origins".to_string()),
             origins: None,
             trusted: true,
-            created_time: chrono::Local::now().naive_local(),
-            modified_time: chrono::Local::now().naive_local(),
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
+            app_type: AppType::Frontend,
         }
     }
 
@@ -129,8 +161,9 @@ impl MowsApp {
                     description: Some("Filez server app for first party requests".to_string()),
                     trusted: true,
                     origins: Some(vec![config.primary_origin.to_string()]),
-                    created_time: chrono::Local::now().naive_local(),
-                    modified_time: chrono::Local::now().naive_local(),
+                    created_time: get_current_timestamp(),
+                    modified_time: get_current_timestamp(),
+                    app_type: AppType::Frontend,
                 };
 
                 diesel::insert_into(crate::schema::apps::table)
@@ -209,7 +242,7 @@ impl MowsApp {
                 app.trusted = app_config.trusted;
                 app.origins = app_config.origins.clone();
 
-                app.modified_time = chrono::Local::now().naive_local();
+                app.modified_time = get_current_timestamp();
 
                 // filter
                 diesel::update(crate::schema::apps::table)
@@ -227,8 +260,9 @@ impl MowsApp {
                     description: app_config.description.clone(),
                     trusted: app_config.trusted,
                     origins: app_config.origins.clone(),
-                    created_time: chrono::Local::now().naive_local(),
-                    modified_time: chrono::Local::now().naive_local(),
+                    created_time: get_current_timestamp(),
+                    modified_time: get_current_timestamp(),
+                    app_type: app_config.app_type,
                 };
 
                 diesel::insert_into(crate::schema::apps::table)

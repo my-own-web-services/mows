@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::{
     errors::FilezError,
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         files::{FileMetadata, FilezFile},
@@ -28,20 +28,19 @@ use uuid::Uuid;
     )
 )]
 pub async fn update_file(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateFileRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::File,
             Some(&vec![request_body.file_id]),
             AccessPolicyAction::FilezFilesUpdate,

@@ -17,7 +17,7 @@ use crate::{
     database::Database,
     errors::FilezError,
     schema::{self},
-    utils::get_uuid,
+    utils::{get_current_timestamp, get_uuid},
 };
 
 use super::users::{FilezUser, FilezUserType};
@@ -43,8 +43,6 @@ impl KeyAccess {
         key_hash: String,
         description: Option<String>,
         user_id: Uuid,
-        created_time: chrono::NaiveDateTime,
-        modified_time: chrono::NaiveDateTime,
     ) -> Self {
         Self {
             id: get_uuid(),
@@ -53,8 +51,8 @@ impl KeyAccess {
             key_hash,
             description,
             user_id,
-            created_time,
-            modified_time,
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
         }
     }
 
@@ -83,15 +81,7 @@ impl KeyAccess {
             .map_err(|e| anyhow::anyhow!("Failed to hash key: {}", e))?
             .to_string();
 
-        let new_key_access = KeyAccess::new(
-            owner_id,
-            name,
-            key_hash,
-            description,
-            user_id,
-            chrono::Utc::now().naive_utc(),
-            chrono::Utc::now().naive_utc(),
-        );
+        let new_key_access = KeyAccess::new(owner_id, name, key_hash, description, user_id);
 
         diesel::insert_into(schema::key_access::table)
             .values(&new_key_access)

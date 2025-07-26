@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::file_groups::FileGroup,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
@@ -21,10 +21,10 @@ use crate::{
     )
 )]
 pub async fn list_file_groups(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListFileGroupsRequestBody>,
@@ -32,8 +32,8 @@ pub async fn list_file_groups(
     let file_groups = with_timing!(
         FileGroup::list_with_user_access(
             &database,
-            &requesting_user.id,
-            &requesting_app.id,
+            requesting_user.as_ref(),
+            &requesting_app,
             request_body.from_index,
             request_body.limit,
             request_body.sort_by,

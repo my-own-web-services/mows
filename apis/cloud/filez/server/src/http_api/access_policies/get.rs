@@ -6,8 +6,8 @@ use axum::{
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -23,10 +23,10 @@ use crate::{
     )
 )]
 pub async fn get_access_policy(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(access_policy_id): Path<Uuid>,
@@ -34,9 +34,8 @@ pub async fn get_access_policy(
     with_timing!(
         AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::AccessPolicy,
             Some(&vec![access_policy_id]),
             AccessPolicyAction::AccessPoliciesGet,

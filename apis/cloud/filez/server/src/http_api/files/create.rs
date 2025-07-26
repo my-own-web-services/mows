@@ -1,13 +1,12 @@
 use crate::{
     errors::FilezError,
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         files::FilezFile,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
-    validation::validate_file_name,
     with_timing,
 };
 use anyhow::Context;
@@ -28,10 +27,10 @@ use utoipa::ToSchema;
     )
 )]
 pub async fn create_file(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileRequestBody>,
@@ -39,9 +38,8 @@ pub async fn create_file(
     with_timing!(
         AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::File,
             None,
             AccessPolicyAction::FilezFilesCreate,
@@ -61,10 +59,11 @@ pub async fn create_file(
             ))?,
     };
 
-    validate_file_name(&request_body.file_name)?;
-
-    // Create a new file entry in the database
-    let new_file = FilezFile::new(&requesting_user, &mime_type, &request_body.file_name);
+    let new_file = FilezFile::new(
+        &requesting_user.unwrap(),
+        &mime_type,
+        &request_body.file_name,
+    )?;
 
     let db_created_file = with_timing!(
         new_file

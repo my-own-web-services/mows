@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         user_groups::UserGroup,
@@ -24,20 +24,19 @@ use crate::{
     )
 )]
 pub async fn create_user_group(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateUserGroupRequestBody>,
 ) -> Result<Json<ApiResponse<UserGroup>>, FilezError> {
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::UserGroup,
             None,
             AccessPolicyAction::UserGroupsCreate,
@@ -49,7 +48,7 @@ pub async fn create_user_group(
     );
 
     let user_group = with_timing!(
-        UserGroup::new(&requesting_user, &request_body.name),
+        UserGroup::new(&requesting_user.unwrap(), &request_body.name),
         "Creating new user group",
         timing
     );

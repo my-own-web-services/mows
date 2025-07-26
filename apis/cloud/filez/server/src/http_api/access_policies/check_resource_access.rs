@@ -4,8 +4,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::access_policies::{
         check::AuthEvaluation, AccessPolicy, AccessPolicyAction, AccessPolicyResourceType,
     },
@@ -24,10 +24,10 @@ use crate::{
     )
 )]
 pub async fn check_resource_access(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CheckResourceAccessRequestBody>,
@@ -35,9 +35,8 @@ pub async fn check_resource_access(
     let auth_result = with_timing!(
         AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             request_body.resource_type,
             request_body.resource_ids.as_deref(),
             request_body.action,

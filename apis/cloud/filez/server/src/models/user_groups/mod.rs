@@ -4,12 +4,13 @@ use super::{
     users::FilezUser,
 };
 use crate::{
-    http_api::user_groups::list::ListUserGroupsSortBy,
     database::Database,
     errors::FilezError,
+    http_api::user_groups::list::ListUserGroupsSortBy,
+    models::apps::MowsApp,
     schema::{self},
     types::SortDirection,
-    utils::get_uuid,
+    utils::{get_current_timestamp, get_uuid},
 };
 use diesel::{
     pg::Pg,
@@ -40,8 +41,8 @@ impl UserGroup {
             id: get_uuid(),
             owner_id: owner.id.clone(),
             name: name.to_string(),
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
         }
     }
 
@@ -70,8 +71,8 @@ impl UserGroup {
 
     pub async fn list_with_user_access(
         database: &Database,
-        requesting_user_id: &Uuid,
-        app_id: &Uuid,
+        maybe_requesting_user: Option<&FilezUser>,
+        requesting_app: &MowsApp,
         from_index: Option<i64>,
         limit: Option<i64>,
         sort_by: Option<ListUserGroupsSortBy>,
@@ -81,12 +82,11 @@ impl UserGroup {
 
         let resources_with_access = AccessPolicy::get_resources_with_access(
             database,
-            requesting_user_id,
-            app_id,
+            maybe_requesting_user,
+            requesting_app,
             AccessPolicyResourceType::UserGroup,
             AccessPolicyAction::UserGroupsList,
         )
-        // box this
         .await?;
 
         let mut query = schema::user_groups::table
@@ -140,7 +140,7 @@ impl UserGroup {
         )
         .set((
             schema::user_groups::name.eq(name),
-            schema::user_groups::modified_time.eq(chrono::Utc::now().naive_utc()),
+            schema::user_groups::modified_time.eq(get_current_timestamp()),
         ))
         .execute(&mut connection)
         .await?;

@@ -8,25 +8,25 @@ use axum::{extract::State, middleware::Next, response::Response};
 use zitadel::axum::introspection::IntrospectedUser;
 
 #[derive(Clone)]
-pub struct AuthenticatedUserAndApp {
-    pub requesting_user: FilezUser,
+pub struct AuthenticationInformation {
+    pub requesting_user: Option<FilezUser>,
     pub requesting_app: MowsApp,
 }
 
 pub async fn auth_middleware(
     State(state): State<ServerState>,
-    mut req: axum::extract::Request,
+    mut request: axum::extract::Request,
     next: Next,
 ) -> Result<Response, FilezError> {
-    let external_user = req.extensions().get::<IntrospectedUser>().unwrap();
-    let timing = req
+    let external_user = request.extensions().get::<IntrospectedUser>().unwrap();
+    let timing = request
         .extensions()
         .get::<axum_server_timing::ServerTimingExtension>()
         .unwrap();
 
-    let headers = req.headers();
+    let headers = request.headers();
 
-    let (user, app) = with_timing!(
+    let (requesting_user, requesting_app) = with_timing!(
         tokio::try_join!(
             FilezUser::get_from_external(&state.database, &external_user, &headers),
             MowsApp::get_from_headers(&state.database, &headers)
@@ -36,10 +36,10 @@ pub async fn auth_middleware(
     );
 
     // Insert the user and app into the request extensions to be used by the handler
-    req.extensions_mut().insert(AuthenticatedUserAndApp {
-        requesting_user: user,
-        requesting_app: app,
+    request.extensions_mut().insert(AuthenticationInformation {
+        requesting_user,
+        requesting_app,
     });
 
-    Ok(next.run(req).await)
+    Ok(next.run(request).await)
 }

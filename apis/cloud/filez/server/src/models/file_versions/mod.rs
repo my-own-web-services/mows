@@ -1,6 +1,6 @@
-use crate::utils::get_uuid;
+use crate::utils::{get_current_timestamp, get_uuid};
 use crate::{
-    http_api::file_versions::update::UpdateFileVersion, database::Database, errors::FilezError,
+    database::Database, errors::FilezError, http_api::file_versions::update::UpdateFileVersion,
     schema::file_versions, state::StorageLocationState, with_timing,
 };
 use axum::extract::Request;
@@ -92,8 +92,6 @@ impl FileVersion {
         app_id: Uuid,
         app_path: Option<String>,
         metadata: FileVersionMetadata,
-        created_time: chrono::NaiveDateTime,
-        modified_time: chrono::NaiveDateTime,
         size: BigDecimal,
         storage_id: Uuid,
         storage_quota_id: Uuid,
@@ -106,8 +104,8 @@ impl FileVersion {
             app_id,
             app_path: app_path.unwrap_or("".to_string()),
             metadata,
-            created_time,
-            modified_time,
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
             size,
             storage_location_id: storage_id,
             storage_quota_id,
@@ -274,7 +272,7 @@ impl FileVersion {
                     diesel::update(filter_file_version_by_identifier!(self))
                         .set((
                             file_versions::content_valid.eq(true),
-                            file_versions::modified_time.eq(chrono::Utc::now().naive_utc()),
+                            file_versions::modified_time.eq(get_current_timestamp()),
                         ))
                         .execute(&mut connection)
                         .await?;
@@ -317,8 +315,6 @@ impl FileVersion {
             app_id,
             app_path,
             metadata,
-            chrono::Utc::now().naive_utc(),
-            chrono::Utc::now().naive_utc(),
             size,
             storage_id,
             storage_quota_id,
@@ -417,13 +413,13 @@ impl FileVersion {
 
             if let Some(metadata) = &file_version_update.new_metadata {
                 file_version.metadata = metadata.clone();
-                file_version.modified_time = chrono::Utc::now().naive_utc();
+                file_version.modified_time = get_current_timestamp();
             }
 
             if let Some(new_digest) = &file_version_update.new_content_expected_sha256_digest {
                 file_version.content_expected_sha256_digest = Some(new_digest.clone());
                 file_version.content_valid = false;
-                file_version.modified_time = chrono::Utc::now().naive_utc();
+                file_version.modified_time = get_current_timestamp();
             }
 
             let updated_version = diesel::update(filter_file_version_by_identifier!(

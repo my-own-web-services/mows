@@ -6,8 +6,13 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::storage_quotas::list::ListStorageQuotasSortBy, database::Database, errors::FilezError,
-    schema, types::SortDirection, utils::get_uuid,
+    database::Database,
+    errors::FilezError,
+    http_api::storage_quotas::list::ListStorageQuotasSortBy,
+    models::apps::MowsApp,
+    schema,
+    types::SortDirection,
+    utils::{get_current_timestamp, get_uuid},
 };
 
 use super::{access_policies::AccessPolicySubjectType, user_groups::UserGroup};
@@ -42,7 +47,6 @@ pub struct StorageQuota {
     pub id: Uuid,
     pub name: String,
     pub owner_id: Uuid,
-    #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
     pub storage_location_id: Uuid,
@@ -70,8 +74,8 @@ impl StorageQuota {
             subject_id,
             storage_location_id,
             quota_bytes,
-            created_time: chrono::Local::now().naive_local(),
-            modified_time: chrono::Local::now().naive_local(),
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
         }
     }
 
@@ -154,6 +158,7 @@ impl StorageQuota {
     pub async fn list_with_user_access(
         database: &Database,
         requesting_user_id: &Uuid,
+        requesting_app: &MowsApp,
         from_index: Option<i64>,
         limit: Option<i64>,
         sort_by: Option<ListStorageQuotasSortBy>,
@@ -256,7 +261,7 @@ impl StorageQuota {
         )
         .set((
             schema::storage_quotas::quota_bytes.eq(quota_bytes),
-            schema::storage_quotas::modified_time.eq(chrono::Local::now().naive_local()),
+            schema::storage_quotas::modified_time.eq(get_current_timestamp()),
         ))
         .returning(StorageQuota::as_select())
         .get_result::<StorageQuota>(&mut connection)
