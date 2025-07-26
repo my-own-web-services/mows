@@ -74,6 +74,5 @@ pub mod tags {
     pub mod update;
 }
 
+pub mod authentication;
 pub mod health;
-
-pub mod authentication_middleware;

@@ -2179,6 +2179,7 @@ dependencies = [
  "mime_guess",
  "minio",
  "mows-common-rust",
+ "openidconnect",
  "opentelemetry 0.26.0",
  "prometheus-client",
  "schemars",

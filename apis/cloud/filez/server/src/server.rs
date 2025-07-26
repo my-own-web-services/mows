@@ -2,10 +2,13 @@ use anyhow::Context;
 use axum::http::{header::CONTENT_SECURITY_POLICY, request::Parts, HeaderValue};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use filez_server_lib::{
-    http_api::{self},
     config::config,
     controller,
     database::Database,
+    http_api::{
+        self,
+        authentication::middleware::{self, auth_middleware},
+    },
     models::apps::MowsApp,
     state::ServerState,
     types::FilezApiDoc,
@@ -68,9 +71,15 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(http_api::files::delete::delete_file))
         // FILE VERSIONS
         .routes(routes!(http_api::file_versions::get::get_file_versions))
-        .routes(routes!(http_api::file_versions::create::create_file_version))
-        .routes(routes!(http_api::file_versions::delete::delete_file_versions))
-        .routes(routes!(http_api::file_versions::update::update_file_versions))
+        .routes(routes!(
+            http_api::file_versions::create::create_file_version
+        ))
+        .routes(routes!(
+            http_api::file_versions::delete::delete_file_versions
+        ))
+        .routes(routes!(
+            http_api::file_versions::update::update_file_versions
+        ))
         //  content
         .routes(routes!(
             http_api::file_versions::content::get::get_file_version_content
@@ -117,16 +126,30 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(
             http_api::access_policies::check_resource_access::check_resource_access
         ))
-        .routes(routes!(http_api::access_policies::create::create_access_policy))
+        .routes(routes!(
+            http_api::access_policies::create::create_access_policy
+        ))
         .routes(routes!(http_api::access_policies::get::get_access_policy))
-        .routes(routes!(http_api::access_policies::update::update_access_policy))
-        .routes(routes!(http_api::access_policies::delete::delete_access_policy))
-        .routes(routes!(http_api::access_policies::list::list_access_policies))
+        .routes(routes!(
+            http_api::access_policies::update::update_access_policy
+        ))
+        .routes(routes!(
+            http_api::access_policies::delete::delete_access_policy
+        ))
+        .routes(routes!(
+            http_api::access_policies::list::list_access_policies
+        ))
         // STORAGE QUOTAS
-        .routes(routes!(http_api::storage_quotas::create::create_storage_quota))
+        .routes(routes!(
+            http_api::storage_quotas::create::create_storage_quota
+        ))
         .routes(routes!(http_api::storage_quotas::get::get_storage_quota))
-        .routes(routes!(http_api::storage_quotas::update::update_storage_quota))
-        .routes(routes!(http_api::storage_quotas::delete::delete_storage_quota))
+        .routes(routes!(
+            http_api::storage_quotas::update::update_storage_quota
+        ))
+        .routes(routes!(
+            http_api::storage_quotas::delete::delete_storage_quota
+        ))
         .routes(routes!(http_api::storage_quotas::list::list_storage_quotas))
         // STORAGE LOCATIONS
         .routes(routes!(
@@ -162,6 +185,10 @@ async fn main() -> Result<(), anyhow::Error> {
                 .allow_methods(Any)
                 .allow_headers(Any),
         )
+        .layer(axum::middleware::from_fn_with_state(
+            server_state.clone(),
+            auth_middleware,
+        ))
         .layer(axum_server_timing::ServerTimingLayer::new("FilezService"))
         .layer(SetResponseHeaderLayer::overriding(
             CONTENT_SECURITY_POLICY,

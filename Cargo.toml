@@ -115,3 +115,4 @@ moka = { version = "0.12.10", default-features = false }
 pbjson-types = { version = "0.7.0", default-features = false }
 prometheus-client = { version = "0.22.3", default-features = false }
 tonic = { version = "0.13.1", default-features = false }
+openidconnect = { version = "3.5.0", default-features = false }

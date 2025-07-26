@@ -4,8 +4,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{
             AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectType,
@@ -30,13 +30,14 @@ pub async fn update_storage_quota(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateStorageQuotaRequestBody>,
 ) -> Result<Json<ApiResponse<StorageQuota>>, FilezError> {
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             requesting_user.as_ref(),
             &requesting_app,

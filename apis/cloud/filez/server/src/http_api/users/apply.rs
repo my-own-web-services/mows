@@ -1,5 +1,6 @@
 use crate::{
     errors::FilezError,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::users::FilezUser,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -8,7 +9,6 @@ use crate::{
 use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use zitadel::axum::introspection::IntrospectedUser;
 
 #[utoipa::path(
     post,
@@ -19,10 +19,15 @@ use zitadel::axum::introspection::IntrospectedUser;
     )
 )]
 pub async fn apply_user(
-    external_user: IntrospectedUser,
     State(ServerState { database, .. }): State<ServerState>,
+    Extension(AuthenticationInformation { external_user, .. }): Extension<
+        AuthenticationInformation,
+    >,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
 ) -> Result<Json<ApiResponse<ApplyUserResponseBody>>, FilezError> {
+    let external_user = external_user
+        .ok_or_else(|| FilezError::Unauthorized("External user not provided".to_string()))?;
+
     let user = with_timing!(
         FilezUser::apply(&database, external_user).await?,
         "Database operation to apply user",

@@ -279,7 +279,7 @@ thiserror = { workspace = true, features = ["default"] }
 document-features = { version = "0.2.8", optional = true }
 jsonwebtoken = { version = "9.3.0", optional = true }
 moka = { workspace = true, features = ["future"], optional = true }
-openidconnect = { version = "3.5.0", optional = true }
+openidconnect = { workspace = true, features = ["default"], optional = true }
 pbjson-types = { workspace = true, optional = true }
 prost = { version = "0.13.1", optional = true }
 prost-types = { version = "0.13.1", optional = true }

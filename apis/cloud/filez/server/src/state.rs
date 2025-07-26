@@ -3,6 +3,9 @@ use crate::{
     controller::{ControllerContext, ControllerState, Diagnostics},
     database::Database,
     errors::FilezError,
+    http_api::authentication::{
+        state::IntrospectionState, state_builder::IntrospectionStateBuilder,
+    },
     models::storage_locations::StorageLocation,
     storage::providers::StorageProvider,
 };
@@ -13,26 +16,17 @@ use kube::Client;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use zitadel::{
-    axum::introspection::{IntrospectionState, IntrospectionStateBuilder},
-    oidc::introspection::cache::in_memory::InMemoryIntrospectionCache,
-};
+use zitadel::oidc::introspection::cache::in_memory::InMemoryIntrospectionCache;
 
 #[derive(Clone)]
 pub struct ServerState {
     pub database: Database,
-    pub introspection_state: zitadel::axum::introspection::IntrospectionState,
+    pub introspection_state: IntrospectionState,
     pub controller_state: ControllerState,
     pub storage_location_providers: StorageLocationState,
 }
 
 pub type StorageLocationState = Arc<RwLock<HashMap<Uuid, StorageProvider>>>;
-
-impl FromRef<ServerState> for IntrospectionState {
-    fn from_ref(app_state: &ServerState) -> IntrospectionState {
-        app_state.introspection_state.clone()
-    }
-}
 
 impl ServerState {
     pub async fn new(config: &FilezServerConfig) -> Result<Self, FilezError> {

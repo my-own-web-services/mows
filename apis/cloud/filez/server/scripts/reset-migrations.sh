@@ -18,4 +18,7 @@ diesel migration generate --diff-schema init
 sed -i 's/SMALLINT NOT NULL\[\]/SMALLINT\[\] NOT NULL/g' ./migrations/*/up.sql
 
 
+sed -i 's/UUID NOT NULL\[\]/UUID\[\] NOT NULL/g' ./migrations/*/up.sql
+
+
 # sed -i -e '/FOREIGN KEY/s/)$/) ON DELETE CASCADE/' ./migrations/*/up.sql

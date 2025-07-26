@@ -73,7 +73,7 @@ export enum ListAccessPoliciesSortBy {
 export enum FilezUserType {
   SuperAdmin = "SuperAdmin",
   Regular = "Regular",
-  Password = "Password",
+  KeyAccess = "KeyAccess",
 }
 
 export enum FileGroupType {
@@ -108,9 +108,6 @@ export enum AccessPolicyAction {
   FilezFilesDelete = "FilezFilesDelete",
   FilezFilesGet = "FilezFilesGet",
   FilezFilesUpdate = "FilezFilesUpdate",
-  FilezFilesMetaGet = "FilezFilesMetaGet",
-  FilezFilesMetaList = "FilezFilesMetaList",
-  FilezFilesMetaUpdate = "FilezFilesMetaUpdate",
   FilezFilesVersionsContentGet = "FilezFilesVersionsContentGet",
   FilezFilesVersionsContentTusHead = "FilezFilesVersionsContentTusHead",
   FilezFilesVersionsContentTusPatch = "FilezFilesVersionsContentTusPatch",
@@ -155,11 +152,8 @@ export enum AccessPolicyAction {
 
 export interface AccessPolicy {
   actions: AccessPolicyAction[];
-  /**
-   * The ID of the application this policy is associated with, if None, the policy applies to all applications.
-   * @format uuid
-   */
-  context_app_id?: string | null;
+  /** The IDs of the application this policy is associated with */
+  context_app_ids: string[];
   /** @format date-time */
   created_time: string;
   effect: AccessPolicyEffect;
@@ -190,11 +184,8 @@ export type ApiResponseStatus =
 export interface ApiResponseAccessPolicy {
   data?: {
     actions: AccessPolicyAction[];
-    /**
-     * The ID of the application this policy is associated with, if None, the policy applies to all applications.
-     * @format uuid
-     */
-    context_app_id?: string | null;
+    /** The IDs of the application this policy is associated with */
+    context_app_ids: string[];
     /** @format date-time */
     created_time: string;
     effect: AccessPolicyEffect;
@@ -634,8 +625,7 @@ export interface CheckResourceAccessResponseBody {
 
 export interface CreateAccessPolicyRequestBody {
   actions: AccessPolicyAction[];
-  /** @format uuid */
-  context_app_id?: string | null;
+  context_app_ids: string[];
   effect: AccessPolicyEffect;
   name: string;
   /** @format uuid */
@@ -1080,8 +1070,7 @@ export interface StorageQuota {
 
 export interface UpdateAccessPolicyRequestBody {
   actions: AccessPolicyAction[];
-  /** @format uuid */
-  context_app_id?: string | null;
+  context_app_ids: string[];
   effect: AccessPolicyEffect;
   name: string;
   /** @format uuid */

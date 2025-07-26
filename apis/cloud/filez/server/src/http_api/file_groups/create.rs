@@ -4,7 +4,7 @@ use utoipa::ToSchema;
 
 use crate::{
     errors::FilezError,
-    http_api::authentication_middleware::AuthenticationInformation,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_groups::{DynamicGroupRule, FileGroup, FileGroupType},
@@ -27,13 +27,14 @@ pub async fn create_file_group(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileGroupRequestBody>,
 ) -> Result<Json<ApiResponse<FileGroup>>, FilezError> {
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             requesting_user.as_ref(),
             &requesting_app,
@@ -42,7 +43,7 @@ pub async fn create_file_group(
             AccessPolicyAction::FileGroupsCreate,
         )
         .await?
-        .verify()?,
+        .verify_allow_type_level()?,
         "Database operation to check access control",
         timing
     );

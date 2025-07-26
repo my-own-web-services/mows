@@ -4,8 +4,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_groups::{FileGroup, FileGroupType},
@@ -28,13 +28,14 @@ pub async fn update_file_group_members(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateFileGroupMembersRequestBody>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             requesting_user.as_ref(),
             &requesting_app,
@@ -70,7 +71,8 @@ pub async fn update_file_group_members(
 
     if let Some(files_to_remove) = request_body.files_to_remove {
         with_timing!(
-            FileGroup::remove_files(&database, &request_body.file_group_id, &files_to_remove).await?,
+            FileGroup::remove_files(&database, &request_body.file_group_id, &files_to_remove)
+                .await?,
             "Database operation to remove files from file group",
             timing
         );

@@ -250,6 +250,8 @@ diesel::table! {
         result -> Nullable<Jsonb>,
     }
 }
+diesel::joinable!(events -> users (user_id));
+diesel::joinable!(events -> apps (app_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     files,

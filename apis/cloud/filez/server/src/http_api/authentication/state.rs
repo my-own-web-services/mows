@@ -1,25 +1,24 @@
 use openidconnect::IntrospectionUrl;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use zitadel::oidc::{
+    discovery::discover,
+    introspection::{cache::IntrospectionCache, AuthorityAuthentication},
+};
 
-#[cfg(feature = "introspection_cache")]
-use crate::oidc::introspection::cache::IntrospectionCache;
-use crate::oidc::{discovery::discover, introspection::AuthorityAuthentication};
-
-use super::IntrospectionGuardError;
+use crate::http_api::authentication::user::IntrospectionGuardError;
 
 #[derive(Clone, Debug)]
 pub struct IntrospectionState {
-    pub(crate) config: Arc<RwLock<IntrospectionConfig>>,
+    pub config: Arc<RwLock<IntrospectionConfig>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct IntrospectionConfig {
-    pub(crate) authority: String,
-    pub(crate) authentication: AuthorityAuthentication,
-    pub(crate) introspection_uri: Option<IntrospectionUrl>,
-    #[cfg(feature = "introspection_cache")]
-    pub(crate) cache: Option<Box<dyn IntrospectionCache>>,
+pub struct IntrospectionConfig {
+    pub authority: String,
+    pub authentication: AuthorityAuthentication,
+    pub introspection_uri: Option<IntrospectionUrl>,
+    pub cache: Option<Box<dyn IntrospectionCache>>,
 }
 
 impl IntrospectionState {

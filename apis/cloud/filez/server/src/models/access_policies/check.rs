@@ -5,6 +5,7 @@ use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPol
 use crate::models::apps::MowsApp;
 use crate::models::users::{FilezUser, FilezUserType};
 use crate::{database::Database, schema};
+use anyhow::Context;
 use diesel::{
     pg::sql_types, prelude::*, BoolExpressionMethods, ExpressionMethods, SelectableHelper,
 };
@@ -12,6 +13,7 @@ use diesel::{PgArrayExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::fmt::Display;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -121,7 +123,8 @@ pub async fn check_resources_access_control(
                 ))
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut connection)
-                .await?;
+                .await
+                .context("Failed to load direct access policies for requested resources")?;
 
             let mut direct_policies_map: HashMap<Uuid, Vec<AccessPolicy>> = HashMap::new();
             for policy in direct_policies {
@@ -706,6 +709,16 @@ pub struct AuthResult {
     pub evaluations: Vec<AuthEvaluation>,
 }
 
+impl Display for AuthResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.access_granted {
+            write!(f, "Access granted")
+        } else {
+            write!(f, "Access denied")
+        }
+    }
+}
+
 impl AuthResult {
     pub fn is_allowed(&self) -> bool {
         self.access_granted
@@ -719,7 +732,21 @@ impl AuthResult {
         if self.is_allowed() {
             Ok(())
         } else {
-            Err(FilezError::AuthEvaluationError("Access denied".to_string()))
+            Err(FilezError::AuthEvaluationAccessDenied(self.clone()))
+        }
+    }
+
+    /// Meant for type-level resources like Files where the user is per default allowed to create them if they are not explicitly denied.
+    pub fn verify_allow_type_level(&self) -> Result<(), FilezError> {
+        if self.is_allowed() {
+            Ok(())
+        } else if self.evaluations.len() == 1
+            && self.evaluations[0].resource_id.is_none()
+            && self.evaluations[0].reason == AuthReason::NoMatchingAllowPolicy
+        {
+            Ok(())
+        } else {
+            Err(FilezError::AuthEvaluationAccessDenied(self.clone()))
         }
     }
 }

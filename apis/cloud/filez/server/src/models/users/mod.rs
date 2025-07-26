@@ -1,3 +1,4 @@
+use crate::http_api::authentication::user::IntrospectedUser;
 use crate::{
     config::{config, IMPERSONATE_USER_HEADER, KEY_ACCESS_HEADER},
     database::Database,
@@ -26,7 +27,6 @@ use std::collections::HashMap;
 use tracing::{debug, warn};
 use utoipa::ToSchema;
 use uuid::Uuid;
-use zitadel::axum::introspection::IntrospectedUser;
 
 use super::key_access::KeyAccess;
 
@@ -191,10 +191,7 @@ impl FilezUser {
             external_user.user_id
         );
 
-        let external_user_id = external_user
-            .user_id
-            .as_ref()
-            .ok_or_else(|| FilezError::Unauthorized("External user ID is missing".to_string()))?;
+        let external_user_id = external_user.user_id;
 
         let display_name = external_user.name.unwrap_or("".to_string());
 
@@ -211,7 +208,7 @@ impl FilezUser {
         );
 
         let existing_user = crate::schema::users::table
-            .filter(crate::schema::users::external_user_id.eq(external_user_id))
+            .filter(crate::schema::users::external_user_id.eq(&external_user_id))
             .first::<FilezUser>(&mut connection)
             .await
             .optional()?;
@@ -324,7 +321,7 @@ impl FilezUser {
 
     pub async fn get_from_external(
         database: &Database,
-        external_user: &IntrospectedUser,
+        external_user: &Option<IntrospectedUser>,
         request_headers: &HeaderMap,
     ) -> Result<Option<FilezUser>, FilezError> {
         let mut connection = database.get_connection().await?;
@@ -333,10 +330,10 @@ impl FilezUser {
             .get(KEY_ACCESS_HEADER)
             .and_then(|v| v.to_str().ok().map(|s| s.to_string()));
 
-        let original_requesting_user = match (&external_user.user_id, maybe_key_access) {
-            (Some(external_user_id), None) => {
+        let original_requesting_user = match (&external_user, maybe_key_access) {
+            (Some(external_user), None) => {
                 schema::users::table
-                    .filter(schema::users::external_user_id.eq(external_user_id))
+                    .filter(schema::users::external_user_id.eq(&external_user.user_id))
                     .first::<FilezUser>(&mut connection)
                     .await?
             }
@@ -364,16 +361,14 @@ impl FilezUser {
                     .await?;
 
                 debug!(
-                    "User with external_user_id `{}` is impersonating user with ID `{}`",
-                    external_user.user_id.clone().unwrap(),
-                    impersonate_user_id
+                    "User with ID `{}` is impersonating user with ID `{}`",
+                    original_requesting_user.id, impersonate_user_id
                 );
                 return Ok(Some(impersonated_user));
             } else {
                 warn!(
-                    "User with external_user_id `{}` tried to impersonate user with ID `{}`!",
-                    external_user.user_id.clone().unwrap(),
-                    impersonate_user_id
+                    "User with ID `{}` tried to impersonate user with ID `{}`!",
+                    original_requesting_user.id, impersonate_user_id
                 );
                 return Err(FilezError::Forbidden(
                     "Impersonation is not allowed for this user".to_string(),

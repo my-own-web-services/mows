@@ -39,8 +39,7 @@
 pub mod actix;
 #[cfg(feature = "api-common")]
 pub mod api;
-#[cfg(feature = "axum")]
-pub mod axum;
+
 #[cfg(feature = "credentials")]
 pub mod credentials;
 #[cfg(feature = "oidc")]

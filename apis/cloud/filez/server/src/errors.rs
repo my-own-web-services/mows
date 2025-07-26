@@ -1,4 +1,6 @@
 use crate::{
+    http_api::authentication::user::IntrospectionGuardError,
+    models::access_policies::check::AuthResult,
     storage::errors::StorageError,
     types::{ApiResponse, ApiResponseStatus},
 };
@@ -12,6 +14,9 @@ use utoipa::ToSchema;
 pub enum FilezError {
     #[error("Database Error: {0}")]
     DatabaseError(#[from] diesel::result::Error),
+
+    #[error(transparent)]
+    IntrospectionGuardError(#[from] IntrospectionGuardError),
 
     #[error("Deadpool Error: {0}")]
     DeadpoolError(#[from] diesel_async::pooled_connection::deadpool::PoolError),
@@ -63,6 +68,9 @@ pub enum FilezError {
 
     #[error("Auth evaluation error: {0}")]
     AuthEvaluationError(String),
+
+    #[error("{0}")]
+    AuthEvaluationAccessDenied(AuthResult),
 
     #[error("Kube Error: {0}")]
     ControllerKubeError(#[from] kube::Error),
@@ -168,9 +176,14 @@ impl IntoResponse for FilezError {
                 "Forbidden".to_string(),
             ),
             FilezError::AuthEvaluationError(_) => (
-                axum::http::StatusCode::FORBIDDEN,
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 None,
                 "AuthEvaluationError".to_string(),
+            ),
+            FilezError::AuthEvaluationAccessDenied(auth_result) => (
+                axum::http::StatusCode::FORBIDDEN,
+                serde_json::to_value(auth_result).ok(),
+                "AuthEvaluationAccessDenied".to_string(),
             ),
             FilezError::StorageQuotaExceeded(_) => (
                 axum::http::StatusCode::FORBIDDEN,
@@ -250,6 +263,20 @@ impl IntoResponse for FilezError {
                 None,
                 "ValidationError".to_string(),
             ),
+            FilezError::IntrospectionGuardError(introspection_guard_error) => {
+                match introspection_guard_error {
+                    IntrospectionGuardError::Inactive => (
+                        axum::http::StatusCode::UNAUTHORIZED,
+                        None,
+                        "IntrospectionGuardError::Inactive".to_string(),
+                    ),
+                    _ => (
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        None,
+                        "IntrospectionGuardError::Other".to_string(),
+                    ),
+                }
+            }
         };
 
         let body: ApiResponse<Value> = ApiResponse {

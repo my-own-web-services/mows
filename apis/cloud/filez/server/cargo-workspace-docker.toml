@@ -93,6 +93,11 @@ default-features = false
 features = ["default"]
 path = "./mows-common-rust"
 
+[workspace.dependencies.openidconnect]
+default-features = false
+features = ["default"]
+version = "3.5.0"
+
 [workspace.dependencies.opentelemetry]
 default-features = false
 features = ["trace"]
@@ -175,7 +180,7 @@ version = "1.45.0"
 
 [workspace.dependencies.tower-http]
 default-features = false
-features = ["cors", "compression-full", "decompression-full"]
+features = ["cors", "compression-full", "decompression-full", "set-header"]
 version = "0.6.4"
 
 [workspace.dependencies.tracing]
@@ -209,7 +214,7 @@ version = "0.2.0"
 
 [workspace.dependencies.utoipa-swagger-ui]
 default-features = false
-features = ["axum"]
+features = ["axum", "debug-embed", "vendored"]
 version = "9.0.2"
 
 [workspace.dependencies.uuid]
@@ -219,7 +224,7 @@ version = "1.17.0"
 
 [workspace.dependencies.zitadel]
 default-features = false
-features = ["axum", "introspection_cache", "default"]
+features = ["default", "oidc", "introspection_cache"]
 path = "./zitadel"
 
 [workspace.lints.clippy]
