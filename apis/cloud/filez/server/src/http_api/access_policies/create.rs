@@ -4,8 +4,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::access_policies::{
         AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
         AccessPolicySubjectType,
@@ -25,10 +25,10 @@ use crate::{
     )
 )]
 pub async fn create_access_policy(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateAccessPolicyRequestBody>,
@@ -36,9 +36,8 @@ pub async fn create_access_policy(
     with_timing!(
         AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::AccessPolicy,
             None,
             AccessPolicyAction::AccessPoliciesCreate,
@@ -51,10 +50,10 @@ pub async fn create_access_policy(
 
     let access_policy = AccessPolicy::new(
         &request_body.name,
-        requesting_user.id,
+        requesting_user.unwrap().id,
         request_body.subject_type,
         request_body.subject_id,
-        request_body.context_app_id,
+        request_body.context_app_ids,
         request_body.resource_type,
         request_body.resource_id,
         request_body.actions,
@@ -79,7 +78,7 @@ pub struct CreateAccessPolicyRequestBody {
     pub name: String,
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
-    pub context_app_id: Option<Uuid>,
+    pub context_app_ids: Vec<Uuid>,
     pub resource_type: AccessPolicyResourceType,
     pub resource_id: Option<Uuid>,
     pub actions: Vec<AccessPolicyAction>,

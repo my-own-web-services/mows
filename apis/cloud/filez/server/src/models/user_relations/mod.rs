@@ -1,4 +1,7 @@
-use crate::{database::Database, utils::InvalidEnumType};
+use crate::{
+    database::Database,
+    utils::{get_current_timestamp, InvalidEnumType},
+};
 use diesel::{
     deserialize::FromSqlRow,
     expression::AsExpression,
@@ -52,18 +55,12 @@ pub enum UserRelationStatus {
 }
 
 impl UserRelation {
-    pub fn new(
-        user_id: Uuid,
-        friend_id: Uuid,
-        created_time: chrono::NaiveDateTime,
-        modified_time: chrono::NaiveDateTime,
-        status: UserRelationStatus,
-    ) -> Self {
+    pub fn new(user_id: Uuid, friend_id: Uuid, status: UserRelationStatus) -> Self {
         Self {
             user_id,
             friend_id,
-            created_time,
-            modified_time,
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
             status,
         }
     }
@@ -75,13 +72,7 @@ impl UserRelation {
         status: UserRelationStatus,
     ) -> Result<Self, crate::errors::FilezError> {
         let mut connection = database.get_connection().await?;
-        let relation = Self::new(
-            user_id,
-            friend_id,
-            chrono::Utc::now().naive_utc(),
-            chrono::Utc::now().naive_utc(),
-            status,
-        );
+        let relation = Self::new(user_id, friend_id, status);
 
         diesel::insert_into(crate::schema::user_relations::table)
             .values(&relation)
@@ -106,7 +97,7 @@ impl UserRelation {
         )
         .set((
             crate::schema::user_relations::status.eq(new_status),
-            crate::schema::user_relations::modified_time.eq(chrono::Utc::now().naive_utc()),
+            crate::schema::user_relations::modified_time.eq(get_current_timestamp()),
         ))
         .get_result(&mut connection)
         .await?;

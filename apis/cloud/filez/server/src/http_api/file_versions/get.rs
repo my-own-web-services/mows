@@ -1,5 +1,5 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
+    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
@@ -34,10 +34,10 @@ use uuid::Uuid;
     )
 )]
 pub async fn get_file_versions(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetFileVersionsRequestBody>,
@@ -45,11 +45,10 @@ pub async fn get_file_versions(
     let file_ids: Vec<Uuid> = request_body.versions.iter().map(|v| v.file_id).collect();
 
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::File,
             Some(&file_ids),
             AccessPolicyAction::FilezFilesVersionsGet,

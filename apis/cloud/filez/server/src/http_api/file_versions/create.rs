@@ -1,6 +1,6 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_versions::{FileVersion, FileVersionMetadata},
@@ -11,12 +11,7 @@ use crate::{
     validation::validate_sha256_digest,
     with_timing,
 };
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    Extension, Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -36,10 +31,10 @@ use uuid::Uuid;
     )
 )]
 pub async fn create_file_version(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileVersionRequestBody>,
@@ -51,9 +46,8 @@ pub async fn create_file_version(
     with_timing!(
         AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::File,
             Some(&vec![request_body.file_id]),
             AccessPolicyAction::FilezFilesVersionsCreate,
@@ -67,7 +61,7 @@ pub async fn create_file_version(
     with_timing!(
         StorageQuota::check_quota(
             &database,
-            &requesting_user.id,
+            &requesting_user.unwrap().id,
             &request_body.storage_quota_id,
             request_body.size.into()
         )

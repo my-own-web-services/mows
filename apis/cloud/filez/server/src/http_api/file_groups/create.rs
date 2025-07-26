@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_groups::{DynamicGroupRule, FileGroup, FileGroupType},
@@ -24,20 +24,19 @@ use crate::{
     )
 )]
 pub async fn create_file_group(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileGroupRequestBody>,
 ) -> Result<Json<ApiResponse<FileGroup>>, FilezError> {
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::FileGroup,
             None,
             AccessPolicyAction::FileGroupsCreate,
@@ -49,7 +48,7 @@ pub async fn create_file_group(
     );
 
     let file_group = FileGroup::new(
-        &requesting_user,
+        &requesting_user.unwrap(),
         &request_body.name,
         request_body.group_type,
         request_body.dynamic_group_rule,

@@ -13,7 +13,13 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{database::Database, errors::FilezError, schema, utils::get_uuid};
+use crate::{
+    database::Database,
+    errors::FilezError,
+    schema,
+    utils::{get_current_timestamp, get_uuid},
+    validation::validate_file_name,
+};
 
 use super::users::FilezUser;
 
@@ -42,16 +48,17 @@ pub struct FilezFile {
 }
 
 impl FilezFile {
-    pub fn new(owner: &FilezUser, mime_type: &Mime, file_name: &str) -> Self {
-        Self {
+    pub fn new(owner: &FilezUser, mime_type: &Mime, file_name: &str) -> Result<Self, FilezError> {
+        validate_file_name(file_name)?;
+        Ok(Self {
             id: get_uuid(),
             owner_id: owner.id.clone(),
             mime_type: mime_type.to_string(),
             name: file_name.to_string(),
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
             metadata: FileMetadata::new(),
-        }
+        })
     }
 
     pub async fn get_by_id(database: &Database, file_id: uuid::Uuid) -> Result<Self, FilezError> {
@@ -88,7 +95,7 @@ impl FilezFile {
     }
 
     pub async fn update(&mut self, database: &Database) -> Result<FilezFile, FilezError> {
-        self.modified_time = chrono::Utc::now().naive_utc();
+        self.modified_time = get_current_timestamp();
         let mut connection = database.get_connection().await?;
 
         Ok(diesel::update(crate::schema::files::table)

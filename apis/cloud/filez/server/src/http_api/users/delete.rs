@@ -1,6 +1,6 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         users::FilezUser,
@@ -24,10 +24,10 @@ use uuid::Uuid;
     )
 )]
 pub async fn delete_user(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<DeleteUserRequestBody>,
@@ -35,7 +35,9 @@ pub async fn delete_user(
     let user_id = match request_body.method {
         DeleteUserMethod::ById(id) => id,
         DeleteUserMethod::ByExternalId(external_id) => {
-            FilezUser::get_by_external_id(&database, &external_id).await?.id
+            FilezUser::get_by_external_id(&database, &external_id)
+                .await?
+                .id
         }
         DeleteUserMethod::ByEmail(email) => FilezUser::get_by_email(&database, &email).await?.id,
     };
@@ -43,9 +45,8 @@ pub async fn delete_user(
     with_timing!(
         AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             AccessPolicyResourceType::User,
             Some(&[user_id]),
             AccessPolicyAction::UsersDelete,

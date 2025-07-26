@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         tag_members::{TagMember, TagResourceType},
@@ -27,10 +27,10 @@ use crate::{
     )
 )]
 pub async fn get_tags(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetTagsRequestBody>,
@@ -47,11 +47,10 @@ pub async fn get_tags(
     };
 
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             access_policy_type,
             Some(&request_body.resource_ids),
             AccessPolicyAction::TagsGet,

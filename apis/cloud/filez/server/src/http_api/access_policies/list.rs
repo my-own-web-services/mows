@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
-    models::access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+    http_api::authentication_middleware::AuthenticationInformation,
+    models::access_policies::AccessPolicy,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
@@ -21,35 +21,19 @@ use crate::{
     )
 )]
 pub async fn list_access_policies(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListAccessPoliciesRequestBody>,
 ) -> Result<Json<ApiResponse<ListAccessPoliciesResponseBody>>, FilezError> {
-    with_timing!(
-        AccessPolicy::check(
-            &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
-            AccessPolicyResourceType::AccessPolicy,
-            None,
-            AccessPolicyAction::AccessPoliciesList,
-        )
-        .await?
-        .verify()?,
-        "Database operation to check access control",
-        timing
-    );
-
     let access_policies = with_timing!(
         AccessPolicy::list_with_user_access(
             &database,
-            &requesting_user.id,
-            &requesting_app.id,
+            requesting_user.as_ref(),
+            &requesting_app,
             request_body.from_index,
             request_body.limit,
             request_body.sort_by,

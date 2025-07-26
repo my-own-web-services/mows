@@ -1,6 +1,6 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::storage_quotas::StorageQuota,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
@@ -20,18 +20,23 @@ use utoipa::ToSchema;
     )
 )]
 pub async fn list_storage_quotas(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListStorageQuotasRequestBody>,
 ) -> Result<Json<ApiResponse<Vec<StorageQuota>>>, FilezError> {
+    let requesting_user = requesting_user.ok_or_else(|| {
+        FilezError::Unauthorized("User must be authenticated to list storage quotas".to_string())
+    })?;
+
     let storage_quotas = with_timing!(
         StorageQuota::list_with_user_access(
             &database,
             &requesting_user.id,
+            &requesting_app,
             request_body.from_index,
             request_body.limit,
             request_body.sort_by,

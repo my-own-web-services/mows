@@ -1,10 +1,7 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
-    models::{
-        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        users::{FilezUser, ListedFilezUser},
-    },
+    http_api::authentication_middleware::AuthenticationInformation,
+    models::users::{FilezUser, ListedFilezUser},
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
@@ -23,35 +20,19 @@ use utoipa::ToSchema;
     )
 )]
 pub async fn list_users(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListUsersRequestBody>,
 ) -> Result<Json<ApiResponse<ListUsersResponseBody>>, FilezError> {
-    with_timing!(
-        AccessPolicy::check(
-            &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
-            AccessPolicyResourceType::User,
-            None,
-            AccessPolicyAction::UsersList,
-        )
-        .await?
-        .verify()?,
-        "Database operation to check access control",
-        timing
-    );
-
     let users = with_timing!(
         FilezUser::list_with_user_access(
             &database,
-            &requesting_user.id,
-            &requesting_app.id,
+            requesting_user.as_ref(),
+            &requesting_app,
             request_body.from_index,
             request_body.limit,
             request_body.sort_by,

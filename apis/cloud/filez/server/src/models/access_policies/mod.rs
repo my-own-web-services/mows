@@ -1,11 +1,13 @@
 pub mod check;
+use super::{user_groups::UserGroup, users::FilezUser};
 use crate::{
     database::Database,
     errors::FilezError,
     http_api::access_policies::list::ListAccessPoliciesSortBy,
+    models::apps::MowsApp,
     schema::{self},
     types::SortDirection,
-    utils::{get_uuid, InvalidEnumType},
+    utils::{get_current_timestamp, get_uuid, InvalidEnumType},
 };
 use check::{check_resources_access_control, AuthResult};
 use diesel::{
@@ -19,26 +21,41 @@ use std::collections::HashSet;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::{user_groups::UserGroup, users::FilezUser};
-
 /// ```
 /// filter_subject_access_policies!(requesting_user_id: &Uuid, user_group_ids: Vec<Uuid>)
 /// ```
 #[macro_export]
 macro_rules! filter_subject_access_policies {
-    ($requesting_user_id:expr, $user_group_ids:expr) => {{
-        let requesting_user_id: &Uuid = $requesting_user_id;
-        let user_group_ids: &Vec<Uuid> = $user_group_ids;
-
-        schema::access_policies::subject_type
-            .eq(AccessPolicySubjectType::Public)
-            .or(schema::access_policies::subject_type.eq(AccessPolicySubjectType::ServerMember))
-            .or(schema::access_policies::subject_type
-                .eq(AccessPolicySubjectType::User)
-                .and(schema::access_policies::subject_id.eq(requesting_user_id)))
-            .or(schema::access_policies::subject_type
-                .eq(AccessPolicySubjectType::UserGroup)
-                .and(schema::access_policies::subject_id.eq_any(user_group_ids)))
+    ($maybe_requesting_user:expr, $maybe_user_group_ids:expr) => {{
+        let maybe_requesting_user: Option<&FilezUser> = $maybe_requesting_user;
+        let maybe_user_group_ids: Option<&Vec<Uuid>> = $maybe_user_group_ids;
+        let predicate: Box<
+            dyn BoxableExpression<
+                schema::access_policies::table,
+                _,
+                SqlType = diesel::sql_types::Bool,
+            >,
+        > = match maybe_requesting_user {
+            Some(requesting_user) => Box::new(
+                schema::access_policies::subject_type
+                    .eq(AccessPolicySubjectType::Public)
+                    .or(schema::access_policies::subject_type
+                        .eq(AccessPolicySubjectType::ServerMember))
+                    .or(schema::access_policies::subject_type
+                        .eq(AccessPolicySubjectType::User)
+                        .and(schema::access_policies::subject_id.eq(requesting_user.id)))
+                    .or(schema::access_policies::subject_type
+                        .eq(AccessPolicySubjectType::UserGroup)
+                        .and(
+                            schema::access_policies::subject_id
+                                .eq_any(maybe_user_group_ids.unwrap()),
+                        )),
+            ),
+            None => {
+                Box::new(schema::access_policies::subject_type.eq(AccessPolicySubjectType::Public))
+            }
+        };
+        predicate
     }};
 }
 
@@ -197,8 +214,8 @@ pub struct AccessPolicy {
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
 
-    /// The ID of the application this policy is associated with, if None, the policy applies to all applications.
-    pub context_app_id: Option<Uuid>,
+    /// The IDs of the application this policy is associated with
+    pub context_app_ids: Vec<Uuid>,
 
     pub resource_type: AccessPolicyResourceType,
     /// The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
@@ -215,7 +232,7 @@ impl AccessPolicy {
         owner_id: Uuid,
         subject_type: AccessPolicySubjectType,
         subject_id: Uuid,
-        context_app_id: Option<Uuid>,
+        context_app_ids: Vec<Uuid>,
         resource_type: AccessPolicyResourceType,
         resource_id: Option<Uuid>,
         actions: Vec<AccessPolicyAction>,
@@ -225,11 +242,11 @@ impl AccessPolicy {
             id: get_uuid(),
             owner_id,
             name: name.to_string(),
-            created_time: chrono::Utc::now().naive_utc(),
-            modified_time: chrono::Utc::now().naive_utc(),
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
             subject_id,
             subject_type,
-            context_app_id,
+            context_app_ids,
             resource_type,
             resource_id,
             actions,
@@ -262,48 +279,55 @@ impl AccessPolicy {
     /// Lists all resource ids that the user has access to, for a specific resource type.
     pub async fn get_resources_with_access(
         database: &Database,
-        requesting_user_id: &Uuid,
-        context_app_id: &Uuid,
+        maybe_requesting_user: Option<&FilezUser>,
+        requesting_app: &MowsApp,
         resource_type: AccessPolicyResourceType,
         action_to_perform: AccessPolicyAction,
     ) -> Result<Vec<Uuid>, FilezError> {
         let mut connection = database.get_connection().await?;
         let resource_auth_info = check::get_auth_info(resource_type);
-        let user_group_ids = UserGroup::get_all_by_user_id(database, requesting_user_id).await?;
+        let maybe_user_group_ids = match maybe_requesting_user {
+            Some(requesting_user) => {
+                Some(UserGroup::get_all_by_user_id(database, &requesting_user.id).await?)
+            }
+            None => None,
+        };
 
         let mut allowed_ids: HashSet<Uuid> = HashSet::new();
         let mut denied_ids: HashSet<Uuid> = HashSet::new();
 
-        if let Some(owner_col) = resource_auth_info.resource_table_owner_column {
-            // 1. Get resources owned by the user
-            let owned_query_string = format!(
-                "SELECT {id_col} as id FROM {table_name} WHERE {owner_col} = $1",
-                table_name = resource_auth_info.resource_table,
-                id_col = resource_auth_info.resource_table_id_column,
-                owner_col = owner_col
-            );
+        if let Some(requesting_user) = maybe_requesting_user {
+            if let Some(owner_col) = resource_auth_info.resource_table_owner_column {
+                // 1. Get resources owned by the user
+                let owned_query_string = format!(
+                    "SELECT {id_col} as id FROM {table_name} WHERE {owner_col} = $1",
+                    table_name = resource_auth_info.resource_table,
+                    id_col = resource_auth_info.resource_table_id_column,
+                    owner_col = owner_col
+                );
 
-            #[derive(QueryableByName, Debug)]
-            struct ResourceId {
-                #[diesel(sql_type = diesel::sql_types::Uuid)]
-                id: Uuid,
+                #[derive(QueryableByName, Debug)]
+                struct ResourceId {
+                    #[diesel(sql_type = diesel::sql_types::Uuid)]
+                    id: Uuid,
+                }
+
+                let owned_ids: Vec<ResourceId> = diesel::sql_query(&owned_query_string)
+                    .bind::<diesel::sql_types::Uuid, _>(requesting_user.id)
+                    .load::<ResourceId>(&mut connection)
+                    .await?;
+                allowed_ids.extend(owned_ids.into_iter().map(|r| r.id));
             }
-
-            let owned_ids: Vec<ResourceId> = diesel::sql_query(&owned_query_string)
-                .bind::<diesel::sql_types::Uuid, _>(requesting_user_id)
-                .load::<ResourceId>(&mut connection)
-                .await?;
-            allowed_ids.extend(owned_ids.into_iter().map(|r| r.id));
         }
 
         // 2. Get resources with direct policies
         let direct_policies = schema::access_policies::table
             .filter(schema::access_policies::resource_type.eq(resource_auth_info.resource_type))
-            .filter(schema::access_policies::context_app_id.eq(context_app_id))
+            .filter(schema::access_policies::context_app_ids.contains(vec![requesting_app.id]))
             .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
             .filter(filter_subject_access_policies!(
-                requesting_user_id,
-                &user_group_ids
+                maybe_requesting_user,
+                maybe_user_group_ids.as_ref()
             ))
             .select((
                 schema::access_policies::resource_id,
@@ -337,22 +361,6 @@ impl AccessPolicy {
             resource_auth_info.group_membership_table_group_id_column,
             resource_auth_info.resource_group_type,
         ) {
-            let group_policies_query = format!(
-                "SELECT gm.{resource_id_col} as id, ap.effect
-                 FROM {group_membership_table} gm
-                 JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
-                 WHERE ap.resource_type = $1
-                   AND ap.context_app_id = $2
-                   AND ap.actions @> $3
-                   AND (
-                       (ap.subject_type = 'User' AND ap.subject_id = $4) OR
-                       (ap.subject_type = 'UserGroup' AND ap.subject_id = ANY($5))
-                   )",
-                resource_id_col = group_membership_table_resource_id_column,
-                group_id_col = group_membership_table_group_id_column,
-                group_membership_table = group_membership_table
-            );
-
             #[derive(QueryableByName, Debug)]
             struct GroupPolicyResult {
                 #[diesel(sql_type = diesel::sql_types::Uuid)]
@@ -361,16 +369,65 @@ impl AccessPolicy {
                 effect: AccessPolicyEffect,
             }
 
-            let group_policies: Vec<GroupPolicyResult> = diesel::sql_query(&group_policies_query)
-                .bind::<diesel::sql_types::SmallInt, _>(resource_group_type)
-                .bind::<diesel::sql_types::Uuid, _>(context_app_id)
-                .bind::<diesel::sql_types::Array<SmallInt>, _>(vec![action_to_perform])
-                .bind::<diesel::sql_types::Uuid, _>(requesting_user_id)
-                .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(user_group_ids)
-                .load(&mut connection)
-                .await?;
+            let resource_group_policies: Vec<GroupPolicyResult> = match maybe_requesting_user {
+                Some(requesting_user) => {
+                    let resource_group_policies_query = format!(
+                        "SELECT gm.{resource_id_col} as id, ap.effect
+                 FROM {group_membership_table} gm
+                 JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
+                 WHERE ap.resource_type = $1
+                   AND ap.context_app_id @> $2
+                   AND ap.actions @> $3
+                   AND (
+                        (ap.subject_type = 'User' AND ap.subject_id = $4) OR
+                        (ap.subject_type = 'UserGroup' AND ap.subject_id = ANY($5)) OR
+                        (ap.subject_type = 'ServerMember') OR
+                        (ap.subject_type = 'Public')
+                   )",
+                        resource_id_col = group_membership_table_resource_id_column,
+                        group_id_col = group_membership_table_group_id_column,
+                        group_membership_table = group_membership_table
+                    );
 
-            for result in group_policies {
+                    diesel::sql_query(&resource_group_policies_query)
+                        .bind::<diesel::sql_types::SmallInt, _>(resource_group_type)
+                        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![
+                            requesting_app.id,
+                        ])
+                        .bind::<diesel::sql_types::Array<SmallInt>, _>(vec![action_to_perform])
+                        .bind::<diesel::sql_types::Uuid, _>(requesting_user.id)
+                        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(
+                            maybe_user_group_ids.unwrap_or(Vec::new()),
+                        )
+                        .load(&mut connection)
+                        .await?
+                }
+                None => {
+                    let resource_group_policies_query = format!(
+                        "SELECT gm.{resource_id_col} as id, ap.effect
+                 FROM {group_membership_table} gm
+                 JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
+                 WHERE ap.resource_type = $1
+                   AND ap.context_app_id @> $2
+                   AND ap.actions @> $3
+                   AND ap.subject_type = 'Public'",
+                        resource_id_col = group_membership_table_resource_id_column,
+                        group_id_col = group_membership_table_group_id_column,
+                        group_membership_table = group_membership_table
+                    );
+
+                    diesel::sql_query(&resource_group_policies_query)
+                        .bind::<diesel::sql_types::SmallInt, _>(resource_group_type)
+                        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![
+                            requesting_app.id,
+                        ])
+                        .bind::<diesel::sql_types::Array<SmallInt>, _>(vec![action_to_perform])
+                        .load(&mut connection)
+                        .await?
+                }
+            };
+
+            for result in resource_group_policies {
                 match result.effect {
                     AccessPolicyEffect::Allow => {
                         allowed_ids.insert(result.id);
@@ -390,8 +447,8 @@ impl AccessPolicy {
 
     pub async fn list_with_user_access(
         database: &Database,
-        requesting_user_id: &Uuid,
-        app_id: &Uuid,
+        maybe_requesting_user: Option<&FilezUser>,
+        requesting_app: &MowsApp,
         from_index: Option<i64>,
         limit: Option<i64>,
         sort_by: Option<ListAccessPoliciesSortBy>,
@@ -401,8 +458,8 @@ impl AccessPolicy {
 
         let resources_with_access = Self::get_resources_with_access(
             database,
-            requesting_user_id,
-            app_id,
+            maybe_requesting_user,
+            requesting_app,
             AccessPolicyResourceType::AccessPolicy,
             AccessPolicyAction::AccessPoliciesList,
         )
@@ -455,7 +512,7 @@ impl AccessPolicy {
         name: &str,
         subject_type: AccessPolicySubjectType,
         subject_id: Uuid,
-        context_app_id: Option<Uuid>,
+        context_app_ids: Vec<Uuid>,
         resource_type: AccessPolicyResourceType,
         resource_id: Option<Uuid>,
         actions: Vec<AccessPolicyAction>,
@@ -468,12 +525,12 @@ impl AccessPolicy {
                 schema::access_policies::name.eq(name),
                 schema::access_policies::subject_type.eq(subject_type),
                 schema::access_policies::subject_id.eq(subject_id),
-                schema::access_policies::context_app_id.eq(context_app_id.unwrap_or(Uuid::nil())),
+                schema::access_policies::context_app_ids.eq(context_app_ids),
                 schema::access_policies::resource_type.eq(resource_type),
                 schema::access_policies::resource_id.eq(resource_id),
                 schema::access_policies::actions.eq(actions),
                 schema::access_policies::effect.eq(effect),
-                schema::access_policies::modified_time.eq(chrono::Utc::now().naive_utc()),
+                schema::access_policies::modified_time.eq(get_current_timestamp()),
             ))
             .execute(&mut connection)
             .await?;
@@ -490,21 +547,24 @@ impl AccessPolicy {
 
     pub async fn check(
         database: &Database,
-        requesting_user: &FilezUser,
-        context_app_id: &Uuid,
-        context_app_trusted: bool,
+        maybe_requesting_user: Option<&FilezUser>,
+        context_app: &MowsApp,
         resource_type: AccessPolicyResourceType,
         requested_resource_ids: Option<&[Uuid]>,
         action_to_perform: AccessPolicyAction,
     ) -> Result<AuthResult, FilezError> {
-        let user_group_ids = UserGroup::get_all_by_user_id(database, &requesting_user.id).await?;
+        let maybe_user_group_ids = match maybe_requesting_user {
+            Some(requesting_user) => {
+                Some(UserGroup::get_all_by_user_id(database, &requesting_user.id).await?)
+            }
+            None => None,
+        };
 
         check_resources_access_control(
             database,
-            requesting_user,
-            &user_group_ids,
-            context_app_id,
-            context_app_trusted,
+            maybe_requesting_user,
+            maybe_user_group_ids.as_ref(),
+            context_app,
             resource_type,
             requested_resource_ids,
             action_to_perform,

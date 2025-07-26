@@ -143,7 +143,7 @@ diesel::table! {
         subject_type -> SmallInt,
         subject_id -> Uuid,
 
-        context_app_id -> Nullable<Uuid>,
+        context_app_ids -> Array<Uuid>,
 
         resource_type -> SmallInt,
         resource_id -> Nullable<Uuid>,
@@ -219,6 +219,7 @@ diesel::table! {
         description -> Nullable<Text>,
         created_time -> Timestamp,
         modified_time -> Timestamp,
+        app_type -> SmallInt,
     }
 }
 

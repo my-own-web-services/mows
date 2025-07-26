@@ -6,8 +6,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticatedUserAndApp,
     errors::FilezError,
+    http_api::authentication_middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         tag_members::{TagMember, TagResourceType},
@@ -27,10 +27,10 @@ use crate::{
     )
 )]
 pub async fn update_tags(
-    Extension(AuthenticatedUserAndApp {
+    Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
-    }): Extension<AuthenticatedUserAndApp>,
+    }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateTagsRequestBody>,
@@ -47,11 +47,10 @@ pub async fn update_tags(
     };
 
     with_timing!(
-        AccessPolicy::check(
+                AccessPolicy::check(
             &database,
-            &requesting_user,
-            &requesting_app.id,
-            requesting_app.trusted,
+            requesting_user.as_ref(),
+            &requesting_app,
             access_policy_type,
             Some(&request_body.resource_ids),
             AccessPolicyAction::TagsUpdate,
@@ -65,7 +64,7 @@ pub async fn update_tags(
     with_timing!(
         TagMember::update_tags(
             &database,
-            &requesting_user.id,
+            &requesting_user.unwrap().id,
             &request_body.resource_ids,
             request_body.resource_type,
             request_body.update_tags

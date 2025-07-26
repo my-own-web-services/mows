@@ -11,7 +11,7 @@ use crate::{
         providers::StorageProvider,
     },
     types::SortDirection,
-    utils::get_uuid,
+    utils::{get_current_timestamp, get_uuid},
 };
 use axum::extract::Request;
 use bigdecimal::BigDecimal;
@@ -170,7 +170,7 @@ impl StorageLocation {
 
         let location_id = match existing_storage_location {
             Some(mut storage_location) => {
-                storage_location.modified_time = chrono::Local::now().naive_local();
+                storage_location.modified_time = get_current_timestamp();
 
                 storage_location.provider_config = provider.clone();
                 diesel::update(crate::schema::storage_locations::table)
@@ -185,8 +185,8 @@ impl StorageLocation {
                     id: get_uuid(),
                     name: full_name.to_string(),
                     provider_config: provider.clone(),
-                    created_time: chrono::Local::now().naive_local(),
-                    modified_time: chrono::Local::now().naive_local(),
+                    created_time: get_current_timestamp(),
+                    modified_time: get_current_timestamp(),
                 };
                 diesel::insert_into(crate::schema::storage_locations::table)
                     .values(&new_storage_location)
