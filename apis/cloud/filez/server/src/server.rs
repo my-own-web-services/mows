@@ -2,7 +2,7 @@ use anyhow::Context;
 use axum::http::{header::CONTENT_SECURITY_POLICY, request::Parts, HeaderValue};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use filez_server_lib::{
-    api::{self},
+    http_api::{self},
     config::config,
     controller,
     database::Database,
@@ -62,81 +62,81 @@ async fn main() -> Result<(), anyhow::Error> {
         // THIS IS NOT THE REASON why the error occurs.
         // often it is the order of the extractors in the route handlers
         // FILES
-        .routes(routes!(api::files::create::create_file))
-        .routes(routes!(api::files::get::get_files))
-        .routes(routes!(api::files::update::update_file))
-        .routes(routes!(api::files::delete::delete_file))
+        .routes(routes!(http_api::files::create::create_file))
+        .routes(routes!(http_api::files::get::get_files))
+        .routes(routes!(http_api::files::update::update_file))
+        .routes(routes!(http_api::files::delete::delete_file))
         // FILE VERSIONS
-        .routes(routes!(api::file_versions::get::get_file_versions))
-        .routes(routes!(api::file_versions::create::create_file_version))
-        .routes(routes!(api::file_versions::delete::delete_file_versions))
-        .routes(routes!(api::file_versions::update::update_file_versions))
+        .routes(routes!(http_api::file_versions::get::get_file_versions))
+        .routes(routes!(http_api::file_versions::create::create_file_version))
+        .routes(routes!(http_api::file_versions::delete::delete_file_versions))
+        .routes(routes!(http_api::file_versions::update::update_file_versions))
         //  content
         .routes(routes!(
-            api::file_versions::content::get::get_file_version_content
+            http_api::file_versions::content::get::get_file_version_content
         ))
         //    tus
         .routes(routes!(
-            api::file_versions::content::tus::head::file_versions_content_tus_head
+            http_api::file_versions::content::tus::head::file_versions_content_tus_head
         ))
         .routes(routes!(
-            api::file_versions::content::tus::patch::file_versions_content_tus_patch
+            http_api::file_versions::content::tus::patch::file_versions_content_tus_patch
         ))
         // FILE GROUPS
-        .routes(routes!(api::file_groups::create::create_file_group))
-        .routes(routes!(api::file_groups::get::get_file_group))
-        .routes(routes!(api::file_groups::update::update_file_group))
-        .routes(routes!(api::file_groups::delete::delete_file_group))
-        .routes(routes!(api::file_groups::list::list_file_groups))
+        .routes(routes!(http_api::file_groups::create::create_file_group))
+        .routes(routes!(http_api::file_groups::get::get_file_group))
+        .routes(routes!(http_api::file_groups::update::update_file_group))
+        .routes(routes!(http_api::file_groups::delete::delete_file_group))
+        .routes(routes!(http_api::file_groups::list::list_file_groups))
         .routes(routes!(
-            api::file_groups::list_files::list_files_by_file_groups
+            http_api::file_groups::list_files::list_files_by_file_groups
         ))
         .routes(routes!(
-            api::file_groups::update_members::update_file_group_members
+            http_api::file_groups::update_members::update_file_group_members
         ))
         // USERS
-        .routes(routes!(api::users::apply::apply_user))
-        .routes(routes!(api::users::get::get_users))
-        .routes(routes!(api::users::create::create_user))
+        .routes(routes!(http_api::users::apply::apply_user))
+        .routes(routes!(http_api::users::get::get_users))
+        .routes(routes!(http_api::users::create::create_user))
         //.routes(routes!(api::users::update::update_user))
-        .routes(routes!(api::users::delete::delete_user))
-        .routes(routes!(api::users::list::list_users))
+        .routes(routes!(http_api::users::delete::delete_user))
+        .routes(routes!(http_api::users::list::list_users))
         // USER GROUPS
-        .routes(routes!(api::user_groups::create::create_user_group))
-        .routes(routes!(api::user_groups::get::get_user_group))
-        .routes(routes!(api::user_groups::update::update_user_group))
-        .routes(routes!(api::user_groups::delete::delete_user_group))
-        .routes(routes!(api::user_groups::list::list_user_groups))
+        .routes(routes!(http_api::user_groups::create::create_user_group))
+        .routes(routes!(http_api::user_groups::get::get_user_group))
+        .routes(routes!(http_api::user_groups::update::update_user_group))
+        .routes(routes!(http_api::user_groups::delete::delete_user_group))
+        .routes(routes!(http_api::user_groups::list::list_user_groups))
         .routes(routes!(
-            api::user_groups::list_users::list_users_by_user_group
+            http_api::user_groups::list_users::list_users_by_user_group
         ))
         .routes(routes!(
-            api::user_groups::update_members::update_user_group_members
+            http_api::user_groups::update_members::update_user_group_members
         ))
         // ACCESS POLICIES
         .routes(routes!(
-            api::access_policies::check_resource_access::check_resource_access
+            http_api::access_policies::check_resource_access::check_resource_access
         ))
-        .routes(routes!(api::access_policies::create::create_access_policy))
-        .routes(routes!(api::access_policies::get::get_access_policy))
-        .routes(routes!(api::access_policies::update::update_access_policy))
-        .routes(routes!(api::access_policies::delete::delete_access_policy))
-        .routes(routes!(api::access_policies::list::list_access_policies))
+        .routes(routes!(http_api::access_policies::create::create_access_policy))
+        .routes(routes!(http_api::access_policies::get::get_access_policy))
+        .routes(routes!(http_api::access_policies::update::update_access_policy))
+        .routes(routes!(http_api::access_policies::delete::delete_access_policy))
+        .routes(routes!(http_api::access_policies::list::list_access_policies))
         // STORAGE QUOTAS
-        .routes(routes!(api::storage_quotas::create::create_storage_quota))
-        .routes(routes!(api::storage_quotas::get::get_storage_quota))
-        .routes(routes!(api::storage_quotas::update::update_storage_quota))
-        .routes(routes!(api::storage_quotas::delete::delete_storage_quota))
-        .routes(routes!(api::storage_quotas::list::list_storage_quotas))
+        .routes(routes!(http_api::storage_quotas::create::create_storage_quota))
+        .routes(routes!(http_api::storage_quotas::get::get_storage_quota))
+        .routes(routes!(http_api::storage_quotas::update::update_storage_quota))
+        .routes(routes!(http_api::storage_quotas::delete::delete_storage_quota))
+        .routes(routes!(http_api::storage_quotas::list::list_storage_quotas))
         // STORAGE LOCATIONS
         .routes(routes!(
-            api::storage_locations::list::list_storage_locations
+            http_api::storage_locations::list::list_storage_locations
         ))
         // TAGS
-        .routes(routes!(api::tags::get::get_tags))
-        .routes(routes!(api::tags::update::update_tags))
+        .routes(routes!(http_api::tags::get::get_tags))
+        .routes(routes!(http_api::tags::update::update_tags))
         // HEALTH
-        .routes(routes!(api::health::get_health))
+        .routes(routes!(http_api::health::get_health))
         .with_state(server_state.clone())
         .layer(CompressionLayer::new())
         .layer(DecompressionLayer::new())

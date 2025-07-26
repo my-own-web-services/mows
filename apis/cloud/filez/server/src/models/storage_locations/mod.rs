@@ -1,10 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    api::{health::HealthStatus, storage_locations::list::ListStorageLocationsSortBy},
     controller::crd::SecretReadableByFilezController,
     database::Database,
     errors::FilezError,
+    http_api::{health::HealthStatus, storage_locations::list::ListStorageLocationsSortBy},
     state::StorageLocationState,
     storage::{
         config::{StorageProviderConfig, StorageProviderConfigCrd},

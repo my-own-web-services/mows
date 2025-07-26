@@ -4,7 +4,7 @@ use super::{
     users::FilezUser,
 };
 use crate::{
-    api::user_groups::list::ListUserGroupsSortBy,
+    http_api::user_groups::list::ListUserGroupsSortBy,
     database::Database,
     errors::FilezError,
     schema::{self},

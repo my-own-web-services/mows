@@ -3,7 +3,7 @@ pub mod minio;
 use axum::extract::Request;
 use bigdecimal::BigDecimal;
 
-use crate::{api::health::HealthStatus, models::file_versions::FileVersionIdentifier};
+use crate::{http_api::health::HealthStatus, models::file_versions::FileVersionIdentifier};
 
 use super::{
     config::StorageProviderConfig,
