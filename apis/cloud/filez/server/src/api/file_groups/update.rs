@@ -32,14 +32,14 @@ pub async fn update_file_group(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(file_group_id): Path<Uuid>,
     Json(request_body): Json<UpdateFileGroupRequestBody>,
 ) -> Result<Json<ApiResponse<FileGroup>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -54,13 +54,13 @@ pub async fn update_file_group(
     );
 
     with_timing!(
-        FileGroup::update(&db, &file_group_id, &request_body.name).await?,
+        FileGroup::update(&database, &file_group_id, &request_body.name).await?,
         "Database operation to update file group",
         timing
     );
 
     let file_group = with_timing!(
-        FileGroup::get_by_id(&db, &file_group_id).await?,
+        FileGroup::get_by_id(&database, &file_group_id).await?,
         "Database operation to get updated file group",
         timing
     );

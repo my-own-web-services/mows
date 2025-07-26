@@ -31,7 +31,7 @@ pub async fn update_tags(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateTagsRequestBody>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
@@ -48,7 +48,7 @@ pub async fn update_tags(
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -64,7 +64,7 @@ pub async fn update_tags(
 
     with_timing!(
         TagMember::update_tags(
-            &db,
+            &database,
             &requesting_user.id,
             &request_body.resource_ids,
             request_body.resource_type,

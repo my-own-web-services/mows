@@ -1,5 +1,6 @@
 use crate::{
     config::config,
+    database::Database,
     errors::FilezError,
     utils::{get_uuid, is_dev_origin},
 };
@@ -99,8 +100,8 @@ impl MowsApp {
         }
     }
 
-    pub async fn delete(db: &crate::db::Db, name: &str) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn delete(database: &Database, name: &str) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::delete(crate::schema::apps::table)
             .filter(crate::schema::apps::name.eq(name))
             .execute(&mut connection)
@@ -108,9 +109,9 @@ impl MowsApp {
 
         Ok(())
     }
-    pub async fn create_filez_server_app(db: &crate::db::Db) -> Result<MowsApp, FilezError> {
+    pub async fn create_filez_server_app(database: &Database) -> Result<MowsApp, FilezError> {
         let app_id = Uuid::nil();
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let existing_app = crate::schema::apps::table
             .filter(crate::schema::apps::id.eq(app_id))
             .select(MowsApp::as_select())
@@ -143,7 +144,7 @@ impl MowsApp {
     }
 
     pub async fn get_from_headers(
-        db: &crate::db::Db,
+        database: &Database,
         request_headers: &axum::http::HeaderMap,
     ) -> Result<MowsApp, FilezError> {
         match request_headers
@@ -151,13 +152,13 @@ impl MowsApp {
             .and_then(|v| v.to_str().ok())
             .map(|s| s.to_string())
         {
-            Some(origin) => Self::get_from_origin_string(db, &origin).await,
+            Some(origin) => Self::get_from_origin_string(database, &origin).await,
             None => Ok(MowsApp::no_origin()),
         }
     }
 
     pub async fn get_from_origin_string(
-        db: &crate::db::Db,
+        database: &Database,
         origin: &str,
     ) -> Result<MowsApp, FilezError> {
         let config = get_current_config_cloned!(config());
@@ -169,15 +170,15 @@ impl MowsApp {
         } else if let Some(dev_origin) = is_dev_origin(&config, &origin_url).await {
             return Ok(MowsApp::dev(&dev_origin));
         }
-        let app = MowsApp::get_app_by_origin(db, &origin_url).await?;
+        let app = MowsApp::get_app_by_origin(database, &origin_url).await?;
         Ok(app)
     }
 
     pub async fn get_app_by_origin(
-        db: &crate::db::Db,
+        database: &Database,
         origin: &Url,
     ) -> Result<MowsApp, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let app = crate::schema::apps::table
             .filter(crate::schema::apps::origins.contains(vec![origin.to_string()]))
@@ -189,11 +190,11 @@ impl MowsApp {
     }
 
     pub async fn create_or_update(
-        db: &crate::db::Db,
+        database: &Database,
         app_config: &MowsAppConfig,
         full_name: &str,
     ) -> Result<MowsApp, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let existing_app = crate::schema::apps::table
             .filter(crate::schema::apps::name.eq(&full_name))

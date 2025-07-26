@@ -1,12 +1,3 @@
-use axum::{
-    extract::{Path, State},
-    http::{HeaderMap, StatusCode},
-    response::IntoResponse,
-    Extension,
-};
-
-use uuid::Uuid;
-
 use crate::{
     auth_middleware::AuthenticatedUserAndApp,
     config::TUS_VERSION,
@@ -18,6 +9,13 @@ use crate::{
     state::ServerState,
     with_timing,
 };
+use axum::{
+    extract::{Path, State},
+    http::{HeaderMap, StatusCode},
+    response::IntoResponse,
+    Extension,
+};
+use uuid::Uuid;
 
 #[utoipa::path(
     head,
@@ -39,7 +37,7 @@ pub async fn file_versions_content_tus_head(
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
     State(ServerState {
-        db,
+        database,
         storage_location_providers,
         ..
     }): State<ServerState>,
@@ -61,7 +59,7 @@ pub async fn file_versions_content_tus_head(
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -76,13 +74,13 @@ pub async fn file_versions_content_tus_head(
     );
 
     let file_version = with_timing!(
-        FileVersion::get(&db, &file_id, version, &Uuid::nil(), &None).await,
+        FileVersion::get(&database, &file_id, version, &Uuid::nil(), &None).await,
         "Database operation to get file metadata",
         timing
     )?;
 
     let real_content_size = file_version
-        .get_file_size_from_content(&storage_location_providers, &db, &timing)
+        .get_file_size_from_content(&storage_location_providers, &database, &timing)
         .await?;
 
     let mut response_headers = HeaderMap::new();

@@ -3,7 +3,7 @@ use crate::errors::FilezError;
 use crate::filter_subject_access_policies;
 use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPolicySubjectType};
 use crate::models::users::{FilezUser, FilezUserType};
-use crate::{db::Db, schema};
+use crate::{database::Database, schema};
 use diesel::{
     pg::sql_types, prelude::*, BoolExpressionMethods, ExpressionMethods, SelectableHelper,
 };
@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub async fn check_resources_access_control(
-    db: &Db,
+    database: &Database,
     requesting_user: &FilezUser,
     user_group_ids: &Vec<Uuid>,
     context_app_id: &Uuid,
@@ -24,7 +24,7 @@ pub async fn check_resources_access_control(
     requested_resource_ids: Option<&[Uuid]>,
     action_to_perform: AccessPolicyAction,
 ) -> Result<AuthResult, FilezError> {
-    let mut connection = db.get_connection().await?;
+    let mut connection = database.get_connection().await?;
     let resource_auth_info = get_auth_info(resource_type);
 
     let requesting_user_id = &requesting_user.id;
@@ -502,6 +502,8 @@ pub async fn check_resources_access_control(
                 });
             }
 
+            /*
+            TODO: ??
             // If the app is trusted, and no policies exist, allow access by default
             if context_app_trusted {
                 return Ok(AuthResult {
@@ -512,7 +514,7 @@ pub async fn check_resources_access_control(
                         reason: AuthReason::Owned, // Default to owned since no policies exist
                     }],
                 });
-            }
+            }*/
 
             let evaluation = AuthEvaluation {
                 resource_id: None,

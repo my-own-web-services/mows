@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{errors::FilezError, schema, utils::get_uuid};
+use crate::{database::Database, errors::FilezError, schema, utils::get_uuid};
 
 use super::users::FilezUser;
 
@@ -54,8 +54,8 @@ impl FilezFile {
         }
     }
 
-    pub async fn get_by_id(db: &crate::db::Db, file_id: uuid::Uuid) -> Result<Self, FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn get_by_id(database: &Database, file_id: uuid::Uuid) -> Result<Self, FilezError> {
+        let mut connection = database.get_connection().await?;
         Ok(crate::schema::files::table
             .filter(crate::schema::files::id.eq(file_id))
             .select(FilezFile::as_select())
@@ -63,8 +63,8 @@ impl FilezFile {
             .await?)
     }
 
-    pub async fn create(&self, db: &crate::db::Db) -> Result<FilezFile, FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn create(&self, database: &Database) -> Result<FilezFile, FilezError> {
+        let mut connection = database.get_connection().await?;
         Ok(diesel::insert_into(crate::schema::files::table)
             .values(self)
             .returning(FilezFile::as_returning())
@@ -72,8 +72,8 @@ impl FilezFile {
             .await?)
     }
 
-    pub async fn delete(db: &crate::db::Db, file_id: uuid::Uuid) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn delete(database: &Database, file_id: uuid::Uuid) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::delete(crate::schema::file_versions::table)
             .filter(crate::schema::file_versions::file_id.eq(file_id))
             .execute(&mut connection)
@@ -87,9 +87,9 @@ impl FilezFile {
         Ok(())
     }
 
-    pub async fn update(&mut self, db: &crate::db::Db) -> Result<FilezFile, FilezError> {
+    pub async fn update(&mut self, database: &Database) -> Result<FilezFile, FilezError> {
         self.modified_time = chrono::Utc::now().naive_utc();
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         Ok(diesel::update(crate::schema::files::table)
             .filter(crate::schema::files::id.eq(self.id))
@@ -100,10 +100,10 @@ impl FilezFile {
     }
 
     pub async fn get_many_by_id(
-        db: &crate::db::Db,
+        database: &Database,
         file_ids: &Vec<Uuid>,
     ) -> Result<HashMap<Uuid, FilezFile>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let result = schema::files::table
             .filter(schema::files::id.eq_any(file_ids))

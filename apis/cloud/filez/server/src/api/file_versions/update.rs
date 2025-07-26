@@ -38,7 +38,7 @@ pub async fn update_file_versions(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateFileVersionsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
@@ -50,7 +50,7 @@ pub async fn update_file_versions(
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -65,7 +65,7 @@ pub async fn update_file_versions(
     );
 
     let updated_versions = with_timing!(
-        FileVersion::update_many(&db, &request_body.versions).await?,
+        FileVersion::update_many(&database, &request_body.versions).await?,
         "Database operation to update file versions",
         timing
     );

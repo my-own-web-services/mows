@@ -1,7 +1,7 @@
 pub mod check;
 use crate::{
     api::access_policies::list::ListAccessPoliciesSortBy,
-    db::Db,
+    database::Database,
     errors::FilezError,
     schema::{self},
     types::SortDirection,
@@ -123,10 +123,6 @@ pub enum AccessPolicyAction {
     FilezFilesGet = 20,
     FilezFilesUpdate = 30,
 
-    FilezFilesMetaGet = 40,
-    FilezFilesMetaList = 50,
-    FilezFilesMetaUpdate = 60,
-
     FilezFilesVersionsContentGet = 70,
     FilezFilesVersionsContentTusHead = 80,
     FilezFilesVersionsContentTusPatch = 90,
@@ -198,19 +194,16 @@ pub struct AccessPolicy {
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
 
-    #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
 
     /// The ID of the application this policy is associated with, if None, the policy applies to all applications.
     pub context_app_id: Option<Uuid>,
 
-    #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub resource_type: AccessPolicyResourceType,
     /// The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
     pub resource_id: Option<Uuid>,
 
-    #[diesel(sql_type = diesel::sql_types::Array<diesel::sql_types::SmallInt>)]
     pub actions: Vec<AccessPolicyAction>,
 
     pub effect: AccessPolicyEffect,
@@ -244,8 +237,11 @@ impl AccessPolicy {
         }
     }
 
-    pub async fn create(db: &Db, access_policy: &AccessPolicy) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn create(
+        database: &Database,
+        access_policy: &AccessPolicy,
+    ) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::insert_into(schema::access_policies::table)
             .values(access_policy)
             .execute(&mut connection)
@@ -253,8 +249,8 @@ impl AccessPolicy {
         Ok(())
     }
 
-    pub async fn get_by_id(db: &Db, id: &Uuid) -> Result<AccessPolicy, FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn get_by_id(database: &Database, id: &Uuid) -> Result<AccessPolicy, FilezError> {
+        let mut connection = database.get_connection().await?;
         let access_policy = schema::access_policies::table
             .filter(schema::access_policies::id.eq(id))
             .select(AccessPolicy::as_select())
@@ -265,15 +261,15 @@ impl AccessPolicy {
 
     /// Lists all resource ids that the user has access to, for a specific resource type.
     pub async fn get_resources_with_access(
-        db: &Db,
+        database: &Database,
         requesting_user_id: &Uuid,
         context_app_id: &Uuid,
         resource_type: AccessPolicyResourceType,
         action_to_perform: AccessPolicyAction,
     ) -> Result<Vec<Uuid>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let resource_auth_info = check::get_auth_info(resource_type);
-        let user_group_ids = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
+        let user_group_ids = UserGroup::get_all_by_user_id(database, requesting_user_id).await?;
 
         let mut allowed_ids: HashSet<Uuid> = HashSet::new();
         let mut denied_ids: HashSet<Uuid> = HashSet::new();
@@ -393,7 +389,7 @@ impl AccessPolicy {
     }
 
     pub async fn list_with_user_access(
-        db: &Db,
+        database: &Database,
         requesting_user_id: &Uuid,
         app_id: &Uuid,
         from_index: Option<i64>,
@@ -401,10 +397,10 @@ impl AccessPolicy {
         sort_by: Option<ListAccessPoliciesSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<AccessPolicy>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let resources_with_access = Self::get_resources_with_access(
-            db,
+            database,
             requesting_user_id,
             app_id,
             AccessPolicyResourceType::AccessPolicy,
@@ -454,7 +450,7 @@ impl AccessPolicy {
     }
 
     pub async fn update(
-        db: &Db,
+        database: &Database,
         id: &Uuid,
         name: &str,
         subject_type: AccessPolicySubjectType,
@@ -465,7 +461,7 @@ impl AccessPolicy {
         actions: Vec<AccessPolicyAction>,
         effect: AccessPolicyEffect,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         update(schema::access_policies::table.filter(schema::access_policies::id.eq(id)))
             .set((
@@ -484,8 +480,8 @@ impl AccessPolicy {
         Ok(())
     }
 
-    pub async fn delete(db: &Db, id: &Uuid) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn delete(database: &Database, id: &Uuid) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::delete(schema::access_policies::table.filter(schema::access_policies::id.eq(id)))
             .execute(&mut connection)
             .await?;
@@ -493,7 +489,7 @@ impl AccessPolicy {
     }
 
     pub async fn check(
-        db: &Db,
+        database: &Database,
         requesting_user: &FilezUser,
         context_app_id: &Uuid,
         context_app_trusted: bool,
@@ -501,10 +497,10 @@ impl AccessPolicy {
         requested_resource_ids: Option<&[Uuid]>,
         action_to_perform: AccessPolicyAction,
     ) -> Result<AuthResult, FilezError> {
-        let user_group_ids = UserGroup::get_all_by_user_id(db, &requesting_user.id).await?;
+        let user_group_ids = UserGroup::get_all_by_user_id(database, &requesting_user.id).await?;
 
         check_resources_access_control(
-            db,
+            database,
             requesting_user,
             &user_group_ids,
             context_app_id,

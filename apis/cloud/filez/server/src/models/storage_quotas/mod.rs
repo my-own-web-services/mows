@@ -6,8 +6,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    api::storage_quotas::list::ListStorageQuotasSortBy, db::Db, errors::FilezError, schema,
-    types::SortDirection, utils::get_uuid,
+    api::storage_quotas::list::ListStorageQuotasSortBy, database::Database, errors::FilezError,
+    schema, types::SortDirection, utils::get_uuid,
 };
 
 use super::{access_policies::AccessPolicySubjectType, user_groups::UserGroup};
@@ -75,8 +75,11 @@ impl StorageQuota {
         }
     }
 
-    pub async fn create(db: &Db, storage_quota: &StorageQuota) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn create(
+        database: &Database,
+        storage_quota: &StorageQuota,
+    ) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::insert_into(schema::storage_quotas::table)
             .values(storage_quota)
             .execute(&mut connection)
@@ -85,10 +88,10 @@ impl StorageQuota {
     }
 
     pub async fn get_storage_location_id(
-        db: &Db,
+        database: &Database,
         storage_quota_id: &Uuid,
     ) -> Result<Uuid, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let storage_location_id = schema::storage_quotas::table
             .filter(schema::storage_quotas::id.eq(storage_quota_id))
             .select(schema::storage_quotas::storage_location_id)
@@ -98,14 +101,14 @@ impl StorageQuota {
     }
 
     pub async fn check_quota(
-        db: &Db,
+        database: &Database,
         requesting_user_id: &Uuid,
         storage_quota_id: &Uuid,
         size: BigDecimal,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
-        let user_groups = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
+        let user_groups = UserGroup::get_all_by_user_id(database, requesting_user_id).await?;
         let storage_quota = schema::storage_quotas::table
             .filter(schema::storage_quotas::id.eq(storage_quota_id))
             .select(StorageQuota::as_select())
@@ -149,16 +152,16 @@ impl StorageQuota {
     }
 
     pub async fn list_with_user_access(
-        db: &Db,
+        database: &Database,
         requesting_user_id: &Uuid,
         from_index: Option<i64>,
         limit: Option<i64>,
         sort_by: Option<ListStorageQuotasSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<StorageQuota>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
-        let user_groups = UserGroup::get_all_by_user_id(db, requesting_user_id).await?;
+        let user_groups = UserGroup::get_all_by_user_id(database, requesting_user_id).await?;
         // only if the user is subject to an storage quota they have access to it
         let mut query = schema::storage_quotas::table
             .filter(filter_subject_storage_quotas!(
@@ -216,12 +219,12 @@ impl StorageQuota {
     }
 
     pub async fn get(
-        db: &Db,
+        database: &Database,
         subject_type: AccessPolicySubjectType,
         subject_id: &Uuid,
         storage_location_id: &Uuid,
     ) -> Result<StorageQuota, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let storage_quota = schema::storage_quotas::table
             .filter(
                 schema::storage_quotas::subject_type
@@ -236,13 +239,13 @@ impl StorageQuota {
     }
 
     pub async fn update(
-        db: &Db,
+        database: &Database,
         subject_type: AccessPolicySubjectType,
         subject_id: &Uuid,
         storage_location_id: &Uuid,
         quota_bytes: BigDecimal,
     ) -> Result<StorageQuota, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let updated_quota = diesel::update(
             schema::storage_quotas::table.filter(
                 schema::storage_quotas::subject_type
@@ -262,12 +265,12 @@ impl StorageQuota {
     }
 
     pub async fn delete(
-        db: &Db,
+        database: &Database,
         subject_type: AccessPolicySubjectType,
         subject_id: &Uuid,
         storage_location_id: &Uuid,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         diesel::delete(
             schema::storage_quotas::table.filter(
                 schema::storage_quotas::subject_type

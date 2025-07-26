@@ -1,6 +1,6 @@
 use crate::{
     api::tags::update::UpdateTagsMethod,
-    db::Db,
+    database::Database,
     errors::FilezError,
     models::tags::FilezTag,
     schema::{self},
@@ -78,11 +78,11 @@ impl TagMember {
     }
 
     pub async fn get_tags(
-        db: &Db,
+        database: &Database,
         resource_ids: &[Uuid],
         resource_type: TagResourceType,
     ) -> Result<HashMap<Uuid, HashMap<String, String>>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let results = schema::tag_members::table
             .inner_join(schema::tags::table)
@@ -107,13 +107,13 @@ impl TagMember {
     }
 
     pub async fn update_tags(
-        db: &Db,
+        database: &Database,
         requesting_user_id: &Uuid,
         resource_ids: &[Uuid],
         resource_type: TagResourceType,
         update_tags: UpdateTagsMethod,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let found_resources_count = match resource_type {
             TagResourceType::File => {

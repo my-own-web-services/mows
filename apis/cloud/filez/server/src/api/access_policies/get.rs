@@ -27,13 +27,13 @@ pub async fn get_access_policy(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(access_policy_id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<AccessPolicy>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -48,7 +48,7 @@ pub async fn get_access_policy(
     );
 
     let access_policy = with_timing!(
-        AccessPolicy::get_by_id(&db, &access_policy_id).await?,
+        AccessPolicy::get_by_id(&database, &access_policy_id).await?,
         "Database operation to get access policy by ID",
         timing
     );

@@ -29,13 +29,13 @@ pub async fn get_users(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetUsersReqBody>,
 ) -> Result<Json<ApiResponse<GetUsersResBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -50,7 +50,7 @@ pub async fn get_users(
     );
 
     let users = with_timing!(
-        FilezUser::get_many_by_id(&db, &request_body.user_ids).await?,
+        FilezUser::get_many_by_id(&database, &request_body.user_ids).await?,
         "Database operation to get users by IDs",
         timing
     );

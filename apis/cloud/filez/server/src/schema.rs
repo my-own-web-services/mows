@@ -226,13 +226,27 @@ diesel::table! {
     key_access {
         id -> Uuid,
         owner_id -> Uuid,
-        name -> Text,
-        key_hash -> Text,
-        description -> Nullable<Text>,
         user_id -> Uuid,
+        key_hash -> Text,
+        name -> Text,
+        description -> Nullable<Text>,
         created_time -> Timestamp,
         modified_time -> Timestamp,
         expiration_time -> Nullable<Timestamp>,
+    }
+}
+diesel::joinable!(key_access -> users (owner_id));
+
+diesel::table! {
+    events {
+        id -> Uuid,
+        created_time -> Timestamp,
+        event_type -> SmallInt,
+        user_id -> Nullable<Uuid>,
+        resource_ids -> Nullable<Array<Uuid>>,
+        resource_type -> Nullable<SmallInt>,
+        app_id -> Nullable<Uuid>,
+        result -> Nullable<Jsonb>,
     }
 }
 
@@ -252,4 +266,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     storage_locations,
     jobs,
     apps,
+    storage_quotas,
+    key_access,
 );

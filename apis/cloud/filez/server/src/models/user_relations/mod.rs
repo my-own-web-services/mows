@@ -1,12 +1,14 @@
-use crate::utils::InvalidEnumType;
+use crate::{database::Database, utils::InvalidEnumType};
 use diesel::{
     deserialize::FromSqlRow,
     expression::AsExpression,
     pg::Pg,
     prelude::{AsChangeset, Insertable, Queryable},
+    query_dsl::methods::FilterDsl,
     sql_types::SmallInt,
-    Selectable,
+    ExpressionMethods, Selectable,
 };
+use diesel_async::RunQueryDsl;
 
 use diesel_enum::DbEnum;
 use serde::{Deserialize, Serialize};
@@ -23,7 +25,6 @@ pub struct UserRelation {
     pub friend_id: Uuid,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
-    #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub status: UserRelationStatus,
 }
 
@@ -48,4 +49,68 @@ pub enum UserRelationStatus {
     Accepted = 1,
     Rejected = 2,
     Blocked = 3,
+}
+
+impl UserRelation {
+    pub fn new(
+        user_id: Uuid,
+        friend_id: Uuid,
+        created_time: chrono::NaiveDateTime,
+        modified_time: chrono::NaiveDateTime,
+        status: UserRelationStatus,
+    ) -> Self {
+        Self {
+            user_id,
+            friend_id,
+            created_time,
+            modified_time,
+            status,
+        }
+    }
+
+    pub async fn create_relation(
+        database: &Database,
+        user_id: Uuid,
+        friend_id: Uuid,
+        status: UserRelationStatus,
+    ) -> Result<Self, crate::errors::FilezError> {
+        let mut connection = database.get_connection().await?;
+        let relation = Self::new(
+            user_id,
+            friend_id,
+            chrono::Utc::now().naive_utc(),
+            chrono::Utc::now().naive_utc(),
+            status,
+        );
+
+        diesel::insert_into(crate::schema::user_relations::table)
+            .values(&relation)
+            .execute(&mut connection)
+            .await?;
+
+        Ok(relation)
+    }
+
+    pub async fn update_status(
+        database: &Database,
+        user_id: Uuid,
+        friend_id: Uuid,
+        new_status: UserRelationStatus,
+    ) -> Result<Self, crate::errors::FilezError> {
+        let mut connection = database.get_connection().await?;
+
+        let relation = diesel::update(
+            crate::schema::user_relations::table
+                .filter(crate::schema::user_relations::user_id.eq(user_id))
+                .filter(crate::schema::user_relations::friend_id.eq(friend_id)),
+        )
+        .set((
+            crate::schema::user_relations::status.eq(new_status),
+            crate::schema::user_relations::modified_time.eq(chrono::Utc::now().naive_utc()),
+        ))
+        .get_result(&mut connection)
+        .await?;
+
+        Ok(relation)
+    }
 }

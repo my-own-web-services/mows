@@ -2,7 +2,7 @@ pub mod api;
 pub mod auth_middleware;
 pub mod config;
 pub mod controller;
-pub mod db;
+pub mod database;
 pub mod errors;
 pub mod macros;
 pub mod models;

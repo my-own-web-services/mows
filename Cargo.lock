@@ -741,12 +741,12 @@ dependencies = [
 
 [[package]]
 name = "axum-server-timing"
-version = "2.1.0"
-source = "git+https://github.com/JensWalter/axum-server-timing/?rev=ec8362e98a0e98f7724ca1f9413c128e581461ad#ec8362e98a0e98f7724ca1f9413c128e581461ad"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2b9973d768bf4f20c794b00858d5b3dc66dd060d0757f6dcf18addef66dd553"
 dependencies = [
  "http 1.3.1",
  "pin-project-lite",
- "tokio",
  "tower 0.5.2",
 ]
 
@@ -2156,7 +2156,7 @@ dependencies = [
 
 [[package]]
 name = "filez-server"
-version = "0.14.0"
+version = "0.420.0"
 dependencies = [
  "anyhow",
  "argon2",

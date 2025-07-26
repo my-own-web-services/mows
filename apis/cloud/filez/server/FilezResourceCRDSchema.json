@@ -161,7 +161,7 @@
       }
     },
     "ValueOrSecretReference": {
-      "description": "When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.",
+      "description": "When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name `secret-readable-by-filez-controller`",
       "oneOf": [
         {
           "type": "object",

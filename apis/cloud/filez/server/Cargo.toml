@@ -1,6 +1,6 @@
 [package]
 name = "filez-server"
-version = "0.14.0"
+version = "0.420.0"
 edition = "2021"
 publish = false
 
@@ -93,7 +93,7 @@ chrono = { workspace = true, features = ["serde"] }
 sha2 = { workspace = true, features = ["default"] }
 
 
-axum-server-timing = { git = "https://github.com/JensWalter/axum-server-timing/", rev = "ec8362e98a0e98f7724ca1f9413c128e581461ad", optional = true }
+axum-server-timing = { version = "=3.0.0", optional = true }
 
 
 minio = { version = "0.3.0", features = [

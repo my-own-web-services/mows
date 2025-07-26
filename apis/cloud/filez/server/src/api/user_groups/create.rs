@@ -28,13 +28,13 @@ pub async fn create_user_group(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateUserGroupRequestBody>,
 ) -> Result<Json<ApiResponse<UserGroup>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -55,7 +55,7 @@ pub async fn create_user_group(
     );
 
     with_timing!(
-        UserGroup::create(&db, &user_group).await?,
+        UserGroup::create(&database, &user_group).await?,
         "Database operation to create user group",
         timing
     );

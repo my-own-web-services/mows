@@ -46,7 +46,7 @@ pub async fn file_versions_content_tus_patch(
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
     State(ServerState {
-        db,
+        database,
         storage_location_providers,
         ..
     }): State<ServerState>,
@@ -99,7 +99,7 @@ pub async fn file_versions_content_tus_patch(
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -114,7 +114,7 @@ pub async fn file_versions_content_tus_patch(
     );
 
     let file_version = with_timing!(
-        FileVersion::get(&db, &file_id, version, &Uuid::nil(), &None).await?,
+        FileVersion::get(&database, &file_id, version, &Uuid::nil(), &None).await?,
         "Database operation to get file version",
         timing
     );
@@ -129,7 +129,7 @@ pub async fn file_versions_content_tus_patch(
     file_version
         .set(
             &storage_location_providers,
-            &db,
+            &database,
             &timing,
             request,
             request_upload_offset,

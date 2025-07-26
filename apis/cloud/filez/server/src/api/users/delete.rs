@@ -28,21 +28,21 @@ pub async fn delete_user(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<DeleteUserRequestBody>,
 ) -> Result<Json<ApiResponse<DeleteUserResponseBody>>, FilezError> {
     let user_id = match request_body.method {
         DeleteUserMethod::ById(id) => id,
         DeleteUserMethod::ByExternalId(external_id) => {
-            FilezUser::get_by_external_id(&db, &external_id).await?.id
+            FilezUser::get_by_external_id(&database, &external_id).await?.id
         }
-        DeleteUserMethod::ByEmail(email) => FilezUser::get_by_email(&db, &email).await?.id,
+        DeleteUserMethod::ByEmail(email) => FilezUser::get_by_email(&database, &email).await?.id,
     };
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -56,7 +56,7 @@ pub async fn delete_user(
         timing
     );
     with_timing!(
-        FilezUser::delete(&db, &user_id).await?,
+        FilezUser::delete(&database, &user_id).await?,
         "Database operation to delete user",
         timing
     );

@@ -34,13 +34,13 @@ pub async fn delete_file(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<DeleteFileRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -55,7 +55,7 @@ pub async fn delete_file(
     );
 
     with_timing!(
-        FilezFile::delete(&db, request_body.file_id).await?,
+        FilezFile::delete(&database, request_body.file_id).await?,
         "Database operation to delete file",
         timing
     );

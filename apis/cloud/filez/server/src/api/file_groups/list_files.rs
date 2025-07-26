@@ -30,13 +30,13 @@ pub async fn list_files_by_file_groups(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListFilesRequestBody>,
 ) -> Result<Json<ApiResponse<ListFilesResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -51,14 +51,14 @@ pub async fn list_files_by_file_groups(
     );
 
     let list_files_query = FileGroup::list_files(
-        &db,
+        &database,
         &request_body.file_group_id,
         request_body.from_index,
         request_body.limit,
         request_body.sort,
     );
 
-    let file_group_item_count_query = FileGroup::get_file_count(&db, &request_body.file_group_id);
+    let file_group_item_count_query = FileGroup::get_file_count(&database, &request_body.file_group_id);
 
     // join the two futures to run them concurrently
     let (files, total_count): (Vec<FilezFile>, i64) = with_timing!(

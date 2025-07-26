@@ -22,7 +22,7 @@ use uuid::Uuid;
 )]
 pub async fn get_health(
     State(ServerState {
-        db,
+        database,
         introspection_state,
         storage_location_providers,
         ..
@@ -34,7 +34,7 @@ pub async fn get_health(
         controller_health_future,
         storage_locations_health_future,
     ) = (
-        db.get_health(),
+        database.get_health(),
         introspection_state.get_health(),
         get_controller_health(),
         StorageLocation::get_all_storage_locations_health(&storage_location_providers),

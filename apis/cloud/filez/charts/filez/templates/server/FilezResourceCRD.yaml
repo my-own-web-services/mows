@@ -53,7 +53,7 @@ spec:
                       Filesystem:
                         properties:
                           rootPath:
-                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name `secret-readable-by-filez-controller`
                             oneOf:
                             - required:
                               - value
@@ -71,7 +71,7 @@ spec:
                       Minio:
                         properties:
                           bucket:
-                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name `secret-readable-by-filez-controller`
                             oneOf:
                             - required:
                               - value
@@ -84,7 +84,7 @@ spec:
                                 type: string
                             type: object
                           endpoint:
-                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name `secret-readable-by-filez-controller`
                             oneOf:
                             - required:
                               - value
@@ -97,7 +97,7 @@ spec:
                                 type: string
                             type: object
                           password:
-                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name `secret-readable-by-filez-controller`
                             oneOf:
                             - required:
                               - value
@@ -110,7 +110,7 @@ spec:
                                 type: string
                             type: object
                           username:
-                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+                            description: When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name `secret-readable-by-filez-controller`
                             oneOf:
                             - required:
                               - value

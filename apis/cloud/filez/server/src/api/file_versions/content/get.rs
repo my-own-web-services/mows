@@ -57,7 +57,7 @@ pub async fn get_file_version_content(
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
     State(ServerState {
-        db,
+        database,
         storage_location_providers,
         ..
     }): State<ServerState>,
@@ -77,7 +77,7 @@ pub async fn get_file_version_content(
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -92,14 +92,14 @@ pub async fn get_file_version_content(
     );
 
     let file_meta = with_timing!(
-        FilezFile::get_by_id(&db, file_id).await,
+        FilezFile::get_by_id(&database, file_id).await,
         "Database operation to get file",
         timing
     )?;
 
     let file_version_meta = with_timing!(
         FileVersion::get(
-            &db,
+            &database,
             &file_id,
             version,
             &app_id.as_ref().unwrap_or(&Uuid::nil()),
@@ -196,7 +196,7 @@ pub async fn get_file_version_content(
     };
 
     let body = file_version_meta
-        .get_content(&storage_location_providers, &db, timing, &range)
+        .get_content(&storage_location_providers, &database, timing, &range)
         .await?;
 
     if range.is_some() {

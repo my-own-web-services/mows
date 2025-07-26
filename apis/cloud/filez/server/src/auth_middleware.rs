@@ -28,8 +28,8 @@ pub async fn auth_middleware(
 
     let (user, app) = with_timing!(
         tokio::try_join!(
-            FilezUser::get_from_external(&state.db, &external_user, &headers),
-            MowsApp::get_from_headers(&state.db, &headers)
+            FilezUser::get_from_external(&state.database, &external_user, &headers),
+            MowsApp::get_from_headers(&state.database, &headers)
         )?,
         "Database operations to get user and app",
         timing

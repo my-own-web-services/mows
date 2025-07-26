@@ -24,6 +24,7 @@ use utoipa::ToSchema;
 pub enum FilezResourceSpec {
     StorageLocation(StorageLocationConfigCrd),
     MowsApp(MowsAppConfig),
+    // TODO: Implement option to create any kind of filez resource for bootstrapping purposes.
 }
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
@@ -87,7 +88,7 @@ impl SecretReadableByFilezController {
     }
 }
 
-/// When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name SecretReadableByFilezController.
+/// When a secret is referenced, it references the data field of the kubernetes secret in the same namespace as the filez resource with the name `secret-readable-by-filez-controller`
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum ValueOrSecretReference {

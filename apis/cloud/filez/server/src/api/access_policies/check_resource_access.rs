@@ -28,13 +28,13 @@ pub async fn check_resource_access(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CheckResourceAccessRequestBody>,
 ) -> Result<Json<ApiResponse<CheckResourceAccessResponseBody>>, FilezError> {
     let auth_result = with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,

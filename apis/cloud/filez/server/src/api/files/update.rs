@@ -12,12 +12,7 @@ use crate::{
     validation::validate_file_name,
     with_timing,
 };
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    Extension, Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -37,13 +32,13 @@ pub async fn update_file(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateFileRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -58,7 +53,7 @@ pub async fn update_file(
     );
 
     let mut file = with_timing!(
-        FilezFile::get_by_id(&db, request_body.file_id).await?,
+        FilezFile::get_by_id(&database, request_body.file_id).await?,
         "Database operation to get file by ID",
         timing
     );
@@ -78,7 +73,7 @@ pub async fn update_file(
     };
 
     let db_updated_file = with_timing!(
-        file.update(&db).await?,
+        file.update(&database).await?,
         "Database operation to update file",
         timing
     );

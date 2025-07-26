@@ -3,6 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{
     api::{health::HealthStatus, storage_locations::list::ListStorageLocationsSortBy},
     controller::crd::SecretReadableByFilezController,
+    database::Database,
     errors::FilezError,
     state::StorageLocationState,
     storage::{
@@ -97,10 +98,10 @@ impl StorageLocation {
 
     pub async fn delete(
         storage_location_providers: &StorageLocationState,
-        db: &crate::db::Db,
+        database: &Database,
         name: &str,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let storage_location = crate::schema::storage_locations::table
             .filter(crate::schema::storage_locations::name.eq(name))
@@ -149,12 +150,12 @@ impl StorageLocation {
 
     pub async fn create_or_update(
         storage_location_providers_state: &StorageLocationState,
-        db: &crate::db::Db,
+        database: &Database,
         full_name: &str,
         secrets: SecretReadableByFilezController,
         storage_location_config_crd: &StorageLocationConfigCrd,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let provider = storage_location_config_crd
             .provider_config
@@ -204,8 +205,8 @@ impl StorageLocation {
         Ok(())
     }
 
-    pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<Self, FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn get_by_id(database: &Database, id: &Uuid) -> Result<Self, FilezError> {
+        let mut connection = database.get_connection().await?;
 
         let storage_location = crate::schema::storage_locations::table
             .filter(crate::schema::storage_locations::id.eq(id))
@@ -224,9 +225,9 @@ impl StorageLocation {
     }
 
     pub async fn initialize_all_providers(
-        db: &crate::db::Db,
+        database: &Database,
     ) -> Result<StorageLocationState, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let storage_locations: Vec<StorageLocation> = crate::schema::storage_locations::table
             .select(StorageLocation::as_select())
             .load(&mut connection)
@@ -247,11 +248,11 @@ impl StorageLocation {
     }
 
     pub async fn list(
-        db: &crate::db::Db,
+        database: &Database,
         sort_by: Option<ListStorageLocationsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<StorageLocationListItem>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let mut query = crate::schema::storage_locations::table.into_boxed();
 
         if let Some(sort_by) = sort_by {
