@@ -1,7 +1,7 @@
 use crate::{
-    api::tags::update::UpdateTagsMethod,
     database::Database,
     errors::FilezError,
+    http_api::tags::update::UpdateTagsMethod,
     models::tags::FilezTag,
     schema::{self},
     utils::InvalidEnumType,

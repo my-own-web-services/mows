@@ -1,10 +1,10 @@
 use crate::{
-    api::file_groups::{
+    database::Database,
+    errors::FilezError,
+    http_api::file_groups::{
         list::ListFileGroupsSortBy,
         list_files::{ListFilesSortBy, ListFilesSorting},
     },
-    database::Database,
-    errors::FilezError,
     schema,
     types::SortDirection,
     utils::{get_uuid, InvalidEnumType},

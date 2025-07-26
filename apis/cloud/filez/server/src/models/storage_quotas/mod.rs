@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    api::storage_quotas::list::ListStorageQuotasSortBy, database::Database, errors::FilezError,
+    http_api::storage_quotas::list::ListStorageQuotasSortBy, database::Database, errors::FilezError,
     schema, types::SortDirection, utils::get_uuid,
 };
 

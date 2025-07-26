@@ -1,5 +1,5 @@
-use crate::api::health::HealthStatus;
 use crate::controller::crd::SecretReadableByFilezController;
+use crate::http_api::health::HealthStatus;
 use crate::{controller::crd::ValueOrSecretReference, storage::errors::StorageError};
 use anyhow::Context;
 use axum::body::Body;

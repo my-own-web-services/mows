@@ -1,5 +1,5 @@
 use crate::{
-    api::{
+    http_api::{
         access_policies::{
             create::CreateAccessPolicyRequestBody, list::ListAccessPoliciesRequestBody,
             update::UpdateAccessPolicyRequestBody,

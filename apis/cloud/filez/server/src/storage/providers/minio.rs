@@ -1,4 +1,4 @@
-use crate::api::health::HealthStatus;
+use crate::http_api::health::HealthStatus;
 use crate::controller::crd::SecretReadableByFilezController;
 use crate::{controller::crd::ValueOrSecretReference, storage::errors::StorageError, with_timing};
 use anyhow::Context;

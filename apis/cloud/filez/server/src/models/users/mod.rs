@@ -1,5 +1,5 @@
 use crate::{
-    api::users::list::ListUsersSortBy,
+    http_api::users::list::ListUsersSortBy,
     config::{config, IMPERSONATE_USER_HEADER, KEY_ACCESS_HEADER},
     database::Database,
     errors::FilezError,

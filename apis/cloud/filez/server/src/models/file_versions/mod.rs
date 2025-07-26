@@ -1,6 +1,6 @@
 use crate::utils::get_uuid;
 use crate::{
-    api::file_versions::update::UpdateFileVersion, database::Database, errors::FilezError,
+    http_api::file_versions::update::UpdateFileVersion, database::Database, errors::FilezError,
     schema::file_versions, state::StorageLocationState, with_timing,
 };
 use axum::extract::Request;
