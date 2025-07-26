@@ -29,13 +29,13 @@ pub async fn create_access_policy(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateAccessPolicyRequestBody>,
 ) -> Result<Json<ApiResponse<AccessPolicy>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -62,7 +62,7 @@ pub async fn create_access_policy(
     );
 
     with_timing!(
-        AccessPolicy::create(&db, &access_policy).await?,
+        AccessPolicy::create(&database, &access_policy).await?,
         "Database operation to create access policy",
         timing
     );

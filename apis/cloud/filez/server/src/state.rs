@@ -1,7 +1,7 @@
 use crate::{
     config::FilezServerConfig,
     controller::{ControllerContext, ControllerState, Diagnostics},
-    db::Db,
+    database::Database,
     errors::FilezError,
     models::storage_locations::StorageLocation,
     storage::providers::StorageProvider,
@@ -20,7 +20,7 @@ use zitadel::{
 
 #[derive(Clone)]
 pub struct ServerState {
-    pub db: Db,
+    pub database: Database,
     pub introspection_state: zitadel::axum::introspection::IntrospectionState,
     pub controller_state: ControllerState,
     pub storage_location_providers: StorageLocationState,
@@ -59,24 +59,24 @@ impl ServerState {
             }
         };
 
-        let db = Db::new(pool).await;
+        let database = Database::new(pool).await;
 
-        match db.create_filez_server_app().await {
+        match database.create_filez_server_app().await {
             Ok(_) => tracing::info!("Filez server app created successfully"),
             Err(e) => tracing::warn!("Failed to create Filez server app: {}", e),
         }
 
-        let storage_location_providers = match StorageLocation::initialize_all_providers(&db).await
-        {
-            Ok(providers) => providers,
-            Err(e) => {
-                tracing::error!("Failed to initialize storage location providers: {}", e);
-                Arc::new(RwLock::new(HashMap::new()))
-            }
-        };
+        let storage_location_providers =
+            match StorageLocation::initialize_all_providers(&database).await {
+                Ok(providers) => providers,
+                Err(e) => {
+                    tracing::error!("Failed to initialize storage location providers: {}", e);
+                    Arc::new(RwLock::new(HashMap::new()))
+                }
+            };
 
         Ok(Self {
-            db,
+            database,
             introspection_state,
             controller_state: ControllerState::default(),
             storage_location_providers,
@@ -101,7 +101,7 @@ impl ServerState {
             client,
             metrics: self.controller_state.metrics.clone(),
             diagnostics: self.controller_state.diagnostics.clone(),
-            db: self.db.clone(),
+            database: self.database.clone(),
             storage_location_providers: self.storage_location_providers.clone(),
         })
     }

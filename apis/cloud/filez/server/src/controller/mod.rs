@@ -1,6 +1,6 @@
 use crate::{
     config::config,
-    db::Db,
+    database::Database,
     errors::{get_error_type, FilezError},
     models::{apps::MowsApp, storage_locations::StorageLocation},
     state::{ServerState, StorageLocationState},
@@ -57,7 +57,7 @@ async fn inner_reconcile(
 
             StorageLocation::create_or_update(
                 &ctx.storage_location_providers,
-                &ctx.db,
+                &ctx.database,
                 &full_name,
                 filez_secrets,
                 &incoming_provider_config,
@@ -65,7 +65,7 @@ async fn inner_reconcile(
             .await?;
         }
         FilezResourceSpec::MowsApp(incoming_app) => {
-            MowsApp::create_or_update(&ctx.db, incoming_app, &full_name).await?;
+            MowsApp::create_or_update(&ctx.database, incoming_app, &full_name).await?;
         }
     }
     Ok(())
@@ -161,11 +161,11 @@ impl FilezResource {
         );
         match self.spec {
             FilezResourceSpec::StorageLocation(_) => {
-                StorageLocation::delete(&ctx.storage_location_providers, &ctx.db, &full_name)
+                StorageLocation::delete(&ctx.storage_location_providers, &ctx.database, &full_name)
                     .await?;
             }
             FilezResourceSpec::MowsApp(_) => {
-                MowsApp::delete(&ctx.db, &full_name).await?;
+                MowsApp::delete(&ctx.database, &full_name).await?;
             }
         }
 
@@ -219,7 +219,7 @@ pub struct ControllerContext {
     pub diagnostics: Arc<RwLock<Diagnostics>>,
     /// Prometheus metrics
     pub metrics: Arc<Metrics>,
-    pub db: Db,
+    pub database: Database,
     pub storage_location_providers: StorageLocationState,
 }
 

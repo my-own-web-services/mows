@@ -29,13 +29,13 @@ pub async fn update_file_group_members(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateFileGroupMembersRequestBody>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -50,7 +50,7 @@ pub async fn update_file_group_members(
     );
 
     let file_group = with_timing!(
-        FileGroup::get_by_id(&db, &request_body.file_group_id).await?,
+        FileGroup::get_by_id(&database, &request_body.file_group_id).await?,
         "Database operation to get file group by ID",
         timing
     );
@@ -63,7 +63,7 @@ pub async fn update_file_group_members(
 
     if let Some(files_to_add) = request_body.files_to_add {
         with_timing!(
-            FileGroup::add_files(&db, &request_body.file_group_id, &files_to_add).await?,
+            FileGroup::add_files(&database, &request_body.file_group_id, &files_to_add).await?,
             "Database operation to add files to file group",
             timing
         );
@@ -71,7 +71,7 @@ pub async fn update_file_group_members(
 
     if let Some(files_to_remove) = request_body.files_to_remove {
         with_timing!(
-            FileGroup::remove_files(&db, &request_body.file_group_id, &files_to_remove).await?,
+            FileGroup::remove_files(&database, &request_body.file_group_id, &files_to_remove).await?,
             "Database operation to remove files from file group",
             timing
         );

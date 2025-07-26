@@ -26,13 +26,13 @@ pub async fn list_storage_locations(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListStorageLocationsRequestBody>,
 ) -> Result<Json<ApiResponse<ListStorageLocationsResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -47,7 +47,7 @@ pub async fn list_storage_locations(
     );
 
     let storage_locations = with_timing!(
-        StorageLocation::list(&db, request_body.sort_by, request_body.sort_order,).await?,
+        StorageLocation::list(&database, request_body.sort_by, request_body.sort_order,).await?,
         "Database operation to list storage locations",
         timing
     );

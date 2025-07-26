@@ -35,13 +35,13 @@ pub async fn get_files(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetFilesRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -56,7 +56,7 @@ pub async fn get_files(
     );
 
     let files = with_timing!(
-        FilezFile::get_many_by_id(&db, &request_body.file_ids).await?,
+        FilezFile::get_many_by_id(&database, &request_body.file_ids).await?,
         "Database operation to get file by ID",
         timing
     );

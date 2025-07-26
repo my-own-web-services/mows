@@ -27,13 +27,13 @@ pub async fn list_users(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListUsersRequestBody>,
 ) -> Result<Json<ApiResponse<ListUsersResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -49,7 +49,7 @@ pub async fn list_users(
 
     let users = with_timing!(
         FilezUser::list_with_user_access(
-            &db,
+            &database,
             &requesting_user.id,
             &requesting_app.id,
             request_body.from_index,

@@ -11,12 +11,7 @@ use crate::{
     with_timing,
 };
 use anyhow::Context;
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    Extension, Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use chrono::NaiveDateTime;
 use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
@@ -37,13 +32,13 @@ pub async fn create_file(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -73,7 +68,7 @@ pub async fn create_file(
 
     let db_created_file = with_timing!(
         new_file
-            .create(&db)
+            .create(&database)
             .await
             .context("Failed to create file in the database")?,
         "Database operation to create a new file",

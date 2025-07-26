@@ -39,7 +39,7 @@ pub async fn delete_file_versions(
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
     State(ServerState {
-        db,
+        database,
         storage_location_providers,
         ..
     }): State<ServerState>,
@@ -50,7 +50,7 @@ pub async fn delete_file_versions(
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -66,7 +66,7 @@ pub async fn delete_file_versions(
 
     FileVersion::delete_many(
         &storage_location_providers,
-        &db,
+        &database,
         &request_body.versions,
         &timing,
     )

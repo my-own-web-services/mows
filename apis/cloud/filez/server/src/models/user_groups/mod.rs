@@ -5,6 +5,7 @@ use super::{
 };
 use crate::{
     api::user_groups::list::ListUserGroupsSortBy,
+    database::Database,
     errors::FilezError,
     schema::{self},
     types::SortDirection,
@@ -44,8 +45,8 @@ impl UserGroup {
         }
     }
 
-    pub async fn create(db: &crate::db::Db, user_group: &UserGroup) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn create(database: &Database, user_group: &UserGroup) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::insert_into(schema::user_groups::table)
             .values(user_group)
             .execute(&mut connection)
@@ -54,10 +55,10 @@ impl UserGroup {
     }
 
     pub async fn get_by_id(
-        db: &crate::db::Db,
+        database: &Database,
         user_group_id: &Uuid,
     ) -> Result<UserGroup, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let user_group = schema::user_groups::table
             .filter(schema::user_groups::id.eq(user_group_id))
             .select(UserGroup::as_select())
@@ -68,7 +69,7 @@ impl UserGroup {
     }
 
     pub async fn list_with_user_access(
-        db: &crate::db::Db,
+        database: &Database,
         requesting_user_id: &Uuid,
         app_id: &Uuid,
         from_index: Option<i64>,
@@ -76,10 +77,10 @@ impl UserGroup {
         sort_by: Option<ListUserGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<UserGroup>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let resources_with_access = AccessPolicy::get_resources_with_access(
-            db,
+            database,
             requesting_user_id,
             app_id,
             AccessPolicyResourceType::UserGroup,
@@ -129,11 +130,11 @@ impl UserGroup {
     }
 
     pub async fn update(
-        db: &crate::db::Db,
+        database: &Database,
         user_group_id: &Uuid,
         name: &str,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         diesel::update(
             schema::user_groups::table.filter(schema::user_groups::id.eq(user_group_id)),
         )
@@ -146,8 +147,8 @@ impl UserGroup {
         Ok(())
     }
 
-    pub async fn delete(db: &crate::db::Db, user_group_id: &Uuid) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn delete(database: &Database, user_group_id: &Uuid) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::delete(
             schema::user_groups::table.filter(schema::user_groups::id.eq(user_group_id)),
         )
@@ -157,11 +158,11 @@ impl UserGroup {
     }
 
     pub async fn add_users(
-        db: &crate::db::Db,
+        database: &Database,
         user_group_id: &Uuid,
         user_ids: &Vec<Uuid>,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let new_members = user_ids
             .iter()
             .map(|user_id| UserUserGroupMember::new(user_id, user_group_id))
@@ -175,11 +176,11 @@ impl UserGroup {
     }
 
     pub async fn remove_users(
-        db: &crate::db::Db,
+        database: &Database,
         user_group_id: &Uuid,
         user_ids: &Vec<Uuid>,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         diesel::delete(
             schema::user_user_group_members::table
                 .filter(schema::user_user_group_members::user_group_id.eq(user_group_id))
@@ -192,10 +193,10 @@ impl UserGroup {
 
     /// Retrieves all user group IDs that the specified user is a member of
     pub async fn get_all_by_user_id(
-        db: &crate::db::Db,
+        database: &Database,
         user_id: &Uuid,
     ) -> Result<Vec<Uuid>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let user_groups = schema::user_groups::table
             .inner_join(
@@ -211,10 +212,10 @@ impl UserGroup {
     }
 
     pub async fn get_user_count(
-        db: &crate::db::Db,
+        database: &Database,
         user_group_id: &Uuid,
     ) -> Result<i64, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let count = schema::user_user_group_members::table
             .filter(schema::user_user_group_members::user_group_id.eq(user_group_id))
@@ -226,14 +227,14 @@ impl UserGroup {
     }
 
     pub async fn list_users(
-        db: &crate::db::Db,
+        database: &Database,
         user_group_id: &Uuid,
         from_index: Option<i64>,
         limit: Option<i64>,
         sort_by: Option<&str>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<FilezUser>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let mut query = schema::user_groups::table
             .inner_join(

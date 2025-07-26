@@ -5,7 +5,7 @@ use filez_server_lib::{
     api::{self},
     config::config,
     controller,
-    db::Db,
+    database::Database,
     models::apps::MowsApp,
     state::ServerState,
     types::FilezApiDoc,
@@ -42,11 +42,11 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     // run pending migrations
-    match Db::run_migrations(&config).await {
+    match Database::run_migrations(&config).await {
         Ok(_) => info!("Migrations completed successfully"),
         Err(_) => {
-            Db::drop_if_dev_mode(&config).await?;
-            Db::run_migrations(&config).await?;
+            Database::drop_if_dev_mode(&config).await?;
+            Database::run_migrations(&config).await?;
         }
     }
 
@@ -54,7 +54,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .await
         .context("Failed to create server state")?;
 
-    let db_for_cors_layer = server_state.db.clone();
+    let database_for_cors_layer = server_state.database.clone();
 
     let (router, api) = OpenApiRouter::with_openapi(FilezApiDoc::openapi())
         // NOTE!
@@ -151,7 +151,7 @@ async fn main() -> Result<(), anyhow::Error> {
                             Err(_) => return false,
                         };
                         if let Ok(_) =
-                            MowsApp::get_from_origin_string(&db_for_cors_layer, &origin).await
+                            MowsApp::get_from_origin_string(&database_for_cors_layer, &origin).await
                         {
                             return true;
                         } else {

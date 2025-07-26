@@ -12,11 +12,11 @@ use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
 #[derive(Clone)]
-pub struct Db {
+pub struct Database {
     pub pool: Option<Pool<diesel_async::AsyncPgConnection>>,
 }
 
-impl Db {
+impl Database {
     pub async fn new(pool: Option<Pool<diesel_async::AsyncPgConnection>>) -> Self {
         Self { pool }
     }

@@ -193,4 +193,27 @@ CREATE TABLE "access_policies"(
 );
 
 
+CREATE TABLE "key_access"(
+	"id" UUID NOT NULL PRIMARY KEY,
+	"owner_id" UUID NOT NULL,
+	"name" TEXT NOT NULL,
+	"key_hash" TEXT NOT NULL,
+	"description" TEXT,
+	"user_id" UUID NOT NULL,
+	"created_time" TIMESTAMP NOT NULL,
+	"modified_time" TIMESTAMP NOT NULL,
+	"expiration_time" TIMESTAMP
+);
 
+CREATE TABLE "events"(
+	"id" UUID NOT NULL PRIMARY KEY,
+	"created_time" TIMESTAMP NOT NULL,
+	"event_type" SMALLINT NOT NULL,
+	"user_id" UUID,
+	"resource_ids" UUID[],
+	"resource_type" SMALLINT,
+	"app_id" UUID,
+	"result" JSONB
+	FOREIGN KEY ("user_id") REFERENCES "users"("id"),
+	FOREIGN KEY ("app_id") REFERENCES "apps"("id")
+);

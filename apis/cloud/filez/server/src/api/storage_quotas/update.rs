@@ -31,13 +31,13 @@ pub async fn update_storage_quota(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateStorageQuotaRequestBody>,
 ) -> Result<Json<ApiResponse<StorageQuota>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -52,7 +52,7 @@ pub async fn update_storage_quota(
     );
     let storage_quota = with_timing!(
         StorageQuota::update(
-            &db,
+            &database,
             request_body.subject_type,
             &request_body.subject_id,
             &request_body.storage_location_id,

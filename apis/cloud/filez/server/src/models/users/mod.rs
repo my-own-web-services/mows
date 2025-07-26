@@ -1,6 +1,7 @@
 use crate::{
     api::users::list::ListUsersSortBy,
     config::{config, IMPERSONATE_USER_HEADER, KEY_ACCESS_HEADER},
+    database::Database,
     errors::FilezError,
     schema,
     types::SortDirection,
@@ -47,7 +48,7 @@ use super::key_access::KeyAccess;
 pub enum FilezUserType {
     SuperAdmin = 0,
     Regular = 1,
-    Password = 2,
+    KeyAccess = 2,
 }
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
@@ -100,10 +101,10 @@ impl FilezUser {
     }
 
     pub async fn get_by_external_id(
-        db: &crate::db::Db,
+        database: &Database,
         external_user_id: &str,
     ) -> Result<Self, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let user = schema::users::table
             .filter(schema::users::external_user_id.eq(external_user_id))
             .first::<FilezUser>(&mut connection)
@@ -111,8 +112,8 @@ impl FilezUser {
         Ok(user)
     }
 
-    pub async fn get_by_id(db: &crate::db::Db, user_id: &Uuid) -> Result<Self, FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn get_by_id(database: &Database, user_id: &Uuid) -> Result<Self, FilezError> {
+        let mut connection = database.get_connection().await?;
         let user = schema::users::table
             .find(user_id)
             .first::<FilezUser>(&mut connection)
@@ -120,8 +121,8 @@ impl FilezUser {
         Ok(user)
     }
 
-    pub async fn get_by_email(db: &crate::db::Db, email: &str) -> Result<Self, FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn get_by_email(database: &Database, email: &str) -> Result<Self, FilezError> {
+        let mut connection = database.get_connection().await?;
         let user = schema::users::table
             .filter(schema::users::pre_identifier_email.eq(email.to_lowercase()))
             .first::<FilezUser>(&mut connection)
@@ -130,7 +131,7 @@ impl FilezUser {
     }
 
     pub async fn list_with_user_access(
-        _db: &crate::db::Db,
+        _database: &Database,
         _requesting_user_id: &Uuid,
         _app_id: &Uuid,
         _from_index: Option<i64>,
@@ -141,8 +142,8 @@ impl FilezUser {
         todo!()
     }
 
-    pub async fn delete(db: &crate::db::Db, user_id: &Uuid) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn delete(database: &Database, user_id: &Uuid) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::update(crate::schema::users::table.find(user_id))
             .set((
                 crate::schema::users::deleted.eq(true),
@@ -154,11 +155,11 @@ impl FilezUser {
     }
 
     pub async fn create(
-        db: &crate::db::Db,
+        database: &Database,
         email: &str,
         requesting_user_id: &Uuid,
     ) -> Result<Self, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let new_user = Self::new(
             None,
             Some(email.to_string()),
@@ -177,10 +178,10 @@ impl FilezUser {
     }
 
     pub async fn apply(
-        db: &crate::db::Db,
+        database: &Database,
         external_user: IntrospectedUser,
     ) -> Result<FilezUser, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let config = get_current_config_cloned!(config());
 
@@ -307,10 +308,10 @@ impl FilezUser {
     }
 
     pub async fn get_many_by_id(
-        db: &crate::db::Db,
+        database: &Database,
         user_ids: &[Uuid],
     ) -> Result<HashMap<Uuid, FilezUser>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let users: Vec<FilezUser> = schema::users::table
             .filter(schema::users::id.eq_any(user_ids))
@@ -322,11 +323,11 @@ impl FilezUser {
     }
 
     pub async fn get_from_external(
-        db: &crate::db::Db,
+        database: &Database,
         external_user: &IntrospectedUser,
         request_headers: &HeaderMap,
     ) -> Result<FilezUser, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let maybe_key_access = request_headers
             .get(KEY_ACCESS_HEADER)
@@ -340,7 +341,7 @@ impl FilezUser {
                     .await?
             }
             (None, Some(key_access)) => {
-                KeyAccess::get_user_by_key_access_string(db, key_access).await?
+                KeyAccess::get_user_by_key_access_string(database, key_access).await?
             }
             (Some(_), Some(_)) => {
                 return Err(FilezError::InvalidRequest(

@@ -25,13 +25,13 @@ pub async fn list_access_policies(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListAccessPoliciesRequestBody>,
 ) -> Result<Json<ApiResponse<ListAccessPoliciesResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -47,7 +47,7 @@ pub async fn list_access_policies(
 
     let access_policies = with_timing!(
         AccessPolicy::list_with_user_access(
-            &db,
+            &database,
             &requesting_user.id,
             &requesting_app.id,
             request_body.from_index,

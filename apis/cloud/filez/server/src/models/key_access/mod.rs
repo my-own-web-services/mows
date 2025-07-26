@@ -14,13 +14,13 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    db::Db,
+    database::Database,
     errors::FilezError,
     schema::{self},
     utils::get_uuid,
 };
 
-use super::users::FilezUser;
+use super::users::{FilezUser, FilezUserType};
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(check_for_backend(Pg))]
@@ -59,13 +59,20 @@ impl KeyAccess {
     }
 
     pub async fn create_key_access(
-        db: &Db,
+        database: &Database,
         owner_id: Uuid,
         name: String,
         description: Option<String>,
         user_id: Uuid,
     ) -> Result<Self, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
+
+        let for_user = FilezUser::get_by_id(database, &user_id).await?;
+        if for_user.user_type != FilezUserType::KeyAccess {
+            return Err(FilezError::Unauthorized(
+                "User is not a KeyAccess user".to_string(),
+            ));
+        }
 
         let key = generate_id(100);
 
@@ -112,10 +119,10 @@ impl KeyAccess {
     }
 
     pub async fn get_user_by_key_access_string(
-        db: &Db,
+        database: &Database,
         key_access_string: String,
     ) -> Result<FilezUser, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let (user_id, key) = Self::parse_key_access_string(key_access_string).await?;
 
         let key_access = schema::key_access::table
@@ -131,8 +138,14 @@ impl KeyAccess {
             .verify_password(key.as_bytes(), &parsed_hash)
             .is_ok()
         {
-            let user = FilezUser::get_by_id(db, &user_id).await?;
-            return Ok(user);
+            let user = FilezUser::get_by_id(database, &user_id).await?;
+            if user.user_type != FilezUserType::KeyAccess {
+                return Err(FilezError::Unauthorized(
+                    "User is not a KeyAccess user".to_string(),
+                ));
+            } else {
+                return Ok(user);
+            }
         } else {
             return Err(FilezError::Unauthorized(
                 "Invalid key access string".to_string(),

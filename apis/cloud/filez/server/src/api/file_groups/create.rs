@@ -28,13 +28,13 @@ pub async fn create_file_group(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileGroupRequestBody>,
 ) -> Result<Json<ApiResponse<FileGroup>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -56,7 +56,7 @@ pub async fn create_file_group(
     );
 
     with_timing!(
-        FileGroup::create(&db, &file_group).await?,
+        FileGroup::create(&database, &file_group).await?,
         "Database operation to create file group",
         timing
     );

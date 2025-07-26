@@ -31,7 +31,7 @@ pub async fn get_tags(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetTagsRequestBody>,
 ) -> Result<Json<ApiResponse<GetTagsResponseBody>>, FilezError> {
@@ -48,7 +48,7 @@ pub async fn get_tags(
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -63,7 +63,7 @@ pub async fn get_tags(
     );
 
     let resource_tags = with_timing!(
-        TagMember::get_tags(&db, &request_body.resource_ids, request_body.resource_type).await?,
+        TagMember::get_tags(&database, &request_body.resource_ids, request_body.resource_type).await?,
         "Database operation to get tags",
         timing
     );

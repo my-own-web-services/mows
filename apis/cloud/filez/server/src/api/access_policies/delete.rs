@@ -25,13 +25,13 @@ pub async fn delete_access_policy(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(access_policy_id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<Uuid>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -46,7 +46,7 @@ pub async fn delete_access_policy(
     );
 
     with_timing!(
-        AccessPolicy::delete(&db, &access_policy_id).await?,
+        AccessPolicy::delete(&database, &access_policy_id).await?,
         "Database operation to delete access policy",
         timing
     );

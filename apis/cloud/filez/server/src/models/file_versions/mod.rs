@@ -1,6 +1,6 @@
 use crate::utils::get_uuid;
 use crate::{
-    api::file_versions::update::UpdateFileVersion, db::Db, errors::FilezError,
+    api::file_versions::update::UpdateFileVersion, database::Database, errors::FilezError,
     schema::file_versions, state::StorageLocationState, with_timing,
 };
 use axum::extract::Request;
@@ -117,13 +117,13 @@ impl FileVersion {
     }
 
     pub async fn get(
-        db: &Db,
+        database: &Database,
         file_id: &Uuid,
         version: Option<u32>,
         app_id: &Uuid,
         app_path: &Option<String>,
     ) -> Result<FileVersion, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let app_path = app_path.as_ref().map(|path| path.as_str()).unwrap_or("");
 
@@ -171,11 +171,12 @@ impl FileVersion {
     pub async fn get_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        db: &Db,
+        database: &Database,
         timing: axum_server_timing::ServerTimingExtension,
         range: &Option<(Option<u64>, Option<u64>)>,
     ) -> Result<axum::body::Body, FilezError> {
-        let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
+        let storage_location =
+            StorageLocation::get_by_id(database, &self.storage_location_id).await?;
         let content = storage_location
             .get_content(
                 storage_locations_provider_state,
@@ -191,10 +192,11 @@ impl FileVersion {
     pub async fn get_file_size_from_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        db: &Db,
+        database: &Database,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<BigDecimal, FilezError> {
-        let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
+        let storage_location =
+            StorageLocation::get_by_id(database, &self.storage_location_id).await?;
         let size = storage_location
             .get_file_size(
                 storage_locations_provider_state,
@@ -209,7 +211,7 @@ impl FileVersion {
     pub async fn set(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        db: &Db,
+        database: &Database,
         timing: &axum_server_timing::ServerTimingExtension,
         request: Request,
         offset: u64,
@@ -219,9 +221,10 @@ impl FileVersion {
             return Err(FilezError::FileVersionContentAlreadyValid);
         }
 
-        let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
+        let storage_location =
+            StorageLocation::get_by_id(database, &self.storage_location_id).await?;
 
-        let file = FilezFile::get_by_id(db, self.file_id).await?;
+        let file = FilezFile::get_by_id(database, self.file_id).await?;
 
         storage_location
             .set_content(
@@ -267,7 +270,7 @@ impl FileVersion {
                 );
 
                 if &content_digest == expected_sha256_digest {
-                    let mut connection = db.get_connection().await?;
+                    let mut connection = database.get_connection().await?;
                     diesel::update(filter_file_version_by_identifier!(self))
                         .set((
                             file_versions::content_valid.eq(true),
@@ -287,7 +290,7 @@ impl FileVersion {
     }
 
     pub async fn create(
-        db: &Db,
+        database: &Database,
         file_id: Uuid,
         app_id: Uuid,
         app_path: Option<String>,
@@ -296,9 +299,9 @@ impl FileVersion {
         storage_quota_id: Uuid,
         content_expected_sha256_digest: Option<String>,
     ) -> Result<FileVersion, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
-        let storage_id = StorageQuota::get_storage_location_id(db, &storage_quota_id).await?;
+        let storage_id = StorageQuota::get_storage_location_id(database, &storage_quota_id).await?;
 
         let version_number = file_versions::table
             .filter(file_versions::file_id.eq(file_id))
@@ -332,11 +335,11 @@ impl FileVersion {
 
     pub async fn delete_many(
         storage_locations_provider_state: &StorageLocationState,
-        db: &Db,
+        database: &Database,
         file_versions_query: &Vec<FileVersionIdentifier>,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         for version_query in file_versions_query {
             let file_version = with_timing!(
@@ -348,7 +351,7 @@ impl FileVersion {
             );
 
             file_version
-                .delete_content(storage_locations_provider_state, db, timing)
+                .delete_content(storage_locations_provider_state, database, timing)
                 .await?;
 
             with_timing!(
@@ -364,10 +367,10 @@ impl FileVersion {
     }
 
     pub async fn get_many(
-        db: &Db,
+        database: &Database,
         query: &Vec<FileVersionIdentifier>,
     ) -> Result<Vec<FileVersion>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let mut results = Vec::new();
 
         for request in query {
@@ -383,10 +386,11 @@ impl FileVersion {
     pub async fn delete_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        db: &Db,
+        database: &Database,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), FilezError> {
-        let storage_location = StorageLocation::get_by_id(db, &self.storage_location_id).await?;
+        let storage_location =
+            StorageLocation::get_by_id(database, &self.storage_location_id).await?;
         storage_location
             .delete_content(
                 storage_locations_provider_state,
@@ -399,10 +403,10 @@ impl FileVersion {
     }
 
     pub async fn update_many(
-        db: &Db,
+        database: &Database,
         file_versions: &Vec<UpdateFileVersion>,
     ) -> Result<Vec<FileVersion>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let mut results = Vec::new();
 
         for file_version_update in file_versions {

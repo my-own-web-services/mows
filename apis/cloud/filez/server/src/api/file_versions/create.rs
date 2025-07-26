@@ -40,7 +40,7 @@ pub async fn create_file_version(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileVersionRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
@@ -50,7 +50,7 @@ pub async fn create_file_version(
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -66,7 +66,7 @@ pub async fn create_file_version(
 
     with_timing!(
         StorageQuota::check_quota(
-            &db,
+            &database,
             &requesting_user.id,
             &request_body.storage_quota_id,
             request_body.size.into()
@@ -78,7 +78,7 @@ pub async fn create_file_version(
 
     let db_created_file_version = with_timing!(
         FileVersion::create(
-            &db,
+            &database,
             request_body.file_id,
             requesting_app.id,
             request_body.app_path,

@@ -38,7 +38,7 @@ pub async fn get_file_versions(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetFileVersionsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
@@ -46,7 +46,7 @@ pub async fn get_file_versions(
 
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -61,7 +61,7 @@ pub async fn get_file_versions(
     );
 
     let file_versions = with_timing!(
-        FileVersion::get_many(&db, &request_body.versions).await?,
+        FileVersion::get_many(&database, &request_body.versions).await?,
         "Database operation to get file versions",
         timing
     );

@@ -29,13 +29,13 @@ pub async fn delete_user_group(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(user_group_id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<String>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -50,7 +50,7 @@ pub async fn delete_user_group(
     );
 
     with_timing!(
-        UserGroup::delete(&db, &user_group_id).await?,
+        UserGroup::delete(&database, &user_group_id).await?,
         "Database operation to delete user group",
         timing
     );

@@ -1,5 +1,6 @@
 pub mod access_policies;
 pub mod apps;
+pub mod events;
 pub mod file_file_group_members;
 pub mod file_groups;
 pub mod file_versions;

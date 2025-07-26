@@ -20,11 +20,11 @@ use zitadel::axum::introspection::IntrospectedUser;
 )]
 pub async fn apply_user(
     external_user: IntrospectedUser,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
 ) -> Result<Json<ApiResponse<ApplyUserResponseBody>>, FilezError> {
     let user = with_timing!(
-        FilezUser::apply(&db, external_user).await?,
+        FilezUser::apply(&database, external_user).await?,
         "Database operation to apply user",
         timing
     );

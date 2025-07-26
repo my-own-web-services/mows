@@ -24,13 +24,13 @@ pub async fn list_storage_quotas(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListStorageQuotasRequestBody>,
 ) -> Result<Json<ApiResponse<Vec<StorageQuota>>>, FilezError> {
     let storage_quotas = with_timing!(
         StorageQuota::list_with_user_access(
-            &db,
+            &database,
             &requesting_user.id,
             request_body.from_index,
             request_body.limit,

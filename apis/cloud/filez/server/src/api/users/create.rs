@@ -28,13 +28,13 @@ pub async fn create_user(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateUserRequestBody>,
 ) -> Result<Json<ApiResponse<CreateUserResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -49,7 +49,7 @@ pub async fn create_user(
     );
 
     let new_user = with_timing!(
-        FilezUser::create(&db, &request_body.email, &requesting_user.id).await?,
+        FilezUser::create(&database, &request_body.email, &requesting_user.id).await?,
         "Database operation to create user",
         timing
     );

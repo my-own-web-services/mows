@@ -25,13 +25,13 @@ pub async fn list_file_groups(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListFileGroupsRequestBody>,
 ) -> Result<Json<ApiResponse<ListFileGroupsResponseBody>>, FilezError> {
     let file_groups = with_timing!(
         FileGroup::list_with_user_access(
-            &db,
+            &database,
             &requesting_user.id,
             &requesting_app.id,
             request_body.from_index,

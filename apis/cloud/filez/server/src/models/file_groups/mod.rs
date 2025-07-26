@@ -3,6 +3,7 @@ use crate::{
         list::ListFileGroupsSortBy,
         list_files::{ListFilesSortBy, ListFilesSorting},
     },
+    database::Database,
     errors::FilezError,
     schema,
     types::SortDirection,
@@ -42,7 +43,6 @@ pub struct FileGroup {
     pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
-    #[diesel(sql_type = diesel::sql_types::SmallInt)]
     pub group_type: FileGroupType,
     pub dynamic_group_rule: Option<DynamicGroupRule>,
 }
@@ -89,8 +89,8 @@ impl FileGroup {
         }
     }
 
-    pub async fn create(db: &crate::db::Db, file_group: &FileGroup) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn create(database: &Database, file_group: &FileGroup) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::insert_into(schema::file_groups::table)
             .values(file_group)
             .execute(&mut connection)
@@ -98,8 +98,8 @@ impl FileGroup {
         Ok(())
     }
 
-    pub async fn get_by_id(db: &crate::db::Db, id: &Uuid) -> Result<FileGroup, FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn get_by_id(database: &Database, id: &Uuid) -> Result<FileGroup, FilezError> {
+        let mut connection = database.get_connection().await?;
         let file_group = schema::file_groups::table
             .filter(schema::file_groups::id.eq(id))
             .select(FileGroup::as_select())
@@ -109,7 +109,7 @@ impl FileGroup {
     }
 
     pub async fn list_with_user_access(
-        db: &crate::db::Db,
+        database: &Database,
         requesting_user_id: &Uuid,
         app_id: &Uuid,
         from_index: Option<i64>,
@@ -117,10 +117,10 @@ impl FileGroup {
         sort_by: Option<ListFileGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<FileGroup>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let resources_with_access = AccessPolicy::get_resources_with_access(
-            db,
+            database,
             requesting_user_id,
             app_id,
             AccessPolicyResourceType::FileGroup,
@@ -169,11 +169,11 @@ impl FileGroup {
     }
 
     pub async fn update(
-        db: &crate::db::Db,
+        database: &Database,
         file_group_id: &Uuid,
         name: &str,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         diesel::update(schema::file_groups::table.find(file_group_id))
             .set((
                 schema::file_groups::name.eq(name),
@@ -184,8 +184,8 @@ impl FileGroup {
         Ok(())
     }
 
-    pub async fn delete(db: &crate::db::Db, file_group_id: &Uuid) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+    pub async fn delete(database: &Database, file_group_id: &Uuid) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
         diesel::delete(schema::file_groups::table.find(file_group_id))
             .execute(&mut connection)
             .await?;
@@ -193,10 +193,10 @@ impl FileGroup {
     }
 
     pub async fn get_file_count(
-        db: &crate::db::Db,
+        database: &Database,
         file_group_id: &Uuid,
     ) -> Result<i64, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
 
         let count = schema::file_file_group_members::table
             .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
@@ -208,11 +208,11 @@ impl FileGroup {
     }
 
     pub async fn add_files(
-        db: &crate::db::Db,
+        database: &Database,
         file_group_id: &Uuid,
         file_ids: &Vec<Uuid>,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         let new_members = file_ids
             .iter()
             .map(|file_id| FileFileGroupMember::new(file_id, file_group_id))
@@ -226,11 +226,11 @@ impl FileGroup {
     }
 
     pub async fn remove_files(
-        db: &crate::db::Db,
+        database: &Database,
         file_group_id: &Uuid,
         file_ids: &Vec<Uuid>,
     ) -> Result<(), FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         diesel::delete(
             schema::file_file_group_members::table
                 .filter(schema::file_file_group_members::file_group_id.eq(file_group_id))
@@ -242,13 +242,13 @@ impl FileGroup {
     }
 
     pub async fn list_files(
-        db: &crate::db::Db,
+        database: &Database,
         file_group_id: &Uuid,
         from_index: Option<i64>,
         limit: Option<i64>,
         sort: Option<ListFilesSorting>,
     ) -> Result<Vec<FilezFile>, FilezError> {
-        let mut connection = db.get_connection().await?;
+        let mut connection = database.get_connection().await?;
         match sort {
             Some(ListFilesSorting::StoredSortOrder(stored_sort_order)) => {
                 let sort_direction = stored_sort_order

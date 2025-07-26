@@ -30,13 +30,13 @@ pub async fn delete_file_group(
         requesting_user,
         requesting_app,
     }): Extension<AuthenticatedUserAndApp>,
-    State(ServerState { db, .. }): State<ServerState>,
+    State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(file_group_id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<String>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
-            &db,
+            &database,
             &requesting_user,
             &requesting_app.id,
             requesting_app.trusted,
@@ -51,7 +51,7 @@ pub async fn delete_file_group(
     );
 
     with_timing!(
-        FileGroup::delete(&db, &file_group_id).await?,
+        FileGroup::delete(&database, &file_group_id).await?,
         "Database operation to delete file group",
         timing
     );

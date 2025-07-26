@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! with_timing {
-    ($function:expr, $description:expr,$timing:expr) => {{
+    ($function: expr, $description: expr, $timing: expr) => {{
         #[cfg(feature = "timing")]
         let start = std::time::Instant::now();
 
