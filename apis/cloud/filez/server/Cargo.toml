@@ -43,7 +43,7 @@ utoipa = { workspace = true, features = [
 ] }
 utoipa-axum = { workspace = true }
 axum = { workspace = true, features = ["default"] }
-axum-extra = { workspace = true, features = ["default"] }
+axum-extra = { workspace = true, features = ["default", "typed-header"] }
 mows-common-rust = { workspace = true, features = ["default"] }
 tokio = { workspace = true, features = ["default"] }
 thiserror = { workspace = true, features = ["default"] }
@@ -59,9 +59,9 @@ tower-http = { workspace = true, features = [
 mime_guess = { workspace = true, features = ["default"] }
 url = { workspace = true, features = ["serde"] }
 zitadel = { workspace = true, features = [
-    "axum",
-    "introspection_cache",
     "default",
+    "oidc",
+    "introspection_cache",
 ] }
 
 diesel_migrations = "2.2.0"
@@ -116,3 +116,4 @@ opentelemetry = { workspace = true, features = ["trace"] }
 futures = { workspace = true, features = ["default"] }
 tokio-util = { version = "0.7.15", features = ["default"] }
 argon2 = "0.5.3"
+openidconnect = { workspace = true, features = ["default"] }

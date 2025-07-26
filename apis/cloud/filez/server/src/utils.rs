@@ -18,7 +18,7 @@ pub fn get_uuid() -> uuid::Uuid {
 }
 
 pub fn get_current_timestamp() -> chrono::NaiveDateTime {
-    get_current_timestamp()
+    chrono::Utc::now().naive_utc()
 }
 
 pub async fn shutdown_signal() {

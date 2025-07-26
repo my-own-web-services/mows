@@ -4,8 +4,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         user_groups::UserGroup,
@@ -28,13 +28,14 @@ pub async fn update_user_group_members(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateUserGroupMembersRequestBody>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             requesting_user.as_ref(),
             &requesting_app,
@@ -58,7 +59,8 @@ pub async fn update_user_group_members(
 
     if let Some(users_to_remove) = request_body.users_to_remove {
         with_timing!(
-            UserGroup::remove_users(&database, &request_body.user_group_id, &users_to_remove).await?,
+            UserGroup::remove_users(&database, &request_body.user_group_id, &users_to_remove)
+                .await?,
             "Database operation to remove users from user group",
             timing
         );

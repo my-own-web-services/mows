@@ -1,6 +1,6 @@
 use crate::{
     errors::FilezError,
-    http_api::authentication_middleware::AuthenticationInformation,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::access_policies::{
         AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
         AccessPolicySubjectType,
@@ -30,6 +30,7 @@ pub async fn update_access_policy(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,

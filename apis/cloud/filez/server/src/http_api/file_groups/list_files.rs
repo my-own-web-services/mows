@@ -4,8 +4,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_groups::FileGroup,
@@ -29,13 +29,14 @@ pub async fn list_files_by_file_groups(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListFilesRequestBody>,
 ) -> Result<Json<ApiResponse<ListFilesResponseBody>>, FilezError> {
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             requesting_user.as_ref(),
             &requesting_app,
@@ -57,7 +58,8 @@ pub async fn list_files_by_file_groups(
         request_body.sort,
     );
 
-    let file_group_item_count_query = FileGroup::get_file_count(&database, &request_body.file_group_id);
+    let file_group_item_count_query =
+        FileGroup::get_file_count(&database, &request_body.file_group_id);
 
     // join the two futures to run them concurrently
     let (files, total_count): (Vec<FilezFile>, i64) = with_timing!(

@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
-    http_api::authentication_middleware::AuthenticationInformation,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::access_policies::{
         check::AuthEvaluation, AccessPolicy, AccessPolicyAction, AccessPolicyResourceType,
     },
@@ -27,6 +27,7 @@ pub async fn check_resource_access(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,

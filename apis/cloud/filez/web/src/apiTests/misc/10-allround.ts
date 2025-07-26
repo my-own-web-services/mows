@@ -447,7 +447,7 @@ export const allroundTest = async (filezClient: Api<unknown>) => {
                 resource_type: AccessPolicyResourceType.FileGroup,
                 resource_id: aliceFileGroup1.id,
                 effect: AccessPolicyEffect.Allow,
-                context_app_id: "00000000-0000-0000-0000-000000000000",
+                context_app_ids: ["00000000-0000-0000-0000-000000000000"],
                 name: "Allow Bob to list files in Alice's first file group"
             },
             impersonateAliceParams

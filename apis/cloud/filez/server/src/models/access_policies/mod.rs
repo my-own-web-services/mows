@@ -9,6 +9,7 @@ use crate::{
     types::SortDirection,
     utils::{get_current_timestamp, get_uuid, InvalidEnumType},
 };
+use anyhow::Context;
 use check::{check_resources_access_control, AuthResult};
 use diesel::{
     deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::SmallInt,
@@ -554,9 +555,11 @@ impl AccessPolicy {
         action_to_perform: AccessPolicyAction,
     ) -> Result<AuthResult, FilezError> {
         let maybe_user_group_ids = match maybe_requesting_user {
-            Some(requesting_user) => {
-                Some(UserGroup::get_all_by_user_id(database, &requesting_user.id).await?)
-            }
+            Some(requesting_user) => Some(
+                UserGroup::get_all_by_user_id(database, &requesting_user.id)
+                    .await
+                    .context("Failed to get user groups for the requesting user")?,
+            ),
             None => None,
         };
 

@@ -1,7 +1,7 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticationInformation,
     config::TUS_VERSION,
     errors::{FileVersionSizeExceededErrorBody, FilezError},
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_versions::FileVersion,
@@ -44,6 +44,7 @@ pub async fn file_versions_content_tus_patch(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState {
         database,
@@ -98,7 +99,7 @@ pub async fn file_versions_content_tus_patch(
         })?;
 
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             requesting_user.as_ref(),
             &requesting_app,

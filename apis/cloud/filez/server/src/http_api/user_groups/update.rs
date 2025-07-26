@@ -7,8 +7,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         user_groups::UserGroup,
@@ -31,6 +31,7 @@ pub async fn update_user_group(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
@@ -38,7 +39,7 @@ pub async fn update_user_group(
     Json(request_body): Json<UpdateUserGroupRequestBody>,
 ) -> Result<Json<ApiResponse<UserGroup>>, FilezError> {
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             requesting_user.as_ref(),
             &requesting_app,

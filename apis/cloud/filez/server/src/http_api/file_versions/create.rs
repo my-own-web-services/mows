@@ -1,6 +1,6 @@
 use crate::{
     errors::FilezError,
-    http_api::authentication_middleware::AuthenticationInformation,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_versions::{FileVersion, FileVersionMetadata},
@@ -34,6 +34,7 @@ pub async fn create_file_version(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
@@ -53,7 +54,7 @@ pub async fn create_file_version(
             AccessPolicyAction::FilezFilesVersionsCreate,
         )
         .await?
-        .verify()?,
+        .verify_allow_type_level()?,
         "Database operation to check access control",
         timing
     );

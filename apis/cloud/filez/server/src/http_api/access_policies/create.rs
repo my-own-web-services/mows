@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
-    http_api::authentication_middleware::AuthenticationInformation,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::access_policies::{
         AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
         AccessPolicySubjectType,
@@ -28,6 +28,7 @@ pub async fn create_access_policy(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
@@ -38,8 +39,11 @@ pub async fn create_access_policy(
             &database,
             requesting_user.as_ref(),
             &requesting_app,
-            AccessPolicyResourceType::AccessPolicy,
-            None,
+            request_body.resource_type,
+            request_body
+                .resource_id
+                .and_then(|id| Some(vec![id]))
+                .as_deref(),
             AccessPolicyAction::AccessPoliciesCreate,
         )
         .await?

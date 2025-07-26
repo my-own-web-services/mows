@@ -6,8 +6,8 @@ use axum::{
 use uuid::Uuid;
 
 use crate::{
-    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_groups::FileGroup,
@@ -29,13 +29,14 @@ pub async fn get_file_group(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(file_group_id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<FileGroup>>, FilezError> {
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             requesting_user.as_ref(),
             &requesting_app,

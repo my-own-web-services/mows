@@ -1,13 +1,14 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use zitadel::{
+    credentials::Application,
+    oidc::{
+        discovery::{discover, DiscoveryError},
+        introspection::{cache::IntrospectionCache, AuthorityAuthentication},
+    },
+};
 
-use crate::axum::introspection::state::IntrospectionConfig;
-use crate::credentials::Application;
-use crate::oidc::discovery::{discover, DiscoveryError};
-use crate::oidc::introspection::AuthorityAuthentication;
-
-#[cfg(feature = "introspection_cache")]
-use crate::oidc::introspection::cache::IntrospectionCache;
+use crate::http_api::authentication::state::IntrospectionConfig;
 
 use super::state::IntrospectionState;
 
@@ -26,7 +27,7 @@ pub enum IntrospectionStateBuilderError {
 pub struct IntrospectionStateBuilder {
     authority: String,
     authentication: Option<AuthorityAuthentication>,
-    #[cfg(feature = "introspection_cache")]
+
     cache: Option<Box<dyn IntrospectionCache>>,
 }
 
@@ -36,7 +37,7 @@ impl IntrospectionStateBuilder {
         Self {
             authority: authority.to_string(),
             authentication: None,
-            #[cfg(feature = "introspection_cache")]
+
             cache: None,
         }
     }
@@ -61,7 +62,7 @@ impl IntrospectionStateBuilder {
     }
 
     /// Set the [IntrospectionCache] to use for caching introspection responses.
-    #[cfg(feature = "introspection_cache")]
+
     pub fn with_introspection_cache(
         &mut self,
         cache: impl IntrospectionCache + 'static,
@@ -96,7 +97,6 @@ impl IntrospectionStateBuilder {
                 authority: self.authority.clone(),
                 introspection_uri,
                 authentication: self.authentication.as_ref().unwrap().clone(),
-                #[cfg(feature = "introspection_cache")]
                 cache: self.cache.take(),
             })),
         })

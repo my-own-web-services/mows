@@ -1,6 +1,6 @@
 use crate::{
     errors::FilezError,
-    http_api::authentication_middleware::AuthenticationInformation,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::user_groups::UserGroup,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
@@ -23,6 +23,7 @@ pub async fn list_user_groups(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,

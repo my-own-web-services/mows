@@ -84,6 +84,11 @@ default-features = false
 features = ["default"]
 path = "./mows-common-rust"
 
+[workspace.dependencies.openidconnect]
+default-features = false
+features = ["default"]
+version = "3.5.0"
+
 [workspace.dependencies.opentelemetry]
 default-features = false
 features = ["trace"]

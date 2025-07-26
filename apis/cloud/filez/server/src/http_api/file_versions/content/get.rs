@@ -1,6 +1,6 @@
 use crate::{
-    http_api::authentication_middleware::AuthenticationInformation,
     errors::FilezError,
+    http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_versions::FileVersion,
@@ -55,6 +55,7 @@ pub async fn get_file_version_content(
     Extension(AuthenticationInformation {
         requesting_user,
         requesting_app,
+        ..
     }): Extension<AuthenticationInformation>,
     State(ServerState {
         database,
@@ -76,7 +77,7 @@ pub async fn get_file_version_content(
     let app_path: Option<String> = app_path.into();
 
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             requesting_user.as_ref(),
             &requesting_app,
