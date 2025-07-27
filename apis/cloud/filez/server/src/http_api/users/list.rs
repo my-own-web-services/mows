@@ -45,7 +45,7 @@ pub async fn list_users(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success {},
         message: "Users listed".to_string(),
         data: Some(ListUsersResponseBody { users }),
     }))
@@ -53,8 +53,8 @@ pub async fn list_users(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListUsersRequestBody {
-    pub from_index: Option<i64>,
-    pub limit: Option<i64>,
+    pub from_index: Option<u64>,
+    pub limit: Option<u64>,
     pub sort_by: Option<ListUsersSortBy>,
     pub sort_order: Option<SortDirection>,
 }

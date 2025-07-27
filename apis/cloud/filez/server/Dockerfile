@@ -7,6 +7,7 @@ ARG APP_STAGE_IMAGE="scratch"
 FROM scratch AS sources
 COPY --from=mows-common-rust . mows-common-rust
 COPY --from=zitadel-rust . zitadel
+COPY --from=diesel-enum . diesel-enum
 COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 

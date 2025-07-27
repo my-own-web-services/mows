@@ -79,7 +79,7 @@ diesel-async = { version = "0.5.2", features = [
     "r2d2",
 ] }
 
-diesel-enum = "0.2.1"
+diesel-enum = { workspace = true }
 diesel_as_jsonb = "1.0.1"
 
 tokio-postgres = { version = "0.7.13" }
@@ -117,3 +117,4 @@ futures = { workspace = true, features = ["default"] }
 tokio-util = { version = "0.7.15", features = ["default"] }
 argon2 = "0.5.3"
 openidconnect = { workspace = true, features = ["default"] }
+tower = { workspace = true }

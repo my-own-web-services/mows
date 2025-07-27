@@ -24,3 +24,12 @@ macro_rules! with_timing {
         result
     }};
 }
+
+#[macro_export]
+macro_rules! get_resource_label {
+    ($resource: expr) => {{
+        let id = $resource.id;
+        let name = $resource.name;
+        format!("(id: {}, name: {})", id, name)
+    }};
+}

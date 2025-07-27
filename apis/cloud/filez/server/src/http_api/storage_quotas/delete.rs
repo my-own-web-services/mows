@@ -63,7 +63,7 @@ pub async fn delete_storage_quota(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "Storage quota deleted".to_string(),
         data: None,
     }))

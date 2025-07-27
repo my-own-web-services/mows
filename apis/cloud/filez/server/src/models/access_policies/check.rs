@@ -5,7 +5,6 @@ use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPol
 use crate::models::apps::MowsApp;
 use crate::models::users::{FilezUser, FilezUserType};
 use crate::{database::Database, schema};
-use anyhow::Context;
 use diesel::{
     pg::sql_types, prelude::*, BoolExpressionMethods, ExpressionMethods, SelectableHelper,
 };
@@ -27,7 +26,7 @@ pub async fn check_resources_access_control(
     action_to_perform: AccessPolicyAction,
 ) -> Result<AuthResult, FilezError> {
     let mut connection = database.get_connection().await?;
-    let resource_auth_info = get_auth_info(resource_type);
+    let resource_auth_info = get_auth_params_for_resource_type(resource_type);
 
     if let Some(requesting_user) = maybe_requesting_user {
         if requesting_user.user_type == FilezUserType::SuperAdmin {
@@ -123,8 +122,7 @@ pub async fn check_resources_access_control(
                 ))
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut connection)
-                .await
-                .context("Failed to load direct access policies for requested resources")?;
+                .await?;
 
             let mut direct_policies_map: HashMap<Uuid, Vec<AccessPolicy>> = HashMap::new();
             for policy in direct_policies {
@@ -627,7 +625,9 @@ pub struct ResourceAuthInfo {
     pub resource_group_type: Option<AccessPolicyResourceType>,
 }
 
-pub fn get_auth_info(resource_type: AccessPolicyResourceType) -> ResourceAuthInfo {
+pub fn get_auth_params_for_resource_type(
+    resource_type: AccessPolicyResourceType,
+) -> ResourceAuthInfo {
     match resource_type {
         AccessPolicyResourceType::File => ResourceAuthInfo {
             resource_table: "files",

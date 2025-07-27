@@ -64,7 +64,7 @@ pub async fn update_storage_quota(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success {},
         message: "Storage quota updated".to_string(),
         data: Some(storage_quota),
     }))
@@ -75,5 +75,5 @@ pub struct UpdateStorageQuotaRequestBody {
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
     pub storage_location_id: Uuid,
-    pub quota_bytes: i64,
+    pub quota_bytes: u64,
 }

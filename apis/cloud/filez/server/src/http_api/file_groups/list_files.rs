@@ -62,7 +62,7 @@ pub async fn list_files_by_file_groups(
         FileGroup::get_file_count(&database, &request_body.file_group_id);
 
     // join the two futures to run them concurrently
-    let (files, total_count): (Vec<FilezFile>, i64) = with_timing!(
+    let (files, total_count): (Vec<FilezFile>, u64) = with_timing!(
         match tokio::join!(list_files_query, file_group_item_count_query) {
             (Ok(files), Ok(total_count)) => (files, total_count),
             (Err(e), _) => return Err(e.into()),
@@ -73,7 +73,7 @@ pub async fn list_files_by_file_groups(
     );
 
     return Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success {},
         message: "Got file list".to_string(),
         data: Some(ListFilesResponseBody { files, total_count }),
     }));
@@ -82,8 +82,8 @@ pub async fn list_files_by_file_groups(
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListFilesRequestBody {
     pub file_group_id: Uuid,
-    pub from_index: Option<i64>,
-    pub limit: Option<i64>,
+    pub from_index: Option<u64>,
+    pub limit: Option<u64>,
     pub sort: Option<ListFilesSorting>,
 }
 
@@ -115,5 +115,5 @@ pub struct ListFilesStoredSortOrder {
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListFilesResponseBody {
     pub files: Vec<FilezFile>,
-    pub total_count: i64,
+    pub total_count: u64,
 }

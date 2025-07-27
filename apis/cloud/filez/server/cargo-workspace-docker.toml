@@ -46,6 +46,10 @@ default-features = false
 features = ["default"]
 version = "2.9.0"
 
+[workspace.dependencies.diesel-enum]
+default-features = false
+path = "./diesel-enum"
+
 [workspace.dependencies.futures]
 default-features = false
 features = ["default"]
@@ -177,6 +181,10 @@ version = "0.3.41"
 default-features = false
 features = ["macros", "rt-multi-thread"]
 version = "1.45.0"
+
+[workspace.dependencies.tower]
+default-features = false
+version = "0.5.2"
 
 [workspace.dependencies.tower-http]
 default-features = false

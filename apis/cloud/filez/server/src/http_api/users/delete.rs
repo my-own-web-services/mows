@@ -63,7 +63,7 @@ pub async fn delete_user(
         timing
     );
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "User deleted successfully".to_string(),
         data: Some(DeleteUserResponseBody { user_id }),
     }))

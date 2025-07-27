@@ -1,9 +1,11 @@
 use axum::extract::FromRef;
 use axum_extra::headers::authorization::Bearer;
 use openidconnect::TokenIntrospectionResponse;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use tracing::{span, trace, Level};
+use utoipa::ToSchema;
 use zitadel::oidc::discovery::DiscoveryError;
 use zitadel::oidc::introspection::introspect;
 

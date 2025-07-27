@@ -135,8 +135,8 @@ impl FilezUser {
         _database: &Database,
         _maybe_requesting_user: Option<&FilezUser>,
         _requesting_app: &MowsApp,
-        _from_index: Option<i64>,
-        _limit: Option<i64>,
+        _from_index: Option<u64>,
+        _limit: Option<u64>,
         _sort_by: Option<ListUsersSortBy>,
         _sort_order: Option<SortDirection>,
     ) -> Result<Vec<ListedFilezUser>, FilezError> {

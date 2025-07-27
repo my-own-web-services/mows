@@ -8,6 +8,7 @@ services:
             additional_contexts:
                 mows-common-rust: ../../../../utils/mows-common-rust
                 zitadel-rust: ../../../../utils/zitadel-rust
+                diesel-enum: ../../../../utils/diesel-enum
                 lock: ../../../../
             args:
                 - PROFILE=dev # dev or release

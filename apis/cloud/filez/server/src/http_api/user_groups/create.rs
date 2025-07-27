@@ -61,7 +61,7 @@ pub async fn create_user_group(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "User group created".to_string(),
         data: Some(user_group),
     }))

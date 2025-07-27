@@ -69,7 +69,7 @@ pub async fn get_users(
     }
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "Successfully retrieved users".to_string(),
         data: Some(GetUsersResBody { users_meta }),
     }))

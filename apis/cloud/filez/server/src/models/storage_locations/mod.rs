@@ -5,6 +5,7 @@ use crate::{
     database::Database,
     errors::FilezError,
     http_api::{health::HealthStatus, storage_locations::list::ListStorageLocationsSortBy},
+    models::file_versions::ContentRange,
     state::StorageLocationState,
     storage::{
         config::{StorageProviderConfig, StorageProviderConfigCrd},
@@ -14,7 +15,6 @@ use crate::{
     utils::{get_current_timestamp, get_uuid},
 };
 use axum::extract::Request;
-use bigdecimal::BigDecimal;
 use diesel::{pg::Pg, prelude::*};
 use diesel_async::RunQueryDsl;
 use schemars::JsonSchema;
@@ -311,7 +311,7 @@ impl StorageLocation {
         storage_locations_provider_state: &StorageLocationState,
         file_version_identifier: &FileVersionIdentifier,
         timing: axum_server_timing::ServerTimingExtension,
-        range: &Option<(Option<u64>, Option<u64>)>,
+        range: &Option<ContentRange>,
     ) -> Result<axum::body::Body, FilezError> {
         let provider = self
             .get_provider_from_state(storage_locations_provider_state)
@@ -326,7 +326,7 @@ impl StorageLocation {
         storage_locations_provider_state: &StorageLocationState,
         file_version_identifier: &FileVersionIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
-    ) -> Result<BigDecimal, FilezError> {
+    ) -> Result<u64, FilezError> {
         let provider = self
             .get_provider_from_state(storage_locations_provider_state)
             .await?;

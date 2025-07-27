@@ -53,7 +53,7 @@ pub async fn list_storage_locations(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "Storage locations listed".to_string(),
         data: Some(ListStorageLocationsResponseBody { storage_locations }),
     }))

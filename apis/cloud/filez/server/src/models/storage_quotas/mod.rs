@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::{
     database::Database,
     errors::FilezError,
+    get_resource_label,
     http_api::storage_quotas::list::ListStorageQuotasSortBy,
     models::apps::MowsApp,
     schema,
@@ -50,9 +51,7 @@ pub struct StorageQuota {
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
     pub storage_location_id: Uuid,
-
-    #[schema(value_type=i64)]
-    pub quota_bytes: BigDecimal,
+    pub quota_bytes: i64,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
 }
@@ -64,19 +63,19 @@ impl StorageQuota {
         subject_type: AccessPolicySubjectType,
         subject_id: Uuid,
         storage_location_id: Uuid,
-        quota_bytes: BigDecimal,
-    ) -> Self {
-        Self {
+        quota_bytes: u64,
+    ) -> Result<Self, FilezError> {
+        Ok(Self {
             id: get_uuid(),
             name,
             owner_id,
             subject_type,
             subject_id,
             storage_location_id,
-            quota_bytes,
+            quota_bytes: quota_bytes.try_into()?,
             created_time: get_current_timestamp(),
             modified_time: get_current_timestamp(),
-        }
+        })
     }
 
     pub async fn create(
@@ -108,7 +107,7 @@ impl StorageQuota {
         database: &Database,
         requesting_user_id: &Uuid,
         storage_quota_id: &Uuid,
-        size: BigDecimal,
+        requested_size: u64,
     ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
 
@@ -137,19 +136,29 @@ impl StorageQuota {
             ));
         }
 
-        // get the sum of the size of all file_versions using this storage quota
-        let total_size: BigDecimal = schema::file_versions::table
+        use bigdecimal::ToPrimitive;
+
+        let used_size: u64 = schema::file_versions::table
             .filter(schema::file_versions::storage_quota_id.eq(storage_quota.id))
             .select(diesel::dsl::sum(schema::file_versions::size))
             .first::<Option<BigDecimal>>(&mut connection)
             .await?
-            .unwrap_or_else(|| BigDecimal::from(0));
+            .unwrap_or_else(|| i64::from(0).into())
+            .to_u64()
+            .ok_or(anyhow::anyhow!(
+                "Failed to convert used size to u64. It looks like you have a LOT of data."
+            ))?;
 
-        if total_size.clone() + size > storage_quota.quota_bytes {
-            return Err(FilezError::StorageQuotaExceeded(format!(
-                "Storage quota exceeded for {}: {} bytes used, {} bytes allowed",
-                storage_quota.name, total_size, storage_quota.quota_bytes
-            )));
+        let quota_allowed_bytes: u64 = storage_quota.quota_bytes.try_into()?;
+
+        if used_size + requested_size > quota_allowed_bytes {
+            return Err(FilezError::StorageQuotaExceeded {
+                quota_label: get_resource_label!(storage_quota),
+                requested_bytes: requested_size,
+                quota_allowed_bytes,
+                quota_used_bytes: used_size,
+                request_over_quota_bytes: requested_size + used_size - quota_allowed_bytes,
+            });
         }
 
         Ok(())
@@ -159,8 +168,8 @@ impl StorageQuota {
         database: &Database,
         requesting_user_id: &Uuid,
         requesting_app: &MowsApp,
-        from_index: Option<i64>,
-        limit: Option<i64>,
+        from_index: Option<u64>,
+        limit: Option<u64>,
         sort_by: Option<ListStorageQuotasSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<StorageQuota>, FilezError> {
@@ -213,10 +222,10 @@ impl StorageQuota {
         };
 
         if let Some(from_index) = from_index {
-            query = query.offset(from_index);
+            query = query.offset(from_index.try_into()?);
         }
         if let Some(limit) = limit {
-            query = query.limit(limit);
+            query = query.limit(limit.try_into()?);
         }
 
         let storage_quotas = query.load::<StorageQuota>(&mut connection).await?;
@@ -248,9 +257,12 @@ impl StorageQuota {
         subject_type: AccessPolicySubjectType,
         subject_id: &Uuid,
         storage_location_id: &Uuid,
-        quota_bytes: BigDecimal,
+        quota_bytes: u64,
     ) -> Result<StorageQuota, FilezError> {
         let mut connection = database.get_connection().await?;
+
+        let quota_bytes: i64 = quota_bytes.try_into()?;
+
         let updated_quota = diesel::update(
             schema::storage_quotas::table.filter(
                 schema::storage_quotas::subject_type

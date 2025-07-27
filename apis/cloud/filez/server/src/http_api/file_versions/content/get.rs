@@ -3,7 +3,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        file_versions::FileVersion,
+        file_versions::{ContentRange, FileVersion},
         files::FilezFile,
     },
     state::ServerState,
@@ -20,8 +20,7 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
-use bigdecimal::BigDecimal;
-use bigdecimal::ToPrimitive;
+
 use serde::Deserialize;
 use utoipa::IntoParams;
 use uuid::Uuid;
@@ -174,9 +173,9 @@ pub async fn get_file_version_content(
                 "timeout=5, max=100".parse().unwrap(),
             );
 
-            let end = parsed_range
-                .end
-                .unwrap_or(&file_version_meta.size - BigDecimal::from(1));
+            let file_version_meta_size: u64 = file_version_meta.size.try_into()?;
+
+            let end = parsed_range.end.unwrap_or(file_version_meta_size - 1);
 
             response_headers.insert(
                 header::CONTENT_RANGE,
@@ -187,7 +186,10 @@ pub async fn get_file_version_content(
                 .parse()
                 .expect("String to HeaderValue conversion failed"),
             );
-            Some((parsed_range.start.to_u64(), end.to_u64()))
+            Some(ContentRange {
+                start: parsed_range.start,
+                end,
+            })
         } else {
             None
         }

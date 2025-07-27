@@ -81,7 +81,7 @@ pub async fn update_file(
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success,
+            status: ApiResponseStatus::Success{},
             message: "Updated File".to_string(),
             data: Some(UpdateFileResponseBody {
                 file: db_updated_file,

@@ -15,7 +15,7 @@ use crate::{
         user_groups::UserGroup, users::FilezUser,
     },
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use utoipa::ToSchema;
 
 #[derive(utoipa::OpenApi)]

@@ -49,7 +49,7 @@ pub async fn list_storage_quotas(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success {},
         message: "Storage quotas retrieved".to_string(),
         data: Some(storage_quotas),
     }))
@@ -57,8 +57,8 @@ pub async fn list_storage_quotas(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListStorageQuotasRequestBody {
-    pub from_index: Option<i64>,
-    pub limit: Option<i64>,
+    pub from_index: Option<u64>,
+    pub limit: Option<u64>,
     pub sort_by: Option<ListStorageQuotasSortBy>,
     pub sort_order: Option<SortDirection>,
 }

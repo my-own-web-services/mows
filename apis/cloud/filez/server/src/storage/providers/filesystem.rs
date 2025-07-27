@@ -1,10 +1,10 @@
 use crate::controller::crd::SecretReadableByFilezController;
 use crate::http_api::health::HealthStatus;
+use crate::models::file_versions::ContentRange;
 use crate::{controller::crd::ValueOrSecretReference, storage::errors::StorageError};
 use anyhow::Context;
 use axum::body::Body;
 use axum::extract::Request;
-use bigdecimal::BigDecimal;
 use futures_util::TryStreamExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -100,25 +100,17 @@ impl StorageProviderFilesystem {
         &self,
         full_file_identifier: &FileVersionIdentifier,
         _timing: axum_server_timing::ServerTimingExtension,
-        range: &Option<(Option<u64>, Option<u64>)>,
+        maybe_range: &Option<ContentRange>,
     ) -> Result<Body, StorageError> {
         let path = self.get_full_path(full_file_identifier);
         let mut file = File::open(&path)
             .await
             .context("Failed to open file for reading")?;
 
-        let (start, end) = match range {
-            Some((start, end)) => (*start, *end),
-            None => (None, None),
-        };
+        let stream = if let Some(range) = maybe_range {
+            file.seek(SeekFrom::Start(range.start)).await?;
 
-        if let Some(start_pos) = start {
-            file.seek(SeekFrom::Start(start_pos)).await?;
-        }
-
-        let stream = if let Some(end_pos) = end {
-            let start_pos = start.unwrap_or(0);
-            let length = end_pos - start_pos + 1;
+            let length = range.end - range.start + 1;
             let reader = file.take(length);
             ReaderStream::new(reader)
         } else {
@@ -133,12 +125,12 @@ impl StorageProviderFilesystem {
         &self,
         full_file_identifier: &FileVersionIdentifier,
         _timing: &axum_server_timing::ServerTimingExtension,
-    ) -> Result<BigDecimal, StorageError> {
+    ) -> Result<u64, StorageError> {
         let path = self.get_full_path(full_file_identifier);
         let metadata = fs::metadata(path).await?;
 
         let file_size = metadata.len();
-        Ok(BigDecimal::from(file_size))
+        Ok(file_size)
     }
 
     pub async fn delete_content(

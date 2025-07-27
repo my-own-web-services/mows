@@ -77,7 +77,7 @@ pub async fn update_access_policy(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "Access policy updated".to_string(),
         data: Some(access_policy),
     }))

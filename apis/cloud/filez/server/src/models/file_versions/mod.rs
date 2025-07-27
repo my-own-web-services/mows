@@ -4,8 +4,7 @@ use crate::{
     schema::file_versions, state::StorageLocationState, with_timing,
 };
 use axum::extract::Request;
-use bigdecimal::BigDecimal;
-use bigdecimal::ToPrimitive;
+
 use diesel::{
     pg::Pg,
     prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
@@ -51,6 +50,17 @@ impl FileVersionIdentifier {
     }
 }
 
+pub struct ContentRange {
+    pub start: u64,
+    pub end: u64,
+}
+
+impl ContentRange {
+    pub fn length(&self) -> u64 {
+        self.end - self.start + 1
+    }
+}
+
 #[derive(
     Serialize,
     Deserialize,
@@ -74,8 +84,7 @@ pub struct FileVersion {
     pub metadata: FileVersionMetadata,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
-    #[schema(value_type=i64)]
-    pub size: BigDecimal,
+    pub size: i64,
     pub storage_location_id: Uuid,
     pub storage_quota_id: Uuid,
     pub content_valid: bool,
@@ -92,12 +101,12 @@ impl FileVersion {
         app_id: Uuid,
         app_path: Option<String>,
         metadata: FileVersionMetadata,
-        size: BigDecimal,
+        size: u64,
         storage_id: Uuid,
         storage_quota_id: Uuid,
         content_expected_sha256_digest: Option<String>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, FilezError> {
+        Ok(Self {
             id: get_uuid(),
             file_id,
             version,
@@ -106,12 +115,12 @@ impl FileVersion {
             metadata,
             created_time: get_current_timestamp(),
             modified_time: get_current_timestamp(),
-            size,
+            size: size.try_into()?,
             storage_location_id: storage_id,
             storage_quota_id,
             content_expected_sha256_digest,
             content_valid: false,
-        }
+        })
     }
 
     pub async fn get(
@@ -171,7 +180,7 @@ impl FileVersion {
         storage_locations_provider_state: &StorageLocationState,
         database: &Database,
         timing: axum_server_timing::ServerTimingExtension,
-        range: &Option<(Option<u64>, Option<u64>)>,
+        range: &Option<ContentRange>,
     ) -> Result<axum::body::Body, FilezError> {
         let storage_location =
             StorageLocation::get_by_id(database, &self.storage_location_id).await?;
@@ -192,7 +201,7 @@ impl FileVersion {
         storage_locations_provider_state: &StorageLocationState,
         database: &Database,
         timing: &axum_server_timing::ServerTimingExtension,
-    ) -> Result<BigDecimal, FilezError> {
+    ) -> Result<u64, FilezError> {
         let storage_location =
             StorageLocation::get_by_id(database, &self.storage_location_id).await?;
         let size = storage_location
@@ -237,10 +246,7 @@ impl FileVersion {
             .await?;
         // once the last bytes are written, we verify the content and update the content_valid flag
 
-        let file_version_size = self
-            .size
-            .to_u64()
-            .ok_or(FilezError::BigDecimalSizeConversionError)?;
+        let file_version_size: u64 = self.size.try_into()?;
 
         debug!(
             "Got offset: {}, length: {}, file_version_size: {} for file version: {:?}",
@@ -293,7 +299,7 @@ impl FileVersion {
         app_id: Uuid,
         app_path: Option<String>,
         metadata: FileVersionMetadata,
-        size: BigDecimal,
+        size: u64,
         storage_quota_id: Uuid,
         content_expected_sha256_digest: Option<String>,
     ) -> Result<FileVersion, FilezError> {
@@ -319,7 +325,7 @@ impl FileVersion {
             storage_id,
             storage_quota_id,
             content_expected_sha256_digest,
-        );
+        )?;
 
         let created_version = diesel::insert_into(file_versions::table)
             .values(new_file_version)

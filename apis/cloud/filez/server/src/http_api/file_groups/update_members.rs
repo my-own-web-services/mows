@@ -79,7 +79,7 @@ pub async fn update_file_group_members(
     }
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "File group members updated".to_string(),
         data: None,
     }))

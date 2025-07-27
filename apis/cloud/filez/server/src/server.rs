@@ -5,10 +5,7 @@ use filez_server_lib::{
     config::config,
     controller,
     database::Database,
-    http_api::{
-        self,
-        authentication::middleware::{self, auth_middleware},
-    },
+    http_api::{self, authentication::middleware::auth_middleware},
     models::apps::MowsApp,
     state::ServerState,
     types::FilezApiDoc,
@@ -18,6 +15,7 @@ use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
 use std::net::SocketAddr;
+use tower::ServiceBuilder;
 use tower_http::{
     compression::CompressionLayer,
     cors::{AllowOrigin, Any, CorsLayer},
@@ -161,39 +159,45 @@ async fn main() -> Result<(), anyhow::Error> {
         // HEALTH
         .routes(routes!(http_api::health::get_health))
         .with_state(server_state.clone())
-        .layer(CompressionLayer::new())
-        .layer(DecompressionLayer::new())
-        .layer(OtelInResponseLayer::default())
-        .layer(OtelAxumLayer::default())
         .layer(
-            CorsLayer::new()
-                .allow_origin(AllowOrigin::async_predicate(
-                    move |origin: HeaderValue, _: &Parts| async move {
-                        let origin = match origin.to_str() {
-                            Ok(s) => s,
-                            Err(_) => return false,
-                        };
-                        if let Ok(_) =
-                            MowsApp::get_from_origin_string(&database_for_cors_layer, &origin).await
-                        {
-                            return true;
-                        } else {
-                            return false;
-                        }
-                    },
+            ServiceBuilder::new()
+                .layer(axum_server_timing::ServerTimingLayer::new("FilezService"))
+                .layer(CompressionLayer::new())
+                .layer(DecompressionLayer::new())
+                .layer(OtelInResponseLayer::default())
+                .layer(OtelAxumLayer::default())
+                .layer(
+                    CorsLayer::new()
+                        .allow_origin(AllowOrigin::async_predicate(
+                            move |origin: HeaderValue, _: &Parts| async move {
+                                let origin = match origin.to_str() {
+                                    Ok(s) => s,
+                                    Err(_) => return false,
+                                };
+                                if let Ok(_) = MowsApp::get_from_origin_string(
+                                    &database_for_cors_layer,
+                                    &origin,
+                                )
+                                .await
+                                {
+                                    return true;
+                                } else {
+                                    return false;
+                                }
+                            },
+                        ))
+                        .allow_methods(Any)
+                        .allow_headers(Any),
+                )
+                .layer(SetResponseHeaderLayer::overriding(
+                    CONTENT_SECURITY_POLICY,
+                    HeaderValue::from_static("default-src 'none'"),
                 ))
-                .allow_methods(Any)
-                .allow_headers(Any),
+                .layer(axum::middleware::from_fn_with_state(
+                    server_state.clone(),
+                    auth_middleware,
+                )),
         )
-        .layer(axum::middleware::from_fn_with_state(
-            server_state.clone(),
-            auth_middleware,
-        ))
-        .layer(axum_server_timing::ServerTimingLayer::new("FilezService"))
-        .layer(SetResponseHeaderLayer::overriding(
-            CONTENT_SECURITY_POLICY,
-            HeaderValue::from_static("default-src 'none'"),
-        ))
         .split_for_parts();
 
     let router = router.merge(

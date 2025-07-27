@@ -78,7 +78,7 @@ pub async fn create_file(
     Ok((
         StatusCode::CREATED,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success,
+            status: ApiResponseStatus::Success{},
             message: "Created File".to_string(),
             data: Some(CreateFileResponseBody {
                 created_file: db_created_file,

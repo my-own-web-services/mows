@@ -1752,8 +1752,6 @@ dependencies = [
 [[package]]
 name = "diesel-enum"
 version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4b8470493d7120fd53f7d7db6ad167c2bc06fdf8abb3cef7e7669eb1347b415"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2192,6 +2190,7 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "tokio-util",
+ "tower 0.5.2",
  "tower-http",
  "tracing",
  "url",

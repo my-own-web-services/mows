@@ -113,8 +113,8 @@ impl FileGroup {
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
         requesting_app: &MowsApp,
-        from_index: Option<i64>,
-        limit: Option<i64>,
+        from_index: Option<u64>,
+        limit: Option<u64>,
         sort_by: Option<ListFileGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<FileGroup>, FilezError> {
@@ -159,10 +159,10 @@ impl FileGroup {
         };
 
         if let Some(from_index) = from_index {
-            query = query.offset(from_index);
+            query = query.offset(from_index.try_into()?);
         }
         if let Some(limit) = limit {
-            query = query.limit(limit);
+            query = query.limit(limit.try_into()?);
         }
 
         let file_groups = query.load::<FileGroup>(&mut connection).await?;
@@ -196,7 +196,7 @@ impl FileGroup {
     pub async fn get_file_count(
         database: &Database,
         file_group_id: &Uuid,
-    ) -> Result<i64, FilezError> {
+    ) -> Result<u64, FilezError> {
         let mut connection = database.get_connection().await?;
 
         let count = schema::file_file_group_members::table
@@ -205,7 +205,7 @@ impl FileGroup {
             .get_result::<i64>(&mut connection)
             .await?;
 
-        Ok(count)
+        Ok(count.try_into()?)
     }
 
     pub async fn add_files(
@@ -245,8 +245,8 @@ impl FileGroup {
     pub async fn list_files(
         database: &Database,
         file_group_id: &Uuid,
-        from_index: Option<i64>,
-        limit: Option<i64>,
+        from_index: Option<u64>,
+        limit: Option<u64>,
         sort: Option<ListFilesSorting>,
     ) -> Result<Vec<FilezFile>, FilezError> {
         let mut connection = database.get_connection().await?;
@@ -282,10 +282,10 @@ impl FileGroup {
                     }
                 }
                 if let Some(from_index) = from_index {
-                    query = query.offset(from_index);
+                    query = query.offset(from_index.try_into()?);
                 }
                 if let Some(limit) = limit {
-                    query = query.limit(limit);
+                    query = query.limit(limit.try_into()?);
                 }
 
                 let files_list = query.load::<FilezFile>(&mut connection).await?;
@@ -324,10 +324,10 @@ impl FileGroup {
                     }
                 }
                 if let Some(from_index) = from_index {
-                    query = query.offset(from_index);
+                    query = query.offset(from_index.try_into()?);
                 }
                 if let Some(limit) = limit {
-                    query = query.limit(limit);
+                    query = query.limit(limit.try_into()?);
                 }
 
                 let files_list = query.load::<FilezFile>(&mut connection).await?;
@@ -346,10 +346,10 @@ impl FileGroup {
                 query = query.order_by(schema::files::created_time.desc());
 
                 if let Some(from_index) = from_index {
-                    query = query.offset(from_index);
+                    query = query.offset(from_index.try_into()?);
                 }
                 if let Some(limit) = limit {
-                    query = query.limit(limit);
+                    query = query.limit(limit.try_into()?);
                 }
 
                 let files_list = query.load::<FilezFile>(&mut connection).await?;

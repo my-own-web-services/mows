@@ -56,7 +56,7 @@ pub async fn get_user_group(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "User group retrieved".to_string(),
         data: Some(user_group),
     }))

@@ -9,7 +9,7 @@ import {
 } from "../../api-client";
 import { getBlobSha256Digest, impersonateUser } from "../../utils";
 
-export const allroundTest = async (filezClient: Api<unknown>) => {
+export default async (filezClient: Api<unknown>) => {
     console.log("Running all-round test...");
 
     const aliceEmail = "alice@example.com";
@@ -330,11 +330,14 @@ export const allroundTest = async (filezClient: Api<unknown>) => {
 
     // Create a file group for Alice
     const aliceFileGroup1 = (
-        await filezClient.api.createFileGroup({
-            name: "Alice's File Group 1",
-            group_type: FileGroupType.Manual,
-            dynamic_group_rule: null
-        })
+        await filezClient.api.createFileGroup(
+            {
+                name: "Alice's File Group 1",
+                group_type: FileGroupType.Manual,
+                dynamic_group_rule: null
+            },
+            impersonateAliceParams
+        )
     ).data?.data;
 
     if (!aliceFileGroup1) {
@@ -344,11 +347,14 @@ export const allroundTest = async (filezClient: Api<unknown>) => {
     console.log(`Created file group for Alice: ${aliceFileGroup1.id}`);
 
     const aliceFileGroup2 = (
-        await filezClient.api.createFileGroup({
-            name: "Alice's File Group 2",
-            group_type: FileGroupType.Manual,
-            dynamic_group_rule: null
-        })
+        await filezClient.api.createFileGroup(
+            {
+                name: "Alice's File Group 2",
+                group_type: FileGroupType.Manual,
+                dynamic_group_rule: null
+            },
+            impersonateAliceParams
+        )
     ).data?.data;
     if (!aliceFileGroup2) {
         throw new Error("Failed to create second file group for Alice.");
@@ -358,11 +364,14 @@ export const allroundTest = async (filezClient: Api<unknown>) => {
     // Add files to the first file group
 
     const filesToAddToGroup1 = aliceFiles.slice(0, 7);
-    const addFilesToGroup1 = await filezClient.api.updateFileGroupMembers({
-        file_group_id: aliceFileGroup1.id,
-        files_to_add: filesToAddToGroup1.map((file) => file.id),
-        files_to_remove: []
-    });
+    const addFilesToGroup1 = await filezClient.api.updateFileGroupMembers(
+        {
+            file_group_id: aliceFileGroup1.id,
+            files_to_add: filesToAddToGroup1.map((file) => file.id),
+            files_to_remove: []
+        },
+        impersonateAliceParams
+    );
     if (!addFilesToGroup1) {
         throw new Error("Failed to add files to Alice's first file group.");
     }
@@ -373,11 +382,14 @@ export const allroundTest = async (filezClient: Api<unknown>) => {
     // Add files to the second file group
 
     const filesToAddToGroup2 = aliceFiles.slice(7, 10);
-    const addFilesToGroup2 = await filezClient.api.updateFileGroupMembers({
-        file_group_id: aliceFileGroup2.id,
-        files_to_add: filesToAddToGroup2.map((file) => file.id),
-        files_to_remove: []
-    });
+    const addFilesToGroup2 = await filezClient.api.updateFileGroupMembers(
+        {
+            file_group_id: aliceFileGroup2.id,
+            files_to_add: filesToAddToGroup2.map((file) => file.id),
+            files_to_remove: []
+        },
+        impersonateAliceParams
+    );
     if (!addFilesToGroup2) {
         throw new Error("Failed to add files to Alice's second file group.");
     }
@@ -387,9 +399,12 @@ export const allroundTest = async (filezClient: Api<unknown>) => {
 
     // List files in the first file group
     const listFilesInGroup1 = (
-        await filezClient.api.listFilesByFileGroups({
-            file_group_id: aliceFileGroup1.id
-        })
+        await filezClient.api.listFilesByFileGroups(
+            {
+                file_group_id: aliceFileGroup1.id
+            },
+            impersonateAliceParams
+        )
     ).data?.data?.files;
     if (!listFilesInGroup1) {
         throw new Error("Failed to list files in Alice's first file group.");
@@ -400,9 +415,12 @@ export const allroundTest = async (filezClient: Api<unknown>) => {
     );
 
     const listFilesInGroup2 = (
-        await filezClient.api.listFilesByFileGroups({
-            file_group_id: aliceFileGroup2.id
-        })
+        await filezClient.api.listFilesByFileGroups(
+            {
+                file_group_id: aliceFileGroup2.id
+            },
+            impersonateAliceParams
+        )
     ).data?.data?.files;
 
     if (!listFilesInGroup2) {

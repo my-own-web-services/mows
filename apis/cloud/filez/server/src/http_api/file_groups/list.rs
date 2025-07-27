@@ -46,7 +46,7 @@ pub async fn list_file_groups(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success {},
         message: "File groups listed".to_string(),
         data: Some(ListFileGroupsResponseBody { file_groups }),
     }))
@@ -54,8 +54,8 @@ pub async fn list_file_groups(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListFileGroupsRequestBody {
-    pub from_index: Option<i64>,
-    pub limit: Option<i64>,
+    pub from_index: Option<u64>,
+    pub limit: Option<u64>,
     pub sort_by: Option<ListFileGroupsSortBy>,
     pub sort_order: Option<SortDirection>,
 }

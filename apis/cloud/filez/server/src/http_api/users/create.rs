@@ -55,7 +55,7 @@ pub async fn create_user(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "User created successfully".to_string(),
         data: Some(CreateUserResponseBody { id: new_user.id }),
     }))
