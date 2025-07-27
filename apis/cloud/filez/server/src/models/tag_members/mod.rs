@@ -115,7 +115,7 @@ impl TagMember {
     ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
 
-        let found_resources_count = match resource_type {
+        let found_resources_count: i64 = match resource_type {
             TagResourceType::File => {
                 schema::files::table
                     .filter(schema::files::id.eq_any(resource_ids))
@@ -174,7 +174,9 @@ impl TagMember {
             }
         };
 
-        if found_resources_count != resource_ids.len() as i64 {
+        let found_resources_count: u64 = found_resources_count.try_into()?;
+
+        if found_resources_count != resource_ids.len() as u64 {
             return Err(FilezError::ResourceNotFound(
                 "Some resources do not exist".to_string(),
             ));

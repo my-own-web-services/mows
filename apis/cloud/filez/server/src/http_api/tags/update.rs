@@ -75,7 +75,7 @@ pub async fn update_tags(
         timing
     );
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "Tags updated successfully".to_string(),
         data: None,
     }))

@@ -58,7 +58,7 @@ pub async fn create_storage_quota(
         request_body.subject_id,
         request_body.storage_location_id,
         request_body.quota_bytes.into(),
-    );
+    )?;
 
     with_timing!(
         StorageQuota::create(&database, &storage_quota).await?,
@@ -67,7 +67,7 @@ pub async fn create_storage_quota(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success {},
         message: "Storage quota created".to_string(),
         data: Some(CreateStorageQuotaResponseBody { storage_quota }),
     }))
@@ -78,7 +78,7 @@ pub struct CreateStorageQuotaRequestBody {
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,
     pub storage_location_id: Uuid,
-    pub quota_bytes: i64,
+    pub quota_bytes: u64,
     pub name: String,
 }
 

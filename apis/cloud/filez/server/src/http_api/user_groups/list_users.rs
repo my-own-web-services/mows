@@ -64,7 +64,7 @@ pub async fn list_users_by_user_group(
 
     let user_group_item_count_query = UserGroup::get_user_count(&database, &user_group_id);
 
-    let (users, total_count): (Vec<FilezUser>, i64) = with_timing!(
+    let (users, total_count): (Vec<FilezUser>, u64) = with_timing!(
         match tokio::join!(list_users_query, user_group_item_count_query) {
             (Ok(users), Ok(total_count)) => (users, total_count),
             (Err(e), _) => return Err(e.into()),
@@ -75,7 +75,7 @@ pub async fn list_users_by_user_group(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success {},
         message: "Got user list".to_string(),
         data: Some(ListUsersResponseBody { users, total_count }),
     }))
@@ -83,8 +83,8 @@ pub async fn list_users_by_user_group(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListUsersRequestBody {
-    pub from_index: Option<i64>,
-    pub limit: Option<i64>,
+    pub from_index: Option<u64>,
+    pub limit: Option<u64>,
     pub sort_by: Option<String>,
     pub sort_order: Option<SortDirection>,
 }
@@ -92,5 +92,5 @@ pub struct ListUsersRequestBody {
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListUsersResponseBody {
     pub users: Vec<FilezUser>,
-    pub total_count: i64,
+    pub total_count: u64,
 }

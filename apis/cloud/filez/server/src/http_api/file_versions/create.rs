@@ -90,7 +90,7 @@ pub async fn create_file_version(
     Ok((
         StatusCode::CREATED,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success,
+            status: ApiResponseStatus::Success {},
             message: "Created File Version".to_string(),
             data: Some(CreateFileVersionResponseBody {
                 version: db_created_file_version,
@@ -105,7 +105,7 @@ pub struct CreateFileVersionRequestBody {
     pub file_id: Uuid,
     pub app_path: Option<String>,
     pub metadata: FileVersionMetadata,
-    pub size: i64,
+    pub size: u64,
     pub storage_quota_id: Uuid,
     /// Optional SHA256 digest of the file content as a lowercase hexadecimal string.
     /// Once the content is fully uploaded it automatically gets validated against this digest.

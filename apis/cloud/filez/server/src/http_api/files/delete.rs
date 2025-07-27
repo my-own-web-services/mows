@@ -58,7 +58,7 @@ pub async fn delete_file(
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success,
+            status: ApiResponseStatus::Success{},
             message: "Deleted File".to_string(),
             data: Some(DeleteFileResponseBody {
                 file_id: request_body.file_id,

@@ -73,8 +73,8 @@ impl UserGroup {
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
         requesting_app: &MowsApp,
-        from_index: Option<i64>,
-        limit: Option<i64>,
+        from_index: Option<u64>,
+        limit: Option<u64>,
         sort_by: Option<ListUserGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<UserGroup>, FilezError> {
@@ -119,10 +119,10 @@ impl UserGroup {
         };
 
         if let Some(from_index) = from_index {
-            query = query.offset(from_index);
+            query = query.offset(from_index.try_into()?);
         }
         if let Some(limit) = limit {
-            query = query.limit(limit);
+            query = query.limit(limit.try_into()?);
         }
 
         let user_groups = query.load::<UserGroup>(&mut connection).await?;
@@ -214,7 +214,7 @@ impl UserGroup {
     pub async fn get_user_count(
         database: &Database,
         user_group_id: &Uuid,
-    ) -> Result<i64, FilezError> {
+    ) -> Result<u64, FilezError> {
         let mut connection = database.get_connection().await?;
 
         let count = schema::user_user_group_members::table
@@ -223,14 +223,14 @@ impl UserGroup {
             .get_result::<i64>(&mut connection)
             .await?;
 
-        Ok(count)
+        Ok(count.try_into()?)
     }
 
     pub async fn list_users(
         database: &Database,
         user_group_id: &Uuid,
-        from_index: Option<i64>,
-        limit: Option<i64>,
+        from_index: Option<u64>,
+        limit: Option<u64>,
         sort_by: Option<&str>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<FilezUser>, FilezError> {
@@ -268,10 +268,10 @@ impl UserGroup {
         };
 
         if let Some(from_index) = from_index {
-            query = query.offset(from_index);
+            query = query.offset(from_index.try_into()?);
         }
         if let Some(limit) = limit {
-            query = query.limit(limit);
+            query = query.limit(limit.try_into()?);
         }
 
         let users_list = query.load::<FilezUser>(&mut connection).await?;

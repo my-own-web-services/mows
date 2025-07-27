@@ -68,7 +68,7 @@ pub async fn update_file_versions(
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success,
+            status: ApiResponseStatus::Success{},
             message: "Updated File Versions".to_string(),
             data: Some(UpdateFileVersionsResponseBody {
                 versions: updated_versions,

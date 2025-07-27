@@ -46,7 +46,7 @@ pub async fn list_access_policies(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success {},
         message: "Access policies listed".to_string(),
         data: Some(ListAccessPoliciesResponseBody { access_policies }),
     }))
@@ -54,8 +54,8 @@ pub async fn list_access_policies(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListAccessPoliciesRequestBody {
-    pub from_index: Option<i64>,
-    pub limit: Option<i64>,
+    pub from_index: Option<u64>,
+    pub limit: Option<u64>,
     pub sort_by: Option<ListAccessPoliciesSortBy>,
     pub sort_order: Option<SortDirection>,
 }

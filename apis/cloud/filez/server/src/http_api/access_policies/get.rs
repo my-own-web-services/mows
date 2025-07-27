@@ -54,7 +54,7 @@ pub async fn get_access_policy(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "Access policy retrieved".to_string(),
         data: Some(access_policy),
     }))

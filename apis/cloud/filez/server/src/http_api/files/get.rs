@@ -59,7 +59,7 @@ pub async fn get_files(
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success,
+            status: ApiResponseStatus::Success{},
             message: "Got Files".to_string(),
             data: Some(GetFilesResponseBody { files }),
         }),

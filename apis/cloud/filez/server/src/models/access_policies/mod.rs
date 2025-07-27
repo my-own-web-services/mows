@@ -286,7 +286,7 @@ impl AccessPolicy {
         action_to_perform: AccessPolicyAction,
     ) -> Result<Vec<Uuid>, FilezError> {
         let mut connection = database.get_connection().await?;
-        let resource_auth_info = check::get_auth_info(resource_type);
+        let resource_auth_info = check::get_auth_params_for_resource_type(resource_type);
         let maybe_user_group_ids = match maybe_requesting_user {
             Some(requesting_user) => {
                 Some(UserGroup::get_all_by_user_id(database, &requesting_user.id).await?)
@@ -450,8 +450,8 @@ impl AccessPolicy {
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
         requesting_app: &MowsApp,
-        from_index: Option<i64>,
-        limit: Option<i64>,
+        from_index: Option<u64>,
+        limit: Option<u64>,
         sort_by: Option<ListAccessPoliciesSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<Vec<AccessPolicy>, FilezError> {
@@ -496,11 +496,11 @@ impl AccessPolicy {
         };
 
         if let Some(from_index) = from_index {
-            query = query.offset(from_index);
+            query = query.offset(from_index.try_into()?);
         }
 
         if let Some(limit) = limit {
-            query = query.limit(limit);
+            query = query.limit(limit.try_into()?);
         }
 
         let access_policies = query.load::<AccessPolicy>(&mut connection).await?;

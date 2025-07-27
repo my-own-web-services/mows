@@ -390,7 +390,10 @@ export interface ApiResponseListFileGroupsResponseBody {
 export interface ApiResponseListFilesResponseBody {
   data?: {
     files: FilezFile[];
-    /** @format int64 */
+    /**
+     * @format int64
+     * @min 0
+     */
     total_count: number;
   };
   message: string;
@@ -415,7 +418,10 @@ export interface ApiResponseListUserGroupsResponseBody {
 
 export interface ApiResponseListUsersResponseBody {
   data?: {
-    /** @format int64 */
+    /**
+     * @format int64
+     * @min 0
+     */
     total_count: number;
     users: FilezUser[];
   };
@@ -672,7 +678,10 @@ export interface CreateFileVersionRequestBody {
    */
   file_id: string;
   metadata: FileVersionMetadata;
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   size: number;
   /** @format uuid */
   storage_quota_id: string;
@@ -684,7 +693,10 @@ export interface CreateFileVersionResponseBody {
 
 export interface CreateStorageQuotaRequestBody {
   name: string;
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   quota_bytes: number;
   /** @format uuid */
   storage_location_id: string;
@@ -925,9 +937,15 @@ export interface HealthStatus {
 }
 
 export interface ListAccessPoliciesRequestBody {
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   from_index?: number | null;
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   limit?: number | null;
   sort_by?: null | ListAccessPoliciesSortBy;
   sort_order?: null | SortDirection;
@@ -938,9 +956,15 @@ export interface ListAccessPoliciesResponseBody {
 }
 
 export interface ListFileGroupsRequestBody {
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   from_index?: number | null;
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   limit?: number | null;
   sort_by?: null | ListFileGroupsSortBy;
   sort_order?: null | SortDirection;
@@ -953,16 +977,25 @@ export interface ListFileGroupsResponseBody {
 export interface ListFilesRequestBody {
   /** @format uuid */
   file_group_id: string;
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   from_index?: number | null;
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   limit?: number | null;
   sort?: null | ListFilesSorting;
 }
 
 export interface ListFilesResponseBody {
   files: FilezFile[];
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   total_count: number;
 }
 
@@ -995,18 +1028,30 @@ export interface ListStorageLocationsResponseBody {
 }
 
 export interface ListStorageQuotasRequestBody {
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   from_index?: number | null;
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   limit?: number | null;
   sort_by?: null | ListStorageQuotasSortBy;
   sort_order?: null | SortDirection;
 }
 
 export interface ListUserGroupsRequestBody {
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   from_index?: number | null;
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   limit?: number | null;
   sort_by?: null | ListUserGroupsSortBy;
   sort_order?: null | SortDirection;
@@ -1017,16 +1062,25 @@ export interface ListUserGroupsResponseBody {
 }
 
 export interface ListUsersRequestBody {
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   from_index?: number | null;
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   limit?: number | null;
   sort_by?: string | null;
   sort_order?: null | SortDirection;
 }
 
 export interface ListUsersResponseBody {
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   total_count: number;
   users: FilezUser[];
 }
@@ -1124,7 +1178,10 @@ export interface UpdateFileVersionsResponseBody {
 }
 
 export interface UpdateStorageQuotaRequestBody {
-  /** @format int64 */
+  /**
+   * @format int64
+   * @min 0
+   */
   quota_bytes: number;
   /** @format uuid */
   storage_location_id: string;

@@ -74,7 +74,7 @@ pub async fn get_tags(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "Tags retrieved successfully".to_string(),
         data: Some(GetTagsResponseBody { resource_tags }),
     }))

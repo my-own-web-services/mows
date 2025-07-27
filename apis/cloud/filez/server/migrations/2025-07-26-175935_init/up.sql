@@ -64,7 +64,7 @@ CREATE TABLE "storage_quotas"(
 	"storage_location_id" UUID NOT NULL,
 	"created_time" TIMESTAMP NOT NULL,
 	"modified_time" TIMESTAMP NOT NULL,
-	"quota_bytes" NUMERIC NOT NULL,
+	"quota_bytes" BIGINT NOT NULL,
 	FOREIGN KEY ("storage_location_id") REFERENCES "storage_locations"("id")
 );
 
@@ -98,7 +98,7 @@ CREATE TABLE "file_versions"(
 	"metadata" JSONB NOT NULL,
 	"created_time" TIMESTAMP NOT NULL,
 	"modified_time" TIMESTAMP NOT NULL,
-	"size" NUMERIC NOT NULL,
+	"size" BIGINT NOT NULL,
 	"storage_location_id" UUID NOT NULL,
 	"storage_quota_id" UUID NOT NULL,
 	"content_valid" BOOL NOT NULL,

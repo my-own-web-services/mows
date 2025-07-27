@@ -1,9 +1,11 @@
 pub mod filesystem;
 pub mod minio;
 use axum::extract::Request;
-use bigdecimal::BigDecimal;
 
-use crate::{http_api::health::HealthStatus, models::file_versions::FileVersionIdentifier};
+use crate::{
+    http_api::health::HealthStatus,
+    models::file_versions::{ContentRange, FileVersionIdentifier},
+};
 
 use super::{
     config::StorageProviderConfig,
@@ -42,7 +44,7 @@ impl StorageProvider {
         &self,
         full_file_identifier: &FileVersionIdentifier,
         timing: axum_server_timing::ServerTimingExtension,
-        range: &Option<(Option<u64>, Option<u64>)>,
+        range: &Option<ContentRange>,
     ) -> Result<axum::body::Body, StorageError> {
         match self {
             StorageProvider::Minio(provider) => {
@@ -62,7 +64,7 @@ impl StorageProvider {
         &self,
         full_file_identifier: &FileVersionIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
-    ) -> Result<BigDecimal, StorageError> {
+    ) -> Result<u64, StorageError> {
         match self {
             StorageProvider::Minio(provider) => {
                 provider.get_file_size(full_file_identifier, timing).await

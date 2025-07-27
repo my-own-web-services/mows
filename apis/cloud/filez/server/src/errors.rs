@@ -4,14 +4,27 @@ use crate::{
     storage::errors::StorageError,
     types::{ApiResponse, ApiResponseStatus},
 };
+
 use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::{Debug, Formatter};
 use utoipa::ToSchema;
 
+impl serde::Serialize for FilezError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(self.to_string().as_ref())
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum FilezError {
+    #[error("Failed to convert number: {0}")]
+    TryFromIntError(#[from] std::num::TryFromIntError),
+
     #[error("Database Error: {0}")]
     DatabaseError(#[from] diesel::result::Error),
 
@@ -81,8 +94,14 @@ pub enum FilezError {
     #[error("Missing resource name: {0}")]
     ControllerMissingResourceName(String),
 
-    #[error("Storage quota exceeded: {0}")]
-    StorageQuotaExceeded(String),
+    #[error("Storage quota {quota_label} exceeded by {request_over_quota_bytes}.\n{quota_used_bytes}/{quota_allowed_bytes} bytes of quota used.\nRequested size was {requested_bytes} bytes.")]
+    StorageQuotaExceeded {
+        quota_label: String,
+        quota_allowed_bytes: u64,
+        quota_used_bytes: u64,
+        requested_bytes: u64,
+        request_over_quota_bytes: u64,
+    },
 
     #[error("FileVersion size exceeded: Allowed: {allowed}, Received: {received}")]
     FileVersionSizeExceeded { allowed: u64, received: u64 },
@@ -92,9 +111,6 @@ pub enum FilezError {
 
     #[error("FileVersion content already valid")]
     FileVersionContentAlreadyValid,
-
-    #[error("Failed to convert BigDecimal")]
-    BigDecimalSizeConversionError,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -109,10 +125,24 @@ pub struct FileVersionContentDigestMismatchBody {
     pub received: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct StorageQuotaExceededBody {
+    pub quota_label: String,
+    pub quota_allowed_bytes: u64,
+    pub quota_used_bytes: u64,
+    pub requested_bytes: u64,
+    pub request_over_quota_bytes: u64,
+}
+
 // TODO this can be improved
 impl IntoResponse for FilezError {
     fn into_response(self) -> axum::response::Response {
         let (status, data, error_name) = match &self {
+            FilezError::TryFromIntError(_) => (
+                axum::http::StatusCode::BAD_REQUEST,
+                None,
+                "TryFromIntError".to_string(),
+            ),
             FilezError::DatabaseError(ref db_error) => match db_error {
                 diesel::result::Error::NotFound => (
                     axum::http::StatusCode::NOT_FOUND,
@@ -185,9 +215,22 @@ impl IntoResponse for FilezError {
                 serde_json::to_value(auth_result).ok(),
                 "AuthEvaluationAccessDenied".to_string(),
             ),
-            FilezError::StorageQuotaExceeded(_) => (
+            FilezError::StorageQuotaExceeded {
+                quota_label,
+                quota_allowed_bytes,
+                quota_used_bytes,
+                requested_bytes,
+                request_over_quota_bytes,
+            } => (
                 axum::http::StatusCode::FORBIDDEN,
-                None,
+                serde_json::to_value(StorageQuotaExceededBody {
+                    quota_label: quota_label.clone(),
+                    quota_allowed_bytes: *quota_allowed_bytes,
+                    quota_used_bytes: *quota_used_bytes,
+                    requested_bytes: *requested_bytes,
+                    request_over_quota_bytes: *request_over_quota_bytes,
+                })
+                .ok(),
                 "StorageQuotaExceeded".to_string(),
             ),
             FilezError::FileVersionSizeExceeded { allowed, received } => (
@@ -213,11 +256,7 @@ impl IntoResponse for FilezError {
                 None,
                 "FileVersionContentAlreadyValid".to_string(),
             ),
-            FilezError::BigDecimalSizeConversionError => (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                None,
-                "BigDecimalSizeConversionError".to_string(),
-            ),
+
             FilezError::GenericError(_) => (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 None,

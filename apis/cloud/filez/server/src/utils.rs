@@ -1,6 +1,5 @@
 use anyhow::bail;
 use axum::http::HeaderValue;
-use bigdecimal::BigDecimal;
 use serde::{
     de::{self, Deserializer, Visitor},
     Deserialize,
@@ -58,9 +57,9 @@ impl InvalidEnumType {
 }
 
 pub struct Range {
-    pub start: BigDecimal,
-    pub end: Option<BigDecimal>,
-    pub length: Option<BigDecimal>,
+    pub start: u64,
+    pub end: Option<u64>,
+    pub length: Option<u64>,
 }
 
 pub fn parse_range(range: &str) -> anyhow::Result<Range> {
@@ -90,9 +89,9 @@ pub fn parse_range(range: &str) -> anyhow::Result<Range> {
         .parse::<u64>()
         .ok();
     Ok(Range {
-        start: BigDecimal::from(start),
-        end: end.map(BigDecimal::from),
-        length: end.map(|e| BigDecimal::from(e - start + 1)),
+        start,
+        end,
+        length: end.map(|e| e - start + 1),
     })
 }
 

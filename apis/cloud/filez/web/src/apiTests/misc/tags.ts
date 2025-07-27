@@ -1,7 +1,7 @@
 import { AccessPolicySubjectType, Api, TagResourceType } from "../../api-client";
 import { impersonateUser } from "../../utils";
 
-export const tagsTest = async (filezClient: Api<unknown>) => {
+export default async (filezClient: Api<unknown>) => {
     console.log("Running tags test");
 
     const aliceEmail = "alice@example.com";

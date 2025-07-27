@@ -57,7 +57,7 @@ pub async fn get_file_group(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "File group retrieved".to_string(),
         data: Some(file_group),
     }))

@@ -70,7 +70,7 @@ pub async fn delete_file_versions(
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success,
+            status: ApiResponseStatus::Success{},
             message: "Deleted File Versions".to_string(),
             data: Some(DeleteFileVersionsResponseBody {
                 versions: request_body.versions,

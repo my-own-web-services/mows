@@ -46,7 +46,7 @@ diesel::table! {
         metadata -> Jsonb,
         created_time -> Timestamp,
         modified_time -> Timestamp,
-        size -> Numeric,
+        size -> BigInt,
         storage_location_id -> Uuid,
         storage_quota_id -> Uuid,
         content_valid -> Bool,
@@ -167,7 +167,7 @@ diesel::table! {
         created_time -> Timestamp,
         modified_time -> Timestamp,
 
-        quota_bytes -> Numeric,
+        quota_bytes -> BigInt,
     }
 }
 diesel::joinable!(storage_quotas -> storage_locations (storage_location_id));

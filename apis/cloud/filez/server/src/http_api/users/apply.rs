@@ -34,7 +34,7 @@ pub async fn apply_user(
         timing
     );
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "User applied successfully".to_string(),
         data: Some(ApplyUserResponseBody { user }),
     }))

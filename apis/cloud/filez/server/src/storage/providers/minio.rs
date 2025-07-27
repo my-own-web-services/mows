@@ -1,10 +1,10 @@
-use crate::http_api::health::HealthStatus;
 use crate::controller::crd::SecretReadableByFilezController;
+use crate::http_api::health::HealthStatus;
+use crate::models::file_versions::ContentRange;
 use crate::{controller::crd::ValueOrSecretReference, storage::errors::StorageError, with_timing};
 use anyhow::Context;
 use axum::body::Body;
 use axum::extract::Request;
-use bigdecimal::BigDecimal;
 use futures::StreamExt;
 use futures_util::TryStreamExt;
 use minio::s3::{builders::ObjectContent, types::S3Api};
@@ -87,16 +87,16 @@ impl StorageProviderMinio {
         &self,
         full_file_identifier: &FileVersionIdentifier,
         timing: axum_server_timing::ServerTimingExtension,
-        range: &Option<(Option<u64>, Option<u64>)>,
+        maybe_range: &Option<ContentRange>,
     ) -> Result<Body, StorageError> {
         let full_file_path = full_file_identifier.to_string();
 
         let mut get_object_query = self.client.get_object(&self.bucket, full_file_path);
 
-        if let Some((start, end)) = range {
+        if let Some(range) = maybe_range {
             get_object_query = get_object_query
-                .offset(*start)
-                .length(end.map(|e| e - start.unwrap_or(0) + 1));
+                .offset(Some(range.start))
+                .length(Some(range.length()));
         };
 
         let get_object_response = with_timing!(
@@ -139,7 +139,7 @@ impl StorageProviderMinio {
         &self,
         full_file_identifier: &FileVersionIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
-    ) -> Result<BigDecimal, StorageError> {
+    ) -> Result<u64, StorageError> {
         let full_file_path = full_file_identifier.to_string();
 
         let get_object_response = with_timing!(
@@ -152,10 +152,10 @@ impl StorageProviderMinio {
         );
 
         match get_object_response {
-            Ok(response) => Ok(BigDecimal::from(response.object_size)),
+            Ok(response) => Ok(u64::from(response.object_size)),
             Err(e) => {
                 if e.to_string().contains("NoSuchKey") {
-                    return Ok(BigDecimal::from(0));
+                    return Ok(0);
                 }
                 return Err(e.into());
             }

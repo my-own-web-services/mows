@@ -52,7 +52,7 @@ pub async fn delete_access_policy(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success{},
         message: "Access policy deleted".to_string(),
         data: Some(access_policy_id),
     }))

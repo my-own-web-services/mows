@@ -16,7 +16,6 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
-use bigdecimal::ToPrimitive;
 use uuid::Uuid;
 
 #[utoipa::path(
@@ -119,9 +118,11 @@ pub async fn file_versions_content_tus_patch(
         timing
     );
 
-    if request_upload_offset + content_length > file_version.size.to_u64().unwrap() {
+    let file_version_size: u64 = file_version.size.try_into()?;
+
+    if request_upload_offset + content_length > file_version_size {
         return Err(FilezError::FileVersionSizeExceeded {
-            allowed: file_version.size.to_u64().unwrap(),
+            allowed: file_version_size,
             received: request_upload_offset + content_length,
         });
     }
