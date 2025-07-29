@@ -21,7 +21,7 @@ use crate::{
 
 #[utoipa::path(
     post,
-    path = "/api/user_groups/list_users/{user_group_id}",
+    path = "/api/user_groups/list_users",
     request_body = ListUsersRequestBody,
     responses(
         (status = 200, description = "Lists the users in a given group", body = ApiResponse<ListUsersResponseBody>),
@@ -35,7 +35,6 @@ pub async fn list_users_by_user_group(
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(user_group_id): Path<Uuid>,
     Json(request_body): Json<ListUsersRequestBody>,
 ) -> Result<Json<ApiResponse<ListUsersResponseBody>>, FilezError> {
     with_timing!(
@@ -44,7 +43,7 @@ pub async fn list_users_by_user_group(
             requesting_user.as_ref(),
             &requesting_app,
             AccessPolicyResourceType::UserGroup,
-            Some(&vec![user_group_id]),
+            Some(&vec![request_body.user_group_id]),
             AccessPolicyAction::UserGroupsListUsers,
         )
         .await?
@@ -55,14 +54,15 @@ pub async fn list_users_by_user_group(
 
     let list_users_query = UserGroup::list_users(
         &database,
-        &user_group_id,
+        &request_body.user_group_id,
         request_body.from_index,
         request_body.limit,
         request_body.sort_by.as_deref(),
         request_body.sort_order,
     );
 
-    let user_group_item_count_query = UserGroup::get_user_count(&database, &user_group_id);
+    let user_group_item_count_query =
+        UserGroup::get_user_count(&database, &request_body.user_group_id);
 
     let (users, total_count): (Vec<FilezUser>, u64) = with_timing!(
         match tokio::join!(list_users_query, user_group_item_count_query) {
@@ -83,6 +83,7 @@ pub async fn list_users_by_user_group(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ListUsersRequestBody {
+    pub user_group_id: Uuid,
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
     pub sort_by: Option<String>,

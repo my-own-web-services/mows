@@ -38,7 +38,7 @@ class App extends Component<AppProps, AppState> {
 
             this.setState({ filezClient }, async () => {
                 console.log("Api client initialized with user token");
-                await this.state.filezClient?.api.applyUser().catch(async (response) => {
+                await this.state.filezClient?.api.getOwnUser().catch(async (response) => {
                     if (response.error.message === "Inactive user") {
                         console.error("User is inactive, signing out.");
                         localStorage.setItem("redirect_uri", window.location.href);

@@ -62,12 +62,12 @@ pub async fn init_observability() {
 
     let tracing_filter = tracing_subscriber::EnvFilter::from_str(&config.tracing_filter).unwrap();
 
-    // Setup tracing layers
-
     let otel = tracing_opentelemetry::OpenTelemetryLayer::new(init_tracer().await)
         .with_filter(tracing_filter);
 
     let log_filter = tracing_subscriber::EnvFilter::from_str(&config.log_filter).unwrap();
+
+    println!("Parsed log filter: {}", log_filter);
 
     let logger = tracing_subscriber::fmt::layer()
         .with_ansi(true)
@@ -78,7 +78,6 @@ pub async fn init_observability() {
         .with_target(true)
         .with_filter(log_filter);
 
-    // Decide on layers
     let reg = Registry::default();
 
     reg.with(logger).with(otel).init();

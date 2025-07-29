@@ -19,6 +19,9 @@ use crate::{
 #[utoipa::path(
     get,
     path = "/api/user_groups/get/{user_group_id}",
+    params(
+        ("user_group_id" = Uuid, Path, description = "The ID of the user group to retrieve"),
+    ),
     responses(
         (status = 200, description = "Gets a user group by ID", body = ApiResponse<UserGroup>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
@@ -56,7 +59,7 @@ pub async fn get_user_group(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "User group retrieved".to_string(),
         data: Some(user_group),
     }))

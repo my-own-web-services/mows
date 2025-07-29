@@ -1,5 +1,6 @@
+use path_clean::PathClean;
 use rand::Rng;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 use tokio::fs;
@@ -17,6 +18,19 @@ pub fn generate_id(length: usize) -> String {
             *CHARSET.get(idx).unwrap() as char
         })
         .collect()
+}
+
+pub fn get_absolute_path(path: impl AsRef<Path>) -> std::io::Result<PathBuf> {
+    let path = path.as_ref();
+
+    let absolute_path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()?.join(path)
+    }
+    .clean();
+
+    Ok(absolute_path)
 }
 
 // copy the contents of the source directory into the destination directory

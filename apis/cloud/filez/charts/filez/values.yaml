@@ -12,7 +12,11 @@ server:
     tracing:
         filter: "trace,hyper=info,h2=info"
     log:
-        filter: "error,filez-server=debug,filez_server_lib::controller=error,zitadel=debug"
+        filter: |
+            error,
+            filez-server=debug,
+            filez_server_lib::controller=error,
+            zitadel=debug
     dev:
         enabled: true
         allowedCorsOrigins: "http://localhost:5174,http://localhost:5173"
@@ -24,6 +28,8 @@ web:
     name: filez-web
     replicaCount: 1
     subdomain: filez-web
+    dev:
+        autoUpdate: true
 
 webFrontend:
     dev:

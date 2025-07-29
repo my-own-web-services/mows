@@ -17,6 +17,9 @@ use crate::{
 #[utoipa::path(
     get,
     path = "/api/access_policies/get/{access_policy_id}",
+    params(
+        ("access_policy_id" = Uuid, Path, description = "The ID of the access policy to retrieve"),
+    ),
     responses(
         (status = 200, description = "Gets a access policy by ID", body = ApiResponse<AccessPolicy>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
@@ -54,7 +57,7 @@ pub async fn get_access_policy(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "Access policy retrieved".to_string(),
         data: Some(access_policy),
     }))

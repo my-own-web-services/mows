@@ -102,7 +102,7 @@ async fn main() -> Result<(), anyhow::Error> {
             http_api::file_groups::update_members::update_file_group_members
         ))
         // USERS
-        .routes(routes!(http_api::users::apply::apply_user))
+        .routes(routes!(http_api::users::get_own::get_own_user))
         .routes(routes!(http_api::users::get::get_users))
         .routes(routes!(http_api::users::create::create_user))
         //.routes(routes!(api::users::update::update_user))

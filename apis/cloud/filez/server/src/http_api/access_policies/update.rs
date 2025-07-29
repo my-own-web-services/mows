@@ -19,7 +19,7 @@ use uuid::Uuid;
 
 #[utoipa::path(
     put,
-    path = "/api/access_policies/update/{access_policy_id}",
+    path = "/api/access_policies/update",
     request_body = UpdateAccessPolicyRequestBody,
     responses(
         (status = 200, description = "Updates a access policy", body = ApiResponse<AccessPolicy>),
@@ -34,7 +34,6 @@ pub async fn update_access_policy(
     }): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(access_policy_id): Path<Uuid>,
     Json(request_body): Json<UpdateAccessPolicyRequestBody>,
 ) -> Result<Json<ApiResponse<AccessPolicy>>, FilezError> {
     with_timing!(
@@ -43,7 +42,7 @@ pub async fn update_access_policy(
             requesting_user.as_ref(),
             &requesting_app,
             AccessPolicyResourceType::AccessPolicy,
-            Some(&vec![access_policy_id]),
+            Some(&vec![request_body.access_policy_id]),
             AccessPolicyAction::AccessPoliciesUpdate,
         )
         .await?
@@ -55,7 +54,7 @@ pub async fn update_access_policy(
     with_timing!(
         AccessPolicy::update(
             &database,
-            &access_policy_id,
+            &request_body.access_policy_id,
             &request_body.name,
             request_body.subject_type,
             request_body.subject_id,
@@ -71,13 +70,13 @@ pub async fn update_access_policy(
     );
 
     let access_policy = with_timing!(
-        AccessPolicy::get_by_id(&database, &access_policy_id).await?,
+        AccessPolicy::get_by_id(&database, &request_body.access_policy_id).await?,
         "Database operation to get updated access policy",
         timing
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "Access policy updated".to_string(),
         data: Some(access_policy),
     }))
@@ -85,6 +84,7 @@ pub async fn update_access_policy(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct UpdateAccessPolicyRequestBody {
+    pub access_policy_id: Uuid,
     pub name: String,
     pub subject_type: AccessPolicySubjectType,
     pub subject_id: Uuid,

@@ -8,6 +8,7 @@ use crate::{
     },
     state::ServerState,
     types::ApiResponse,
+    utils::OptionalPath,
     with_timing,
 };
 use axum::{
@@ -51,10 +52,11 @@ pub async fn file_versions_content_tus_patch(
         ..
     }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path((file_id, version)): Path<(Uuid, Option<u32>)>,
+    Path((file_id, version)): Path<(Uuid, OptionalPath<u32>)>,
     request_headers: HeaderMap,
     request: Request,
 ) -> Result<impl IntoResponse, FilezError> {
+    let version = version.into();
     if request_headers
         .get("Tus-Resumable")
         .ok_or_else(|| FilezError::InvalidRequest("Missing Tus-Resumable header".to_string()))?

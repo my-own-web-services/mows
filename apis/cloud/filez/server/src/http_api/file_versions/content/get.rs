@@ -21,17 +21,7 @@ use axum::{
     Extension,
 };
 
-use serde::Deserialize;
-use utoipa::IntoParams;
 use uuid::Uuid;
-
-#[derive(Deserialize, IntoParams)]
-pub struct GetFileVersionRequestQueryParams {
-    /// download the file/set the content disposition header to attachment
-    pub d: Option<bool>,
-    /// request setting the caching headers for max-age in seconds
-    pub c: Option<u64>,
-}
 
 #[utoipa::path(
     get,
@@ -41,7 +31,8 @@ pub struct GetFileVersionRequestQueryParams {
         ("version" = Option<u32>, Path, description = "The version of the file to retrieve, if left empty, the latest version will be returned"),
         ("app_id" = Option<Uuid>, Path, description = "The ID of the application that uploaded the file, if left empty, the app id is the filez server itself"),
         ("app_path" = Option<String>, Path),
-        GetFileVersionRequestQueryParams
+        ("disposition" = Option<bool>, Query, description = "If set to true, the content disposition header will be set to attachment"),
+        ("cache" = Option<u64>, Query, description = "If set, the cache control header will be set to public, max-age={c}")
     ),
     responses(
         (status = 200, description = "Gets a single files data/content from the server", body = Vec<u8> ),
@@ -68,7 +59,7 @@ pub async fn get_file_version_content(
         OptionalPath<Uuid>,
         OptionalPath<String>,
     )>,
-    Query(params): Query<GetFileVersionRequestQueryParams>,
+    Query((disposition, cache)): Query<(Option<bool>, Option<u64>)>,
     request_headers: HeaderMap,
 ) -> Result<impl IntoResponse, FilezError> {
     let version: Option<u32> = version.into();
@@ -116,7 +107,7 @@ pub async fn get_file_version_content(
         safe_parse_mime_type(&file_meta.mime_type),
     );
 
-    if params.d.unwrap_or(false) {
+    if disposition.unwrap_or(false) {
         // If the download parameter is set, set the content disposition header
 
         let file_name = if file_meta.name.is_empty() {
@@ -146,7 +137,7 @@ pub async fn get_file_version_content(
         );
     }
 
-    if let Some(cache_time) = params.c {
+    if let Some(cache_time) = cache {
         // If the cache parameter is set, set the cache control header
         response_headers.insert(
             header::CACHE_CONTROL,

@@ -20,10 +20,10 @@ pub mod file_versions {
 }
 
 pub mod users {
-    pub mod apply;
     pub mod create;
     pub mod delete;
     pub mod get;
+    pub mod get_own;
     pub mod list;
     pub mod update;
 }

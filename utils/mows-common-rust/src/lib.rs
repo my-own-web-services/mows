@@ -8,3 +8,5 @@ pub mod kube;
 pub mod macros;
 pub mod templating;
 pub mod utils;
+
+pub mod openapi_client_generator;

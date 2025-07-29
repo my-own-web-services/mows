@@ -332,10 +332,15 @@ impl FilezUser {
 
         let original_requesting_user = match (&external_user, maybe_key_access) {
             (Some(external_user), None) => {
-                schema::users::table
+                match schema::users::table
                     .filter(schema::users::external_user_id.eq(&external_user.user_id))
                     .first::<FilezUser>(&mut connection)
-                    .await?
+                    .await
+                    .optional()?
+                {
+                    Some(user) => user,
+                    None => FilezUser::apply(&database, external_user.clone()).await?,
+                }
             }
             (None, Some(key_access)) => {
                 KeyAccess::get_user_by_key_access_string(database, key_access).await?

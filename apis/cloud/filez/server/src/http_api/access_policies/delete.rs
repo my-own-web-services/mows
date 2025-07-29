@@ -15,6 +15,9 @@ use uuid::Uuid;
 #[utoipa::path(
     delete,
     path = "/api/access_policies/delete/{access_policy_id}",
+    params(
+        ("access_policy_id" = Uuid, Path, description = "The ID of the access policy to delete"),
+    ),
     responses(
         (status = 200, description = "Deletes a access policy", body = ApiResponse<Uuid>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
@@ -52,7 +55,7 @@ pub async fn delete_access_policy(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "Access policy deleted".to_string(),
         data: Some(access_policy_id),
     }))

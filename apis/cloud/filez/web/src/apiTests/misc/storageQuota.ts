@@ -1,9 +1,7 @@
 import { AccessPolicySubjectType, Api } from "../../api-client";
-import { getBlobSha256Digest, impersonateUser } from "../../utils";
+import { impersonateUser } from "../../utils";
 
 export default async (filezClient: Api<unknown>) => {
-    console.log("Running storage quota test");
-
     const aliceEmail = "alice@example.com";
 
     await filezClient.api
@@ -75,35 +73,91 @@ export default async (filezClient: Api<unknown>) => {
     }
     console.log(`Created file for Alice: ${aliceFileResponse.created_file.id}`);
 
-    const aliceFileVersionContent = new Blob(
-        [
-            `<!DOCTYPE html>
-<html>
-<body>
-<h1>My First Heading</h1>
+    const aliceFileVersion = await filezClient.api
+        .createFileVersion(
+            {
+                file_id: aliceFileResponse.created_file.id,
+                metadata: {},
+                size: 200,
+                storage_quota_id: alice_quota.id
+            },
+            impersonateAliceParams
+        )
+        .catch((response) => {
+            if (response?.status !== 403) {
+                throw new Error(
+                    `Unexpected error when creating file version for Alice: ${response.message}`
+                );
+            }
+            console.log(
+                "Expected error when creating file version for Alice due to storage quota."
+            );
+            return null; // Return null to indicate the expected failure
+        });
 
-<p>My first paragraph.</p>
+    if (aliceFileVersion) {
+        throw new Error("File version creation for Alice should have failed due to storage quota.");
+    }
 
-</body>
-</html>`
-        ],
-        { type: "text/html" }
-    );
+    // try to create 2 file versions for alice withing the storage quota the third file should fail
 
-    const aliceFileVersion = (
+    const aliceFileVersion1ShouldWork = (
         await filezClient.api.createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
                 metadata: {},
-                size: aliceFileVersionContent.size,
-                storage_quota_id: alice_quota.id,
-                content_expected_sha256_digest: await getBlobSha256Digest(aliceFileVersionContent)
+                size: 50,
+                storage_quota_id: alice_quota.id
             },
             impersonateAliceParams
         )
     ).data?.data?.version;
 
-    if (!aliceFileVersion) {
-        throw new Error("Failed to create file version for Alice's file.");
+    if (!aliceFileVersion1ShouldWork) {
+        throw new Error("Failed to create second file version for Alice.");
+    }
+
+    console.log(`Created second file version for Alice: ${aliceFileVersion1ShouldWork.id}`);
+
+    const aliceFileVersion2ShouldWork = (
+        await filezClient.api.createFileVersion(
+            {
+                file_id: aliceFileResponse.created_file.id,
+                metadata: {},
+                size: 40,
+                storage_quota_id: alice_quota.id
+            },
+            impersonateAliceParams
+        )
+    ).data?.data?.version;
+    if (!aliceFileVersion2ShouldWork) {
+        throw new Error("Failed to create third file version for Alice.");
+    }
+    console.log(`Created third file version for Alice: ${aliceFileVersion2ShouldWork.id}`);
+    const aliceFileVersion3ShouldFail = await filezClient.api
+        .createFileVersion(
+            {
+                file_id: aliceFileResponse.created_file.id,
+                metadata: {},
+                size: 50,
+                storage_quota_id: alice_quota.id
+            },
+            impersonateAliceParams
+        )
+        .catch((response) => {
+            if (response?.status !== 403) {
+                throw new Error(
+                    `Unexpected error when creating third file version for Alice: ${response.message}`
+                );
+            }
+            console.log(
+                "Expected error when creating third file version for Alice due to storage quota."
+            );
+            return null; // Return null to indicate the expected failure
+        });
+    if (aliceFileVersion3ShouldFail) {
+        throw new Error(
+            "Third file version creation for Alice should have failed due to storage quota."
+        );
     }
 };

@@ -19,6 +19,9 @@ use crate::{
 #[utoipa::path(
     delete,
     path = "/api/user_groups/delete/{user_group_id}",
+    params(
+        ("user_group_id" = Uuid, Path, description = "The ID of the user group to delete"),
+    ),
     responses(
         (status = 200, description = "Deletes a user group", body = ApiResponse<String>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),

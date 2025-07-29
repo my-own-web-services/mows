@@ -10,6 +10,7 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
+use tracing::debug;
 
 #[derive(Clone)]
 pub struct AuthenticationInformation {
@@ -35,6 +36,11 @@ pub async fn auth_middleware(
         }
         None => None,
     };
+
+    debug!(
+        "Authentication middleware called with external user: {:?}",
+        external_user
+    );
 
     let headers = request.headers();
 

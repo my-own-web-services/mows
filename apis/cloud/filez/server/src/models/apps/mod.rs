@@ -19,6 +19,7 @@ use mows_common_rust::get_current_config_cloned;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use tracing::debug;
 use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -194,6 +195,7 @@ impl MowsApp {
         database: &Database,
         origin: &str,
     ) -> Result<MowsApp, FilezError> {
+        debug!("Getting app from origin string: {}", origin);
         let config = get_current_config_cloned!(config());
 
         let origin_url = Url::from_str(&origin)?;
@@ -211,6 +213,8 @@ impl MowsApp {
         database: &Database,
         origin: &Url,
     ) -> Result<MowsApp, FilezError> {
+        debug!("Getting app by origin from database: {}", origin);
+
         let mut connection = database.get_connection().await?;
 
         let app = crate::schema::apps::table

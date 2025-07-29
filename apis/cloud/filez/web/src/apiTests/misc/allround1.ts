@@ -10,8 +10,6 @@ import {
 import { getBlobSha256Digest, impersonateUser } from "../../utils";
 
 export default async (filezClient: Api<unknown>) => {
-    console.log("Running all-round test...");
-
     const aliceEmail = "alice@example.com";
     const bobEmail = "bob@example.com";
 
@@ -538,5 +536,4 @@ export default async (filezClient: Api<unknown>) => {
     }
 
     console.log("Bob correctly failed to list files in Alice's second file group.");
-    console.log("All-round-10 test completed successfully.");
 };
