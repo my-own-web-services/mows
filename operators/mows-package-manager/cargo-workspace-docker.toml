@@ -119,7 +119,7 @@ version = "1.0.219"
 [workspace.dependencies.serde_json]
 default-features = false
 features = ["default"]
-version = "1"
+version = "1.0.141"
 
 [workspace.dependencies.serde_variant]
 default-features = false
@@ -187,7 +187,7 @@ version = "2.5.4"
 [workspace.dependencies.utoipa]
 default-features = false
 features = ["macros", "axum_extras"]
-version = "5.3.1"
+version = "5.4.0"
 
 [workspace.dependencies.utoipa-axum]
 default-features = false

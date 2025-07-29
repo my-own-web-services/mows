@@ -20,8 +20,12 @@ if [ ! -s openapi.json ]; then
   exit 1
 fi
 
-docker build -t filez-server-codegen ./codegen -f codegen/codegen.Dockerfile
+
 mkdir -p tmp
+
+# typescript
+
+docker build -t filez-server-codegen ./codegen/typescript -f codegen/typescript/codegen.Dockerfile
 docker run --rm -v ./openapi.json:/app/openapi.json -v ./tmp:/app/out filez-server-codegen --name filez-server-codegen
 
 cp tmp/api-client.ts ../web/src/
@@ -29,3 +33,14 @@ cp tmp/api-client.ts ../web/src/
 rm -rf tmp
 
 docker remove filez-server-codegen-server --force
+
+# rust
+
+cargo run --bin clientgen
+
+#docker run --rm -u 1000:1000 \
+#  -v ${PWD}:/local openapitools/openapi-generator-cli generate \
+#  -i /local/openapi.json \
+#  --additional-properties=avoidBoxedModels=true \
+#  -g rust \
+#  -o /local/codegen/rust --skip-validate-spec

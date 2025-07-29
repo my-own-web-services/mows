@@ -2,6 +2,7 @@ import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 import { Api } from "../api-client";
 import Nav from "../components/Nav";
+import { logError, logSuccess } from "../utils";
 
 interface DevProps {
     readonly className?: string;
@@ -31,6 +32,7 @@ export default class Dev extends Component<DevProps, DevState> {
             console.log(`Running test: ${test}`);
             await this.runTest(test);
         }
+        logSuccess("All tests completed successfully.");
     };
 
     runTest = async (testName: string) => {
@@ -47,9 +49,9 @@ export default class Dev extends Component<DevProps, DevState> {
         console.log(`Running test: ${testName}`);
         try {
             await mod.default(this.props.filezClient);
-            console.log(`Test ${testName} completed successfully.`);
+            logSuccess(`Test ${testName} completed successfully.`);
         } catch (error) {
-            console.error(`Test ${testName} failed:`, error);
+            logError(`Test ${testName} failed: ${error}`);
         }
     };
 

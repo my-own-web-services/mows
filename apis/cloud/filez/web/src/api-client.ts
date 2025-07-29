@@ -210,14 +210,6 @@ export interface ApiResponseAccessPolicy {
   status: ApiResponseStatus;
 }
 
-export interface ApiResponseApplyUserResponseBody {
-  data?: {
-    user: FilezUser;
-  };
-  message: string;
-  status: ApiResponseStatus;
-}
-
 export interface ApiResponseCheckResourceAccessResponseBody {
   data?: {
     auth_evaluations: AuthEvaluation[];
@@ -286,8 +278,7 @@ export interface ApiResponseDeleteUserResponseBody {
 }
 
 export interface ApiResponseEmptyApiResponse {
-  /** @default null */
-  data?: any;
+  data?: object;
   message: string;
   status: ApiResponseStatus;
 }
@@ -338,6 +329,14 @@ export interface ApiResponseGetFileVersionsResponseBody {
 export interface ApiResponseGetFilesResponseBody {
   data?: {
     files: Record<string, FilezFile>;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseGetOwnUserBody {
+  data?: {
+    user: FilezUser;
   };
   message: string;
   status: ApiResponseStatus;
@@ -511,10 +510,6 @@ export interface ApiResponseVecStorageQuota {
   }[];
   message: string;
   status: ApiResponseStatus;
-}
-
-export interface ApplyUserResponseBody {
-  user: FilezUser;
 }
 
 export interface AuthEvaluation {
@@ -771,8 +766,7 @@ export interface DeleteUserResponseBody {
 
 export type DynamicGroupRule = object;
 
-/** @default null */
-export type EmptyApiResponse = any;
+export type EmptyApiResponse = object;
 
 export interface FileGroup {
   /** @format date-time */
@@ -792,7 +786,7 @@ export interface FileMetadata {
   /** @format uuid */
   default_preview_app_id?: string | null;
   /** Extracted data from the file, such as text content, metadata, etc. */
-  extracted_data: any;
+  extracted_data: Record<string, any>;
   /**
    * Place for apps to store custom data related to the file.
    * every app is identified by its id, and can only access its own data.
@@ -896,6 +890,10 @@ export interface GetFileVersionsResponseBody {
 
 export interface GetFilesResponseBody {
   files: Record<string, FilezFile>;
+}
+
+export interface GetOwnUserBody {
+  user: FilezUser;
 }
 
 export interface GetStorageQuotaRequestBody {
@@ -1074,6 +1072,8 @@ export interface ListUsersRequestBody {
   limit?: number | null;
   sort_by?: string | null;
   sort_order?: null | SortDirection;
+  /** @format uuid */
+  user_group_id: string;
 }
 
 export interface ListUsersResponseBody {
@@ -1123,6 +1123,8 @@ export interface StorageQuota {
 }
 
 export interface UpdateAccessPolicyRequestBody {
+  /** @format uuid */
+  access_policy_id: string;
   actions: AccessPolicyAction[];
   context_app_ids: string[];
   effect: AccessPolicyEffect;
@@ -1143,6 +1145,8 @@ export interface UpdateFileGroupMembersRequestBody {
 }
 
 export interface UpdateFileGroupRequestBody {
+  /** @format uuid */
+  file_group_id: string;
   name: string;
 }
 
@@ -1217,6 +1221,8 @@ export interface UpdateUserGroupMembersRequestBody {
 
 export interface UpdateUserGroupRequestBody {
   name: string;
+  /** @format uuid */
+  user_group_id: string;
 }
 
 export interface UserGroup {
@@ -1592,15 +1598,14 @@ export class Api<
      * No description
      *
      * @name UpdateAccessPolicy
-     * @request PUT:/api/access_policies/update/{access_policy_id}
+     * @request PUT:/api/access_policies/update
      */
     updateAccessPolicy: (
-      accessPolicyId: string,
       data: UpdateAccessPolicyRequestBody,
       params: RequestParams = {},
     ) =>
       this.request<ApiResponseAccessPolicy, ApiResponseEmptyApiResponse>({
-        path: `/api/access_policies/update/${accessPolicyId}`,
+        path: `/api/access_policies/update`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -1703,15 +1708,14 @@ export class Api<
      * No description
      *
      * @name UpdateFileGroup
-     * @request PUT:/api/file_groups/update/{file_group_id}
+     * @request PUT:/api/file_groups/update
      */
     updateFileGroup: (
-      fileGroupId: string,
       data: UpdateFileGroupRequestBody,
       params: RequestParams = {},
     ) =>
       this.request<ApiResponseFileGroup, ApiResponseEmptyApiResponse>({
-        path: `/api/file_groups/update/${fileGroupId}`,
+        path: `/api/file_groups/update`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -1749,13 +1753,22 @@ export class Api<
       version: number | null,
       appId: string | null,
       appPath: string | null,
-      d: boolean | null,
-      c: number | null,
+      query?: {
+        /** If set to true, the content disposition header will be set to attachment */
+        disposition?: boolean;
+        /**
+         * If set, the cache control header will be set to public, max-age={c}
+         * @format int64
+         * @min 0
+         */
+        cache?: number;
+      },
       params: RequestParams = {},
     ) =>
       this.request<number[], ApiResponseEmptyApiResponse>({
         path: `/api/file_versions/content/get/${fileId}/${version}/${appId}/${appPath}`,
         method: "GET",
+        query: query,
         ...params,
       }),
 
@@ -2014,7 +2027,7 @@ export class Api<
      * No description
      *
      * @name DeleteStorageQuota
-     * @request DELETE:/api/storage_quotas/delete
+     * @request POST:/api/storage_quotas/delete
      */
     deleteStorageQuota: (
       data: DeleteStorageQuotaRequestBody,
@@ -2022,7 +2035,7 @@ export class Api<
     ) =>
       this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/storage_quotas/delete`,
-        method: "DELETE",
+        method: "POST",
         body: data,
         type: ContentType.Json,
         format: "json",
@@ -2033,7 +2046,7 @@ export class Api<
      * No description
      *
      * @name GetStorageQuota
-     * @request GET:/api/storage_quotas/get
+     * @request POST:/api/storage_quotas/get
      */
     getStorageQuota: (
       data: GetStorageQuotaRequestBody,
@@ -2041,7 +2054,7 @@ export class Api<
     ) =>
       this.request<ApiResponseStorageQuota, ApiResponseEmptyApiResponse>({
         path: `/api/storage_quotas/get`,
-        method: "GET",
+        method: "POST",
         body: data,
         type: ContentType.Json,
         format: "json",
@@ -2194,16 +2207,34 @@ export class Api<
      * No description
      *
      * @name ListUsersByUserGroup
-     * @request POST:/api/user_groups/list_users/{user_group_id}
+     * @request POST:/api/user_groups/list_users
      */
     listUsersByUserGroup: (
-      userGroupId: string,
       data: ListUsersRequestBody,
       params: RequestParams = {},
     ) =>
       this.request<ApiResponseListUsersResponseBody, any>({
-        path: `/api/user_groups/list_users/${userGroupId}`,
+        path: `/api/user_groups/list_users`,
         method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name UpdateUserGroup
+     * @request PUT:/api/user_groups/update
+     */
+    updateUserGroup: (
+      data: UpdateUserGroupRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseUserGroup, ApiResponseEmptyApiResponse>({
+        path: `/api/user_groups/update`,
+        method: "PUT",
         body: data,
         type: ContentType.Json,
         format: "json",
@@ -2225,43 +2256,6 @@ export class Api<
         method: "POST",
         body: data,
         type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name UpdateUserGroup
-     * @request PUT:/api/user_groups/{user_group_id}
-     */
-    updateUserGroup: (
-      userGroupId: string,
-      data: UpdateUserGroupRequestBody,
-      params: RequestParams = {},
-    ) =>
-      this.request<ApiResponseUserGroup, ApiResponseEmptyApiResponse>({
-        path: `/api/user_groups/${userGroupId}`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name ApplyUser
-     * @request POST:/api/users/apply
-     */
-    applyUser: (params: RequestParams = {}) =>
-      this.request<
-        ApiResponseApplyUserResponseBody,
-        ApiResponseEmptyApiResponse
-      >({
-        path: `/api/users/apply`,
-        method: "POST",
         format: "json",
         ...params,
       }),
@@ -2316,6 +2310,20 @@ export class Api<
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetOwnUser
+     * @request POST:/api/users/get_own
+     */
+    getOwnUser: (params: RequestParams = {}) =>
+      this.request<ApiResponseGetOwnUserBody, ApiResponseEmptyApiResponse>({
+        path: `/api/users/get_own`,
+        method: "POST",
         format: "json",
         ...params,
       }),

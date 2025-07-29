@@ -70,3 +70,11 @@ export const getBlobSha256Digest = (blob: Blob): Promise<string> => {
         reader.readAsArrayBuffer(blob);
     });
 };
+
+export const logSuccess = (message: string) => {
+    console.log(`%c${message}`, "color: lime; font-weight: bold; font-size: 1.5em;");
+};
+
+export const logError = (message: string) => {
+    console.error(`%c${message}`, "color: red; font-weight: bold; font-size: 1.5em;");
+};

@@ -20,6 +20,9 @@ use crate::{
 #[utoipa::path(
     delete,
     path = "/api/file_groups/delete/{file_group_id}",
+    params(
+        ("file_group_id" = Uuid, Path, description = "The ID of the file group to delete"),
+    ),
     responses(
         (status = 200, description = "Deletes a file group", body = ApiResponse<String>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
@@ -57,7 +60,7 @@ pub async fn delete_file_group(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "File group deleted".to_string(),
         data: Some(file_group_id.to_string()),
     }))

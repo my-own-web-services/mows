@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[utoipa::path(
-    get,
+    post,
     path = "/api/storage_quotas/get",
     request_body = GetStorageQuotaRequestBody,
     responses(
@@ -62,7 +62,7 @@ pub async fn get_storage_quota(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "Storage quota retrieved".to_string(),
         data: Some(storage_quota),
     }))

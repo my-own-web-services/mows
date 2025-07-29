@@ -144,7 +144,7 @@ version = "1.0.219"
 
 [workspace.dependencies.serde_json]
 default-features = false
-version = "1"
+version = "1.0.141"
 
 [workspace.dependencies.serde_variant]
 default-features = false
@@ -192,6 +192,10 @@ version = "=0.27.0"
 default-features = false
 features = ["json", "env-filter", "chrono", "default"]
 version = "0.3.19"
+
+[workspace.dependencies.utoipa]
+default-features = false
+version = "5.4.0"
 
 [workspace.dependencies.vaultrs]
 default-features = false

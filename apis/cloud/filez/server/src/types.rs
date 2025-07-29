@@ -1,49 +1,20 @@
-use crate::{
-    http_api::{
-        access_policies::{
-            create::CreateAccessPolicyRequestBody, list::ListAccessPoliciesRequestBody,
-            update::UpdateAccessPolicyRequestBody,
-        },
-        file_groups::create::CreateFileGroupRequestBody,
-        file_versions::create::{CreateFileVersionRequestBody, CreateFileVersionResponseBody},
-        files::create::{CreateFileRequestBody, CreateFileResponseBody},
-        storage_quotas::create::CreateStorageQuotaRequestBody,
-        user_groups::create::CreateUserGroupRequestBody,
-    },
-    models::{
-        access_policies::AccessPolicy, file_groups::FileGroup, storage_quotas::StorageQuota,
-        user_groups::UserGroup, users::FilezUser,
-    },
-};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+use crate::models::files::FileMetadata;
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
     tags(
-        (name = "filez-server", description = "MOWS Filez API"),
+        (name = "filez", description = "MOWS Filez API"),
     ),
     components(
         schemas(
-            // REQUESTS
-            CreateFileRequestBody,
-            CreateFileResponseBody,
-            CreateFileVersionRequestBody,
-            CreateFileVersionResponseBody,
-            CreateFileGroupRequestBody,
-            CreateUserGroupRequestBody,
-            CreateAccessPolicyRequestBody,
-            UpdateAccessPolicyRequestBody,
-            ListAccessPoliciesRequestBody,
-            CreateStorageQuotaRequestBody,
-            // RESPONSES
-            FileGroup,
-            UserGroup,
-            FilezUser,
-            AccessPolicy,
-            StorageQuota,
-
-        )
+            FileMetadata,
+            EmptyApiResponse,
+            SortDirection,
+            ApiResponseStatus,
+        ),
     ),
 )]
 pub struct FilezApiDoc;
@@ -62,7 +33,7 @@ pub struct ApiResponse<T> {
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct EmptyApiResponse;
+pub struct EmptyApiResponse {}
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ApiResponseStatus {

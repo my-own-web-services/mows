@@ -10,7 +10,6 @@ use crate::{
     storage::providers::StorageProvider,
 };
 use anyhow::Context;
-use axum::extract::FromRef;
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use kube::Client;
 use std::{collections::HashMap, sync::Arc};

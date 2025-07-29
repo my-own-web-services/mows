@@ -129,11 +129,14 @@ impl FilezFile {
 pub struct FileMetadata {
     /// Place for apps to store custom data related to the file.
     /// every app is identified by its id, and can only access its own data.
+    #[schema(additional_properties = true)]
     pub private_app_data: HashMap<Uuid, serde_json::Value>,
+    #[schema(additional_properties = true)]
     /// Apps can provide and request shared app data from other apps on creation
     pub shared_app_data: HashMap<Uuid, serde_json::Value>,
+    #[schema(additional_properties = true)]
     /// Extracted data from the file, such as text content, metadata, etc.
-    pub extracted_data: serde_json::Value,
+    pub extracted_data: HashMap<String, serde_json::Value>,
     pub default_preview_app_id: Option<Uuid>,
 }
 
@@ -142,7 +145,7 @@ impl FileMetadata {
         Self {
             private_app_data: HashMap::new(),
             shared_app_data: HashMap::new(),
-            extracted_data: serde_json::Value::Null,
+            extracted_data: HashMap::new(),
             default_preview_app_id: None,
         }
     }

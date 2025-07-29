@@ -138,7 +138,7 @@ version = "1.0.219"
 [workspace.dependencies.serde_json]
 default-features = false
 features = ["default"]
-version = "1"
+version = "1.0.141"
 
 [workspace.dependencies.serde_yaml]
 default-features = false
@@ -187,6 +187,10 @@ version = "0.3.19"
 [workspace.dependencies.url]
 default-features = false
 version = "2.5.4"
+
+[workspace.dependencies.utoipa]
+default-features = false
+version = "5.4.0"
 
 [workspace.dependencies.vaultrs]
 default-features = false

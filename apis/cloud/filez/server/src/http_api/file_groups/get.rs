@@ -20,6 +20,9 @@ use crate::{
 #[utoipa::path(
     get,
     path = "/api/file_groups/get/{file_group_id}",
+    params(
+        ("file_group_id" = Uuid, Path, description = "The ID of the file group to retrieve"),
+    ),
     responses(
         (status = 200, description = "Gets a file group by ID", body = ApiResponse<FileGroup>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
@@ -57,7 +60,7 @@ pub async fn get_file_group(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "File group retrieved".to_string(),
         data: Some(file_group),
     }))

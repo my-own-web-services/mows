@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[utoipa::path(
-    delete,
+    post,
     path = "/api/storage_quotas/delete",
     request_body = DeleteStorageQuotaRequestBody,
     responses(
@@ -63,7 +63,7 @@ pub async fn delete_storage_quota(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "Storage quota deleted".to_string(),
         data: None,
     }))

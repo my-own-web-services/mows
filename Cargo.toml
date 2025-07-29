@@ -7,12 +7,14 @@ members = [
     "manager",
     "apis/core/pektin/*",
     "apis/cloud/filez/server",
+    "apis/cloud/filez/server/codegen/rust",
 ]
 exclude = [
     ".cargo-home",
     "./apis/core/pektin/charts/",
     "./apis/core/pektin/docs/",
     "./apis/core/pektin/ribston/",
+
 ]
 
 [workspace.package]
@@ -49,7 +51,7 @@ diesel-enum = { path = "./utils/diesel-enum", default-features = false }
 
 
 utoipa-swagger-ui = { version = "9.0.2", default-features = false }
-utoipa = { version = "5.3.1", default-features = false }
+utoipa = { version = "5.4.0", default-features = false }
 utoipa-axum = { version = "0.2.0", default-features = false }
 
 axum = { version = "=0.8.4", default-features = false }
@@ -61,7 +63,7 @@ thiserror = { version = "2.0.12", default-features = false }
 anyhow = { version = "1.0.98", default-features = false }
 tracing = { version = "0.1.40", default-features = false }
 serde = { version = "1.0.219", default-features = false }
-serde_json = { version = "1", default-features = false }
+serde_json = { version = "1.0.141", default-features = false }
 serde_yaml = { version = "0.9.34", default-features = false }
 mime_guess = { version = "2.0.5", default-features = false }
 url = { version = "2.5.4", default-features = false }
