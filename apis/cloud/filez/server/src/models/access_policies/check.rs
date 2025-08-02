@@ -700,6 +700,16 @@ pub fn get_auth_params_for_resource_type(
             group_membership_table_group_id_column: None,
             resource_group_type: None,
         },
+        AccessPolicyResourceType::FilezJob => ResourceAuthInfo {
+            resource_table: "jobs",
+            resource_table_id_column: "id",
+            resource_table_owner_column: Some("owner_id"),
+            resource_type: AccessPolicyResourceType::FilezJob,
+            group_membership_table: None,
+            group_membership_table_resource_id_column: None,
+            group_membership_table_group_id_column: None,
+            resource_group_type: None,
+        },
     }
 }
 

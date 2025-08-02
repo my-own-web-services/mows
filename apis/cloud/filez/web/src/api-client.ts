@@ -52,6 +52,12 @@ export enum ListStorageLocationsSortBy {
   Name = "Name",
 }
 
+export enum ListJobsSortBy {
+  Name = "Name",
+  CreatedTime = "CreatedTime",
+  ModifiedTime = "ModifiedTime",
+}
+
 export enum ListFilesSortBy {
   Name = "Name",
   CreatedTime = "CreatedTime",
@@ -68,6 +74,19 @@ export enum ListAccessPoliciesSortBy {
   CreatedTime = "CreatedTime",
   ModifiedTime = "ModifiedTime",
   Name = "Name",
+}
+
+export enum JobStatus {
+  Created = "Created",
+  InProgress = "InProgress",
+  Completed = "Completed",
+  Failed = "Failed",
+  Cancelled = "Cancelled",
+}
+
+export enum JobPersistenceType {
+  Temporary = "Temporary",
+  Persistent = "Persistent",
 }
 
 export enum FilezUserType {
@@ -96,6 +115,7 @@ export enum AccessPolicyResourceType {
   StorageLocation = "StorageLocation",
   AccessPolicy = "AccessPolicy",
   StorageQuota = "StorageQuota",
+  FilezJob = "FilezJob",
 }
 
 export enum AccessPolicyEffect {
@@ -148,6 +168,12 @@ export enum AccessPolicyAction {
   StorageLocationsList = "StorageLocationsList",
   TagsUpdate = "TagsUpdate",
   TagsGet = "TagsGet",
+  FilezJobsCreate = "FilezJobsCreate",
+  FilezJobsGet = "FilezJobsGet",
+  FilezJobsUpdate = "FilezJobsUpdate",
+  FilezJobsDelete = "FilezJobsDelete",
+  FilezJobsList = "FilezJobsList",
+  FilezJobsPickup = "FilezJobsPickup",
 }
 
 export interface AccessPolicy {
@@ -229,6 +255,14 @@ export interface ApiResponseCreateFileResponseBody {
 export interface ApiResponseCreateFileVersionResponseBody {
   data?: {
     version: FileVersion;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseCreateJobResponseBody {
+  data?: {
+    created_job: FilezJob;
   };
   message: string;
   status: ApiResponseStatus;
@@ -334,6 +368,14 @@ export interface ApiResponseGetFilesResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseGetJobResponseBody {
+  data?: {
+    job: FilezJob;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseGetOwnUserBody {
   data?: {
     user: FilezUser;
@@ -399,9 +441,25 @@ export interface ApiResponseListFilesResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseListJobsResponseBody {
+  data?: {
+    jobs: FilezJob[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseListStorageLocationsResponseBody {
   data?: {
     storage_locations: StorageLocationListItem[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseListStorageQuotasResponseBody {
+  data?: {
+    storage_quotas: StorageQuota[];
   };
   message: string;
   status: ApiResponseStatus;
@@ -423,6 +481,14 @@ export interface ApiResponseListUsersResponseBody {
      */
     total_count: number;
     users: FilezUser[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponsePickupJobResponseBody {
+  data?: {
+    job?: null | FilezJob;
   };
   message: string;
   status: ApiResponseStatus;
@@ -473,6 +539,14 @@ export interface ApiResponseUpdateFileVersionsResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseUpdateJobResponseBody {
+  data?: {
+    job: FilezJob;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseUserGroup {
   data?: {
     /** @format date-time */
@@ -485,29 +559,6 @@ export interface ApiResponseUserGroup {
     /** @format uuid */
     owner_id: string;
   };
-  message: string;
-  status: ApiResponseStatus;
-}
-
-export interface ApiResponseVecStorageQuota {
-  data?: {
-    /** @format date-time */
-    created_time: string;
-    /** @format uuid */
-    id: string;
-    /** @format date-time */
-    modified_time: string;
-    name: string;
-    /** @format uuid */
-    owner_id: string;
-    /** @format int64 */
-    quota_bytes: number;
-    /** @format uuid */
-    storage_location_id: string;
-    /** @format uuid */
-    subject_id: string;
-    subject_type: AccessPolicySubjectType;
-  }[];
   message: string;
   status: ApiResponseStatus;
 }
@@ -673,6 +724,7 @@ export interface CreateFileVersionRequestBody {
    */
   file_id: string;
   metadata: FileVersionMetadata;
+  mime_type: string;
   /**
    * @format int64
    * @min 0
@@ -684,6 +736,20 @@ export interface CreateFileVersionRequestBody {
 
 export interface CreateFileVersionResponseBody {
   version: FileVersion;
+}
+
+export interface CreateJobRequestBody {
+  /** @format uuid */
+  app_id: string;
+  /** @format date-time */
+  deadline_time?: string | null;
+  execution_details: JobExecutionInformation;
+  name: string;
+  persistence: JobPersistenceType;
+}
+
+export interface CreateJobResponseBody {
+  created_job: FilezJob;
 }
 
 export interface CreateStorageQuotaRequestBody {
@@ -733,6 +799,11 @@ export interface DeleteFileVersionsRequestBody {
 
 export interface DeleteFileVersionsResponseBody {
   versions: FileVersionIdentifier[];
+}
+
+export interface DeleteJobRequestBody {
+  /** @format uuid */
+  job_id: string;
 }
 
 export interface DeleteStorageQuotaRequestBody {
@@ -809,6 +880,7 @@ export interface FileVersion {
   /** @format uuid */
   id: string;
   metadata: FileVersionMetadata;
+  mime_type: string;
   /** @format date-time */
   modified_time: string;
   /** @format int64 */
@@ -860,6 +932,58 @@ export interface FilezFile {
   owner_id: string;
 }
 
+export interface FilezJob {
+  /**
+   * The app that should handle the job
+   * @format uuid
+   */
+  app_id: string;
+  /**
+   * The last time the app instance has been seen by the server
+   * This is used to determine if the app instance is still alive and can handle the job
+   * @format date-time
+   */
+  app_instance_last_seen_time?: string | null;
+  /** After the job is picked up by the app, this field will be set to the app instance id, created from the kubernetes pod UUID and a random string that the app generates on startup */
+  assigned_app_runtime_instance_id?: string | null;
+  /**
+   * When the job was created in the database
+   * @format date-time
+   */
+  created_time: string;
+  /**
+   * After the deadline the job will be marked as finished and failed if not completed
+   * @format date-time
+   */
+  deadline_time?: string | null;
+  /**
+   * When the job was finished, either successfully or failed
+   * @format date-time
+   */
+  end_time?: string | null;
+  /** Details relevant for the execution of the job */
+  execution_information: JobExecutionInformation;
+  /** @format uuid */
+  id: string;
+  /**
+   * When the job was last modified in the database
+   * @format date-time
+   */
+  modified_time: string;
+  name: string;
+  /** @format uuid */
+  owner_id: string;
+  persistence: JobPersistenceType;
+  /**
+   * When the job was started, either automatically or manually
+   * @format date-time
+   */
+  start_time?: string | null;
+  /** The current status of the job */
+  status: JobStatus;
+  status_details?: null | JobStatusDetails;
+}
+
 export interface FilezUser {
   /** @format uuid */
   created_by?: string | null;
@@ -890,6 +1014,15 @@ export interface GetFileVersionsResponseBody {
 
 export interface GetFilesResponseBody {
   files: Record<string, FilezFile>;
+}
+
+export interface GetJobRequestBody {
+  /** @format uuid */
+  job_id: string;
+}
+
+export interface GetJobResponseBody {
+  job: FilezJob;
 }
 
 export interface GetOwnUserBody {
@@ -932,6 +1065,80 @@ export interface HealthResBody {
 export interface HealthStatus {
   healthy: boolean;
   response: string;
+}
+
+export interface JobExecutionInformation {
+  job_type: JobType;
+}
+
+export type JobStatusDetails =
+  | {
+      Created: JobStatusDetailsCreated;
+    }
+  | {
+      InProgress: JobStatusDetailsInProgress;
+    }
+  | {
+      Completed: JobStatusDetailsCompleted;
+    }
+  | {
+      Failed: JobStatusDetailsFailed;
+    }
+  | {
+      Cancelled: JobStatusDetailsCancelled;
+    };
+
+export interface JobStatusDetailsCancelled {
+  message: string;
+  reason?: string | null;
+}
+
+export interface JobStatusDetailsCompleted {
+  message: string;
+}
+
+export interface JobStatusDetailsCreated {
+  message: string;
+}
+
+export interface JobStatusDetailsFailed {
+  error?: string | null;
+  message: string;
+}
+
+export interface JobStatusDetailsInProgress {
+  message: string;
+}
+
+export type JobType = {
+  /** Allows the app to create a set of previews for a existing file_version_number and file_id */
+  CreatePreview: JobTypeCreatePreview;
+};
+
+/** Allows the app to create a set of previews for a existing file_version_number and file_id */
+export interface JobTypeCreatePreview {
+  allowed_mime_types: string[];
+  /**
+   * @format int32
+   * @min 0
+   */
+  allowed_number_of_previews: number;
+  /**
+   * @format int64
+   * @min 0
+   */
+  allowed_size_bytes: number;
+  /** @format uuid */
+  file_id: string;
+  /**
+   * @format int32
+   * @min 0
+   */
+  file_version_number: number;
+  /** @format uuid */
+  storage_location_id: string;
+  /** @format uuid */
+  storage_quota_id: string;
 }
 
 export interface ListAccessPoliciesRequestBody {
@@ -1016,6 +1223,25 @@ export interface ListFilesStoredSortOrder {
   sort_order?: null | SortDirection;
 }
 
+export interface ListJobsRequestBody {
+  /**
+   * @format int64
+   * @min 0
+   */
+  from_index?: number | null;
+  /**
+   * @format int64
+   * @min 0
+   */
+  limit?: number | null;
+  sort_by?: null | ListJobsSortBy;
+  sort_order?: null | SortDirection;
+}
+
+export interface ListJobsResponseBody {
+  jobs: FilezJob[];
+}
+
 export interface ListStorageLocationsRequestBody {
   sort_by?: null | ListStorageLocationsSortBy;
   sort_order?: null | SortDirection;
@@ -1038,6 +1264,10 @@ export interface ListStorageQuotasRequestBody {
   limit?: number | null;
   sort_by?: null | ListStorageQuotasSortBy;
   sort_order?: null | SortDirection;
+}
+
+export interface ListStorageQuotasResponseBody {
+  storage_quotas: StorageQuota[];
 }
 
 export interface ListUserGroupsRequestBody {
@@ -1091,6 +1321,14 @@ export interface ListedFilezUser {
   display_name: string;
   /** @format uuid */
   id: string;
+}
+
+export interface PickupJobRequestBody {
+  app_runtime_instance_id: string;
+}
+
+export interface PickupJobResponseBody {
+  job?: null | FilezJob;
 }
 
 export interface StorageLocationListItem {
@@ -1179,6 +1417,22 @@ export interface UpdateFileVersionsRequestBody {
 
 export interface UpdateFileVersionsResponseBody {
   versions: FileVersion[];
+}
+
+export interface UpdateJobRequestBody {
+  /** @format date-time */
+  deadline_time?: string | null;
+  execution_information?: null | JobExecutionInformation;
+  /** @format uuid */
+  job_id: string;
+  name?: string | null;
+  persistence?: null | JobPersistenceType;
+  status?: null | JobStatus;
+  status_details?: null | JobStatusDetails;
+}
+
+export interface UpdateJobResponseBody {
+  job: FilezJob;
 }
 
 export interface UpdateStorageQuotaRequestBody {
@@ -1495,9 +1749,11 @@ export class HttpClient<SecurityDataType = unknown> {
 }
 
 /**
- * @title filez-server
- * @version 0.0.1
+ * @title filez
+ * @version 1.0.0
  * @license
+ *
+ * API for managing files in MOWS Filez
  */
 export class Api<
   SecurityDataType extends unknown,
@@ -1783,9 +2039,10 @@ export class Api<
       version: number | null,
       params: RequestParams = {},
     ) =>
-      this.request<void, void>({
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/file_versions/content/tus/${fileId}/${version}`,
         method: "HEAD",
+        format: "json",
         ...params,
       }),
 
@@ -1802,10 +2059,15 @@ export class Api<
       data: any,
       params: RequestParams = {},
     ) =>
-      this.request<void, void | ApiResponseFileVersionSizeExceededErrorBody>({
+      this.request<
+        ApiResponseEmptyApiResponse,
+        | ApiResponseEmptyApiResponse
+        | ApiResponseFileVersionSizeExceededErrorBody
+      >({
         path: `/api/file_versions/content/tus/${fileId}/${version}`,
         method: "PATCH",
         body: data,
+        format: "json",
         ...params,
       }),
 
@@ -1983,6 +2245,105 @@ export class Api<
       }),
 
     /**
+     * @description Create a new job in the database
+     *
+     * @name CreateJob
+     * @request POST:/api/jobs/create
+     */
+    createJob: (data: CreateJobRequestBody, params: RequestParams = {}) =>
+      this.request<ApiResponseCreateJobResponseBody, any>({
+        path: `/api/jobs/create`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Delete a job from the database
+     *
+     * @name DeleteJob
+     * @request POST:/api/jobs/delete
+     */
+    deleteJob: (data: DeleteJobRequestBody, params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, any>({
+        path: `/api/jobs/delete`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Get a job from the database
+     *
+     * @name GetJob
+     * @request POST:/api/jobs/get
+     */
+    getJob: (data: GetJobRequestBody, params: RequestParams = {}) =>
+      this.request<ApiResponseGetJobResponseBody, any>({
+        path: `/api/jobs/get`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name ListJobs
+     * @request POST:/api/jobs/list
+     */
+    listJobs: (data: ListJobsRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseListJobsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/jobs/list`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Pickup a job from the server
+     *
+     * @name PickupJob
+     * @request POST:/api/jobs/pickup
+     */
+    pickupJob: (data: PickupJobRequestBody, params: RequestParams = {}) =>
+      this.request<ApiResponsePickupJobResponseBody, any>({
+        path: `/api/jobs/pickup`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Update a job in the database
+     *
+     * @name UpdateJob
+     * @request POST:/api/jobs/update
+     */
+    updateJob: (data: UpdateJobRequestBody, params: RequestParams = {}) =>
+      this.request<ApiResponseUpdateJobResponseBody, any>({
+        path: `/api/jobs/update`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * No description
      *
      * @name ListStorageLocations
@@ -2071,7 +2432,10 @@ export class Api<
       data: ListStorageQuotasRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseVecStorageQuota, ApiResponseEmptyApiResponse>({
+      this.request<
+        ApiResponseListStorageQuotasResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/storage_quotas/list`,
         method: "POST",
         body: data,

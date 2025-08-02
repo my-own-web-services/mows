@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::path::Path;
 
 use mows_common_rust::{
     openapi_client_generator::{
@@ -8,7 +8,6 @@ use mows_common_rust::{
     },
     utils::get_absolute_path,
 };
-use path_clean::PathClean;
 
 #[tokio::main]
 #[test]
@@ -18,6 +17,8 @@ async fn test() {
     // log resolved path
     dbg!(get_absolute_path(path).unwrap());
 
+    let output_path = "./code_generation/rust/";
+
     let virtual_file_system =
         generate_openapi_client(path, GeneratorType::Rust(RustGeneratorConfig::default()))
             .await
@@ -25,17 +26,15 @@ async fn test() {
 
     virtual_file_system
         .write_to_dir(
-            Path::new("./code_generation/rust/"),
-            WriteToDirectoryReplacementStrategy::Replace,
+            Path::new(output_path),
+            WriteToDirectoryReplacementStrategy::WriteInto,
         )
         .await
         .unwrap();
 
     std::process::Command::new("cargo")
         .arg("check")
-        .current_dir("./code_generation/rust/")
+        .current_dir(output_path)
         .output()
         .expect("Failed to run cargo check");
-
-    fs::remove_dir_all("./code_generation/rust/").unwrap();
 }

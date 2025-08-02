@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ .Values.apps.backend.images.name }}
+    {{- if .Values.apps.backend.images.dev.autoUpdate }}
+    annotations:
+        keel.sh/policy: force
+        keel.sh/trigger: poll
+        keel.sh/pollSchedule: "@every 1s"
+    {{- end }}
+spec:
+    replicas: {{ .Values.apps.backend.images.replicaCount }}
+    revisionHistoryLimit: 0
+    selector:
+        matchLabels:
+            app: {{ .Values.apps.backend.images.name }}
+    template:
+        metadata:
+            labels:
+                app: {{ .Values.apps.backend.images.name }}
+        spec:
+            serviceAccountName: {{ .Values.apps.backend.images.name }}
+            {{- if .Values.apps.backend.images.localStorage.enabled }}
+            volumes:
+                -   name: working-volume
+                    emptyDir: 
+                        sizeLimit: {{ .Values.apps.backend.images.workingVolume.sizeLimit }}
+                    persistentVolumeClaim:
+                        claimName: filez-default-storage
+            {{-  end }}
+            containers:
+                -   name: {{ .Values.apps.backend.images.name }}
+                    image: "{{ .Values.apps.backend.images.image }}"
+                    imagePullPolicy: {{ .Values.apps.backend.images.imagePullPolicy }}
+                    securityContext:
+                        allowPrivilegeEscalation: false
+                        readOnlyRootFilesystem: true
+                        runAsNonRoot: true
+                        runAsUser: 50003
+                    resources:
+                        limits:
+                            memory: 1024Mi
+                            cpu: 1000m
+                    volumeMounts:
+                        -   name: working-volume
+                            mountPath: /working
+                    env:
+                        -   name: FILEZ_SERVER_URL
+                            value: {{ .Values.server.internalUrl }}
+                        -   name: ORKING_DIRECTORY
+                            value: /working
+                        -   name: NO_WORK_WAIT_SECONDS
+                            value: "10"

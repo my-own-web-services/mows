@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/apis/cloud/filez/server/FilezResourceCRDSchema.json?ref_type=heads
+apiVersion: filez.k8s.mows.cloud/v1
+kind: FilezResource
+metadata:
+    name: filez-apps-backend-images
+spec:
+    mowsApp:
+        description: "Generates image previews"
+        trusted: false
+        appType: "Backend"

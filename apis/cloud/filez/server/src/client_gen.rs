@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     virtual_file_system
         .write_to_dir(
-            Path::new("./codegen/rust/"),
+            Path::new("../clients/rust/"),
             WriteToDirectoryReplacementStrategy::Replace,
         )
         .await?;

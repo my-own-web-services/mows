@@ -3,7 +3,7 @@
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ .Values.server.name }}
+  name: {{ .Values.server.name }}-rbac
 rules:
   - apiGroups: ["filez.k8s.mows.cloud"]
     resources: ["filezresources", "filezresources/status", "filezresources/finalizers"]
@@ -19,16 +19,31 @@ rules:
 
 
 ---
-# Binding the role to the account
+
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ .Values.server.name }}
+  name: {{ .Values.server.name }}-rbac
 subjects:
 - kind: ServiceAccount
   namespace: {{ .Values.namespace }}
   name: {{ .Values.server.name }}
 roleRef:
   kind: ClusterRole
+  name: {{ .Values.server.name }}-rbac
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.server.name }}-token-review
+subjects:
+- kind: ServiceAccount
+  namespace: {{ .Values.namespace }}
   name: {{ .Values.server.name }}
+roleRef:
+  kind: ClusterRole
+  name: system:auth-delegator
   apiGroup: rbac.authorization.k8s.io

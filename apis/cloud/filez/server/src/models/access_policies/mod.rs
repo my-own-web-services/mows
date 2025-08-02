@@ -108,6 +108,7 @@ pub enum AccessPolicyResourceType {
     StorageLocation = 4,
     AccessPolicy = 5,
     StorageQuota = 6,
+    FilezJob = 7,
 }
 
 #[derive(
@@ -188,6 +189,13 @@ pub enum AccessPolicyAction {
 
     TagsUpdate = 450,
     TagsGet = 460,
+
+    FilezJobsCreate = 470,
+    FilezJobsGet = 480,
+    FilezJobsUpdate = 490,
+    FilezJobsDelete = 500,
+    FilezJobsList = 510,
+    FilezJobsPickup = 520,
 }
 
 #[derive(

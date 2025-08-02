@@ -1,6 +1,6 @@
 use crate::http_api::authentication::user::IntrospectedUser;
 use crate::{
-    config::{config, IMPERSONATE_USER_HEADER, KEY_ACCESS_HEADER},
+    config::{config, IMPERSONATE_USER_HEADER_NAME, KEY_ACCESS_HEADER_NAME},
     database::Database,
     errors::FilezError,
     http_api::users::list::ListUsersSortBy,
@@ -327,7 +327,7 @@ impl FilezUser {
         let mut connection = database.get_connection().await?;
 
         let maybe_key_access = request_headers
-            .get(KEY_ACCESS_HEADER)
+            .get(KEY_ACCESS_HEADER_NAME)
             .and_then(|v| v.to_str().ok().map(|s| s.to_string()));
 
         let original_requesting_user = match (&external_user, maybe_key_access) {
@@ -356,7 +356,7 @@ impl FilezUser {
         };
 
         if let Some(impersonate_user_id) = request_headers
-            .get(IMPERSONATE_USER_HEADER)
+            .get(IMPERSONATE_USER_HEADER_NAME)
             .and_then(|v| v.to_str().ok().and_then(|s| s.parse::<Uuid>().ok()))
         {
             if original_requesting_user.user_type == FilezUserType::SuperAdmin {

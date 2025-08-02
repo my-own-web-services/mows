@@ -8,6 +8,11 @@ use crate::models::files::FileMetadata;
     tags(
         (name = "filez", description = "MOWS Filez API"),
     ),
+    info(
+        title = "filez",
+        description = "API for managing files in MOWS Filez",
+        version = "1.0.0",
+    ),
     components(
         schemas(
             FileMetadata,

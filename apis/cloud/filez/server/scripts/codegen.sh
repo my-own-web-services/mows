@@ -37,10 +37,3 @@ docker remove filez-server-codegen-server --force
 # rust
 
 cargo run --bin clientgen
-
-#docker run --rm -u 1000:1000 \
-#  -v ${PWD}:/local openapitools/openapi-generator-cli generate \
-#  -i /local/openapi.json \
-#  --additional-properties=avoidBoxedModels=true \
-#  -g rust \
-#  -o /local/codegen/rust --skip-validate-spec
