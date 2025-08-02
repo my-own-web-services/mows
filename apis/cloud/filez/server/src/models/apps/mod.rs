@@ -1,5 +1,5 @@
 use crate::{
-    config::config,
+    config::{config, SERVICE_ACCOUNT_TOKEN_HEADER_NAME},
     database::Database,
     errors::FilezError,
     utils::{get_current_timestamp, get_uuid, is_dev_origin, InvalidEnumType},
@@ -15,6 +15,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
+use k8s_openapi::api::authentication::v1::TokenReview;
 use mows_common_rust::get_current_config_cloned;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -54,7 +55,7 @@ pub struct MowsApp {
     pub description: Option<String>,
     /// If a app is marked as trusted, it can access all resources without any restrictions
     pub trusted: bool,
-    /// Origins are used to identify the app in the browser, all origins must be unique accross all apps
+    /// Origins are used to identify the app in the browser, all origins must be unique across all apps
     /// If an app has no origins, it is considered a backend app
     pub origins: Option<Vec<String>>,
     pub created_time: chrono::NaiveDateTime,
@@ -81,7 +82,9 @@ pub struct MowsApp {
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
 pub enum AppType {
+    #[serde(rename = "Frontend")]
     Frontend = 0,
+    #[serde(rename = "Backend")]
     Backend = 1,
 }
 
@@ -187,7 +190,69 @@ impl MowsApp {
             .map(|s| s.to_string())
         {
             Some(origin) => Self::get_from_origin_string(database, &origin).await,
-            None => Ok(MowsApp::no_origin()),
+            None => match request_headers
+                .get(SERVICE_ACCOUNT_TOKEN_HEADER_NAME)
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.to_string())
+            {
+                Some(token) => {
+                    Self::verify_kubernetes_service_account_token(database, &token).await
+                }
+                None => Ok(MowsApp::no_origin()),
+            },
+        }
+    }
+
+    async fn verify_kubernetes_service_account_token(
+        database: &Database,
+        token: &str,
+    ) -> Result<MowsApp, FilezError> {
+        let kubernetes_client = kube::Client::try_default().await?;
+        let token_review_api = kube::api::Api::<TokenReview>::all(kubernetes_client);
+
+        let token_review = TokenReview {
+            metadata: kube::api::ObjectMeta {
+                name: Some("filez-token-review".to_string()),
+                ..Default::default()
+            },
+            spec: k8s_openapi::api::authentication::v1::TokenReviewSpec {
+                token: Some(token.to_string()),
+                ..Default::default()
+            },
+            status: None,
+        };
+        let response = token_review_api
+            .create(&kube::api::PostParams::default(), &token_review)
+            .await?;
+
+        if let Some(user) = response.status.and_then(|s| s.user) {
+            debug!(
+                "Kubernetes service account token verified for user: {:?}",
+                user.username
+            );
+
+            let username = user.username.ok_or(FilezError::Unauthorized(
+                "Invalid service account token".to_string(),
+            ))?;
+            let mut connection = database.get_connection().await?;
+
+            let app = crate::schema::apps::table
+                .filter(crate::schema::apps::name.eq(username))
+                .select(MowsApp::as_select())
+                .first::<MowsApp>(&mut connection)
+                .await?;
+
+            if app.origins.is_some() || app.app_type != AppType::Backend {
+                return Err(FilezError::Unauthorized(
+                    "Service account token cannot be used for frontend apps".to_string(),
+                ));
+            }
+
+            Ok(app)
+        } else {
+            Err(FilezError::Unauthorized(
+                "Invalid service account token".to_string(),
+            ))
         }
     }
 

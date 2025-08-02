@@ -7,6 +7,7 @@ use crate::{
         file_versions::FileVersion,
     },
     state::ServerState,
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     utils::OptionalPath,
     with_timing,
 };
@@ -14,7 +15,7 @@ use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
-    Extension,
+    Extension, Json,
 };
 use uuid::Uuid;
 
@@ -26,10 +27,10 @@ use uuid::Uuid;
         ("version" = Option<u32>, Path, description = "The version of the file, if applicable"),
     ),
     responses(
-        (status = 200, description = "File exists and is ready to resume upload"),
-        (status = 404, description = "File not found"),
-        (status = 412, description = "Precondition failed due to missing or invalid Tus-Resumable header"),
-        (status = 400, description = "Bad request, missing or invalid headers"),
+        (status = 200, body = ApiResponse<EmptyApiResponse>, description = "File exists and is ready to resume upload"),
+        (status = 404, body = ApiResponse<EmptyApiResponse>, description = "File not found"),
+        (status = 412, body = ApiResponse<EmptyApiResponse>, description = "Precondition failed due to missing or invalid Tus-Resumable header"),
+        (status = 400, body = ApiResponse<EmptyApiResponse>, description = "Bad request, missing or invalid headers"),
     )
 )]
 pub async fn file_versions_content_tus_head(
@@ -57,7 +58,15 @@ pub async fn file_versions_content_tus_head(
     {
         let mut response_headers = HeaderMap::new();
         response_headers.insert("Tus-Resumable", TUS_VERSION.parse().unwrap());
-        return Ok((StatusCode::PRECONDITION_FAILED, response_headers, ()));
+        return Ok((
+            StatusCode::PRECONDITION_FAILED,
+            response_headers,
+            Json(ApiResponse::<EmptyApiResponse> {
+                status: ApiResponseStatus::Error("GenericError".to_string()),
+                message: "Invalid Tus-Resumable header".to_string(),
+                data: None,
+            }),
+        ));
     };
 
     with_timing!(
@@ -99,5 +108,13 @@ pub async fn file_versions_content_tus_head(
         file_version.size.to_string().parse().unwrap(),
     );
 
-    Ok((StatusCode::OK, response_headers, ()))
+    Ok((
+        StatusCode::OK,
+        response_headers,
+        Json(ApiResponse {
+            status: ApiResponseStatus::Success {},
+            message: "Got Offset".to_string(),
+            data: None,
+        }),
+    ))
 }

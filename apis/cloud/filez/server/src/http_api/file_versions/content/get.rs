@@ -21,7 +21,14 @@ use axum::{
     Extension,
 };
 
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetFileVersionContentQuery {
+    disposition: Option<bool>,
+    cache: Option<u64>,
+}
 
 #[utoipa::path(
     get,
@@ -41,6 +48,7 @@ use uuid::Uuid;
         (status = 500, description = "Internal server error retrieving file content", body = ApiResponse<EmptyApiResponse>)
     )
 )]
+#[axum::debug_handler]
 pub async fn get_file_version_content(
     Extension(AuthenticationInformation {
         requesting_user,
@@ -59,7 +67,7 @@ pub async fn get_file_version_content(
         OptionalPath<Uuid>,
         OptionalPath<String>,
     )>,
-    Query((disposition, cache)): Query<(Option<bool>, Option<u64>)>,
+    Query(GetFileVersionContentQuery { disposition, cache }): Query<GetFileVersionContentQuery>,
     request_headers: HeaderMap,
 ) -> Result<impl IntoResponse, FilezError> {
     let version: Option<u32> = version.into();

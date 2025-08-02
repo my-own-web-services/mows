@@ -1,7 +1,4 @@
-use axum::{
-    extract::{Path, State},
-    Extension, Json,
-};
+use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;

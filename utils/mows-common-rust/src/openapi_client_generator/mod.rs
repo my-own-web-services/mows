@@ -1,11 +1,7 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
-
+use crate::openapi_client_generator::generators::{rust::RustGenerator, GeneratorType};
+use std::{collections::HashMap, path::Path};
 use utoipa::openapi::OpenApi;
 
-use crate::openapi_client_generator::generators::{rust::RustGenerator, GeneratorType};
 pub mod generators;
 
 pub async fn generate_openapi_client(
@@ -48,6 +44,9 @@ pub enum ClientGeneratorError {
 
     #[error("Unsupported file format: {0}")]
     UnsupportedFileFormat(String),
+
+    #[error("Missing operation ID for PathItem operation")]
+    MissingOperationId,
 }
 
 #[derive(Debug, Clone, Default)]

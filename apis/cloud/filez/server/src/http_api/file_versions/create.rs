@@ -77,6 +77,7 @@ pub async fn create_file_version(
             request_body.file_id,
             requesting_app.id,
             request_body.app_path,
+            request_body.mime_type,
             request_body.metadata,
             request_body.size.into(),
             request_body.storage_quota_id,
@@ -104,6 +105,7 @@ pub struct CreateFileVersionRequestBody {
     /// The ID of the file to create a version for.
     pub file_id: Uuid,
     pub app_path: Option<String>,
+    pub mime_type: String,
     pub metadata: FileVersionMetadata,
     pub size: u64,
     pub storage_quota_id: Uuid,

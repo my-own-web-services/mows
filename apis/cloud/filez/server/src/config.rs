@@ -6,9 +6,11 @@ use url::Url;
 
 pub const TUS_VERSION: &str = "1.0.0";
 
-pub const IMPERSONATE_USER_HEADER: &str = "X-Filez-Impersonate-User";
+pub const IMPERSONATE_USER_HEADER_NAME: &str = "X-Filez-Impersonate-User";
 
-pub const KEY_ACCESS_HEADER: &str = "X-Filez-Key-Access";
+pub const KEY_ACCESS_HEADER_NAME: &str = "X-Filez-Key-Access";
+
+pub const SERVICE_ACCOUNT_TOKEN_HEADER_NAME: &str = "X-Service-Account-Token";
 
 pub fn config() -> &'static RwLock<FilezServerConfig> {
     static CONFIG: OnceLock<RwLock<FilezServerConfig>> = OnceLock::new();
@@ -25,6 +27,7 @@ pub struct FilezServerConfig {
     pub oidc_client_secret: String,
     pub oidc_issuer: String,
     pub reconcile_interval_seconds: u64,
+    pub listen_port: u16,
 }
 
 pub fn from_env() -> anyhow::Result<FilezServerConfig> {
@@ -52,5 +55,6 @@ pub fn from_env() -> anyhow::Result<FilezServerConfig> {
         oidc_issuer: load_env("http://localhost", "OIDC_ISSUER", false, true)?,
         reconcile_interval_seconds: load_env("60", "RECONCILE_INTERVAL_SECONDS", false, true)?
             .parse::<u64>()?,
+        listen_port: load_env("8080", "LISTEN_PORT", false, true)?.parse::<u16>()?,
     })
 }

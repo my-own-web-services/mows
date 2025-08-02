@@ -15,7 +15,7 @@ use utoipa::ToSchema;
     path = "/api/storage_quotas/list",
     request_body = ListStorageQuotasRequestBody,
     responses(
-        (status = 200, description = "Lists storage quotas", body = ApiResponse<Vec<StorageQuota>>),
+        (status = 200, description = "Lists storage quotas", body = ApiResponse<ListStorageQuotasResponseBody>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]

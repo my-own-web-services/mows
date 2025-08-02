@@ -12,7 +12,7 @@ dependencies = [
  "rand 0.9.1",
  "rand_core 0.6.4",
  "rcgen 0.9.3",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -140,7 +140,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "mio",
- "socket2",
+ "socket2 0.5.10",
  "tokio",
  "tracing",
 ]
@@ -202,7 +202,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "smallvec",
- "socket2",
+ "socket2 0.5.10",
  "time",
  "tracing",
  "url",
@@ -646,6 +646,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "021e862c184ae977658b36c4500f7feac3221ca5da43e3f25bd04ab6c79a29b5"
 dependencies = [
  "axum-core 0.5.2",
+ "axum-macros",
  "base64 0.22.1",
  "bytes",
  "form_urlencoded",
@@ -737,6 +738,17 @@ dependencies = [
  "tower 0.5.2",
  "tower-layer",
  "tower-service",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "604fde5e028fea851ce1d8570bbdc034bec850d157f7569d10f347d06808c05c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
 ]
 
 [[package]]
@@ -2153,6 +2165,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "filez-client"
+version = "1.0.0"
+dependencies = [
+ "chrono",
+ "reqwest 0.12.22",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "filez-server"
 version = "0.420.0"
 dependencies = [
@@ -2196,19 +2221,10 @@ dependencies = [
  "url",
  "utoipa",
  "utoipa-axum",
+ "utoipa-config",
  "utoipa-swagger-ui",
  "uuid",
  "zitadel",
-]
-
-[[package]]
-name = "filez-server-client"
-version = "0.0.1"
-dependencies = [
- "reqwest 0.12.19",
- "serde",
- "serde_json",
- "tokio",
 ]
 
 [[package]]
@@ -2567,7 +2583,7 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f7b446f80cb00b49b795e423cdc013ee9d53f60ad9cc8bbcf94f27d7c2a2fdf"
 dependencies = [
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "serde",
  "serde_json",
  "serde_with",
@@ -2812,7 +2828,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2",
+ "socket2 0.5.10",
  "tokio",
  "tower-service",
  "tracing",
@@ -2924,7 +2940,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2",
+ "socket2 0.5.10",
  "system-configuration 0.6.1",
  "tokio",
  "tower-service",
@@ -3070,6 +3086,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "images"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "filez-client",
+ "mows-common-rust",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "impl-more"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3167,6 +3198,17 @@ dependencies = [
  "ssh-encoding",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "io-uring"
+version = "0.7.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d93587f37623a1a17d94ef2bc9ada592f5465fe7732084ab7beefabe5c77c0c4"
+dependencies = [
+ "bitflags 2.9.1",
+ "cfg-if",
+ "libc",
 ]
 
 [[package]]
@@ -3642,7 +3684,7 @@ dependencies = [
  "opentelemetry_sdk 0.26.0",
  "pty-process",
  "rand 0.9.1",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "serde",
  "serde-xml-rs",
  "serde_json",
@@ -3779,7 +3821,7 @@ dependencies = [
  "percent-encoding",
  "rand 0.8.5",
  "regex",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "ring 0.17.14",
  "serde",
  "serde_json",
@@ -3840,6 +3882,7 @@ dependencies = [
  "anyhow",
  "bcrypt",
  "data-encoding",
+ "futures",
  "gtmpl",
  "gtmpl_derive",
  "gtmpl_value",
@@ -3854,7 +3897,7 @@ dependencies = [
  "pem 3.0.5",
  "rand 0.9.1",
  "rcgen 0.13.2",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "reqwest-middleware",
  "reqwest-tracing",
  "serde",
@@ -4517,7 +4560,7 @@ dependencies = [
  "parking_lot",
  "pektin-common",
  "rand 0.9.1",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "ring 0.17.14",
  "serde",
  "serde_json",
@@ -4588,7 +4631,7 @@ dependencies = [
  "opentelemetry 0.26.0",
  "pektin-common",
  "prometheus-client",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "reqwest-tracing",
  "schemars",
  "serde",
@@ -5016,7 +5059,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls 0.23.27",
- "socket2",
+ "socket2 0.5.10",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -5053,7 +5096,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2",
+ "socket2 0.5.10",
  "tracing",
  "windows-sys 0.59.0",
 ]
@@ -5325,10 +5368,11 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.19"
+version = "0.12.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2f8e5513d63f2e5b386eb5106dc67eaf3f84e95258e210489136b8b92ad6119"
+checksum = "cbc931937e6ca3a06e3b6c0aa7841849b160a90351d6ab467a8b9b9959767531"
 dependencies = [
+ "async-compression",
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
@@ -5341,12 +5385,10 @@ dependencies = [
  "hyper 1.6.0",
  "hyper-rustls 0.27.7",
  "hyper-util",
- "ipnet",
  "js-sys",
  "log",
  "mime",
  "mime_guess",
- "once_cell",
  "percent-encoding",
  "pin-project-lite",
  "quinn",
@@ -5379,7 +5421,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http 1.3.1",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "serde",
  "thiserror 1.0.69",
  "tower-service",
@@ -5397,7 +5439,7 @@ dependencies = [
  "http 1.3.1",
  "matchit 0.8.4",
  "opentelemetry 0.28.0",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "reqwest-middleware",
  "tracing",
  "tracing-opentelemetry 0.29.0",
@@ -5753,7 +5795,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "http 1.3.1",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "rustify_derive",
  "serde",
  "serde_json",
@@ -6386,6 +6428,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "socket2"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "233504af464074f9d066d7b5416c5f9b894a5862a6506e306f7b816cdd6f1807"
+dependencies = [
+ "libc",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6758,21 +6810,23 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.45.1"
+version = "1.47.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75ef51a33ef1da925cea3e4eb122833cb377c61439ca401b770f54902b806779"
+checksum = "43864ed400b6043a4757a25c7a64a8efde741aed79a056a2fb348a406701bb35"
 dependencies = [
  "backtrace",
  "bytes",
+ "io-uring",
  "libc",
  "mio",
  "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
- "socket2",
+ "slab",
+ "socket2 0.6.0",
  "tokio-macros",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6806,7 +6860,7 @@ dependencies = [
  "postgres-protocol",
  "postgres-types",
  "rand 0.9.1",
- "socket2",
+ "socket2 0.5.10",
  "tokio",
  "tokio-util",
  "whoami",
@@ -6933,7 +6987,7 @@ dependencies = [
  "prost",
  "rustls-native-certs 0.8.1",
  "rustls-pemfile 2.2.0",
- "socket2",
+ "socket2 0.5.10",
  "tokio",
  "tokio-rustls 0.26.2",
  "tokio-stream",
@@ -7374,6 +7428,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "utoipa-config"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06638ae95f08a14f307292bcf2e8ae34b6adbec526190a46a83d27363007a81e"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "utoipa-gen"
 version = "5.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7469,7 +7533,7 @@ dependencies = [
  "bytes",
  "derive_builder",
  "http 1.3.1",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "rustify",
  "rustify_derive",
  "serde",
@@ -8347,7 +8411,7 @@ dependencies = [
  "chrono",
  "data-encoding",
  "mows-common-rust",
- "reqwest 0.12.19",
+ "reqwest 0.12.22",
  "serde",
  "serde_json",
  "tokio",

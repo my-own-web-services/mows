@@ -43,6 +43,7 @@ diesel::table! {
         version -> Integer,
         app_id -> Uuid,
         app_path -> Text,
+        mime_type -> Text,
         metadata -> Jsonb,
         created_time -> Timestamp,
         modified_time -> Timestamp,
@@ -199,12 +200,18 @@ diesel::table! {
         id -> Uuid,
         owner_id -> Uuid,
         app_id -> Uuid,
+        assigned_app_runtime_instance_id -> Nullable<Text>,
+        app_instance_last_seen_time -> Nullable<Timestamp>,
         name -> Text,
-        status -> Jsonb,
+        status -> SmallInt,
+        status_details -> Nullable<Jsonb>,
+        execution_information -> Jsonb,
+        persistence -> SmallInt,
         created_time -> Timestamp,
         modified_time -> Timestamp,
         start_time -> Nullable<Timestamp>,
         end_time -> Nullable<Timestamp>,
+        deadline_time -> Nullable<Timestamp>,
     }
 }
 diesel::joinable!(jobs -> users (owner_id));

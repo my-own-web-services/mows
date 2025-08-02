@@ -200,15 +200,21 @@ export default async (filezClient: Api<unknown>) => {
     );
 
     const content = await (
-        await filezClient.api.getFileVersionContent(
-            aliceFileResponse.created_file.id,
-            null,
-            null,
-            null,
-            null,
-            null,
-            impersonateAliceParams
-        )
+        await filezClient.api
+            .getFileVersionContent(
+                aliceFileResponse.created_file.id,
+                null,
+                null,
+                null,
+                undefined,
+                impersonateAliceParams
+            )
+            .catch((response) => {
+                throw new Error(
+                    "Failed to get content for Alice's file version. Expected 200, got: " +
+                        response.status
+                );
+            })
     ).blob();
 
     if (!content) {

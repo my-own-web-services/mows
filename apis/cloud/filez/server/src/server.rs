@@ -156,6 +156,13 @@ async fn main() -> Result<(), anyhow::Error> {
         // TAGS
         .routes(routes!(http_api::tags::get::get_tags))
         .routes(routes!(http_api::tags::update::update_tags))
+        // JOBS
+        .routes(routes!(http_api::jobs::create::create_job))
+        .routes(routes!(http_api::jobs::get::get_job))
+        .routes(routes!(http_api::jobs::update::update_job))
+        .routes(routes!(http_api::jobs::delete::delete_job))
+        .routes(routes!(http_api::jobs::list::list_jobs))
+        .routes(routes!(http_api::jobs::pickup::pickup_job))
         // HEALTH
         .routes(routes!(http_api::health::get_health))
         .with_state(server_state.clone())
@@ -208,9 +215,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Starting server");
 
-    let listener = tokio::net::TcpListener::bind(SocketAddr::new("::".parse()?, 8080))
-        .await
-        .context("Failed to bind TCP listener to address ::1:8080")?;
+    let listener =
+        tokio::net::TcpListener::bind(SocketAddr::new("::".parse()?, config.listen_port))
+            .await
+            .context("Failed to bind TCP listener to address ::1:8080")?;
 
     let controller = controller::run(server_state.clone());
 

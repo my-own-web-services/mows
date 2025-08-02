@@ -7,7 +7,7 @@ use crate::{
         file_versions::FileVersion,
     },
     state::ServerState,
-    types::ApiResponse,
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     utils::OptionalPath,
     with_timing,
 };
@@ -15,7 +15,7 @@ use axum::{
     extract::{Path, Request, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
-    Extension,
+    Extension, Json,
 };
 use uuid::Uuid;
 
@@ -30,14 +30,14 @@ use uuid::Uuid;
         ("version" = Option<u32>, Path, description = "The version of the file to patch, if applicable"),
     ),
     responses(
-        (status = 204, description = "File was successfully patched"),
-        (status = 404, description = "File not found"),
-        (status = 412, description = "Precondition failed, likely due to missing or invalid Tus-Resumable header"),
-        (status = 400, description = "Bad request, missing or invalid headers"),
-        (status = 415, description = "Unsupported media type, Content-Type must be application/offset+octet-stream"),
+        (status = 204, body = ApiResponse<EmptyApiResponse>, description = "File was successfully patched"),
+        (status = 404, body = ApiResponse<EmptyApiResponse>, description = "File not found"),
+        (status = 412, body = ApiResponse<EmptyApiResponse>, description = "Precondition failed, likely due to missing or invalid Tus-Resumable header"),
+        (status = 400, body = ApiResponse<EmptyApiResponse>, description = "Bad request, missing or invalid headers"),
+        (status = 415, body = ApiResponse<EmptyApiResponse>, description = "Unsupported media type, Content-Type must be application/offset+octet-stream"),
         (status = 413, description = "File version size exceeded, the size of the file version exceeds the allowed limit",
             body = ApiResponse<FileVersionSizeExceededErrorBody>),
-        (status = 500, description = "Internal server error, unexpected error occurred while processing the request")
+        (status = 500, body = ApiResponse<EmptyApiResponse>, description = "Internal server error, unexpected error occurred while processing the request")
     )
 )]
 pub async fn file_versions_content_tus_patch(
@@ -66,7 +66,15 @@ pub async fn file_versions_content_tus_patch(
     {
         let mut response_headers = HeaderMap::new();
         response_headers.insert("Tus-Resumable", TUS_VERSION.parse().unwrap());
-        return Ok((StatusCode::PRECONDITION_FAILED, response_headers, ()));
+        return Ok((
+            StatusCode::PRECONDITION_FAILED,
+            response_headers,
+            Json(ApiResponse::<EmptyApiResponse> {
+                status: ApiResponseStatus::Error("GenericError".to_string()),
+                message: "Invalid Tus-Resumable header".to_string(),
+                data: None,
+            }),
+        ));
     };
 
     if request_headers
@@ -152,5 +160,13 @@ pub async fn file_versions_content_tus_patch(
         new_upload_offset.to_string().parse().unwrap(),
     );
 
-    Ok((StatusCode::NO_CONTENT, response_headers, ()))
+    Ok((
+        StatusCode::NO_CONTENT,
+        response_headers,
+        Json(ApiResponse {
+            status: ApiResponseStatus::Success {},
+            message: "Success".to_string(),
+            data: None,
+        }),
+    ))
 }
