@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-export SERVICE_NAME="filez-backend-app-images"
+export SERVICE_NAME="filez-apps-backend-images"
 
 export BAKE_ARGS="${BAKE_ARGS:-default} --allow=fs.read=/home/paul/projects/mows"
 

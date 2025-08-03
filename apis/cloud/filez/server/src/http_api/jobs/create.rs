@@ -25,11 +25,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn create_job(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateJobRequestBody>,
@@ -37,8 +33,7 @@ pub async fn create_job(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::FilezJob,
             None,
             AccessPolicyAction::FilezJobsCreate,
@@ -52,7 +47,7 @@ pub async fn create_job(
     let db_created_job = with_timing!(
         FilezJob::create(
             &database,
-            requesting_user.unwrap().id,
+            authentication_information.requesting_user.unwrap().id,
             request_body.app_id,
             request_body.name,
             request_body.execution_details,

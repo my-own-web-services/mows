@@ -672,14 +672,6 @@ impl Cluster {
                     "mows-core-auth-zitadel",
                 ),
                 (
-                    "file:///packages/core/storage/minio/operator",
-                    "mows-core-storage-minio-operator",
-                ),
-                (
-                    "file:///packages/core/storage/minio/tenant",
-                    "mows-core-storage-minio-tenant",
-                ),
-                (
                     "file:///packages/core/storage/filez",
                     "mows-core-storage-filez",
                 ),
@@ -759,21 +751,6 @@ impl Cluster {
         self.install_with_package_manager(
             "file:///packages/core/auth/zitadel/",
             "mows-core-auth-zitadel",
-            &CrdHandling::WithoutCrd,
-        )
-        .await?;
-
-        debug!("Installing Minio Operator");
-        self.install_with_package_manager(
-            "file:///packages/core/storage/minio/operator",
-            "mows-core-storage-minio-operator",
-            &CrdHandling::WithoutCrd,
-        )
-        .await?;
-        debug!("Installing Minio Tenant");
-        self.install_with_package_manager(
-            "file:///packages/core/storage/minio/tenant",
-            "mows-core-storage-minio-tenant",
             &CrdHandling::WithoutCrd,
         )
         .await?;

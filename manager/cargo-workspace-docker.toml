@@ -32,6 +32,7 @@ version = "1.1.2"
 
 [workspace.dependencies.futures]
 default-features = false
+features = ["default"]
 version = "0.3.31"
 
 [workspace.dependencies.gtmpl]

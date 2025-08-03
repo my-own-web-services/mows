@@ -19,7 +19,7 @@ use k8s_openapi::api::authentication::v1::TokenReview;
 use mows_common_rust::get_current_config_cloned;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 use tracing::debug;
 use url::Url;
 use utoipa::ToSchema;
@@ -81,14 +81,14 @@ pub struct MowsApp {
 #[diesel(sql_type = SmallInt)]
 #[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
 #[diesel_enum(error_type = InvalidEnumType)]
+#[serde(rename_all = "camelCase")]
 pub enum AppType {
-    #[serde(rename = "Frontend")]
     Frontend = 0,
-    #[serde(rename = "Backend")]
     Backend = 1,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct MowsAppConfig {
     pub description: Option<String>,
     pub trusted: bool,
@@ -342,5 +342,28 @@ impl MowsApp {
                 Ok(new_app)
             }
         }
+    }
+
+    pub async fn list(database: &Database) -> Result<Vec<MowsApp>, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let apps = crate::schema::apps::table
+            .select(MowsApp::as_select())
+            .load::<MowsApp>(&mut connection)
+            .await?;
+        Ok(apps)
+    }
+
+    pub async fn get_many_by_id(
+        database: &Database,
+        app_ids: &[Uuid],
+    ) -> Result<HashMap<Uuid, MowsApp>, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let apps = crate::schema::apps::table
+            .filter(crate::schema::apps::id.eq_any(app_ids))
+            .select(MowsApp::as_select())
+            .load::<MowsApp>(&mut connection)
+            .await?;
+        let app_map = apps.into_iter().map(|app| (app.id, app)).collect();
+        Ok(app_map)
     }
 }

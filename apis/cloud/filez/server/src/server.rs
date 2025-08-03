@@ -5,7 +5,7 @@ use filez_server_lib::{
     config::config,
     controller,
     database::Database,
-    http_api::{self, authentication::middleware::auth_middleware},
+    http_api::{self, authentication::middleware::authentication_middleware},
     models::apps::MowsApp,
     state::ServerState,
     types::FilezApiDoc,
@@ -101,6 +101,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(
             http_api::file_groups::update_members::update_file_group_members
         ))
+        // APPS
+        .routes(routes!(http_api::apps::get::get_apps))
+        .routes(routes!(http_api::apps::list::list_apps))
         // USERS
         .routes(routes!(http_api::users::get_own::get_own_user))
         .routes(routes!(http_api::users::get::get_users))
@@ -202,7 +205,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 ))
                 .layer(axum::middleware::from_fn_with_state(
                     server_state.clone(),
-                    auth_middleware,
+                    authentication_middleware,
                 )),
         )
         .split_for_parts();

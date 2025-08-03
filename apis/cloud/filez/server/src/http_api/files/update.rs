@@ -28,11 +28,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn update_file(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateFileRequestBody>,
@@ -40,8 +36,7 @@ pub async fn update_file(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::File,
             Some(&vec![request_body.file_id]),
             AccessPolicyAction::FilezFilesUpdate,

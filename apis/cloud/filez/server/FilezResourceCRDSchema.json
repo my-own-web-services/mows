@@ -25,8 +25,8 @@
     "AppType": {
       "type": "string",
       "enum": [
-        "Frontend",
-        "Backend"
+        "frontend",
+        "backend"
       ]
     },
     "FilezResourceSpec": {
@@ -71,11 +71,11 @@
     "MowsAppConfig": {
       "type": "object",
       "required": [
-        "app_type",
+        "appType",
         "trusted"
       ],
       "properties": {
-        "app_type": {
+        "appType": {
           "$ref": "#/definitions/AppType"
         },
         "description": {

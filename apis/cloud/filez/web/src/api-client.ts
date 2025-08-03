@@ -100,6 +100,11 @@ export enum FileGroupType {
   Dynamic = "Dynamic",
 }
 
+export enum AppType {
+  Frontend = "frontend",
+  Backend = "backend",
+}
+
 export enum AccessPolicySubjectType {
   User = "User",
   UserGroup = "UserGroup",
@@ -116,6 +121,7 @@ export enum AccessPolicyResourceType {
   AccessPolicy = "AccessPolicy",
   StorageQuota = "StorageQuota",
   FilezJob = "FilezJob",
+  App = "App",
 }
 
 export enum AccessPolicyEffect {
@@ -174,6 +180,8 @@ export enum AccessPolicyAction {
   FilezJobsDelete = "FilezJobsDelete",
   FilezJobsList = "FilezJobsList",
   FilezJobsPickup = "FilezJobsPickup",
+  FilezAppsGet = "FilezAppsGet",
+  FilezAppsList = "FilezAppsList",
 }
 
 export interface AccessPolicy {
@@ -352,6 +360,14 @@ export interface ApiResponseFileVersionSizeExceededErrorBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseGetAppsResponseBody {
+  data?: {
+    apps: Record<string, MowsApp>;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseGetFileVersionsResponseBody {
   data?: {
     versions: FileVersion[];
@@ -415,6 +431,14 @@ export interface ApiResponseHealthResBody {
 export interface ApiResponseListAccessPoliciesResponseBody {
   data?: {
     access_policies: AccessPolicy[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseListAppsResponseBody {
+  data?: {
+    apps: MowsApp[];
   };
   message: string;
   status: ApiResponseStatus;
@@ -732,6 +756,11 @@ export interface CreateFileVersionRequestBody {
   size: number;
   /** @format uuid */
   storage_quota_id: string;
+  /**
+   * @format int32
+   * @min 0
+   */
+  version?: number | null;
 }
 
 export interface CreateFileVersionResponseBody {
@@ -1004,6 +1033,10 @@ export interface FilezUser {
   user_type: FilezUserType;
 }
 
+export interface GetAppsResponseBody {
+  apps: Record<string, MowsApp>;
+}
+
 export interface GetFileVersionsRequestBody {
   versions: FileVersionIdentifier[];
 }
@@ -1135,6 +1168,7 @@ export interface JobTypeCreatePreview {
    * @min 0
    */
   file_version_number: number;
+  preview_config: object;
   /** @format uuid */
   storage_location_id: string;
   /** @format uuid */
@@ -1158,6 +1192,12 @@ export interface ListAccessPoliciesRequestBody {
 
 export interface ListAccessPoliciesResponseBody {
   access_policies: AccessPolicy[];
+}
+
+export type ListAppsRequestBody = object;
+
+export interface ListAppsResponseBody {
+  apps: MowsApp[];
 }
 
 export interface ListFileGroupsRequestBody {
@@ -1323,9 +1363,42 @@ export interface ListedFilezUser {
   id: string;
 }
 
-export interface PickupJobRequestBody {
-  app_runtime_instance_id: string;
+/**
+ * # Backend Apps
+ * Pods can authenticate as apps using their Kubernetes service account token
+ * Backend apps can act on behalf of users by picking up jobs created by users
+ * # Frontend Apps
+ * Frontend Apps are recognized by their origin that is sent with the browser request
+ * They can act on behalf of users if an access policy allows it
+ */
+export interface MowsApp {
+  app_type: AppType;
+  /** @format date-time */
+  created_time: string;
+  description?: string | null;
+  /**
+   * Unique identifier for the app in the database, this is used to identify the app in all database operations
+   * @format uuid
+   */
+  id: string;
+  /** @format date-time */
+  modified_time: string;
+  /**
+   * Name and Namespace of the app in Kubernetes
+   * Renaming an app in Kubernetes will not change the name in the database but create a new app with the new name
+   * Generally the name should not be changed, if it is it can be manually adjusted in the database
+   */
+  name: string;
+  /**
+   * Origins are used to identify the app in the browser, all origins must be unique across all apps
+   * If an app has no origins, it is considered a backend app
+   */
+  origins?: any[] | null;
+  /** If a app is marked as trusted, it can access all resources without any restrictions */
+  trusted: boolean;
 }
+
+export type PickupJobRequestBody = object;
 
 export interface PickupJobResponseBody {
   job?: null | FilezJob;
@@ -1870,6 +1943,41 @@ export class Api<
       }),
 
     /**
+     * @description Get apps from the server
+     *
+     * @name GetApps
+     * @request POST:/api/apps/get
+     */
+    getApps: (params: RequestParams = {}) =>
+      this.request<ApiResponseGetAppsResponseBody, ApiResponseEmptyApiResponse>(
+        {
+          path: `/api/apps/get`,
+          method: "POST",
+          format: "json",
+          ...params,
+        },
+      ),
+
+    /**
+     * @description List apps from the server
+     *
+     * @name ListApps
+     * @request POST:/api/apps/list
+     */
+    listApps: (data: ListAppsRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseListAppsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/apps/list`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * No description
      *
      * @name CreateFileGroup
@@ -2032,15 +2140,17 @@ export class Api<
      * No description
      *
      * @name FileVersionsContentTusHead
-     * @request HEAD:/api/file_versions/content/tus/{file_id}/{version}
+     * @request HEAD:/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}
      */
     fileVersionsContentTusHead: (
       fileId: string,
       version: number | null,
+      appId: string | null,
+      appPath: string | null,
       params: RequestParams = {},
     ) =>
       this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
-        path: `/api/file_versions/content/tus/${fileId}/${version}`,
+        path: `/api/file_versions/content/tus/${fileId}/${version}/${appId}/${appPath}`,
         method: "HEAD",
         format: "json",
         ...params,
@@ -2051,11 +2161,13 @@ export class Api<
      *
      * @tags FileVersion
      * @name FileVersionsContentTusPatch
-     * @request PATCH:/api/file_versions/content/tus/{file_id}/{version}
+     * @request PATCH:/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}
      */
     fileVersionsContentTusPatch: (
       fileId: string,
       version: number | null,
+      appId: string | null,
+      appPath: string | null,
       data: any,
       params: RequestParams = {},
     ) =>
@@ -2064,7 +2176,7 @@ export class Api<
         | ApiResponseEmptyApiResponse
         | ApiResponseFileVersionSizeExceededErrorBody
       >({
-        path: `/api/file_versions/content/tus/${fileId}/${version}`,
+        path: `/api/file_versions/content/tus/${fileId}/${version}/${appId}/${appPath}`,
         method: "PATCH",
         body: data,
         format: "json",

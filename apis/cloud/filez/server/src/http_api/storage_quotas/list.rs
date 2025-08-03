@@ -20,16 +20,12 @@ use utoipa::ToSchema;
     )
 )]
 pub async fn list_storage_quotas(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListStorageQuotasRequestBody>,
 ) -> Result<Json<ApiResponse<Vec<StorageQuota>>>, FilezError> {
-    let requesting_user = requesting_user.ok_or_else(|| {
+    let requesting_user = authentication_information.requesting_user.ok_or_else(|| {
         FilezError::Unauthorized("User must be authenticated to list storage quotas".to_string())
     })?;
 
@@ -37,7 +33,7 @@ pub async fn list_storage_quotas(
         StorageQuota::list_with_user_access(
             &database,
             &requesting_user.id,
-            &requesting_app,
+            &authentication_information.requesting_app,
             request_body.from_index,
             request_body.limit,
             request_body.sort_by,

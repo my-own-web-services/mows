@@ -20,14 +20,10 @@ spec:
                 app: {{ .Values.apps.backend.images.name }}
         spec:
             serviceAccountName: {{ .Values.apps.backend.images.name }}
-            {{- if .Values.apps.backend.images.localStorage.enabled }}
             volumes:
                 -   name: working-volume
                     emptyDir: 
                         sizeLimit: {{ .Values.apps.backend.images.workingVolume.sizeLimit }}
-                    persistentVolumeClaim:
-                        claimName: filez-default-storage
-            {{-  end }}
             containers:
                 -   name: {{ .Values.apps.backend.images.name }}
                     image: "{{ .Values.apps.backend.images.image }}"
@@ -51,3 +47,7 @@ spec:
                             value: /working
                         -   name: NO_WORK_WAIT_SECONDS
                             value: "10"
+                        -   name: TRACING_FILTER
+                            value: {{ .Values.apps.backend.images.tracing.filter | quote }}
+                        -   name: LOG_FILTER
+                            value: {{ .Values.apps.backend.images.log.filter | quote }}

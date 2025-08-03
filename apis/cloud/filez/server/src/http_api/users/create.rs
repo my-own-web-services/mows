@@ -24,11 +24,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn create_user(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateUserRequestBody>,
@@ -36,8 +32,7 @@ pub async fn create_user(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::User,
             None,
             AccessPolicyAction::UsersCreate,
@@ -49,13 +44,18 @@ pub async fn create_user(
     );
 
     let new_user = with_timing!(
-        FilezUser::create(&database, &request_body.email, &requesting_user.unwrap().id).await?,
+        FilezUser::create(
+            &database,
+            &request_body.email,
+            &authentication_information.requesting_user.unwrap().id
+        )
+        .await?,
         "Database operation to create user",
         timing
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "User created successfully".to_string(),
         data: Some(CreateUserResponseBody { id: new_user.id }),
     }))

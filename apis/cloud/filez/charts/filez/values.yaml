@@ -5,7 +5,7 @@ server:
     imagePullPolicy: Always
     name: filez-server
     replicaCount: 1
-    internalUrl: http://filez-server.mows-core-storage-filez:8080
+    internalUrl: http://filez-server.mows-core-storage-filez
     subdomain: filez-server
     localStorage:
         enabled: true
@@ -15,7 +15,8 @@ server:
     log:
         filter: |
             error,
-            filez-server=debug,
+            filez-server=trace,
+            filez_server_lib=trace,
             filez_server_lib::controller=error,
             zitadel=debug
     dev:
@@ -32,6 +33,12 @@ apps:
             replicaCount: 1
             workingVolume:
                 sizeLimit: 10Gi
+            dev:
+                autoUpdate: true
+            tracing:
+                filter: "trace,hyper=info,h2=info"
+            log:
+                filter: debug
 
 web:
     image: 192.168.112.5:5000/filez-web

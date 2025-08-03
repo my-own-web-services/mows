@@ -18,7 +18,66 @@ struct FunctionArgument {
 enum ParameterIn {
     Path,
     Query,
-    RequestBody,
+    RequestBody(BodyType),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum BodyType {
+    Json,
+    Binary,
+}
+
+pub fn generate_client_function(
+    path: &str,
+    method: &str,
+    operation: &Operation,
+) -> Result<String, ClientGeneratorError> {
+    let function_arguments: Vec<FunctionArgument> = parse_function_arguments(&operation)?;
+    let result_type = get_result_type(&operation.responses)?;
+
+    let function_top_line = format!(
+        "pub async fn {}(&self{} {}) -> Result<{}, ApiClientError> {{",
+        operation
+            .operation_id
+            .clone()
+            .ok_or(ClientGeneratorError::MissingOperationId)?,
+        if function_arguments.is_empty() {
+            "".to_string()
+        } else {
+            ",".to_string()
+        },
+        function_arguments_to_string(&function_arguments),
+        result_type
+    );
+
+    let optional_path_conversion = function_arguments_optional_conversion(&function_arguments);
+
+    let url_section = format!(
+        r#"let full_url = format!("{{}}{}", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap(){};"#,
+        path,
+        append_query_parameters(&function_arguments),
+    );
+
+    let request_section = format!(
+        r#"
+        let response = self.client.{method}(full_url).headers(self.add_auth_headers()?){}.send().await?{};"#,
+        append_body(&function_arguments),
+        if result_type == "reqwest::Response" {
+            ""
+        } else {
+            ".json().await?"
+        }
+    );
+
+    Ok(format!(
+        r#"{function_top_line}
+        {optional_path_conversion}
+        {url_section}
+        {request_section}
+        Ok(response)
+    }}"#
+    ))
 }
 
 fn function_arguments_to_string(function_arguments: &Vec<FunctionArgument>) -> String {
@@ -58,9 +117,14 @@ fn append_query_parameters(function_arguments: &Vec<FunctionArgument>) -> String
 fn append_body(function_arguments: &Vec<FunctionArgument>) -> String {
     if let Some(body_arg) = function_arguments
         .iter()
-        .find(|arg| arg.parameter_in == ParameterIn::RequestBody)
+        .find(|arg| arg.parameter_in == ParameterIn::RequestBody(BodyType::Json))
     {
         format!(r#".json(&{})"#, body_arg.name)
+    } else if let Some(body_arg) = function_arguments
+        .iter()
+        .find(|arg| arg.parameter_in == ParameterIn::RequestBody(BodyType::Binary))
+    {
+        format!(r#".body({})"#, body_arg.name)
     } else {
         "".to_string()
     }
@@ -84,6 +148,8 @@ fn get_result_type(responses: &Responses) -> Result<String, ClientGeneratorError
                             )?
                             .replace("_", ""));
                         }
+                    } else if content_type == "application/octet-stream" {
+                        return Ok("reqwest::Response".to_string());
                     }
                 }
             }
@@ -95,54 +161,6 @@ fn get_result_type(responses: &Responses) -> Result<String, ClientGeneratorError
         }
     }
     Ok("()".to_string())
-}
-
-pub fn generate_client_function(
-    path: &str,
-    method: &str,
-    operation: &Operation,
-) -> Result<String, ClientGeneratorError> {
-    let function_arguments: Vec<FunctionArgument> = parse_function_arguments(&operation)?;
-    let result_type = get_result_type(&operation.responses)?;
-
-    let function_top_line = format!(
-        "pub async fn {}(&self{} {}) -> Result<{}, ApiClientError> {{",
-        operation
-            .operation_id
-            .clone()
-            .ok_or(ClientGeneratorError::MissingOperationId)?,
-        if function_arguments.is_empty() {
-            "".to_string()
-        } else {
-            ",".to_string()
-        },
-        function_arguments_to_string(&function_arguments),
-        result_type
-    );
-
-    let optional_path_conversion = function_arguments_optional_conversion(&function_arguments);
-
-    let url_section = format!(
-        r#"let full_url = format!("{{}}{}", self.base_url);
-        let full_url = Url::parse(&full_url).unwrap(){};"#,
-        path,
-        append_query_parameters(&function_arguments),
-    );
-
-    let request_section = format!(
-        r#"
-        let response = self.client.{method}(full_url).headers(self.add_auth_headers()?){}.send().await?.json().await?;"#,
-        append_body(&function_arguments)
-    );
-
-    Ok(format!(
-        r#"{function_top_line}
-        {optional_path_conversion}
-        {url_section}
-        {request_section}
-        Ok(response)
-    }}"#
-    ))
 }
 
 fn parse_function_arguments(
@@ -198,9 +216,17 @@ fn parse_function_arguments(
                         name: "request_body".to_string(),
                         optional: false,
                         rust_type,
-                        parameter_in: ParameterIn::RequestBody,
+                        parameter_in: ParameterIn::RequestBody(BodyType::Json),
                     });
                 }
+            } else if media_type == "application/offset+octet-stream" {
+                // Handle binary data
+                parsed_arguments.push(FunctionArgument {
+                    name: "request_body".to_string(),
+                    optional: false,
+                    rust_type: "reqwest::Body".to_string(),
+                    parameter_in: ParameterIn::RequestBody(BodyType::Binary),
+                });
             }
         }
     }

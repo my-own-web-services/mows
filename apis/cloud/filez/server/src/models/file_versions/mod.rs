@@ -299,6 +299,7 @@ impl FileVersion {
     pub async fn create(
         database: &Database,
         file_id: Uuid,
+        version: Option<u32>,
         app_id: Uuid,
         app_path: Option<String>,
         mime_type: String,
@@ -311,17 +312,21 @@ impl FileVersion {
 
         let storage_id = StorageQuota::get_storage_location_id(database, &storage_quota_id).await?;
 
-        let version_number = file_versions::table
-            .filter(file_versions::file_id.eq(file_id))
-            .select(diesel::dsl::max(file_versions::version))
-            .first::<Option<i32>>(&mut connection)
-            .await?;
-
-        let new_version_number = version_number.map_or(0, |v| v + 1);
+        let version = match version {
+            Some(v) => v.try_into()?,
+            None => {
+                let version_number = file_versions::table
+                    .filter(file_versions::file_id.eq(file_id))
+                    .select(diesel::dsl::max(file_versions::version))
+                    .first::<Option<i32>>(&mut connection)
+                    .await?;
+                version_number.map_or(0, |v| v + 1)
+            }
+        };
 
         let new_file_version = FileVersion::new(
             file_id,
-            new_version_number,
+            version,
             app_id,
             app_path,
             mime_type,

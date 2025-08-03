@@ -43,13 +43,17 @@ edition = "2021"
 [lib]
 
 [dependencies]
-reqwest = {{  version = "0.12.22", features = ["json", "rustls-tls", "zstd"], default-features = false }}
+reqwest = {{  version = "0.12.22", features = ["json", "rustls-tls", "zstd", "stream"], default-features = false }}
 serde = {{ version = "1.0.219", features = ["derive"] }}
 serde_json = {{ version = "1.0.141" }}
 tokio = {{ version = "1.47.0", features = ["full"] }}
 uuid = {{ version = "1.17.0", features = ["serde", "v7"] }}
 chrono = {{ version = "0.4.41", features = ["serde"] }}
 thiserror = {{ version = "2.0.12" }}
+tokio-util = {{ version = "0.7", features = ["codec"] }}
+futures = "0.3"
+
+
 
 "#,
         );
@@ -60,6 +64,9 @@ thiserror = {{ version = "2.0.12" }}
     fn generate_and_write_lib_rs(&mut self) -> Result<(), ClientGeneratorError> {
         let lib_rs_content = r#"pub mod types;
 pub mod client;
+pub use reqwest;
+pub use tokio_util;
+pub use futures;
 "#;
         self.vfs.insert("src/lib.rs", lib_rs_content.to_string());
         Ok(())
@@ -95,6 +102,7 @@ pub struct ApiClient {{
     pub base_url: String,
     pub impersonate_user: Option<Uuid>,
     pub auth_method: Option<AuthMethod>,
+    pub runtime_instance_id: Option<String>,
 }}
 
 #[derive(Debug, Clone)]
@@ -120,10 +128,10 @@ pub enum ApiClientError {{
 }}
 
 impl ApiClient {{
-    pub fn new(base_url: String, auth_method: Option<AuthMethod>, impersonate_user: Option<Uuid>) -> Self {{
+    pub fn new(base_url: String, auth_method: Option<AuthMethod>, impersonate_user: Option<Uuid>, runtime_instance_id: Option<String>) -> Self {{
         let client = Client::new();
         let base_url = base_url.trim_end_matches('/').to_string();
-        Self {{ client, base_url, auth_method, impersonate_user }}
+        Self {{ client, base_url, auth_method, impersonate_user, runtime_instance_id }}
     }}
 
     fn add_auth_headers(&self) -> Result<HeaderMap, ApiClientError> {{
@@ -170,6 +178,13 @@ impl ApiClient {{
             headers.insert(
                 "X-Filez-Impersonate-User",
                 impersonate_user.to_string().parse()?,
+            );
+        }}
+
+        if let Some(runtime_instance_id) = &self.runtime_instance_id {{
+            headers.insert(
+                "X-Filez-Runtime-Instance-ID",
+                runtime_instance_id.parse()?,
             );
         }}
 

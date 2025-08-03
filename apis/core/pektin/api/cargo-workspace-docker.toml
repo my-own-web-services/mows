@@ -39,6 +39,11 @@ default-features = false
 features = ["default"]
 version = "0.11.8"
 
+[workspace.dependencies.futures]
+default-features = false
+features = ["default"]
+version = "0.3.31"
+
 [workspace.dependencies.gtmpl]
 default-features = false
 version = "0.7"
@@ -190,6 +195,7 @@ version = "2.5.4"
 
 [workspace.dependencies.utoipa]
 default-features = false
+features = ["default", "uuid", "chrono"]
 version = "5.4.0"
 
 [workspace.dependencies.vaultrs]

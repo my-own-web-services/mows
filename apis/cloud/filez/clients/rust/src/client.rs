@@ -11,6 +11,7 @@ pub struct ApiClient {
     pub base_url: String,
     pub impersonate_user: Option<Uuid>,
     pub auth_method: Option<AuthMethod>,
+    pub runtime_instance_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -36,10 +37,10 @@ pub enum ApiClientError {
 }
 
 impl ApiClient {
-    pub fn new(base_url: String, auth_method: Option<AuthMethod>, impersonate_user: Option<Uuid>) -> Self {
+    pub fn new(base_url: String, auth_method: Option<AuthMethod>, impersonate_user: Option<Uuid>, runtime_instance_id: Option<String>) -> Self {
         let client = Client::new();
         let base_url = base_url.trim_end_matches('/').to_string();
-        Self { client, base_url, auth_method, impersonate_user }
+        Self { client, base_url, auth_method, impersonate_user, runtime_instance_id }
     }
 
     fn add_auth_headers(&self) -> Result<HeaderMap, ApiClientError> {
@@ -86,6 +87,13 @@ impl ApiClient {
             headers.insert(
                 "X-Filez-Impersonate-User",
                 impersonate_user.to_string().parse()?,
+            );
+        }
+
+        if let Some(runtime_instance_id) = &self.runtime_instance_id {
+            headers.insert(
+                "X-Filez-Runtime-Instance-ID",
+                runtime_instance_id.parse()?,
             );
         }
 
@@ -145,6 +153,24 @@ impl ApiClient {
         let full_url = Url::parse(&full_url).unwrap();
         
         let response = self.client.put(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?.json().await?;
+        Ok(response)
+    }
+
+    pub async fn get_apps(&self ) -> Result<ApiResponseGetAppsResponseBody, ApiClientError> {
+        
+        let full_url = format!("{}/api/apps/get", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+        
+        let response = self.client.post(full_url).headers(self.add_auth_headers()?).send().await?.json().await?;
+        Ok(response)
+    }
+
+    pub async fn list_apps(&self, request_body: ListAppsRequestBody) -> Result<ApiResponseListAppsResponseBody, ApiClientError> {
+        
+        let full_url = format!("{}/api/apps/list", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+        
+        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?.json().await?;
         Ok(response)
     }
 
@@ -211,32 +237,36 @@ impl ApiClient {
         Ok(response)
     }
 
-    pub async fn get_file_version_content(&self, file_id: Uuid, version: Option<i64>, app_id: Option<String>, app_path: Option<String>, disposition: bool, cache: i64) -> Result<(), ApiClientError> {
+    pub async fn get_file_version_content(&self, file_id: Uuid, version: Option<u32>, app_id: Option<String>, app_path: Option<String>, disposition: bool, cache: u64) -> Result<reqwest::Response, ApiClientError> {
         let version = OptionAsNull(version);
         let app_id = OptionAsNull(app_id);
         let app_path = OptionAsNull(app_path);
         let full_url = format!("{}/api/file_versions/content/get/{file_id}/{version}/{app_id}/{app_path}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap().query_pairs_mut().append_pair("disposition", &disposition.to_string()).append_pair("cache", &cache.to_string()).finish().clone();
         
-        let response = self.client.get(full_url).headers(self.add_auth_headers()?).send().await?.json().await?;
+        let response = self.client.get(full_url).headers(self.add_auth_headers()?).send().await?;
         Ok(response)
     }
 
-    pub async fn file_versions_content_tus_head(&self, file_id: Uuid, version: Option<i64>) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    pub async fn file_versions_content_tus_patch(&self, file_id: Uuid, version: Option<u32>, app_id: Option<String>, app_path: Option<String>, request_body: reqwest::Body) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let version = OptionAsNull(version);
-        let full_url = format!("{}/api/file_versions/content/tus/{file_id}/{version}", self.base_url);
+        let app_id = OptionAsNull(app_id);
+        let app_path = OptionAsNull(app_path);
+        let full_url = format!("{}/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+        
+        let response = self.client.patch(full_url).headers(self.add_auth_headers()?).body(request_body).send().await?.json().await?;
+        Ok(response)
+    }
+
+    pub async fn file_versions_content_tus_head(&self, file_id: Uuid, version: Option<u32>, app_id: Option<String>, app_path: Option<String>) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        let version = OptionAsNull(version);
+        let app_id = OptionAsNull(app_id);
+        let app_path = OptionAsNull(app_path);
+        let full_url = format!("{}/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
         let response = self.client.head(full_url).headers(self.add_auth_headers()?).send().await?.json().await?;
-        Ok(response)
-    }
-
-    pub async fn file_versions_content_tus_patch(&self, file_id: Uuid, version: Option<i64>) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
-        let version = OptionAsNull(version);
-        let full_url = format!("{}/api/file_versions/content/tus/{file_id}/{version}", self.base_url);
-        let full_url = Url::parse(&full_url).unwrap();
-        
-        let response = self.client.patch(full_url).headers(self.add_auth_headers()?).send().await?.json().await?;
         Ok(response)
     }
 

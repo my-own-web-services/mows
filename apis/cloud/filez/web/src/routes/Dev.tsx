@@ -12,7 +12,7 @@ interface DevProps {
 
 interface DevState {}
 
-const tests = ["allround1", "tags", "storageQuota"];
+const tests = ["allround1", "tags", "storageQuota", "imageJob"];
 
 export default class Dev extends Component<DevProps, DevState> {
     constructor(props: DevProps) {

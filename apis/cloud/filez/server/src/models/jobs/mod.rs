@@ -14,6 +14,7 @@ use diesel::{
 use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
+use futures::FutureExt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -171,6 +172,7 @@ pub struct JobTypeCreatePreview {
     pub allowed_size_bytes: u64,
     pub allowed_number_of_previews: u32,
     pub allowed_mime_types: Vec<String>,
+    #[schema(value_type = Object)]
     pub preview_config: Value,
 }
 
@@ -312,6 +314,21 @@ impl FilezJob {
         Ok(job)
     }
 
+    pub async fn get_by_app_and_runtime_instance_id(
+        database: &Database,
+        app_id: &Uuid,
+        runtime_instance_id: &str,
+    ) -> Result<Option<FilezJob>, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let job = schema::jobs::table
+            .filter(schema::jobs::app_id.eq(app_id))
+            .filter(schema::jobs::assigned_app_runtime_instance_id.eq(runtime_instance_id))
+            .first::<FilezJob>(&mut connection)
+            .await
+            .optional()?;
+        Ok(job)
+    }
+
     pub async fn update(
         database: &Database,
         modified_job: &FilezJob,
@@ -326,9 +343,59 @@ impl FilezJob {
 
     pub async fn pickup(
         database: &Database,
-        app_id: Uuid,
-        app_runtime_instance_id: &str,
+        app: MowsApp,
+        app_runtime_instance_id: Option<String>,
     ) -> Result<Option<FilezJob>, FilezError> {
-        todo!("Implement job pickup logic");
+        let app_runtime_instance_id = app_runtime_instance_id.ok_or(FilezError::InvalidRequest(
+            "App runtime instance ID is required for job pickup".to_string(),
+        ))?;
+        if app.app_type != crate::models::apps::AppType::Backend {
+            return Err(FilezError::Unauthorized(
+                "Only backend apps can pick up jobs".to_string(),
+            ));
+        }
+
+        let mut connection = database.get_connection().await?;
+
+        let job_result = connection
+            .build_transaction()
+            .serializable()
+            .run(|connection| {
+                Box::pin(async move {
+                    let job = schema::jobs::table
+                        .filter(schema::jobs::app_id.eq(app.id))
+                        .filter(schema::jobs::assigned_app_runtime_instance_id.is_null())
+                        .filter(schema::jobs::status.eq(JobStatus::Created))
+                        .order(schema::jobs::created_time.asc())
+                        .for_update() // Lock the selected row(s).
+                        .first::<FilezJob>(connection)
+                        .await
+                        .optional()?;
+
+                    if let Some(mut job) = job {
+                        job.assigned_app_runtime_instance_id = Some(app_runtime_instance_id);
+                        job.app_instance_last_seen_time = Some(get_current_timestamp());
+                        job.status = JobStatus::InProgress;
+                        job.start_time = Some(get_current_timestamp());
+                        job.status_details =
+                            Some(JobStatusDetails::InProgress(JobStatusDetailsInProgress {
+                                message: "Job has been picked up and is now in progress"
+                                    .to_string(),
+                            }));
+
+                        let updated_job = diesel::update(schema::jobs::table.find(job.id))
+                            .set(&job)
+                            .get_result::<FilezJob>(connection)
+                            .await?;
+
+                        Ok(Some(updated_job))
+                    } else {
+                        Ok(None)
+                    }
+                })
+            })
+            .await;
+
+        job_result
     }
 }

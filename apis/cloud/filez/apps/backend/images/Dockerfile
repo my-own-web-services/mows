@@ -1,8 +1,8 @@
 ARG PROFILE="release"
-ARG SERVICE_NAME="filez-backend-app-images"
+ARG SERVICE_NAME="filez-apps-backend-images"
 ARG SERVICE_VERSION="0.1.0"
-ARG BINARY_NAME="filez-backend-app-images"
-ARG APP_STAGE_IMAGE="alpine"
+ARG BINARY_NAME="filez-apps-backend-images"
+ARG APP_STAGE_IMAGE="scratch"
 
 FROM scratch AS sources
 COPY --from=mows-common-rust . mows-common-rust
@@ -51,7 +51,6 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # build
 COPY --from=sources / /build/
 COPY src src
-COPY migrations migrations
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
@@ -70,9 +69,8 @@ FROM ${APP_STAGE_IMAGE}
 ARG SERVICE_NAME
 ARG SERVICE_VERSION
 ARG BINARY_NAME
-RUN apk update && apk add --no-cache perl darktable musl-locales musl-locales-lang
 WORKDIR /app
-COPY --from=builder /${BINARY_NAME} ./filez-backend-app-images
+COPY --from=builder /${BINARY_NAME} ./filez-apps-backend-images
 #COPY --from=builder /app/target/x86_64-unknown-linux-musl/debug/test_client ./test_client
 COPY --from=builder /etc/passwd /etc/passwd
 USER ${SERVICE_NAME}
@@ -80,5 +78,5 @@ ENV SERVICE_NAME=${SERVICE_NAME}
 ENV SERVICE_VERSION=${SERVICE_VERSION}
 STOPSIGNAL SIGTERM
 # run it 
-ENTRYPOINT ["./filez-backend-app-images"]
+ENTRYPOINT ["./filez-apps-backend-images"]
 

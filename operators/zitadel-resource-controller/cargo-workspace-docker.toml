@@ -195,6 +195,7 @@ version = "0.3.19"
 
 [workspace.dependencies.utoipa]
 default-features = false
+features = ["default", "uuid", "chrono"]
 version = "5.4.0"
 
 [workspace.dependencies.vaultrs]

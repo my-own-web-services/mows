@@ -24,10 +24,14 @@ use uuid::Uuid;
     description = "Patch a file version using the TUS protocol. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.",
     patch,
     request_body(content_type = "application/offset+octet-stream"),
-    path = "/api/file_versions/content/tus/{file_id}/{version}",
+    path = "/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to patch"),
-        ("version" = Option<u32>, Path, description = "The version of the file to patch, if applicable"),
+        ("version" = Option<u32>, Path, description = "The version of the file to patch"),
+        ("app_id" = Option<Uuid>, Path, description = "The ID of the application that uploaded the file, if left empty, the app id is the filez server itself"),
+        ("app_path" = Option<String>, Path),
+
+        ("Tus-Resumable" = String, Header, description = "The Tus protocol version.", example = "1.0.0")
     ),
     responses(
         (status = 204, body = ApiResponse<EmptyApiResponse>, description = "File was successfully patched"),
@@ -41,22 +45,26 @@ use uuid::Uuid;
     )
 )]
 pub async fn file_versions_content_tus_patch(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState {
         database,
         storage_location_providers,
         ..
     }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path((file_id, version)): Path<(Uuid, OptionalPath<u32>)>,
+    Path((file_id, version, app_id, app_path)): Path<(
+        Uuid,
+        OptionalPath<u32>,
+        OptionalPath<Uuid>,
+        OptionalPath<String>,
+    )>,
     request_headers: HeaderMap,
     request: Request,
 ) -> Result<impl IntoResponse, FilezError> {
     let version = version.into();
+    let app_id: Option<Uuid> = app_id.into();
+    let app_path: Option<String> = app_path.into();
+
     if request_headers
         .get("Tus-Resumable")
         .ok_or_else(|| FilezError::InvalidRequest("Missing Tus-Resumable header".to_string()))?
@@ -110,8 +118,7 @@ pub async fn file_versions_content_tus_patch(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::File,
             Some(&vec![file_id]),
             AccessPolicyAction::FilezFilesVersionsContentTusPatch,
@@ -123,7 +130,14 @@ pub async fn file_versions_content_tus_patch(
     );
 
     let file_version = with_timing!(
-        FileVersion::get(&database, &file_id, version, &Uuid::nil(), &None).await?,
+        FileVersion::get(
+            &database,
+            &file_id,
+            version,
+            &app_id.unwrap_or(Uuid::nil()),
+            &app_path
+        )
+        .await?,
         "Database operation to get file version",
         timing
     );

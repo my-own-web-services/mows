@@ -57,6 +57,11 @@ pub mod file_groups {
     pub mod update_members;
 }
 
+pub mod apps {
+    pub mod get;
+    pub mod list;
+}
+
 pub mod storage_quotas {
     pub mod create;
     pub mod delete;

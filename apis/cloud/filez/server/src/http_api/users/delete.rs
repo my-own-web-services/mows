@@ -24,11 +24,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn delete_user(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<DeleteUserRequestBody>,
@@ -46,8 +42,7 @@ pub async fn delete_user(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::User,
             Some(&[user_id]),
             AccessPolicyAction::UsersDelete,
@@ -63,7 +58,7 @@ pub async fn delete_user(
         timing
     );
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "User deleted successfully".to_string(),
         data: Some(DeleteUserResponseBody { user_id }),
     }))

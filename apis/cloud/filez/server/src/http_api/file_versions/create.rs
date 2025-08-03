@@ -31,11 +31,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn create_file_version(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileVersionRequestBody>,
@@ -47,8 +43,7 @@ pub async fn create_file_version(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::File,
             Some(&vec![request_body.file_id]),
             AccessPolicyAction::FilezFilesVersionsCreate,
@@ -62,7 +57,7 @@ pub async fn create_file_version(
     with_timing!(
         StorageQuota::check_quota(
             &database,
-            &requesting_user.unwrap().id,
+            &authentication_information.requesting_user.unwrap().id,
             &request_body.storage_quota_id,
             request_body.size.into()
         )
@@ -75,7 +70,8 @@ pub async fn create_file_version(
         FileVersion::create(
             &database,
             request_body.file_id,
-            requesting_app.id,
+            request_body.version,
+            authentication_information.requesting_app.id,
             request_body.app_path,
             request_body.mime_type,
             request_body.metadata,
@@ -104,6 +100,7 @@ pub async fn create_file_version(
 pub struct CreateFileVersionRequestBody {
     /// The ID of the file to create a version for.
     pub file_id: Uuid,
+    pub version: Option<u32>,
     pub app_path: Option<String>,
     pub mime_type: String,
     pub metadata: FileVersionMetadata,

@@ -27,11 +27,7 @@ use utoipa::ToSchema;
     )
 )]
 pub async fn create_file(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileRequestBody>,
@@ -39,11 +35,11 @@ pub async fn create_file(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::File,
             None,
             AccessPolicyAction::FilezFilesCreate,
+            
         )
         .await?
         .verify_allow_type_level()?,
@@ -61,7 +57,7 @@ pub async fn create_file(
     };
 
     let new_file = FilezFile::new(
-        &requesting_user.unwrap(),
+        &authentication_information.requesting_user.unwrap(),
         &mime_type,
         &request_body.file_name,
     )?;
@@ -78,7 +74,7 @@ pub async fn create_file(
     Ok((
         StatusCode::CREATED,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success{},
+            status: ApiResponseStatus::Success {},
             message: "Created File".to_string(),
             data: Some(CreateFileResponseBody {
                 created_file: db_created_file,

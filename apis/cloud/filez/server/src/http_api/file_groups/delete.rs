@@ -29,11 +29,7 @@ use crate::{
     )
 )]
 pub async fn delete_file_group(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(file_group_id): Path<Uuid>,
@@ -41,8 +37,7 @@ pub async fn delete_file_group(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::FileGroup,
             Some(&vec![file_group_id]),
             AccessPolicyAction::FileGroupsDelete,

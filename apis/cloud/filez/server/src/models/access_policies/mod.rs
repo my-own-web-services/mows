@@ -3,7 +3,10 @@ use super::{user_groups::UserGroup, users::FilezUser};
 use crate::{
     database::Database,
     errors::FilezError,
-    http_api::access_policies::list::ListAccessPoliciesSortBy,
+    http_api::{
+        access_policies::list::ListAccessPoliciesSortBy,
+        authentication::middleware::AuthenticationInformation,
+    },
     models::apps::MowsApp,
     schema::{self},
     types::SortDirection,
@@ -109,6 +112,7 @@ pub enum AccessPolicyResourceType {
     AccessPolicy = 5,
     StorageQuota = 6,
     FilezJob = 7,
+    App = 8,
 }
 
 #[derive(
@@ -196,6 +200,9 @@ pub enum AccessPolicyAction {
     FilezJobsDelete = 500,
     FilezJobsList = 510,
     FilezJobsPickup = 520,
+
+    FilezAppsGet = 530,
+    FilezAppsList = 540,
 }
 
 #[derive(
@@ -556,13 +563,12 @@ impl AccessPolicy {
 
     pub async fn check(
         database: &Database,
-        maybe_requesting_user: Option<&FilezUser>,
-        context_app: &MowsApp,
+        authentication_information: &AuthenticationInformation,
         resource_type: AccessPolicyResourceType,
         requested_resource_ids: Option<&[Uuid]>,
         action_to_perform: AccessPolicyAction,
     ) -> Result<AuthResult, FilezError> {
-        let maybe_user_group_ids = match maybe_requesting_user {
+        let maybe_user_group_ids = match &authentication_information.requesting_user {
             Some(requesting_user) => Some(
                 UserGroup::get_all_by_user_id(database, &requesting_user.id)
                     .await
@@ -573,9 +579,9 @@ impl AccessPolicy {
 
         check_resources_access_control(
             database,
-            maybe_requesting_user,
+            authentication_information.requesting_user.as_ref(),
             maybe_user_group_ids.as_ref(),
-            context_app,
+            &authentication_information.requesting_app,
             resource_type,
             requested_resource_ids,
             action_to_perform,

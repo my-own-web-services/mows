@@ -6,7 +6,9 @@ use toml::Value;
 
 extern crate toml;
 
-const MAX_DEPTH: usize = 3;
+const MAX_DEPTH: usize = 5;
+
+const EXCLUDE_DIRS: [&str; 1] = ["/mows/manager/temp/"];
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = std::env::args().collect();
@@ -132,8 +134,14 @@ fn process_workspace_recursive(
         return Ok(());
     }
 
+    
+
     let entries = fs::read_dir(dir)?;
+    println!("Processing directory: {}", dir.display());
     for entry in entries {
+        if EXCLUDE_DIRS.iter().any(|&ex| dir.to_str().unwrap_or("").contains(ex)) {
+            continue; // Skip excluded directories
+        }
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() {

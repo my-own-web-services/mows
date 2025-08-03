@@ -29,11 +29,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn update_file_versions(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateFileVersionsRequestBody>,
@@ -47,11 +43,11 @@ pub async fn update_file_versions(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::File,
             Some(&file_ids),
             AccessPolicyAction::FilezFilesVersionsUpdate,
+            
         )
         .await?
         .verify()?,
@@ -68,7 +64,7 @@ pub async fn update_file_versions(
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success{},
+            status: ApiResponseStatus::Success {},
             message: "Updated File Versions".to_string(),
             data: Some(UpdateFileVersionsResponseBody {
                 versions: updated_versions,
