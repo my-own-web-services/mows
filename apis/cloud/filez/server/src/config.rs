@@ -12,6 +12,8 @@ pub const KEY_ACCESS_HEADER_NAME: &str = "X-Filez-Key-Access";
 
 pub const SERVICE_ACCOUNT_TOKEN_HEADER_NAME: &str = "X-Service-Account-Token";
 
+pub const RUNTIME_INSTANCE_ID_HEADER_NAME: &str = "X-Filez-Runtime-Instance-ID";
+
 pub fn config() -> &'static RwLock<FilezServerConfig> {
     static CONFIG: OnceLock<RwLock<FilezServerConfig>> = OnceLock::new();
     CONFIG.get_or_init(|| RwLock::new(from_env().unwrap()))

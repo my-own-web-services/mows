@@ -24,11 +24,7 @@ use crate::{
     )
 )]
 pub async fn create_file_group(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateFileGroupRequestBody>,
@@ -36,8 +32,7 @@ pub async fn create_file_group(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::FileGroup,
             None,
             AccessPolicyAction::FileGroupsCreate,
@@ -49,7 +44,7 @@ pub async fn create_file_group(
     );
 
     let file_group = FileGroup::new(
-        &requesting_user.unwrap(),
+        &authentication_information.requesting_user.unwrap(),
         &request_body.name,
         request_body.group_type,
         request_body.dynamic_group_rule,
@@ -62,7 +57,7 @@ pub async fn create_file_group(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "File group created".to_string(),
         data: Some(file_group),
     }))

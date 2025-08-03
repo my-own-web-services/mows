@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
 use serde_json::Value;
-use utoipa::openapi::{
-    schema::{ArrayItems, SchemaType},
-    KnownFormat, RefOr, Schema, SchemaFormat, Type,
+use utoipa::{
+    openapi::{
+        schema::{ArrayItems, SchemaType},
+        KnownFormat, RefOr, Schema, SchemaFormat, Type,
+    },
+    Number,
 };
 
 use crate::openapi_client_generator::ClientGeneratorError;
@@ -17,6 +20,40 @@ fn string_format(format: &SchemaFormat) -> Result<String, ClientGeneratorError> 
         },
         SchemaFormat::Custom(_) => "PLACEHOLDER_CUSTOM_FORMAT".to_string(),
     })
+}
+
+fn int_format(format: &Option<SchemaFormat>, minimum: &Option<Number>) -> String {
+    match format {
+        Some(SchemaFormat::KnownFormat(KnownFormat::Int32)) => {
+            if minimum.is_some() {
+                "u32".to_string()
+            } else {
+                "i32".to_string()
+            }
+        }
+        Some(SchemaFormat::KnownFormat(KnownFormat::Int64)) => {
+            if minimum.is_some() {
+                "u64".to_string()
+            } else {
+                "i64".to_string()
+            }
+        }
+        Some(SchemaFormat::Custom(custom_format)) => {
+            format!("PLACEHOLDER_CUSTOM_FORMAT_{}", custom_format)
+        }
+        _ => "i64".to_string(),
+    }
+}
+
+fn float_format(format: &Option<SchemaFormat>) -> String {
+    match format {
+        Some(SchemaFormat::KnownFormat(KnownFormat::Float)) => "f32".to_string(),
+        Some(SchemaFormat::KnownFormat(KnownFormat::Double)) => "f64".to_string(),
+        Some(SchemaFormat::Custom(custom_format)) => {
+            format!("PLACEHOLDER_CUSTOM_FORMAT_{}", custom_format)
+        }
+        _ => "f64".to_string(),
+    }
 }
 
 fn schema_to_rust_type(
@@ -62,12 +99,8 @@ pub enum {name} {{
                 Some(format) => string_format(&format)?,
                 None => format!("String"),
             },
-            (SchemaType::Type(Type::Integer), _) => {
-                format!("i64")
-            }
-            (SchemaType::Type(Type::Number), _) => {
-                format!("f64")
-            }
+            (SchemaType::Type(Type::Integer), _) => int_format(&object.format, &object.minimum),
+            (SchemaType::Type(Type::Number), _) => float_format(&object.format),
             (SchemaType::Type(Type::Boolean), _) => {
                 format!("bool")
             }
@@ -83,13 +116,16 @@ pub enum {name} {{
                 if array.iter().any(|item| *item == Type::Null) {
                     let other_array_item = array.iter().find(|item| *item != &Type::Null);
 
-                    match other_array_item {
-                        Some(Type::String) => "Option<String>".to_string(),
-                        Some(Type::Integer) => "Option<i64>".to_string(),
-                        Some(Type::Number) => "Option<f64>".to_string(),
-                        Some(Type::Boolean) => "Option<bool>".to_string(),
+                    let inner_type = match other_array_item {
+                        Some(Type::String) => "String".to_string(),
+                        Some(Type::Integer) => int_format(&object.format, &object.minimum),
+
+                        Some(Type::Number) => float_format(&object.format),
+                        Some(Type::Boolean) => "bool".to_string(),
                         _ => "PLACEHOLDER_OTHER_ARRAY_ITEM".to_string(),
-                    }
+                    };
+
+                    format!("Option<{}>", inner_type)
                 } else {
                     "PLACEHOLDER_SCHEMA_ARRAY".to_string()
                 }
@@ -133,17 +169,7 @@ pub struct {struct_name} {{
                         .map(|field| field.replace("pub ", ""))
                         .collect::<Vec<_>>()
                         .join("\n    ");
-                    if fields.is_empty()
-                        && object
-                            .additional_properties
-                            .clone()
-                            .is_some_and(|ap| match *ap {
-                                utoipa::openapi::schema::AdditionalProperties::FreeForm(true) => {
-                                    true
-                                }
-                                _ => false,
-                            })
-                    {
+                    if fields.is_empty() {
                         return Ok("Value".to_string());
                     }
                     format!(

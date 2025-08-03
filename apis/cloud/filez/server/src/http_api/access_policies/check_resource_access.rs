@@ -24,11 +24,7 @@ use crate::{
     )
 )]
 pub async fn check_resource_access(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CheckResourceAccessRequestBody>,
@@ -36,8 +32,7 @@ pub async fn check_resource_access(
     let auth_result = with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             request_body.resource_type,
             request_body.resource_ids.as_deref(),
             request_body.action,

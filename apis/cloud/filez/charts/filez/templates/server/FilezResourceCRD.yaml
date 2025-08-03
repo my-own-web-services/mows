@@ -28,10 +28,10 @@ spec:
             properties:
               mowsApp:
                 properties:
-                  app_type:
+                  appType:
                     enum:
-                    - Frontend
-                    - Backend
+                    - frontend
+                    - backend
                     type: string
                   description:
                     nullable: true
@@ -44,7 +44,7 @@ spec:
                   trusted:
                     type: boolean
                 required:
-                - app_type
+                - appType
                 - trusted
                 type: object
               storageLocation:

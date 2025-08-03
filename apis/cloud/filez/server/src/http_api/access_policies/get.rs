@@ -26,11 +26,7 @@ use crate::{
     )
 )]
 pub async fn get_access_policy(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(access_policy_id): Path<Uuid>,
@@ -38,8 +34,7 @@ pub async fn get_access_policy(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::AccessPolicy,
             Some(&vec![access_policy_id]),
             AccessPolicyAction::AccessPoliciesGet,

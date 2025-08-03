@@ -27,11 +27,7 @@ use crate::{
     )
 )]
 pub async fn update_tags(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateTagsRequestBody>,
@@ -50,8 +46,7 @@ pub async fn update_tags(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             access_policy_type,
             Some(&request_body.resource_ids),
             AccessPolicyAction::TagsUpdate,
@@ -65,7 +60,7 @@ pub async fn update_tags(
     with_timing!(
         TagMember::update_tags(
             &database,
-            &requesting_user.unwrap().id,
+            &authentication_information.requesting_user.unwrap().id,
             &request_body.resource_ids,
             request_body.resource_type,
             request_body.update_tags

@@ -1,11 +1,13 @@
+use filez_apps_backend_images::config::config;
+use filez_apps_backend_images::handle_job;
 use filez_client::client::{ApiClient, AuthMethod};
 use filez_client::types::PickupJobRequestBody;
-use images::config::config;
 use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
     utils::generate_id,
 };
 use tracing::{error, info};
+
 #[tokio::main]
 async fn main() {
     let config = get_current_config_cloned!(config());
@@ -18,19 +20,22 @@ async fn main() {
         config.filez_server_url.to_string(),
         Some(AuthMethod::ServiceAccountTokenDefaultPath),
         None,
+        Some(runtime_instance_id.clone()),
     );
 
     loop {
-        match filez_client
-            .pickup_job(PickupJobRequestBody {
-                app_runtime_instance_id: runtime_instance_id.clone(),
-            })
-            .await
-        {
+        match filez_client.pickup_job(PickupJobRequestBody {}).await {
             Ok(job_response) => match job_response.data.job {
                 Some(job) => {
                     info!("Picked up job: {:?}", job);
-                    handle_job(job, &filez_client, &config).await;
+                    match handle_job(job, &filez_client).await {
+                        Ok(_) => {
+                            info!("Job completed successfully.");
+                        }
+                        Err(e) => {
+                            error!("Error handling job: {}", e);
+                        }
+                    }
                 }
                 None => {
                     info!("No job available at this time.");

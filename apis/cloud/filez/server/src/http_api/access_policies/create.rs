@@ -25,11 +25,7 @@ use crate::{
     )
 )]
 pub async fn create_access_policy(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateAccessPolicyRequestBody>,
@@ -37,8 +33,7 @@ pub async fn create_access_policy(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             request_body.resource_type,
             request_body
                 .resource_id
@@ -54,7 +49,7 @@ pub async fn create_access_policy(
 
     let access_policy = AccessPolicy::new(
         &request_body.name,
-        requesting_user.unwrap().id,
+        authentication_information.requesting_user.unwrap().id,
         request_body.subject_type,
         request_body.subject_id,
         request_body.context_app_ids,

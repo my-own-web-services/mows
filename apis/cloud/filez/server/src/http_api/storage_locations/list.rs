@@ -22,11 +22,7 @@ use utoipa::ToSchema;
     )
 )]
 pub async fn list_storage_locations(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListStorageLocationsRequestBody>,
@@ -34,8 +30,7 @@ pub async fn list_storage_locations(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::StorageLocation,
             None,
             AccessPolicyAction::StorageLocationsList,
@@ -53,7 +48,7 @@ pub async fn list_storage_locations(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "Storage locations listed".to_string(),
         data: Some(ListStorageLocationsResponseBody { storage_locations }),
     }))

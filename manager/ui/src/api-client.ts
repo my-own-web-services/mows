@@ -149,6 +149,8 @@ export interface ExternalProviderConfigMap {
 export type HealthResBody = object;
 
 export interface InternalIps {
+  /** @format Ipv6Addr */
+  ip: string;
   /** @format Ipv4Addr */
   legacy: string;
 }

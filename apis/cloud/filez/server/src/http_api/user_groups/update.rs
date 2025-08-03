@@ -28,11 +28,7 @@ use crate::{
     )
 )]
 pub async fn update_user_group(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateUserGroupRequestBody>,
@@ -40,8 +36,7 @@ pub async fn update_user_group(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::UserGroup,
             Some(&vec![request_body.user_group_id]),
             AccessPolicyAction::UserGroupsUpdate,

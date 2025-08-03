@@ -141,7 +141,8 @@ export default async (filezClient: Api<unknown>) => {
                 metadata: {},
                 size: aliceFileVersionContent.size,
                 storage_quota_id: alice_quota.id,
-                content_expected_sha256_digest: await getBlobSha256Digest(aliceFileVersionContent)
+                content_expected_sha256_digest: await getBlobSha256Digest(aliceFileVersionContent),
+                mime_type: "text/html"
             },
             impersonateAliceParams
         )
@@ -158,6 +159,8 @@ export default async (filezClient: Api<unknown>) => {
     const firstUpload = await filezClient.api.fileVersionsContentTusPatch(
         aliceFileResponse.created_file.id,
         aliceFileVersion.version.version,
+        null,
+        null,
         firstAliceFileVersionContent,
         {
             headers: {
@@ -182,6 +185,8 @@ export default async (filezClient: Api<unknown>) => {
     const secondUpload = await filezClient.api.fileVersionsContentTusPatch(
         aliceFileResponse.created_file.id,
         aliceFileVersion.version.version,
+        null,
+        null,
         secondAliceFileVersionContent,
         {
             headers: {
@@ -253,6 +258,8 @@ export default async (filezClient: Api<unknown>) => {
         .fileVersionsContentTusPatch(
             aliceFileResponse.created_file.id,
             aliceFileVersion.version.version,
+            null,
+            null,
             aliceUpdatedFileVersionContentTooBig,
             {
                 headers: {
@@ -284,6 +291,8 @@ export default async (filezClient: Api<unknown>) => {
         .fileVersionsContentTusPatch(
             aliceFileResponse.created_file.id,
             aliceFileVersion.version.version,
+            null,
+            null,
             aliceUpdatedFileVersionContent,
             {
                 headers: {

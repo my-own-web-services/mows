@@ -5,7 +5,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        files::FilezFile,
+        apps::MowsApp,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -18,26 +18,26 @@ use uuid::Uuid;
 
 #[utoipa::path(
     post,
-    path = "/api/files/get",
-    description = "Get files from the server",
+    path = "/api/apps/get",
+    description = "Get apps from the server",
     responses(
-        (status = 200, description = "Got files from the server", body = ApiResponse<GetFilesResponseBody>),
+        (status = 200, description = "Got apps from the server", body = ApiResponse<GetAppsResponseBody>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
-pub async fn get_files(
+pub async fn get_apps(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(request_body): Json<GetFilesRequestBody>,
+    Json(request_body): Json<GetAppsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
-            AccessPolicyResourceType::File,
-            Some(&request_body.file_ids),
-            AccessPolicyAction::FilezFilesGet,
+            AccessPolicyResourceType::App,
+            Some(&request_body.app_ids),
+            AccessPolicyAction::FilezAppsGet,
         )
         .await?
         .verify()?,
@@ -45,9 +45,9 @@ pub async fn get_files(
         timing
     );
 
-    let files = with_timing!(
-        FilezFile::get_many_by_id(&database, &request_body.file_ids).await?,
-        "Database operation to get file by ID",
+    let apps = with_timing!(
+        MowsApp::get_many_by_id(&database, &request_body.app_ids).await?,
+        "Database operation to get app by ID",
         timing
     );
 
@@ -55,17 +55,17 @@ pub async fn get_files(
         StatusCode::OK,
         Json(ApiResponse {
             status: ApiResponseStatus::Success {},
-            message: "Got Files".to_string(),
-            data: Some(GetFilesResponseBody { files }),
+            message: "Got Apps".to_string(),
+            data: Some(GetAppsResponseBody { apps }),
         }),
     ))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetFilesRequestBody {
-    pub file_ids: Vec<Uuid>,
+pub struct GetAppsRequestBody {
+    pub app_ids: Vec<Uuid>,
 }
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
-pub struct GetFilesResponseBody {
-    pub files: HashMap<Uuid, FilezFile>,
+pub struct GetAppsResponseBody {
+    pub apps: HashMap<Uuid, MowsApp>,
 }

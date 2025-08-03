@@ -27,11 +27,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn update_job(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateJobRequestBody>,
@@ -45,8 +41,7 @@ pub async fn update_job(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::FilezJob,
             Some(&[job.id]),
             AccessPolicyAction::FilezJobsUpdate,

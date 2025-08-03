@@ -25,11 +25,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn get_users(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetUsersReqBody>,
@@ -37,8 +33,7 @@ pub async fn get_users(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::User,
             Some(&request_body.user_ids),
             AccessPolicyAction::UsersGet,
@@ -69,7 +64,7 @@ pub async fn get_users(
     }
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "Successfully retrieved users".to_string(),
         data: Some(GetUsersResBody { users_meta }),
     }))

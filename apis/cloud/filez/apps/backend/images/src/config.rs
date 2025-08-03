@@ -19,13 +19,13 @@ pub struct ImagesConfig {
 pub fn from_env() -> anyhow::Result<ImagesConfig> {
     Ok(ImagesConfig {
         filez_server_url: load_env(
+            "http://filez-server.mows-core-storage-filez:80",
             "FILEZ_SERVER_URL",
-            "http://filez-server.mows-core-storage-filez:8080",
             false,
             true,
         )?
         .parse::<Url>()?,
-        working_directory: PathBuf::from(load_env("WORKING_DIRECTORY", "/working", false, true)?),
-        no_work_wait_seconds: load_env("NO_WORK_WAIT_SECONDS", "5", false, true)?.parse::<u64>()?,
+        working_directory: PathBuf::from(load_env("/working", "WORKING_DIRECTORY", false, true)?),
+        no_work_wait_seconds: load_env("5", "NO_WORK_WAIT_SECONDS", false, true)?.parse::<u64>()?,
     })
 }

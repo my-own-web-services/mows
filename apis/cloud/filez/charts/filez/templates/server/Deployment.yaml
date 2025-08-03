@@ -53,8 +53,6 @@ spec:
                             path: /api/health
                             port: 8080
                     env:
-                        -   name: RUST_LOG
-                            value: {{ .Values.server.rustLog }}
                         -   name: OIDC_CLIENT_ID
                             valueFrom:
                                 secretKeyRef:

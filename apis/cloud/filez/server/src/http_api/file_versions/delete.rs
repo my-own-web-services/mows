@@ -29,11 +29,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn delete_file_versions(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState {
         database,
         storage_location_providers,
@@ -47,8 +43,7 @@ pub async fn delete_file_versions(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::File,
             Some(&file_ids),
             AccessPolicyAction::FilezFilesVersionsDelete,
@@ -70,7 +65,7 @@ pub async fn delete_file_versions(
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
-            status: ApiResponseStatus::Success{},
+            status: ApiResponseStatus::Success {},
             message: "Deleted File Versions".to_string(),
             data: Some(DeleteFileVersionsResponseBody {
                 versions: request_body.versions,

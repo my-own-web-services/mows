@@ -20,11 +20,7 @@ use utoipa::ToSchema;
     )
 )]
 pub async fn list_users(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListUsersRequestBody>,
@@ -32,8 +28,8 @@ pub async fn list_users(
     let users = with_timing!(
         FilezUser::list_with_user_access(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            authentication_information.requesting_user.as_ref(),
+            &authentication_information.requesting_app,
             request_body.from_index,
             request_body.limit,
             request_body.sort_by,

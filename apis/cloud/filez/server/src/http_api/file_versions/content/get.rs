@@ -50,11 +50,7 @@ pub struct GetFileVersionContentQuery {
 )]
 #[axum::debug_handler]
 pub async fn get_file_version_content(
-    Extension(AuthenticationInformation {
-        requesting_user,
-        requesting_app,
-        ..
-    }): Extension<AuthenticationInformation>,
+    Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState {
         database,
         storage_location_providers,
@@ -77,8 +73,7 @@ pub async fn get_file_version_content(
     with_timing!(
         AccessPolicy::check(
             &database,
-            requesting_user.as_ref(),
-            &requesting_app,
+            &authentication_information,
             AccessPolicyResourceType::File,
             Some(&vec![file_id]),
             AccessPolicyAction::FilezFilesVersionsContentGet,

@@ -15,20 +15,14 @@ default-features = false
 features = ["default"]
 version = "1.0.98"
 
-[workspace.dependencies.axum]
-default-features = false
-features = ["ws", "tokio", "default"]
-version = "=0.8.4"
-
 [workspace.dependencies.data-encoding]
 default-features = false
 features = ["default"]
 version = "2.9.0"
 
-[workspace.dependencies.flate2]
+[workspace.dependencies.filez-client]
 default-features = false
-features = ["default"]
-version = "1.1.2"
+path = "./filez-client"
 
 [workspace.dependencies.futures]
 default-features = false
@@ -47,11 +41,6 @@ version = "0.5.0"
 default-features = false
 version = "0.5.1"
 
-[workspace.dependencies.include_dir]
-default-features = false
-features = ["default"]
-version = "0.7.3"
-
 [workspace.dependencies.k8s-openapi]
 default-features = false
 features = ["latest"]
@@ -62,14 +51,8 @@ default-features = false
 features = ["runtime", "derive", "default"]
 version = "=0.96.0"
 
-[workspace.dependencies.mime_guess]
-default-features = false
-features = ["default"]
-version = "2.0.5"
-
 [workspace.dependencies.mows-common-rust]
 default-features = false
-features = ["default"]
 path = "./mows-common-rust"
 
 [workspace.dependencies.opentelemetry]
@@ -107,24 +90,13 @@ default-features = false
 features = ["opentelemetry_0_28"]
 version = "0.5.7"
 
-[workspace.dependencies.schemars]
-default-features = false
-features = ["default"]
-version = "0.8.22"
-
 [workspace.dependencies.serde]
 default-features = false
-features = ["derive", "std"]
 version = "1.0.219"
 
 [workspace.dependencies.serde_json]
 default-features = false
-features = ["default"]
 version = "1.0.141"
-
-[workspace.dependencies.serde_variant]
-default-features = false
-version = "0.1.3"
 
 [workspace.dependencies.serde_yaml]
 default-features = false
@@ -137,7 +109,6 @@ version = "0.10.9"
 
 [workspace.dependencies.thiserror]
 default-features = false
-features = ["default"]
 version = "2.0.12"
 
 [workspace.dependencies.time]
@@ -147,27 +118,11 @@ version = "0.3.41"
 
 [workspace.dependencies.tokio]
 default-features = false
-features = ["full", "tracing"]
+features = ["full"]
 version = "1.45.0"
-
-[workspace.dependencies.tokio-tungstenite]
-default-features = false
-features = ["default"]
-version = "0.26.2"
-
-[workspace.dependencies.tower]
-default-features = false
-features = ["util", "timeout"]
-version = "0.5.2"
-
-[workspace.dependencies.tower-http]
-default-features = false
-features = ["fs", "cors", "add-extension", "trace"]
-version = "0.6.4"
 
 [workspace.dependencies.tracing]
 default-features = false
-features = ["default"]
 version = "0.1.40"
 
 [workspace.dependencies.tracing-opentelemetry]
@@ -187,17 +142,8 @@ version = "2.5.4"
 
 [workspace.dependencies.utoipa]
 default-features = false
-features = ["macros", "axum_extras"]
+features = ["default", "uuid", "chrono"]
 version = "5.4.0"
-
-[workspace.dependencies.utoipa-axum]
-default-features = false
-version = "0.2.0"
-
-[workspace.dependencies.utoipa-swagger-ui]
-default-features = false
-features = ["axum"]
-version = "9.0.2"
 
 [workspace.lints.clippy]
 cast_lossless = "deny"
