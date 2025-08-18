@@ -156,6 +156,10 @@ pub enum {name} {{
 
                     let struct_name = struct_name.replace('_', "");
 
+                    if struct_name == "EmptyApiResponse" {
+                        return Ok("pub type EmptyApiResponse=serde_json::Value;".to_string());
+                    }
+
                     format!(
                         r#"#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct {struct_name} {{

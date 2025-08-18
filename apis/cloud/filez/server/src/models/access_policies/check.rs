@@ -13,16 +13,18 @@ use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
+use tracing::trace;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+#[tracing::instrument(skip(database))]
 pub async fn check_resources_access_control(
     database: &Database,
     maybe_requesting_user: Option<&FilezUser>,
     maybe_user_group_ids: Option<&Vec<Uuid>>,
     context_app: &MowsApp,
     resource_type: AccessPolicyResourceType,
-    requested_resource_ids: Option<&[Uuid]>,
+    maybe_requested_resource_ids: Option<&[Uuid]>,
     action_to_perform: AccessPolicyAction,
 ) -> Result<AuthResult, FilezError> {
     let mut connection = database.get_connection().await?;
@@ -30,9 +32,18 @@ pub async fn check_resources_access_control(
 
     if let Some(requesting_user) = maybe_requesting_user {
         if requesting_user.user_type == FilezUserType::SuperAdmin {
+            trace!(
+                user_id = %requesting_user.id,
+                resource_type = ?resource_type,
+                action = ?action_to_perform,
+                "SuperAdmin user {} is requesting access to resource type {:?} with action {:?}",
+                requesting_user.id,
+                resource_type,
+                action_to_perform
+            );
             return Ok(AuthResult {
                 access_granted: true,
-                evaluations: match requested_resource_ids {
+                evaluations: match maybe_requested_resource_ids {
                     Some(ids) => ids
                         .iter()
                         .map(|&id| AuthEvaluation {
@@ -51,9 +62,13 @@ pub async fn check_resources_access_control(
         }
     }
 
-    match requested_resource_ids {
+    match maybe_requested_resource_ids {
         Some(requested_resource_ids) => {
             if requested_resource_ids.is_empty() {
+                trace!(
+                    "No resource IDs provided for access control check for resource type {:?}",
+                    resource_type
+                );
                 return Err(FilezError::AuthEvaluationError(
                     "No resource IDs provided for access control check".to_string(),
                 ));
@@ -76,15 +91,27 @@ pub async fn check_resources_access_control(
                         .load::<ResourceOwnerInfo>(&mut connection)
                         .await?;
 
+                trace!(
+                    resource_type = ?resource_type,
+                    requested_resource_ids = ?requested_resource_ids,
+                    "Fetched resource owners for resource type {:?}: {:?}",
+                    resource_type,
+                    resource_owners_vec
+                );
+
                 // if the app is trusted and all requested resources are owned by the requesting user, return early
+
+                let all_resources_owned_by_requesting_user = maybe_requesting_user
+                    .map(|user| resource_owners_vec.iter().all(|r| r.owner_id == user.id))
+                    .unwrap_or(false);
+
                 if context_app.trusted
                     && resource_owners_vec.len() == requested_resource_ids.len()
-                    && maybe_requesting_user.is_some_and(|requesting_user| {
-                        resource_owners_vec
-                            .iter()
-                            .all(|ro| ro.owner_id == requesting_user.id)
-                    })
+                    && all_resources_owned_by_requesting_user
                 {
+                    trace!(
+                        "All requested resources are owned by the requesting user and app is trusted. Granting access."
+                    );
                     return Ok(AuthResult {
                         access_granted: true,
                         evaluations: requested_resource_ids
@@ -96,6 +123,15 @@ pub async fn check_resources_access_control(
                             })
                             .collect(),
                     });
+                } else {
+                    trace!(
+                        context_app_trusted = context_app.trusted,
+                        resource_type = ?resource_type,
+                        requested_resource_ids = ?requested_resource_ids,
+                        resource_owners_vec = ?resource_owners_vec,
+                        all_resources_owned_by_requesting_user = all_resources_owned_by_requesting_user,
+                        "Not all requested resources are owned by the requesting user or app is not trusted. Continuing with access control check."
+                    );
                 }
 
                 resource_owners_vec
@@ -103,7 +139,10 @@ pub async fn check_resources_access_control(
                     .map(|r| (r.resource_id, r.owner_id))
                     .collect()
             } else {
-                // If no owner column is defined, we assume no ownership check is needed
+                trace!(
+                    "No owner column defined for resource type {:?}. Assuming no ownership check is needed.",
+                    resource_type
+                );
                 HashMap::new()
             };
 
@@ -123,6 +162,14 @@ pub async fn check_resources_access_control(
                 .select(AccessPolicy::as_select())
                 .load::<AccessPolicy>(&mut connection)
                 .await?;
+
+            trace!(
+                resource_type = ?resource_type,
+                direct_policies = ?direct_policies,
+                "Fetched direct access policies for resource type {:?}: {:?}",
+                resource_type,
+                direct_policies
+            );
 
             let mut direct_policies_map: HashMap<Uuid, Vec<AccessPolicy>> = HashMap::new();
             for policy in direct_policies {

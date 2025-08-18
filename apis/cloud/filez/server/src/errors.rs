@@ -9,6 +9,7 @@ use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::{Debug, Formatter};
+use tracing::instrument;
 use utoipa::ToSchema;
 
 impl serde::Serialize for FilezError {
@@ -136,6 +137,7 @@ pub struct StorageQuotaExceededBody {
 
 // TODO this can be improved
 impl IntoResponse for FilezError {
+    #[instrument]
     fn into_response(self) -> axum::response::Response {
         let (status, data, error_name) = match &self {
             FilezError::TryFromIntError(_) => (
@@ -320,7 +322,7 @@ impl IntoResponse for FilezError {
 
         let body: ApiResponse<Value> = ApiResponse {
             status: ApiResponseStatus::Error(error_name),
-            message: self.to_string(),
+            message: format!("{:?}", self),
             data,
         };
         (status, axum::Json(body)).into_response()

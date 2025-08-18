@@ -1,4 +1,5 @@
 use crate::controller::crd::SecretReadableByFilezController;
+use crate::errors::FilezError;
 use crate::http_api::health::HealthStatus;
 use crate::models::file_versions::ContentRange;
 use crate::{controller::crd::ValueOrSecretReference, storage::errors::StorageError};

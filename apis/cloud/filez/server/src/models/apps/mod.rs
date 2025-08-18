@@ -13,14 +13,14 @@ use diesel::{
     sql_types::SmallInt,
     ExpressionMethods, PgArrayExpressionMethods, Selectable, SelectableHelper,
 };
-use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
 use k8s_openapi::api::authentication::v1::TokenReview;
 use mows_common_rust::get_current_config_cloned;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
-use tracing::debug;
+use tracing::trace;
+use tracing::{debug, span};
 use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -137,6 +137,8 @@ impl MowsApp {
     }
 
     pub async fn delete(database: &Database, name: &str) -> Result<(), FilezError> {
+        use diesel_async::RunQueryDsl;
+
         let mut connection = database.get_connection().await?;
         diesel::delete(crate::schema::apps::table)
             .filter(crate::schema::apps::name.eq(name))
@@ -145,7 +147,10 @@ impl MowsApp {
 
         Ok(())
     }
+
     pub async fn create_filez_server_app(database: &Database) -> Result<MowsApp, FilezError> {
+        use diesel_async::RunQueryDsl;
+
         let app_id = Uuid::nil();
         let mut connection = database.get_connection().await?;
         let existing_app = crate::schema::apps::table
@@ -180,6 +185,7 @@ impl MowsApp {
         }
     }
 
+    #[tracing::instrument(skip(database))]
     pub async fn get_from_headers(
         database: &Database,
         request_headers: &axum::http::HeaderMap,
@@ -196,6 +202,7 @@ impl MowsApp {
                 .map(|s| s.to_string())
             {
                 Some(token) => {
+                    trace!("Verifying Kubernetes service account token: {}", token);
                     Self::verify_kubernetes_service_account_token(database, &token).await
                 }
                 None => Ok(MowsApp::no_origin()),
@@ -203,6 +210,7 @@ impl MowsApp {
         }
     }
 
+    #[tracing::instrument(skip(database))]
     async fn verify_kubernetes_service_account_token(
         database: &Database,
         token: &str,
@@ -221,28 +229,50 @@ impl MowsApp {
             },
             status: None,
         };
-        let response = token_review_api
+        let token_review_response = token_review_api
             .create(&kube::api::PostParams::default(), &token_review)
             .await?;
 
-        if let Some(user) = response.status.and_then(|s| s.user) {
-            debug!(
-                "Kubernetes service account token verified for user: {:?}",
-                user.username
-            );
+        trace!(
+            token_review_response = ?token_review_response,
+            "Kubernetes service account token review response",
+        );
 
-            let username = user.username.ok_or(FilezError::Unauthorized(
-                "Invalid service account token".to_string(),
-            ))?;
+        if let Some(username) = token_review_response
+            .status
+            .and_then(|s| s.user)
+            .and_then(|u| u.username)
+        {
             let mut connection = database.get_connection().await?;
 
+            use diesel_async::RunQueryDsl;
+
+            let service_account_username = username
+                .replace("system:serviceaccount:", "")
+                .replace(":", "-");
+
+            trace!(
+                service_account_username,
+                "Looking up app by kubernetes service account username: {}",
+                service_account_username
+            );
+
             let app = crate::schema::apps::table
-                .filter(crate::schema::apps::name.eq(username))
+                .filter(crate::schema::apps::name.eq(&service_account_username))
                 .select(MowsApp::as_select())
                 .first::<MowsApp>(&mut connection)
                 .await?;
 
+            trace!(
+                "Found app by kubernetes service account username: {:?}",
+                app,
+            );
+
             if app.origins.is_some() || app.app_type != AppType::Backend {
+                trace!(
+                    "Service account token is for a frontend app: {:?}, rejecting",
+                    app
+                );
                 return Err(FilezError::Unauthorized(
                     "Service account token cannot be used for frontend apps".to_string(),
                 ));
@@ -250,6 +280,7 @@ impl MowsApp {
 
             Ok(app)
         } else {
+            trace!("Kubernetes service account token review failed, no user found");
             Err(FilezError::Unauthorized(
                 "Invalid service account token".to_string(),
             ))
@@ -278,6 +309,8 @@ impl MowsApp {
         database: &Database,
         origin: &Url,
     ) -> Result<MowsApp, FilezError> {
+        use diesel_async::RunQueryDsl;
+
         debug!("Getting app by origin from database: {}", origin);
 
         let mut connection = database.get_connection().await?;
@@ -296,6 +329,8 @@ impl MowsApp {
         app_config: &MowsAppConfig,
         full_name: &str,
     ) -> Result<MowsApp, FilezError> {
+        use diesel_async::RunQueryDsl;
+
         let mut connection = database.get_connection().await?;
 
         let existing_app = crate::schema::apps::table
@@ -345,6 +380,8 @@ impl MowsApp {
     }
 
     pub async fn list(database: &Database) -> Result<Vec<MowsApp>, FilezError> {
+        use diesel_async::RunQueryDsl;
+
         let mut connection = database.get_connection().await?;
         let apps = crate::schema::apps::table
             .select(MowsApp::as_select())
@@ -357,6 +394,8 @@ impl MowsApp {
         database: &Database,
         app_ids: &[Uuid],
     ) -> Result<HashMap<Uuid, MowsApp>, FilezError> {
+        use diesel_async::RunQueryDsl;
+
         let mut connection = database.get_connection().await?;
         let apps = crate::schema::apps::table
             .filter(crate::schema::apps::id.eq_any(app_ids))

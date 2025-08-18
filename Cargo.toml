@@ -50,7 +50,7 @@ zitadel = { path = "./utils/zitadel-rust", default-features = false }
 mows-package-manager = { path = "./operators/mows-package-manager", default-features = false }
 acme-rs = { path = "./apis/core/pektin/acme-rs", default-features = false }
 diesel-enum = { path = "./utils/diesel-enum", default-features = false }
-filez-client = { path = "./apis/cloud/filez/clients/rust", default-features = false }
+filez-server-client = { path = "./apis/cloud/filez/clients/rust", default-features = false }
 
 
 utoipa-swagger-ui = { version = "9.0.2", default-features = false }

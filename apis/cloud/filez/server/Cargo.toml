@@ -1,6 +1,6 @@
 [package]
 name = "filez-server"
-version = "0.420.0"
+version = "0.1.0"
 edition = "2021"
 publish = false
 
@@ -58,6 +58,7 @@ tower-http = { workspace = true, features = [
     "compression-full",
     "decompression-full",
     "set-header",
+    "trace",
 ] }
 
 mime_guess = { workspace = true, features = ["default"] }
@@ -122,6 +123,4 @@ tokio-util = { version = "0.7.15", features = ["default"] }
 argon2 = "0.5.3"
 openidconnect = { workspace = true, features = ["default"] }
 tower = { workspace = true }
-
-[build-dependencies]
-utoipa-config = "0.1.2"
+thiserror-context = "0.1.2"

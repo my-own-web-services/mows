@@ -8,18 +8,22 @@ name = "filez-apps-backend-images"
 path = "src/main.rs"
 
 [dependencies]
-filez-client = { workspace = true }
+filez-server-client = { workspace = true }
 
 tokio = { workspace = true, features = ["full"] }
-mows-common-rust = { workspace = true }
+mows-common-rust = { workspace = true, features = ["default"] }
 url = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-tracing = { workspace = true }
-image = { version = "0.25.6", features = ["default"] }
+
+tracing = { workspace = true, features = ["default"] }
+
+image = { version = "0.25.6", features = ["default", "serde"] }
 rawler = "0.7.0"
+uuid.workspace = true
+thiserror-context = "0.1.2"
 
 
 [lints]

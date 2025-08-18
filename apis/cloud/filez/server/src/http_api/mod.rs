@@ -84,8 +84,11 @@ pub mod jobs {
     pub mod delete;
     pub mod get;
     pub mod list;
-    pub mod pickup;
     pub mod update;
+    pub mod apps {
+        pub mod pickup;
+        pub mod update_status;
+    }
 }
 
 pub mod authentication;

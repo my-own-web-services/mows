@@ -11,6 +11,8 @@ use url::Url;
 use utoipa::ToSchema;
 use uuid::Timestamp;
 
+use crate::errors::FilezError;
+
 pub fn get_uuid() -> uuid::Uuid {
     let ts = Timestamp::now(uuid::NoContext);
     uuid::Uuid::new_v7(ts)
@@ -106,14 +108,34 @@ pub async fn is_dev_origin(config: &crate::config::FilezServerConfig, origin: &U
     return None;
 }
 
-pub fn safe_parse_mime_type(mime_type: &str) -> HeaderValue {
-    let unsafe_mime_types = vec!["text/javascript", "text/css", "text/html", "text/xml"];
+#[tracing::instrument]
+pub fn safe_parse_mime_type(
+    file_mime_type: &str,
+    file_version_mime_type: &str,
+    app_path: &Option<String>,
+) -> Result<HeaderValue, FilezError> {
+    let mime_type_to_use = match app_path {
+        Some(_) => file_version_mime_type,
+        None => {
+            if file_mime_type != file_version_mime_type {
+                return Err(FilezError::GenericError(anyhow::anyhow!(
+                    "File and file version MIME types do not match while file version app_path is None: {} != {}",
+                    file_mime_type,
+                    file_version_mime_type
+                )));
+            } else {
+                file_mime_type
+            }
+        }
+    };
 
-    if unsafe_mime_types.contains(&mime_type) {
+    let unsafe_mime_types = vec!["text/javascript", "text/css", "text/html"];
+
+    Ok(if unsafe_mime_types.contains(&mime_type_to_use) {
         HeaderValue::from_static("text/plain")
     } else {
-        mime_type.parse::<HeaderValue>().unwrap()
-    }
+        mime_type_to_use.parse::<HeaderValue>().unwrap()
+    })
 }
 
 /// A "fake" Option type that can be deserialized from a URL path.

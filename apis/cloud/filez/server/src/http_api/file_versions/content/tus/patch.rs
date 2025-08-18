@@ -24,11 +24,10 @@ use uuid::Uuid;
     description = "Patch a file version using the TUS protocol. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.",
     patch,
     request_body(content_type = "application/offset+octet-stream"),
-    path = "/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}",
+    path = "/api/file_versions/content/tus/{file_id}/{version}/{app_path}",
     params(
         ("file_id" = Uuid, Path, description = "The ID of the file to patch"),
         ("version" = Option<u32>, Path, description = "The version of the file to patch"),
-        ("app_id" = Option<Uuid>, Path, description = "The ID of the application that uploaded the file, if left empty, the app id is the filez server itself"),
         ("app_path" = Option<String>, Path),
 
         ("Tus-Resumable" = String, Header, description = "The Tus protocol version.", example = "1.0.0")
@@ -52,17 +51,11 @@ pub async fn file_versions_content_tus_patch(
         ..
     }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path((file_id, version, app_id, app_path)): Path<(
-        Uuid,
-        OptionalPath<u32>,
-        OptionalPath<Uuid>,
-        OptionalPath<String>,
-    )>,
+    Path((file_id, version, app_path)): Path<(Uuid, OptionalPath<u32>, OptionalPath<String>)>,
     request_headers: HeaderMap,
     request: Request,
 ) -> Result<impl IntoResponse, FilezError> {
     let version = version.into();
-    let app_id: Option<Uuid> = app_id.into();
     let app_path: Option<String> = app_path.into();
 
     if request_headers
@@ -134,7 +127,7 @@ pub async fn file_versions_content_tus_patch(
             &database,
             &file_id,
             version,
-            &app_id.unwrap_or(Uuid::nil()),
+            &authentication_information.requesting_app.id,
             &app_path
         )
         .await?,
@@ -175,7 +168,7 @@ pub async fn file_versions_content_tus_patch(
     );
 
     Ok((
-        StatusCode::NO_CONTENT,
+        StatusCode::OK,
         response_headers,
         Json(ApiResponse {
             status: ApiResponseStatus::Success {},

@@ -6,7 +6,7 @@ ARG APP_STAGE_IMAGE="scratch"
 
 FROM scratch AS sources
 COPY --from=mows-common-rust . mows-common-rust
-COPY --from=filez-client . filez-client
+COPY --from=filez-server-client . filez-server-client
 COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 

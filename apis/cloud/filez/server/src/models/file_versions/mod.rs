@@ -24,19 +24,21 @@ use super::{files::FilezFile, storage_locations::StorageLocation, storage_quotas
 
 #[macro_export]
 macro_rules! filter_file_version_by_identifier {
-    ($file_version:expr) => {
+    ($file_version:expr) => {{
+        let version: i32 = $file_version.version.try_into()?;
+
         file_versions::table
             .filter(file_versions::file_id.eq($file_version.file_id))
-            .filter(file_versions::version.eq($file_version.version))
+            .filter(file_versions::version.eq(version))
             .filter(file_versions::app_id.eq($file_version.app_id))
             .filter(file_versions::app_path.eq(&$file_version.app_path))
-    };
+    }};
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct FileVersionIdentifier {
     pub file_id: Uuid,
-    pub version: i32,
+    pub version: u32,
     pub app_id: Uuid,
     pub app_path: String,
 }
@@ -169,13 +171,13 @@ impl FileVersion {
         Ok(file_version)
     }
 
-    fn get_file_version_identifier(&self) -> FileVersionIdentifier {
-        FileVersionIdentifier {
+    fn get_file_version_identifier(&self) -> Result<FileVersionIdentifier, FilezError> {
+        Ok(FileVersionIdentifier {
             file_id: self.file_id,
-            version: self.version,
+            version: self.version.try_into()?,
             app_id: self.app_id,
             app_path: self.app_path.clone(),
-        }
+        })
     }
 
     pub async fn get_content(
@@ -190,7 +192,7 @@ impl FileVersion {
         let content = storage_location
             .get_content(
                 storage_locations_provider_state,
-                &self.get_file_version_identifier(),
+                &self.get_file_version_identifier()?,
                 timing,
                 range,
             )
@@ -210,7 +212,7 @@ impl FileVersion {
         let size = storage_location
             .get_file_size(
                 storage_locations_provider_state,
-                &self.get_file_version_identifier(),
+                &self.get_file_version_identifier()?,
                 timing,
             )
             .await?;
@@ -239,7 +241,7 @@ impl FileVersion {
         storage_location
             .set_content(
                 storage_locations_provider_state,
-                &self.get_file_version_identifier(),
+                &self.get_file_version_identifier()?,
                 timing,
                 request,
                 &file.mime_type,
@@ -266,7 +268,7 @@ impl FileVersion {
                 let content_digest = storage_location
                     .get_content_sha256_digest(
                         storage_locations_provider_state,
-                        &self.get_file_version_identifier(),
+                        &self.get_file_version_identifier()?,
                         timing,
                     )
                     .await?;
@@ -278,13 +280,15 @@ impl FileVersion {
 
                 if &content_digest == expected_sha256_digest {
                     let mut connection = database.get_connection().await?;
-                    diesel::update(filter_file_version_by_identifier!(self))
-                        .set((
-                            file_versions::content_valid.eq(true),
-                            file_versions::modified_time.eq(get_current_timestamp()),
-                        ))
-                        .execute(&mut connection)
-                        .await?;
+                    diesel::update(filter_file_version_by_identifier!(
+                        self.get_file_version_identifier()?
+                    ))
+                    .set((
+                        file_versions::content_valid.eq(true),
+                        file_versions::modified_time.eq(get_current_timestamp()),
+                    ))
+                    .execute(&mut connection)
+                    .await?;
                 } else {
                     return Err(FilezError::FileVersionContentDigestMismatch {
                         expected: expected_sha256_digest.clone(),
@@ -406,7 +410,7 @@ impl FileVersion {
         storage_location
             .delete_content(
                 storage_locations_provider_state,
-                &self.get_file_version_identifier(),
+                &self.get_file_version_identifier()?,
                 timing,
             )
             .await?;
