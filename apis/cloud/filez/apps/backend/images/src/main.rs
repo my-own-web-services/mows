@@ -1,39 +1,60 @@
 use filez_apps_backend_images::config::config;
 use filez_apps_backend_images::handle_job;
-use filez_client::client::{ApiClient, AuthMethod};
-use filez_client::types::PickupJobRequestBody;
-use mows_common_rust::{
-    config::common_config, get_current_config_cloned, observability::init_observability,
-    utils::generate_id,
+use filez_server_client::client::{ApiClient, AuthMethod};
+use filez_server_client::types::{
+    JobStatus, JobStatusDetails, JobStatusDetailsFailed, PickupJobRequestBody,
+    UpdateJobStatusRequestBody,
 };
-use tracing::{error, info};
+use mows_common_rust::{
+    get_current_config_cloned, observability::init_observability, utils::generate_id,
+};
+use tracing::{error, info, instrument};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let config = get_current_config_cloned!(config());
-    let _common_config = get_current_config_cloned!(common_config(true));
     init_observability().await;
 
     let runtime_instance_id = generate_id(20);
 
-    let filez_client = ApiClient::new(
+    let filez_server_client = ApiClient::new(
         config.filez_server_url.to_string(),
         Some(AuthMethod::ServiceAccountTokenDefaultPath),
         None,
         Some(runtime_instance_id.clone()),
-    );
+    )?;
 
     loop {
-        match filez_client.pickup_job(PickupJobRequestBody {}).await {
+        match filez_server_client
+            .pickup_job(PickupJobRequestBody {})
+            .await
+        {
             Ok(job_response) => match job_response.data.job {
                 Some(job) => {
                     info!("Picked up job: {:?}", job);
-                    match handle_job(job, &filez_client).await {
+                    match handle_job(job, &filez_server_client).await {
                         Ok(_) => {
                             info!("Job completed successfully.");
+                            filez_server_client
+                                .update_job_status(UpdateJobStatusRequestBody {
+                                    new_status: JobStatus::Completed,
+                                    new_status_details: None,
+                                })
+                                .await?;
                         }
                         Err(e) => {
-                            error!("Error handling job: {}", e);
+                            error!("Error handling job: {:?}", e);
+                            filez_server_client
+                                .update_job_status(UpdateJobStatusRequestBody {
+                                    new_status: JobStatus::Failed,
+                                    new_status_details: Some(JobStatusDetails::Failed(
+                                        JobStatusDetailsFailed {
+                                            message: e.to_string(),
+                                            error: Some(e.to_string()),
+                                        },
+                                    )),
+                                })
+                                .await?;
                         }
                     }
                 }

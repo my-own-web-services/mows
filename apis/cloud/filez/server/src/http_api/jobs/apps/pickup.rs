@@ -8,12 +8,12 @@ use crate::{
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
-use tracing::trace;
+use tracing::{debug, trace};
 use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
-    path = "/api/jobs/pickup",
+    path = "/api/jobs/apps/pickup",
     request_body = PickupJobRequestBody,
     description = "Pickup a job from the server",
     responses(
@@ -30,6 +30,14 @@ pub async fn pickup_job(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(_request_body): Json<PickupJobRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
+    trace!(
+        requesting_app = ?requesting_app,
+        requesting_app_runtime_instance_id = ?requesting_app_runtime_instance_id,
+        "Received request to pickup job by app: {:?} with runtime instance ID: {:?}",
+        requesting_app,
+        requesting_app_runtime_instance_id
+    );
+
     let job = with_timing!(
         FilezJob::pickup(
             &database,
@@ -42,6 +50,9 @@ pub async fn pickup_job(
     );
 
     trace!(
+        job = ?job,
+        requesting_app = ?requesting_app,
+        requesting_app_runtime_instance_id = ?requesting_app_runtime_instance_id,
         "Job picked up: {:?} by app: {:?} with runtime instance ID: {:?}",
         job,
         requesting_app,

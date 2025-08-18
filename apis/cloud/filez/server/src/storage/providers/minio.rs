@@ -1,6 +1,7 @@
 use crate::controller::crd::SecretReadableByFilezController;
 use crate::http_api::health::HealthStatus;
 use crate::models::file_versions::ContentRange;
+use crate::storage::errors::InnerStorageError;
 use crate::{controller::crd::ValueOrSecretReference, storage::errors::StorageError, with_timing};
 use anyhow::Context;
 use axum::body::Body;
@@ -234,10 +235,11 @@ impl StorageProviderMinio {
             Err(e) => {
                 if e.to_string().contains("NoSuchKey") {
                     if offset != 0 {
-                        return Err(StorageError::OffsetMismatch {
+                        return Err(InnerStorageError::OffsetMismatch {
                             expected: offset,
                             calculated: 0,
-                        });
+                        }
+                        .into());
                     }
 
                     let new_content_stream = request

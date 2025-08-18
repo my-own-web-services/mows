@@ -11,14 +11,13 @@ server:
         enabled: true
         size: 10Gi
     tracing:
-        filter: "trace,hyper=info,h2=info"
+        filter: "trace,hyper=info,h2=info,tokio-postgres=info,kube-client=info,tower=info,rustls=info"
     log:
         filter: |
             error,
             filez-server=trace,
             filez_server_lib=trace,
             filez_server_lib::controller=error,
-            zitadel=debug
     dev:
         enabled: true
         allowedCorsOrigins: "http://localhost:5174,http://localhost:5173"
@@ -38,7 +37,7 @@ apps:
             tracing:
                 filter: "trace,hyper=info,h2=info"
             log:
-                filter: debug
+                filter: info,filez-apps-backend-images=trace
 
 web:
     image: 192.168.112.5:5000/filez-web

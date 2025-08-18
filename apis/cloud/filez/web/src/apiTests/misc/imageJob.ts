@@ -79,7 +79,7 @@ export default async (filezClient: Api<unknown>) => {
         }
     };
 
-    const aliceFileResponse = (
+    const aliceFile = (
         await filezClient.api.createFile(
             {
                 file_name: "test-image-job.jpg",
@@ -89,11 +89,11 @@ export default async (filezClient: Api<unknown>) => {
         )
     ).data?.data;
 
-    if (!aliceFileResponse) {
+    if (!aliceFile) {
         throw new Error("Failed to create file for Alice.");
     }
 
-    console.log(`Created file for Alice: ${aliceFileResponse.created_file.id}`);
+    console.log(`Created file for Alice: ${aliceFile.created_file.id}`);
 
     const image_response = await fetch(
         "https://upload.wikimedia.org/wikipedia/commons/0/00/El_Gato.jpg"
@@ -102,7 +102,7 @@ export default async (filezClient: Api<unknown>) => {
     const aliceFileVersion = (
         await filezClient.api.createFileVersion(
             {
-                file_id: aliceFileResponse.created_file.id,
+                file_id: aliceFile.created_file.id,
                 mime_type: "image/jpeg",
                 metadata: {},
                 size: parseInt(image_response.headers.get("content-length") || "0"),
@@ -119,9 +119,8 @@ export default async (filezClient: Api<unknown>) => {
     const blob = await image_response.blob();
 
     const uploadFileRes = await filezClient.api.fileVersionsContentTusPatch(
-        aliceFileResponse.created_file.id,
+        aliceFile.created_file.id,
         aliceFileVersion.version,
-        null,
         null,
         blob,
         {
@@ -142,16 +141,16 @@ export default async (filezClient: Api<unknown>) => {
             execution_details: {
                 job_type: {
                     CreatePreview: {
-                        allowed_mime_types: ["image/jpeg", "image/png", "image/webp", "image/avif"],
-                        file_id: aliceFileResponse.created_file.id,
-                        allowed_number_of_previews: 10,
+                        allowed_mime_types: ["image/avif"],
+                        file_id: aliceFile.created_file.id,
+                        allowed_number_of_previews: 2,
                         allowed_size_bytes: 10_000_000,
                         file_version_number: aliceFileVersion.version,
                         storage_location_id: storage_location_id,
                         storage_quota_id: alice_quota.id,
                         preview_config: {
-                            widths: [100, 250, 500, 1000],
-                            formats: ["Jpeg", "Avif"]
+                            widths: [100, 250],
+                            formats: ["Avif"]
                         }
                     }
                 }
@@ -159,4 +158,58 @@ export default async (filezClient: Api<unknown>) => {
         },
         impersonateAliceParams
     );
+
+    //  wait for the job to complete
+    const jobId = job.data?.data?.created_job.id;
+    if (!jobId) {
+        throw new Error("Failed to create job for image processing.");
+    }
+    console.log(`Created job for image processing: ${jobId}`);
+
+    let successfullyCompleted = false;
+
+    loop1: for (let i = 0; i < 10; i++) {
+        const content = await filezClient.api
+            .getFileVersionContent(
+                aliceFile.created_file.id,
+                aliceFileVersion.version,
+                imageApp.id,
+                "250.avif",
+                undefined,
+                impersonateAliceParams
+            )
+            .catch((error) => {
+                if (error?.status !== 404) {
+                    throw new Error(`Failed to get file version content: ${error.message}`);
+                }
+                console.warn(`Attempt ${i + 1}: File version content not found, retrying...`);
+                return null; // If the file is not found, return null
+            });
+
+        if (content) {
+            console.log(`File version content retrieved successfully`);
+            successfullyCompleted = true;
+
+            await filezClient.api.getFileVersions(
+                {
+                    versions: [
+                        {
+                            app_id: imageApp.id,
+                            file_id: aliceFile.created_file.id,
+                            version: aliceFileVersion.version,
+                            app_path: "250.avif"
+                        }
+                    ]
+                },
+                impersonateAliceParams
+            );
+
+            break loop1;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+    if (!successfullyCompleted) {
+        throw new Error("Failed to retrieve file version content after 10 attempts.");
+    }
+    console.log("File version content retrieved successfully");
 };

@@ -165,7 +165,11 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(http_api::jobs::update::update_job))
         .routes(routes!(http_api::jobs::delete::delete_job))
         .routes(routes!(http_api::jobs::list::list_jobs))
-        .routes(routes!(http_api::jobs::pickup::pickup_job))
+        // for apps
+        .routes(routes!(http_api::jobs::apps::pickup::pickup_job))
+        .routes(routes!(
+            http_api::jobs::apps::update_status::update_job_status
+        ))
         // HEALTH
         .routes(routes!(http_api::health::get_health))
         .with_state(server_state.clone())

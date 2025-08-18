@@ -1,19 +1,26 @@
 use std::path::{Path, PathBuf};
 
-use crate::{config::config, errors::ImageError};
-use filez_client::{
+use crate::{
+    config::config,
+    errors::{ImageError, InnerImageError},
+};
+use filez_server_client::{
     client::ApiClient,
     futures::StreamExt,
     reqwest::Body,
     tokio_util::codec::{BytesCodec, FramedRead},
     types::{
-        CreateFileVersionRequestBody, FileVersionMetadata, FilezJob, JobType, JobTypeCreatePreview,
+        CreateFileVersionRequestBody, FileVersion, FileVersionIdentifier, FileVersionMetadata,
+        FilezJob, GetFileVersionsRequestBody, JobType, JobTypeCreatePreview,
     },
 };
-use image::ImageReader;
+use image::{imageops::FilterType, ImageFormat, ImageReader};
 use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
+use thiserror_context::Context;
 use tokio::io::AsyncWriteExt;
+use tracing::{instrument, trace};
+use uuid::Uuid;
 
 pub mod config;
 pub mod errors;
@@ -40,20 +47,13 @@ impl ImagePreviewConfig {
 pub struct DeepZoomImageConfig {}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub enum ImageFormat {
-    Jpeg,
-    Png,
-    Webp,
-    Avif,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct PreviewFile {
     pub path: PathBuf,
     pub mime_type: String,
     pub app_path: String,
 }
 
+#[instrument]
 pub async fn handle_job(job: FilezJob, filez_client: &ApiClient) -> Result<(), ImageError> {
     match job.execution_information.job_type {
         JobType::CreatePreview(create_preview_infos) => {
@@ -63,13 +63,14 @@ pub async fn handle_job(job: FilezJob, filez_client: &ApiClient) -> Result<(), I
             create_previews(preview_config, &create_preview_infos, filez_client).await
         }
         _ => {
-            return Err(ImageError::UnsupportedJobType(
-                job.execution_information.job_type,
-            ));
+            return Err(
+                InnerImageError::UnsupportedJobType(job.execution_information.job_type).into(),
+            );
         }
     }
 }
 
+#[instrument]
 async fn create_previews(
     image_preview_config: ImagePreviewConfig,
     job_execution_information: &JobTypeCreatePreview,
@@ -91,6 +92,20 @@ async fn create_previews(
         .join(&job_execution_information.file_version_number.to_string())
         .join("target");
 
+    let file_version = filez_client
+        .get_file_versions(GetFileVersionsRequestBody {
+            versions: vec![FileVersionIdentifier {
+                file_id: job_execution_information.file_id,
+                version: job_execution_information.file_version_number,
+                app_id: Uuid::nil(),
+                app_path: "".to_string(),
+            }],
+        })
+        .await
+        .context("Failed to get file versions")?;
+
+    trace!("File version information: {:?}", file_version);
+
     let mut stream = filez_client
         .get_file_version_content(
             job_execution_information.file_id,
@@ -100,7 +115,8 @@ async fn create_previews(
             false,
             0,
         )
-        .await?
+        .await
+        .context("Failed to get file version content")?
         .bytes_stream();
 
     // write the file by streaming it to the source path
@@ -113,14 +129,28 @@ async fn create_previews(
 
     // Create target directory if it does not exist
     if !target_path.exists() {
-        tokio::fs::create_dir_all(&target_path).await?;
+        tokio::fs::create_dir_all(&target_path)
+            .await
+            .context("Failed to create parent full directory")?;
     }
 
-    let preview_files =
-        create_basic_versions(&source_path, &target_path, &image_preview_config).await?;
+    let preview_files = create_basic_versions(
+        &source_path,
+        &target_path,
+        &image_preview_config,
+        file_version
+            .data
+            .versions
+            .first()
+            .ok_or(InnerImageError::GenericError(anyhow::anyhow!(
+                "No file version found in response"
+            )))?,
+    )
+    .await?;
 
     // Upload the created preview files
     for preview_file in preview_files.iter() {
+        trace!("Creating file version for: {:?}", preview_file.app_path);
         filez_client
             .create_file_version(CreateFileVersionRequestBody {
                 file_id: job_execution_information.file_id,
@@ -129,15 +159,18 @@ async fn create_previews(
                 mime_type: preview_file.mime_type.clone(),
                 content_expected_sha256_digest: None,
                 size: std::fs::metadata(&preview_file.path)
-                    .map_err(|e| ImageError::IoError(e.into()))?
+                    .map_err(|e| InnerImageError::IoError(e.into()))?
                     .len(),
                 storage_quota_id: job_execution_information.storage_quota_id,
                 metadata: FileVersionMetadata {},
             })
-            .await?;
+            .await
+            .context("Failed to create file version")?;
     }
 
     for preview_file in preview_files.iter() {
+        trace!("Uploading content for: {:?}", preview_file.app_path);
+
         let file = tokio::fs::File::open(&preview_file.path).await?;
 
         let stream = FramedRead::new(file, BytesCodec::new());
@@ -149,57 +182,69 @@ async fn create_previews(
                 job_execution_information.file_id,
                 Some(job_execution_information.file_version_number),
                 Some(preview_file.app_path.clone()),
-                Some(preview_file.app_path.clone()),
                 body,
+                0,
+                std::fs::metadata(&preview_file.path)
+                    .map_err(|e| InnerImageError::IoError(e.into()))?
+                    .len(),
             )
-            .await?;
+            .await
+            .context("Failed to upload to file version")?;
     }
 
     Ok(())
 }
 
+#[instrument]
 async fn create_basic_versions(
     source_path: &PathBuf,
     target_path: &PathBuf,
     config: &ImagePreviewConfig,
+    file_version: &FileVersion,
 ) -> Result<Vec<PreviewFile>, ImageError> {
     let mut preview_files = Vec::new();
     let file_handle = std::fs::File::open(source_path)?;
     let buffered_reader = std::io::BufReader::new(file_handle);
-    let image = ImageReader::new(buffered_reader)
-        .with_guessed_format()?
-        .decode()?;
+    trace!("Opening image file: {:?}", source_path);
+    let mut image_reader = ImageReader::new(buffered_reader);
+    image_reader.set_format(
+        ImageFormat::from_mime_type(file_version.mime_type.as_str()).ok_or(
+            InnerImageError::UnsupportedImageFormat(file_version.mime_type.clone()),
+        )?,
+    );
+    let image = image_reader.decode()?;
 
     for width in &config.widths {
         for format in &config.formats {
-            let resized_image = image.resize(
-                *width,
-                image.height(),
-                image::imageops::FilterType::Lanczos3,
-            );
-            let file_name = format!(
-                "{}.{}",
+            let height = (width * image.height() / image.width()) as u32;
+            let resized_image = image.resize(*width, height, FilterType::Lanczos3);
+            let file_name = format!("{}.{}", width, format.extensions_str()[0]);
+            trace!(
+                "Resizing image to width: {}, height: {}, format: {:?}, file_name: {}",
                 width,
-                match format {
-                    ImageFormat::Jpeg => "jpg",
-                    ImageFormat::Png => "png",
-                    ImageFormat::Webp => "webp",
-                    ImageFormat::Avif => "avif",
-                }
+                height,
+                format,
+                file_name,
             );
 
             let target_file_path = target_path.join(&file_name);
-            resized_image.save(&target_file_path)?;
-            preview_files.push(PreviewFile {
-                path: target_file_path,
-                mime_type: match format {
-                    ImageFormat::Jpeg => "image/jpeg".to_string(),
-                    ImageFormat::Png => "image/png".to_string(),
-                    ImageFormat::Webp => "image/webp".to_string(),
-                    ImageFormat::Avif => "image/avif".to_string(),
-                },
+
+            trace!("Target file path for resized image: {:?}", target_file_path);
+
+            resized_image.save_with_format(&target_file_path, *format)?;
+
+            let preview_file = PreviewFile {
+                path: target_file_path.clone(),
+                mime_type: format.to_mime_type().to_string(),
                 app_path: file_name,
-            });
+            };
+
+            trace!(
+                preview_file = ?preview_file,
+                "Created preview file: {:?}", target_file_path
+            );
+
+            preview_files.push(preview_file);
         }
     }
 

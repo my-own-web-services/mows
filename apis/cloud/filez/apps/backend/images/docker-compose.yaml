@@ -7,7 +7,7 @@ services:
                 - ${REGISTRY:-localhost:5000}/${SERVICE_NAME}
             additional_contexts:
                 mows-common-rust: ../../../../../../utils/mows-common-rust
-                filez-client: ../../../clients/rust
+                filez-server-client: ../../../clients/rust
                 lock: ../../../../../../
             args:
                 - PROFILE=dev # dev or release

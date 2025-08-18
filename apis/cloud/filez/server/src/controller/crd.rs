@@ -1,7 +1,7 @@
 use crate::{
     errors::FilezError,
     models::{apps::MowsAppConfig, storage_locations::StorageLocationConfigCrd},
-    storage::errors::StorageError,
+    storage::errors::{InnerStorageError, StorageError},
 };
 use k8s_openapi::api::core::v1::Secret;
 use kube::CustomResource;
@@ -106,7 +106,7 @@ impl ValueOrSecretReference {
             ValueOrSecretReference::Secret(filez_secrets) => secret_map
                 .get(filez_secrets)
                 .cloned()
-                .ok_or_else(|| StorageError::SecretNotFound(filez_secrets.clone())),
+                .ok_or_else(|| InnerStorageError::SecretNotFound(filez_secrets.clone()).into()),
         }
     }
 }

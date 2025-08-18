@@ -561,6 +561,7 @@ impl AccessPolicy {
         Ok(())
     }
 
+    #[tracing::instrument(skip(database))]
     pub async fn check(
         database: &Database,
         authentication_information: &AuthenticationInformation,

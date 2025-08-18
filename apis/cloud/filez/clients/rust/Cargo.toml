@@ -1,6 +1,6 @@
 [package]
-name = "filez-client"
-version = "1.0.0"
+name = "filez-server-client"
+version = "0.0.1"
 edition = "2021"
 
 [lib]
@@ -15,6 +15,6 @@ chrono = { version = "0.4.41", features = ["serde"] }
 thiserror = { version = "2.0.12" }
 tokio-util = { version = "0.7", features = ["codec"] }
 futures = "0.3"
-
-
-
+reqwest-tracing = { version = "0.5.7", features = ["opentelemetry_0_28"] }
+reqwest-middleware = { version = "0.4.0", features = ["json", "rustls-tls"] }
+tracing= { version = "0.1.40", features = ["default"] }

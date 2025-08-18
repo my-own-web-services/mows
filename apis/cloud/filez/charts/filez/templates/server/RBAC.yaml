@@ -15,6 +15,9 @@ rules:
     resources: ["secrets"]
     verbs: ["get"]
     resourceNames: ["secret-readable-by-filez-controller"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get"]
 
 
 

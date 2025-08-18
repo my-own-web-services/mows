@@ -107,7 +107,11 @@ pub async fn get_file_version_content(
     let mut response_headers = HeaderMap::new();
     response_headers.insert(
         header::CONTENT_TYPE,
-        safe_parse_mime_type(&file_meta.mime_type),
+        safe_parse_mime_type(
+            &file_meta.mime_type,
+            &file_version_meta.mime_type,
+            &app_path,
+        )?,
     );
 
     if disposition.unwrap_or(false) {

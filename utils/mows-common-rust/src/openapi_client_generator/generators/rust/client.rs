@@ -19,6 +19,8 @@ enum ParameterIn {
     Path,
     Query,
     RequestBody(BodyType),
+    /// Header name and optional constant value
+    Header((String, Option<String>)),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,7 +38,8 @@ pub fn generate_client_function(
     let result_type = get_result_type(&operation.responses)?;
 
     let function_top_line = format!(
-        "pub async fn {}(&self{} {}) -> Result<{}, ApiClientError> {{",
+        "#[tracing::instrument]
+pub async fn {}(&self{} {}) -> Result<{}, ApiClientError> {{",
         operation
             .operation_id
             .clone()
@@ -61,12 +64,19 @@ pub fn generate_client_function(
 
     let request_section = format!(
         r#"
-        let response = self.client.{method}(full_url).headers(self.add_auth_headers()?){}.send().await?{};"#,
+        let response = self.client.{method}(full_url){}.headers(self.add_auth_headers()?){}.send().await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {{
+            return Err(ApiClientError::ApiError(response.text().await?));
+        }}
+            
+        {}"#,
+        append_headers(&function_arguments),
         append_body(&function_arguments),
         if result_type == "reqwest::Response" {
             ""
         } else {
-            ".json().await?"
+            "let response = response.json().await?;"
         }
     );
 
@@ -83,6 +93,10 @@ pub fn generate_client_function(
 fn function_arguments_to_string(function_arguments: &Vec<FunctionArgument>) -> String {
     function_arguments
         .iter()
+        .filter(|arg| match arg.parameter_in {
+            ParameterIn::Header((_, Some(_))) => false,
+            _ => true,
+        })
         .map(|arg| format!("{}: {}", arg.name, arg.rust_type))
         .collect::<Vec<_>>()
         .join(", ")
@@ -95,6 +109,27 @@ fn function_arguments_optional_conversion(function_arguments: &Vec<FunctionArgum
         .map(|arg| format!(r#"let {} = OptionAsNull({});"#, arg.name, arg.name))
         .collect::<Vec<_>>()
         .join("\n        ")
+}
+
+fn append_headers(function_arguments: &Vec<FunctionArgument>) -> String {
+    let headers: Vec<String> = function_arguments
+        .iter()
+        .map(|arg| match &arg.parameter_in {
+            ParameterIn::Header((header_name, Some(header_constant))) => {
+                format!(r#".header("{}", "{}")"#, header_name, header_constant)
+            }
+            ParameterIn::Header((header_name, None)) => {
+                format!(r#".header("{}", {})"#, header_name, arg.name)
+            }
+            _ => "".to_string(),
+        })
+        .collect();
+
+    if headers.is_empty() {
+        "".to_string()
+    } else {
+        headers.join("")
+    }
 }
 
 fn append_query_parameters(function_arguments: &Vec<FunctionArgument>) -> String {
@@ -226,6 +261,38 @@ fn parse_function_arguments(
                     optional: false,
                     rust_type: "reqwest::Body".to_string(),
                     parameter_in: ParameterIn::RequestBody(BodyType::Binary),
+                });
+                parsed_arguments.push(FunctionArgument {
+                    name: "upload_offset".to_string(),
+                    optional: false,
+                    rust_type: "u64".to_string(),
+                    parameter_in: ParameterIn::Header(("Upload-Offset".to_string(), None)),
+                });
+                parsed_arguments.push(FunctionArgument {
+                    name: "content_length".to_string(),
+                    optional: false,
+                    rust_type: "u64".to_string(),
+                    parameter_in: ParameterIn::Header(("Content-Length".to_string(), None)),
+                });
+
+                parsed_arguments.push(FunctionArgument {
+                    name: "Tus-Resumable".to_string(),
+                    optional: false,
+                    rust_type: "String".to_string(),
+                    parameter_in: ParameterIn::Header((
+                        "Tus-Resumable".to_string(),
+                        Some("1.0.0".to_string()),
+                    )),
+                });
+
+                parsed_arguments.push(FunctionArgument {
+                    name: "Content-Type".to_string(),
+                    optional: false,
+                    rust_type: "String".to_string(),
+                    parameter_in: ParameterIn::Header((
+                        "Content-Type".to_string(),
+                        Some("application/offset+octet-stream".to_string()),
+                    )),
                 });
             }
         }

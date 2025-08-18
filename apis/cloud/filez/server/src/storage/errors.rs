@@ -1,5 +1,7 @@
+use thiserror_context::{impl_context, Context};
+
 #[derive(Debug, thiserror::Error)]
-pub enum StorageError {
+pub enum InnerStorageError {
     #[error(transparent)]
     MinioError(#[from] minio::s3::error::Error),
     #[error("IO Error: {0}")]
@@ -24,3 +26,5 @@ pub enum StorageError {
     #[error("Axum error: {0}")]
     AxumError(#[from] axum::Error),
 }
+
+impl_context!(StorageError(InnerStorageError));

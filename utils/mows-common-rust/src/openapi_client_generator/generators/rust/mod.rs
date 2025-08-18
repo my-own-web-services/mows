@@ -52,9 +52,9 @@ chrono = {{ version = "0.4.41", features = ["serde"] }}
 thiserror = {{ version = "2.0.12" }}
 tokio-util = {{ version = "0.7", features = ["codec"] }}
 futures = "0.3"
-
-
-
+reqwest-tracing = {{ version = "0.5.7", features = ["opentelemetry_0_28"] }}
+reqwest-middleware = {{ version = "0.4.0", features = ["json", "rustls-tls"] }}
+tracing= {{ version = "0.1.40", features = ["default"] }}
 "#,
         );
         self.vfs.insert("Cargo.toml", cargo_toml_content);
@@ -94,11 +94,14 @@ use crate::types::*;
 use uuid::Uuid;
 use reqwest::Url;
 use reqwest::header::HeaderMap;
+use reqwest_middleware::{{ClientBuilder, ClientWithMiddleware}};
+use reqwest_tracing::TracingMiddleware;
+
 
 
 #[derive(Debug, Clone)]
 pub struct ApiClient {{
-    pub client: Client,
+    pub client: ClientWithMiddleware,
     pub base_url: String,
     pub impersonate_user: Option<Uuid>,
     pub auth_method: Option<AuthMethod>,
@@ -117,23 +120,35 @@ pub enum AuthMethod {{
 
 #[derive(Debug, thiserror::Error)]
 pub enum ApiClientError {{
-    #[error(transparent)]
+    #[error("Request error: {{0:?}}")]
     RequestError(#[from] reqwest::Error),
+    #[error("Request with middleware error: {{0:?}}")]
+    RequestWithMiddlewareError(#[from] reqwest_middleware::Error),
     #[error(transparent)]
     ParseError(#[from] serde_json::Error),
     #[error(transparent)]
     InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+    #[error("API error: {{0}}")]
+    ApiError(String),
 }}
 
 impl ApiClient {{
-    pub fn new(base_url: String, auth_method: Option<AuthMethod>, impersonate_user: Option<Uuid>, runtime_instance_id: Option<String>) -> Self {{
-        let client = Client::new();
-        let base_url = base_url.trim_end_matches('/').to_string();
-        Self {{ client, base_url, auth_method, impersonate_user, runtime_instance_id }}
-    }}
+    #[tracing::instrument]
+    pub fn new(base_url: String, auth_method: Option<AuthMethod>, impersonate_user: Option<Uuid>, runtime_instance_id: Option<String>) -> Result<Self, ApiClientError> {{
+        let client = reqwest::Client::builder()
+            .user_agent(format!("filez-client-rust"))
+            .build()?;
 
+        let client = ClientBuilder::new(client)
+            .with(TracingMiddleware::default())
+            .build();
+        let base_url = base_url.trim_end_matches('/').to_string();
+        Ok(Self {{ client, base_url, auth_method, impersonate_user, runtime_instance_id }})
+    }}
+    
+    #[tracing::instrument]
     fn add_auth_headers(&self) -> Result<HeaderMap, ApiClientError> {{
         let mut headers = HeaderMap::new();
         match &self.auth_method {{

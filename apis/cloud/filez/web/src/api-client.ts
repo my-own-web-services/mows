@@ -571,6 +571,14 @@ export interface ApiResponseUpdateJobResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseUpdateJobStatusResponseBody {
+  data?: {
+    job: FilezJob;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseUserGroup {
   data?: {
     /** @format date-time */
@@ -928,7 +936,10 @@ export interface FileVersionIdentifier {
   app_path: string;
   /** @format uuid */
   file_id: string;
-  /** @format int32 */
+  /**
+   * @format int32
+   * @min 0
+   */
   version: number;
 }
 
@@ -1508,6 +1519,15 @@ export interface UpdateJobResponseBody {
   job: FilezJob;
 }
 
+export interface UpdateJobStatusRequestBody {
+  new_status: JobStatus;
+  new_status_details?: null | JobStatusDetails;
+}
+
+export interface UpdateJobStatusResponseBody {
+  job: FilezJob;
+}
+
 export interface UpdateStorageQuotaRequestBody {
   /**
    * @format int64
@@ -1822,8 +1842,8 @@ export class HttpClient<SecurityDataType = unknown> {
 }
 
 /**
- * @title filez
- * @version 1.0.0
+ * @title filez-server
+ * @version 0.0.1
  * @license
  *
  * API for managing files in MOWS Filez
@@ -2161,12 +2181,11 @@ export class Api<
      *
      * @tags FileVersion
      * @name FileVersionsContentTusPatch
-     * @request PATCH:/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}
+     * @request PATCH:/api/file_versions/content/tus/{file_id}/{version}/{app_path}
      */
     fileVersionsContentTusPatch: (
       fileId: string,
       version: number | null,
-      appId: string | null,
       appPath: string | null,
       data: any,
       params: RequestParams = {},
@@ -2176,7 +2195,7 @@ export class Api<
         | ApiResponseEmptyApiResponse
         | ApiResponseFileVersionSizeExceededErrorBody
       >({
-        path: `/api/file_versions/content/tus/${fileId}/${version}/${appId}/${appPath}`,
+        path: `/api/file_versions/content/tus/${fileId}/${version}/${appPath}`,
         method: "PATCH",
         body: data,
         format: "json",
@@ -2357,6 +2376,41 @@ export class Api<
       }),
 
     /**
+     * @description Pickup a job from the server
+     *
+     * @name PickupJob
+     * @request POST:/api/jobs/apps/pickup
+     */
+    pickupJob: (data: PickupJobRequestBody, params: RequestParams = {}) =>
+      this.request<ApiResponsePickupJobResponseBody, any>({
+        path: `/api/jobs/apps/pickup`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Updates the status of a job on the server
+     *
+     * @name UpdateJobStatus
+     * @request POST:/api/jobs/apps/update_status
+     */
+    updateJobStatus: (
+      data: UpdateJobStatusRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseUpdateJobStatusResponseBody, any>({
+        path: `/api/jobs/apps/update_status`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Create a new job in the database
      *
      * @name CreateJob
@@ -2416,22 +2470,6 @@ export class Api<
         ApiResponseEmptyApiResponse
       >({
         path: `/api/jobs/list`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * @description Pickup a job from the server
-     *
-     * @name PickupJob
-     * @request POST:/api/jobs/pickup
-     */
-    pickupJob: (data: PickupJobRequestBody, params: RequestParams = {}) =>
-      this.request<ApiResponsePickupJobResponseBody, any>({
-        path: `/api/jobs/pickup`,
         method: "POST",
         body: data,
         type: ContentType.Json,

@@ -6,8 +6,6 @@ use opentelemetry_sdk::{runtime, trace as sdktrace, trace::Config, Resource};
 use std::str::FromStr;
 use tracing_subscriber::{fmt::time::ChronoLocal, prelude::*, Registry};
 
-///  Fetch an opentelemetry::trace::TraceId as hex through the full tracing stack
-
 pub fn get_trace_id() -> TraceId {
     use opentelemetry::trace::TraceContextExt as _; // opentelemetry::Context -> opentelemetry::trace::Span
     use tracing_opentelemetry::OpenTelemetrySpanExt as _; // tracing::Span to opentelemetry::Context

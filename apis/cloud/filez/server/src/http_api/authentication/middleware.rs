@@ -1,4 +1,5 @@
 use crate::{
+    config::RUNTIME_INSTANCE_ID_HEADER_NAME,
     errors::FilezError,
     http_api::authentication::user::{handle_oidc, IntrospectedUser},
     models::{
@@ -14,9 +15,10 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use tracing::debug;
+use k8s_openapi::apimachinery::pkg::runtime;
+use tracing::trace;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AuthenticationInformation {
     pub requesting_user: Option<FilezUser>,
     pub job: Option<FilezJob>,
@@ -25,6 +27,7 @@ pub struct AuthenticationInformation {
     pub requesting_app_runtime_instance_id: Option<String>,
 }
 
+#[tracing::instrument(skip(database))]
 pub async fn authentication_middleware(
     State(ServerState {
         introspection_state,
@@ -43,7 +46,8 @@ pub async fn authentication_middleware(
         None => None,
     };
 
-    debug!(
+    trace!(
+        external_user=?external_user,
         "Authentication middleware called with external user: {:?}",
         external_user
     );
@@ -59,10 +63,18 @@ pub async fn authentication_middleware(
         timing
     );
 
+    trace!(
+        requesting_user=?requesting_user,
+        requesting_app=?requesting_app,
+        "Requesting user: {:?}, requesting app: {:?}",
+        requesting_user,
+        requesting_app
+    );
+
     let (job, requesting_app_runtime_instance_id) =
         if requesting_user.is_none() && requesting_app.app_type == AppType::Backend {
             match headers
-                .get("X-Filez-Runtime-Instance-ID")
+                .get(RUNTIME_INSTANCE_ID_HEADER_NAME)
                 .and_then(|v| v.to_str().ok())
                 .map(String::from)
             {
@@ -75,10 +87,25 @@ pub async fn authentication_middleware(
                     )
                     .await?;
 
+                    trace!(
+                        runtime_instance_id=?runtime_instance_id,
+                        job=?job,
+                        "Backend app authenticated with runtime instance ID: {} and job: {:?}",
+                        runtime_instance_id,
+                        job
+                    );
+
                     if let Some(job) = &job {
                         let user = FilezUser::get_by_id(&database, &job.owner_id).await?;
-
                         requesting_user = Some(user);
+
+                        trace!(
+                            requesting_user=?requesting_user,
+                            job=?job,
+                            "Job owner user found: {:?} for job: {:?}",
+                            requesting_user,
+                            job
+                        );
                     }
 
                     (job, Some(runtime_instance_id))

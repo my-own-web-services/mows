@@ -188,7 +188,7 @@ version = "0.5.2"
 
 [workspace.dependencies.tower-http]
 default-features = false
-features = ["cors", "compression-full", "decompression-full", "set-header"]
+features = ["cors", "compression-full", "decompression-full", "set-header", "trace"]
 version = "0.6.4"
 
 [workspace.dependencies.tracing]

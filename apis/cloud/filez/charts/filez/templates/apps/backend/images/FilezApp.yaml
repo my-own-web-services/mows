@@ -6,5 +6,5 @@ metadata:
 spec:
     mowsApp:
         description: "Generates image previews"
-        trusted: false
+        trusted: true
         appType: "backend"

@@ -20,9 +20,9 @@ default-features = false
 features = ["default"]
 version = "2.9.0"
 
-[workspace.dependencies.filez-client]
+[workspace.dependencies.filez-server-client]
 default-features = false
-path = "./filez-client"
+path = "./filez-server-client"
 
 [workspace.dependencies.futures]
 default-features = false
@@ -53,6 +53,7 @@ version = "=0.96.0"
 
 [workspace.dependencies.mows-common-rust]
 default-features = false
+features = ["default"]
 path = "./mows-common-rust"
 
 [workspace.dependencies.opentelemetry]
@@ -123,6 +124,7 @@ version = "1.45.0"
 
 [workspace.dependencies.tracing]
 default-features = false
+features = ["default"]
 version = "0.1.40"
 
 [workspace.dependencies.tracing-opentelemetry]
@@ -144,6 +146,10 @@ version = "2.5.4"
 default-features = false
 features = ["default", "uuid", "chrono"]
 version = "5.4.0"
+
+[workspace.dependencies.uuid]
+default-features = false
+version = "1.17.0"
 
 [workspace.lints.clippy]
 cast_lossless = "deny"
