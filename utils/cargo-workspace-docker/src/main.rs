@@ -42,38 +42,26 @@ fn process_workspace(root_dir: &Path) -> Result<(), Box<dyn Error>> {
     // print all child crates that have more than one distinct path
     for (crate_name, paths) in &child_crates_to_be_deduplicated {
         if paths.len() > 1 {
+            let joined_paths = paths
+                .iter()
+                .map(|p| format!("\n - {}/Cargo.toml", p))
+                .collect::<Vec<_>>()
+                .join(", ");
+
             println!(
                 "Crate '{}' is in multiple workspace child crates but not configured to be a workspace crate: {}",
-                crate_name,
-                paths
-                    .iter()
-                    .map(|p| 
-                    // add the Cargo.toml file to the path
-                        format!("\n - {}/Cargo.toml", p)
-                    
-                    
-                    )
-                    .collect::<Vec<_>>()
-                    .join(", ")
+                crate_name, joined_paths
             );
             println!("\n");
         }
     }
-
-
-
-
-
 
     // crates template for copying into the workspace data-encoding = { version = "2.9.0", default-features = false }
     println!("\n\n");
 
     for (crate_name, paths) in &child_crates_to_be_deduplicated {
         if paths.len() > 1 {
-            println!(
-                r#"{crate_name} = {{ version = "0.1.0", default-features = false }}"#
-                
-            );
+            println!(r#"{crate_name} = {{ version = "0.1.0", default-features = false }}"#);
         }
     }
 
@@ -134,12 +122,13 @@ fn process_workspace_recursive(
         return Ok(());
     }
 
-    
-
     let entries = fs::read_dir(dir)?;
     println!("Processing directory: {}", dir.display());
     for entry in entries {
-        if EXCLUDE_DIRS.iter().any(|&ex| dir.to_str().unwrap_or("").contains(ex)) {
+        if EXCLUDE_DIRS
+            .iter()
+            .any(|&ex| dir.to_str().unwrap_or("").contains(ex))
+        {
             continue; // Skip excluded directories
         }
         let entry = entry?;

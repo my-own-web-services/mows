@@ -44,7 +44,7 @@ pub async fn get_tags(
     };
 
     with_timing!(
-                AccessPolicy::check(
+        AccessPolicy::check(
             &database,
             &authentication_information,
             access_policy_type,
@@ -69,7 +69,7 @@ pub async fn get_tags(
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "Tags retrieved successfully".to_string(),
         data: Some(GetTagsResponseBody { resource_tags }),
     }))

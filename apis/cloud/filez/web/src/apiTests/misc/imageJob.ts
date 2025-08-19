@@ -168,48 +168,41 @@ export default async (filezClient: Api<unknown>) => {
 
     let successfullyCompleted = false;
 
-    loop1: for (let i = 0; i < 10; i++) {
-        const content = await filezClient.api
-            .getFileVersionContent(
-                aliceFile.created_file.id,
-                aliceFileVersion.version,
-                imageApp.id,
-                "250.avif",
-                undefined,
-                impersonateAliceParams
-            )
-            .catch((error) => {
-                if (error?.status !== 404) {
-                    throw new Error(`Failed to get file version content: ${error.message}`);
-                }
-                console.warn(`Attempt ${i + 1}: File version content not found, retrying...`);
-                return null; // If the file is not found, return null
-            });
-
-        if (content) {
-            console.log(`File version content retrieved successfully`);
+    for (let i = 0; i < 10; i++) {
+        const job = await filezClient.api.getJob({ job_id: jobId }, impersonateAliceParams);
+        console.log(`Job status: ${job.data?.data?.job.status}`);
+        if (job.data?.data?.job.status === "Completed") {
             successfullyCompleted = true;
-
-            await filezClient.api.getFileVersions(
-                {
-                    versions: [
-                        {
-                            app_id: imageApp.id,
-                            file_id: aliceFile.created_file.id,
-                            version: aliceFileVersion.version,
-                            app_path: "250.avif"
-                        }
-                    ]
-                },
-                impersonateAliceParams
-            );
-
-            break loop1;
+            break;
+        } else if (job.data?.data?.job.status === "Failed") {
+            throw new Error(`Job failed: ${job.data?.data?.job.status_details}`);
         }
+
         await new Promise((resolve) => setTimeout(resolve, 5000));
     }
-    if (!successfullyCompleted) {
-        throw new Error("Failed to retrieve file version content after 10 attempts.");
-    }
+
+    const content = await filezClient.api.getFileVersionContent(
+        aliceFile.created_file.id,
+        aliceFileVersion.version,
+        imageApp.id,
+        "250.avif",
+        undefined,
+        impersonateAliceParams
+    );
+
+    await filezClient.api.getFileVersions(
+        {
+            versions: [
+                {
+                    app_id: imageApp.id,
+                    file_id: aliceFile.created_file.id,
+                    version: aliceFileVersion.version,
+                    app_path: "250.avif"
+                }
+            ]
+        },
+        impersonateAliceParams
+    );
+
     console.log("File version content retrieved successfully");
 };

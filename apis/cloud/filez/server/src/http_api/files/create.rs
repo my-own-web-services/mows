@@ -39,7 +39,6 @@ pub async fn create_file(
             AccessPolicyResourceType::File,
             None,
             AccessPolicyAction::FilezFilesCreate,
-            
         )
         .await?
         .verify_allow_type_level()?,

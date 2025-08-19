@@ -47,7 +47,6 @@ pub async fn update_file_versions(
             AccessPolicyResourceType::File,
             Some(&file_ids),
             AccessPolicyAction::FilezFilesVersionsUpdate,
-            
         )
         .await?
         .verify()?,

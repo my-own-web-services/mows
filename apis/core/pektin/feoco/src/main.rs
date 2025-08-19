@@ -12,9 +12,9 @@ use hyper::{
     HeaderMap,
 };
 use percent_encoding::{utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
-use tracing::{info, trace};
 use std::{convert::Infallible, io::Read};
 use std::{io::Cursor, str::FromStr};
+use tracing::{info, trace};
 
 use flate2::write::GzEncoder;
 use flate2::Compression;
@@ -64,15 +64,13 @@ lazy_static! {
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        init_observability().await;
+    init_observability().await;
 
     // reference variables declared with lazy_static because they are initialized on first access
     let _ = &PAGES.0.len();
     let _ = &CONFIG.headers;
     let _ = &DOCUMENT_MAP.len();
     let _ = &ALL_MAP.len();
-
-
 
     let make_svc =
         make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(handle_request)) });
@@ -123,13 +121,14 @@ async fn handle_request(request: Request<Body>) -> Result<Response<Body>, Infall
 
     if content_type == "text/html" {
         response.headers_mut().unwrap().extend(DOCUMENT_MAP.clone());
-        response = response.header("content-type", format!("{}; charset=utf-8",content_type.as_ref()));
+        response = response.header(
+            "content-type",
+            format!("{}; charset=utf-8", content_type.as_ref()),
+        );
     } else {
         response.headers_mut().unwrap().extend(ALL_MAP.clone());
         response = response.header("content-type", content_type.as_ref());
     }
-
-    
 
     if on_disk {
         let file = std::fs::read(on_disk_map.get(request_path).unwrap()).unwrap();
@@ -241,12 +240,10 @@ pub fn read_to_memory() -> (HashMap<String, Vec<u8>>, HashMap<String, String>) {
 
     info!(
         "\n\nIn memory size: {} KiB\nIn memory size compressed gzip: {} KiB\nIn memory size compressed brotli: {} KiB\nTotal memory size: {} KiB",
-        file_content_size / 1024 ,
-        file_content_size_compressed_gz / 1024 ,
-        file_content_size_compressed_br / 1024 ,
-        (file_content_size + file_content_size_compressed_gz + file_content_size_compressed_br)
-            / 1024
-            
+        file_content_size / 1024,
+        file_content_size_compressed_gz / 1024,
+        file_content_size_compressed_br / 1024,
+        (file_content_size + file_content_size_compressed_gz + file_content_size_compressed_br) / 1024
     );
 
     (memory_map, not_in_memory_map)

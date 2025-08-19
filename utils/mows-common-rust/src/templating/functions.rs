@@ -1170,9 +1170,7 @@ fn rand_ascii(args: &[Value]) -> Result<Value, FuncError> {
         .map_err(|_| FuncError::Generic("Invalid number".to_string()))?;
     let mut rng = rand::rng();
 
-    let charset: Vec<u8> =
-        b" !#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-            .to_vec();
+    let charset: Vec<u8> = b" !#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~".to_vec();
 
     let generated: String = (0..length)
         .map(|_| {

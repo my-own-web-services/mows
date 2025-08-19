@@ -94,7 +94,7 @@ pub async fn get_health(
             StatusCode::SERVICE_UNAVAILABLE
         },
         Json(ApiResponse {
-            status: ApiResponseStatus::Success{},
+            status: ApiResponseStatus::Success {},
             message: "Health check successful".to_string(),
             data: Some(HealthResBody {
                 all_healthy,

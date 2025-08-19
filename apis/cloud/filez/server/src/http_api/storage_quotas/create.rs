@@ -39,7 +39,6 @@ pub async fn create_storage_quota(
             AccessPolicyResourceType::StorageQuota,
             None,
             AccessPolicyAction::StorageQuotasCreate,
-            
         )
         .await?
         .verify()?,

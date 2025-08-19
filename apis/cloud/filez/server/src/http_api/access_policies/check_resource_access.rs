@@ -19,8 +19,16 @@ use crate::{
     path = "/api/access_policies/check",
     request_body = CheckResourceAccessRequestBody,
     responses(
-        (status = 200, description = "Checks if the requested resources are available to this user", body = ApiResponse<CheckResourceAccessResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Checks if the requested resources are available to this user", 
+            body = ApiResponse<CheckResourceAccessResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 pub async fn check_resource_access(

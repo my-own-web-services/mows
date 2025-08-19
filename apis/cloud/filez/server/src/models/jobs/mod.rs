@@ -1,9 +1,9 @@
 use crate::{
     database::Database,
     errors::FilezError,
-    http_api::jobs::list::ListJobsSortBy,
+    http_api::{access_policies::update, jobs::list::ListJobsSortBy},
     models::{apps::MowsApp, users::FilezUser},
-    schema,
+    schema::{self},
     types::SortDirection,
     utils::{get_current_timestamp, get_uuid, InvalidEnumType},
 };
@@ -14,6 +14,7 @@ use diesel::{
 use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
+use k8s_openapi::api;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -58,6 +59,7 @@ pub enum JobPersistenceType {
 )]
 #[diesel(table_name = schema::jobs)]
 #[diesel(check_for_backend(Pg))]
+#[diesel(treat_none_as_null = true)]
 pub struct FilezJob {
     pub id: Uuid,
     pub owner_id: Uuid,
@@ -71,6 +73,7 @@ pub struct FilezJob {
     pub name: String,
     /// The current status of the job
     pub status: JobStatus,
+
     pub status_details: Option<JobStatusDetails>,
     /// Details relevant for the execution of the job
     pub execution_information: JobExecutionInformation,
@@ -314,19 +317,38 @@ impl FilezJob {
         Ok(job)
     }
 
-    pub async fn get_by_app_and_runtime_instance_id(
+    pub async fn delete_by_id(database: &Database, job_id: Uuid) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
+        diesel::delete(schema::jobs::table.find(job_id))
+            .execute(&mut connection)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_current_by_app_and_runtime_instance_id(
         database: &Database,
         app_id: &Uuid,
         runtime_instance_id: &str,
     ) -> Result<Option<FilezJob>, FilezError> {
         let mut connection = database.get_connection().await?;
-        let job = schema::jobs::table
+        let jobs = schema::jobs::table
             .filter(schema::jobs::app_id.eq(app_id))
             .filter(schema::jobs::assigned_app_runtime_instance_id.eq(runtime_instance_id))
-            .first::<FilezJob>(&mut connection)
-            .await
-            .optional()?;
-        Ok(job)
+            .limit(2)
+            .load::<FilezJob>(&mut connection)
+            .await?;
+
+        if jobs.len() > 1 {
+            error!(
+                app_id=?app_id,
+                runtime_instance_id=?runtime_instance_id,
+                jobs=?jobs,
+                "FATAL ERROR: Database inconsistency: Found multiple jobs for app_id: {} and runtime_instance_id: {}",
+                app_id, runtime_instance_id
+            );
+        }
+
+        Ok(jobs.into_iter().next())
     }
 
     pub async fn update(
@@ -357,13 +379,19 @@ impl FilezJob {
         ))?;
 
         if app.app_type != crate::models::apps::AppType::Backend {
+            error!(
+                app_id=?app.id,
+                app_runtime_instance_id=?app_runtime_instance_id,
+                "Unauthorized job pickup attempt by app: {:?} with runtime instance ID: {:?}",
+                app, app_runtime_instance_id
+            );
             return Err(FilezError::Unauthorized(
                 "Only backend apps can pick up jobs".to_string(),
             ));
         }
 
         // check if the app has a job already assigned
-        let existing_job = FilezJob::get_by_app_and_runtime_instance_id(
+        let existing_job = FilezJob::get_current_by_app_and_runtime_instance_id(
             database,
             &app.id,
             &app_runtime_instance_id,
@@ -371,6 +399,11 @@ impl FilezJob {
         .await?;
 
         if existing_job.is_some_and(|job| job.status == JobStatus::InProgress) {
+            error!(
+                app_id=?app.id,
+                app_runtime_instance_id=?app_runtime_instance_id,
+                "Job pickup failed: App already has a job with status InProgress assigned"
+            );
             return Err(FilezError::InvalidRequest(
                 "App already has a job with status InProgress assigned".to_string(),
             ));
@@ -393,8 +426,13 @@ impl FilezJob {
                         .await
                         .optional()?;
 
+                    trace!(
+                        "Job pickup attempt for app: {:?} with runtime instance ID: {:?}, found job: {:?}",
+                        app, app_runtime_instance_id, job
+                    );
+
                     if let Some(mut job) = job {
-                        job.assigned_app_runtime_instance_id = Some(app_runtime_instance_id);
+                        job.assigned_app_runtime_instance_id = Some(app_runtime_instance_id.clone());
                         job.app_instance_last_seen_time = Some(get_current_timestamp());
                         job.status = JobStatus::InProgress;
                         job.start_time = Some(get_current_timestamp());
@@ -408,6 +446,14 @@ impl FilezJob {
                             .set(&job)
                             .get_result::<FilezJob>(connection)
                             .await?;
+
+                        trace!(
+                            app_id=?app.id,
+                            app_runtime_instance_id=?app_runtime_instance_id,
+                            updated_job=?updated_job,
+                            "Job successfully updated for app: {:?} with runtime instance ID: {:?}, updated job: {:?}",
+                            app, app_runtime_instance_id, updated_job
+                        );
 
                         Ok(Some(updated_job))
                     } else {
@@ -435,57 +481,71 @@ impl FilezJob {
 
         let mut connection = database.get_connection().await?;
 
-        let job = schema::jobs::table
-            .filter(schema::jobs::app_id.eq(app.id))
-            .filter(schema::jobs::assigned_app_runtime_instance_id.eq(app_runtime_instance_id))
-            .first::<FilezJob>(&mut connection)
+        let updated_job = connection
+            .build_transaction()
+            .serializable()
+            .run(|conn| {
+                Box::pin(async move {
+                    let job = schema::jobs::table
+                        .filter(schema::jobs::app_id.eq(app.id))
+                        .filter(
+                            schema::jobs::assigned_app_runtime_instance_id
+                                .eq(&app_runtime_instance_id),
+                        )
+                        .first::<FilezJob>(conn)
+                        .await?;
+
+                    if job.status != JobStatus::InProgress {
+                        error!(
+                            job_id=?job.id,
+                            current_status=?job.status,
+                            "Job status update failed: Job is not in progress, current status: {:?}",
+                            job.status
+                        );
+                        return Err(FilezError::InvalidRequest(format!(
+                            "Job status can only be updated if the job is in progress, current status: {:?}",
+                            job.status
+                        )));
+                    }
+
+                    let mut updated_job = job.clone();
+
+                    if new_status == JobStatus::Completed || new_status == JobStatus::Failed {
+                        updated_job.end_time = Some(get_current_timestamp());
+                    } else {
+                        error!(
+                            job_id=?updated_job.id,
+                            new_status=?new_status,
+                            "Job status update failed: New status is not Completed or Failed, new status: {:?}",
+                            new_status
+                        );
+                        return Err(FilezError::InvalidRequest(
+                            "Job status can only be updated to Completed or Failed".to_string(),
+                        ));
+                    }
+
+                    updated_job.status = new_status;
+                    updated_job.status_details = new_status_details;
+                    updated_job.modified_time = get_current_timestamp();
+                    updated_job.app_instance_last_seen_time = Some(get_current_timestamp());
+                    updated_job.assigned_app_runtime_instance_id = None;
+
+                    let updated_job = diesel::update(schema::jobs::table.find(updated_job.id))
+                        .set(&updated_job)
+                        .get_result::<FilezJob>(conn)
+                        .await?;
+
+                    trace!(
+                        job_id=?updated_job.id,
+                        job_status=?updated_job.status,
+                        "Job status updated successfully for job ID: {:?}, job status: {:?}",
+                        updated_job.id, updated_job.status
+                    );
+
+                    Ok(updated_job)
+                })
+            })
             .await?;
-
-        if job.status != JobStatus::InProgress {
-            error!(
-                job_id=?job.id,
-                current_status=?job.status,
-                "Job status update failed: Job is not in progress, current status: {:?}",
-                job.status
-            );
-            return Err(FilezError::InvalidRequest(format!(
-                "Job status can only be updated if the job is in progress, current status: {:?}",
-                job.status
-            )));
-        }
-
-        let mut updated_job = job.clone();
-
-        if new_status == JobStatus::Completed || new_status == JobStatus::Failed {
-            updated_job.end_time = Some(get_current_timestamp());
-        } else {
-            error!(
-                job_id=?updated_job.id,
-                new_status=?new_status,
-                "Job status update failed: New status is not Completed or Failed, new status: {:?}",
-                new_status
-            );
-            return Err(FilezError::InvalidRequest(
-                "Job status can only be updated to Completed or Failed".to_string(),
-            ));
-        }
-
-        updated_job.status = new_status;
-        updated_job.status_details = new_status_details;
-        updated_job.modified_time = get_current_timestamp();
-        updated_job.app_instance_last_seen_time = Some(get_current_timestamp());
-
-        let updated_job = diesel::update(schema::jobs::table.find(updated_job.id))
-            .set(&updated_job)
-            .get_result::<FilezJob>(&mut connection)
-            .await?;
-
-        trace!(
-            job_id=?updated_job.id,
-            job_status=?updated_job.status,
-            "Job status updated successfully for job ID: {:?}, job status: {:?}",
-            updated_job.id, updated_job.status
-        );
 
         Ok(updated_job)
     }
