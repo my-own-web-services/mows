@@ -8,7 +8,7 @@ use crate::{
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, trace};
+use tracing::{instrument, trace};
 use utoipa::ToSchema;
 
 #[utoipa::path(
@@ -20,6 +20,7 @@ use utoipa::ToSchema;
         (status = 200, description = "Updated job status on the server", body = ApiResponse<UpdateJobStatusResponseBody>),
     )
 )]
+#[instrument(skip(database))]
 pub async fn update_job_status(
     Extension(AuthenticationInformation {
         requesting_app,
@@ -79,13 +80,13 @@ pub async fn update_job_status(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateJobStatusRequestBody {
     pub new_status: JobStatus,
     pub new_status_details: Option<JobStatusDetails>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateJobStatusResponseBody {
     pub job: FilezJob,
 }

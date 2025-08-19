@@ -2394,6 +2394,7 @@ dependencies = [
  "mows-common-rust",
  "openidconnect",
  "opentelemetry 0.26.0",
+ "opentelemetry_sdk 0.26.0",
  "prometheus-client",
  "schemars",
  "serde",
@@ -2409,6 +2410,7 @@ dependencies = [
  "tower 0.5.2",
  "tower-http",
  "tracing",
+ "tracing-opentelemetry 0.27.0",
  "url",
  "utoipa",
  "utoipa-axum",
@@ -6017,19 +6019,21 @@ dependencies = [
 
 [[package]]
 name = "reqwest-tracing"
-version = "0.5.7"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d75b0eee96990cfb4c09545847385e89b2d2d2e571143d55264a05d77c713780"
+checksum = "d70ea85f131b2ee9874f0b160ac5976f8af75f3c9badfe0d955880257d10bd83"
 dependencies = [
  "anyhow",
  "async-trait",
  "getrandom 0.2.16",
  "http 1.3.1",
  "matchit 0.8.4",
+ "opentelemetry 0.26.0",
  "opentelemetry 0.28.0",
  "reqwest 0.12.22",
  "reqwest-middleware",
  "tracing",
+ "tracing-opentelemetry 0.27.0",
  "tracing-opentelemetry 0.29.0",
 ]
 

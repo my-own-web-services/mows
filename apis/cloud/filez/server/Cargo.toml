@@ -124,3 +124,7 @@ argon2 = "0.5.3"
 openidconnect = { workspace = true, features = ["default"] }
 tower = { workspace = true }
 thiserror-context = "0.1.2"
+
+
+opentelemetry_sdk = { workspace = true }
+tracing-opentelemetry = { workspace = true }

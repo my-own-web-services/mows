@@ -8,7 +8,7 @@ use crate::{
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, trace};
+use tracing::{instrument, trace};
 use utoipa::ToSchema;
 
 #[utoipa::path(
@@ -20,6 +20,7 @@ use utoipa::ToSchema;
         (status = 200, description = "Picked up a job from the server", body = ApiResponse<PickupJobResponseBody>),
     )
 )]
+#[instrument(skip(database))]
 pub async fn pickup_job(
     Extension(AuthenticationInformation {
         requesting_app,
@@ -69,10 +70,10 @@ pub async fn pickup_job(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct PickupJobRequestBody {}
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct PickupJobResponseBody {
     pub job: Option<FilezJob>,
 }
