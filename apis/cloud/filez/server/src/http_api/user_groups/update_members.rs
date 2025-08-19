@@ -62,7 +62,7 @@ pub async fn update_user_group_members(
     }
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success{},
+        status: ApiResponseStatus::Success {},
         message: "User group members updated".to_string(),
         data: None,
     }))

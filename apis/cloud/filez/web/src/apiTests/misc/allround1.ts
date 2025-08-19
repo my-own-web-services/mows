@@ -160,7 +160,6 @@ export default async (filezClient: Api<unknown>) => {
         aliceFileResponse.created_file.id,
         aliceFileVersion.version.version,
         null,
-        null,
         firstAliceFileVersionContent,
         {
             headers: {
@@ -185,7 +184,6 @@ export default async (filezClient: Api<unknown>) => {
     const secondUpload = await filezClient.api.fileVersionsContentTusPatch(
         aliceFileResponse.created_file.id,
         aliceFileVersion.version.version,
-        null,
         null,
         secondAliceFileVersionContent,
         {
@@ -259,7 +257,6 @@ export default async (filezClient: Api<unknown>) => {
             aliceFileResponse.created_file.id,
             aliceFileVersion.version.version,
             null,
-            null,
             aliceUpdatedFileVersionContentTooBig,
             {
                 headers: {
@@ -291,7 +288,6 @@ export default async (filezClient: Api<unknown>) => {
         .fileVersionsContentTusPatch(
             aliceFileResponse.created_file.id,
             aliceFileVersion.version.version,
-            null,
             null,
             aliceUpdatedFileVersionContent,
             {

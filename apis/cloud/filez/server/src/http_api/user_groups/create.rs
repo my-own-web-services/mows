@@ -36,7 +36,6 @@ pub async fn create_user_group(
             AccessPolicyResourceType::UserGroup,
             None,
             AccessPolicyAction::UserGroupsCreate,
-            
         )
         .await?
         .verify_allow_type_level()?,

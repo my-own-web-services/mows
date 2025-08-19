@@ -13,7 +13,7 @@ use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
-    config::{ Machine},
+    config::Machine,
     dev_mode_disabled, get_current_config_cloned,
     machines::{MachineStatus, MachineType, VncWebsocket},
     providers::{
@@ -24,10 +24,6 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     write_config,
 };
-
-
-
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct MachineCreationReqBody {
@@ -72,7 +68,6 @@ pub async fn create_machines(
         data: None,
     })
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct MachineSignalReqBody {
@@ -217,7 +212,6 @@ pub async fn dev_delete_all_machines() -> Json<ApiResponse<()>> {
     })
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct MachineInfoReqBody {
     pub machine_id: String,
@@ -269,12 +263,12 @@ pub async fn get_machine_info(
 }
 
 #[utoipa::path(
-    get, 
+    get,
     path = "/api/machines/vnc_websocket/{id}",
     responses(
         (status = 200, description = "Got the websocket information", body =  ApiResponse<VncWebsocket>),
     )
-)    
+)
 ]
 pub async fn get_vnc_websocket(Path(id): Path<String>) -> impl IntoResponse {
     let config = get_current_config_cloned!();
@@ -306,7 +300,6 @@ pub async fn get_vnc_websocket(Path(id): Path<String>) -> impl IntoResponse {
         data: Some(vnc_websocket),
     })
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct MachineStatusResBody {

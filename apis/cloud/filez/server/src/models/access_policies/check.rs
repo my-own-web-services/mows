@@ -109,9 +109,7 @@ pub async fn check_resources_access_control(
                     && resource_owners_vec.len() == requested_resource_ids.len()
                     && all_resources_owned_by_requesting_user
                 {
-                    trace!(
-                        "All requested resources are owned by the requesting user and app is trusted. Granting access."
-                    );
+                    trace!("All requested resources are owned by the requesting user and app is trusted. Granting access.");
                     return Ok(AuthResult {
                         access_granted: true,
                         evaluations: requested_resource_ids

@@ -80,7 +80,7 @@ pub async fn authentication_middleware(
             {
                 Some(runtime_instance_id) => {
                     // If the app is a backend app, we allow it to authenticate without a user
-                    let job = FilezJob::get_by_app_and_runtime_instance_id(
+                    let job = FilezJob::get_current_by_app_and_runtime_instance_id(
                         &database,
                         &requesting_app.id,
                         &runtime_instance_id,

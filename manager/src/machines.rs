@@ -96,7 +96,7 @@ impl Machine {
                 if let Err(e) = ExternalProviderMachineHcloud::delete(&self.id).await {
                     match e {
                         crate::providers::hcloud::machine::HcloudError::ServerToBeDeletedNotFoundAtHcloud => (), // if the server is already deleted at hcloud we ignore the error and continue to remove the machine from the inventory
-                        crate::providers::hcloud::machine::HcloudError::GenericHcloudError(error) => bail!(error)
+                        crate::providers::hcloud::machine::HcloudError::GenericHcloudError(error) => bail!(error),
                     };
                 };
 

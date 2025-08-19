@@ -38,7 +38,6 @@ pub async fn delete_storage_quota(
             AccessPolicyResourceType::StorageQuota,
             Some(&[request_body.subject_id]),
             AccessPolicyAction::StorageQuotasDelete,
-            
         )
         .await?
         .verify()?,

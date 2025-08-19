@@ -75,16 +75,12 @@ impl ExternalProviderMachineHcloud {
         let primary_legacy_ip_id = list_primary_ips(
             &configuration,
             ListPrimaryIpsParams {
-                name: Some(
-                    std::env::var("HCLOUD_PRIMARY_LEGACY_IP_NAME")
-                        .map_err(|_| anyhow::anyhow!("HCLOUD_PRIMARY_LEGACY_IP_NAME not set"))?,
-                ),
+                name: Some(std::env::var("HCLOUD_PRIMARY_LEGACY_IP_NAME").map_err(|_| anyhow::anyhow!("HCLOUD_PRIMARY_LEGACY_IP_NAME not set"))?),
                 ..Default::default()
             },
         )
-        .await.context(
-            "Failed to list primary legacy IPs. Make sure HCLOUD_PRIMARY_LEGACY_IP_NAME is set correctly",
-        )?
+        .await
+        .context("Failed to list primary legacy IPs. Make sure HCLOUD_PRIMARY_LEGACY_IP_NAME is set correctly")?
         .primary_ips
         .first()
         .map(|ip| ip.id.clone())

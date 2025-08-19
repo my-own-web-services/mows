@@ -321,24 +321,21 @@ impl HelmRepoSpec {
             .ok_or_else(|| {
                 HelmRepoError::FetchHelmChartError(format!(
                     "Could not find HelmChart with name: {} in the fetched Helm repository index from: {}",
-                    self.chart_name,
-                    chart_index_url
+                    self.chart_name, chart_index_url
                 ))
             })?
             .iter()
-            .find(|entry| entry.digest == manifest_declared_digest).ok_or(
-                HelmRepoError::FetchHelmChartError(format!(
-                    "Could not find HelmChart with digest: {}",
-                    self.chart_name
-                ))
-            )?;
+            .find(|entry| entry.digest == manifest_declared_digest)
+            .ok_or(HelmRepoError::FetchHelmChartError(format!(
+                "Could not find HelmChart with digest: {}",
+                self.chart_name
+            )))?;
 
         // check if the version matches
         if selected_chart_versions.version != manifest_declared_version {
             return Err(HelmRepoError::FetchHelmChartError(format!(
                 "Version mismatch with the digest. Digest matching version: {}, Manifest declared version: {}",
-                selected_chart_versions.version,
-                manifest_declared_version
+                selected_chart_versions.version, manifest_declared_version
             )));
         }
 

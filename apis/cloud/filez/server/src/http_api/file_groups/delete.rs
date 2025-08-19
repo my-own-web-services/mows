@@ -21,11 +21,23 @@ use crate::{
     delete,
     path = "/api/file_groups/delete/{file_group_id}",
     params(
-        ("file_group_id" = Uuid, Path, description = "The ID of the file group to delete"),
+        (
+            "file_group_id" = Uuid,
+            Path,
+            description = "The ID of the file group to delete"
+        ),
     ),
     responses(
-        (status = 200, description = "Deletes a file group", body = ApiResponse<String>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Deletes a file group",
+            body = ApiResponse<String>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 pub async fn delete_file_group(

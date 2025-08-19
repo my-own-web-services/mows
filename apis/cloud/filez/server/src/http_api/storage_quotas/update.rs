@@ -39,7 +39,6 @@ pub async fn update_storage_quota(
             AccessPolicyResourceType::StorageQuota,
             Some(&[request_body.subject_id]),
             AccessPolicyAction::StorageQuotasUpdate,
-            
         )
         .await?
         .verify()?,

@@ -2,8 +2,8 @@ use filez_apps_backend_images::config::config;
 use filez_apps_backend_images::handle_job;
 use filez_server_client::client::{ApiClient, AuthMethod};
 use filez_server_client::types::{
-    JobStatus, JobStatusDetails, JobStatusDetailsFailed, PickupJobRequestBody,
-    UpdateJobStatusRequestBody,
+    JobStatus, JobStatusDetails, JobStatusDetailsCompleted, JobStatusDetailsFailed,
+    PickupJobRequestBody, UpdateJobStatusRequestBody,
 };
 use mows_common_rust::{
     get_current_config_cloned, observability::init_observability, utils::generate_id,
@@ -38,7 +38,11 @@ async fn main() -> Result<(), anyhow::Error> {
                             filez_server_client
                                 .update_job_status(UpdateJobStatusRequestBody {
                                     new_status: JobStatus::Completed,
-                                    new_status_details: None,
+                                    new_status_details: Some(JobStatusDetails::Completed(
+                                        JobStatusDetailsCompleted {
+                                            message: "Job completed successfully.".to_string(),
+                                        },
+                                    )),
                                 })
                                 .await
                                 .map_err(|e| error!("Failed to update job status: {:?}", e))

@@ -20,8 +20,7 @@ pub async fn start_tracing() -> anyhow::Result<()> {
         .server_addr((Ipv6Addr::from_str("::")?, 6669))
         .spawn()
         .with_filter(tracing_subscriber::EnvFilter::new(
-            "main=trace,manager=trace,tower_http=trace,axum::rejection=trace,tokio=trace,runtime=trace"
-            ,
+            "main=trace,manager=trace,tower_http=trace,axum::rejection=trace,tokio=trace,runtime=trace",
         ));
 
     let log_filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {

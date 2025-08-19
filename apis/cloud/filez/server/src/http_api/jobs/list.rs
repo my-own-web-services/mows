@@ -36,7 +36,6 @@ pub async fn list_jobs(
             AccessPolicyResourceType::FilezJob,
             None,
             AccessPolicyAction::FilezJobsList,
-            
         )
         .await?
         .verify_allow_type_level()?,

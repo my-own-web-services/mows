@@ -55,10 +55,7 @@ pub async fn delete(
                 })
                 .collect();
             if valid.iter().any(|s| s.is_err()) {
-                let messages = valid
-                    .iter()
-                    .map(|res| res.as_ref().err().map(|e| e.to_string()))
-                    .collect();
+                let messages = valid.iter().map(|res| res.as_ref().err().map(|e| e.to_string())).collect();
                 return err("One or more records were invalid.", messages);
             }
 
@@ -115,7 +112,8 @@ pub async fn delete(
                             soa_idx += 1;
                             res
                         }
-                    }).collect();
+                    })
+                    .collect();
                 return err("One or more records were invalid.", messages);
             }
 

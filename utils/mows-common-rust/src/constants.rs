@@ -66,7 +66,9 @@ impl MowsConstants {
                     namespace: s!("mows-core-network-public-ip"),
                     pod_name: s!("mows-core-network-public-ip"),
                     wg_secret_name: s!("mows-core-network-public-ip-wg-secret"),
-                    wg_client_image: s!("docker.io/firstdorsal/tunnel-cluster-client@sha256:12dd911500341d241e31a5d46d930d8c3d81f367e9f4d55a852c1e09b3b5f7b5"),
+                    wg_client_image: s!(
+                        "docker.io/firstdorsal/tunnel-cluster-client@sha256:12dd911500341d241e31a5d46d930d8c3d81f367e9f4d55a852c1e09b3b5f7b5"
+                    ),
                 },
                 ingress: CoreComponentIngress {
                     namespace: s!("mows-core-network-ingress"),
@@ -87,9 +89,8 @@ impl MowsConstants {
                         sieve: 4190,
                     },
                     service_name: s!("stalwart"),
-                }
+                },
             },
-
         }
     }
 }
