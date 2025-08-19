@@ -8,10 +8,10 @@ use filez_server_client::types::{
 use mows_common_rust::{
     get_current_config_cloned, observability::init_observability, utils::generate_id,
 };
-use tracing::{error, info, instrument};
+use tracing::{error, info};
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), anyhow::Error> {
     let config = get_current_config_cloned!(config());
     init_observability().await;
 
@@ -32,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(job_response) => match job_response.data.job {
                 Some(job) => {
                     info!("Picked up job: {:?}", job);
-                    match handle_job(job, &filez_server_client).await {
+                    let _ = match handle_job(job, &filez_server_client).await {
                         Ok(_) => {
                             info!("Job completed successfully.");
                             filez_server_client
@@ -40,7 +40,8 @@ async fn main() -> anyhow::Result<()> {
                                     new_status: JobStatus::Completed,
                                     new_status_details: None,
                                 })
-                                .await?;
+                                .await
+                                .map_err(|e| error!("Failed to update job status: {:?}", e))
                         }
                         Err(e) => {
                             error!("Error handling job: {:?}", e);
@@ -54,9 +55,12 @@ async fn main() -> anyhow::Result<()> {
                                         },
                                     )),
                                 })
-                                .await?;
+                                .await
+                                .map_err(|e| {
+                                    error!("Failed to update job status: {:?}", e);
+                                })
                         }
-                    }
+                    };
                 }
                 None => {
                     info!("No job available at this time.");

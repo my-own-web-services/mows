@@ -39,7 +39,7 @@ class App extends Component<AppProps, AppState> {
             this.setState({ filezClient }, async () => {
                 console.log("Api client initialized with user token");
                 await this.state.filezClient?.api.getOwnUser().catch(async (response) => {
-                    if (response.error.message === "Inactive user") {
+                    if (response.error.status.Error === "IntrospectionGuardError::Inactive") {
                         console.error("User is inactive, signing out.");
                         localStorage.setItem("redirect_uri", window.location.href);
                         await this.props.auth?.signinRedirect();

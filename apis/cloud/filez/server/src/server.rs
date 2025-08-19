@@ -21,6 +21,7 @@ use tower_http::{
     cors::{AllowOrigin, Any, CorsLayer},
     decompression::DecompressionLayer,
     set_header::SetResponseHeaderLayer,
+    trace::{DefaultMakeSpan, TraceLayer},
 };
 use tracing::info;
 use utoipa::OpenApi;
@@ -175,11 +176,14 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_state(server_state.clone())
         .layer(
             ServiceBuilder::new()
+                .layer(OtelAxumLayer::default())
+                .layer(OtelInResponseLayer::default())
+                .layer(axum::middleware::from_fn(
+                    filez_server_lib::trace::traceparent_middleware,
+                ))
                 .layer(axum_server_timing::ServerTimingLayer::new("FilezService"))
                 .layer(CompressionLayer::new())
                 .layer(DecompressionLayer::new())
-                .layer(OtelInResponseLayer::default())
-                .layer(OtelAxumLayer::default())
                 .layer(
                     CorsLayer::new()
                         .allow_origin(AllowOrigin::async_predicate(

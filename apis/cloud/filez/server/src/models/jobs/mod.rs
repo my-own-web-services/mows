@@ -17,7 +17,7 @@ use diesel_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use tracing::trace;
+use tracing::{error, trace};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -442,9 +442,16 @@ impl FilezJob {
             .await?;
 
         if job.status != JobStatus::InProgress {
-            return Err(FilezError::InvalidRequest(
-                "Job status can only be updated if the job is in progress".to_string(),
-            ));
+            error!(
+                job_id=?job.id,
+                current_status=?job.status,
+                "Job status update failed: Job is not in progress, current status: {:?}",
+                job.status
+            );
+            return Err(FilezError::InvalidRequest(format!(
+                "Job status can only be updated if the job is in progress, current status: {:?}",
+                job.status
+            )));
         }
 
         let mut updated_job = job.clone();
@@ -452,6 +459,12 @@ impl FilezJob {
         if new_status == JobStatus::Completed || new_status == JobStatus::Failed {
             updated_job.end_time = Some(get_current_timestamp());
         } else {
+            error!(
+                job_id=?updated_job.id,
+                new_status=?new_status,
+                "Job status update failed: New status is not Completed or Failed, new status: {:?}",
+                new_status
+            );
             return Err(FilezError::InvalidRequest(
                 "Job status can only be updated to Completed or Failed".to_string(),
             ));
@@ -466,6 +479,13 @@ impl FilezJob {
             .set(&updated_job)
             .get_result::<FilezJob>(&mut connection)
             .await?;
+
+        trace!(
+            job_id=?updated_job.id,
+            job_status=?updated_job.status,
+            "Job status updated successfully for job ID: {:?}, job status: {:?}",
+            updated_job.id, updated_job.status
+        );
 
         Ok(updated_job)
     }

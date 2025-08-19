@@ -52,8 +52,8 @@ chrono = {{ version = "0.4.41", features = ["serde"] }}
 thiserror = {{ version = "2.0.12" }}
 tokio-util = {{ version = "0.7", features = ["codec"] }}
 futures = "0.3"
-reqwest-tracing = {{ version = "0.5.7", features = ["opentelemetry_0_28"] }}
-reqwest-middleware = {{ version = "0.4.0", features = ["json", "rustls-tls"] }}
+reqwest-tracing = {{ version = "0.5.8", features = ["opentelemetry_0_26"] }}
+reqwest-middleware = {{ version = "0.4.2", features = ["json", "rustls-tls"] }}
 tracing= {{ version = "0.1.40", features = ["default"] }}
 "#,
         );

@@ -16,6 +16,7 @@
         "Otel",
         "schemars",
         "thiserror",
+        "traceparent",
         "utoipa",
         "zitadel"
     ]
