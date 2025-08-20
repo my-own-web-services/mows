@@ -15,7 +15,7 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use k8s_openapi::apimachinery::pkg::runtime;
+
 use tracing::trace;
 
 #[derive(Clone, Debug)]
@@ -27,7 +27,7 @@ pub struct AuthenticationInformation {
     pub requesting_app_runtime_instance_id: Option<String>,
 }
 
-#[tracing::instrument(skip(database))]
+#[tracing::instrument(skip(database), level = "trace")]
 pub async fn authentication_middleware(
     State(ServerState {
         introspection_state,

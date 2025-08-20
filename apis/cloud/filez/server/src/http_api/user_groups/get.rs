@@ -2,14 +2,14 @@ use axum::{
     extract::{Path, State},
     Extension, Json,
 };
-use uuid::Uuid;
+
 
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        user_groups::UserGroup,
+        user_groups::{UserGroup, UserGroupId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -27,18 +27,19 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn get_user_group(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(user_group_id): Path<Uuid>,
+    Path(user_group_id): Path<UserGroupId>,
 ) -> Result<Json<ApiResponse<UserGroup>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::UserGroup,
-            Some(&vec![user_group_id]),
+            Some(&vec![user_group_id.into()]),
             AccessPolicyAction::UserGroupsGet,
         )
         .await?

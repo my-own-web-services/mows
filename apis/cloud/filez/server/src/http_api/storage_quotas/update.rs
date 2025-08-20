@@ -1,16 +1,13 @@
 use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
-        access_policies::{
-            AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectType,
-        },
-        storage_quotas::StorageQuota,
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        storage_quotas::{StorageQuota, StorageQuotaId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -22,22 +19,23 @@ use crate::{
     path = "/api/storage_quotas/update",
     request_body = UpdateStorageQuotaRequestBody,
     responses(
-        (status = 200, description = "Updates a storage quota", body = ApiResponse<StorageQuota>),
+        (status = 200, description = "Updates a storage quota", body = ApiResponse<UpdateStorageQuotaResponseBody>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn update_storage_quota(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateStorageQuotaRequestBody>,
-) -> Result<Json<ApiResponse<StorageQuota>>, FilezError> {
+) -> Result<Json<ApiResponse<UpdateStorageQuotaResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::StorageQuota,
-            Some(&[request_body.subject_id]),
+            Some(&[request_body.storage_quota_id.into()]),
             AccessPolicyAction::StorageQuotasUpdate,
         )
         .await?
@@ -48,10 +46,8 @@ pub async fn update_storage_quota(
     let storage_quota = with_timing!(
         StorageQuota::update(
             &database,
-            request_body.subject_type,
-            &request_body.subject_id,
-            &request_body.storage_location_id,
-            request_body.quota_bytes.into(),
+            request_body.storage_quota_id,
+            request_body.quota_bytes
         )
         .await?,
         "Database operation to update storage quota",
@@ -61,14 +57,17 @@ pub async fn update_storage_quota(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Storage quota updated".to_string(),
-        data: Some(storage_quota),
+        data: Some(UpdateStorageQuotaResponseBody { storage_quota }),
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateStorageQuotaRequestBody {
-    pub subject_type: AccessPolicySubjectType,
-    pub subject_id: Uuid,
-    pub storage_location_id: Uuid,
+    pub storage_quota_id: StorageQuotaId,
     pub quota_bytes: u64,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct UpdateStorageQuotaResponseBody {
+    pub storage_quota: StorageQuota,
 }

@@ -12,7 +12,6 @@ use crate::{
 use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -23,6 +22,7 @@ use uuid::Uuid;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn create_user(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -57,14 +57,14 @@ pub async fn create_user(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "User created successfully".to_string(),
-        data: Some(CreateUserResponseBody { id: new_user.id }),
+        data: Some(CreateUserResponseBody { new_user }),
     }))
 }
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct CreateUserRequestBody {
     pub email: String,
 }
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct CreateUserResponseBody {
-    pub id: Uuid,
+    pub new_user: FilezUser,
 }

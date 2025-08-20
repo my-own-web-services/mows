@@ -16,6 +16,7 @@ use utoipa::ToSchema;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(level = "trace")]
 pub async fn get_own_user(
     Extension(AuthenticationInformation {
         requesting_user, ..
@@ -33,7 +34,7 @@ pub async fn get_own_user(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GetOwnUserBody {
     pub user: FilezUser,
 }

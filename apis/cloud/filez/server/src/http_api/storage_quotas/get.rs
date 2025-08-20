@@ -1,15 +1,12 @@
 use axum::{extract::State, Extension, Json};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
-        access_policies::{
-            AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectType,
-        },
-        storage_quotas::StorageQuota,
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        storage_quotas::{StorageQuota, StorageQuotaId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -25,6 +22,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn get_storage_quota(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -36,7 +34,7 @@ pub async fn get_storage_quota(
             &database,
             &authentication_information,
             AccessPolicyResourceType::StorageQuota,
-            Some(&[request_body.subject_id]),
+            Some(&[request_body.storage_quota_id.into()]),
             AccessPolicyAction::StorageQuotasGet,
         )
         .await?
@@ -45,13 +43,7 @@ pub async fn get_storage_quota(
         timing
     );
     let storage_quota = with_timing!(
-        StorageQuota::get(
-            &database,
-            request_body.subject_type,
-            &request_body.subject_id,
-            &request_body.storage_location_id,
-        )
-        .await?,
+        StorageQuota::get(&database, request_body.storage_quota_id,).await?,
         "Database operation to get storage quota",
         timing
     );
@@ -63,9 +55,7 @@ pub async fn get_storage_quota(
     }))
 }
 
-#[derive(serde::Serialize, serde::Deserialize, ToSchema, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, ToSchema, Clone, Debug)]
 pub struct GetStorageQuotaRequestBody {
-    pub subject_type: AccessPolicySubjectType,
-    pub subject_id: Uuid,
-    pub storage_location_id: Uuid,
+    pub storage_quota_id: StorageQuotaId,
 }

@@ -3,6 +3,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsAppId,
         jobs::{FilezJob, JobExecutionInformation, JobPersistenceType},
     },
     state::ServerState,
@@ -13,7 +14,6 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, 
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -24,6 +24,7 @@ use uuid::Uuid;
         (status = 200, description = "Created a job on the server", body = ApiResponse<CreateJobResponseBody>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn create_job(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -47,7 +48,11 @@ pub async fn create_job(
     let db_created_job = with_timing!(
         FilezJob::create(
             &database,
-            authentication_information.requesting_user.unwrap().id,
+            authentication_information
+                .requesting_user
+                .unwrap()
+                .id
+                .into(),
             request_body.app_id,
             request_body.name,
             request_body.execution_details,
@@ -71,16 +76,16 @@ pub async fn create_job(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CreateJobRequestBody {
-    pub app_id: Uuid,
+    pub app_id: MowsAppId,
     pub name: String,
     pub execution_details: JobExecutionInformation,
     pub persistence: JobPersistenceType,
     pub deadline_time: Option<NaiveDateTime>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CreateJobResponseBody {
     pub created_job: FilezJob,
 }

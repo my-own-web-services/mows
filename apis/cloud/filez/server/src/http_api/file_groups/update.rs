@@ -1,14 +1,13 @@
 use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        file_groups::FileGroup,
+        file_groups::{FileGroup, FileGroupId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -24,6 +23,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn update_file_group(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -35,7 +35,7 @@ pub async fn update_file_group(
             &database,
             &authentication_information,
             AccessPolicyResourceType::FileGroup,
-            Some(&vec![request_body.file_group_id]),
+            Some(&vec![request_body.file_group_id.into()]),
             AccessPolicyAction::FileGroupsUpdate,
         )
         .await?
@@ -63,8 +63,8 @@ pub async fn update_file_group(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateFileGroupRequestBody {
-    pub file_group_id: Uuid,
+    pub file_group_id: FileGroupId,
     pub name: String,
 }

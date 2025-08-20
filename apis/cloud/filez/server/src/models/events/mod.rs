@@ -16,8 +16,10 @@ use uuid::Uuid;
 
 use crate::{
     database::Database,
+    impl_typed_uuid,
+    models::{apps::MowsAppId, users::FilezUserId},
     schema,
-    utils::{get_current_timestamp, get_uuid, InvalidEnumType},
+    utils::{get_current_timestamp, InvalidEnumType},
 };
 
 #[derive(
@@ -79,6 +81,8 @@ pub enum EventResult {
     Error { code: String, message: String },
 }
 
+impl_typed_uuid!(FilezEventId);
+
 #[derive(
     Queryable,
     Selectable,
@@ -93,27 +97,28 @@ pub enum EventResult {
 #[diesel(check_for_backend(Pg))]
 #[diesel(table_name = schema::events)]
 pub struct FilezEvent {
-    pub id: Uuid,
+    pub id: FilezEventId,
     pub created_time: chrono::NaiveDateTime,
     pub event_type: FilezEventActionType,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<FilezUserId>,
     pub resource_ids: Option<Vec<Uuid>>,
     pub resource_type: Option<FilezEventResourceType>,
-    pub app_id: Option<Uuid>,
+    pub app_id: Option<MowsAppId>,
     pub result: Option<EventResult>,
 }
 
 impl FilezEvent {
+    #[tracing::instrument(level = "trace")]
     pub fn new(
         event_type: FilezEventActionType,
-        user_id: Option<Uuid>,
+        user_id: Option<FilezUserId>,
         resource_ids: Option<Vec<Uuid>>,
         resource_type: Option<FilezEventResourceType>,
-        app_id: Option<Uuid>,
+        app_id: Option<MowsAppId>,
         result: Option<EventResult>,
     ) -> Self {
         Self {
-            id: get_uuid(),
+            id: FilezEventId::new(),
             created_time: get_current_timestamp(),
             event_type,
             user_id,
@@ -126,13 +131,14 @@ impl FilezEvent {
 
     /// The event is created in the background, so that no additional time is added to the request.
     /// If the creation fails the error is logged, but not returned to the user.
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn create_event(
         database: &Database,
         event_type: FilezEventActionType,
-        user_id: Option<Uuid>,
+        user_id: Option<FilezUserId>,
         resource_ids: Option<Vec<Uuid>>,
         resource_type: Option<FilezEventResourceType>,
-        app_id: Option<Uuid>,
+        app_id: Option<MowsAppId>,
         result: Option<EventResult>,
     ) -> Result<(), crate::errors::FilezError> {
         let event = Self::new(

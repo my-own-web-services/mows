@@ -1,5 +1,6 @@
 use crate::{
     database::Database,
+    models::users::FilezUserId,
     utils::{get_current_timestamp, InvalidEnumType},
 };
 use diesel::{
@@ -16,7 +17,6 @@ use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[derive(
     Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug, AsChangeset,
@@ -24,8 +24,8 @@ use uuid::Uuid;
 #[diesel(table_name = crate::schema::user_relations)]
 #[diesel(check_for_backend(Pg))]
 pub struct UserRelation {
-    pub user_id: Uuid,
-    pub friend_id: Uuid,
+    pub user_id: FilezUserId,
+    pub friend_id: FilezUserId,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
     pub status: UserRelationStatus,
@@ -55,7 +55,7 @@ pub enum UserRelationStatus {
 }
 
 impl UserRelation {
-    pub fn new(user_id: Uuid, friend_id: Uuid, status: UserRelationStatus) -> Self {
+    pub fn new(user_id: FilezUserId, friend_id: FilezUserId, status: UserRelationStatus) -> Self {
         Self {
             user_id,
             friend_id,
@@ -65,10 +65,10 @@ impl UserRelation {
         }
     }
 
-    pub async fn create_relation(
+    pub async fn create(
         database: &Database,
-        user_id: Uuid,
-        friend_id: Uuid,
+        user_id: FilezUserId,
+        friend_id: FilezUserId,
         status: UserRelationStatus,
     ) -> Result<Self, crate::errors::FilezError> {
         let mut connection = database.get_connection().await?;
@@ -84,8 +84,8 @@ impl UserRelation {
 
     pub async fn update_status(
         database: &Database,
-        user_id: Uuid,
-        friend_id: Uuid,
+        user_id: FilezUserId,
+        friend_id: FilezUserId,
         new_status: UserRelationStatus,
     ) -> Result<Self, crate::errors::FilezError> {
         let mut connection = database.get_connection().await?;

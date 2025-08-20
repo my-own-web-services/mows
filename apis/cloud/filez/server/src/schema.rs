@@ -155,6 +155,7 @@ diesel::table! {
     }
 }
 
+// TODO address storage quotas by id, or by subject type, subject id, and storage location id
 diesel::table! {
     storage_quotas  {
         id -> Uuid,

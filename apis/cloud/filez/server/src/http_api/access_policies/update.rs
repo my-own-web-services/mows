@@ -1,18 +1,18 @@
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
-    models::access_policies::{
-        AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
-        AccessPolicySubjectType,
+    models::{
+        access_policies::{
+            AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyId,
+            AccessPolicyResourceType, AccessPolicySubjectId, AccessPolicySubjectType,
+        },
+        apps::MowsAppId,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
-use axum::{
-    extract::{Path, State},
-    Extension, Json,
-};
+use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -26,6 +26,7 @@ use uuid::Uuid;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn update_access_policy(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -37,7 +38,7 @@ pub async fn update_access_policy(
             &database,
             &authentication_information,
             AccessPolicyResourceType::AccessPolicy,
-            Some(&vec![request_body.access_policy_id]),
+            Some(&vec![request_body.access_policy_id.into()]),
             AccessPolicyAction::AccessPoliciesUpdate,
         )
         .await?
@@ -77,13 +78,13 @@ pub async fn update_access_policy(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateAccessPolicyRequestBody {
-    pub access_policy_id: Uuid,
+    pub access_policy_id: AccessPolicyId,
     pub name: String,
     pub subject_type: AccessPolicySubjectType,
-    pub subject_id: Uuid,
-    pub context_app_ids: Vec<Uuid>,
+    pub subject_id: AccessPolicySubjectId,
+    pub context_app_ids: Vec<MowsAppId>,
     pub resource_type: AccessPolicyResourceType,
     pub resource_id: Option<Uuid>,
     pub actions: Vec<AccessPolicyAction>,

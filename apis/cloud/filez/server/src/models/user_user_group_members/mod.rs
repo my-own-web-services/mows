@@ -5,9 +5,11 @@ use diesel::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
-use crate::utils::get_current_timestamp;
+use crate::{
+    models::{user_groups::UserGroupId, users::FilezUserId},
+    utils::get_current_timestamp,
+};
 
 #[derive(
     Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug, AsChangeset,
@@ -15,13 +17,13 @@ use crate::utils::get_current_timestamp;
 #[diesel(table_name = crate::schema::user_user_group_members)]
 #[diesel(check_for_backend(Pg))]
 pub struct UserUserGroupMember {
-    pub user_id: Uuid,
-    pub user_group_id: Uuid,
+    pub user_id: FilezUserId,
+    pub user_group_id: UserGroupId,
     pub created_time: chrono::NaiveDateTime,
 }
 
 impl UserUserGroupMember {
-    pub fn new(user_id: &Uuid, user_group_id: &Uuid) -> Self {
+    pub fn new(user_id: &FilezUserId, user_group_id: &UserGroupId) -> Self {
         Self {
             user_id: user_id.clone(),
             user_group_id: user_group_id.clone(),

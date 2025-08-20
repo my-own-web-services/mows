@@ -2,7 +2,10 @@ use crate::{
     database::Database,
     errors::FilezError,
     http_api::tags::update::UpdateTagsMethod,
-    models::tags::FilezTag,
+    models::{
+        tags::{FilezTag, TagId},
+        users::FilezUserId,
+    },
     schema::{self},
     utils::{get_current_timestamp, InvalidEnumType},
 };
@@ -15,12 +18,12 @@ use diesel::{
     BoolExpressionMethods, ExpressionMethods, QueryDsl, Selectable,
 };
 use std::collections::HashMap;
+use uuid::Uuid;
 
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
 use diesel_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[derive(
     Debug,
@@ -56,17 +59,17 @@ pub enum TagResourceType {
 pub struct TagMember {
     pub resource_id: Uuid,
     pub resource_type: TagResourceType,
-    pub tag_id: Uuid,
+    pub tag_id: TagId,
     pub created_time: chrono::NaiveDateTime,
-    pub created_by_user_id: Uuid,
+    pub created_by_user_id: FilezUserId,
 }
 
 impl TagMember {
     pub fn new(
         resource_id: Uuid,
         resource_type: TagResourceType,
-        tag_id: Uuid,
-        created_by_user_id: Uuid,
+        tag_id: TagId,
+        created_by_user_id: FilezUserId,
     ) -> Self {
         Self {
             resource_id,
@@ -108,7 +111,7 @@ impl TagMember {
 
     pub async fn update_tags(
         database: &Database,
-        requesting_user_id: &Uuid,
+        requesting_user_id: &FilezUserId,
         resource_ids: &[Uuid],
         resource_type: TagResourceType,
         update_tags: UpdateTagsMethod,

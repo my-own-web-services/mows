@@ -16,36 +16,40 @@ use uuid::Uuid;
 use crate::{
     database::Database,
     errors::FilezError,
+    impl_typed_uuid,
+    models::users::FilezUserId,
     schema::{self},
-    utils::{get_current_timestamp, get_uuid},
+    utils::get_current_timestamp,
 };
 
 use super::users::{FilezUser, FilezUserType};
+
+impl_typed_uuid!(KeyAccessId);
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(check_for_backend(Pg))]
 #[diesel(table_name = schema::key_access)]
 pub struct KeyAccess {
-    pub id: Uuid,
-    pub owner_id: Uuid,
+    pub id: KeyAccessId,
+    pub owner_id: FilezUserId,
     pub name: String,
     pub key_hash: String,
     pub description: Option<String>,
-    pub user_id: Uuid,
+    pub user_id: FilezUserId,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
 }
 
 impl KeyAccess {
     pub fn new(
-        owner_id: Uuid,
+        owner_id: FilezUserId,
         name: String,
         key_hash: String,
         description: Option<String>,
-        user_id: Uuid,
+        user_id: FilezUserId,
     ) -> Self {
         Self {
-            id: get_uuid(),
+            id: KeyAccessId::new(),
             owner_id,
             name,
             key_hash,
@@ -58,10 +62,10 @@ impl KeyAccess {
 
     pub async fn create_key_access(
         database: &Database,
-        owner_id: Uuid,
+        owner_id: FilezUserId,
         name: String,
         description: Option<String>,
-        user_id: Uuid,
+        user_id: FilezUserId,
     ) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
 
@@ -93,7 +97,7 @@ impl KeyAccess {
 
     pub async fn parse_key_access_string(
         key_access_string: String,
-    ) -> Result<(Uuid, String), crate::errors::FilezError> {
+    ) -> Result<(FilezUserId, String), crate::errors::FilezError> {
         let parts: Vec<&str> = key_access_string.split(':').collect();
         if parts.len() != 2 {
             return Err(crate::errors::FilezError::InvalidRequest(
@@ -105,7 +109,7 @@ impl KeyAccess {
                 "Invalid UUID in key access string".to_string(),
             )
         })?;
-        Ok((id, parts[1].to_string()))
+        Ok((FilezUserId(id), parts[1].to_string()))
     }
 
     pub async fn get_user_by_key_access_string(

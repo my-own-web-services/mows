@@ -1,11 +1,18 @@
 use crate::{
     database::Database,
     errors::FilezError,
-    http_api::{access_policies::update, jobs::list::ListJobsSortBy},
-    models::{apps::MowsApp, users::FilezUser},
+    http_api::jobs::list::ListJobsSortBy,
+    impl_typed_uuid,
+    models::{
+        apps::{MowsApp, MowsAppId},
+        files::FilezFileId,
+        storage_locations::StorageLocationId,
+        storage_quotas::StorageQuotaId,
+        users::{FilezUser, FilezUserId},
+    },
     schema::{self},
     types::SortDirection,
-    utils::{get_current_timestamp, get_uuid, InvalidEnumType},
+    utils::{get_current_timestamp, InvalidEnumType},
 };
 use diesel::{
     deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::SmallInt,
@@ -14,13 +21,11 @@ use diesel::{
 use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
-use k8s_openapi::api;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use tracing::{error, trace};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[derive(
     Debug,
@@ -45,6 +50,8 @@ pub enum JobPersistenceType {
     Persistent = 1,
 }
 
+impl_typed_uuid!(FilezJobId);
+
 #[derive(
     Queryable,
     Selectable,
@@ -61,10 +68,10 @@ pub enum JobPersistenceType {
 #[diesel(check_for_backend(Pg))]
 #[diesel(treat_none_as_null = true)]
 pub struct FilezJob {
-    pub id: Uuid,
-    pub owner_id: Uuid,
+    pub id: FilezJobId,
+    pub owner_id: FilezUserId,
     /// The app that should handle the job
-    pub app_id: Uuid,
+    pub app_id: MowsAppId,
     /// After the job is picked up by the app, this field will be set to the app instance id, created from the kubernetes pod UUID and a random string that the app generates on startup
     pub assigned_app_runtime_instance_id: Option<String>,
     /// The last time the app instance has been seen by the server
@@ -168,10 +175,10 @@ pub enum JobType {
 /// Allows the app to create a set of previews for a existing file_version_number and file_id
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct JobTypeCreatePreview {
-    pub file_id: Uuid,
+    pub file_id: FilezFileId,
     pub file_version_number: u32,
-    pub storage_location_id: Uuid,
-    pub storage_quota_id: Uuid,
+    pub storage_location_id: StorageLocationId,
+    pub storage_quota_id: StorageQuotaId,
     pub allowed_size_bytes: u64,
     pub allowed_number_of_previews: u32,
     pub allowed_mime_types: Vec<String>,
@@ -181,15 +188,15 @@ pub struct JobTypeCreatePreview {
 
 impl FilezJob {
     pub fn new(
-        owner_id: Uuid,
-        app_id: Uuid,
+        owner_id: FilezUserId,
+        app_id: MowsAppId,
         name: String,
         execution_details: JobExecutionInformation,
         persistence: JobPersistenceType,
         deadline_time: Option<chrono::NaiveDateTime>,
     ) -> Self {
         Self {
-            id: get_uuid(),
+            id: FilezJobId::new(),
             owner_id,
             app_id,
             assigned_app_runtime_instance_id: None,
@@ -209,8 +216,8 @@ impl FilezJob {
 
     pub async fn create(
         database: &Database,
-        owner_id: Uuid,
-        app_id: Uuid,
+        owner_id: FilezUserId,
+        app_id: MowsAppId,
         name: String,
         execution_details: JobExecutionInformation,
         persistence: JobPersistenceType,
@@ -236,8 +243,8 @@ impl FilezJob {
 
     pub async fn get_many_by_id(
         database: &Database,
-        job_ids: &[Uuid],
-    ) -> Result<HashMap<Uuid, FilezJob>, FilezError> {
+        job_ids: &[FilezJobId],
+    ) -> Result<HashMap<FilezJobId, FilezJob>, FilezError> {
         let mut connection = database.get_connection().await?;
         let jobs = schema::jobs::table
             .filter(schema::jobs::id.eq_any(job_ids))
@@ -300,7 +307,7 @@ impl FilezJob {
         Ok(jobs)
     }
 
-    pub async fn delete(database: &Database, job_id: Uuid) -> Result<(), FilezError> {
+    pub async fn delete(database: &Database, job_id: FilezJobId) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(schema::jobs::table.find(job_id))
             .execute(&mut connection)
@@ -308,7 +315,10 @@ impl FilezJob {
         Ok(())
     }
 
-    pub async fn get_by_id(database: &Database, job_id: Uuid) -> Result<FilezJob, FilezError> {
+    pub async fn get_by_id(
+        database: &Database,
+        job_id: FilezJobId,
+    ) -> Result<FilezJob, FilezError> {
         let mut connection = database.get_connection().await?;
         let job = schema::jobs::table
             .find(job_id)
@@ -317,7 +327,7 @@ impl FilezJob {
         Ok(job)
     }
 
-    pub async fn delete_by_id(database: &Database, job_id: Uuid) -> Result<(), FilezError> {
+    pub async fn delete_by_id(database: &Database, job_id: FilezJobId) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(schema::jobs::table.find(job_id))
             .execute(&mut connection)
@@ -327,7 +337,7 @@ impl FilezJob {
 
     pub async fn get_current_by_app_and_runtime_instance_id(
         database: &Database,
-        app_id: &Uuid,
+        app_id: &MowsAppId,
         runtime_instance_id: &str,
     ) -> Result<Option<FilezJob>, FilezError> {
         let mut connection = database.get_connection().await?;

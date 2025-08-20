@@ -21,6 +21,7 @@ use utoipa::ToSchema;
         (status = 200, description = "Lists all Storage Locations", body = ApiResponse<ListStorageLocationsResponseBody>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn list_storage_locations(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -54,18 +55,18 @@ pub async fn list_storage_locations(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListStorageLocationsRequestBody {
     pub sort_by: Option<ListStorageLocationsSortBy>,
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListStorageLocationsResponseBody {
     pub storage_locations: Vec<StorageLocationListItem>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ListStorageLocationsSortBy {
     CreatedTime,
     ModifiedTime,

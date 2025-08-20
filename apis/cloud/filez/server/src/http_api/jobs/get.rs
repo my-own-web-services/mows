@@ -3,7 +3,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        jobs::FilezJob,
+        jobs::{FilezJob, FilezJobId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
@@ -12,7 +12,6 @@ use crate::{
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -23,6 +22,7 @@ use uuid::Uuid;
         (status = 200, description = "Got a job from the server", body = ApiResponse<GetJobResponseBody>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn get_job(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -34,7 +34,7 @@ pub async fn get_job(
             &database,
             &authentication_information,
             AccessPolicyResourceType::FilezJob,
-            Some(&[request_body.job_id]),
+            Some(&[request_body.job_id.into()]),
             AccessPolicyAction::FilezJobsGet,
         )
         .await?
@@ -59,12 +59,12 @@ pub async fn get_job(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GetJobRequestBody {
-    pub job_id: Uuid,
+    pub job_id: FilezJobId,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GetJobResponseBody {
     pub job: FilezJob,
 }

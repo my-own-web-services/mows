@@ -90,7 +90,7 @@ CREATE TABLE "user_user_group_members"(
 
 
 CREATE TABLE "file_versions"(
-	"id" UUID NOT NULL,
+	"id" UUID NOT NULL UNIQUE,
 	"file_id" UUID NOT NULL,
 	"version" INTEGER NOT NULL,
 	"app_id" UUID NOT NULL,

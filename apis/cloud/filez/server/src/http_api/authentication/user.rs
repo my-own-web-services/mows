@@ -36,7 +36,7 @@ pub enum IntrospectionGuardError {
     Discovery(#[from] DiscoveryError),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AuthenticationInformation {
     pub requesting_user: Option<FilezUser>,
     pub requesting_app: MowsApp,
@@ -58,6 +58,7 @@ pub struct IntrospectedUser {
     pub metadata: Option<HashMap<String, String>>,
 }
 
+#[tracing::instrument(level = "trace")]
 pub async fn handle_oidc(
     bearer: Bearer,
     state: &IntrospectionState,

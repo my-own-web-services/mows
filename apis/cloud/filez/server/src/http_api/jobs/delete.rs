@@ -3,7 +3,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        jobs::FilezJob,
+        jobs::{FilezJob, FilezJobId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -12,7 +12,6 @@ use crate::{
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -23,6 +22,7 @@ use uuid::Uuid;
         (status = 200, description = "Deleted a job on the server", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn delete_job(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -34,7 +34,7 @@ pub async fn delete_job(
             &database,
             &authentication_information,
             AccessPolicyResourceType::FilezJob,
-            Some(&[request_body.job_id]),
+            Some(&[request_body.job_id.into()]),
             AccessPolicyAction::FilezJobsDelete,
         )
         .await?
@@ -59,7 +59,7 @@ pub async fn delete_job(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DeleteJobRequestBody {
-    pub job_id: Uuid,
+    pub job_id: FilezJobId,
 }

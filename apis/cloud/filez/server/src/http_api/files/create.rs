@@ -26,6 +26,7 @@ use utoipa::ToSchema;
         (status = 200, description = "Created a file on the server", body = ApiResponse<CreateFileResponseBody>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn create_file(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -82,7 +83,7 @@ pub async fn create_file(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CreateFileRequestBody {
     pub mime_type: Option<String>,
     pub file_name: String,
@@ -90,7 +91,7 @@ pub struct CreateFileRequestBody {
     pub time_modified: Option<NaiveDateTime>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CreateFileResponseBody {
     pub created_file: FilezFile,
 }

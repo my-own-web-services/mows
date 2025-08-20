@@ -1,4 +1,6 @@
 use crate::http_api::authentication::user::IntrospectedUser;
+use crate::impl_typed_uuid;
+use crate::models::files::FilezFileId;
 use crate::{
     config::{config, IMPERSONATE_USER_HEADER_NAME, KEY_ACCESS_HEADER_NAME},
     database::Database,
@@ -7,7 +9,7 @@ use crate::{
     models::apps::MowsApp,
     schema,
     types::SortDirection,
-    utils::{get_current_timestamp, get_uuid, InvalidEnumType},
+    utils::{get_current_timestamp, InvalidEnumType},
 };
 use axum::http::HeaderMap;
 use diesel::{
@@ -24,6 +26,7 @@ use diesel_enum::DbEnum;
 use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tracing::trace;
 use tracing::{debug, warn};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -52,11 +55,13 @@ pub enum FilezUserType {
     KeyAccess = 2,
 }
 
+impl_typed_uuid!(FilezUserId);
+
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(Pg))]
 pub struct FilezUser {
-    pub id: Uuid,
+    pub id: FilezUserId,
     /// The external user ID, e.g. from ZITADEL or other identity providers
     pub external_user_id: Option<String>,
     /// Used to create a user before the external user ID is known, when the user then logs in with a verified email address the email is switched to the external user ID
@@ -65,8 +70,8 @@ pub struct FilezUser {
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
     pub deleted: bool,
-    pub profile_picture: Option<Uuid>,
-    pub created_by: Option<Uuid>,
+    pub profile_picture: Option<FilezFileId>,
+    pub created_by: Option<FilezUserId>,
     pub user_type: FilezUserType,
 }
 
@@ -74,21 +79,22 @@ pub struct FilezUser {
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(Pg))]
 pub struct ListedFilezUser {
-    pub id: Uuid,
+    pub id: FilezUserId,
     pub display_name: String,
     pub created_time: chrono::NaiveDateTime,
 }
 
 impl FilezUser {
+    #[tracing::instrument(level = "trace")]
     pub fn new(
         external_user_id: Option<String>,
         pre_identifier_email: Option<String>,
         display_name: Option<String>,
-        created_by: Option<Uuid>,
+        created_by: Option<FilezUserId>,
         user_type: FilezUserType,
     ) -> Self {
         Self {
-            id: get_uuid(),
+            id: FilezUserId::new(),
             external_user_id,
             pre_identifier_email,
             display_name: display_name.unwrap_or_else(|| "".to_string()),
@@ -101,6 +107,7 @@ impl FilezUser {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_by_external_id(
         database: &Database,
         external_user_id: &str,
@@ -113,7 +120,8 @@ impl FilezUser {
         Ok(user)
     }
 
-    pub async fn get_by_id(database: &Database, user_id: &Uuid) -> Result<Self, FilezError> {
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_by_id(database: &Database, user_id: &FilezUserId) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
         let user = schema::users::table
             .find(user_id)
@@ -122,6 +130,7 @@ impl FilezUser {
         Ok(user)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_by_email(database: &Database, email: &str) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
         let user = schema::users::table
@@ -131,6 +140,7 @@ impl FilezUser {
         Ok(user)
     }
 
+    #[tracing::instrument(level = "trace", skip(_database))]
     pub async fn list_with_user_access(
         _database: &Database,
         _maybe_requesting_user: Option<&FilezUser>,
@@ -143,7 +153,8 @@ impl FilezUser {
         todo!()
     }
 
-    pub async fn delete(database: &Database, user_id: &Uuid) -> Result<(), FilezError> {
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn delete(database: &Database, user_id: &FilezUserId) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::update(crate::schema::users::table.find(user_id))
             .set((
@@ -155,10 +166,11 @@ impl FilezUser {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn create(
         database: &Database,
         email: &str,
-        requesting_user_id: &Uuid,
+        requesting_user_id: &FilezUserId,
     ) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
         let new_user = Self::new(
@@ -178,6 +190,7 @@ impl FilezUser {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn apply(
         database: &Database,
         external_user: IntrospectedUser,
@@ -304,21 +317,46 @@ impl FilezUser {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_many_by_id(
         database: &Database,
-        user_ids: &[Uuid],
-    ) -> Result<HashMap<Uuid, FilezUser>, FilezError> {
+        user_ids: &[FilezUserId],
+    ) -> Result<HashMap<FilezUserId, FilezUser>, FilezError> {
         let mut connection = database.get_connection().await?;
 
         let users: Vec<FilezUser> = schema::users::table
             .filter(schema::users::id.eq_any(user_ids))
             .load(&mut connection)
             .await?;
-        let user_map: HashMap<Uuid, FilezUser> =
+        let user_map: HashMap<FilezUserId, FilezUser> =
             users.into_iter().map(|user| (user.id, user)).collect();
         Ok(user_map)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn update(
+        database: &Database,
+        user_id: &FilezUserId,
+        profile_picture: Option<FilezFileId>,
+    ) -> Result<FilezUser, FilezError> {
+        let mut connection = database.get_connection().await?;
+
+        let updated_user = diesel::update(schema::users::table.find(user_id))
+            .set((
+                schema::users::profile_picture.eq(profile_picture),
+                schema::users::modified_time.eq(get_current_timestamp()),
+            ))
+            .get_result::<FilezUser>(&mut connection)
+            .await?;
+
+        trace!(
+            updated_user=?updated_user,
+            "Updated user with ID: {}", updated_user.id
+        );
+        Ok(updated_user)
+    }
+
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_from_external(
         database: &Database,
         external_user: &Option<IntrospectedUser>,

@@ -21,6 +21,11 @@ export enum TagResourceType {
   StorageQuota = "StorageQuota",
 }
 
+export enum StorageQuotaSubjectType {
+  User = "User",
+  UserGroup = "UserGroup",
+}
+
 export enum SortDirection {
   Ascending = "Ascending",
   Descending = "Descending",
@@ -187,27 +192,30 @@ export enum AccessPolicyAction {
 export interface AccessPolicy {
   actions: AccessPolicyAction[];
   /** The IDs of the application this policy is associated with */
-  context_app_ids: string[];
+  context_app_ids: MowsAppId[];
   /** @format date-time */
   created_time: string;
   effect: AccessPolicyEffect;
-  /** @format uuid */
-  id: string;
+  id: AccessPolicyId;
   /** @format date-time */
   modified_time: string;
   name: string;
-  /** @format uuid */
-  owner_id: string;
+  owner_id: FilezUserId;
   /**
    * The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
    * @format uuid
    */
   resource_id?: string | null;
   resource_type: AccessPolicyResourceType;
-  /** @format uuid */
-  subject_id: string;
+  subject_id: AccessPolicySubjectId;
   subject_type: AccessPolicySubjectType;
 }
+
+/** @format uuid */
+export type AccessPolicyId = string;
+
+/** @format uuid */
+export type AccessPolicySubjectId = string;
 
 export type ApiResponseStatus =
   | "Success"
@@ -219,25 +227,22 @@ export interface ApiResponseAccessPolicy {
   data?: {
     actions: AccessPolicyAction[];
     /** The IDs of the application this policy is associated with */
-    context_app_ids: string[];
+    context_app_ids: MowsAppId[];
     /** @format date-time */
     created_time: string;
     effect: AccessPolicyEffect;
-    /** @format uuid */
-    id: string;
+    id: AccessPolicyId;
     /** @format date-time */
     modified_time: string;
     name: string;
-    /** @format uuid */
-    owner_id: string;
+    owner_id: FilezUserId;
     /**
      * The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
      * @format uuid
      */
     resource_id?: string | null;
     resource_type: AccessPolicyResourceType;
-    /** @format uuid */
-    subject_id: string;
+    subject_id: AccessPolicySubjectId;
     subject_type: AccessPolicySubjectType;
   };
   message: string;
@@ -286,8 +291,7 @@ export interface ApiResponseCreateStorageQuotaResponseBody {
 
 export interface ApiResponseCreateUserResponseBody {
   data?: {
-    /** @format uuid */
-    id: string;
+    new_user: FilezUser;
   };
   message: string;
   status: ApiResponseStatus;
@@ -295,8 +299,7 @@ export interface ApiResponseCreateUserResponseBody {
 
 export interface ApiResponseDeleteFileResponseBody {
   data?: {
-    /** @format uuid */
-    file_id: string;
+    file_id: FilezFileId;
   };
   message: string;
   status: ApiResponseStatus;
@@ -312,8 +315,7 @@ export interface ApiResponseDeleteFileVersionsResponseBody {
 
 export interface ApiResponseDeleteUserResponseBody {
   data?: {
-    /** @format uuid */
-    user_id: string;
+    user_id: FilezUserId;
   };
   message: string;
   status: ApiResponseStatus;
@@ -331,13 +333,11 @@ export interface ApiResponseFileGroup {
     created_time: string;
     dynamic_group_rule?: null | DynamicGroupRule;
     group_type: FileGroupType;
-    /** @format uuid */
-    id: string;
+    id: FileGroupId;
     /** @format date-time */
     modified_time: string;
     name: string;
-    /** @format uuid */
-    owner_id: string;
+    owner_id: FilezUserId;
   };
   message: string;
   status: ApiResponseStatus;
@@ -522,20 +522,16 @@ export interface ApiResponseStorageQuota {
   data?: {
     /** @format date-time */
     created_time: string;
-    /** @format uuid */
-    id: string;
+    id: StorageQuotaId;
     /** @format date-time */
     modified_time: string;
     name: string;
-    /** @format uuid */
-    owner_id: string;
+    owner_id: FilezUserId;
     /** @format int64 */
     quota_bytes: number;
-    /** @format uuid */
-    storage_location_id: string;
-    /** @format uuid */
-    subject_id: string;
-    subject_type: AccessPolicySubjectType;
+    storage_location_id: StorageLocationId;
+    subject_id: StorageQuotaSubjectId;
+    subject_type: StorageQuotaSubjectType;
   };
   message: string;
   status: ApiResponseStatus;
@@ -579,17 +575,31 @@ export interface ApiResponseUpdateJobStatusResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseUpdateStorageQuotaResponseBody {
+  data?: {
+    storage_quota: StorageQuota;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseUpdateUserGroupResponseBody {
+  data?: {
+    updated_user_group: UserGroup;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseUserGroup {
   data?: {
     /** @format date-time */
     created_time: string;
-    /** @format uuid */
-    id: string;
+    id: UserGroupId;
     /** @format date-time */
     modified_time: string;
     name: string;
-    /** @format uuid */
-    owner_id: string;
+    owner_id: FilezUserId;
   };
   message: string;
   status: ApiResponseStatus;
@@ -607,90 +617,74 @@ export type AuthReason =
   | "Owned"
   | {
       AllowedByPubliclyAccessible: {
-        /** @format uuid */
-        policy_id: string;
+        policy_id: AccessPolicyId;
       };
     }
   | {
       AllowedByServerAccessible: {
-        /** @format uuid */
-        policy_id: string;
+        policy_id: AccessPolicyId;
       };
     }
   | {
       AllowedByDirectUserPolicy: {
-        /** @format uuid */
-        policy_id: string;
+        policy_id: AccessPolicyId;
       };
     }
   | {
-      AllowedByDirectGroupPolicy: {
-        /** @format uuid */
-        policy_id: string;
-        /** @format uuid */
-        via_user_group_id: string;
+      AllowedByDirectUserGroupPolicy: {
+        policy_id: AccessPolicyId;
+        via_user_group_id: UserGroupId;
       };
     }
   | {
       AllowedByResourceGroupUserPolicy: {
         /** @format uuid */
         on_resource_group_id: string;
-        /** @format uuid */
-        policy_id: string;
+        policy_id: AccessPolicyId;
       };
     }
   | {
       AllowedByResourceGroupUserGroupPolicy: {
         /** @format uuid */
         on_resource_group_id: string;
-        /** @format uuid */
-        policy_id: string;
-        /** @format uuid */
-        via_user_group_id: string;
+        policy_id: AccessPolicyId;
+        via_user_group_id: UserGroupId;
       };
     }
   | {
       DeniedByPubliclyAccessible: {
-        /** @format uuid */
-        policy_id: string;
+        policy_id: AccessPolicyId;
       };
     }
   | {
       DeniedByServerAccessible: {
-        /** @format uuid */
-        policy_id: string;
+        policy_id: AccessPolicyId;
       };
     }
   | {
       DeniedByDirectUserPolicy: {
-        /** @format uuid */
-        policy_id: string;
+        policy_id: AccessPolicyId;
       };
     }
   | {
-      DeniedByDirectGroupPolicy: {
-        /** @format uuid */
-        policy_id: string;
-        /** @format uuid */
-        via_user_group_id: string;
+      DeniedByDirectUserGroupPolicy: {
+        policy_id: AccessPolicyId;
+        via_user_group_id: UserGroupId;
       };
     }
   | {
       DeniedByResourceGroupUserPolicy: {
         /** @format uuid */
         on_resource_group_id: string;
-        /** @format uuid */
-        policy_id: string;
+        policy_id: AccessPolicyId;
       };
     }
   | {
       DeniedByResourceGroupUserGroupPolicy: {
         /** @format uuid */
         on_resource_group_id: string;
-        /** @format uuid */
-        policy_id: string;
-        /** @format uuid */
-        via_user_group_id: string;
+        policy_id: AccessPolicyId;
+        via_user_group_id: UserGroupId;
       };
     }
   | "NoMatchingAllowPolicy"
@@ -709,14 +703,13 @@ export interface CheckResourceAccessResponseBody {
 
 export interface CreateAccessPolicyRequestBody {
   actions: AccessPolicyAction[];
-  context_app_ids: string[];
+  context_app_ids: MowsAppId[];
   effect: AccessPolicyEffect;
   name: string;
   /** @format uuid */
   resource_id?: string | null;
   resource_type: AccessPolicyResourceType;
-  /** @format uuid */
-  subject_id: string;
+  subject_id: AccessPolicySubjectId;
   subject_type: AccessPolicySubjectType;
 }
 
@@ -750,11 +743,8 @@ export interface CreateFileVersionRequestBody {
    * @pattern ^[a-f0-9]{64}$
    */
   content_expected_sha256_digest?: string | null;
-  /**
-   * The ID of the file to create a version for.
-   * @format uuid
-   */
-  file_id: string;
+  /** The ID of the file to create a version for. */
+  file_id: FilezFileId;
   metadata: FileVersionMetadata;
   mime_type: string;
   /**
@@ -762,8 +752,7 @@ export interface CreateFileVersionRequestBody {
    * @min 0
    */
   size: number;
-  /** @format uuid */
-  storage_quota_id: string;
+  storage_quota_id: StorageQuotaId;
   /**
    * @format int32
    * @min 0
@@ -776,8 +765,7 @@ export interface CreateFileVersionResponseBody {
 }
 
 export interface CreateJobRequestBody {
-  /** @format uuid */
-  app_id: string;
+  app_id: MowsAppId;
   /** @format date-time */
   deadline_time?: string | null;
   execution_details: JobExecutionInformation;
@@ -796,11 +784,9 @@ export interface CreateStorageQuotaRequestBody {
    * @min 0
    */
   quota_bytes: number;
-  /** @format uuid */
-  storage_location_id: string;
-  /** @format uuid */
-  subject_id: string;
-  subject_type: AccessPolicySubjectType;
+  storage_location_id: StorageLocationId;
+  storage_quota_subject_id: StorageQuotaSubjectId;
+  storage_quota_subject_type: StorageQuotaSubjectType;
 }
 
 export interface CreateStorageQuotaResponseBody {
@@ -816,18 +802,15 @@ export interface CreateUserRequestBody {
 }
 
 export interface CreateUserResponseBody {
-  /** @format uuid */
-  id: string;
+  new_user: FilezUser;
 }
 
 export interface DeleteFileRequestBody {
-  /** @format uuid */
-  file_id: string;
+  file_id: FilezFileId;
 }
 
 export interface DeleteFileResponseBody {
-  /** @format uuid */
-  file_id: string;
+  file_id: FilezFileId;
 }
 
 export interface DeleteFileVersionsRequestBody {
@@ -839,22 +822,16 @@ export interface DeleteFileVersionsResponseBody {
 }
 
 export interface DeleteJobRequestBody {
-  /** @format uuid */
-  job_id: string;
+  job_id: FilezJobId;
 }
 
 export interface DeleteStorageQuotaRequestBody {
-  /** @format uuid */
-  storage_location_id: string;
-  /** @format uuid */
-  subject_id: string;
-  subject_type: AccessPolicySubjectType;
+  storage_quota_id: StorageQuotaId;
 }
 
 export type DeleteUserMethod =
   | {
-      /** @format uuid */
-      ById: string;
+      ById: FilezUserId;
     }
   | {
       ByExternalId: string;
@@ -868,8 +845,7 @@ export interface DeleteUserRequestBody {
 }
 
 export interface DeleteUserResponseBody {
-  /** @format uuid */
-  user_id: string;
+  user_id: FilezUserId;
 }
 
 export type DynamicGroupRule = object;
@@ -881,18 +857,18 @@ export interface FileGroup {
   created_time: string;
   dynamic_group_rule?: null | DynamicGroupRule;
   group_type: FileGroupType;
-  /** @format uuid */
-  id: string;
+  id: FileGroupId;
   /** @format date-time */
   modified_time: string;
   name: string;
-  /** @format uuid */
-  owner_id: string;
+  owner_id: FilezUserId;
 }
 
+/** @format uuid */
+export type FileGroupId = string;
+
 export interface FileMetadata {
-  /** @format uuid */
-  default_preview_app_id?: string | null;
+  default_preview_app_id?: null | MowsAppId;
   /** Extracted data from the file, such as text content, metadata, etc. */
   extracted_data: Record<string, any>;
   /**
@@ -905,37 +881,33 @@ export interface FileMetadata {
 }
 
 export interface FileVersion {
-  /** @format uuid */
-  app_id: string;
+  app_id: MowsAppId;
   app_path: string;
   content_expected_sha256_digest?: string | null;
   content_valid: boolean;
   /** @format date-time */
   created_time: string;
-  /** @format uuid */
-  file_id: string;
-  /** @format uuid */
-  id: string;
+  file_id: FilezFileId;
+  id: FileVersionId;
   metadata: FileVersionMetadata;
   mime_type: string;
   /** @format date-time */
   modified_time: string;
   /** @format int64 */
   size: number;
-  /** @format uuid */
-  storage_location_id: string;
-  /** @format uuid */
-  storage_quota_id: string;
+  storage_location_id: StorageLocationId;
+  storage_quota_id: StorageQuotaId;
   /** @format int32 */
   version: number;
 }
 
+/** @format uuid */
+export type FileVersionId = string;
+
 export interface FileVersionIdentifier {
-  /** @format uuid */
-  app_id: string;
+  app_id: MowsAppId;
   app_path: string;
-  /** @format uuid */
-  file_id: string;
+  file_id: FilezFileId;
   /**
    * @format int32
    * @min 0
@@ -961,23 +933,21 @@ export interface FileVersionSizeExceededErrorBody {
 export interface FilezFile {
   /** @format date-time */
   created_time: string;
-  /** @format uuid */
-  id: string;
+  id: FilezFileId;
   metadata: FileMetadata;
   mime_type: string;
   /** @format date-time */
   modified_time: string;
   name: string;
-  /** @format uuid */
-  owner_id: string;
+  owner_id: FilezUserId;
 }
 
+/** @format uuid */
+export type FilezFileId = string;
+
 export interface FilezJob {
-  /**
-   * The app that should handle the job
-   * @format uuid
-   */
-  app_id: string;
+  /** The app that should handle the job */
+  app_id: MowsAppId;
   /**
    * The last time the app instance has been seen by the server
    * This is used to determine if the app instance is still alive and can handle the job
@@ -1003,16 +973,14 @@ export interface FilezJob {
   end_time?: string | null;
   /** Details relevant for the execution of the job */
   execution_information: JobExecutionInformation;
-  /** @format uuid */
-  id: string;
+  id: FilezJobId;
   /**
    * When the job was last modified in the database
    * @format date-time
    */
   modified_time: string;
   name: string;
-  /** @format uuid */
-  owner_id: string;
+  owner_id: FilezUserId;
   persistence: JobPersistenceType;
   /**
    * When the job was started, either automatically or manually
@@ -1024,25 +992,28 @@ export interface FilezJob {
   status_details?: null | JobStatusDetails;
 }
 
+/** @format uuid */
+export type FilezJobId = string;
+
 export interface FilezUser {
-  /** @format uuid */
-  created_by?: string | null;
+  created_by?: null | FilezUserId;
   /** @format date-time */
   created_time: string;
   deleted: boolean;
   display_name: string;
   /** The external user ID, e.g. from ZITADEL or other identity providers */
   external_user_id?: string | null;
-  /** @format uuid */
-  id: string;
+  id: FilezUserId;
   /** @format date-time */
   modified_time: string;
   /** Used to create a user before the external user ID is known, when the user then logs in with a verified email address the email is switched to the external user ID */
   pre_identifier_email?: string | null;
-  /** @format uuid */
-  profile_picture?: string | null;
+  profile_picture?: null | FilezFileId;
   user_type: FilezUserType;
 }
+
+/** @format uuid */
+export type FilezUserId = string;
 
 export interface GetAppsResponseBody {
   apps: Record<string, MowsApp>;
@@ -1061,8 +1032,7 @@ export interface GetFilesResponseBody {
 }
 
 export interface GetJobRequestBody {
-  /** @format uuid */
-  job_id: string;
+  job_id: FilezJobId;
 }
 
 export interface GetJobResponseBody {
@@ -1074,11 +1044,7 @@ export interface GetOwnUserBody {
 }
 
 export interface GetStorageQuotaRequestBody {
-  /** @format uuid */
-  storage_location_id: string;
-  /** @format uuid */
-  subject_id: string;
-  subject_type: AccessPolicySubjectType;
+  storage_quota_id: StorageQuotaId;
 }
 
 export interface GetTagsRequestBody {
@@ -1091,7 +1057,7 @@ export interface GetTagsResponseBody {
 }
 
 export interface GetUsersReqBody {
-  user_ids: string[];
+  user_ids: FilezUserId[];
 }
 
 export interface GetUsersResBody {
@@ -1172,18 +1138,15 @@ export interface JobTypeCreatePreview {
    * @min 0
    */
   allowed_size_bytes: number;
-  /** @format uuid */
-  file_id: string;
+  file_id: FilezFileId;
   /**
    * @format int32
    * @min 0
    */
   file_version_number: number;
   preview_config: object;
-  /** @format uuid */
-  storage_location_id: string;
-  /** @format uuid */
-  storage_quota_id: string;
+  storage_location_id: StorageLocationId;
+  storage_quota_id: StorageQuotaId;
 }
 
 export interface ListAccessPoliciesRequestBody {
@@ -1231,8 +1194,7 @@ export interface ListFileGroupsResponseBody {
 }
 
 export interface ListFilesRequestBody {
-  /** @format uuid */
-  file_group_id: string;
+  file_group_id: FileGroupId;
   /**
    * @format int64
    * @min 0
@@ -1269,9 +1231,9 @@ export type ListFilesSorting =
     };
 
 export interface ListFilesStoredSortOrder {
+  direction?: null | SortDirection;
   /** @format uuid */
-  id: string;
-  sort_order?: null | SortDirection;
+  stored_sort_order_id: string;
 }
 
 export interface ListJobsRequestBody {
@@ -1353,8 +1315,7 @@ export interface ListUsersRequestBody {
   limit?: number | null;
   sort_by?: string | null;
   sort_order?: null | SortDirection;
-  /** @format uuid */
-  user_group_id: string;
+  user_group_id: UserGroupId;
 }
 
 export interface ListUsersResponseBody {
@@ -1370,8 +1331,7 @@ export interface ListedFilezUser {
   /** @format date-time */
   created_time: string;
   display_name: string;
-  /** @format uuid */
-  id: string;
+  id: FilezUserId;
 }
 
 /**
@@ -1387,11 +1347,8 @@ export interface MowsApp {
   /** @format date-time */
   created_time: string;
   description?: string | null;
-  /**
-   * Unique identifier for the app in the database, this is used to identify the app in all database operations
-   * @format uuid
-   */
-  id: string;
+  /** Unique identifier for the app in the database, this is used to identify the app in all database operations */
+  id: MowsAppId;
   /** @format date-time */
   modified_time: string;
   /**
@@ -1409,17 +1366,22 @@ export interface MowsApp {
   trusted: boolean;
 }
 
+/** @format uuid */
+export type MowsAppId = string;
+
 export type PickupJobRequestBody = object;
 
 export interface PickupJobResponseBody {
   job?: null | FilezJob;
 }
 
+/** @format uuid */
+export type StorageLocationId = string;
+
 export interface StorageLocationListItem {
   /** @format date-time */
   created_time: string;
-  /** @format uuid */
-  id: string;
+  id: StorageLocationId;
   /** @format date-time */
   modified_time: string;
   name: string;
@@ -1428,53 +1390,50 @@ export interface StorageLocationListItem {
 export interface StorageQuota {
   /** @format date-time */
   created_time: string;
-  /** @format uuid */
-  id: string;
+  id: StorageQuotaId;
   /** @format date-time */
   modified_time: string;
   name: string;
-  /** @format uuid */
-  owner_id: string;
+  owner_id: FilezUserId;
   /** @format int64 */
   quota_bytes: number;
-  /** @format uuid */
-  storage_location_id: string;
-  /** @format uuid */
-  subject_id: string;
-  subject_type: AccessPolicySubjectType;
+  storage_location_id: StorageLocationId;
+  subject_id: StorageQuotaSubjectId;
+  subject_type: StorageQuotaSubjectType;
 }
 
+/** @format uuid */
+export type StorageQuotaId = string;
+
+/** @format uuid */
+export type StorageQuotaSubjectId = string;
+
 export interface UpdateAccessPolicyRequestBody {
-  /** @format uuid */
-  access_policy_id: string;
+  access_policy_id: AccessPolicyId;
   actions: AccessPolicyAction[];
-  context_app_ids: string[];
+  context_app_ids: MowsAppId[];
   effect: AccessPolicyEffect;
   name: string;
   /** @format uuid */
   resource_id?: string | null;
   resource_type: AccessPolicyResourceType;
-  /** @format uuid */
-  subject_id: string;
+  subject_id: AccessPolicySubjectId;
   subject_type: AccessPolicySubjectType;
 }
 
 export interface UpdateFileGroupMembersRequestBody {
-  /** @format uuid */
-  file_group_id: string;
+  file_group_id: FileGroupId;
   files_to_add?: any[] | null;
   files_to_remove?: any[] | null;
 }
 
 export interface UpdateFileGroupRequestBody {
-  /** @format uuid */
-  file_group_id: string;
+  file_group_id: FileGroupId;
   name: string;
 }
 
 export interface UpdateFileRequestBody {
-  /** @format uuid */
-  file_id: string;
+  file_id: FilezFileId;
   file_name?: string | null;
   metadata?: null | FileMetadata;
   mime_type?: string | null;
@@ -1507,8 +1466,7 @@ export interface UpdateJobRequestBody {
   /** @format date-time */
   deadline_time?: string | null;
   execution_information?: null | JobExecutionInformation;
-  /** @format uuid */
-  job_id: string;
+  job_id: FilezJobId;
   name?: string | null;
   persistence?: null | JobPersistenceType;
   status?: null | JobStatus;
@@ -1534,11 +1492,11 @@ export interface UpdateStorageQuotaRequestBody {
    * @min 0
    */
   quota_bytes: number;
-  /** @format uuid */
-  storage_location_id: string;
-  /** @format uuid */
-  subject_id: string;
-  subject_type: AccessPolicySubjectType;
+  storage_quota_id: StorageQuotaId;
+}
+
+export interface UpdateStorageQuotaResponseBody {
+  storage_quota: StorageQuota;
 }
 
 export type UpdateTagsMethod =
@@ -1560,29 +1518,32 @@ export interface UpdateTagsRequestBody {
 }
 
 export interface UpdateUserGroupMembersRequestBody {
-  /** @format uuid */
-  user_group_id: string;
+  user_group_id: UserGroupId;
   users_to_add?: any[] | null;
   users_to_remove?: any[] | null;
 }
 
 export interface UpdateUserGroupRequestBody {
   name: string;
-  /** @format uuid */
-  user_group_id: string;
+  user_group_id: UserGroupId;
+}
+
+export interface UpdateUserGroupResponseBody {
+  updated_user_group: UserGroup;
 }
 
 export interface UserGroup {
   /** @format date-time */
   created_time: string;
-  /** @format uuid */
-  id: string;
+  id: UserGroupId;
   /** @format date-time */
   modified_time: string;
   name: string;
-  /** @format uuid */
-  owner_id: string;
+  owner_id: FilezUserId;
 }
+
+/** @format uuid */
+export type UserGroupId = string;
 
 export interface UserMeta {
   user: FilezUser;
@@ -1900,7 +1861,7 @@ export class Api<
      * @request DELETE:/api/access_policies/delete/{access_policy_id}
      */
     deleteAccessPolicy: (accessPolicyId: string, params: RequestParams = {}) =>
-      this.request<ApiResponseString, ApiResponseEmptyApiResponse>({
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/access_policies/delete/${accessPolicyId}`,
         method: "DELETE",
         format: "json",
@@ -2604,7 +2565,10 @@ export class Api<
       data: UpdateStorageQuotaRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseStorageQuota, ApiResponseEmptyApiResponse>({
+      this.request<
+        ApiResponseUpdateStorageQuotaResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/storage_quotas/update`,
         method: "PUT",
         body: data,
@@ -2746,7 +2710,10 @@ export class Api<
       data: UpdateUserGroupRequestBody,
       params: RequestParams = {},
     ) =>
-      this.request<ApiResponseUserGroup, ApiResponseEmptyApiResponse>({
+      this.request<
+        ApiResponseUpdateUserGroupResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/user_groups/update`,
         method: "PUT",
         body: data,

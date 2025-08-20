@@ -28,6 +28,7 @@ use uuid::Uuid;
         (status = 500, description = "Internal Server Error", body = ApiResponse<EmptyApiResponse>)
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn delete_file_versions(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState {
@@ -38,7 +39,11 @@ pub async fn delete_file_versions(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<DeleteFileVersionsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
-    let file_ids: Vec<Uuid> = request_body.versions.iter().map(|v| v.file_id).collect();
+    let file_ids: Vec<Uuid> = request_body
+        .versions
+        .iter()
+        .map(|v| v.file_id.into())
+        .collect();
 
     with_timing!(
         AccessPolicy::check(
@@ -74,12 +79,12 @@ pub async fn delete_file_versions(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DeleteFileVersionsRequestBody {
     pub versions: Vec<FileVersionIdentifier>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DeleteFileVersionsResponseBody {
     pub versions: Vec<FileVersionIdentifier>,
 }

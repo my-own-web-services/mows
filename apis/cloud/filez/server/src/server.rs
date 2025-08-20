@@ -21,14 +21,13 @@ use tower_http::{
     cors::{AllowOrigin, Any, CorsLayer},
     decompression::DecompressionLayer,
     set_header::SetResponseHeaderLayer,
-    trace::{DefaultMakeSpan, TraceLayer},
 };
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 
-#[tracing::instrument]
+#[tracing::instrument(level = "trace")]
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let config = get_current_config_cloned!(config());

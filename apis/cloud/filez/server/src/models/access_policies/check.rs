@@ -1,9 +1,12 @@
 use super::{AccessPolicyAction, AccessPolicyResourceType};
 use crate::errors::FilezError;
 use crate::filter_subject_access_policies;
-use crate::models::access_policies::{AccessPolicy, AccessPolicyEffect, AccessPolicySubjectType};
+use crate::models::access_policies::{
+    AccessPolicy, AccessPolicyEffect, AccessPolicyId, AccessPolicySubjectType,
+};
 use crate::models::apps::MowsApp;
-use crate::models::users::{FilezUser, FilezUserType};
+use crate::models::user_groups::UserGroupId;
+use crate::models::users::{FilezUser, FilezUserId, FilezUserType};
 use crate::{database::Database, schema};
 use diesel::{
     pg::sql_types, prelude::*, BoolExpressionMethods, ExpressionMethods, SelectableHelper,
@@ -17,14 +20,14 @@ use tracing::trace;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[tracing::instrument(skip(database))]
+#[tracing::instrument(skip(database), level = "trace")]
 pub async fn check_resources_access_control(
     database: &Database,
     maybe_requesting_user: Option<&FilezUser>,
-    maybe_user_group_ids: Option<&Vec<Uuid>>,
+    maybe_user_group_ids: Option<&Vec<UserGroupId>>,
     context_app: &MowsApp,
     resource_type: AccessPolicyResourceType,
-    maybe_requested_resource_ids: Option<&[Uuid]>,
+    maybe_requested_resource_ids: Option<&[uuid::Uuid]>,
     action_to_perform: AccessPolicyAction,
 ) -> Result<AuthResult, FilezError> {
     let mut connection = database.get_connection().await?;
@@ -74,7 +77,7 @@ pub async fn check_resources_access_control(
                 ));
             };
 
-            let owners_map: HashMap<Uuid, Uuid> = if let Some(owner_col) =
+            let owners_map: HashMap<uuid::Uuid, FilezUserId> = if let Some(owner_col) =
                 resource_auth_info.resource_table_owner_column
             {
                 // 1. Fetch Owner Information for all requested resources
@@ -169,7 +172,7 @@ pub async fn check_resources_access_control(
                 direct_policies
             );
 
-            let mut direct_policies_map: HashMap<Uuid, Vec<AccessPolicy>> = HashMap::new();
+            let mut direct_policies_map: HashMap<uuid::Uuid, Vec<AccessPolicy>> = HashMap::new();
             for policy in direct_policies {
                 direct_policies_map
                     .entry(policy.resource_id.ok_or(FilezError::AuthEvaluationError(
@@ -181,9 +184,11 @@ pub async fn check_resources_access_control(
 
             // 3. Fetch Resource Group Memberships and their Policies (if applicable)
 
-            let mut resource_group_policies_map: HashMap<Uuid, Vec<AccessPolicy>> = HashMap::new();
-            let mut resource_group_memberships_map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
-            let mut relevant_resource_group_ids: HashSet<Uuid> = HashSet::new();
+            let mut resource_group_policies_map: HashMap<uuid::Uuid, Vec<AccessPolicy>> =
+                HashMap::new();
+            let mut resource_group_memberships_map: HashMap<uuid::Uuid, Vec<uuid::Uuid>> =
+                HashMap::new();
+            let mut relevant_resource_group_ids: HashSet<uuid::Uuid> = HashSet::new();
 
             if let (
                 Some(group_membership_table),
@@ -285,9 +290,9 @@ pub async fn check_resources_access_control(
                                     }
                                 }
                                 AccessPolicySubjectType::UserGroup => {
-                                    AuthReason::DeniedByDirectGroupPolicy {
+                                    AuthReason::DeniedByDirectUserGroupPolicy {
                                         policy_id: policy.id,
-                                        via_user_group_id: policy.subject_id,
+                                        via_user_group_id: UserGroupId(policy.subject_id.into()),
                                     }
                                 }
                                 AccessPolicySubjectType::Public => {
@@ -331,7 +336,9 @@ pub async fn check_resources_access_control(
                                         AccessPolicySubjectType::UserGroup => {
                                             AuthReason::DeniedByResourceGroupUserGroupPolicy {
                                                 policy_id: policy.id,
-                                                via_user_group_id: policy.subject_id,
+                                                via_user_group_id: UserGroupId(
+                                                    policy.subject_id.into(),
+                                                ),
                                                 on_resource_group_id: resource_group_id.clone(),
                                             }
                                         }
@@ -389,9 +396,9 @@ pub async fn check_resources_access_control(
                                     }
                                 }
                                 AccessPolicySubjectType::UserGroup => {
-                                    AuthReason::AllowedByDirectGroupPolicy {
+                                    AuthReason::AllowedByDirectUserGroupPolicy {
                                         policy_id: policy.id,
-                                        via_user_group_id: policy.subject_id,
+                                        via_user_group_id: UserGroupId(policy.subject_id.into()),
                                     }
                                 }
                                 AccessPolicySubjectType::Public => {
@@ -434,7 +441,9 @@ pub async fn check_resources_access_control(
                                         AccessPolicySubjectType::UserGroup => {
                                             AuthReason::AllowedByResourceGroupUserGroupPolicy {
                                                 policy_id: policy.id,
-                                                via_user_group_id: policy.subject_id,
+                                                via_user_group_id: UserGroupId(
+                                                    policy.subject_id.into(),
+                                                ),
                                                 on_resource_group_id: *rg_id,
                                             }
                                         }
@@ -498,9 +507,9 @@ pub async fn check_resources_access_control(
                             policy_id: deny_policy.id,
                         },
                         AccessPolicySubjectType::UserGroup => {
-                            AuthReason::DeniedByDirectGroupPolicy {
+                            AuthReason::DeniedByDirectUserGroupPolicy {
                                 policy_id: deny_policy.id,
-                                via_user_group_id: deny_policy.subject_id,
+                                via_user_group_id: UserGroupId(deny_policy.subject_id.into()),
                             }
                         }
                         AccessPolicySubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
@@ -531,9 +540,9 @@ pub async fn check_resources_access_control(
                             policy_id: allow_policy.id,
                         },
                         AccessPolicySubjectType::UserGroup => {
-                            AuthReason::AllowedByDirectGroupPolicy {
+                            AuthReason::AllowedByDirectUserGroupPolicy {
                                 policy_id: allow_policy.id,
-                                via_user_group_id: allow_policy.subject_id,
+                                via_user_group_id: UserGroupId(allow_policy.subject_id.into()),
                             }
                         }
                         AccessPolicySubjectType::Public => {
@@ -586,7 +595,7 @@ struct ResourceOwnerInfo {
     #[diesel(sql_type = sql_types::Uuid)]
     resource_id: Uuid,
     #[diesel(sql_type = sql_types::Uuid)]
-    owner_id: Uuid,
+    owner_id: FilezUserId,
 }
 
 // Helper struct to hold fetched resource group memberships
@@ -603,47 +612,47 @@ pub enum AuthReason {
     SuperAdmin,
     Owned,
     AllowedByPubliclyAccessible {
-        policy_id: Uuid,
+        policy_id: AccessPolicyId,
     },
     AllowedByServerAccessible {
-        policy_id: Uuid,
+        policy_id: AccessPolicyId,
     },
     AllowedByDirectUserPolicy {
-        policy_id: Uuid,
+        policy_id: AccessPolicyId,
     },
-    AllowedByDirectGroupPolicy {
-        policy_id: Uuid,
-        via_user_group_id: Uuid,
+    AllowedByDirectUserGroupPolicy {
+        policy_id: AccessPolicyId,
+        via_user_group_id: UserGroupId,
     },
     AllowedByResourceGroupUserPolicy {
-        policy_id: Uuid,
+        policy_id: AccessPolicyId,
         on_resource_group_id: Uuid,
     },
     AllowedByResourceGroupUserGroupPolicy {
-        policy_id: Uuid,
-        via_user_group_id: Uuid,
+        policy_id: AccessPolicyId,
+        via_user_group_id: UserGroupId,
         on_resource_group_id: Uuid,
     },
     DeniedByPubliclyAccessible {
-        policy_id: Uuid,
+        policy_id: AccessPolicyId,
     },
     DeniedByServerAccessible {
-        policy_id: Uuid,
+        policy_id: AccessPolicyId,
     },
     DeniedByDirectUserPolicy {
-        policy_id: Uuid,
+        policy_id: AccessPolicyId,
     },
-    DeniedByDirectGroupPolicy {
-        policy_id: Uuid,
-        via_user_group_id: Uuid,
+    DeniedByDirectUserGroupPolicy {
+        policy_id: AccessPolicyId,
+        via_user_group_id: UserGroupId,
     },
     DeniedByResourceGroupUserPolicy {
-        policy_id: Uuid,
+        policy_id: AccessPolicyId,
         on_resource_group_id: Uuid,
     },
     DeniedByResourceGroupUserGroupPolicy {
-        policy_id: Uuid,
-        via_user_group_id: Uuid,
+        policy_id: AccessPolicyId,
+        via_user_group_id: UserGroupId,
         on_resource_group_id: Uuid,
     },
     NoMatchingAllowPolicy,

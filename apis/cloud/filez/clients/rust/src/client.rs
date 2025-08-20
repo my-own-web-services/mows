@@ -150,7 +150,7 @@ pub async fn create_access_policy(&self, request_body: CreateAccessPolicyRequest
     }
 
     #[tracing::instrument]
-pub async fn delete_access_policy(&self, access_policy_id: Uuid) -> Result<ApiResponseString, ApiClientError> {
+pub async fn delete_access_policy(&self, access_policy_id: Uuid) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/delete/{access_policy_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -747,7 +747,7 @@ pub async fn list_storage_quotas(&self, request_body: ListStorageQuotasRequestBo
     }
 
     #[tracing::instrument]
-pub async fn update_storage_quota(&self, request_body: UpdateStorageQuotaRequestBody) -> Result<ApiResponseStorageQuota, ApiClientError> {
+pub async fn update_storage_quota(&self, request_body: UpdateStorageQuotaRequestBody) -> Result<ApiResponseUpdateStorageQuotaResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/storage_quotas/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -875,7 +875,7 @@ pub async fn list_users_by_user_group(&self, request_body: ListUsersRequestBody)
     }
 
     #[tracing::instrument]
-pub async fn update_user_group(&self, request_body: UpdateUserGroupRequestBody) -> Result<ApiResponseUserGroup, ApiClientError> {
+pub async fn update_user_group(&self, request_body: UpdateUserGroupRequestBody) -> Result<ApiResponseUpdateUserGroupResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/user_groups/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();

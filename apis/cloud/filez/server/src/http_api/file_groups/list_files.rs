@@ -8,7 +8,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        file_groups::FileGroup,
+        file_groups::{FileGroup, FileGroupId},
         files::FilezFile,
     },
     state::ServerState,
@@ -25,6 +25,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn list_files_by_file_groups(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -36,7 +37,7 @@ pub async fn list_files_by_file_groups(
             &database,
             &authentication_information,
             AccessPolicyResourceType::FileGroup,
-            Some(&vec![request_body.file_group_id]),
+            Some(&vec![request_body.file_group_id.into()]),
             AccessPolicyAction::FileGroupsListFiles,
         )
         .await?
@@ -74,40 +75,40 @@ pub async fn list_files_by_file_groups(
     }));
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListFilesRequestBody {
-    pub file_group_id: Uuid,
+    pub file_group_id: FileGroupId,
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
     pub sort: Option<ListFilesSorting>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ListFilesSorting {
     StoredSortOrder(ListFilesStoredSortOrder),
     SortOrder(ListFilesSortOrder),
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListFilesSortOrder {
     pub sort_by: ListFilesSortBy,
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ListFilesSortBy {
     Name,
     CreatedTime,
     ModifiedTime,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListFilesStoredSortOrder {
-    pub id: Uuid,
-    pub sort_order: Option<SortDirection>,
+    pub stored_sort_order_id: Uuid,
+    pub direction: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListFilesResponseBody {
     pub files: Vec<FilezFile>,
     pub total_count: u64,

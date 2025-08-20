@@ -5,10 +5,11 @@ use crate::{
         list::ListFileGroupsSortBy,
         list_files::{ListFilesSortBy, ListFilesSorting},
     },
-    models::apps::MowsApp,
+    impl_typed_uuid,
+    models::{apps::MowsApp, files::FilezFileId, users::FilezUserId},
     schema,
     types::SortDirection,
-    utils::{get_current_timestamp, get_uuid, InvalidEnumType},
+    utils::{get_current_timestamp, InvalidEnumType},
 };
 use diesel::{
     deserialize::FromSqlRow,
@@ -24,7 +25,6 @@ use diesel_enum::DbEnum;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use super::{
     access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
@@ -33,14 +33,16 @@ use super::{
     users::FilezUser,
 };
 
+impl_typed_uuid!(FileGroupId);
+
 #[derive(
     Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug, AsChangeset,
 )]
 #[diesel(table_name = crate::schema::file_groups)]
 #[diesel(check_for_backend(Pg))]
 pub struct FileGroup {
-    pub id: Uuid,
-    pub owner_id: Uuid,
+    pub id: FileGroupId,
+    pub owner_id: FilezUserId,
     pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
@@ -73,6 +75,7 @@ pub enum FileGroupType {
 }
 
 impl FileGroup {
+    #[tracing::instrument(level = "trace")]
     pub fn new(
         owner: &FilezUser,
         name: &str,
@@ -80,7 +83,7 @@ impl FileGroup {
         dynamic_group_rule: Option<DynamicGroupRule>,
     ) -> Self {
         Self {
-            id: get_uuid(),
+            id: FileGroupId::new(),
             owner_id: owner.id.clone(),
             name: name.to_string(),
             created_time: get_current_timestamp(),
@@ -90,6 +93,7 @@ impl FileGroup {
         }
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn create(database: &Database, file_group: &FileGroup) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::insert_into(schema::file_groups::table)
@@ -99,16 +103,21 @@ impl FileGroup {
         Ok(())
     }
 
-    pub async fn get_by_id(database: &Database, id: &Uuid) -> Result<FileGroup, FilezError> {
+    #[tracing::instrument(skip(database), level = "trace")]
+    pub async fn get_by_id(
+        database: &Database,
+        file_group_id: &FileGroupId,
+    ) -> Result<FileGroup, FilezError> {
         let mut connection = database.get_connection().await?;
         let file_group = schema::file_groups::table
-            .filter(schema::file_groups::id.eq(id))
+            .filter(schema::file_groups::id.eq(file_group_id))
             .select(FileGroup::as_select())
             .get_result::<FileGroup>(&mut connection)
             .await?;
         Ok(file_group)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn list_with_user_access(
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
@@ -169,9 +178,10 @@ impl FileGroup {
         Ok(file_groups)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn update(
         database: &Database,
-        file_group_id: &Uuid,
+        file_group_id: &FileGroupId,
         name: &str,
     ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
@@ -185,7 +195,11 @@ impl FileGroup {
         Ok(())
     }
 
-    pub async fn delete(database: &Database, file_group_id: &Uuid) -> Result<(), FilezError> {
+    #[tracing::instrument(skip(database), level = "trace")]
+    pub async fn delete(
+        database: &Database,
+        file_group_id: &FileGroupId,
+    ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(schema::file_groups::table.find(file_group_id))
             .execute(&mut connection)
@@ -193,9 +207,10 @@ impl FileGroup {
         Ok(())
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn get_file_count(
         database: &Database,
-        file_group_id: &Uuid,
+        file_group_id: &FileGroupId,
     ) -> Result<u64, FilezError> {
         let mut connection = database.get_connection().await?;
 
@@ -208,10 +223,11 @@ impl FileGroup {
         Ok(count.try_into()?)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn add_files(
         database: &Database,
-        file_group_id: &Uuid,
-        file_ids: &Vec<Uuid>,
+        file_group_id: &FileGroupId,
+        file_ids: &Vec<FilezFileId>,
     ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         let new_members = file_ids
@@ -226,10 +242,11 @@ impl FileGroup {
         Ok(())
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn remove_files(
         database: &Database,
-        file_group_id: &Uuid,
-        file_ids: &Vec<Uuid>,
+        file_group_id: &FileGroupId,
+        file_ids: &Vec<FilezFileId>,
     ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(
@@ -242,9 +259,10 @@ impl FileGroup {
         Ok(())
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn list_files(
         database: &Database,
-        file_group_id: &Uuid,
+        file_group_id: &FileGroupId,
         from_index: Option<u64>,
         limit: Option<u64>,
         sort: Option<ListFilesSorting>,
@@ -253,9 +271,9 @@ impl FileGroup {
         match sort {
             Some(ListFilesSorting::StoredSortOrder(stored_sort_order)) => {
                 let sort_direction = stored_sort_order
-                    .sort_order
+                    .direction
                     .unwrap_or(SortDirection::Descending);
-                let sort_order_id = stored_sort_order.id;
+                let sort_order_id = stored_sort_order.stored_sort_order_id;
 
                 let mut query = schema::file_group_file_sort_order_items::table
                     .inner_join(schema::files::table.on(

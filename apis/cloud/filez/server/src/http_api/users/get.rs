@@ -3,7 +3,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        users::FilezUser,
+        users::{FilezUser, FilezUserId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -13,7 +13,7 @@ use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use utoipa::ToSchema;
-use uuid::Uuid;
+
 
 #[utoipa::path(
     post,
@@ -24,6 +24,8 @@ use uuid::Uuid;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
+
 pub async fn get_users(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -35,7 +37,14 @@ pub async fn get_users(
             &database,
             &authentication_information,
             AccessPolicyResourceType::User,
-            Some(&request_body.user_ids),
+            Some(
+                &request_body
+                    .user_ids
+                    .clone()
+                    .into_iter()
+                    .map(|id| id.into())
+                    .collect::<Vec<_>>()
+            ),
             AccessPolicyAction::UsersGet,
         )
         .await?
@@ -70,17 +79,17 @@ pub async fn get_users(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GetUsersReqBody {
-    pub user_ids: Vec<Uuid>,
+    pub user_ids: Vec<FilezUserId>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GetUsersResBody {
-    pub users_meta: HashMap<Uuid, UserMeta>,
+    pub users_meta: HashMap<FilezUserId, UserMeta>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UserMeta {
     pub user: FilezUser,
 }

@@ -31,6 +31,7 @@ use crate::{
         ),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn check_resource_access(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -59,7 +60,7 @@ pub async fn check_resource_access(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CheckResourceAccessRequestBody {
     pub resource_ids: Option<Vec<Uuid>>,
     pub resource_type: AccessPolicyResourceType,
@@ -67,7 +68,7 @@ pub struct CheckResourceAccessRequestBody {
     pub requesting_app_origin: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CheckResourceAccessResponseBody {
     pub auth_evaluations: Vec<AuthEvaluation>,
 }

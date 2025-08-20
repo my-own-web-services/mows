@@ -6,7 +6,7 @@ use crate::{
     http_api::authentication::{
         state::IntrospectionState, state_builder::IntrospectionStateBuilder,
     },
-    models::storage_locations::StorageLocation,
+    models::storage_locations::{StorageLocation, StorageLocationId},
     storage::providers::StorageProvider,
 };
 use anyhow::Context;
@@ -14,7 +14,7 @@ use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManag
 use kube::Client;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
-use uuid::Uuid;
+
 use zitadel::oidc::introspection::cache::in_memory::InMemoryIntrospectionCache;
 
 #[derive(Clone)]
@@ -25,7 +25,7 @@ pub struct ServerState {
     pub storage_location_providers: StorageLocationState,
 }
 
-pub type StorageLocationState = Arc<RwLock<HashMap<Uuid, StorageProvider>>>;
+pub type StorageLocationState = Arc<RwLock<HashMap<StorageLocationId, StorageProvider>>>;
 
 impl ServerState {
     pub async fn new(config: &FilezServerConfig) -> Result<Self, FilezError> {
