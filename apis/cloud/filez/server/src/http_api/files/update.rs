@@ -5,7 +5,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        files::{FileMetadata, FilezFile},
+        files::{FileMetadata, FilezFile, FilezFileId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -15,7 +15,6 @@ use crate::{
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -27,6 +26,7 @@ use uuid::Uuid;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn update_file(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -38,7 +38,7 @@ pub async fn update_file(
             &database,
             &authentication_information,
             AccessPolicyResourceType::File,
-            Some(&vec![request_body.file_id]),
+            Some(&vec![request_body.file_id.into()]),
             AccessPolicyAction::FilezFilesUpdate,
         )
         .await?
@@ -85,15 +85,15 @@ pub async fn update_file(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateFileRequestBody {
-    pub file_id: Uuid,
+    pub file_id: FilezFileId,
     pub file_name: Option<String>,
     pub metadata: Option<FileMetadata>,
     pub mime_type: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateFileResponseBody {
     pub file: FilezFile,
 }

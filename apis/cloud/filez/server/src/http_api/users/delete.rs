@@ -3,7 +3,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        users::FilezUser,
+        users::{FilezUser, FilezUserId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -12,7 +12,7 @@ use crate::{
 use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
+
 
 #[utoipa::path(
     post,
@@ -23,6 +23,8 @@ use uuid::Uuid;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
+
 pub async fn delete_user(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -44,7 +46,7 @@ pub async fn delete_user(
             &database,
             &authentication_information,
             AccessPolicyResourceType::User,
-            Some(&[user_id]),
+            Some(&[user_id.into()]),
             AccessPolicyAction::UsersDelete,
         )
         .await?
@@ -63,19 +65,19 @@ pub async fn delete_user(
         data: Some(DeleteUserResponseBody { user_id }),
     }))
 }
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DeleteUserRequestBody {
     pub method: DeleteUserMethod,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum DeleteUserMethod {
-    ById(Uuid),
+    ById(FilezUserId),
     ByExternalId(String),
     ByEmail(String),
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DeleteUserResponseBody {
-    pub user_id: Uuid,
+    pub user_id: FilezUserId,
 }

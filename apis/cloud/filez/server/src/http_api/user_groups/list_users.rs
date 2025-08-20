@@ -1,17 +1,13 @@
-use axum::{
-    extract::{Path, State},
-    Extension, Json,
-};
+use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        user_groups::UserGroup,
+        user_groups::{UserGroup, UserGroupId},
         users::FilezUser,
     },
     state::ServerState,
@@ -27,6 +23,7 @@ use crate::{
         (status = 200, description = "Lists the users in a given group", body = ApiResponse<ListUsersResponseBody>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn list_users_by_user_group(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -38,7 +35,7 @@ pub async fn list_users_by_user_group(
             &database,
             &authentication_information,
             AccessPolicyResourceType::UserGroup,
-            Some(&vec![request_body.user_group_id]),
+            Some(&vec![request_body.user_group_id.into()]),
             AccessPolicyAction::UserGroupsListUsers,
         )
         .await?
@@ -76,16 +73,16 @@ pub async fn list_users_by_user_group(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListUsersRequestBody {
-    pub user_group_id: Uuid,
+    pub user_group_id: UserGroupId,
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
     pub sort_by: Option<String>,
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListUsersResponseBody {
     pub users: Vec<FilezUser>,
     pub total_count: u64,

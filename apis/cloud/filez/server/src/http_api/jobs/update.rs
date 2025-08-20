@@ -4,7 +4,8 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         jobs::{
-            FilezJob, JobExecutionInformation, JobPersistenceType, JobStatus, JobStatusDetails,
+            FilezJob, FilezJobId, JobExecutionInformation, JobPersistenceType, JobStatus,
+            JobStatusDetails,
         },
     },
     state::ServerState,
@@ -15,7 +16,6 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, 
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -26,6 +26,7 @@ use uuid::Uuid;
         (status = 200, description = "Updated a job on the server", body = ApiResponse<UpdateJobResponseBody>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn update_job(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -43,7 +44,7 @@ pub async fn update_job(
             &database,
             &authentication_information,
             AccessPolicyResourceType::FilezJob,
-            Some(&[job.id]),
+            Some(&[job.id.into()]),
             AccessPolicyAction::FilezJobsUpdate,
         )
         .await?
@@ -87,9 +88,9 @@ pub async fn update_job(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateJobRequestBody {
-    pub job_id: Uuid,
+    pub job_id: FilezJobId,
     pub name: Option<String>,
     pub status: Option<JobStatus>,
     pub status_details: Option<JobStatusDetails>,
@@ -98,7 +99,7 @@ pub struct UpdateJobRequestBody {
     pub deadline_time: Option<NaiveDateTime>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateJobResponseBody {
     pub job: FilezJob,
 }

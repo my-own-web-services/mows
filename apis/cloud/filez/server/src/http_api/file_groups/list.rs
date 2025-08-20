@@ -20,6 +20,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn list_file_groups(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -48,7 +49,7 @@ pub async fn list_file_groups(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListFileGroupsRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -56,12 +57,12 @@ pub struct ListFileGroupsRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListFileGroupsResponseBody {
     pub file_groups: Vec<FileGroup>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ListFileGroupsSortBy {
     Name,
     CreatedTime,

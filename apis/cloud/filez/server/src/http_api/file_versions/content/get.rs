@@ -3,8 +3,9 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsAppId,
         file_versions::{ContentRange, FileVersion},
-        files::FilezFile,
+        files::{FilezFile, FilezFileId},
     },
     state::ServerState,
     types::{ApiResponse, EmptyApiResponse},
@@ -22,7 +23,6 @@ use axum::{
 };
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetFileVersionContentQuery {
@@ -49,6 +49,7 @@ pub struct GetFileVersionContentQuery {
     )
 )]
 #[axum::debug_handler]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn get_file_version_content(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState {
@@ -58,16 +59,16 @@ pub async fn get_file_version_content(
     }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path((file_id, version, app_id, app_path)): Path<(
-        Uuid,
+        FilezFileId,
         OptionalPath<u32>,
-        OptionalPath<Uuid>,
+        OptionalPath<MowsAppId>,
         OptionalPath<String>,
     )>,
     Query(GetFileVersionContentQuery { disposition, cache }): Query<GetFileVersionContentQuery>,
     request_headers: HeaderMap,
 ) -> Result<impl IntoResponse, FilezError> {
     let version: Option<u32> = version.into();
-    let app_id: Option<Uuid> = app_id.into();
+    let app_id: Option<MowsAppId> = app_id.into();
     let app_path: Option<String> = app_path.into();
 
     with_timing!(
@@ -75,7 +76,7 @@ pub async fn get_file_version_content(
             &database,
             &authentication_information,
             AccessPolicyResourceType::File,
-            Some(&vec![file_id]),
+            Some(&vec![file_id.into()]),
             AccessPolicyAction::FilezFilesVersionsContentGet,
         )
         .await?
@@ -95,7 +96,7 @@ pub async fn get_file_version_content(
             &database,
             &file_id,
             version,
-            &app_id.as_ref().unwrap_or(&Uuid::nil()),
+            &app_id.as_ref().unwrap_or(&MowsAppId::nil()),
             &app_path
         )
         .await,

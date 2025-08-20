@@ -4,7 +4,9 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsAppId,
         file_versions::FileVersion,
+        files::FilezFileId,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -17,7 +19,6 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use uuid::Uuid;
 
 #[utoipa::path(
     head,
@@ -35,6 +36,7 @@ use uuid::Uuid;
         (status = 400, body = ApiResponse<EmptyApiResponse>, description = "Bad request, missing or invalid headers"),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn file_versions_content_tus_head(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState {
@@ -44,15 +46,15 @@ pub async fn file_versions_content_tus_head(
     }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path((file_id, version, app_id, app_path)): Path<(
-        Uuid,
+        FilezFileId,
         OptionalPath<u32>,
-        OptionalPath<Uuid>,
+        OptionalPath<MowsAppId>,
         OptionalPath<String>,
     )>,
     request_headers: HeaderMap,
 ) -> Result<impl IntoResponse, FilezError> {
     let version = version.into();
-    let app_id: Option<Uuid> = app_id.into();
+    let app_id: Option<MowsAppId> = app_id.into();
     let app_path: Option<String> = app_path.into();
 
     if request_headers
@@ -80,7 +82,7 @@ pub async fn file_versions_content_tus_head(
             &database,
             &authentication_information,
             AccessPolicyResourceType::File,
-            Some(&vec![file_id]),
+            Some(&vec![file_id.into()]),
             AccessPolicyAction::FilezFilesVersionsContentTusHead,
         )
         .await?
@@ -94,7 +96,7 @@ pub async fn file_versions_content_tus_head(
             &database,
             &file_id,
             version,
-            &app_id.unwrap_or(Uuid::nil()),
+            &app_id.unwrap_or(MowsAppId::nil()),
             &app_path
         )
         .await,

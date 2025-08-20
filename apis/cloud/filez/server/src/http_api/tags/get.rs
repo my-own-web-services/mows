@@ -26,6 +26,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<GetTagsResponseBody>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn get_tags(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -75,13 +76,13 @@ pub async fn get_tags(
     }))
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct GetTagsRequestBody {
     pub resource_type: TagResourceType,
     pub resource_ids: Vec<Uuid>,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct GetTagsResponseBody {
     pub resource_tags: HashMap<Uuid, HashMap<String, String>>,
 }

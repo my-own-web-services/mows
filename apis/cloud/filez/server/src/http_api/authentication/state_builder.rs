@@ -24,15 +24,16 @@ pub enum IntrospectionStateBuilderError {
     NoIntrospectionUrl,
 }
 
+#[derive(Debug)]
 pub struct IntrospectionStateBuilder {
     authority: String,
     authentication: Option<AuthorityAuthentication>,
-
     cache: Option<Box<dyn IntrospectionCache>>,
 }
 
 /// Builder for [IntrospectionConfig]
 impl IntrospectionStateBuilder {
+    #[tracing::instrument(level = "trace")]
     pub fn new(authority: &str) -> Self {
         Self {
             authority: authority.to_string(),
@@ -42,6 +43,7 @@ impl IntrospectionStateBuilder {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub fn with_basic_auth(
         &mut self,
         client_id: &str,
@@ -55,6 +57,7 @@ impl IntrospectionStateBuilder {
         self
     }
 
+    #[tracing::instrument(level = "trace")]
     pub fn with_jwt_profile(&mut self, application: Application) -> &mut IntrospectionStateBuilder {
         self.authentication = Some(AuthorityAuthentication::JWTProfile { application });
 
@@ -62,7 +65,7 @@ impl IntrospectionStateBuilder {
     }
 
     /// Set the [IntrospectionCache] to use for caching introspection responses.
-
+    #[tracing::instrument(level = "trace")]
     pub fn with_introspection_cache(
         &mut self,
         cache: impl IntrospectionCache + 'static,
@@ -72,6 +75,7 @@ impl IntrospectionStateBuilder {
         self
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn build(&mut self) -> Result<IntrospectionState, IntrospectionStateBuilderError> {
         if self.authentication.is_none() {
             return Err(IntrospectionStateBuilderError::NoAuthSchema);

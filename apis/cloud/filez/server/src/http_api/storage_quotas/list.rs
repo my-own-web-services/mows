@@ -19,6 +19,7 @@ use utoipa::ToSchema;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn list_storage_quotas(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -51,7 +52,7 @@ pub async fn list_storage_quotas(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListStorageQuotasRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -59,7 +60,7 @@ pub struct ListStorageQuotasRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ListStorageQuotasSortBy {
     CreatedTime,
     ModifiedTime,
@@ -68,7 +69,7 @@ pub enum ListStorageQuotasSortBy {
     StorageLocationId,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListStorageQuotasResponseBody {
     pub storage_quotas: Vec<StorageQuota>,
 }

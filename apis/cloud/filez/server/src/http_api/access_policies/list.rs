@@ -20,6 +20,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn list_access_policies(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -48,7 +49,7 @@ pub async fn list_access_policies(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListAccessPoliciesRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -56,12 +57,12 @@ pub struct ListAccessPoliciesRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListAccessPoliciesResponseBody {
     pub access_policies: Vec<AccessPolicy>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ListAccessPoliciesSortBy {
     CreatedTime,
     ModifiedTime,

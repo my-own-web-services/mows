@@ -1,26 +1,8 @@
-import { AccessPolicySubjectType, Api } from "../../api-client";
-import { impersonateUser } from "../../utils";
+import { Api, StorageQuotaSubjectType } from "../../api-client";
+import { createExampleUser, impersonateUser } from "../../utils";
 
 export default async (filezClient: Api<unknown>) => {
-    const aliceEmail = "alice@example.com";
-
-    await filezClient.api
-        .deleteUser({
-            method: {
-                ByEmail: aliceEmail
-            }
-        })
-        .catch((response) => {
-            if (response?.status !== 404) {
-                throw `Failed to delete user Alice: ${response.message}`;
-            }
-        });
-
-    const alice = (await filezClient.api.createUser({ email: aliceEmail })).data?.data;
-
-    if (!alice) {
-        throw "Failed to create user Alice";
-    }
+    const alice = await createExampleUser(filezClient);
 
     const storage_locations = (await filezClient.api.listStorageLocations({})).data?.data
         ?.storage_locations;
@@ -39,9 +21,9 @@ export default async (filezClient: Api<unknown>) => {
 
     const alice_quota = (
         await filezClient.api.createStorageQuota({
-            quota_bytes: 100,
-            subject_type: AccessPolicySubjectType.User,
-            subject_id: alice.id,
+            quota_bytes: 10_000_000,
+            storage_quota_subject_type: StorageQuotaSubjectType.User,
+            storage_quota_subject_id: alice.id,
             storage_location_id,
             name: "Alice's Storage Quota"
         })

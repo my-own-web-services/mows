@@ -5,7 +5,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        files::FilezFile,
+        files::{FilezFile, FilezFileId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -25,18 +25,26 @@ use uuid::Uuid;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn get_files(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetFilesRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
+    let file_ids: Vec<Uuid> = request_body
+        .file_ids
+        .clone()
+        .into_iter()
+        .map(|id| id.into())
+        .collect();
+
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::File,
-            Some(&request_body.file_ids),
+            Some(&file_ids),
             AccessPolicyAction::FilezFilesGet,
         )
         .await?
@@ -61,11 +69,11 @@ pub async fn get_files(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GetFilesRequestBody {
-    pub file_ids: Vec<Uuid>,
+    pub file_ids: Vec<FilezFileId>,
 }
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GetFilesResponseBody {
-    pub files: HashMap<Uuid, FilezFile>,
+    pub files: HashMap<FilezFileId, FilezFile>,
 }

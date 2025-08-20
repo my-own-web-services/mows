@@ -5,6 +5,7 @@ use crate::{
     database::Database,
     errors::FilezError,
     http_api::{health::HealthStatus, storage_locations::list::ListStorageLocationsSortBy},
+    impl_typed_uuid,
     models::file_versions::ContentRange,
     state::StorageLocationState,
     storage::{
@@ -12,7 +13,7 @@ use crate::{
         providers::StorageProvider,
     },
     types::SortDirection,
-    utils::{get_current_timestamp, get_uuid},
+    utils::get_current_timestamp,
 };
 use axum::extract::Request;
 use diesel::{pg::Pg, prelude::*};
@@ -21,9 +22,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use super::file_versions::FileVersionIdentifier;
+
+impl_typed_uuid!(StorageLocationId);
 
 #[derive(
     Serialize,
@@ -40,7 +42,7 @@ use super::file_versions::FileVersionIdentifier;
 #[diesel(table_name = crate::schema::storage_locations)]
 #[diesel(check_for_backend(Pg))]
 pub struct StorageLocation {
-    pub id: Uuid,
+    pub id: StorageLocationId,
     pub name: String,
     pub provider_config: StorageProviderConfig,
     pub created_time: chrono::NaiveDateTime,
@@ -61,7 +63,7 @@ pub struct StorageLocation {
 #[diesel(table_name = crate::schema::storage_locations)]
 #[diesel(check_for_backend(Pg))]
 pub struct StorageLocationListItem {
-    pub id: Uuid,
+    pub id: StorageLocationId,
     pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
@@ -74,9 +76,18 @@ pub struct StorageLocationConfigCrd {
 }
 
 impl StorageLocation {
+    pub fn new(name: &str, provider_config: StorageProviderConfig) -> Self {
+        Self {
+            id: StorageLocationId::new(),
+            name: name.to_string(),
+            provider_config,
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
+        }
+    }
     pub async fn get_all_storage_locations_health(
         storage_location_providers: &StorageLocationState,
-    ) -> HashMap<Uuid, HealthStatus> {
+    ) -> HashMap<StorageLocationId, HealthStatus> {
         let providers = storage_location_providers.read().await;
 
         let mut provider_ids = Vec::new();
@@ -181,13 +192,7 @@ impl StorageLocation {
                 storage_location.id
             }
             None => {
-                let new_storage_location = StorageLocation {
-                    id: get_uuid(),
-                    name: full_name.to_string(),
-                    provider_config: provider.clone(),
-                    created_time: get_current_timestamp(),
-                    modified_time: get_current_timestamp(),
-                };
+                let new_storage_location = StorageLocation::new(full_name, provider.clone());
                 diesel::insert_into(crate::schema::storage_locations::table)
                     .values(&new_storage_location)
                     .execute(&mut connection)
@@ -205,18 +210,21 @@ impl StorageLocation {
         Ok(())
     }
 
-    pub async fn get_by_id(database: &Database, id: &Uuid) -> Result<Self, FilezError> {
+    pub async fn get_by_id(
+        database: &Database,
+        storage_location_id: &StorageLocationId,
+    ) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
 
         let storage_location = crate::schema::storage_locations::table
-            .filter(crate::schema::storage_locations::id.eq(id))
+            .filter(crate::schema::storage_locations::id.eq(storage_location_id))
             .select(StorageLocation::as_select())
             .first::<StorageLocation>(&mut connection)
             .await
             .map_err(|e| match e {
                 diesel::result::Error::NotFound => FilezError::ResourceNotFound(format!(
                     "Storage location not found for id: {}",
-                    id
+                    storage_location_id
                 )),
                 _ => FilezError::from(e),
             })?;

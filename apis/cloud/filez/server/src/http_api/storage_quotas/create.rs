@@ -1,16 +1,14 @@
 use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
-        access_policies::{
-            AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectType,
-        },
-        storage_quotas::StorageQuota,
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        storage_locations::StorageLocationId,
+        storage_quotas::{StorageQuota, StorageQuotaSubjectId, StorageQuotaSubjectType},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -26,6 +24,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn create_storage_quota(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -47,10 +46,14 @@ pub async fn create_storage_quota(
     );
 
     let storage_quota = StorageQuota::new(
-        authentication_information.requesting_user.unwrap().id,
+        authentication_information
+            .requesting_user
+            .unwrap()
+            .id
+            .into(),
         request_body.name,
-        request_body.subject_type,
-        request_body.subject_id,
+        request_body.storage_quota_subject_type,
+        request_body.storage_quota_subject_id,
         request_body.storage_location_id,
         request_body.quota_bytes.into(),
     )?;
@@ -68,16 +71,16 @@ pub async fn create_storage_quota(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CreateStorageQuotaRequestBody {
-    pub subject_type: AccessPolicySubjectType,
-    pub subject_id: Uuid,
-    pub storage_location_id: Uuid,
+    pub storage_quota_subject_type: StorageQuotaSubjectType,
+    pub storage_quota_subject_id: StorageQuotaSubjectId,
+    pub storage_location_id: StorageLocationId,
     pub quota_bytes: u64,
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CreateStorageQuotaResponseBody {
     pub storage_quota: StorageQuota,
 }

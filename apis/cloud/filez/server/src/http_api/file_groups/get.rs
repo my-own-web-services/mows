@@ -3,14 +3,12 @@ use axum::{
     Extension, Json,
 };
 
-use uuid::Uuid;
-
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        file_groups::FileGroup,
+        file_groups::{FileGroup, FileGroupId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -28,18 +26,19 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn get_file_group(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(file_group_id): Path<Uuid>,
+    Path(file_group_id): Path<FileGroupId>,
 ) -> Result<Json<ApiResponse<FileGroup>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::FileGroup,
-            Some(&vec![file_group_id]),
+            Some(&vec![file_group_id.into()]),
             AccessPolicyAction::FileGroupsGet,
         )
         .await?

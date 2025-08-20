@@ -7,20 +7,22 @@ use crate::{
     database::Database,
     errors::FilezError,
     http_api::user_groups::list::ListUserGroupsSortBy,
-    models::apps::MowsApp,
+    impl_typed_uuid,
+    models::{apps::MowsApp, users::FilezUserId},
     schema::{self},
     types::SortDirection,
-    utils::{get_current_timestamp, get_uuid},
+    utils::get_current_timestamp,
 };
 use diesel::{
-    pg::Pg,
-    prelude::{Insertable, Queryable},
-    AsChangeset, ExpressionMethods, JoinOnDsl, QueryDsl, Selectable, SelectableHelper,
+    pg::Pg, prelude::*, AsChangeset, ExpressionMethods, JoinOnDsl, QueryDsl, Selectable,
+    SelectableHelper,
 };
+
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
+
+impl_typed_uuid!(UserGroupId);
 
 #[derive(
     Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Debug, Insertable, AsChangeset,
@@ -28,8 +30,8 @@ use uuid::Uuid;
 #[diesel(table_name = crate::schema::user_groups)]
 #[diesel(check_for_backend(Pg))]
 pub struct UserGroup {
-    pub id: Uuid,
-    pub owner_id: Uuid,
+    pub id: UserGroupId,
+    pub owner_id: FilezUserId,
     pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
@@ -38,7 +40,7 @@ pub struct UserGroup {
 impl UserGroup {
     pub fn new(owner: &FilezUser, name: &str) -> Self {
         Self {
-            id: get_uuid(),
+            id: UserGroupId::new(),
             owner_id: owner.id.clone(),
             name: name.to_string(),
             created_time: get_current_timestamp(),
@@ -57,7 +59,7 @@ impl UserGroup {
 
     pub async fn get_by_id(
         database: &Database,
-        user_group_id: &Uuid,
+        user_group_id: &UserGroupId,
     ) -> Result<UserGroup, FilezError> {
         let mut connection = database.get_connection().await?;
         let user_group = schema::user_groups::table
@@ -131,23 +133,25 @@ impl UserGroup {
 
     pub async fn update(
         database: &Database,
-        user_group_id: &Uuid,
+        user_group_id: &UserGroupId,
         name: &str,
-    ) -> Result<(), FilezError> {
+    ) -> Result<UserGroup, FilezError> {
         let mut connection = database.get_connection().await?;
-        diesel::update(
-            schema::user_groups::table.filter(schema::user_groups::id.eq(user_group_id)),
-        )
-        .set((
-            schema::user_groups::name.eq(name),
-            schema::user_groups::modified_time.eq(get_current_timestamp()),
-        ))
-        .execute(&mut connection)
-        .await?;
-        Ok(())
+        let updated_user_group = diesel::update(schema::user_groups::table.find(user_group_id))
+            .set((
+                schema::user_groups::name.eq(name),
+                schema::user_groups::modified_time.eq(get_current_timestamp()),
+            ))
+            .returning(UserGroup::as_select())
+            .get_result::<UserGroup>(&mut connection)
+            .await?;
+        Ok(updated_user_group)
     }
 
-    pub async fn delete(database: &Database, user_group_id: &Uuid) -> Result<(), FilezError> {
+    pub async fn delete(
+        database: &Database,
+        user_group_id: &UserGroupId,
+    ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(
             schema::user_groups::table.filter(schema::user_groups::id.eq(user_group_id)),
@@ -159,8 +163,8 @@ impl UserGroup {
 
     pub async fn add_users(
         database: &Database,
-        user_group_id: &Uuid,
-        user_ids: &Vec<Uuid>,
+        user_group_id: &UserGroupId,
+        user_ids: &Vec<FilezUserId>,
     ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         let new_members = user_ids
@@ -177,8 +181,8 @@ impl UserGroup {
 
     pub async fn remove_users(
         database: &Database,
-        user_group_id: &Uuid,
-        user_ids: &Vec<Uuid>,
+        user_group_id: &UserGroupId,
+        user_ids: &Vec<FilezUserId>,
     ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(
@@ -192,28 +196,28 @@ impl UserGroup {
     }
 
     /// Retrieves all user group IDs that the specified user is a member of
-    pub async fn get_all_by_user_id(
+    pub async fn get_all_ids_by_user_id(
         database: &Database,
-        user_id: &Uuid,
-    ) -> Result<Vec<Uuid>, FilezError> {
+        user_id: &FilezUserId,
+    ) -> Result<Vec<UserGroupId>, FilezError> {
         let mut connection = database.get_connection().await?;
 
-        let user_groups = schema::user_groups::table
+        let user_group_ids = schema::user_groups::table
             .inner_join(
                 schema::user_user_group_members::table
                     .on(schema::user_groups::id.eq(schema::user_user_group_members::user_group_id)),
             )
             .filter(schema::user_user_group_members::user_id.eq(user_id))
             .select(schema::user_groups::id)
-            .load::<Uuid>(&mut connection)
+            .load::<UserGroupId>(&mut connection)
             .await?;
 
-        Ok(user_groups)
+        Ok(user_group_ids)
     }
 
     pub async fn get_user_count(
         database: &Database,
-        user_group_id: &Uuid,
+        user_group_id: &UserGroupId,
     ) -> Result<u64, FilezError> {
         let mut connection = database.get_connection().await?;
 
@@ -228,7 +232,7 @@ impl UserGroup {
 
     pub async fn list_users(
         database: &Database,
-        user_group_id: &Uuid,
+        user_group_id: &UserGroupId,
         from_index: Option<u64>,
         limit: Option<u64>,
         sort_by: Option<&str>,

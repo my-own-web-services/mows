@@ -5,6 +5,7 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_versions::FileVersion,
+        files::FilezFileId,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -17,7 +18,6 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use uuid::Uuid;
 
 #[utoipa::path(
     tag = "FileVersion",
@@ -43,6 +43,7 @@ use uuid::Uuid;
         (status = 500, body = ApiResponse<EmptyApiResponse>, description = "Internal server error, unexpected error occurred while processing the request")
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn file_versions_content_tus_patch(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState {
@@ -51,7 +52,11 @@ pub async fn file_versions_content_tus_patch(
         ..
     }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path((file_id, version, app_path)): Path<(Uuid, OptionalPath<u32>, OptionalPath<String>)>,
+    Path((file_id, version, app_path)): Path<(
+        FilezFileId,
+        OptionalPath<u32>,
+        OptionalPath<String>,
+    )>,
     request_headers: HeaderMap,
     request: Request,
 ) -> Result<impl IntoResponse, FilezError> {
@@ -113,7 +118,7 @@ pub async fn file_versions_content_tus_patch(
             &database,
             &authentication_information,
             AccessPolicyResourceType::File,
-            Some(&vec![file_id]),
+            Some(&vec![file_id.into()]),
             AccessPolicyAction::FilezFilesVersionsContentTusPatch,
         )
         .await?

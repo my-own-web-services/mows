@@ -23,6 +23,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn list_jobs(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -65,7 +66,7 @@ pub async fn list_jobs(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListJobsRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -73,12 +74,12 @@ pub struct ListJobsRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListJobsResponseBody {
     pub jobs: Vec<FilezJob>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Copy)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Copy, Debug)]
 pub enum ListJobsSortBy {
     Name,
     CreatedTime,

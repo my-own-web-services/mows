@@ -3,14 +3,13 @@ use std::collections::HashMap;
 use crate::{
     controller::get_controller_health,
     errors::FilezError,
-    models::storage_locations::StorageLocation,
+    models::storage_locations::{StorageLocation, StorageLocationId},
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     get,
@@ -20,6 +19,7 @@ use uuid::Uuid;
         (status = 503, description = "Service unavailable", body = ApiResponse<HealthResBody>),
     )
 )]
+#[tracing::instrument(skip(database), level = "trace")]
 pub async fn get_health(
     State(ServerState {
         database,
@@ -107,16 +107,16 @@ pub async fn get_health(
     ));
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthResBody {
     pub all_healthy: bool,
     pub database: HealthStatus,
     pub zitadel: HealthStatus,
     pub controller: HealthStatus,
-    pub storage_locations: HashMap<Uuid, HealthStatus>,
+    pub storage_locations: HashMap<StorageLocationId, HealthStatus>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthStatus {
     pub healthy: bool,
     pub response: String,

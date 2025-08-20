@@ -6,9 +6,12 @@ use uuid::Uuid;
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
-    models::access_policies::{
-        AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
-        AccessPolicySubjectType,
+    models::{
+        access_policies::{
+            AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
+            AccessPolicySubjectId, AccessPolicySubjectType,
+        },
+        apps::MowsAppId,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -24,6 +27,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn create_access_policy(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -49,7 +53,11 @@ pub async fn create_access_policy(
 
     let access_policy = AccessPolicy::new(
         &request_body.name,
-        authentication_information.requesting_user.unwrap().id,
+        authentication_information
+            .requesting_user
+            .unwrap()
+            .id
+            .into(),
         request_body.subject_type,
         request_body.subject_id,
         request_body.context_app_ids,
@@ -72,12 +80,12 @@ pub async fn create_access_policy(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CreateAccessPolicyRequestBody {
     pub name: String,
     pub subject_type: AccessPolicySubjectType,
-    pub subject_id: Uuid,
-    pub context_app_ids: Vec<Uuid>,
+    pub subject_id: AccessPolicySubjectId,
+    pub context_app_ids: Vec<MowsAppId>,
     pub resource_type: AccessPolicyResourceType,
     pub resource_id: Option<Uuid>,
     pub actions: Vec<AccessPolicyAction>,

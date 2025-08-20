@@ -5,14 +5,12 @@ import {
     AccessPolicySubjectType,
     Api,
     ContentType,
-    FileGroupType
+    FileGroupType,
+    StorageQuotaSubjectType
 } from "../../api-client";
-import { getBlobSha256Digest, impersonateUser } from "../../utils";
+import { createExampleUser, getBlobSha256Digest, impersonateUser } from "../../utils";
 
 export default async (filezClient: Api<unknown>) => {
-    const aliceEmail = "alice@example.com";
-    const bobEmail = "bob@example.com";
-
     await filezClient.api.listAccessPolicies({});
 
     await filezClient.api.checkResourceAccess({
@@ -20,33 +18,8 @@ export default async (filezClient: Api<unknown>) => {
         resource_type: AccessPolicyResourceType.User
     });
 
-    // Ensure first that the users Alice and Bob don't already exist
-    await filezClient.api
-        .deleteUser({
-            method: {
-                ByEmail: aliceEmail
-            }
-        })
-        .catch((response) => {
-            if (response?.status !== 404) {
-                throw `Failed to delete user Alice: ${response.message}`;
-            }
-        });
-
-    await filezClient.api
-        .deleteUser({
-            method: {
-                ByEmail: bobEmail
-            }
-        })
-        .catch((response) => {
-            if (response?.status !== 404) {
-                throw `Failed to delete user Bob: ${response.message}`;
-            }
-        });
-
-    const alice = (await filezClient.api.createUser({ email: aliceEmail })).data?.data;
-    const bob = (await filezClient.api.createUser({ email: bobEmail })).data?.data;
+    const alice = await createExampleUser(filezClient);
+    const bob = await createExampleUser(filezClient);
 
     if (!alice || !bob) {
         throw new Error("Failed to create users Alice and Bob.");
@@ -72,8 +45,8 @@ export default async (filezClient: Api<unknown>) => {
     const alice_quota = (
         await filezClient.api.createStorageQuota({
             quota_bytes: 10_000_000,
-            subject_type: AccessPolicySubjectType.User,
-            subject_id: alice.id,
+            storage_quota_subject_type: StorageQuotaSubjectType.User,
+            storage_quota_subject_id: alice.id,
             storage_location_id,
             name: "Alice's Storage Quota"
         })

@@ -22,6 +22,7 @@ pub struct IntrospectionConfig {
 }
 
 impl IntrospectionState {
+    #[tracing::instrument(level = "trace")]
     pub async fn get_introspection_uri(&self) -> Result<IntrospectionUrl, IntrospectionGuardError> {
         let config = self.config.read().await;
         if let Some(introspection_uri) = &config.introspection_uri {

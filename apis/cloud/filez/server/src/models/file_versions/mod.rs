@@ -1,4 +1,9 @@
-use crate::utils::{get_current_timestamp, get_uuid};
+use crate::impl_typed_uuid;
+use crate::models::apps::MowsAppId;
+use crate::models::files::FilezFileId;
+use crate::models::storage_locations::StorageLocationId;
+use crate::models::storage_quotas::StorageQuotaId;
+use crate::utils::get_current_timestamp;
 use crate::{
     database::Database, errors::FilezError, http_api::file_versions::update::UpdateFileVersion,
     schema::file_versions, state::StorageLocationState, with_timing,
@@ -16,7 +21,6 @@ use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use super::{files::FilezFile, storage_locations::StorageLocation, storage_quotas::StorageQuota};
 
@@ -37,9 +41,9 @@ macro_rules! filter_file_version_by_identifier {
 
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct FileVersionIdentifier {
-    pub file_id: Uuid,
+    pub file_id: FilezFileId,
     pub version: u32,
-    pub app_id: Uuid,
+    pub app_id: MowsAppId,
     pub app_path: String,
 }
 
@@ -52,6 +56,7 @@ impl FileVersionIdentifier {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct ContentRange {
     pub start: u64,
     pub end: u64,
@@ -62,6 +67,8 @@ impl ContentRange {
         self.end - self.start + 1
     }
 }
+
+impl_typed_uuid!(FileVersionId);
 
 #[derive(
     Serialize,
@@ -78,18 +85,18 @@ impl ContentRange {
 #[diesel(table_name = crate::schema::file_versions)]
 #[diesel(check_for_backend(Pg))]
 pub struct FileVersion {
-    pub id: Uuid,
-    pub file_id: Uuid,
+    pub id: FileVersionId,
+    pub file_id: FilezFileId,
     pub version: i32,
-    pub app_id: Uuid,
+    pub app_id: MowsAppId,
     pub app_path: String,
     pub mime_type: String,
     pub metadata: FileVersionMetadata,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
     pub size: i64,
-    pub storage_location_id: Uuid,
-    pub storage_quota_id: Uuid,
+    pub storage_location_id: StorageLocationId,
+    pub storage_quota_id: StorageQuotaId,
     pub content_valid: bool,
     pub content_expected_sha256_digest: Option<String>,
 }
@@ -98,20 +105,21 @@ pub struct FileVersion {
 pub struct FileVersionMetadata {}
 
 impl FileVersion {
+    #[tracing::instrument(level = "trace")]
     pub fn new(
-        file_id: Uuid,
+        file_id: FilezFileId,
         version: i32,
-        app_id: Uuid,
+        app_id: MowsAppId,
         app_path: Option<String>,
         mime_type: String,
         metadata: FileVersionMetadata,
         size: u64,
-        storage_id: Uuid,
-        storage_quota_id: Uuid,
+        storage_location_id: StorageLocationId,
+        storage_quota_id: StorageQuotaId,
         content_expected_sha256_digest: Option<String>,
     ) -> Result<Self, FilezError> {
         Ok(Self {
-            id: get_uuid(),
+            id: FileVersionId::new(),
             file_id,
             version,
             app_id,
@@ -121,18 +129,19 @@ impl FileVersion {
             created_time: get_current_timestamp(),
             modified_time: get_current_timestamp(),
             size: size.try_into()?,
-            storage_location_id: storage_id,
+            storage_location_id,
             storage_quota_id,
             content_expected_sha256_digest,
             content_valid: false,
         })
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn get(
         database: &Database,
-        file_id: &Uuid,
+        file_id: &FilezFileId,
         version: Option<u32>,
-        app_id: &Uuid,
+        app_id: &MowsAppId,
         app_path: &Option<String>,
     ) -> Result<FileVersion, FilezError> {
         let mut connection = database.get_connection().await?;
@@ -171,6 +180,7 @@ impl FileVersion {
         Ok(file_version)
     }
 
+    #[tracing::instrument(level = "trace")]
     fn get_file_version_identifier(&self) -> Result<FileVersionIdentifier, FilezError> {
         Ok(FileVersionIdentifier {
             file_id: self.file_id,
@@ -180,6 +190,7 @@ impl FileVersion {
         })
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn get_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
@@ -201,6 +212,7 @@ impl FileVersion {
         Ok(content)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn get_file_size_from_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
@@ -220,6 +232,7 @@ impl FileVersion {
         Ok(size)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn set(
         &self,
         storage_locations_provider_state: &StorageLocationState,
@@ -300,16 +313,17 @@ impl FileVersion {
         Ok(())
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn create(
         database: &Database,
-        file_id: Uuid,
+        file_id: FilezFileId,
         version: Option<u32>,
-        app_id: Uuid,
+        app_id: MowsAppId,
         app_path: Option<String>,
         mime_type: String,
         metadata: FileVersionMetadata,
         size: u64,
-        storage_quota_id: Uuid,
+        storage_quota_id: StorageQuotaId,
         content_expected_sha256_digest: Option<String>,
     ) -> Result<FileVersion, FilezError> {
         let mut connection = database.get_connection().await?;
@@ -349,6 +363,7 @@ impl FileVersion {
         Ok(created_version)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn delete_many(
         storage_locations_provider_state: &StorageLocationState,
         database: &Database,
@@ -382,6 +397,7 @@ impl FileVersion {
         Ok(())
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn get_many(
         database: &Database,
         query: &Vec<FileVersionIdentifier>,
@@ -399,6 +415,7 @@ impl FileVersion {
         Ok(results)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn delete_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
@@ -418,6 +435,7 @@ impl FileVersion {
         Ok(())
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn update_many(
         database: &Database,
         file_versions: &Vec<UpdateFileVersion>,

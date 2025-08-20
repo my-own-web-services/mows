@@ -4,7 +4,8 @@ use crate::{
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         file_versions::{FileVersion, FileVersionMetadata},
-        storage_quotas::StorageQuota,
+        files::FilezFileId,
+        storage_quotas::{StorageQuota, StorageQuotaId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -14,7 +15,6 @@ use crate::{
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -30,6 +30,7 @@ use uuid::Uuid;
         (status = 500, description = "Internal Server Error", body = ApiResponse<EmptyApiResponse>)
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn create_file_version(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -45,7 +46,7 @@ pub async fn create_file_version(
             &database,
             &authentication_information,
             AccessPolicyResourceType::File,
-            Some(&vec![request_body.file_id]),
+            Some(&vec![request_body.file_id.into()]),
             AccessPolicyAction::FilezFilesVersionsCreate,
         )
         .await?
@@ -57,7 +58,11 @@ pub async fn create_file_version(
     with_timing!(
         StorageQuota::check_quota(
             &database,
-            &authentication_information.requesting_user.unwrap().id,
+            &authentication_information
+                .requesting_user
+                .unwrap()
+                .id
+                .into(),
             &request_body.storage_quota_id,
             request_body.size.into()
         )
@@ -96,16 +101,16 @@ pub async fn create_file_version(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CreateFileVersionRequestBody {
     /// The ID of the file to create a version for.
-    pub file_id: Uuid,
+    pub file_id: FilezFileId,
     pub version: Option<u32>,
     pub app_path: Option<String>,
     pub mime_type: String,
     pub metadata: FileVersionMetadata,
     pub size: u64,
-    pub storage_quota_id: Uuid,
+    pub storage_quota_id: StorageQuotaId,
     /// Optional SHA256 digest of the file content as a lowercase hexadecimal string.
     /// Once the content is fully uploaded it automatically gets validated against this digest.
     /// After successful validation, the versions content_valid field is set to true.
@@ -113,7 +118,7 @@ pub struct CreateFileVersionRequestBody {
     pub content_expected_sha256_digest: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CreateFileVersionResponseBody {
     pub version: FileVersion,
 }

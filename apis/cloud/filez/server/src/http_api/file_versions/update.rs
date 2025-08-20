@@ -28,6 +28,7 @@ use uuid::Uuid;
         (status = 500, description = "Internal Server Error", body = ApiResponse<EmptyApiResponse>)
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn update_file_versions(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -37,7 +38,7 @@ pub async fn update_file_versions(
     let file_ids: Vec<Uuid> = request_body
         .versions
         .iter()
-        .map(|v| v.identifier.file_id)
+        .map(|v| v.identifier.file_id.into())
         .collect();
 
     with_timing!(
@@ -72,17 +73,17 @@ pub async fn update_file_versions(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateFileVersionsRequestBody {
     pub versions: Vec<UpdateFileVersion>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateFileVersionsResponseBody {
     pub versions: Vec<FileVersion>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateFileVersion {
     pub identifier: FileVersionIdentifier,
     pub new_metadata: Option<FileVersionMetadata>,

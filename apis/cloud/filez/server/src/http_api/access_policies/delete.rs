@@ -1,7 +1,9 @@
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
-    models::access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+    models::access_policies::{
+        AccessPolicy, AccessPolicyAction, AccessPolicyId, AccessPolicyResourceType,
+    },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
@@ -10,7 +12,6 @@ use axum::{
     extract::{Path, State},
     Extension, Json,
 };
-use uuid::Uuid;
 
 #[utoipa::path(
     delete,
@@ -19,22 +20,23 @@ use uuid::Uuid;
         ("access_policy_id" = Uuid, Path, description = "The ID of the access policy to delete"),
     ),
     responses(
-        (status = 200, description = "Deletes a access policy", body = ApiResponse<Uuid>),
+        (status = 200, description = "Deletes a access policy", body = ApiResponse<EmptyApiResponse>),
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn delete_access_policy(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(access_policy_id): Path<Uuid>,
-) -> Result<Json<ApiResponse<Uuid>>, FilezError> {
+    Path(access_policy_id): Path<AccessPolicyId>,
+) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::AccessPolicy,
-            Some(&vec![access_policy_id]),
+            Some(&vec![access_policy_id.into()]),
             AccessPolicyAction::AccessPoliciesDelete,
         )
         .await?
@@ -44,7 +46,7 @@ pub async fn delete_access_policy(
     );
 
     with_timing!(
-        AccessPolicy::delete(&database, &access_policy_id).await?,
+        AccessPolicy::delete(&database, &access_policy_id.into()).await?,
         "Database operation to delete access policy",
         timing
     );
@@ -52,6 +54,6 @@ pub async fn delete_access_policy(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Access policy deleted".to_string(),
-        data: Some(access_policy_id),
+        data: None,
     }))
 }

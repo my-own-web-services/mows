@@ -11,17 +11,20 @@ use diesel_as_jsonb::AsJsonb;
 use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use crate::{
     database::Database,
     errors::FilezError,
+    impl_typed_uuid,
+    models::{apps::MowsAppId, users::FilezUserId},
     schema,
-    utils::{get_current_timestamp, get_uuid},
+    utils::get_current_timestamp,
     validation::validate_file_name,
 };
 
 use super::users::FilezUser;
+
+impl_typed_uuid!(FilezFileId);
 
 #[derive(
     Serialize,
@@ -38,8 +41,8 @@ use super::users::FilezUser;
 #[diesel(table_name = crate::schema::files)]
 #[diesel(check_for_backend(Pg))]
 pub struct FilezFile {
-    pub id: Uuid,
-    pub owner_id: Uuid,
+    pub id: FilezFileId,
+    pub owner_id: FilezUserId,
     pub mime_type: String,
     pub name: String,
     pub created_time: chrono::NaiveDateTime,
@@ -51,7 +54,7 @@ impl FilezFile {
     pub fn new(owner: &FilezUser, mime_type: &Mime, file_name: &str) -> Result<Self, FilezError> {
         validate_file_name(file_name)?;
         Ok(Self {
-            id: get_uuid(),
+            id: FilezFileId::new(),
             owner_id: owner.id.clone(),
             mime_type: mime_type.to_string(),
             name: file_name.to_string(),
@@ -61,7 +64,7 @@ impl FilezFile {
         })
     }
 
-    pub async fn get_by_id(database: &Database, file_id: uuid::Uuid) -> Result<Self, FilezError> {
+    pub async fn get_by_id(database: &Database, file_id: FilezFileId) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
         Ok(crate::schema::files::table
             .filter(crate::schema::files::id.eq(file_id))
@@ -79,7 +82,7 @@ impl FilezFile {
             .await?)
     }
 
-    pub async fn delete(database: &Database, file_id: uuid::Uuid) -> Result<(), FilezError> {
+    pub async fn delete(database: &Database, file_id: FilezFileId) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(crate::schema::file_versions::table)
             .filter(crate::schema::file_versions::file_id.eq(file_id))
@@ -108,8 +111,8 @@ impl FilezFile {
 
     pub async fn get_many_by_id(
         database: &Database,
-        file_ids: &Vec<Uuid>,
-    ) -> Result<HashMap<Uuid, FilezFile>, FilezError> {
+        file_ids: &Vec<FilezFileId>,
+    ) -> Result<HashMap<FilezFileId, FilezFile>, FilezError> {
         let mut connection = database.get_connection().await?;
 
         let result = schema::files::table
@@ -118,7 +121,7 @@ impl FilezFile {
             .load::<FilezFile>(&mut connection)
             .await?;
 
-        let result: HashMap<Uuid, FilezFile> =
+        let result: HashMap<FilezFileId, FilezFile> =
             result.into_iter().map(|file| (file.id, file)).collect();
 
         Ok(result)
@@ -130,14 +133,14 @@ pub struct FileMetadata {
     /// Place for apps to store custom data related to the file.
     /// every app is identified by its id, and can only access its own data.
     #[schema(additional_properties = true)]
-    pub private_app_data: HashMap<Uuid, serde_json::Value>,
+    pub private_app_data: HashMap<MowsAppId, serde_json::Value>,
     #[schema(additional_properties = true)]
     /// Apps can provide and request shared app data from other apps on creation
-    pub shared_app_data: HashMap<Uuid, serde_json::Value>,
+    pub shared_app_data: HashMap<MowsAppId, serde_json::Value>,
     #[schema(additional_properties = true)]
     /// Extracted data from the file, such as text content, metadata, etc.
     pub extracted_data: HashMap<String, serde_json::Value>,
-    pub default_preview_app_id: Option<Uuid>,
+    pub default_preview_app_id: Option<MowsAppId>,
 }
 
 impl FileMetadata {

@@ -9,14 +9,8 @@ use std::str::FromStr;
 use tokio::signal::{self};
 use url::Url;
 use utoipa::ToSchema;
-use uuid::Timestamp;
 
 use crate::errors::FilezError;
-
-pub fn get_uuid() -> uuid::Uuid {
-    let ts = Timestamp::now(uuid::NoContext);
-    uuid::Uuid::new_v7(ts)
-}
 
 pub fn get_current_timestamp() -> chrono::NaiveDateTime {
     chrono::Utc::now().naive_utc()
@@ -108,7 +102,7 @@ pub async fn is_dev_origin(config: &crate::config::FilezServerConfig, origin: &U
     return None;
 }
 
-#[tracing::instrument]
+#[tracing::instrument(level = "trace")]
 pub fn safe_parse_mime_type(
     file_mime_type: &str,
     file_version_mime_type: &str,

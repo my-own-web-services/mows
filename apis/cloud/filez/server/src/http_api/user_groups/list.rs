@@ -19,6 +19,7 @@ use utoipa::ToSchema;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn list_user_groups(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -47,7 +48,7 @@ pub async fn list_user_groups(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListUserGroupsRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -55,12 +56,12 @@ pub struct ListUserGroupsRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ListUserGroupsResponseBody {
     pub user_groups: Vec<UserGroup>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub enum ListUserGroupsSortBy {
     Name,
     CreatedTime,

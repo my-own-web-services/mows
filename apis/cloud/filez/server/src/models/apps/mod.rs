@@ -2,7 +2,8 @@ use crate::{
     config::{config, SERVICE_ACCOUNT_TOKEN_HEADER_NAME},
     database::Database,
     errors::FilezError,
-    utils::{get_current_timestamp, get_uuid, is_dev_origin, InvalidEnumType},
+    impl_typed_uuid,
+    utils::{get_current_timestamp, is_dev_origin, InvalidEnumType},
 };
 use diesel::{
     deserialize::FromSqlRow,
@@ -19,11 +20,12 @@ use mows_common_rust::get_current_config_cloned;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
+use tracing::debug;
 use tracing::trace;
-use tracing::{debug, span};
 use url::Url;
 use utoipa::ToSchema;
-use uuid::Uuid;
+
+impl_typed_uuid!(MowsAppId);
 
 #[derive(
     Serialize,
@@ -47,7 +49,7 @@ use uuid::Uuid;
 /// They can act on behalf of users if an access policy allows it
 pub struct MowsApp {
     /// Unique identifier for the app in the database, this is used to identify the app in all database operations
-    pub id: Uuid,
+    pub id: MowsAppId,
     /// Name and Namespace of the app in Kubernetes
     /// Renaming an app in Kubernetes will not change the name in the database but create a new app with the new name
     /// Generally the name should not be changed, if it is it can be manually adjusted in the database
@@ -97,10 +99,30 @@ pub struct MowsAppConfig {
 }
 
 impl MowsApp {
+    pub fn new(
+        name: String,
+        description: Option<String>,
+        trusted: bool,
+        origins: Option<Vec<String>>,
+        app_type: AppType,
+    ) -> Self {
+        Self {
+            id: MowsAppId::new(),
+            name,
+            description,
+            trusted,
+            origins,
+            created_time: get_current_timestamp(),
+            modified_time: get_current_timestamp(),
+            app_type,
+        }
+    }
+
+    #[tracing::instrument(level = "trace")]
     pub async fn first_party() -> Self {
         let config = get_current_config_cloned!(config());
         Self {
-            id: Uuid::nil(),
+            id: MowsAppId::nil(),
             name: "The Filez primary origin".to_string(),
             description: Some("First party app for Filez".to_string()),
             origins: Some(vec![config.primary_origin.to_string()]),
@@ -110,9 +132,11 @@ impl MowsApp {
             app_type: AppType::Frontend,
         }
     }
+
+    #[tracing::instrument(level = "trace")]
     pub fn dev(dev_origin: &Url) -> Self {
         Self {
-            id: Uuid::nil(),
+            id: MowsAppId::nil(),
             name: "Filez Dev App".to_string(),
             description: Some("Development allowed filez app".to_string()),
             origins: Some(vec![dev_origin.to_string()]),
@@ -123,9 +147,10 @@ impl MowsApp {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub fn no_origin() -> Self {
         Self {
-            id: Uuid::nil(),
+            id: MowsAppId::nil(),
             name: "Filez App with no origin".to_string(),
             description: Some("App with no origins".to_string()),
             origins: None,
@@ -136,6 +161,7 @@ impl MowsApp {
         }
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn delete(database: &Database, name: &str) -> Result<(), FilezError> {
         use diesel_async::RunQueryDsl;
 
@@ -148,10 +174,11 @@ impl MowsApp {
         Ok(())
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn create_filez_server_app(database: &Database) -> Result<MowsApp, FilezError> {
         use diesel_async::RunQueryDsl;
 
-        let app_id = Uuid::nil();
+        let app_id = MowsAppId::nil();
         let mut connection = database.get_connection().await?;
         let existing_app = crate::schema::apps::table
             .filter(crate::schema::apps::id.eq(app_id))
@@ -185,7 +212,7 @@ impl MowsApp {
         }
     }
 
-    #[tracing::instrument(skip(database))]
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn get_from_headers(
         database: &Database,
         request_headers: &axum::http::HeaderMap,
@@ -210,7 +237,7 @@ impl MowsApp {
         }
     }
 
-    #[tracing::instrument(skip(database))]
+    #[tracing::instrument(skip(database), level = "trace")]
     async fn verify_kubernetes_service_account_token(
         database: &Database,
         token: &str,
@@ -287,6 +314,7 @@ impl MowsApp {
         }
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn get_from_origin_string(
         database: &Database,
         origin: &str,
@@ -305,6 +333,7 @@ impl MowsApp {
         Ok(app)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn get_app_by_origin(
         database: &Database,
         origin: &Url,
@@ -324,6 +353,7 @@ impl MowsApp {
         Ok(app)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn create_or_update(
         database: &Database,
         app_config: &MowsAppConfig,
@@ -358,16 +388,13 @@ impl MowsApp {
                 Ok(app)
             }
             None => {
-                let new_app = MowsApp {
-                    id: get_uuid(),
-                    name: full_name.to_string(),
-                    description: app_config.description.clone(),
-                    trusted: app_config.trusted,
-                    origins: app_config.origins.clone(),
-                    created_time: get_current_timestamp(),
-                    modified_time: get_current_timestamp(),
-                    app_type: app_config.app_type,
-                };
+                let new_app = MowsApp::new(
+                    full_name.to_string(),
+                    app_config.description.clone(),
+                    app_config.trusted,
+                    app_config.origins.clone(),
+                    app_config.app_type,
+                );
 
                 diesel::insert_into(crate::schema::apps::table)
                     .values(&new_app)
@@ -379,6 +406,7 @@ impl MowsApp {
         }
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn list(database: &Database) -> Result<Vec<MowsApp>, FilezError> {
         use diesel_async::RunQueryDsl;
 
@@ -390,10 +418,11 @@ impl MowsApp {
         Ok(apps)
     }
 
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn get_many_by_id(
         database: &Database,
-        app_ids: &[Uuid],
-    ) -> Result<HashMap<Uuid, MowsApp>, FilezError> {
+        app_ids: &[MowsAppId],
+    ) -> Result<HashMap<MowsAppId, MowsApp>, FilezError> {
         use diesel_async::RunQueryDsl;
 
         let mut connection = database.get_connection().await?;

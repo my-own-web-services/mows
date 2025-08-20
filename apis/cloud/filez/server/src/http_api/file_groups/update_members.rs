@@ -1,14 +1,14 @@
 use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        file_groups::{FileGroup, FileGroupType},
+        file_groups::{FileGroup, FileGroupId, FileGroupType},
+        files::FilezFileId,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -24,6 +24,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn update_file_group_members(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -35,7 +36,7 @@ pub async fn update_file_group_members(
             &database,
             &authentication_information,
             AccessPolicyResourceType::FileGroup,
-            Some(&vec![request_body.file_group_id]),
+            Some(&vec![request_body.file_group_id.into()]),
             AccessPolicyAction::FileGroupsUpdateMembers,
         )
         .await?
@@ -80,9 +81,9 @@ pub async fn update_file_group_members(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct UpdateFileGroupMembersRequestBody {
-    pub file_group_id: Uuid,
-    pub files_to_add: Option<Vec<Uuid>>,
-    pub files_to_remove: Option<Vec<Uuid>>,
+    pub file_group_id: FileGroupId,
+    pub files_to_add: Option<Vec<FilezFileId>>,
+    pub files_to_remove: Option<Vec<FilezFileId>>,
 }

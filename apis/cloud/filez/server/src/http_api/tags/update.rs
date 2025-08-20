@@ -26,6 +26,7 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn update_tags(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -60,7 +61,11 @@ pub async fn update_tags(
     with_timing!(
         TagMember::update_tags(
             &database,
-            &authentication_information.requesting_user.unwrap().id,
+            &authentication_information
+                .requesting_user
+                .unwrap()
+                .id
+                .into(),
             &request_body.resource_ids,
             request_body.resource_type,
             request_body.update_tags
@@ -76,14 +81,14 @@ pub async fn update_tags(
     }))
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct UpdateTagsRequestBody {
     pub resource_type: TagResourceType,
     pub resource_ids: Vec<Uuid>,
     pub update_tags: UpdateTagsMethod,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub enum UpdateTagsMethod {
     Add(HashMap<String, String>),
     Remove(HashMap<String, String>),

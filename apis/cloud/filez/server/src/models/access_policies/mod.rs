@@ -1,5 +1,6 @@
 pub mod check;
 use super::{user_groups::UserGroup, users::FilezUser};
+use crate::models::user_groups::UserGroupId;
 use crate::{
     database::Database,
     errors::FilezError,
@@ -7,10 +8,14 @@ use crate::{
         access_policies::list::ListAccessPoliciesSortBy,
         authentication::middleware::AuthenticationInformation,
     },
-    models::apps::MowsApp,
+    impl_typed_compound_uuid, impl_typed_uuid,
+    models::{
+        apps::{MowsApp, MowsAppId},
+        users::FilezUserId,
+    },
     schema::{self},
     types::SortDirection,
-    utils::{get_current_timestamp, get_uuid, InvalidEnumType},
+    utils::{get_current_timestamp, InvalidEnumType},
 };
 use anyhow::Context;
 use check::{check_resources_access_control, AuthResult};
@@ -32,7 +37,9 @@ use uuid::Uuid;
 macro_rules! filter_subject_access_policies {
     ($maybe_requesting_user:expr, $maybe_user_group_ids:expr) => {{
         let maybe_requesting_user: Option<&FilezUser> = $maybe_requesting_user;
-        let maybe_user_group_ids: Option<&Vec<Uuid>> = $maybe_user_group_ids;
+
+        let maybe_user_group_ids: Option<&Vec<crate::models::user_groups::UserGroupId>> =
+            $maybe_user_group_ids;
         let predicate: Box<
             dyn BoxableExpression<
                 schema::access_policies::table,
@@ -205,6 +212,11 @@ pub enum AccessPolicyAction {
     FilezAppsList = 540,
 }
 
+impl_typed_uuid!(AccessPolicyId);
+impl_typed_uuid!(AccessPolicySubjectId);
+
+impl_typed_compound_uuid!(AccessPolicySubjectId: FilezUserId, UserGroupId);
+
 #[derive(
     Queryable,
     Selectable,
@@ -220,18 +232,18 @@ pub enum AccessPolicyAction {
 #[diesel(check_for_backend(Pg))]
 #[diesel(table_name = crate::schema::access_policies)]
 pub struct AccessPolicy {
-    pub id: Uuid,
+    pub id: AccessPolicyId,
     pub name: String,
-    pub owner_id: Uuid,
+    pub owner_id: FilezUserId,
 
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
 
     pub subject_type: AccessPolicySubjectType,
-    pub subject_id: Uuid,
+    pub subject_id: AccessPolicySubjectId,
 
     /// The IDs of the application this policy is associated with
-    pub context_app_ids: Vec<Uuid>,
+    pub context_app_ids: Vec<MowsAppId>,
 
     pub resource_type: AccessPolicyResourceType,
     /// The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
@@ -245,17 +257,17 @@ pub struct AccessPolicy {
 impl AccessPolicy {
     pub fn new(
         name: &str,
-        owner_id: Uuid,
+        owner_id: FilezUserId,
         subject_type: AccessPolicySubjectType,
-        subject_id: Uuid,
-        context_app_ids: Vec<Uuid>,
+        subject_id: AccessPolicySubjectId,
+        context_app_ids: Vec<MowsAppId>,
         resource_type: AccessPolicyResourceType,
         resource_id: Option<Uuid>,
         actions: Vec<AccessPolicyAction>,
         effect: AccessPolicyEffect,
     ) -> Self {
         Self {
-            id: get_uuid(),
+            id: AccessPolicyId::new(),
             owner_id,
             name: name.to_string(),
             created_time: get_current_timestamp(),
@@ -282,7 +294,10 @@ impl AccessPolicy {
         Ok(())
     }
 
-    pub async fn get_by_id(database: &Database, id: &Uuid) -> Result<AccessPolicy, FilezError> {
+    pub async fn get_by_id(
+        database: &Database,
+        id: &AccessPolicyId,
+    ) -> Result<AccessPolicy, FilezError> {
         let mut connection = database.get_connection().await?;
         let access_policy = schema::access_policies::table
             .filter(schema::access_policies::id.eq(id))
@@ -304,7 +319,7 @@ impl AccessPolicy {
         let resource_auth_info = check::get_auth_params_for_resource_type(resource_type);
         let maybe_user_group_ids = match maybe_requesting_user {
             Some(requesting_user) => {
-                Some(UserGroup::get_all_by_user_id(database, &requesting_user.id).await?)
+                Some(UserGroup::get_all_ids_by_user_id(database, &requesting_user.id).await?)
             }
             None => None,
         };
@@ -524,11 +539,11 @@ impl AccessPolicy {
 
     pub async fn update(
         database: &Database,
-        id: &Uuid,
+        id: &AccessPolicyId,
         name: &str,
         subject_type: AccessPolicySubjectType,
-        subject_id: Uuid,
-        context_app_ids: Vec<Uuid>,
+        subject_id: AccessPolicySubjectId,
+        context_app_ids: Vec<MowsAppId>,
         resource_type: AccessPolicyResourceType,
         resource_id: Option<Uuid>,
         actions: Vec<AccessPolicyAction>,
@@ -561,7 +576,7 @@ impl AccessPolicy {
         Ok(())
     }
 
-    #[tracing::instrument(skip(database))]
+    #[tracing::instrument(skip(database), level = "trace")]
     pub async fn check(
         database: &Database,
         authentication_information: &AuthenticationInformation,
@@ -571,7 +586,7 @@ impl AccessPolicy {
     ) -> Result<AuthResult, FilezError> {
         let maybe_user_group_ids = match &authentication_information.requesting_user {
             Some(requesting_user) => Some(
-                UserGroup::get_all_by_user_id(database, &requesting_user.id)
+                UserGroup::get_all_ids_by_user_id(database, &requesting_user.id)
                     .await
                     .context("Failed to get user groups for the requesting user")?,
             ),

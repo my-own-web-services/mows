@@ -5,7 +5,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        apps::MowsApp,
+        apps::{MowsApp, MowsAppId},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -14,7 +14,6 @@ use crate::{
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -25,6 +24,7 @@ use uuid::Uuid;
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn get_apps(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
@@ -36,7 +36,14 @@ pub async fn get_apps(
             &database,
             &authentication_information,
             AccessPolicyResourceType::App,
-            Some(&request_body.app_ids),
+            Some(
+                &request_body
+                    .app_ids
+                    .clone()
+                    .into_iter()
+                    .map(|id| id.into())
+                    .collect::<Vec<_>>()
+            ),
             AccessPolicyAction::FilezAppsGet,
         )
         .await?
@@ -61,11 +68,11 @@ pub async fn get_apps(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GetAppsRequestBody {
-    pub app_ids: Vec<Uuid>,
+    pub app_ids: Vec<MowsAppId>,
 }
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GetAppsResponseBody {
-    pub apps: HashMap<Uuid, MowsApp>,
+    pub apps: HashMap<MowsAppId, MowsApp>,
 }

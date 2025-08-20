@@ -1,5 +1,5 @@
 import { AuthState } from "react-oidc-context";
-import { Api } from "./api-client";
+import { Api, FilezUser } from "./api-client";
 
 export interface ClientConfig {
     serverUrl: string;
@@ -50,6 +50,16 @@ export const createFilezClient = (serverUrl: string, auth?: AuthState) => {
             }
         })
     });
+};
+
+export const createExampleUser = async (filezClient: Api<unknown>): Promise<FilezUser> => {
+    const email = `example-${Date.now()}@example.com`;
+    const user = await filezClient.api.createUser({ email });
+    if (!user.data?.data) {
+        throw new Error("Failed to create example user");
+    }
+    console.log(`Created example user: ${email} (${user.data.data.new_user.id})`);
+    return user.data.data.new_user;
 };
 
 export const getBlobSha256Digest = (blob: Blob): Promise<string> => {

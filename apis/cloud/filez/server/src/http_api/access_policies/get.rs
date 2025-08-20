@@ -3,12 +3,12 @@ use axum::{
     Extension, Json,
 };
 
-use uuid::Uuid;
-
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
-    models::access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+    models::access_policies::{
+        AccessPolicy, AccessPolicyAction, AccessPolicyId, AccessPolicyResourceType,
+    },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
@@ -25,18 +25,19 @@ use crate::{
         (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
     )
 )]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn get_access_policy(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(access_policy_id): Path<Uuid>,
+    Path(access_policy_id): Path<AccessPolicyId>,
 ) -> Result<Json<ApiResponse<AccessPolicy>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::AccessPolicy,
-            Some(&vec![access_policy_id]),
+            Some(&vec![access_policy_id.into()]),
             AccessPolicyAction::AccessPoliciesGet,
         )
         .await?
