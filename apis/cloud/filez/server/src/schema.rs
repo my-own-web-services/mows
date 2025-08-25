@@ -52,6 +52,7 @@ diesel::table! {
         storage_quota_id -> Uuid,
         content_valid -> Bool,
         content_expected_sha256_digest -> Nullable<Text>,
+        existing_content_bytes -> Nullable<BigInt>,
     }
 }
 diesel::joinable!(file_versions -> files (file_id));

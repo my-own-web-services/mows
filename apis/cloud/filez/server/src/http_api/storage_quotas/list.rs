@@ -6,17 +6,28 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
     path = "/api/storage_quotas/list",
+    description = "List storage quotas",
     request_body = ListStorageQuotasRequestBody,
     responses(
-        (status = 200, description = "Lists storage quotas", body = ApiResponse<ListStorageQuotasResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Listed storage quotas",
+            body = ApiResponse<ListStorageQuotasResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -52,7 +63,7 @@ pub async fn list_storage_quotas(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListStorageQuotasRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -60,7 +71,7 @@ pub struct ListStorageQuotasRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub enum ListStorageQuotasSortBy {
     CreatedTime,
     ModifiedTime,
@@ -69,7 +80,7 @@ pub enum ListStorageQuotasSortBy {
     StorageLocationId,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListStorageQuotasResponseBody {
     pub storage_quotas: Vec<StorageQuota>,
 }

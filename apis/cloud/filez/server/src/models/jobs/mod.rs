@@ -14,6 +14,7 @@ use crate::{
     types::SortDirection,
     utils::{get_current_timestamp, InvalidEnumType},
 };
+use chrono::NaiveDateTime;
 use diesel::{
     deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::SmallInt,
     AsChangeset,
@@ -23,6 +24,7 @@ use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use serde_valid::Validate;
 use std::collections::HashMap;
 use tracing::{error, trace};
 use utoipa::ToSchema;
@@ -97,6 +99,26 @@ pub struct FilezJob {
     pub deadline_time: Option<chrono::NaiveDateTime>,
 }
 
+#[derive(Serialize, Deserialize, AsChangeset, Validate, ToSchema, Clone, Debug)]
+#[diesel(table_name = schema::jobs)]
+pub struct UpdateJobChangeset {
+    #[schema(max_length = 256)]
+    #[validate(max_length = 256)]
+    #[diesel(column_name = name)]
+    pub new_job_name: Option<String>,
+    #[diesel(column_name = execution_information)]
+    pub new_job_execution_information: Option<JobExecutionInformation>,
+    #[diesel(column_name = persistence)]
+    pub new_job_persistence: Option<JobPersistenceType>,
+    #[diesel(column_name = deadline_time)]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "::serde_with::rust::double_option"
+    )]
+    pub new_job_deadline_time: Option<Option<NaiveDateTime>>,
+}
+
 #[derive(
     Debug,
     Clone,
@@ -135,28 +157,28 @@ pub enum JobStatusDetails {
     Cancelled(JobStatusDetailsCancelled),
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct JobStatusDetailsCreated {
     pub message: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct JobStatusDetailsInProgress {
     pub message: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct JobStatusDetailsCompleted {
     pub message: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct JobStatusDetailsFailed {
     pub message: String,
     pub error: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct JobStatusDetailsCancelled {
     pub message: String,
     pub reason: Option<String>,
@@ -167,13 +189,13 @@ pub struct JobExecutionInformation {
     pub job_type: JobType,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub enum JobType {
     CreatePreview(JobTypeCreatePreview),
 }
 
 /// Allows the app to create a set of previews for a existing file_version_number and file_id
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct JobTypeCreatePreview {
     pub file_id: FilezFileId,
     pub file_version_number: u32,
@@ -187,6 +209,7 @@ pub struct JobTypeCreatePreview {
 }
 
 impl FilezJob {
+    #[tracing::instrument(level = "trace")]
     pub fn new(
         owner_id: FilezUserId,
         app_id: MowsAppId,
@@ -214,7 +237,8 @@ impl FilezJob {
         }
     }
 
-    pub async fn create(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn create_one(
         database: &Database,
         owner_id: FilezUserId,
         app_id: MowsAppId,
@@ -233,14 +257,50 @@ impl FilezJob {
         );
         let mut connection = database.get_connection().await?;
 
-        diesel::insert_into(schema::jobs::table)
+        let created_job = diesel::insert_into(schema::jobs::table)
             .values(&job)
-            .execute(&mut connection)
+            .returning(FilezJob::as_returning())
+            .get_result::<FilezJob>(&mut connection)
             .await?;
 
-        Ok(job)
+        Ok(created_job)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn release_jobs(
+        database: &Database,
+        release_after_seconds: u64,
+    ) -> Result<(), FilezError> {
+        // release all jobs that have an app instance assigned but have not been seen since the last `release_after_seconds` seconds, update them directly
+        let mut connection = database.get_connection().await?;
+        let release_time =
+            get_current_timestamp() - chrono::Duration::seconds(release_after_seconds as i64);
+
+        let released_jobs = diesel::update(schema::jobs::table)
+            .filter(schema::jobs::assigned_app_runtime_instance_id.is_not_null())
+            .filter(schema::jobs::app_instance_last_seen_time.lt(release_time))
+            .set((
+                schema::jobs::status.eq(JobStatus::Created),
+                schema::jobs::status_details.eq(Some(JobStatusDetails::Created(
+                    JobStatusDetailsCreated {
+                        message: "Job has been released due to inactivity and is waiting to be picked up again".to_string(),
+                    },
+                ))),
+                schema::jobs::end_time.eq(Some(get_current_timestamp())),
+                schema::jobs::assigned_app_runtime_instance_id.eq(None::<String>),
+                schema::jobs::app_instance_last_seen_time.eq(None::<NaiveDateTime>),
+            ))
+            .execute(&mut connection)
+            .await?;
+        trace!(
+            "Released {} jobs that were inactive for more than {} seconds",
+            released_jobs,
+            release_after_seconds
+        );
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_many_by_id(
         database: &Database,
         job_ids: &[FilezJobId],
@@ -253,6 +313,7 @@ impl FilezJob {
         Ok(jobs.into_iter().map(|job| (job.id, job)).collect())
     }
 
+    #[tracing::instrument(level = "trace", skip(database, requesting_user, requesting_app))]
     pub async fn list(
         database: &Database,
         requesting_user: Option<&FilezUser>,
@@ -307,7 +368,8 @@ impl FilezJob {
         Ok(jobs)
     }
 
-    pub async fn delete(database: &Database, job_id: FilezJobId) -> Result<(), FilezError> {
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn delete_one(database: &Database, job_id: FilezJobId) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(schema::jobs::table.find(job_id))
             .execute(&mut connection)
@@ -315,6 +377,7 @@ impl FilezJob {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_by_id(
         database: &Database,
         job_id: FilezJobId,
@@ -327,6 +390,7 @@ impl FilezJob {
         Ok(job)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn delete_by_id(database: &Database, job_id: FilezJobId) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(schema::jobs::table.find(job_id))
@@ -335,6 +399,7 @@ impl FilezJob {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_current_by_app_and_runtime_instance_id(
         database: &Database,
         app_id: &MowsAppId,
@@ -361,19 +426,33 @@ impl FilezJob {
         Ok(jobs.into_iter().next())
     }
 
-    pub async fn update(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn update_one(
         database: &Database,
-        modified_job: &FilezJob,
+        job_id: FilezJobId,
+        changeset: UpdateJobChangeset,
     ) -> Result<FilezJob, FilezError> {
         let mut connection = database.get_connection().await?;
-        let updated_job = diesel::update(schema::jobs::table.find(modified_job.id))
-            .set(modified_job)
+        let updated_job = diesel::update(schema::jobs::table.find(job_id))
+            .set((
+                changeset,
+                schema::jobs::modified_time.eq(get_current_timestamp()),
+            ))
             .get_result::<FilezJob>(&mut connection)
             .await?;
+
+        trace!(
+            job_id=?updated_job.id,
+            job_status=?updated_job.status,
+            updated_job=?updated_job,
+            "Job updated successfully"
+        );
+
         Ok(updated_job)
     }
 
-    pub async fn pickup(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn pickup_one(
         database: &Database,
         app: MowsApp,
         app_runtime_instance_id: Option<String>,
@@ -476,6 +555,7 @@ impl FilezJob {
         job_result
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn update_status(
         database: &Database,
         app: MowsApp,

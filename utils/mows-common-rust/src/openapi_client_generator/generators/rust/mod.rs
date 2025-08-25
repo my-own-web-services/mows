@@ -232,7 +232,7 @@ impl<T: std::fmt::Display> std::fmt::Display for OptionAsNull<T> {{
     fn generate_and_write_tests(&mut self) -> Result<(), ClientGeneratorError> {
         let test_content = r#"#[cfg(test)]
 mod tests {
-    use filez_server_client::client::{ApiClient, AuthMethod};
+    use filez_server_client::client::{ApiClient};
 
     #[tokio::test]
     async fn test_api_client() {
@@ -240,7 +240,8 @@ mod tests {
             "https://filez-server.vindelicorum.eu/".to_string(),
             None,
             None,
-        );
+            None,
+        ).unwrap();
 
         client.get_health().await.unwrap();
     }
@@ -255,8 +256,12 @@ mod tests {
 
         if let Some(components) = &self.spec.components {
             for (struct_name, schema) in &components.schemas {
-                let rust_type =
+                let mut rust_type =
                     ref_or_schema_to_rust_type(&mut types, Some(struct_name.to_string()), schema)?;
+
+                if !rust_type.starts_with("#[derive(") && !rust_type.starts_with("pub type") {
+                    rust_type = format!("pub type {} = {};", struct_name, rust_type);
+                }
                 types.insert(struct_name.to_string(), rust_type);
             }
         }

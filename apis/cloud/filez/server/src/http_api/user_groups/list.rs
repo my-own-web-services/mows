@@ -6,8 +6,10 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
@@ -15,8 +17,16 @@ use utoipa::ToSchema;
     path = "/api/user_groups/list",
     request_body = ListUserGroupsRequestBody,
     responses(
-        (status = 200, description = "Lists user groups", body = ApiResponse<ListUserGroupsResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Listed user groups",
+            body = ApiResponse<ListUserGroupsResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -48,7 +58,7 @@ pub async fn list_user_groups(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListUserGroupsRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -56,12 +66,12 @@ pub struct ListUserGroupsRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListUserGroupsResponseBody {
     pub user_groups: Vec<UserGroup>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub enum ListUserGroupsSortBy {
     Name,
     CreatedTime,

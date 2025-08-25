@@ -1,5 +1,6 @@
-use axum::{extract::State, Extension, Json};
-use serde::{Deserialize, Serialize};
+use axum::{extract::State, Extension};
+use crate::validation::Json;use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 use crate::{
@@ -17,10 +18,19 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/api/user_groups/create",
+    description = "Create a new user group in the database",
     request_body = CreateUserGroupRequestBody,
     responses(
-        (status = 200, description = "Creates a new user group", body = ApiResponse<UserGroup>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Created the user group",
+            body = ApiResponse<CreateUserGroupResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -29,7 +39,7 @@ pub async fn create_user_group(
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<CreateUserGroupRequestBody>,
-) -> Result<Json<ApiResponse<UserGroup>>, FilezError> {
+) -> Result<Json<ApiResponse<CreateUserGroupResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
@@ -44,17 +54,13 @@ pub async fn create_user_group(
         timing
     );
 
-    let user_group = with_timing!(
-        UserGroup::new(
+    let created_user_group = with_timing!(
+        UserGroup::create_one(
+            &database,
             &authentication_information.requesting_user.unwrap(),
-            &request_body.name
-        ),
-        "Creating new user group",
-        timing
-    );
-
-    with_timing!(
-        UserGroup::create(&database, &user_group).await?,
+            &request_body.user_group_name
+        )
+        .await?,
         "Database operation to create user group",
         timing
     );
@@ -62,11 +68,18 @@ pub async fn create_user_group(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "User group created".to_string(),
-        data: Some(user_group),
+        data: Some(CreateUserGroupResponseBody { created_user_group }),
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct CreateUserGroupRequestBody {
-    pub name: String,
+    #[schema(max_length = 256)]
+    #[validate(max_length = 256)]
+    pub user_group_name: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
+pub struct CreateUserGroupResponseBody {
+    pub created_user_group: UserGroup,
 }

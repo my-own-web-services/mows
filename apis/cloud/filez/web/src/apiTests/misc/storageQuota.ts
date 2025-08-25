@@ -1,41 +1,10 @@
-import { Api, StorageQuotaSubjectType } from "../../api-client";
-import { createExampleUser, impersonateUser } from "../../utils";
+import { Api } from "../../api-client";
+import { createDefaultStorageQuotaForUser, createExampleUser, impersonateUser } from "../../utils";
 
 export default async (filezClient: Api<unknown>) => {
     const alice = await createExampleUser(filezClient);
 
-    const storage_locations = (await filezClient.api.listStorageLocations({})).data?.data
-        ?.storage_locations;
-
-    if (storage_locations?.length === 0) {
-        throw new Error("No storage locations found. Please create a storage location first.");
-    } else if (storage_locations?.length !== undefined && storage_locations?.length > 1) {
-        console.warn("Multiple storage locations found. Using the first one.");
-    }
-
-    const storage_location_id = storage_locations?.[0].id;
-
-    if (!storage_location_id) {
-        throw new Error("No storage location ID found. Please create a storage location first.");
-    }
-
-    const alice_quota = (
-        await filezClient.api.createStorageQuota({
-            quota_bytes: 10_000_000,
-            storage_quota_subject_type: StorageQuotaSubjectType.User,
-            storage_quota_subject_id: alice.id,
-            storage_location_id,
-            name: "Alice's Storage Quota"
-        })
-    ).data?.data?.storage_quota;
-
-    if (!alice_quota) {
-        throw new Error("Failed to create storage quota for Alice.");
-    }
-
-    console.log(
-        `Created storage quota: ${alice_quota.id} for Alice(${alice.id}) at location ${storage_location_id}`
-    );
+    const alice_quota = await createDefaultStorageQuotaForUser(filezClient, alice, 100);
 
     const impersonateAliceParams = {
         headers: {
@@ -59,10 +28,10 @@ export default async (filezClient: Api<unknown>) => {
         .createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
-                metadata: {},
-                size: 200,
+                file_version_metadata: {},
+                file_version_size: 200,
                 storage_quota_id: alice_quota.id,
-                mime_type: "text/html"
+                file_version_mime_type: "text/html"
             },
             impersonateAliceParams
         )
@@ -88,14 +57,14 @@ export default async (filezClient: Api<unknown>) => {
         await filezClient.api.createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
-                metadata: {},
-                size: 50,
+                file_version_metadata: {},
+                file_version_size: 50,
                 storage_quota_id: alice_quota.id,
-                mime_type: "text/html"
+                file_version_mime_type: "text/html"
             },
             impersonateAliceParams
         )
-    ).data?.data?.version;
+    ).data?.data?.created_file_version;
 
     if (!aliceFileVersion1ShouldWork) {
         throw new Error("Failed to create second file version for Alice.");
@@ -107,14 +76,14 @@ export default async (filezClient: Api<unknown>) => {
         await filezClient.api.createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
-                metadata: {},
-                size: 40,
+                file_version_metadata: {},
+                file_version_size: 40,
                 storage_quota_id: alice_quota.id,
-                mime_type: "text/html"
+                file_version_mime_type: "text/html"
             },
             impersonateAliceParams
         )
-    ).data?.data?.version;
+    ).data?.data?.created_file_version;
     if (!aliceFileVersion2ShouldWork) {
         throw new Error("Failed to create third file version for Alice.");
     }
@@ -123,10 +92,10 @@ export default async (filezClient: Api<unknown>) => {
         .createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
-                metadata: {},
-                size: 50,
+                file_version_metadata: {},
+                file_version_size: 50,
                 storage_quota_id: alice_quota.id,
-                mime_type: "text/html"
+                file_version_mime_type: "text/html"
             },
             impersonateAliceParams
         )
@@ -145,5 +114,31 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(
             "Third file version creation for Alice should have failed due to storage quota."
         );
+    }
+
+    // delete aliceFileVersion2ShouldWork
+    await filezClient.api.deleteFileVersions(
+        aliceFileVersion2ShouldWork.id,
+        impersonateAliceParams
+    );
+
+    console.log(
+        `Deleted file version for Alice: ${aliceFileVersion2ShouldWork.id} to free up space in storage quota`
+    );
+
+    const aliceFileVersion4ShouldWork = (
+        await filezClient.api.createFileVersion(
+            {
+                file_id: aliceFileResponse.created_file.id,
+                file_version_metadata: {},
+                file_version_size: 50,
+                storage_quota_id: alice_quota.id,
+                file_version_mime_type: "text/html"
+            },
+            impersonateAliceParams
+        )
+    ).data?.data?.created_file_version;
+    if (!aliceFileVersion4ShouldWork) {
+        throw new Error("Failed to create fourth file version for Alice after deleting one.");
     }
 };

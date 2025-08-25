@@ -1,5 +1,7 @@
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 use crate::{
@@ -17,10 +19,19 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/api/jobs/list",
+    description = "List jobs from the database",
     request_body = ListJobsRequestBody,
     responses(
-        (status = 200, description = "Lists jobs", body = ApiResponse<ListJobsResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Listed jobs",
+            body = ApiResponse<ListJobsResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -66,7 +77,7 @@ pub async fn list_jobs(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListJobsRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -74,7 +85,7 @@ pub struct ListJobsRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListJobsResponseBody {
     pub jobs: Vec<FilezJob>,
 }

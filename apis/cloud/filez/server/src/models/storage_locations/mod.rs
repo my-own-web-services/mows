@@ -76,6 +76,7 @@ pub struct StorageLocationConfigCrd {
 }
 
 impl StorageLocation {
+    #[tracing::instrument(level = "trace")]
     pub fn new(name: &str, provider_config: StorageProviderConfig) -> Self {
         Self {
             id: StorageLocationId::new(),
@@ -85,6 +86,8 @@ impl StorageLocation {
             modified_time: get_current_timestamp(),
         }
     }
+
+    #[tracing::instrument(level = "trace")]
     pub async fn get_all_storage_locations_health(
         storage_location_providers: &StorageLocationState,
     ) -> HashMap<StorageLocationId, HealthStatus> {
@@ -107,6 +110,7 @@ impl StorageLocation {
         health_map
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn delete(
         storage_location_providers: &StorageLocationState,
         database: &Database,
@@ -131,6 +135,7 @@ impl StorageLocation {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn delete_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
@@ -145,6 +150,7 @@ impl StorageLocation {
             .await?)
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_content_sha256_digest(
         &self,
         storage_locations_provider_state: &StorageLocationState,
@@ -159,6 +165,7 @@ impl StorageLocation {
             .await?)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn create_or_update(
         storage_location_providers_state: &StorageLocationState,
         database: &Database,
@@ -210,6 +217,7 @@ impl StorageLocation {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_by_id(
         database: &Database,
         storage_location_id: &StorageLocationId,
@@ -232,6 +240,7 @@ impl StorageLocation {
         Ok(storage_location)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn initialize_all_providers(
         database: &Database,
     ) -> Result<StorageLocationState, FilezError> {
@@ -255,6 +264,7 @@ impl StorageLocation {
         Ok(Arc::new(RwLock::new(storage_providers)))
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn list(
         database: &Database,
         sort_by: Option<ListStorageLocationsSortBy>,
@@ -300,6 +310,7 @@ impl StorageLocation {
         Ok(storage_locations)
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_provider_from_state(
         &self,
         storage_locations_provider_state: &StorageLocationState,
@@ -314,6 +325,7 @@ impl StorageLocation {
             )))
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
@@ -329,6 +341,7 @@ impl StorageLocation {
             .await?)
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_file_size(
         &self,
         storage_locations_provider_state: &StorageLocationState,
@@ -343,6 +356,7 @@ impl StorageLocation {
             .await?)
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn set_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,

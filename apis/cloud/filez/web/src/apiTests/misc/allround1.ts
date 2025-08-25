@@ -14,8 +14,8 @@ export default async (filezClient: Api<unknown>) => {
     await filezClient.api.listAccessPolicies({});
 
     await filezClient.api.checkResourceAccess({
-        action: AccessPolicyAction.UsersDelete,
-        resource_type: AccessPolicyResourceType.User
+        access_policy_action: AccessPolicyAction.UsersDelete,
+        access_policy_resource_type: AccessPolicyResourceType.User
     });
 
     const alice = await createExampleUser(filezClient);
@@ -44,13 +44,13 @@ export default async (filezClient: Api<unknown>) => {
     // Create a storage quota for Alice
     const alice_quota = (
         await filezClient.api.createStorageQuota({
-            quota_bytes: 10_000_000,
+            storage_quota_bytes: 10_000_000,
             storage_quota_subject_type: StorageQuotaSubjectType.User,
             storage_quota_subject_id: alice.id,
             storage_location_id,
-            name: "Alice's Storage Quota"
+            storage_quota_name: "Alice's Storage Quota"
         })
-    ).data?.data?.storage_quota;
+    ).data?.data?.created_storage_quota;
 
     if (!alice_quota) {
         throw new Error("Failed to create storage quota for Alice.");
@@ -111,15 +111,15 @@ export default async (filezClient: Api<unknown>) => {
         await filezClient.api.createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
-                metadata: {},
-                size: aliceFileVersionContent.size,
+                file_version_metadata: {},
+                file_version_size: aliceFileVersionContent.size,
                 storage_quota_id: alice_quota.id,
                 content_expected_sha256_digest: await getBlobSha256Digest(aliceFileVersionContent),
-                mime_type: "text/html"
+                file_version_mime_type: "text/html"
             },
             impersonateAliceParams
         )
-    ).data?.data;
+    ).data?.data?.created_file_version;
 
     if (!aliceFileVersion) {
         throw new Error("Failed to create file version for Alice's file.");
@@ -131,7 +131,7 @@ export default async (filezClient: Api<unknown>) => {
 
     const firstUpload = await filezClient.api.fileVersionsContentTusPatch(
         aliceFileResponse.created_file.id,
-        aliceFileVersion.version.version,
+        aliceFileVersion.version,
         null,
         firstAliceFileVersionContent,
         {
@@ -147,16 +147,14 @@ export default async (filezClient: Api<unknown>) => {
     if (!firstUpload) {
         throw new Error("Failed to upload content for Alice's file version.");
     }
-    console.log(
-        `Uploaded first half of content for Alice's file version: ${aliceFileVersion.version}`
-    );
+    console.log(`Uploaded first half of content for Alice's file version: ${aliceFileVersion.id}`);
 
     // Now upload the rest of the content
 
     const secondAliceFileVersionContent = aliceFileVersionContent.slice(50);
     const secondUpload = await filezClient.api.fileVersionsContentTusPatch(
         aliceFileResponse.created_file.id,
-        aliceFileVersion.version.version,
+        aliceFileVersion.version,
         null,
         secondAliceFileVersionContent,
         {
@@ -171,9 +169,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!secondUpload) {
         throw new Error("Failed to upload second half of content for Alice's file version.");
     }
-    console.log(
-        `Uploaded second half of content for Alice's file version: ${aliceFileVersion.version}`
-    );
+    console.log(`Uploaded second half of content for Alice's file version: ${aliceFileVersion.id}`);
 
     const content = await (
         await filezClient.api
@@ -228,7 +224,7 @@ export default async (filezClient: Api<unknown>) => {
     const updateUploadTooBig = await filezClient.api
         .fileVersionsContentTusPatch(
             aliceFileResponse.created_file.id,
-            aliceFileVersion.version.version,
+            aliceFileVersion.version,
             null,
             aliceUpdatedFileVersionContentTooBig,
             {
@@ -260,7 +256,7 @@ export default async (filezClient: Api<unknown>) => {
     const updateUploadAlreadyValid = await filezClient.api
         .fileVersionsContentTusPatch(
             aliceFileResponse.created_file.id,
-            aliceFileVersion.version.version,
+            aliceFileVersion.version,
             null,
             aliceUpdatedFileVersionContent,
             {
@@ -314,13 +310,13 @@ export default async (filezClient: Api<unknown>) => {
     const aliceFileGroup1 = (
         await filezClient.api.createFileGroup(
             {
-                name: "Alice's File Group 1",
-                group_type: FileGroupType.Manual,
+                file_group_name: "Alice's File Group 1",
+                file_group_type: FileGroupType.Manual,
                 dynamic_group_rule: null
             },
             impersonateAliceParams
         )
-    ).data?.data;
+    ).data?.data?.created_file_group;
 
     if (!aliceFileGroup1) {
         throw new Error("Failed to create file group for Alice.");
@@ -331,13 +327,13 @@ export default async (filezClient: Api<unknown>) => {
     const aliceFileGroup2 = (
         await filezClient.api.createFileGroup(
             {
-                name: "Alice's File Group 2",
-                group_type: FileGroupType.Manual,
+                file_group_name: "Alice's File Group 2",
+                file_group_type: FileGroupType.Manual,
                 dynamic_group_rule: null
             },
             impersonateAliceParams
         )
-    ).data?.data;
+    ).data?.data?.created_file_group;
     if (!aliceFileGroup2) {
         throw new Error("Failed to create second file group for Alice.");
     }
@@ -441,18 +437,18 @@ export default async (filezClient: Api<unknown>) => {
     const accessRule = (
         await filezClient.api.createAccessPolicy(
             {
-                subject_type: AccessPolicySubjectType.User,
-                subject_id: bob.id,
-                actions: [AccessPolicyAction.FileGroupsListFiles],
-                resource_type: AccessPolicyResourceType.FileGroup,
+                access_policy_subject_type: AccessPolicySubjectType.User,
+                access_policy_subject_id: bob.id,
+                access_policy_actions: [AccessPolicyAction.FileGroupsListFiles],
+                access_policy_resource_type: AccessPolicyResourceType.FileGroup,
                 resource_id: aliceFileGroup1.id,
-                effect: AccessPolicyEffect.Allow,
+                access_policy_effect: AccessPolicyEffect.Allow,
                 context_app_ids: ["00000000-0000-0000-0000-000000000000"],
-                name: "Allow Bob to list files in Alice's first file group"
+                access_policy_name: "Allow Bob to list files in Alice's first file group"
             },
             impersonateAliceParams
         )
-    ).data?.data;
+    ).data?.data?.created_access_policy;
     if (!accessRule) {
         throw new Error("Failed to create access rule for Bob.");
     }

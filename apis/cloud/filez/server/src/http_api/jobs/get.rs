@@ -6,11 +6,12 @@ use crate::{
         jobs::{FilezJob, FilezJobId},
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
@@ -19,7 +20,16 @@ use utoipa::ToSchema;
     request_body = GetJobRequestBody,
     description = "Get a job from the database",
     responses(
-        (status = 200, description = "Got a job from the server", body = ApiResponse<GetJobResponseBody>),
+        (
+            status = 200,
+            description = "Got a job from the server",
+            body = ApiResponse<GetJobResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal Server Error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -59,12 +69,12 @@ pub async fn get_job(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct GetJobRequestBody {
     pub job_id: FilezJobId,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct GetJobResponseBody {
     pub job: FilezJob,
 }

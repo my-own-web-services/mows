@@ -20,6 +20,7 @@ pub enum StorageProvider {
 }
 
 impl StorageProvider {
+    #[tracing::instrument(level = "trace")]
     pub async fn get_health(&self) -> HealthStatus {
         match self {
             StorageProvider::Minio(provider) => provider.get_health().await,
@@ -27,6 +28,7 @@ impl StorageProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn initialize(
         provider_config: &StorageProviderConfig,
         id: &str,
@@ -40,6 +42,8 @@ impl StorageProvider {
             }
         }
     }
+
+    #[tracing::instrument(level = "trace")]
     pub async fn get_content(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -60,6 +64,7 @@ impl StorageProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_file_size(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -75,6 +80,7 @@ impl StorageProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_content_sha256_digest(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -94,6 +100,7 @@ impl StorageProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn set_content(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -131,6 +138,7 @@ impl StorageProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn delete_content(
         &self,
         full_file_identifier: &FileVersionIdentifier,

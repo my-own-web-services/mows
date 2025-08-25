@@ -10,18 +10,32 @@ use crate::{
 };
 use axum::{
     extract::{Path, State},
-    Extension, Json,
+    Extension,
 };
+use crate::validation::Json;
 
 #[utoipa::path(
     delete,
     path = "/api/access_policies/delete/{access_policy_id}",
+    description = "Delete an access policy by its ID",
     params(
-        ("access_policy_id" = Uuid, Path, description = "The ID of the access policy to delete"),
+        (
+            "access_policy_id" = AccessPolicyId,
+            Path,
+            description = "The ID of the access policy to delete"
+        ),
     ),
     responses(
-        (status = 200, description = "Deletes a access policy", body = ApiResponse<EmptyApiResponse>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Deleted the access policy",
+            body = ApiResponse<EmptyApiResponse>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -46,7 +60,7 @@ pub async fn delete_access_policy(
     );
 
     with_timing!(
-        AccessPolicy::delete(&database, &access_policy_id.into()).await?,
+        AccessPolicy::delete_one(&database, &access_policy_id.into()).await?,
         "Database operation to delete access policy",
         timing
     );

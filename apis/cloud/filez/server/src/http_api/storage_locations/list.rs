@@ -1,3 +1,4 @@
+use crate::validation::Json;
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
@@ -6,19 +7,30 @@ use crate::{
         storage_locations::{StorageLocation, StorageLocationListItem},
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus, SortDirection},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
     path = "/api/storage_locations/list",
+    description = "List storage locations from the database",
     request_body = ListStorageLocationsRequestBody,
     responses(
-        (status = 200, description = "Lists all Storage Locations", body = ApiResponse<ListStorageLocationsResponseBody>),
+        (
+            status = 200,
+            description = "Listed Storage Locations",
+            body = ApiResponse<ListStorageLocationsResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -55,18 +67,18 @@ pub async fn list_storage_locations(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListStorageLocationsRequestBody {
     pub sort_by: Option<ListStorageLocationsSortBy>,
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListStorageLocationsResponseBody {
     pub storage_locations: Vec<StorageLocationListItem>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub enum ListStorageLocationsSortBy {
     CreatedTime,
     ModifiedTime,

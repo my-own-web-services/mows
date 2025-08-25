@@ -7,12 +7,13 @@ use crate::{
         jobs::{FilezJob, JobExecutionInformation, JobPersistenceType},
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
@@ -21,7 +22,16 @@ use utoipa::ToSchema;
     request_body = CreateJobRequestBody,
     description = "Create a new job in the database",
     responses(
-        (status = 200, description = "Created a job on the server", body = ApiResponse<CreateJobResponseBody>),
+        (
+            status = 200,
+            description = "Created a job on the server",
+            body = ApiResponse<CreateJobResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal Server Error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -45,19 +55,19 @@ pub async fn create_job(
         timing
     );
 
-    let db_created_job = with_timing!(
-        FilezJob::create(
+    let created_job = with_timing!(
+        FilezJob::create_one(
             &database,
             authentication_information
                 .requesting_user
                 .unwrap()
                 .id
                 .into(),
-            request_body.app_id,
-            request_body.name,
-            request_body.execution_details,
-            request_body.persistence,
-            request_body.deadline_time,
+            request_body.job_handling_app_id,
+            request_body.job_name,
+            request_body.job_execution_details,
+            request_body.job_persistence,
+            request_body.job_deadline_time,
         )
         .await?,
         "Database operation to create a new job",
@@ -69,23 +79,23 @@ pub async fn create_job(
         Json(ApiResponse {
             status: ApiResponseStatus::Success {},
             message: "Created Job".to_string(),
-            data: Some(CreateJobResponseBody {
-                created_job: db_created_job,
-            }),
+            data: Some(CreateJobResponseBody { created_job }),
         }),
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct CreateJobRequestBody {
-    pub app_id: MowsAppId,
-    pub name: String,
-    pub execution_details: JobExecutionInformation,
-    pub persistence: JobPersistenceType,
-    pub deadline_time: Option<NaiveDateTime>,
+    pub job_handling_app_id: MowsAppId,
+    #[schema(max_length = 256)]
+    #[validate(max_length = 256)]
+    pub job_name: String,
+    pub job_execution_details: JobExecutionInformation,
+    pub job_persistence: JobPersistenceType,
+    pub job_deadline_time: Option<NaiveDateTime>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct CreateJobResponseBody {
     pub created_job: FilezJob,
 }

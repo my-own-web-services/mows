@@ -10,6 +10,7 @@ use diesel_async::RunQueryDsl;
 use diesel_as_jsonb::AsJsonb;
 use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 use crate::{
@@ -19,7 +20,7 @@ use crate::{
     models::{apps::MowsAppId, users::FilezUserId},
     schema,
     utils::get_current_timestamp,
-    validation::validate_file_name,
+    validation::validate_optional_mime_type,
 };
 
 use super::users::FilezUser;
@@ -38,7 +39,7 @@ impl_typed_uuid!(FilezFileId);
     Debug,
     AsChangeset,
 )]
-#[diesel(table_name = crate::schema::files)]
+#[diesel(table_name = schema::files)]
 #[diesel(check_for_backend(Pg))]
 pub struct FilezFile {
     pub id: FilezFileId,
@@ -50,9 +51,23 @@ pub struct FilezFile {
     pub metadata: FileMetadata,
 }
 
+#[derive(Serialize, Deserialize, AsChangeset, Validate, ToSchema, Clone, Debug)]
+#[diesel(table_name = schema::files)]
+pub struct UpdateFileChangeset {
+    #[schema(max_length = 256)]
+    #[validate(max_length = 256)]
+    #[diesel(column_name = name)]
+    pub new_file_name: Option<String>,
+    #[diesel(column_name = metadata)]
+    pub new_file_metadata: Option<FileMetadata>,
+    #[validate(custom = validate_optional_mime_type)]
+    #[diesel(column_name = mime_type)]
+    pub new_file_mime_type: Option<String>,
+}
+
 impl FilezFile {
-    pub fn new(owner: &FilezUser, mime_type: &Mime, file_name: &str) -> Result<Self, FilezError> {
-        validate_file_name(file_name)?;
+    #[tracing::instrument(level = "trace")]
+    fn new(owner: &FilezUser, mime_type: &Mime, file_name: &str) -> Result<Self, FilezError> {
         Ok(Self {
             id: FilezFileId::new(),
             owner_id: owner.id.clone(),
@@ -64,55 +79,77 @@ impl FilezFile {
         })
     }
 
-    pub async fn get_by_id(database: &Database, file_id: FilezFileId) -> Result<Self, FilezError> {
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_one_by_id(
+        database: &Database,
+        file_id: FilezFileId,
+    ) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
-        Ok(crate::schema::files::table
-            .filter(crate::schema::files::id.eq(file_id))
+        Ok(schema::files::table
+            .filter(schema::files::id.eq(file_id))
             .select(FilezFile::as_select())
             .first::<FilezFile>(&mut connection)
             .await?)
     }
 
-    pub async fn create(&self, database: &Database) -> Result<FilezFile, FilezError> {
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn create_one(
+        database: &Database,
+        owner: &FilezUser,
+        mime_type: &Mime,
+        file_name: &str,
+    ) -> Result<FilezFile, FilezError> {
         let mut connection = database.get_connection().await?;
-        Ok(diesel::insert_into(crate::schema::files::table)
-            .values(self)
+
+        let new_file = FilezFile::new(owner, mime_type, file_name)?;
+        Ok(diesel::insert_into(schema::files::table)
+            .values(new_file)
             .returning(FilezFile::as_returning())
             .get_result::<FilezFile>(&mut connection)
             .await?)
     }
 
-    pub async fn delete(database: &Database, file_id: FilezFileId) -> Result<(), FilezError> {
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn delete_one(database: &Database, file_id: FilezFileId) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
-        diesel::delete(crate::schema::file_versions::table)
-            .filter(crate::schema::file_versions::file_id.eq(file_id))
+        diesel::delete(schema::file_versions::table)
+            .filter(schema::file_versions::file_id.eq(file_id))
             .execute(&mut connection)
             .await?;
 
-        diesel::delete(crate::schema::files::table)
-            .filter(crate::schema::files::id.eq(file_id))
+        diesel::delete(schema::files::table)
+            .filter(schema::files::id.eq(file_id))
             .execute(&mut connection)
             .await?;
 
         Ok(())
     }
 
-    pub async fn update(&mut self, database: &Database) -> Result<FilezFile, FilezError> {
-        self.modified_time = get_current_timestamp();
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn update_one(
+        database: &Database,
+        file_id: FilezFileId,
+        changeset: UpdateFileChangeset,
+    ) -> Result<FilezFile, FilezError> {
         let mut connection = database.get_connection().await?;
 
-        Ok(diesel::update(crate::schema::files::table)
-            .filter(crate::schema::files::id.eq(self.id))
-            .set(self.clone())
+        let updated_file = diesel::update(schema::files::table)
+            .filter(schema::files::id.eq(file_id))
+            .set((
+                changeset,
+                schema::files::modified_time.eq(get_current_timestamp()),
+            ))
             .returning(FilezFile::as_returning())
             .get_result::<FilezFile>(&mut connection)
-            .await?)
+            .await?;
+        Ok(updated_file)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_many_by_id(
         database: &Database,
         file_ids: &Vec<FilezFileId>,
-    ) -> Result<HashMap<FilezFileId, FilezFile>, FilezError> {
+    ) -> Result<Vec<FilezFile>, FilezError> {
         let mut connection = database.get_connection().await?;
 
         let result = schema::files::table
@@ -120,9 +157,6 @@ impl FilezFile {
             .select(FilezFile::as_select())
             .load::<FilezFile>(&mut connection)
             .await?;
-
-        let result: HashMap<FilezFileId, FilezFile> =
-            result.into_iter().map(|file| (file.id, file)).collect();
 
         Ok(result)
     }
@@ -144,6 +178,7 @@ pub struct FileMetadata {
 }
 
 impl FileMetadata {
+    #[tracing::instrument(level = "trace")]
     pub fn new() -> Self {
         Self {
             private_app_data: HashMap::new(),

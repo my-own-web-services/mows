@@ -1,5 +1,7 @@
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 use crate::{
@@ -7,8 +9,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        files::FilezFileId,
-        users::{FilezUser, FilezUserId},
+        users::{FilezUser, FilezUserId, UpdateUserChangeset},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -18,10 +19,19 @@ use crate::{
 #[utoipa::path(
     put,
     path = "/api/users/update",
+    description = "Update an existing user in the database",
     request_body = UpdateUserRequestBody,
     responses(
-        (status = 200, description = "Updates a user group", body = ApiResponse<FilezUser>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Updated the user group",
+            body = ApiResponse<FilezUser>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -46,12 +56,7 @@ pub async fn update_user_group(
     );
 
     let updated_user = with_timing!(
-        FilezUser::update(
-            &database,
-            &request_body.user_id,
-            request_body.profile_picture
-        )
-        .await?,
+        FilezUser::update_one(&database, &request_body.user_id, request_body.changeset).await?,
         "Database operation to update user group",
         timing
     );
@@ -63,13 +68,13 @@ pub async fn update_user_group(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateUserRequestBody {
     pub user_id: FilezUserId,
-    pub profile_picture: Option<FilezFileId>,
+    pub changeset: UpdateUserChangeset,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateUserResponseBody {
     pub updated_user: FilezUser,
 }

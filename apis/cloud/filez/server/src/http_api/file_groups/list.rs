@@ -1,5 +1,7 @@
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 use crate::{
@@ -15,9 +17,18 @@ use crate::{
     post,
     path = "/api/file_groups/list",
     request_body = ListFileGroupsRequestBody,
+    description = "List file groups",
     responses(
-        (status = 200, description = "Lists file groups", body = ApiResponse<ListFileGroupsResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Listed file groups",
+            body = ApiResponse<ListFileGroupsResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -49,7 +60,7 @@ pub async fn list_file_groups(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListFileGroupsRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -57,12 +68,12 @@ pub struct ListFileGroupsRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListFileGroupsResponseBody {
     pub file_groups: Vec<FileGroup>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub enum ListFileGroupsSortBy {
     Name,
     CreatedTime,

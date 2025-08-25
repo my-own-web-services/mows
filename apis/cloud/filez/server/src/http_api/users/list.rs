@@ -6,17 +6,28 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
 };
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
     path = "/api/users/list",
+    description = "List users in the database with pagination and sorting",
     request_body = ListUsersRequestBody,
     responses(
-        (status = 200, description = "Lists all Users", body = ApiResponse<ListUsersResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Listed Users",
+            body = ApiResponse<ListUsersResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -48,7 +59,7 @@ pub async fn list_users(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListUsersRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -56,12 +67,12 @@ pub struct ListUsersRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListUsersResponseBody {
     pub users: Vec<ListedFilezUser>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub enum ListUsersSortBy {
     CreatedTime,
     ModifiedTime,

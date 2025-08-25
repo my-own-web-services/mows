@@ -9,36 +9,47 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
-
 
 #[utoipa::path(
     post,
     path = "/api/users/delete",
+    description = "Delete a user from the database",
     request_body = DeleteUserRequestBody,
     responses(
-        (status = 200, description = "Deletes a User", body = ApiResponse<DeleteUserResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Deleted the User",
+            body = ApiResponse<EmptyApiResponse>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
-
 pub async fn delete_user(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<DeleteUserRequestBody>,
-) -> Result<Json<ApiResponse<DeleteUserResponseBody>>, FilezError> {
-    let user_id = match request_body.method {
+) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
+    let user_id = match request_body.delete_user_method {
         DeleteUserMethod::ById(id) => id,
         DeleteUserMethod::ByExternalId(external_id) => {
-            FilezUser::get_by_external_id(&database, &external_id)
+            FilezUser::get_one_by_external_id(&database, &external_id)
                 .await?
                 .id
         }
-        DeleteUserMethod::ByEmail(email) => FilezUser::get_by_email(&database, &email).await?.id,
+        DeleteUserMethod::ByEmail(email) => {
+            FilezUser::get_one_by_email(&database, &email).await?.id
+        }
     };
 
     with_timing!(
@@ -55,29 +66,24 @@ pub async fn delete_user(
         timing
     );
     with_timing!(
-        FilezUser::delete(&database, &user_id).await?,
+        FilezUser::soft_delete_one(&database, &user_id).await?,
         "Database operation to delete user",
         timing
     );
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "User deleted successfully".to_string(),
-        data: Some(DeleteUserResponseBody { user_id }),
+        data: None,
     }))
 }
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct DeleteUserRequestBody {
-    pub method: DeleteUserMethod,
+    pub delete_user_method: DeleteUserMethod,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub enum DeleteUserMethod {
     ById(FilezUserId),
     ByExternalId(String),
     ByEmail(String),
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct DeleteUserResponseBody {
-    pub user_id: FilezUserId,
 }

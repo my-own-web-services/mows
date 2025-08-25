@@ -41,6 +41,7 @@ pub struct KeyAccess {
 }
 
 impl KeyAccess {
+    #[tracing::instrument(level = "trace")]
     pub fn new(
         owner_id: FilezUserId,
         name: String,
@@ -60,7 +61,8 @@ impl KeyAccess {
         }
     }
 
-    pub async fn create_key_access(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn create_one(
         database: &Database,
         owner_id: FilezUserId,
         name: String,
@@ -69,7 +71,7 @@ impl KeyAccess {
     ) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
 
-        let for_user = FilezUser::get_by_id(database, &user_id).await?;
+        let for_user = FilezUser::get_one_by_id(database, &user_id).await?;
         if for_user.user_type != FilezUserType::KeyAccess {
             return Err(FilezError::Unauthorized(
                 "User is not a KeyAccess user".to_string(),
@@ -87,14 +89,16 @@ impl KeyAccess {
 
         let new_key_access = KeyAccess::new(owner_id, name, key_hash, description, user_id);
 
-        diesel::insert_into(schema::key_access::table)
+        let created_key_access = diesel::insert_into(schema::key_access::table)
             .values(&new_key_access)
-            .execute(&mut connection)
+            .returning(KeyAccess::as_returning())
+            .get_result::<KeyAccess>(&mut connection)
             .await?;
 
-        Ok(new_key_access)
+        Ok(created_key_access)
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn parse_key_access_string(
         key_access_string: String,
     ) -> Result<(FilezUserId, String), crate::errors::FilezError> {
@@ -112,6 +116,7 @@ impl KeyAccess {
         Ok((FilezUserId(id), parts[1].to_string()))
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_user_by_key_access_string(
         database: &Database,
         key_access_string: String,
@@ -132,7 +137,7 @@ impl KeyAccess {
             .verify_password(key.as_bytes(), &parsed_hash)
             .is_ok()
         {
-            let user = FilezUser::get_by_id(database, &user_id).await?;
+            let user = FilezUser::get_one_by_id(database, &user_id).await?;
             if user.user_type != FilezUserType::KeyAccess {
                 return Err(FilezError::Unauthorized(
                     "User is not a KeyAccess user".to_string(),

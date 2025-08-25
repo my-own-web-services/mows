@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-use axum::{extract::State, Extension, Json};
+use crate::validation::Json;
+use axum::{extract::State, Extension};
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -9,7 +11,7 @@ use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
-        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{AccessPolicy, AccessPolicyAction},
         tag_members::{TagMember, TagResourceType},
     },
     state::ServerState,
@@ -20,10 +22,19 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/api/tags/get",
+    description = "Get the tags for the specified resources, resources must be of the same type per query.",
     request_body = GetTagsRequestBody,
     responses(
-        (status = 200, description = "Got the tags for the specified resources", body = ApiResponse<GetTagsResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<GetTagsResponseBody>),
+        (
+            status = 200,
+            description = "Got the tags for the specified resources",
+            body = ApiResponse<GetTagsResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<GetTagsResponseBody>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -33,22 +44,13 @@ pub async fn get_tags(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetTagsRequestBody>,
 ) -> Result<Json<ApiResponse<GetTagsResponseBody>>, FilezError> {
-    let access_policy_type = match request_body.resource_type {
-        TagResourceType::User => AccessPolicyResourceType::User,
-        TagResourceType::UserGroup => AccessPolicyResourceType::UserGroup,
-        TagResourceType::File => AccessPolicyResourceType::File,
-        TagResourceType::FileGroup => AccessPolicyResourceType::FileGroup,
-        TagResourceType::FileVersion => AccessPolicyResourceType::File,
-        TagResourceType::StorageLocation => AccessPolicyResourceType::StorageLocation,
-        TagResourceType::AccessPolicy => AccessPolicyResourceType::AccessPolicy,
-        TagResourceType::StorageQuota => AccessPolicyResourceType::StorageQuota,
-    };
-
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
-            access_policy_type,
+            request_body
+                .tag_resource_type
+                .to_access_policy_resource_type(),
             Some(&request_body.resource_ids),
             AccessPolicyAction::TagsGet,
         )
@@ -62,7 +64,7 @@ pub async fn get_tags(
         TagMember::get_tags(
             &database,
             &request_body.resource_ids,
-            request_body.resource_type
+            request_body.tag_resource_type
         )
         .await?,
         "Database operation to get tags",
@@ -76,13 +78,13 @@ pub async fn get_tags(
     }))
 }
 
-#[derive(Deserialize, Serialize, ToSchema, Debug)]
+#[derive(Deserialize, Serialize, ToSchema, Debug, Validate)]
 pub struct GetTagsRequestBody {
-    pub resource_type: TagResourceType,
+    pub tag_resource_type: TagResourceType,
     pub resource_ids: Vec<Uuid>,
 }
 
-#[derive(Deserialize, Serialize, ToSchema, Debug)]
+#[derive(Deserialize, Serialize, ToSchema, Debug, Validate)]
 pub struct GetTagsResponseBody {
     pub resource_tags: HashMap<Uuid, HashMap<String, String>>,
 }

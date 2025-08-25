@@ -6,14 +6,17 @@ use crate::{
         files::FilezFile,
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
+    validation::validate_optional_mime_type,
     with_timing,
 };
 use anyhow::Context;
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension};
+use crate::validation::Json;
 use chrono::NaiveDateTime;
 use mime_guess::Mime;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use std::str::FromStr;
 use utoipa::ToSchema;
 
@@ -23,7 +26,16 @@ use utoipa::ToSchema;
     request_body = CreateFileRequestBody,
     description = "Create a new file entry in the database",
     responses(
-        (status = 200, description = "Created a file on the server", body = ApiResponse<CreateFileResponseBody>),
+        (
+            status = 200,
+            description = "Created a file on the server",
+            body = ApiResponse<CreateFileResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal Server Error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -56,17 +68,15 @@ pub async fn create_file(
             ))?,
     };
 
-    let new_file = FilezFile::new(
-        &authentication_information.requesting_user.unwrap(),
-        &mime_type,
-        &request_body.file_name,
-    )?;
-
     let db_created_file = with_timing!(
-        new_file
-            .create(&database)
-            .await
-            .context("Failed to create file in the database")?,
+        FilezFile::create_one(
+            &database,
+            &authentication_information.requesting_user.unwrap(),
+            &mime_type,
+            &request_body.file_name,
+        )
+        .await
+        .context("Failed to create file in the database")?,
         "Database operation to create a new file",
         timing
     );
@@ -83,15 +93,18 @@ pub async fn create_file(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct CreateFileRequestBody {
+    #[validate(custom = validate_optional_mime_type)]
     pub mime_type: Option<String>,
+    #[schema(max_length = 256)]
+    #[validate(max_length = 256)]
     pub file_name: String,
     pub time_created: Option<NaiveDateTime>,
     pub time_modified: Option<NaiveDateTime>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct CreateFileResponseBody {
     pub created_file: FilezFile,
 }

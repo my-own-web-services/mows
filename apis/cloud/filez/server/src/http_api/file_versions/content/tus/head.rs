@@ -23,17 +23,49 @@ use axum::{
 #[utoipa::path(
     head,
     path = "/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}",
+    description = "Get the offset of a file version for resuming a Tus upload",
     params(
-        ("file_id" = Uuid, Path, description = "The ID of the file to check for upload status"),
-        ("version" = Option<u32>, Path, description = "The version of the file, if applicable"),
-        ("app_id" = Option<Uuid>, Path, description = "The ID of the application that uploaded the file, if left empty, the app id is the filez server itself"),
-        ("app_path" = Option<String>, Path)
+        (
+            "file_id" = Uuid,
+            Path,
+            description = "The ID of the file to check for upload status"
+        ),
+        (
+            "version" = Option<u32>,
+            Path,
+            description = "The version of the file, if applicable"
+        ),
+        (
+            "app_id" = Option<Uuid>,
+            Path,
+            description = "The ID of the application that uploaded the file, if left empty, the app id is the filez server itself"
+        ),
+        (
+            "app_path" = Option<String>,
+            Path,
+        )
     ),
     responses(
-        (status = 200, body = ApiResponse<EmptyApiResponse>, description = "File exists and is ready to resume upload"),
-        (status = 404, body = ApiResponse<EmptyApiResponse>, description = "File not found"),
-        (status = 412, body = ApiResponse<EmptyApiResponse>, description = "Precondition failed due to missing or invalid Tus-Resumable header"),
-        (status = 400, body = ApiResponse<EmptyApiResponse>, description = "Bad request, missing or invalid headers"),
+        (
+            status = 200,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "File exists and is ready to resume upload"
+        ),
+        (
+            status = 404,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "File not found"
+        ),
+        (
+            status = 412,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "Precondition failed due to missing or invalid Tus-Resumable header"
+        ),
+        (
+            status = 400,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "Bad request, missing or invalid headers"
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -92,7 +124,7 @@ pub async fn file_versions_content_tus_head(
     );
 
     let file_version = with_timing!(
-        FileVersion::get(
+        FileVersion::get_one_by_identifier(
             &database,
             &file_id,
             version,

@@ -9,17 +9,28 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
     path = "/api/users/create",
+    description = "Create a new user in the database",
     request_body = CreateUserRequestBody,
     responses(
-        (status = 200, description = "Creates a User", body = ApiResponse<CreateUserResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Created the User",
+            body = ApiResponse<CreateUserResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -43,8 +54,8 @@ pub async fn create_user(
         timing
     );
 
-    let new_user = with_timing!(
-        FilezUser::create(
+    let created_user = with_timing!(
+        FilezUser::create_one(
             &database,
             &request_body.email,
             &authentication_information.requesting_user.unwrap().id
@@ -57,14 +68,14 @@ pub async fn create_user(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "User created successfully".to_string(),
-        data: Some(CreateUserResponseBody { new_user }),
+        data: Some(CreateUserResponseBody { created_user }),
     }))
 }
-#[derive(Deserialize, Serialize, ToSchema, Debug)]
+#[derive(Deserialize, Serialize, ToSchema, Debug, Validate)]
 pub struct CreateUserRequestBody {
     pub email: String,
 }
-#[derive(Deserialize, Serialize, ToSchema, Debug)]
+#[derive(Deserialize, Serialize, ToSchema, Debug, Validate)]
 pub struct CreateUserResponseBody {
-    pub new_user: FilezUser,
+    pub created_user: FilezUser,
 }

@@ -1,29 +1,36 @@
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
-    models::{
-        access_policies::{
-            AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyId,
-            AccessPolicyResourceType, AccessPolicySubjectId, AccessPolicySubjectType,
-        },
-        apps::MowsAppId,
+    models::access_policies::{
+        AccessPolicy, AccessPolicyAction, AccessPolicyId, AccessPolicyResourceType,
+        UpdateAccessPolicyChangeset,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[utoipa::path(
     put,
     path = "/api/access_policies/update",
     request_body = UpdateAccessPolicyRequestBody,
+    description = "Update an existing access policy",
     responses(
-        (status = 200, description = "Updates a access policy", body = ApiResponse<AccessPolicy>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Updated the access policy",
+            body = ApiResponse<UpdateAccessPolicyResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -32,7 +39,7 @@ pub async fn update_access_policy(
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateAccessPolicyRequestBody>,
-) -> Result<Json<ApiResponse<AccessPolicy>>, FilezError> {
+) -> Result<Json<ApiResponse<UpdateAccessPolicyResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
@@ -47,46 +54,33 @@ pub async fn update_access_policy(
         timing
     );
 
-    with_timing!(
-        AccessPolicy::update(
+    let updated_access_policy = with_timing!(
+        AccessPolicy::update_one(
             &database,
             &request_body.access_policy_id,
-            &request_body.name,
-            request_body.subject_type,
-            request_body.subject_id,
-            request_body.context_app_ids,
-            request_body.resource_type,
-            request_body.resource_id,
-            request_body.actions,
-            request_body.effect,
+            request_body.changeset,
         )
         .await?,
         "Database operation to update access policy",
         timing
     );
 
-    let access_policy = with_timing!(
-        AccessPolicy::get_by_id(&database, &request_body.access_policy_id).await?,
-        "Database operation to get updated access policy",
-        timing
-    );
-
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Access policy updated".to_string(),
-        data: Some(access_policy),
+        data: Some(UpdateAccessPolicyResponseBody {
+            updated_access_policy,
+        }),
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateAccessPolicyRequestBody {
     pub access_policy_id: AccessPolicyId,
-    pub name: String,
-    pub subject_type: AccessPolicySubjectType,
-    pub subject_id: AccessPolicySubjectId,
-    pub context_app_ids: Vec<MowsAppId>,
-    pub resource_type: AccessPolicyResourceType,
-    pub resource_id: Option<Uuid>,
-    pub actions: Vec<AccessPolicyAction>,
-    pub effect: AccessPolicyEffect,
+    pub changeset: UpdateAccessPolicyChangeset,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
+pub struct UpdateAccessPolicyResponseBody {
+    pub updated_access_policy: AccessPolicy,
 }

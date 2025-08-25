@@ -134,7 +134,7 @@ pub async fn check_resource_access(&self, request_body: CheckResourceAccessReque
     }
 
     #[tracing::instrument]
-pub async fn create_access_policy(&self, request_body: CreateAccessPolicyRequestBody) -> Result<ApiResponseAccessPolicy, ApiClientError> {
+pub async fn create_access_policy(&self, request_body: CreateAccessPolicyRequestBody) -> Result<ApiResponseCreateAccessPolicyResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -150,7 +150,7 @@ pub async fn create_access_policy(&self, request_body: CreateAccessPolicyRequest
     }
 
     #[tracing::instrument]
-pub async fn delete_access_policy(&self, access_policy_id: Uuid) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+pub async fn delete_access_policy(&self, access_policy_id: AccessPolicyId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/delete/{access_policy_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -166,12 +166,12 @@ pub async fn delete_access_policy(&self, access_policy_id: Uuid) -> Result<ApiRe
     }
 
     #[tracing::instrument]
-pub async fn get_access_policy(&self, access_policy_id: Uuid) -> Result<ApiResponseAccessPolicy, ApiClientError> {
+pub async fn get_access_policy(&self, request_body: GetAccessPolicyRequestBody) -> Result<ApiResponseGetAccessPolicyResponseBody, ApiClientError> {
         
-        let full_url = format!("{}/api/access_policies/get/{access_policy_id}", self.base_url);
+        let full_url = format!("{}/api/access_policies/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
-        let response = self.client.get(full_url).headers(self.add_auth_headers()?).send().await?;
+        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));
@@ -198,7 +198,7 @@ pub async fn list_access_policies(&self, request_body: ListAccessPoliciesRequest
     }
 
     #[tracing::instrument]
-pub async fn update_access_policy(&self, request_body: UpdateAccessPolicyRequestBody) -> Result<ApiResponseAccessPolicy, ApiClientError> {
+pub async fn update_access_policy(&self, request_body: UpdateAccessPolicyRequestBody) -> Result<ApiResponseUpdateAccessPolicyResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -246,7 +246,7 @@ pub async fn list_apps(&self, request_body: ListAppsRequestBody) -> Result<ApiRe
     }
 
     #[tracing::instrument]
-pub async fn create_file_group(&self, request_body: CreateFileGroupRequestBody) -> Result<ApiResponseFileGroup, ApiClientError> {
+pub async fn create_file_group(&self, request_body: CreateFileGroupRequestBody) -> Result<ApiResponseCreateFileGroupResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -262,7 +262,7 @@ pub async fn create_file_group(&self, request_body: CreateFileGroupRequestBody) 
     }
 
     #[tracing::instrument]
-pub async fn delete_file_group(&self, file_group_id: Uuid) -> Result<ApiResponseString, ApiClientError> {
+pub async fn delete_file_group(&self, file_group_id: FileGroupId) -> Result<ApiResponseString, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/delete/{file_group_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -278,12 +278,12 @@ pub async fn delete_file_group(&self, file_group_id: Uuid) -> Result<ApiResponse
     }
 
     #[tracing::instrument]
-pub async fn get_file_group(&self, file_group_id: Uuid) -> Result<ApiResponseFileGroup, ApiClientError> {
+pub async fn get_file_group(&self, request_body: GetFileGroupsRequestBody) -> Result<ApiResponseGetFileGroupsResponseBody, ApiClientError> {
         
-        let full_url = format!("{}/api/file_groups/get/{file_group_id}", self.base_url);
+        let full_url = format!("{}/api/file_groups/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
-        let response = self.client.get(full_url).headers(self.add_auth_headers()?).send().await?;
+        let response = self.client.get(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));
@@ -326,7 +326,7 @@ pub async fn list_files_by_file_groups(&self, request_body: ListFilesRequestBody
     }
 
     #[tracing::instrument]
-pub async fn update_file_group(&self, request_body: UpdateFileGroupRequestBody) -> Result<ApiResponseFileGroup, ApiClientError> {
+pub async fn update_file_group(&self, request_body: UpdateFileGroupRequestBody) -> Result<ApiResponseUpdateFileGroupResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -427,12 +427,12 @@ pub async fn create_file_version(&self, request_body: CreateFileVersionRequestBo
     }
 
     #[tracing::instrument]
-pub async fn delete_file_versions(&self, request_body: DeleteFileVersionsRequestBody) -> Result<ApiResponseDeleteFileVersionsResponseBody, ApiClientError> {
+pub async fn delete_file_versions(&self, file_version_id: FileVersionId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
-        let full_url = format!("{}/api/file_versions/delete", self.base_url);
+        let full_url = format!("{}/api/file_versions/delete/{file_version_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
-        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
+        let response = self.client.delete(full_url).headers(self.add_auth_headers()?).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));
@@ -459,7 +459,7 @@ pub async fn get_file_versions(&self, request_body: GetFileVersionsRequestBody) 
     }
 
     #[tracing::instrument]
-pub async fn update_file_versions(&self, request_body: UpdateFileVersionsRequestBody) -> Result<ApiResponseUpdateFileVersionsResponseBody, ApiClientError> {
+pub async fn update_file_version(&self, request_body: UpdateFileVersionsRequestBody) -> Result<ApiResponseUpdateFileVersionsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_versions/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -491,12 +491,12 @@ pub async fn create_file(&self, request_body: CreateFileRequestBody) -> Result<A
     }
 
     #[tracing::instrument]
-pub async fn delete_file(&self, request_body: DeleteFileRequestBody) -> Result<ApiResponseDeleteFileResponseBody, ApiClientError> {
+pub async fn delete_file(&self, file_id: FilezFileId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
-        let full_url = format!("{}/api/files/delete", self.base_url);
+        let full_url = format!("{}/api/files/delete/{file_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
-        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
+        let response = self.client.delete(full_url).headers(self.add_auth_headers()?).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));
@@ -603,12 +603,12 @@ pub async fn create_job(&self, request_body: CreateJobRequestBody) -> Result<Api
     }
 
     #[tracing::instrument]
-pub async fn delete_job(&self, request_body: DeleteJobRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+pub async fn delete_job(&self, job_id: FilezJobId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
-        let full_url = format!("{}/api/jobs/delete", self.base_url);
+        let full_url = format!("{}/api/jobs/delete/{job_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
-        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
+        let response = self.client.delete(full_url).headers(self.add_auth_headers()?).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));
@@ -699,12 +699,12 @@ pub async fn create_storage_quota(&self, request_body: CreateStorageQuotaRequest
     }
 
     #[tracing::instrument]
-pub async fn delete_storage_quota(&self, request_body: DeleteStorageQuotaRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+pub async fn delete_storage_quota(&self, storage_quota_id: StorageQuotaId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
-        let full_url = format!("{}/api/storage_quotas/delete", self.base_url);
+        let full_url = format!("{}/api/storage_quotas/delete/{storage_quota_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
-        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
+        let response = self.client.delete(full_url).headers(self.add_auth_headers()?).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));
@@ -715,7 +715,7 @@ pub async fn delete_storage_quota(&self, request_body: DeleteStorageQuotaRequest
     }
 
     #[tracing::instrument]
-pub async fn get_storage_quota(&self, request_body: GetStorageQuotaRequestBody) -> Result<ApiResponseStorageQuota, ApiClientError> {
+pub async fn get_storage_quotas(&self, request_body: GetStorageQuotaRequestBody) -> Result<ApiResponseGetStorageQuotaResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/storage_quotas/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -795,7 +795,7 @@ pub async fn update_tags(&self, request_body: UpdateTagsRequestBody) -> Result<A
     }
 
     #[tracing::instrument]
-pub async fn create_user_group(&self, request_body: CreateUserGroupRequestBody) -> Result<ApiResponseUserGroup, ApiClientError> {
+pub async fn create_user_group(&self, request_body: CreateUserGroupRequestBody) -> Result<ApiResponseCreateUserGroupResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/user_groups/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -827,12 +827,12 @@ pub async fn delete_user_group(&self, user_group_id: Uuid) -> Result<ApiResponse
     }
 
     #[tracing::instrument]
-pub async fn get_user_group(&self, user_group_id: Uuid) -> Result<ApiResponseUserGroup, ApiClientError> {
+pub async fn get_user_groups(&self, request_body: GetUserGroupsRequestBody) -> Result<ApiResponseGetUserGroupsResponseBody, ApiClientError> {
         
-        let full_url = format!("{}/api/user_groups/get/{user_group_id}", self.base_url);
+        let full_url = format!("{}/api/user_groups/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
-        let response = self.client.get(full_url).headers(self.add_auth_headers()?).send().await?;
+        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));
@@ -923,7 +923,7 @@ pub async fn create_user(&self, request_body: CreateUserRequestBody) -> Result<A
     }
 
     #[tracing::instrument]
-pub async fn delete_user(&self, request_body: DeleteUserRequestBody) -> Result<ApiResponseDeleteUserResponseBody, ApiClientError> {
+pub async fn delete_user(&self, request_body: DeleteUserRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/users/delete", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();

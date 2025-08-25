@@ -79,7 +79,19 @@ fn schema_to_rust_type(
                 let enum_variants = enum_values
                     .iter()
                     .map(|value| match value {
-                        Value::String(s) => s.replace('-', "_").replace(' ', "_"),
+                        Value::String(s) => {
+                            if s.starts_with(char::is_lowercase) {
+                                format!(
+                                    r#"#[serde(rename = "{}")]
+    {}"#,
+                                    s,
+                                    s.chars().next().unwrap().to_uppercase().collect::<String>()
+                                        + &s.chars().skip(1).collect::<String>()
+                                )
+                            } else {
+                                s.to_string()
+                            }
+                        }
                         _ => {
                             todo!()
                         }
@@ -225,6 +237,26 @@ pub struct {struct_name} {{
                         Some(enum_name) => match object.properties.get(&enum_name) {
                             Some(obj) => {
                                 let enum_type = ref_or_schema_to_rust_type(all_types, None, obj)?;
+                                // if the enum name starts with a lowercase letter, capitalize it and add the serde rename attribute
+
+                                let enum_name = if enum_name.starts_with(char::is_lowercase) {
+                                    format!(
+                                        r#"
+    #[serde(rename = "{}")]
+    {}"#,
+                                        enum_name,
+                                        enum_name
+                                            .chars()
+                                            .next()
+                                            .unwrap()
+                                            .to_uppercase()
+                                            .collect::<String>()
+                                            + &enum_name.chars().skip(1).collect::<String>()
+                                    )
+                                } else {
+                                    enum_name.clone()
+                                };
+
                                 if enum_type.starts_with("{") {
                                     rust_enum_variants.push(format!("{}{}", enum_name, enum_type));
                                 } else {

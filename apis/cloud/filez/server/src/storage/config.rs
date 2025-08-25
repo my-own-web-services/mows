@@ -22,6 +22,7 @@ pub enum StorageProviderConfigCrd {
 }
 
 impl StorageProviderConfigCrd {
+    #[tracing::instrument(level = "trace")]
     pub fn convert_secrets(
         &self,
         secrets: SecretReadableByFilezController,

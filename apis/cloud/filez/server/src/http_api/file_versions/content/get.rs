@@ -33,19 +33,59 @@ pub struct GetFileVersionContentQuery {
 #[utoipa::path(
     get,
     path = "/api/file_versions/content/get/{file_id}/{version}/{app_id}/{app_path}",
+    description = "Get the content of a file version.",
     params(
-        ("file_id" = Uuid, Path, description = "The ID of the file to retrieve content for"),
-        ("version" = Option<u32>, Path, description = "The version of the file to retrieve, if left empty, the latest version will be returned"),
-        ("app_id" = Option<Uuid>, Path, description = "The ID of the application that uploaded the file, if left empty, the app id is the filez server itself"),
-        ("app_path" = Option<String>, Path),
-        ("disposition" = Option<bool>, Query, description = "If set to true, the content disposition header will be set to attachment"),
-        ("cache" = Option<u64>, Query, description = "If set, the cache control header will be set to public, max-age={c}")
+        (
+            "file_id" = Uuid,
+            Path,
+            description = "The ID of the file to retrieve content for"
+        ),
+        (
+            "version" = Option<u32>,
+            Path,
+            description = "The version of the file to retrieve, if left empty, the latest version will be returned"
+        ),
+        (
+            "app_id" = Option<Uuid>,
+            Path,
+            description = "The ID of the application that uploaded the file, if left empty, the app id is the filez server itself"
+        ),
+        (
+            "app_path" = Option<String>,
+            Path
+        ),
+        (
+            "disposition" = Option<bool>,
+            Query,
+            description = "If set to true, the content disposition header will be set to attachment"
+        ),
+        (
+            "cache" = Option<u64>,
+            Query,
+            description = "If set, the cache control header will be set to public, max-age={c}"
+        )
     ),
     responses(
-        (status = 200, description = "Gets a single files data/content from the server", body = Vec<u8> ),
-        (status = 206, description = "Partial content returned due to range request", body = Vec<u8>),
-        (status = 404, description = "File not found", body = ApiResponse<EmptyApiResponse>),
-        (status = 500, description = "Internal server error retrieving file content", body = ApiResponse<EmptyApiResponse>)
+        (
+            status = 200,
+            description = "Got the file version content",
+            body = Vec<u8>
+        ),
+        (
+            status = 206,
+            description = "Partial content returned due to range request",
+            body = Vec<u8>
+        ),
+        (
+            status = 404,
+            description = "File not found",
+            body = ApiResponse<EmptyApiResponse>
+        ),
+        (
+            status = 500,
+            description = "Internal server error retrieving file content",
+            body = ApiResponse<EmptyApiResponse>
+        )
     )
 )]
 #[axum::debug_handler]
@@ -86,13 +126,13 @@ pub async fn get_file_version_content(
     );
 
     let file_meta = with_timing!(
-        FilezFile::get_by_id(&database, file_id).await,
+        FilezFile::get_one_by_id(&database, file_id).await,
         "Database operation to get file",
         timing
     )?;
 
     let file_version_meta = with_timing!(
-        FileVersion::get(
+        FileVersion::get_one_by_identifier(
             &database,
             &file_id,
             version,

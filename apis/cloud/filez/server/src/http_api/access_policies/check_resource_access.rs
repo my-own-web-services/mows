@@ -1,5 +1,7 @@
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -18,10 +20,11 @@ use crate::{
     post,
     path = "/api/access_policies/check",
     request_body = CheckResourceAccessRequestBody,
+    description = "Check if the user has access to the requested resources",
     responses(
         (
             status = 200,
-            description = "Checks if the requested resources are available to this user", 
+            description = "Checked if the requested resources are available to this user",
             body = ApiResponse<CheckResourceAccessResponseBody>
         ),
         (
@@ -42,9 +45,9 @@ pub async fn check_resource_access(
         AccessPolicy::check(
             &database,
             &authentication_information,
-            request_body.resource_type,
+            request_body.access_policy_resource_type,
             request_body.resource_ids.as_deref(),
-            request_body.action,
+            request_body.access_policy_action,
         )
         .await?,
         "Database operation to check resources access control",
@@ -60,15 +63,15 @@ pub async fn check_resource_access(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct CheckResourceAccessRequestBody {
     pub resource_ids: Option<Vec<Uuid>>,
-    pub resource_type: AccessPolicyResourceType,
-    pub action: AccessPolicyAction,
+    pub access_policy_resource_type: AccessPolicyResourceType,
+    pub access_policy_action: AccessPolicyAction,
     pub requesting_app_origin: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct CheckResourceAccessResponseBody {
     pub auth_evaluations: Vec<AuthEvaluation>,
 }

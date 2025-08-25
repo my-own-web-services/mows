@@ -9,19 +9,29 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use std::collections::HashMap;
 use utoipa::ToSchema;
-
 
 #[utoipa::path(
     post,
     path = "/api/users/get",
+    description = "Get users by their IDs",
     request_body = GetUsersReqBody,
     responses(
-        (status = 200, description = "Gets Users", body = ApiResponse<GetUsersResBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Got Users",
+            body = ApiResponse<GetUsersResBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -79,17 +89,17 @@ pub async fn get_users(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct GetUsersReqBody {
     pub user_ids: Vec<FilezUserId>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct GetUsersResBody {
     pub users_meta: HashMap<FilezUserId, UserMeta>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UserMeta {
     pub user: FilezUser,
 }

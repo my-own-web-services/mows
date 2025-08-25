@@ -6,14 +6,24 @@ use crate::{
 };
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
     path = "/api/users/get_own",
+    description = "Get own user",
     responses(
-        (status = 200, description = "Got own user", body = ApiResponse<GetOwnUserBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Got own user",
+            body = ApiResponse<GetOwnUserBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(level = "trace")]
@@ -34,7 +44,7 @@ pub async fn get_own_user(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct GetOwnUserBody {
     pub user: FilezUser,
 }

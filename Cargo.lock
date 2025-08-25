@@ -2396,10 +2396,12 @@ dependencies = [
  "opentelemetry 0.26.0",
  "opentelemetry_sdk 0.26.0",
  "prometheus-client",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
+ "serde_valid",
  "serde_variant",
+ "serde_with",
  "serde_yaml",
  "sha2",
  "thiserror 2.0.12",
@@ -3752,7 +3754,7 @@ dependencies = [
  "http 1.3.1",
  "json-patch 2.0.0",
  "k8s-openapi",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde-value",
  "serde_json",
@@ -4283,7 +4285,7 @@ dependencies = [
  "mime_guess",
  "mows-common-rust",
  "regex",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
  "serde_variant",
@@ -4576,7 +4578,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a64853d7ab065474e87696f7601cee817d200e86c42e04004e005cb3e20c3c5"
 dependencies = [
  "log",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
 ]
@@ -5012,7 +5014,7 @@ dependencies = [
  "deadpool-redis",
  "hex",
  "hickory-proto",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
  "serde_repr",
@@ -5061,7 +5063,7 @@ dependencies = [
  "prometheus-client",
  "reqwest 0.12.22",
  "reqwest-tracing",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
  "serde_variant",
@@ -5386,6 +5388,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edce586971a4dfaa28950c6f18ed55e0406c1ab88bbce2c6f6293a7aaba73d35"
 dependencies = [
  "toml_edit",
+]
+
+[[package]]
+name = "proc-macro-error-attr2"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96de42df36bb9bba5542fe9f1a054b8cc87e172759a1868aa05c1f3acc89dfc5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
+name = "proc-macro-error2"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11ec05c52be0a07b08061f7dd003e7d7092e0472bc731b4af7bb1ef876109802"
+dependencies = [
+ "proc-macro-error-attr2",
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]
@@ -6180,7 +6203,7 @@ dependencies = [
  "okapi",
  "rocket",
  "rocket_okapi_codegen",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
 ]
@@ -6613,6 +6636,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "schemars"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4cd191f9397d57d581cddd31014772520aa448f65ef991055d7f61582c65165f"
+dependencies = [
+ "dyn-clone",
+ "ref-cast",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "schemars"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82d20c4491bc164fa2f6c5d44565947a52ad80b9505d8e36f8d54c27c739fcd0"
+dependencies = [
+ "dyn-clone",
+ "ref-cast",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "schemars_derive"
 version = "0.8.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6854,6 +6901,51 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_valid"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b615bed66931a7a9809b273937adc8a402d038b1e509d027fcaf62f084d33d1"
+dependencies = [
+ "indexmap 2.10.0",
+ "itertools 0.13.0",
+ "num-traits",
+ "once_cell",
+ "paste",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_valid_derive",
+ "serde_valid_literal",
+ "thiserror 1.0.69",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "serde_valid_derive"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fa1a5a21ea5aab06d2e6a6b59837d450fb2be9695be97735a711edfbe79ea07"
+dependencies = [
+ "itertools 0.13.0",
+ "paste",
+ "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "strsim 0.11.1",
+ "syn 2.0.104",
+]
+
+[[package]]
+name = "serde_valid_literal"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd07331596ea967dccf9a35bde71ecd757490e09827b938a5c6226c648e3a25e"
+dependencies = [
+ "paste",
+ "regex",
+]
+
+[[package]]
 name = "serde_variant"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6864,15 +6956,17 @@ dependencies = [
 
 [[package]]
 name = "serde_with"
-version = "3.12.0"
+version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6b6f7f2fcb69f747921f79f3926bd1e203fce4fef62c268dd3abfb6d86029aa"
+checksum = "f2c45cd61fefa9db6f254525d46e392b852e0e61d9a1fd36e5bd183450a556d5"
 dependencies = [
  "base64 0.22.1",
  "chrono",
  "hex",
  "indexmap 1.9.3",
  "indexmap 2.10.0",
+ "schemars 0.9.0",
+ "schemars 1.0.4",
  "serde",
  "serde_derive",
  "serde_json",
@@ -6882,9 +6976,9 @@ dependencies = [
 
 [[package]]
 name = "serde_with_macros"
-version = "3.12.0"
+version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d00caa5193a3c8362ac2b73be6b9e768aa5a4b2f721d8f4b339600c3cb51f8e"
+checksum = "de90945e6565ce0d9a25098082ed4ee4002e047cb59892c318d66821e14bb30f"
 dependencies = [
  "darling 0.20.11",
  "proc-macro2",
@@ -7988,6 +8082,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e70f2a8b45122e719eb623c01822704c4e0907e7e426a05927e1a1cfff5b75d0"
 
 [[package]]
+name = "unicode-segmentation"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
+
+[[package]]
 name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8165,7 +8265,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk 0.26.0",
  "prometheus-client",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
  "serde_variant",
@@ -9124,7 +9224,7 @@ dependencies = [
  "reqwest 0.11.27",
  "rocket",
  "rocket_okapi",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -9152,7 +9252,7 @@ dependencies = [
  "opentelemetry 0.26.0",
  "pbjson-types",
  "prometheus-client",
- "schemars",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
  "serde_variant",

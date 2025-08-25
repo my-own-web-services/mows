@@ -1,3 +1,4 @@
+use super::key_access::KeyAccess;
 use crate::http_api::authentication::user::IntrospectedUser;
 use crate::impl_typed_uuid;
 use crate::models::files::FilezFileId;
@@ -12,6 +13,7 @@ use crate::{
     utils::{get_current_timestamp, InvalidEnumType},
 };
 use axum::http::HeaderMap;
+use diesel::prelude::AsChangeset;
 use diesel::{
     deserialize::FromSqlRow,
     expression::AsExpression,
@@ -30,8 +32,6 @@ use tracing::trace;
 use tracing::{debug, warn};
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-use super::key_access::KeyAccess;
 
 #[derive(
     Debug,
@@ -58,7 +58,7 @@ pub enum FilezUserType {
 impl_typed_uuid!(FilezUserId);
 
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
-#[diesel(table_name = crate::schema::users)]
+#[diesel(table_name = schema::users)]
 #[diesel(check_for_backend(Pg))]
 pub struct FilezUser {
     pub id: FilezUserId,
@@ -66,6 +66,7 @@ pub struct FilezUser {
     pub external_user_id: Option<String>,
     /// Used to create a user before the external user ID is known, when the user then logs in with a verified email address the email is switched to the external user ID
     pub pre_identifier_email: Option<String>,
+    /// The display name of the user, updated from the external identity provider on each login
     pub display_name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
@@ -75,8 +76,15 @@ pub struct FilezUser {
     pub user_type: FilezUserType,
 }
 
+#[derive(Serialize, Deserialize, AsChangeset, ToSchema, Clone, Debug)]
+#[diesel(table_name = schema::users)]
+pub struct UpdateUserChangeset {
+    #[diesel(column_name = "profile_picture")]
+    pub new_profile_picture: Option<FilezFileId>,
+}
+
 #[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Debug)]
-#[diesel(table_name = crate::schema::users)]
+#[diesel(table_name = schema::users)]
 #[diesel(check_for_backend(Pg))]
 pub struct ListedFilezUser {
     pub id: FilezUserId,
@@ -86,7 +94,7 @@ pub struct ListedFilezUser {
 
 impl FilezUser {
     #[tracing::instrument(level = "trace")]
-    pub fn new(
+    fn new(
         external_user_id: Option<String>,
         pre_identifier_email: Option<String>,
         display_name: Option<String>,
@@ -108,7 +116,7 @@ impl FilezUser {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn get_by_external_id(
+    pub async fn get_one_by_external_id(
         database: &Database,
         external_user_id: &str,
     ) -> Result<Self, FilezError> {
@@ -121,7 +129,10 @@ impl FilezUser {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn get_by_id(database: &Database, user_id: &FilezUserId) -> Result<Self, FilezError> {
+    pub async fn get_one_by_id(
+        database: &Database,
+        user_id: &FilezUserId,
+    ) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
         let user = schema::users::table
             .find(user_id)
@@ -131,7 +142,7 @@ impl FilezUser {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn get_by_email(database: &Database, email: &str) -> Result<Self, FilezError> {
+    pub async fn get_one_by_email(database: &Database, email: &str) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
         let user = schema::users::table
             .filter(schema::users::pre_identifier_email.eq(email.to_lowercase()))
@@ -154,7 +165,10 @@ impl FilezUser {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn delete(database: &Database, user_id: &FilezUserId) -> Result<(), FilezError> {
+    pub async fn soft_delete_one(
+        database: &Database,
+        user_id: &FilezUserId,
+    ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::update(crate::schema::users::table.find(user_id))
             .set((
@@ -167,7 +181,7 @@ impl FilezUser {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn create(
+    pub async fn create_one(
         database: &Database,
         email: &str,
         requesting_user_id: &FilezUserId,
@@ -181,17 +195,18 @@ impl FilezUser {
             FilezUserType::Regular,
         );
 
-        let result = diesel::insert_into(crate::schema::users::table)
+        let created_user = diesel::insert_into(crate::schema::users::table)
             .values(&new_user)
             .get_result::<FilezUser>(&mut connection)
             .await?;
 
-        debug!("Created new user with ID: {}", result.id);
-        Ok(result)
+        debug!("Created new user with ID: {}", created_user.id);
+        Ok(created_user)
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn apply(
+    /// Creates or updates a user based on the provided external user information.
+    pub async fn apply_one(
         database: &Database,
         external_user: IntrospectedUser,
     ) -> Result<FilezUser, FilezError> {
@@ -334,16 +349,16 @@ impl FilezUser {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn update(
+    pub async fn update_one(
         database: &Database,
         user_id: &FilezUserId,
-        profile_picture: Option<FilezFileId>,
+        changeset: UpdateUserChangeset,
     ) -> Result<FilezUser, FilezError> {
         let mut connection = database.get_connection().await?;
 
         let updated_user = diesel::update(schema::users::table.find(user_id))
             .set((
-                schema::users::profile_picture.eq(profile_picture),
+                changeset,
                 schema::users::modified_time.eq(get_current_timestamp()),
             ))
             .get_result::<FilezUser>(&mut connection)
@@ -377,7 +392,7 @@ impl FilezUser {
                     .optional()?
                 {
                     Some(user) => user,
-                    None => FilezUser::apply(&database, external_user.clone()).await?,
+                    None => FilezUser::apply_one(&database, external_user.clone()).await?,
                 }
             }
             (None, Some(key_access)) => {

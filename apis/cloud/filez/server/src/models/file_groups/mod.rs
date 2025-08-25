@@ -24,6 +24,7 @@ use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 use super::{
@@ -35,9 +36,7 @@ use super::{
 
 impl_typed_uuid!(FileGroupId);
 
-#[derive(
-    Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug, AsChangeset,
-)]
+#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
 #[diesel(table_name = crate::schema::file_groups)]
 #[diesel(check_for_backend(Pg))]
 pub struct FileGroup {
@@ -48,6 +47,16 @@ pub struct FileGroup {
     pub modified_time: chrono::NaiveDateTime,
     pub group_type: FileGroupType,
     pub dynamic_group_rule: Option<DynamicGroupRule>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate, AsChangeset)]
+#[diesel(table_name = schema::file_groups)]
+#[diesel(check_for_backend(Pg))]
+pub struct UpdateFileGroupChangeset {
+    #[schema(max_length = 256)]
+    #[validate(max_length = 256)]
+    #[diesel(column_name = name)]
+    pub new_file_group_name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq, AsJsonb)]
@@ -76,7 +85,7 @@ pub enum FileGroupType {
 
 impl FileGroup {
     #[tracing::instrument(level = "trace")]
-    pub fn new(
+    fn new(
         owner: &FilezUser,
         name: &str,
         group_type: FileGroupType,
@@ -94,13 +103,21 @@ impl FileGroup {
     }
 
     #[tracing::instrument(skip(database), level = "trace")]
-    pub async fn create(database: &Database, file_group: &FileGroup) -> Result<(), FilezError> {
+    pub async fn create_one(
+        database: &Database,
+        owner: &FilezUser,
+        name: &str,
+        group_type: FileGroupType,
+        dynamic_group_rule: Option<DynamicGroupRule>,
+    ) -> Result<Self, FilezError> {
+        let file_group = FileGroup::new(owner, name, group_type, dynamic_group_rule);
         let mut connection = database.get_connection().await?;
-        diesel::insert_into(schema::file_groups::table)
-            .values(file_group)
-            .execute(&mut connection)
+        let created_file_group = diesel::insert_into(schema::file_groups::table)
+            .values(&file_group)
+            .returning(FileGroup::as_select())
+            .get_result::<FileGroup>(&mut connection)
             .await?;
-        Ok(())
+        Ok(created_file_group)
     }
 
     #[tracing::instrument(skip(database), level = "trace")]
@@ -115,6 +132,19 @@ impl FileGroup {
             .get_result::<FileGroup>(&mut connection)
             .await?;
         Ok(file_group)
+    }
+
+    pub async fn get_many_by_ids(
+        database: &Database,
+        file_group_ids: &Vec<FileGroupId>,
+    ) -> Result<Vec<FileGroup>, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let file_groups = schema::file_groups::table
+            .filter(schema::file_groups::id.eq_any(file_group_ids))
+            .select(FileGroup::as_select())
+            .load::<FileGroup>(&mut connection)
+            .await?;
+        Ok(file_groups)
     }
 
     #[tracing::instrument(skip(database), level = "trace")]
@@ -179,24 +209,26 @@ impl FileGroup {
     }
 
     #[tracing::instrument(skip(database), level = "trace")]
-    pub async fn update(
+    pub async fn update_one(
         database: &Database,
         file_group_id: &FileGroupId,
-        name: &str,
-    ) -> Result<(), FilezError> {
+        changeset: &UpdateFileGroupChangeset,
+    ) -> Result<FileGroup, FilezError> {
         let mut connection = database.get_connection().await?;
-        diesel::update(schema::file_groups::table.find(file_group_id))
+        let updated_file_group = diesel::update(schema::file_groups::table.find(file_group_id))
             .set((
-                schema::file_groups::name.eq(name),
+                changeset,
                 schema::file_groups::modified_time.eq(get_current_timestamp()),
             ))
-            .execute(&mut connection)
+            .returning(FileGroup::as_select())
+            .get_result::<FileGroup>(&mut connection)
             .await?;
-        Ok(())
+
+        Ok(updated_file_group)
     }
 
     #[tracing::instrument(skip(database), level = "trace")]
-    pub async fn delete(
+    pub async fn delete_one(
         database: &Database,
         file_group_id: &FileGroupId,
     ) -> Result<(), FilezError> {

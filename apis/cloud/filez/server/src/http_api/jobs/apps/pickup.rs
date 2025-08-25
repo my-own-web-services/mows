@@ -3,12 +3,13 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::jobs::FilezJob,
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
-use tracing::{instrument, trace};
+use serde_valid::Validate;
+use tracing::trace;
 use utoipa::ToSchema;
 
 #[utoipa::path(
@@ -17,10 +18,19 @@ use utoipa::ToSchema;
     request_body = PickupJobRequestBody,
     description = "Pickup a job from the server",
     responses(
-        (status = 200, description = "Picked up a job from the server", body = ApiResponse<PickupJobResponseBody>),
+        (
+            status = 200,
+            description = "Picked up a job from the server",
+            body = ApiResponse<PickupJobResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal Server Error",
+            body = ApiResponse<EmptyApiResponse>
+        )
     )
 )]
-#[instrument(skip(database))]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn pickup_job(
     Extension(AuthenticationInformation {
         requesting_app,
@@ -40,7 +50,7 @@ pub async fn pickup_job(
     );
 
     let job = with_timing!(
-        FilezJob::pickup(
+        FilezJob::pickup_one(
             &database,
             requesting_app.clone(),
             requesting_app_runtime_instance_id.clone(),
@@ -70,10 +80,10 @@ pub async fn pickup_job(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct PickupJobRequestBody {}
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct PickupJobResponseBody {
     pub job: Option<FilezJob>,
 }

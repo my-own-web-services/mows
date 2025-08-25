@@ -96,7 +96,7 @@ pub async fn authentication_middleware(
                     );
 
                     if let Some(job) = &job {
-                        let user = FilezUser::get_by_id(&database, &job.owner_id).await?;
+                        let user = FilezUser::get_one_by_id(&database, &job.owner_id).await?;
                         requesting_user = Some(user);
 
                         trace!(

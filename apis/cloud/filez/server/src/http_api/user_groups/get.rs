@@ -1,8 +1,8 @@
-use axum::{
-    extract::{Path, State},
-    Extension, Json,
-};
-
+use axum::{extract::State, Extension};
+use crate::validation::Json;
+use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
+use utoipa::ToSchema;
 
 use crate::{
     errors::FilezError,
@@ -17,29 +17,43 @@ use crate::{
 };
 
 #[utoipa::path(
-    get,
-    path = "/api/user_groups/get/{user_group_id}",
-    params(
-        ("user_group_id" = Uuid, Path, description = "The ID of the user group to retrieve"),
-    ),
+    post,
+    path = "/api/user_groups/get",
+    description = "Get user groups by their IDs",
+    request_body = GetUserGroupsRequestBody,
     responses(
-        (status = 200, description = "Gets a user group by ID", body = ApiResponse<UserGroup>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Got the user groups",
+            body = ApiResponse<GetUserGroupsResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
-pub async fn get_user_group(
+pub async fn get_user_groups(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Path(user_group_id): Path<UserGroupId>,
-) -> Result<Json<ApiResponse<UserGroup>>, FilezError> {
+    Json(request_body): Json<GetUserGroupsRequestBody>,
+) -> Result<Json<ApiResponse<GetUserGroupsResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::UserGroup,
-            Some(&vec![user_group_id.into()]),
+            Some(
+                &request_body
+                    .user_group_ids
+                    .clone()
+                    .into_iter()
+                    .map(|id| id.into())
+                    .collect::<Vec<_>>()
+            ),
             AccessPolicyAction::UserGroupsGet,
         )
         .await?
@@ -48,8 +62,8 @@ pub async fn get_user_group(
         timing
     );
 
-    let user_group = with_timing!(
-        UserGroup::get_by_id(&database, &user_group_id).await?,
+    let user_groups = with_timing!(
+        UserGroup::get_many_by_id(&database, &request_body.user_group_ids).await?,
         "Database operation to get user group by ID",
         timing
     );
@@ -57,6 +71,18 @@ pub async fn get_user_group(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "User group retrieved".to_string(),
-        data: Some(user_group),
+        data: Some(GetUserGroupsResponseBody { user_groups }),
     }))
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
+pub struct GetUserGroupsRequestBody {
+    /// The IDs of the user groups to retrieve
+    pub user_group_ids: Vec<UserGroupId>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
+pub struct GetUserGroupsResponseBody {
+    /// The retrieved user groups
+    pub user_groups: Vec<UserGroup>,
 }
