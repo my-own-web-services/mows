@@ -3,18 +3,15 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        jobs::{
-            FilezJob, FilezJobId, JobExecutionInformation, JobPersistenceType, JobStatus,
-            JobStatusDetails,
-        },
+        jobs::{FilezJob, FilezJobId, UpdateJobChangeset},
     },
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
-use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
@@ -23,7 +20,16 @@ use utoipa::ToSchema;
     request_body = UpdateJobRequestBody,
     description = "Update a job in the database",
     responses(
-        (status = 200, description = "Updated a job on the server", body = ApiResponse<UpdateJobResponseBody>),
+        (
+            status = 200,
+            description = "Updated a job on the server",
+            body = ApiResponse<UpdateJobResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal Server Error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -33,18 +39,12 @@ pub async fn update_job(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateJobRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
-    let mut job = with_timing!(
-        FilezJob::get_by_id(&database, request_body.job_id).await?,
-        "Database operation to get a job",
-        timing
-    );
-
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::FilezJob,
-            Some(&[job.id.into()]),
+            Some(&[request_body.job_id.into()]),
             AccessPolicyAction::FilezJobsUpdate,
         )
         .await?
@@ -53,27 +53,8 @@ pub async fn update_job(
         timing
     );
 
-    if let Some(name) = request_body.name {
-        job.name = name;
-    }
-    if let Some(status) = request_body.status {
-        job.status = status;
-    }
-    if let Some(status_details) = request_body.status_details {
-        job.status_details = Some(status_details);
-    }
-    if let Some(execution_information) = request_body.execution_information {
-        job.execution_information = execution_information;
-    }
-    if let Some(persistence) = request_body.persistence {
-        job.persistence = persistence;
-    }
-    if let Some(deadline_time) = request_body.deadline_time {
-        job.deadline_time = Some(deadline_time);
-    }
-
     let updated_job = with_timing!(
-        FilezJob::update(&database, &job).await?,
+        FilezJob::update_one(&database, request_body.job_id, request_body.changeset,).await?,
         "Database operation to update a job",
         timing
     );
@@ -88,18 +69,13 @@ pub async fn update_job(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateJobRequestBody {
     pub job_id: FilezJobId,
-    pub name: Option<String>,
-    pub status: Option<JobStatus>,
-    pub status_details: Option<JobStatusDetails>,
-    pub execution_information: Option<JobExecutionInformation>,
-    pub persistence: Option<JobPersistenceType>,
-    pub deadline_time: Option<NaiveDateTime>,
+    pub changeset: UpdateJobChangeset,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateJobResponseBody {
     pub job: FilezJob,
 }

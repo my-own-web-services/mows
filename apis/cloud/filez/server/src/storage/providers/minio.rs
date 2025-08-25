@@ -36,6 +36,7 @@ pub struct StorageProviderConfigMinioCrd {
 }
 
 impl StorageProviderConfigMinioCrd {
+    #[tracing::instrument(level = "trace")]
     pub fn convert_secrets(
         self,
         secret: SecretReadableByFilezController,
@@ -57,6 +58,7 @@ pub struct StorageProviderMinio {
 }
 
 impl StorageProviderMinio {
+    #[tracing::instrument(level = "trace")]
     pub async fn initialize(
         config: &StorageProviderConfigMinio,
         id: &str,
@@ -84,6 +86,7 @@ impl StorageProviderMinio {
         }))
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_content(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -111,6 +114,7 @@ impl StorageProviderMinio {
         Ok(Body::from_stream(stream))
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_content_sha256_digest(
         &self,
         _full_file_identifier: &FileVersionIdentifier,
@@ -136,6 +140,7 @@ impl StorageProviderMinio {
         Ok(format!("{:x}", digest))
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_file_size(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -163,6 +168,7 @@ impl StorageProviderMinio {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn delete_content(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -181,6 +187,7 @@ impl StorageProviderMinio {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn set_content(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -268,6 +275,7 @@ impl StorageProviderMinio {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_health(&self) -> HealthStatus {
         match self.client.bucket_exists(&self.bucket).send().await {
             Ok(_) => HealthStatus {

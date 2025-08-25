@@ -99,6 +99,7 @@ pub struct MowsAppConfig {
 }
 
 impl MowsApp {
+    #[tracing::instrument(level = "trace")]
     pub fn new(
         name: String,
         description: Option<String>,

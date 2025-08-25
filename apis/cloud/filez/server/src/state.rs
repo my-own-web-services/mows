@@ -28,6 +28,7 @@ pub struct ServerState {
 pub type StorageLocationState = Arc<RwLock<HashMap<StorageLocationId, StorageProvider>>>;
 
 impl ServerState {
+    #[tracing::instrument(level = "trace")]
     pub async fn new(config: &FilezServerConfig) -> Result<Self, FilezError> {
         let introspection_state = IntrospectionStateBuilder::new(&config.oidc_issuer.clone())
             .with_basic_auth(

@@ -1,3 +1,4 @@
+use crate::errors::FilezError;
 use anyhow::bail;
 use axum::http::HeaderValue;
 use serde::{
@@ -9,8 +10,6 @@ use std::str::FromStr;
 use tokio::signal::{self};
 use url::Url;
 use utoipa::ToSchema;
-
-use crate::errors::FilezError;
 
 pub fn get_current_timestamp() -> chrono::NaiveDateTime {
     chrono::Utc::now().naive_utc()
@@ -58,6 +57,7 @@ pub struct Range {
     pub length: Option<u64>,
 }
 
+#[tracing::instrument(level = "trace")]
 pub fn parse_range(range: &str) -> anyhow::Result<Range> {
     let parts = range.split('=').collect::<Vec<_>>();
     if parts.len() != 2 {

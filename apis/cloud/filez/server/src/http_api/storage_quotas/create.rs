@@ -1,5 +1,7 @@
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 use crate::{
@@ -19,9 +21,18 @@ use crate::{
     post,
     path = "/api/storage_quotas/create",
     request_body = CreateStorageQuotaRequestBody,
+    description = "Create a new storage quota in the database",
     responses(
-        (status = 200, description = "Creates a new storage quota", body = ApiResponse<CreateStorageQuotaResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Created the new storage quota",
+            body = ApiResponse<CreateStorageQuotaResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -45,21 +56,21 @@ pub async fn create_storage_quota(
         timing
     );
 
-    let storage_quota = StorageQuota::new(
+    let created_storage_quota = StorageQuota::new(
         authentication_information
             .requesting_user
             .unwrap()
             .id
             .into(),
-        request_body.name,
+        request_body.storage_quota_name,
         request_body.storage_quota_subject_type,
         request_body.storage_quota_subject_id,
         request_body.storage_location_id,
-        request_body.quota_bytes.into(),
+        request_body.storage_quota_bytes.into(),
     )?;
 
     with_timing!(
-        StorageQuota::create(&database, &storage_quota).await?,
+        StorageQuota::create(&database, &created_storage_quota).await?,
         "Database operation to create storage quota",
         timing
     );
@@ -67,20 +78,24 @@ pub async fn create_storage_quota(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Storage quota created".to_string(),
-        data: Some(CreateStorageQuotaResponseBody { storage_quota }),
+        data: Some(CreateStorageQuotaResponseBody {
+            created_storage_quota,
+        }),
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct CreateStorageQuotaRequestBody {
     pub storage_quota_subject_type: StorageQuotaSubjectType,
     pub storage_quota_subject_id: StorageQuotaSubjectId,
     pub storage_location_id: StorageLocationId,
-    pub quota_bytes: u64,
-    pub name: String,
+    pub storage_quota_bytes: u64,
+    #[schema(max_length = 256)]
+    #[validate(max_length = 256)]
+    pub storage_quota_name: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct CreateStorageQuotaResponseBody {
-    pub storage_quota: StorageQuota,
+    pub created_storage_quota: StorageQuota,
 }

@@ -38,7 +38,7 @@ async fn main() -> Result<(), anyhow::Error> {
                             filez_server_client
                                 .update_job_status(UpdateJobStatusRequestBody {
                                     new_status: JobStatus::Completed,
-                                    new_status_details: Some(JobStatusDetails::Completed(
+                                    new_job_status_details: Some(JobStatusDetails::Completed(
                                         JobStatusDetailsCompleted {
                                             message: "Job completed successfully.".to_string(),
                                         },
@@ -52,7 +52,7 @@ async fn main() -> Result<(), anyhow::Error> {
                             filez_server_client
                                 .update_job_status(UpdateJobStatusRequestBody {
                                     new_status: JobStatus::Failed,
-                                    new_status_details: Some(JobStatusDetails::Failed(
+                                    new_job_status_details: Some(JobStatusDetails::Failed(
                                         JobStatusDetailsFailed {
                                             message: e.to_string(),
                                             error: Some(e.to_string()),

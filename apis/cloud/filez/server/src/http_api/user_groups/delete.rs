@@ -3,7 +3,6 @@ use axum::{
     Extension, Json,
 };
 
-
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
@@ -19,12 +18,25 @@ use crate::{
 #[utoipa::path(
     delete,
     path = "/api/user_groups/delete/{user_group_id}",
+    description = "Delete a user group by its ID",
     params(
-        ("user_group_id" = Uuid, Path, description = "The ID of the user group to delete"),
+        (
+            "user_group_id" = Uuid,
+            Path,
+            description = "The ID of the user group to delete"
+        ),
     ),
     responses(
-        (status = 200, description = "Deletes a user group", body = ApiResponse<String>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Deleted the user group",
+            body = ApiResponse<String>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -49,7 +61,7 @@ pub async fn delete_user_group(
     );
 
     with_timing!(
-        UserGroup::delete(&database, &user_group_id).await?,
+        UserGroup::delete_one(&database, &user_group_id).await?,
         "Database operation to delete user group",
         timing
     );

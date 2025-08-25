@@ -159,7 +159,7 @@ RUN set -x; cd "$(mktemp -d)" && \
     ./"${KREW}" install krew
 
 # install krew plugins
-#RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg gadget cert-manager ctx deprecations df-pv doctor exec-as flame get-all graph ice kubescape kurt kyverno ns outdated popeye pv-mounter pv-migrate rbac-tool rbac-lookup resource-capacity sniff stern tap trace tree view-secret virt directpv 
+RUN PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH" kubectl krew install cnpg
 
 
 

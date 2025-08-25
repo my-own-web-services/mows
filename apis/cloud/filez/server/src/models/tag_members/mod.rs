@@ -3,6 +3,7 @@ use crate::{
     errors::FilezError,
     http_api::tags::update::UpdateTagsMethod,
     models::{
+        access_policies::AccessPolicyResourceType,
         tags::{FilezTag, TagId},
         users::FilezUserId,
     },
@@ -23,6 +24,7 @@ use uuid::Uuid;
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
 use diesel_enum::DbEnum;
 use serde::{Deserialize, Serialize};
+use tracing::trace;
 use utoipa::ToSchema;
 
 #[derive(
@@ -52,6 +54,21 @@ pub enum TagResourceType {
     StorageQuota = 7,
 }
 
+impl TagResourceType {
+    pub fn to_access_policy_resource_type(&self) -> AccessPolicyResourceType {
+        match self {
+            TagResourceType::File => AccessPolicyResourceType::File,
+            TagResourceType::FileVersion => AccessPolicyResourceType::File,
+            TagResourceType::FileGroup => AccessPolicyResourceType::FileGroup,
+            TagResourceType::User => AccessPolicyResourceType::User,
+            TagResourceType::UserGroup => AccessPolicyResourceType::UserGroup,
+            TagResourceType::StorageLocation => AccessPolicyResourceType::StorageLocation,
+            TagResourceType::AccessPolicy => AccessPolicyResourceType::AccessPolicy,
+            TagResourceType::StorageQuota => AccessPolicyResourceType::StorageQuota,
+        }
+    }
+}
+
 #[derive(Queryable, Selectable, Clone, Insertable, Debug, Associations, QueryableByName)]
 #[diesel(check_for_backend(Pg))]
 #[diesel(table_name = crate::schema::tag_members)]
@@ -65,6 +82,7 @@ pub struct TagMember {
 }
 
 impl TagMember {
+    #[tracing::instrument(level = "trace")]
     pub fn new(
         resource_id: Uuid,
         resource_type: TagResourceType,
@@ -80,6 +98,7 @@ impl TagMember {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_tags(
         database: &Database,
         resource_ids: &[Uuid],
@@ -109,6 +128,7 @@ impl TagMember {
         Ok(resource_tags_map)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn update_tags(
         database: &Database,
         requesting_user_id: &FilezUserId,
@@ -186,31 +206,23 @@ impl TagMember {
         }
 
         match update_tags {
-            UpdateTagsMethod::Add(items) => {
-                let tags_to_insert = items
-                    .iter()
-                    .map(|(key, value)| FilezTag::new(key, value))
-                    .collect::<Vec<FilezTag>>();
+            UpdateTagsMethod::Add(tags_to_add_key_value_map) => {
+                if tags_to_add_key_value_map.is_empty() {
+                    return Ok(());
+                }
+                let tags_to_add =
+                    FilezTag::get_or_insert_tags(&mut connection, &tags_to_add_key_value_map)
+                        .await?;
 
-                diesel::insert_into(schema::tags::table)
-                    .values(&tags_to_insert)
-                    .on_conflict_do_nothing()
-                    .execute(&mut connection)
-                    .await?;
-
-                let database_tags: Vec<FilezTag> = schema::tags::table
-                    .filter(
-                        schema::tags::key
-                            .eq_any(items.keys())
-                            .and(schema::tags::value.eq_any(items.values())),
-                    )
-                    .load(&mut connection)
-                    .await?;
+                trace!(
+                    tags_to_add_ids = ?tags_to_add,
+                    "Tags to add IDs: {:?}", tags_to_add
+                );
 
                 let tag_members_to_insert: Vec<TagMember> = resource_ids
                     .iter()
                     .flat_map(|resource_id| {
-                        database_tags.iter().map(|tag| {
+                        tags_to_add.iter().map(|tag| {
                             TagMember::new(*resource_id, resource_type, tag.id, *requesting_user_id)
                         })
                     })
@@ -222,7 +234,7 @@ impl TagMember {
                     .execute(&mut connection)
                     .await?;
             }
-            UpdateTagsMethod::Remove(items) => {
+            UpdateTagsMethod::Remove(tags_to_remove) => {
                 diesel::delete(
                     schema::tag_members::table.filter(
                         schema::tag_members::resource_type
@@ -232,9 +244,9 @@ impl TagMember {
                                 schema::tag_members::tag_id.eq_any(
                                     schema::tags::table
                                         .filter(
-                                            schema::tags::key
-                                                .eq_any(items.keys())
-                                                .and(schema::tags::value.eq_any(items.values())),
+                                            schema::tags::key.eq_any(tags_to_remove.keys()).and(
+                                                schema::tags::value.eq_any(tags_to_remove.values()),
+                                            ),
                                         )
                                         .select(schema::tags::id),
                                 ),
@@ -244,32 +256,15 @@ impl TagMember {
                 .execute(&mut connection)
                 .await?;
             }
-            UpdateTagsMethod::Set(items) => {
-                let tags_to_insert = items
-                    .iter()
-                    .map(|(key, value)| FilezTag::new(key, value))
-                    .collect::<Vec<FilezTag>>();
-
-                diesel::insert_into(schema::tags::table)
-                    .values(&tags_to_insert)
-                    .on_conflict((schema::tags::key, schema::tags::value))
-                    .do_nothing()
-                    .execute(&mut connection)
-                    .await?;
-
-                let database_tags: Vec<FilezTag> = schema::tags::table
-                    .filter(
-                        schema::tags::key
-                            .eq_any(items.keys())
-                            .and(schema::tags::value.eq_any(items.values())),
-                    )
-                    .load(&mut connection)
-                    .await?;
+            UpdateTagsMethod::Set(tags_to_set_key_value_map) => {
+                let tags_to_add =
+                    FilezTag::get_or_insert_tags(&mut connection, &tags_to_set_key_value_map)
+                        .await?;
 
                 let tag_members_to_insert: Vec<TagMember> = resource_ids
                     .iter()
                     .flat_map(|resource_id| {
-                        database_tags.iter().map(|tag| {
+                        tags_to_add.iter().map(|tag| {
                             TagMember::new(*resource_id, resource_type, tag.id, *requesting_user_id)
                         })
                     })

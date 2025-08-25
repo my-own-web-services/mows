@@ -20,6 +20,7 @@ use diesel::{
 
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 impl_typed_uuid!(UserGroupId);
@@ -37,8 +38,18 @@ pub struct UserGroup {
     pub modified_time: chrono::NaiveDateTime,
 }
 
+#[derive(Serialize, Deserialize, ToSchema, Validate, AsChangeset, Clone, Debug)]
+#[diesel(table_name = crate::schema::user_groups)]
+pub struct UpdateUserGroupChangeset {
+    #[schema(max_length = 256)]
+    #[validate(max_length = 256)]
+    #[diesel(column_name = name)]
+    pub new_user_group_name: Option<String>,
+}
+
 impl UserGroup {
-    pub fn new(owner: &FilezUser, name: &str) -> Self {
+    #[tracing::instrument(level = "trace")]
+    fn new(owner: &FilezUser, name: &str) -> Self {
         Self {
             id: UserGroupId::new(),
             owner_id: owner.id.clone(),
@@ -48,29 +59,37 @@ impl UserGroup {
         }
     }
 
-    pub async fn create(database: &Database, user_group: &UserGroup) -> Result<(), FilezError> {
-        let mut connection = database.get_connection().await?;
-        diesel::insert_into(schema::user_groups::table)
-            .values(user_group)
-            .execute(&mut connection)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn get_by_id(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn create_one(
         database: &Database,
-        user_group_id: &UserGroupId,
+        owner: &FilezUser,
+        name: &str,
     ) -> Result<UserGroup, FilezError> {
         let mut connection = database.get_connection().await?;
-        let user_group = schema::user_groups::table
-            .filter(schema::user_groups::id.eq(user_group_id))
-            .select(UserGroup::as_select())
-            .first::<UserGroup>(&mut connection)
+        let new_user_group = UserGroup::new(owner, name);
+        let created_user_group = diesel::insert_into(schema::user_groups::table)
+            .values(new_user_group)
+            .returning(UserGroup::as_select())
+            .get_result::<UserGroup>(&mut connection)
             .await?;
-
-        Ok(user_group)
+        Ok(created_user_group)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_many_by_id(
+        database: &Database,
+        user_group_ids: &Vec<UserGroupId>,
+    ) -> Result<Vec<UserGroup>, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let user_groups = schema::user_groups::table
+            .filter(schema::user_groups::id.eq_any(user_group_ids))
+            .select(UserGroup::as_select())
+            .load::<UserGroup>(&mut connection)
+            .await?;
+        Ok(user_groups)
+    }
+
+    #[tracing::instrument(level = "trace", skip(database, maybe_requesting_user, requesting_app))]
     pub async fn list_with_user_access(
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
@@ -131,15 +150,16 @@ impl UserGroup {
         Ok(user_groups)
     }
 
-    pub async fn update(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn update_one(
         database: &Database,
         user_group_id: &UserGroupId,
-        name: &str,
+        changeset: &UpdateUserGroupChangeset,
     ) -> Result<UserGroup, FilezError> {
         let mut connection = database.get_connection().await?;
         let updated_user_group = diesel::update(schema::user_groups::table.find(user_group_id))
             .set((
-                schema::user_groups::name.eq(name),
+                changeset,
                 schema::user_groups::modified_time.eq(get_current_timestamp()),
             ))
             .returning(UserGroup::as_select())
@@ -148,7 +168,8 @@ impl UserGroup {
         Ok(updated_user_group)
     }
 
-    pub async fn delete(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn delete_one(
         database: &Database,
         user_group_id: &UserGroupId,
     ) -> Result<(), FilezError> {
@@ -161,6 +182,7 @@ impl UserGroup {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn add_users(
         database: &Database,
         user_group_id: &UserGroupId,
@@ -179,6 +201,7 @@ impl UserGroup {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn remove_users(
         database: &Database,
         user_group_id: &UserGroupId,
@@ -196,6 +219,7 @@ impl UserGroup {
     }
 
     /// Retrieves all user group IDs that the specified user is a member of
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_all_ids_by_user_id(
         database: &Database,
         user_id: &FilezUserId,
@@ -215,6 +239,7 @@ impl UserGroup {
         Ok(user_group_ids)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_user_count(
         database: &Database,
         user_group_id: &UserGroupId,
@@ -230,6 +255,7 @@ impl UserGroup {
         Ok(count.try_into()?)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn list_users(
         database: &Database,
         user_group_id: &UserGroupId,

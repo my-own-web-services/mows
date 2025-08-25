@@ -1,5 +1,5 @@
 import { AuthState } from "react-oidc-context";
-import { Api, FilezUser } from "./api-client";
+import { Api, FilezUser, StorageQuota, StorageQuotaSubjectType } from "./api-client";
 
 export interface ClientConfig {
     serverUrl: string;
@@ -58,8 +58,45 @@ export const createExampleUser = async (filezClient: Api<unknown>): Promise<File
     if (!user.data?.data) {
         throw new Error("Failed to create example user");
     }
-    console.log(`Created example user: ${email} (${user.data.data.new_user.id})`);
-    return user.data.data.new_user;
+    console.log(`Created example user: ${email} (${user.data.data.created_user.id})`);
+    return user.data.data.created_user;
+};
+
+export const createDefaultStorageQuotaForUser = async (
+    filezClient: Api<unknown>,
+    user: FilezUser,
+    quotaBytes: number = 10_000_000
+): Promise<StorageQuota> => {
+    const storage_locations = (await filezClient.api.listStorageLocations({})).data?.data
+        ?.storage_locations;
+
+    if (storage_locations?.length === 0) {
+        throw new Error("No storage locations found. Please create a storage location first.");
+    } else if (storage_locations?.length !== undefined && storage_locations?.length > 1) {
+        console.warn("Multiple storage locations found. Using the first one.");
+    }
+
+    const storage_location_id = storage_locations?.[0].id;
+
+    if (!storage_location_id) {
+        throw new Error("No storage location ID found. Please create a storage location first.");
+    }
+
+    const storage_quota = (
+        await filezClient.api.createStorageQuota({
+            storage_quota_bytes: quotaBytes,
+            storage_quota_subject_type: StorageQuotaSubjectType.User,
+            storage_quota_subject_id: user.id,
+            storage_location_id,
+            storage_quota_name: `${user.id}'s Storage Quota`
+        })
+    ).data?.data?.created_storage_quota;
+
+    if (!storage_quota) {
+        throw new Error("Failed to create storage quota for user.");
+    }
+
+    return storage_quota;
 };
 
 export const getBlobSha256Digest = (blob: Blob): Promise<string> => {

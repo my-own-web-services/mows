@@ -51,6 +51,16 @@ const defaultNotes: Note[] = [
             "get logs from a specific container in a pod, useful for failing init containers"
     },
     {
+        content: `kubectl cnpg pgadmin4 filez-postgres -n mows-core-storage-filez &&
+kubectl get secret filez-db-user -n mows-core-storage-filez -o 'jsonpath={.data.password}' | base64 -d; echo "" &&
+kubectl port-forward deployment/filez-postgres-pgadmin4 8080:80 -n mows-core-storage-filez --address 0.0.0.0
+
+filez-postgres-rw
+filez`,
+        type: "default",
+        description: "Setup filez postgres pgadmin4 and forward it to http://localhost:8080"
+    },
+    {
         content: `k -n mows-core-argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d ; echo`,
         type: "default",
         description: "Get the argocd admin password"

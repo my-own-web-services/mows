@@ -1,5 +1,9 @@
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
+use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::{
     errors::FilezError,
@@ -16,25 +20,41 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/api/storage_quotas/get",
+    description = "Get storage quotas by their IDs",
     request_body = GetStorageQuotaRequestBody,
     responses(
-        (status = 200, description = "Gets a storage quota", body = ApiResponse<StorageQuota>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Got the storage quotas",
+            body = ApiResponse<GetStorageQuotaResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
-pub async fn get_storage_quota(
+pub async fn get_storage_quotas(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<GetStorageQuotaRequestBody>,
-) -> Result<Json<ApiResponse<StorageQuota>>, FilezError> {
+) -> Result<Json<ApiResponse<GetStorageQuotaResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::StorageQuota,
-            Some(&[request_body.storage_quota_id.into()]),
+            Some(
+                &request_body
+                    .storage_quota_ids
+                    .clone()
+                    .into_iter()
+                    .map(|id| id.into())
+                    .collect::<Vec<Uuid>>()
+            ),
             AccessPolicyAction::StorageQuotasGet,
         )
         .await?
@@ -42,20 +62,25 @@ pub async fn get_storage_quota(
         "Access policy check for getting storage quota",
         timing
     );
-    let storage_quota = with_timing!(
-        StorageQuota::get(&database, request_body.storage_quota_id,).await?,
-        "Database operation to get storage quota",
+    let storage_quotas = with_timing!(
+        StorageQuota::get_many_by_id(&database, request_body.storage_quota_ids).await?,
+        "Database operation to get storage quotas",
         timing
     );
 
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
-        message: "Storage quota retrieved".to_string(),
-        data: Some(storage_quota),
+        message: "Storage quotas retrieved".to_string(),
+        data: Some(GetStorageQuotaResponseBody { storage_quotas }),
     }))
 }
 
-#[derive(serde::Serialize, serde::Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct GetStorageQuotaRequestBody {
-    pub storage_quota_id: StorageQuotaId,
+    pub storage_quota_ids: Vec<StorageQuotaId>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
+pub struct GetStorageQuotaResponseBody {
+    pub storage_quotas: Vec<StorageQuota>,
 }

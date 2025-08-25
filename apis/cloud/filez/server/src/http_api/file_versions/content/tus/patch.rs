@@ -23,24 +23,68 @@ use axum::{
     tag = "FileVersion",
     description = "Patch a file version using the TUS protocol. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.",
     patch,
-    request_body(content_type = "application/offset+octet-stream"),
+    request_body(
+        content_type = "application/offset+octet-stream"
+    ),
     path = "/api/file_versions/content/tus/{file_id}/{version}/{app_path}",
     params(
-        ("file_id" = Uuid, Path, description = "The ID of the file to patch"),
-        ("version" = Option<u32>, Path, description = "The version of the file to patch"),
-        ("app_path" = Option<String>, Path),
-
-        ("Tus-Resumable" = String, Header, description = "The Tus protocol version.", example = "1.0.0")
+        (
+            "file_id" = Uuid,
+            Path,
+            description = "The ID of the file to patch"
+        ),
+        (
+            "version" = Option<u32>,
+            Path,
+            description = "The version of the file to patch"
+        ),
+        (
+            "app_path" = Option<String>,
+            Path
+        ),
+        (
+            "Tus-Resumable" = String,
+            Header,
+            description = "The Tus protocol version.",
+            example = "1.0.0"
+        )
     ),
     responses(
-        (status = 204, body = ApiResponse<EmptyApiResponse>, description = "File was successfully patched"),
-        (status = 404, body = ApiResponse<EmptyApiResponse>, description = "File not found"),
-        (status = 412, body = ApiResponse<EmptyApiResponse>, description = "Precondition failed, likely due to missing or invalid Tus-Resumable header"),
-        (status = 400, body = ApiResponse<EmptyApiResponse>, description = "Bad request, missing or invalid headers"),
-        (status = 415, body = ApiResponse<EmptyApiResponse>, description = "Unsupported media type, Content-Type must be application/offset+octet-stream"),
-        (status = 413, description = "File version size exceeded, the size of the file version exceeds the allowed limit",
-            body = ApiResponse<FileVersionSizeExceededErrorBody>),
-        (status = 500, body = ApiResponse<EmptyApiResponse>, description = "Internal server error, unexpected error occurred while processing the request")
+        (
+            status = 204,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "File was successfully patched"
+        ),
+        (
+            status = 404,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "File not found"
+        ),
+        (
+            status = 412,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "Precondition failed, likely due to missing or invalid Tus-Resumable header"
+        ),
+        (
+            status = 400,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "Bad request, missing or invalid headers"
+        ),
+        (
+            status = 415,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "Unsupported media type, Content-Type must be application/offset+octet-stream"
+        ),
+        (
+            status = 413,
+            description = "File version size exceeded, the size of the file version exceeds the allowed limit",
+            body = ApiResponse<FileVersionSizeExceededErrorBody>
+        ),
+        (
+            status = 500,
+            body = ApiResponse<EmptyApiResponse>,
+            description = "Internal server error, unexpected error occurred while processing the request"
+        )
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -128,7 +172,7 @@ pub async fn file_versions_content_tus_patch(
     );
 
     let file_version = with_timing!(
-        FileVersion::get(
+        FileVersion::get_one_by_identifier(
             &database,
             &file_id,
             version,
@@ -150,7 +194,7 @@ pub async fn file_versions_content_tus_patch(
     }
 
     file_version
-        .set(
+        .set_content(
             &storage_location_providers,
             &database,
             &timing,

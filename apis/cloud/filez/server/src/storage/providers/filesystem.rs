@@ -31,6 +31,7 @@ pub struct StorageProviderConfigFileSystemCrd {
 }
 
 impl StorageProviderConfigFileSystemCrd {
+    #[tracing::instrument(level = "trace")]
     pub fn convert_secrets(
         self,
         secret: SecretReadableByFilezController,
@@ -48,6 +49,7 @@ pub struct StorageProviderFilesystem {
 }
 
 impl StorageProviderFilesystem {
+    #[tracing::instrument(level = "trace")]
     pub async fn initialize(
         config: &StorageProviderConfigFileSystem,
         id: &str,
@@ -62,6 +64,7 @@ impl StorageProviderFilesystem {
         }))
     }
 
+    #[tracing::instrument(level = "trace")]
     fn get_full_path(&self, file_identifier: &FileVersionIdentifier) -> PathBuf {
         // the file path is constructed like this:
         // - root_path
@@ -96,6 +99,7 @@ impl StorageProviderFilesystem {
         full_path
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_content(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -121,6 +125,7 @@ impl StorageProviderFilesystem {
         Ok(Body::from_stream(stream))
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_file_size(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -133,6 +138,7 @@ impl StorageProviderFilesystem {
         Ok(file_size)
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn delete_content(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -162,6 +168,7 @@ impl StorageProviderFilesystem {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_content_sha256_digest(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -184,6 +191,7 @@ impl StorageProviderFilesystem {
         Ok(format!("{:x}", hasher.finalize()))
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn set_content(
         &self,
         full_file_identifier: &FileVersionIdentifier,
@@ -216,6 +224,7 @@ impl StorageProviderFilesystem {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace")]
     pub async fn get_health(&self) -> HealthStatus {
         // Check if root_path exists and is writable
         let test_file_path = self.root_path.join(".health_check");

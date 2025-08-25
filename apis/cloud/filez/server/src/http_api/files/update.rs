@@ -1,29 +1,35 @@
-use std::str::FromStr;
-
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        files::{FileMetadata, FilezFile, FilezFileId},
+        files::{FilezFile, FilezFileId, UpdateFileChangeset},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
-    validation::validate_file_name,
     with_timing,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
     path = "/api/files/update",
     request_body = UpdateFileRequestBody,
-    description = "Update a file entry in the database",
+    description = "Update a file entry in the database, NOT the content of the file itself.",
     responses(
-        (status = 200, description = "Updated a file on the server", body = ApiResponse<UpdateFileResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Updated a file on the server",
+            body = ApiResponse<UpdateFileResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -47,28 +53,8 @@ pub async fn update_file(
         timing
     );
 
-    let mut file = with_timing!(
-        FilezFile::get_by_id(&database, request_body.file_id).await?,
-        "Database operation to get file by ID",
-        timing
-    );
-
-    if let Some(file_name) = &request_body.file_name {
-        validate_file_name(file_name)?;
-        file.name = file_name.clone();
-    };
-
-    if let Some(metadata) = &request_body.metadata {
-        file.metadata = metadata.clone();
-    };
-
-    if let Some(mime_type) = &request_body.mime_type {
-        let parsed_mime_type = mime_guess::Mime::from_str(mime_type)?;
-        file.mime_type = parsed_mime_type.to_string();
-    };
-
-    let db_updated_file = with_timing!(
-        file.update(&database).await?,
+    let updated_file = with_timing!(
+        FilezFile::update_one(&database, request_body.file_id, request_body.changeset).await?,
         "Database operation to update file",
         timing
     );
@@ -78,22 +64,18 @@ pub async fn update_file(
         Json(ApiResponse {
             status: ApiResponseStatus::Success {},
             message: "Updated File".to_string(),
-            data: Some(UpdateFileResponseBody {
-                file: db_updated_file,
-            }),
+            data: Some(UpdateFileResponseBody { updated_file }),
         }),
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateFileRequestBody {
     pub file_id: FilezFileId,
-    pub file_name: Option<String>,
-    pub metadata: Option<FileMetadata>,
-    pub mime_type: Option<String>,
+    pub changeset: UpdateFileChangeset,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateFileResponseBody {
-    pub file: FilezFile,
+    pub updated_file: FilezFile,
 }

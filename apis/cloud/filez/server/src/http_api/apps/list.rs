@@ -9,8 +9,10 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
+use crate::validation::Json;
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension};
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
@@ -19,8 +21,16 @@ use utoipa::ToSchema;
     request_body = ListAppsRequestBody,
     description = "List apps from the server",
     responses(
-        (status = 200, description = "Listed apps from the server", body = ApiResponse<ListAppsResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Listed apps from the server",
+            body = ApiResponse<ListAppsResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -60,9 +70,9 @@ pub async fn list_apps(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListAppsRequestBody {}
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListAppsResponseBody {
     pub apps: Vec<MowsApp>,
 }

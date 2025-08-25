@@ -39,13 +39,13 @@ export default async (filezClient: Api<unknown>) => {
     // Create a storage quota for Alice
     const alice_quota = (
         await filezClient.api.createStorageQuota({
-            quota_bytes: 10_000_000,
+            storage_quota_bytes: 10_000_000,
             storage_quota_subject_type: StorageQuotaSubjectType.User,
             storage_quota_subject_id: alice.id,
             storage_location_id,
-            name: "Alice's Storage Quota"
+            storage_quota_name: "Alice's Storage Quota"
         })
-    ).data?.data?.storage_quota;
+    ).data?.data?.created_storage_quota;
 
     if (!alice_quota) {
         throw new Error("Failed to create storage quota for Alice.");
@@ -85,14 +85,14 @@ export default async (filezClient: Api<unknown>) => {
         await filezClient.api.createFileVersion(
             {
                 file_id: aliceFile.created_file.id,
-                mime_type: "image/jpeg",
-                metadata: {},
-                size: parseInt(image_response.headers.get("content-length") || "0"),
+                file_version_mime_type: "image/jpeg",
+                file_version_metadata: {},
+                file_version_size: parseInt(image_response.headers.get("content-length") || "0"),
                 storage_quota_id: alice_quota.id
             },
             impersonateAliceParams
         )
-    ).data?.data?.version;
+    ).data?.data?.created_file_version;
 
     if (!aliceFileVersion) {
         throw new Error("Failed to create file version for Alice.");
@@ -117,10 +117,10 @@ export default async (filezClient: Api<unknown>) => {
 
     const job = await filezClient.api.createJob(
         {
-            app_id: imageApp.id,
-            name: "Image conversion job",
-            persistence: JobPersistenceType.Temporary,
-            execution_details: {
+            job_handling_app_id: imageApp.id,
+            job_name: "Image conversion job",
+            job_persistence: JobPersistenceType.Temporary,
+            job_execution_details: {
                 job_type: {
                     CreatePreview: {
                         allowed_mime_types: ["image/avif"],
@@ -174,14 +174,7 @@ export default async (filezClient: Api<unknown>) => {
 
     await filezClient.api.getFileVersions(
         {
-            versions: [
-                {
-                    app_id: imageApp.id,
-                    file_id: aliceFile.created_file.id,
-                    version: aliceFileVersion.version,
-                    app_path: "250.avif"
-                }
-            ]
+            file_version_ids: [aliceFileVersion.id]
         },
         impersonateAliceParams
     );

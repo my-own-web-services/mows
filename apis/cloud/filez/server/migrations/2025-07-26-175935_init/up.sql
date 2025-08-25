@@ -104,6 +104,7 @@ CREATE TABLE "file_versions"(
 	"storage_quota_id" UUID NOT NULL,
 	"content_valid" BOOL NOT NULL,
 	"content_expected_sha256_digest" TEXT,
+	"existing_content_bytes" BIGINT,
 	PRIMARY KEY("file_id", "version", "app_id", "app_path"),
 	FOREIGN KEY ("file_id") REFERENCES "files"("id"),
 	FOREIGN KEY ("app_id") REFERENCES "apps"("id"),
@@ -124,7 +125,8 @@ CREATE TABLE "file_file_group_members"(
 CREATE TABLE "tags"(
 	"id" UUID NOT NULL PRIMARY KEY,
 	"key" TEXT NOT NULL,
-	"value" TEXT NOT NULL
+	"value" TEXT NOT NULL,
+	CONSTRAINT "unique_key_value_pair" UNIQUE ("key", "value")
 );
 
 CREATE TABLE "tag_members"(

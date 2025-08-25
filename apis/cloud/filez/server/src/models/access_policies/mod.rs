@@ -26,6 +26,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use std::collections::HashSet;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -227,7 +228,6 @@ impl_typed_compound_uuid!(AccessPolicySubjectId: FilezUserId, UserGroupId);
     Serialize,
     Deserialize,
     ToSchema,
-    AsChangeset,
 )]
 #[diesel(check_for_backend(Pg))]
 #[diesel(table_name = crate::schema::access_policies)]
@@ -254,8 +254,44 @@ pub struct AccessPolicy {
     pub effect: AccessPolicyEffect,
 }
 
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate, AsChangeset)]
+#[diesel(table_name = schema::access_policies)]
+pub struct UpdateAccessPolicyChangeset {
+    #[schema(max_length = 256)]
+    #[validate(max_length = 256)]
+    #[diesel(column_name = name)]
+    pub new_access_policy_name: Option<String>,
+
+    #[diesel(column_name = subject_type)]
+    pub new_access_policy_subject_type: Option<AccessPolicySubjectType>,
+
+    #[diesel(column_name = subject_id)]
+    pub new_access_policy_subject_id: Option<AccessPolicySubjectId>,
+
+    #[diesel(column_name = context_app_ids)]
+    pub new_context_app_ids: Option<Vec<MowsAppId>>,
+
+    #[diesel(column_name = resource_type)]
+    pub new_access_policy_resource_type: Option<AccessPolicyResourceType>,
+
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "::serde_with::rust::double_option"
+    )]
+    #[diesel(column_name = resource_id)]
+    pub new_resource_id: Option<Option<Uuid>>,
+
+    #[diesel(column_name = actions)]
+    pub new_access_policy_actions: Option<Vec<AccessPolicyAction>>,
+
+    #[diesel(column_name = effect)]
+    pub new_access_policy_effect: Option<AccessPolicyEffect>,
+}
+
 impl AccessPolicy {
-    pub fn new(
+    #[tracing::instrument(level = "trace")]
+    fn new(
         name: &str,
         owner_id: FilezUserId,
         subject_type: AccessPolicySubjectType,
@@ -282,18 +318,41 @@ impl AccessPolicy {
         }
     }
 
-    pub async fn create(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn create_one(
         database: &Database,
-        access_policy: &AccessPolicy,
-    ) -> Result<(), FilezError> {
+        name: &str,
+        owner_id: FilezUserId,
+        subject_type: AccessPolicySubjectType,
+        subject_id: AccessPolicySubjectId,
+        context_app_ids: Vec<MowsAppId>,
+        resource_type: AccessPolicyResourceType,
+        resource_id: Option<Uuid>,
+        actions: Vec<AccessPolicyAction>,
+        effect: AccessPolicyEffect,
+    ) -> Result<AccessPolicy, FilezError> {
+        let access_policy = AccessPolicy::new(
+            name,
+            owner_id,
+            subject_type,
+            subject_id,
+            context_app_ids,
+            resource_type,
+            resource_id,
+            actions,
+            effect,
+        );
         let mut connection = database.get_connection().await?;
-        diesel::insert_into(schema::access_policies::table)
-            .values(access_policy)
-            .execute(&mut connection)
+        let created_access_policy = diesel::insert_into(schema::access_policies::table)
+            .values(&access_policy)
+            .returning(AccessPolicy::as_select())
+            .get_result::<AccessPolicy>(&mut connection)
             .await?;
-        Ok(())
+
+        Ok(created_access_policy)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_by_id(
         database: &Database,
         id: &AccessPolicyId,
@@ -307,7 +366,22 @@ impl AccessPolicy {
         Ok(access_policy)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_many_by_ids(
+        database: &Database,
+        ids: &[AccessPolicyId],
+    ) -> Result<Vec<AccessPolicy>, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let access_policies = schema::access_policies::table
+            .filter(schema::access_policies::id.eq_any(ids))
+            .select(AccessPolicy::as_select())
+            .load::<AccessPolicy>(&mut connection)
+            .await?;
+        Ok(access_policies)
+    }
+
     /// Lists all resource ids that the user has access to, for a specific resource type.
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_resources_with_access(
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
@@ -476,6 +550,7 @@ impl AccessPolicy {
         Ok(final_allowed_ids)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn list_with_user_access(
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
@@ -537,38 +612,30 @@ impl AccessPolicy {
         Ok(access_policies)
     }
 
-    pub async fn update(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn update_one(
         database: &Database,
-        id: &AccessPolicyId,
-        name: &str,
-        subject_type: AccessPolicySubjectType,
-        subject_id: AccessPolicySubjectId,
-        context_app_ids: Vec<MowsAppId>,
-        resource_type: AccessPolicyResourceType,
-        resource_id: Option<Uuid>,
-        actions: Vec<AccessPolicyAction>,
-        effect: AccessPolicyEffect,
-    ) -> Result<(), FilezError> {
+        access_policy_id: &AccessPolicyId,
+        changeset: UpdateAccessPolicyChangeset,
+    ) -> Result<AccessPolicy, FilezError> {
         let mut connection = database.get_connection().await?;
 
-        update(schema::access_policies::table.filter(schema::access_policies::id.eq(id)))
-            .set((
-                schema::access_policies::name.eq(name),
-                schema::access_policies::subject_type.eq(subject_type),
-                schema::access_policies::subject_id.eq(subject_id),
-                schema::access_policies::context_app_ids.eq(context_app_ids),
-                schema::access_policies::resource_type.eq(resource_type),
-                schema::access_policies::resource_id.eq(resource_id),
-                schema::access_policies::actions.eq(actions),
-                schema::access_policies::effect.eq(effect),
-                schema::access_policies::modified_time.eq(get_current_timestamp()),
-            ))
-            .execute(&mut connection)
-            .await?;
-        Ok(())
+        let updated_access_policy = update(
+            schema::access_policies::table.filter(schema::access_policies::id.eq(access_policy_id)),
+        )
+        .set((
+            changeset,
+            schema::access_policies::modified_time.eq(get_current_timestamp()),
+        ))
+        .returning(AccessPolicy::as_select())
+        .get_result::<AccessPolicy>(&mut connection)
+        .await?;
+
+        Ok(updated_access_policy)
     }
 
-    pub async fn delete(database: &Database, id: &Uuid) -> Result<(), FilezError> {
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn delete_one(database: &Database, id: &Uuid) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
         diesel::delete(schema::access_policies::table.filter(schema::access_policies::id.eq(id)))
             .execute(&mut connection)

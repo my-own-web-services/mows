@@ -3,12 +3,13 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::jobs::{FilezJob, JobStatus, JobStatusDetails},
     state::ServerState,
-    types::{ApiResponse, ApiResponseStatus},
+    types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
-use tracing::{instrument, trace};
+use serde_valid::Validate;
+use tracing::trace;
 use utoipa::ToSchema;
 
 #[utoipa::path(
@@ -17,10 +18,19 @@ use utoipa::ToSchema;
     request_body = UpdateJobStatusRequestBody,
     description = "Updates the status of a job on the server",
     responses(
-        (status = 200, description = "Updated job status on the server", body = ApiResponse<UpdateJobStatusResponseBody>),
+        (
+            status = 200,
+            description = "Updated job status on the server",
+            body = ApiResponse<UpdateJobStatusResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal Server Error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
-#[instrument(skip(database))]
+#[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn update_job_status(
     Extension(AuthenticationInformation {
         requesting_app,
@@ -43,13 +53,13 @@ pub async fn update_job_status(
         FilezError::Unauthorized("Requesting app runtime instance ID is required".to_string()),
     )?;
 
-    let job = with_timing!(
+    let updated_job = with_timing!(
         FilezJob::update_status(
             &database,
             requesting_app.clone(),
             requesting_app_runtime_instance_id.clone(),
             request_body.new_status.clone(),
-            request_body.new_status_details.clone()
+            request_body.new_job_status_details.clone()
         )
         .await?,
         "Database operation to pickup a job",
@@ -57,17 +67,17 @@ pub async fn update_job_status(
     );
 
     trace!(
-        job = ?job,
+        updated_job = ?updated_job,
         requesting_app = ?requesting_app,
         requesting_app_runtime_instance_id = ?requesting_app_runtime_instance_id,
         new_status = ?request_body.new_status,
-        new_status_details = ?request_body.new_status_details,
-        "Job status updated: {:?} by app: {:?} with runtime instance ID: {:?}, new status: {:?}, new status details: {:?}",
-        job,
+        new_status_details = ?request_body.new_job_status_details,
+        "Job status updated for job: {:?} by app: {:?} with runtime instance ID: {:?}, new status: {:?}, new status details: {:?}",
+        updated_job,
         requesting_app,
         requesting_app_runtime_instance_id,
         request_body.new_status,
-        request_body.new_status_details
+        request_body.new_job_status_details
     );
 
     Ok((
@@ -75,18 +85,18 @@ pub async fn update_job_status(
         Json(ApiResponse {
             status: ApiResponseStatus::Success {},
             message: "Job status updated".to_string(),
-            data: Some(UpdateJobStatusResponseBody { job }),
+            data: Some(UpdateJobStatusResponseBody { updated_job }),
         }),
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateJobStatusRequestBody {
     pub new_status: JobStatus,
-    pub new_status_details: Option<JobStatusDetails>,
+    pub new_job_status_details: Option<JobStatusDetails>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateJobStatusResponseBody {
-    pub job: FilezJob,
+    pub updated_job: FilezJob,
 }

@@ -10,8 +10,7 @@ use filez_server_client::{
     reqwest::Body,
     tokio_util::codec::{BytesCodec, FramedRead},
     types::{
-        CreateFileVersionRequestBody, FileVersion, FileVersionIdentifier, FileVersionMetadata,
-        FilezJob, GetFileVersionsRequestBody, JobType, JobTypeCreatePreview,
+        CreateFileVersionRequestBody, FileVersionMetadata, FilezJob, JobType, JobTypeCreatePreview,
     },
 };
 use image::{imageops::FilterType, ImageFormat, ImageReader};
@@ -20,8 +19,6 @@ use serde::{Deserialize, Serialize};
 use thiserror_context::Context;
 use tokio::io::AsyncWriteExt;
 use tracing::{instrument, trace};
-use uuid::Uuid;
-
 pub mod config;
 pub mod errors;
 
@@ -92,21 +89,7 @@ async fn create_previews(
         .join(&job_execution_information.file_version_number.to_string())
         .join("target");
 
-    let file_version = filez_client
-        .get_file_versions(GetFileVersionsRequestBody {
-            versions: vec![FileVersionIdentifier {
-                file_id: job_execution_information.file_id,
-                version: job_execution_information.file_version_number,
-                app_id: Uuid::nil(),
-                app_path: "".to_string(),
-            }],
-        })
-        .await
-        .context("Failed to get file versions")?;
-
-    trace!("File version information: {:?}", file_version);
-
-    let mut stream = filez_client
+    let get_file_version_content_request = filez_client
         .get_file_version_content(
             job_execution_information.file_id,
             Some(job_execution_information.file_version_number),
@@ -116,8 +99,16 @@ async fn create_previews(
             0,
         )
         .await
-        .context("Failed to get file version content")?
-        .bytes_stream();
+        .context("Failed to get file version content")?;
+
+    let source_mime_type = get_file_version_content_request
+        .headers()
+        .get("Content-Type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream")
+        .to_string();
+
+    let mut stream = get_file_version_content_request.bytes_stream();
 
     // write the file by streaming it to the source path
     let mut file = tokio::fs::File::create(&source_path).await?;
@@ -138,13 +129,7 @@ async fn create_previews(
         &source_path,
         &target_path,
         &image_preview_config,
-        file_version
-            .data
-            .versions
-            .first()
-            .ok_or(InnerImageError::GenericError(anyhow::anyhow!(
-                "No file version found in response"
-            )))?,
+        &source_mime_type,
     )
     .await?;
 
@@ -154,15 +139,15 @@ async fn create_previews(
         filez_client
             .create_file_version(CreateFileVersionRequestBody {
                 file_id: job_execution_information.file_id,
-                version: Some(job_execution_information.file_version_number),
+                file_version_number: Some(job_execution_information.file_version_number),
                 app_path: Some(preview_file.app_path.clone()),
-                mime_type: preview_file.mime_type.clone(),
+                file_version_mime_type: preview_file.mime_type.clone(),
                 content_expected_sha256_digest: None,
-                size: std::fs::metadata(&preview_file.path)
+                file_version_size: std::fs::metadata(&preview_file.path)
                     .map_err(|e| InnerImageError::IoError(e.into()))?
                     .len(),
                 storage_quota_id: job_execution_information.storage_quota_id,
-                metadata: FileVersionMetadata {},
+                file_version_metadata: FileVersionMetadata {},
             })
             .await
             .context("Failed to create file version")?;
@@ -200,18 +185,16 @@ async fn create_basic_versions(
     source_path: &PathBuf,
     target_path: &PathBuf,
     config: &ImagePreviewConfig,
-    file_version: &FileVersion,
+    source_mime_type: &str,
 ) -> Result<Vec<PreviewFile>, ImageError> {
     let mut preview_files = Vec::new();
     let file_handle = std::fs::File::open(source_path)?;
     let buffered_reader = std::io::BufReader::new(file_handle);
     trace!("Opening image file: {:?}", source_path);
     let mut image_reader = ImageReader::new(buffered_reader);
-    image_reader.set_format(
-        ImageFormat::from_mime_type(file_version.mime_type.as_str()).ok_or(
-            InnerImageError::UnsupportedImageFormat(file_version.mime_type.clone()),
-        )?,
-    );
+    image_reader.set_format(ImageFormat::from_mime_type(source_mime_type).ok_or(
+        InnerImageError::UnsupportedImageFormat(source_mime_type.to_string()),
+    )?);
     let image = image_reader.decode()?;
 
     for width in &config.widths {

@@ -85,7 +85,15 @@ pub struct StorageQuota {
     pub modified_time: chrono::NaiveDateTime,
 }
 
+#[derive(AsChangeset, Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[diesel(table_name = schema::storage_quotas)]
+pub struct UpdateStorageQuotaChangeset {
+    #[diesel(column_name = quota_bytes)]
+    pub new_storage_quota_bytes: Option<i64>,
+}
+
 impl StorageQuota {
+    #[tracing::instrument(level = "trace")]
     pub fn new(
         owner_id: FilezUserId,
         name: String,
@@ -107,6 +115,7 @@ impl StorageQuota {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn create(
         database: &Database,
         storage_quota: &StorageQuota,
@@ -119,6 +128,7 @@ impl StorageQuota {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_storage_location_id(
         database: &Database,
         storage_quota_id: &StorageQuotaId,
@@ -132,6 +142,7 @@ impl StorageQuota {
         Ok(storage_location_id)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn check_quota(
         database: &Database,
         requesting_user_id: &FilezUserId,
@@ -193,6 +204,7 @@ impl StorageQuota {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn list_with_user_access(
         database: &Database,
         requesting_user_id: &FilezUserId,
@@ -261,33 +273,33 @@ impl StorageQuota {
         Ok(storage_quotas)
     }
 
-    pub async fn get(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_many_by_id(
         database: &Database,
-        storage_quota_id: StorageQuotaId,
-    ) -> Result<StorageQuota, FilezError> {
+        storage_quota_ids: Vec<StorageQuotaId>,
+    ) -> Result<Vec<StorageQuota>, FilezError> {
         let mut connection = database.get_connection().await?;
-        let storage_quota = schema::storage_quotas::table
-            .filter(schema::storage_quotas::id.eq(storage_quota_id))
+        let storage_quotas = schema::storage_quotas::table
+            .filter(schema::storage_quotas::id.eq_any(storage_quota_ids))
             .select(StorageQuota::as_select())
-            .first::<StorageQuota>(&mut connection)
+            .load::<StorageQuota>(&mut connection)
             .await?;
-        Ok(storage_quota)
+        Ok(storage_quotas)
     }
 
-    pub async fn update(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn update_one(
         database: &Database,
         storage_quota_id: StorageQuotaId,
-        quota_bytes: u64,
+        changeset: UpdateStorageQuotaChangeset,
     ) -> Result<StorageQuota, FilezError> {
         let mut connection = database.get_connection().await?;
-
-        let quota_bytes: i64 = quota_bytes.try_into()?;
 
         let updated_quota = diesel::update(
             schema::storage_quotas::table.filter(schema::storage_quotas::id.eq(storage_quota_id)),
         )
         .set((
-            schema::storage_quotas::quota_bytes.eq(quota_bytes),
+            changeset,
             schema::storage_quotas::modified_time.eq(get_current_timestamp()),
         ))
         .returning(StorageQuota::as_select())
@@ -296,7 +308,8 @@ impl StorageQuota {
         Ok(updated_quota)
     }
 
-    pub async fn delete(
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn delete_one(
         database: &Database,
         storage_quota_id: StorageQuotaId,
     ) -> Result<(), FilezError> {

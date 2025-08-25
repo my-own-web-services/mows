@@ -32,6 +32,7 @@ pub struct FilezServerConfig {
     pub listen_port: u16,
 }
 
+#[tracing::instrument(level = "trace")]
 pub fn from_env() -> anyhow::Result<FilezServerConfig> {
     let dev_allow_origins = match load_env("", "DEV_ALLOW_ORIGINS", false, true) {
         Ok(v) => v

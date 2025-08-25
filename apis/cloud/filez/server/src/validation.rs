@@ -1,33 +1,104 @@
+use std::ops::Deref;
+
+use axum::{
+    extract::{FromRequest, Request},
+    response::IntoResponse,
+};
+use mime_guess::get_mime_extensions_str;
+use serde::Serialize;
+
 use crate::errors::FilezError;
 
-pub fn validate_file_name(file_name: &str) -> Result<(), FilezError> {
-    if file_name.len() > 255 {
-        return Err(FilezError::ValidationError(
-            "File name must not exceed 255 characters".to_string(),
+#[tracing::instrument(level = "trace")]
+pub fn validate_optional_mime_type(
+    maybe_mime_type: &Option<String>,
+) -> Result<(), serde_valid::validation::Error> {
+    match maybe_mime_type {
+        Some(mime_type) => {
+            validate_mime_type(mime_type)?;
+            Ok(())
+        }
+        None => Ok(()),
+    }
+}
+
+#[tracing::instrument(level = "trace")]
+pub fn validate_mime_type(mime_type: &str) -> Result<(), serde_valid::validation::Error> {
+    if mime_type.is_empty() {
+        return Err(serde_valid::validation::Error::Custom(
+            "MIME type cannot be empty".to_string(),
         ));
     }
+    if !mime_type.contains('/') {
+        return Err(serde_valid::validation::Error::Custom(
+            "MIME type must contain a '/'".to_string(),
+        ));
+    }
+    if mime_type.starts_with('/') || mime_type.ends_with('/') {
+        return Err(serde_valid::validation::Error::Custom(
+            "MIME type cannot start or end with '/'".to_string(),
+        ));
+    }
+    if mime_type.contains(' ') {
+        return Err(serde_valid::validation::Error::Custom(
+            "MIME type cannot contain spaces".to_string(),
+        ));
+    }
+    if mime_type.contains('\n') || mime_type.contains('\r') {
+        return Err(serde_valid::validation::Error::Custom(
+            "MIME type cannot contain newlines".to_string(),
+        ));
+    }
+    if mime_type.chars().any(|c| !c.is_ascii() || c.is_control()) {
+        return Err(serde_valid::validation::Error::Custom(
+            "MIME type must be a valid ASCII string".to_string(),
+        ));
+    }
+
+    get_mime_extensions_str(mime_type)
+        .ok_or_else(|| serde_valid::validation::Error::Custom("Invalid MIME type".to_string()))?;
 
     Ok(())
 }
 
-pub fn validate_sha256_digest(digest: &str) -> Result<(), FilezError> {
-    if digest.len() != 64 {
-        return Err(FilezError::ValidationError(
-            "SHA256 digest must be exactly 64 characters long".to_string(),
-        ));
-    }
+// Code from: https://github.com/ya7010/axum_serde_valid
+pub struct Json<T>(pub T);
 
-    if !digest.chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(FilezError::ValidationError(
-            "SHA256 digest must contain only hexadecimal characters".to_string(),
-        ));
-    }
+impl<T> Deref for Json<T> {
+    type Target = T;
 
-    if digest != digest.to_lowercase() {
-        return Err(FilezError::ValidationError(
-            "SHA256 digest must be in lowercase".to_string(),
-        ));
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
+}
 
-    Ok(())
+impl<T> From<T> for Json<T> {
+    fn from(data: T) -> Self {
+        Json(data)
+    }
+}
+
+impl<T, S> FromRequest<S> for Json<T>
+where
+    T: serde::de::DeserializeOwned + serde_valid::Validate + 'static,
+    S: Send + Sync,
+{
+    type Rejection = FilezError;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let data: T = axum::Json::from_request(req, state).await?.0;
+
+        data.validate()?;
+
+        Ok(Json(data))
+    }
+}
+
+impl<T> IntoResponse for Json<T>
+where
+    T: Serialize,
+{
+    fn into_response(self) -> axum::response::Response {
+        axum::Json(self.0).into_response()
+    }
 }

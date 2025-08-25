@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
@@ -13,16 +11,25 @@ use crate::{
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[utoipa::path(
     post,
     path = "/api/files/get",
-    description = "Get files from the server",
+    description = "Get files from the server, NOT their content",
     responses(
-        (status = 200, description = "Got files from the server", body = ApiResponse<GetFilesResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Got files from the server",
+            body = ApiResponse<GetFilesResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -69,11 +76,11 @@ pub async fn get_files(
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct GetFilesRequestBody {
     pub file_ids: Vec<FilezFileId>,
 }
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct GetFilesResponseBody {
-    pub files: HashMap<FilezFileId, FilezFile>,
+    pub files: Vec<FilezFile>,
 }

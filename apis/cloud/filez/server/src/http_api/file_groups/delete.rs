@@ -1,7 +1,8 @@
 use axum::{
     extract::{Path, State},
-    Extension, Json,
+    Extension,
 };
+use crate::validation::Json;
 
 use crate::{
     errors::FilezError,
@@ -18,9 +19,10 @@ use crate::{
 #[utoipa::path(
     delete,
     path = "/api/file_groups/delete/{file_group_id}",
+    description = "Delete a file group by its ID",
     params(
         (
-            "file_group_id" = Uuid,
+            "file_group_id" = FileGroupId,
             Path,
             description = "The ID of the file group to delete"
         ),
@@ -28,7 +30,7 @@ use crate::{
     responses(
         (
             status = 200,
-            description = "Deletes a file group",
+            description = "Deleted the file group",
             body = ApiResponse<String>
         ),
         (
@@ -60,7 +62,7 @@ pub async fn delete_file_group(
     );
 
     with_timing!(
-        FileGroup::delete(&database, &file_group_id).await?,
+        FileGroup::delete_one(&database, &file_group_id).await?,
         "Database operation to delete file group",
         timing
     );

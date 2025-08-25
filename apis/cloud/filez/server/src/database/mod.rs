@@ -16,12 +16,14 @@ pub struct Database {
     pub pool: Option<Pool<diesel_async::AsyncPgConnection>>,
 }
 
+pub type DatabaseConnection = Object<AsyncPgConnection>;
+
 impl Database {
     pub async fn new(pool: Option<Pool<diesel_async::AsyncPgConnection>>) -> Self {
         Self { pool }
     }
 
-    pub async fn get_connection(&self) -> Result<Object<AsyncPgConnection>, FilezError> {
+    pub async fn get_connection(&self) -> Result<DatabaseConnection, FilezError> {
         match &self.pool {
             Some(pool) => pool.get().await.map_err(FilezError::from),
             None => Err(FilezError::DatabasePoolNotInitialized),

@@ -1,5 +1,7 @@
-use axum::{extract::State, Extension, Json};
+use axum::{extract::State, Extension};
+use crate::validation::Json;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 use crate::{
@@ -15,9 +17,18 @@ use crate::{
     post,
     path = "/api/access_policies/list",
     request_body = ListAccessPoliciesRequestBody,
+    description = "List access policies from the server",
     responses(
-        (status = 200, description = "Lists access policies", body = ApiResponse<ListAccessPoliciesResponseBody>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Listed access policies",
+            body = ApiResponse<ListAccessPoliciesResponseBody>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -49,7 +60,7 @@ pub async fn list_access_policies(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListAccessPoliciesRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -57,14 +68,14 @@ pub struct ListAccessPoliciesRequestBody {
     pub sort_order: Option<SortDirection>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct ListAccessPoliciesResponseBody {
-    pub access_policies: Vec<AccessPolicy>,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub enum ListAccessPoliciesSortBy {
     CreatedTime,
     ModifiedTime,
     Name,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
+pub struct ListAccessPoliciesResponseBody {
+    pub access_policies: Vec<AccessPolicy>,
 }

@@ -3,7 +3,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        file_versions::{FileVersion, FileVersionIdentifier, FileVersionMetadata},
+        file_versions::{FileVersion, FileVersionId, UpdateFileVersionChangeset},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -11,6 +11,7 @@ use crate::{
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -18,28 +19,55 @@ use uuid::Uuid;
     post,
     path = "/api/file_versions/update",
     request_body = UpdateFileVersionsRequestBody,
-    description = "Update file versions in the database",
+    description = "Updates a file version in the database",
     responses(
-        (status = 200, description = "Updated file versions on the server", body = ApiResponse<UpdateFileVersionsResponseBody>),
-        (status = 400, description = "Bad Request", body = ApiResponse<EmptyApiResponse>),
-        (status = 401, description = "Unauthorized", body = ApiResponse<EmptyApiResponse>),
-        (status = 403, description = "Forbidden", body = ApiResponse<EmptyApiResponse>),
-        (status = 404, description = "Not Found", body = ApiResponse<EmptyApiResponse>),
-        (status = 500, description = "Internal Server Error", body = ApiResponse<EmptyApiResponse>)
+        (
+            status = 200,
+            description = "Updated the file version on the server",
+            body = ApiResponse<UpdateFileVersionsResponseBody>
+        ),
+        (
+            status = 400,
+            description = "Bad Request",
+            body = ApiResponse<EmptyApiResponse>
+        ),
+        (
+            status = 401,
+            description = "Unauthorized",
+            body = ApiResponse<EmptyApiResponse>
+        ),
+        (
+            status = 403,
+            description = "Forbidden",
+            body = ApiResponse<EmptyApiResponse>
+        ),
+        (
+            status = 404,
+            description = "Not Found",
+            body = ApiResponse<EmptyApiResponse>
+        ),
+        (
+            status = 500,
+            description = "Internal Server Error",
+            body = ApiResponse<EmptyApiResponse>
+        )
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
-pub async fn update_file_versions(
+pub async fn update_file_version(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<UpdateFileVersionsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
-    let file_ids: Vec<Uuid> = request_body
-        .versions
-        .iter()
-        .map(|v| v.identifier.file_id.into())
-        .collect();
+    let file_versions = with_timing!(
+        FileVersion::get_many_by_file_version_id(&database, &vec![request_body.file_version_id])
+            .await?,
+        "Database operation to get file versions",
+        timing
+    );
+
+    let file_ids: Vec<Uuid> = file_versions.iter().map(|v| v.file_id.into()).collect();
 
     with_timing!(
         AccessPolicy::check(
@@ -55,8 +83,13 @@ pub async fn update_file_versions(
         timing
     );
 
-    let updated_versions = with_timing!(
-        FileVersion::update_many(&database, &request_body.versions).await?,
+    let updated_file_version = with_timing!(
+        FileVersion::update_one(
+            &database,
+            &request_body.file_version_id,
+            &request_body.changeset,
+        )
+        .await?,
         "Database operation to update file versions",
         timing
     );
@@ -67,26 +100,19 @@ pub async fn update_file_versions(
             status: ApiResponseStatus::Success {},
             message: "Updated File Versions".to_string(),
             data: Some(UpdateFileVersionsResponseBody {
-                versions: updated_versions,
+                updated_file_version,
             }),
         }),
     ))
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateFileVersionsRequestBody {
-    pub versions: Vec<UpdateFileVersion>,
+    pub file_version_id: FileVersionId,
+    pub changeset: UpdateFileVersionChangeset,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateFileVersionsResponseBody {
-    pub versions: Vec<FileVersion>,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct UpdateFileVersion {
-    pub identifier: FileVersionIdentifier,
-    pub new_metadata: Option<FileVersionMetadata>,
-    #[schema(max_length = 64, min_length = 64, pattern = "^[a-f0-9]{64}$")]
-    pub new_content_expected_sha256_digest: Option<String>,
+    pub updated_file_version: FileVersion,
 }

@@ -1,3 +1,4 @@
+pub mod background_tasks;
 pub mod config;
 pub mod controller;
 pub mod database;
@@ -5,7 +6,6 @@ pub mod errors;
 pub mod http_api;
 pub mod macros;
 pub mod models;
-pub mod previews;
 pub mod schema;
 pub mod state;
 pub mod storage;

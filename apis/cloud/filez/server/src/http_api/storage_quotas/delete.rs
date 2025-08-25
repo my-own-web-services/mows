@@ -1,5 +1,4 @@
-use axum::{extract::State, Extension, Json};
-use utoipa::ToSchema;
+use axum::{extract::{Path, State}, Extension, Json};
 
 use crate::{
     errors::FilezError,
@@ -14,12 +13,27 @@ use crate::{
 };
 
 #[utoipa::path(
-    post,
-    path = "/api/storage_quotas/delete",
-    request_body = DeleteStorageQuotaRequestBody,
+    delete,
+    path = "/api/storage_quotas/delete/{storage_quota_id}",
+    description = "Delete a storage quota by its ID",
+    params(
+        (
+            "storage_quota_id" = StorageQuotaId,
+            Path,
+            description = "The ID of the storage quota to delete"
+        ),
+    ),    
     responses(
-        (status = 200, description = "Deletes a storage quota", body = ApiResponse<EmptyApiResponse>),
-        (status = 500, description = "Internal server error", body = ApiResponse<EmptyApiResponse>),
+        (
+            status = 200,
+            description = "Deleted the storage quota",
+            body = ApiResponse<EmptyApiResponse>
+        ),
+        (
+            status = 500,
+            description = "Internal server error",
+            body = ApiResponse<EmptyApiResponse>
+        ),
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
@@ -27,14 +41,14 @@ pub async fn delete_storage_quota(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(request_body): Json<DeleteStorageQuotaRequestBody>,
+    Path(storage_quota_id): Path<StorageQuotaId>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
             &authentication_information,
             AccessPolicyResourceType::StorageQuota,
-            Some(&[request_body.storage_quota_id.into()]),
+            Some(&[storage_quota_id.into()]),
             AccessPolicyAction::StorageQuotasDelete,
         )
         .await?
@@ -44,7 +58,7 @@ pub async fn delete_storage_quota(
     );
 
     with_timing!(
-        StorageQuota::delete(&database, request_body.storage_quota_id).await?,
+        StorageQuota::delete_one(&database, storage_quota_id).await?,
         "Database operation to delete storage quota",
         timing
     );
@@ -56,7 +70,3 @@ pub async fn delete_storage_quota(
     }))
 }
 
-#[derive(serde::Serialize, serde::Deserialize, ToSchema, Clone, Debug)]
-pub struct DeleteStorageQuotaRequestBody {
-    pub storage_quota_id: StorageQuotaId,
-}

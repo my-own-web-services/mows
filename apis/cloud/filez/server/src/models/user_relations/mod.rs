@@ -55,7 +55,8 @@ pub enum UserRelationStatus {
 }
 
 impl UserRelation {
-    pub fn new(user_id: FilezUserId, friend_id: FilezUserId, status: UserRelationStatus) -> Self {
+    #[tracing::instrument(level = "trace")]
+    fn new(user_id: FilezUserId, friend_id: FilezUserId, status: UserRelationStatus) -> Self {
         Self {
             user_id,
             friend_id,
@@ -65,6 +66,7 @@ impl UserRelation {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn create(
         database: &Database,
         user_id: FilezUserId,
@@ -72,16 +74,17 @@ impl UserRelation {
         status: UserRelationStatus,
     ) -> Result<Self, crate::errors::FilezError> {
         let mut connection = database.get_connection().await?;
-        let relation = Self::new(user_id, friend_id, status);
+        let new_relation = Self::new(user_id, friend_id, status);
 
-        diesel::insert_into(crate::schema::user_relations::table)
-            .values(&relation)
-            .execute(&mut connection)
+        let created_relation = diesel::insert_into(crate::schema::user_relations::table)
+            .values(&new_relation)
+            .get_result(&mut connection)
             .await?;
 
-        Ok(relation)
+        Ok(created_relation)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn update_status(
         database: &Database,
         user_id: FilezUserId,

@@ -2,6 +2,7 @@ use anyhow::Context;
 use axum::http::{header::CONTENT_SECURITY_POLICY, request::Parts, HeaderValue};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use filez_server_lib::{
+    background_tasks::run_background_tasks,
     config::config,
     controller,
     database::Database,
@@ -76,7 +77,7 @@ async fn main() -> Result<(), anyhow::Error> {
             http_api::file_versions::delete::delete_file_versions
         ))
         .routes(routes!(
-            http_api::file_versions::update::update_file_versions
+            http_api::file_versions::update::update_file_version
         ))
         //  content
         .routes(routes!(
@@ -113,7 +114,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(http_api::users::list::list_users))
         // USER GROUPS
         .routes(routes!(http_api::user_groups::create::create_user_group))
-        .routes(routes!(http_api::user_groups::get::get_user_group))
+        .routes(routes!(http_api::user_groups::get::get_user_groups))
         .routes(routes!(http_api::user_groups::update::update_user_group))
         .routes(routes!(http_api::user_groups::delete::delete_user_group))
         .routes(routes!(http_api::user_groups::list::list_user_groups))
@@ -144,7 +145,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(
             http_api::storage_quotas::create::create_storage_quota
         ))
-        .routes(routes!(http_api::storage_quotas::get::get_storage_quota))
+        .routes(routes!(http_api::storage_quotas::get::get_storage_quotas))
         .routes(routes!(
             http_api::storage_quotas::update::update_storage_quota
         ))
@@ -237,6 +238,8 @@ async fn main() -> Result<(), anyhow::Error> {
         router.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .with_graceful_shutdown(shutdown_signal());
+
+    run_background_tasks(&server_state);
 
     tokio::join!(controller, server).1?;
 

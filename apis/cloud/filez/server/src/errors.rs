@@ -9,20 +9,16 @@ use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::{Debug, Formatter};
-use tracing::instrument;
 use utoipa::ToSchema;
-
-impl serde::Serialize for FilezError {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::ser::Serializer,
-    {
-        serializer.serialize_str(self.to_string().as_ref())
-    }
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum FilezError {
+    #[error("JSON Rejection Error: {0}")]
+    JsonRejectionError(#[from] axum::extract::rejection::JsonRejection),
+
+    #[error("Validation Error: {0}")]
+    ValidationError(#[from] serde_valid::validation::Errors),
+
     #[error("Failed to convert number: {0}")]
     TryFromIntError(#[from] std::num::TryFromIntError),
 
@@ -43,9 +39,6 @@ pub enum FilezError {
 
     #[error("Parse Error: {0}")]
     ParseError(String),
-
-    #[error("Validation Error: {0}")]
-    ValidationError(String),
 
     #[error("Serde JSON Error: {0}")]
     SerdeJsonError(#[from] serde_json::Error),
@@ -137,7 +130,7 @@ pub struct StorageQuotaExceededBody {
 
 // TODO this can be improved
 impl IntoResponse for FilezError {
-    #[instrument]
+    #[tracing::instrument(level = "trace")]
     fn into_response(self) -> axum::response::Response {
         let (status, data, error_name) = match &self {
             FilezError::TryFromIntError(_) => (
@@ -299,10 +292,16 @@ impl IntoResponse for FilezError {
                 None,
                 "ResourceAuthInfoError".to_string(),
             ),
-            FilezError::ValidationError(_) => (
+
+            FilezError::ValidationError(e) => (
+                axum::http::StatusCode::BAD_REQUEST,
+                serde_json::to_value(e).ok(),
+                "ValidationError".to_string(),
+            ),
+            FilezError::JsonRejectionError(_) => (
                 axum::http::StatusCode::BAD_REQUEST,
                 None,
-                "ValidationError".to_string(),
+                "JsonRejectionError".to_string(),
             ),
             FilezError::IntrospectionGuardError(introspection_guard_error) => {
                 match introspection_guard_error {
@@ -322,7 +321,7 @@ impl IntoResponse for FilezError {
 
         let body: ApiResponse<Value> = ApiResponse {
             status: ApiResponseStatus::Error(error_name),
-            message: format!("{:?}", self),
+            message: self.to_string(),
             data,
         };
         (status, axum::Json(body)).into_response()

@@ -9,14 +9,24 @@ use crate::{
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use utoipa::ToSchema;
 
 #[utoipa::path(
     get,
     path = "/api/health",
+    description = "Get the health status of the service",
     responses(
-        (status = 200, description = "Service healthy", body = ApiResponse<HealthResBody>),
-        (status = 503, description = "Service unavailable", body = ApiResponse<HealthResBody>),
+        (
+            status = 200,
+            description = "Service healthy",
+            body = ApiResponse<HealthResBody>
+        ),
+        (
+            status = 503,
+            description = "Service unavailable",
+            body = ApiResponse<HealthResBody>
+        ),
     )
 )]
 #[tracing::instrument(skip(database), level = "trace")]
@@ -107,7 +117,7 @@ pub async fn get_health(
     ));
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct HealthResBody {
     pub all_healthy: bool,
     pub database: HealthStatus,
@@ -116,7 +126,7 @@ pub struct HealthResBody {
     pub storage_locations: HashMap<StorageLocationId, HealthStatus>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct HealthStatus {
     pub healthy: bool,
     pub response: String,
