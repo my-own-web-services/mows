@@ -1,3 +1,4 @@
+use crate::validation::Json;
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
@@ -9,7 +10,6 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
-use crate::validation::Json;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension};
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
@@ -44,7 +44,7 @@ pub async fn list_apps(
         AccessPolicy::check(
             &database,
             &authentication_information,
-            AccessPolicyResourceType::App,
+            AccessPolicyResourceType::MowsApp,
             None,
             AccessPolicyAction::FilezAppsList,
         )
@@ -72,6 +72,7 @@ pub async fn list_apps(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListAppsRequestBody {}
+
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListAppsResponseBody {
     pub apps: Vec<MowsApp>,

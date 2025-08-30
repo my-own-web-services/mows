@@ -38,8 +38,8 @@ pub fn generate_client_function(
     let result_type = get_result_type(&operation.responses)?;
 
     let function_top_line = format!(
-        "#[tracing::instrument]
-pub async fn {}(&self{} {}) -> Result<{}, ApiClientError> {{",
+        "#[tracing::instrument(level = \"trace\")]
+    pub async fn {}(&self{} {}) -> Result<{}, ApiClientError> {{",
         operation
             .operation_id
             .clone()

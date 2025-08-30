@@ -19,7 +19,7 @@ use uuid::Uuid;
     post,
     path = "/api/file_versions/get",
     request_body = GetFileVersionsRequestBody,
-    description = "Get file versions from the server",
+    description = "Get file versions from the server for the given file version IDs",
     responses(
         (
             status = 200,

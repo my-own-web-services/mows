@@ -21,7 +21,7 @@ use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
-use tracing::debug;
+use tracing::trace;
 use utoipa::ToSchema;
 
 use super::{files::FilezFile, storage_locations::StorageLocation, storage_quotas::StorageQuota};
@@ -289,12 +289,12 @@ impl FileVersion {
 
         let file = FilezFile::get_one_by_id(database, self.file_id).await?;
 
-        // TODO update the existing_content_bytes field in the database
+        let file_version_identifier = self.get_file_version_identifier()?;
 
         storage_location
             .set_content(
                 storage_locations_provider_state,
-                &self.get_file_version_identifier()?,
+                &file_version_identifier,
                 timing,
                 request,
                 &file.mime_type,
@@ -303,46 +303,67 @@ impl FileVersion {
             )
             .await?;
 
-        // once the last bytes are written, we verify the content and update the content_valid flag
+        let stored_file_size: i64 = storage_location
+            .get_file_size(
+                storage_locations_provider_state,
+                &file_version_identifier,
+                timing,
+            )
+            .await?
+            .try_into()?;
 
+        // update the existing_content_bytes field in the database
+        let mut connection = database.get_connection().await?;
+        diesel::update(filter_file_version_by_identifier!(file_version_identifier))
+            .set((
+                file_versions::existing_content_bytes.eq(stored_file_size),
+                file_versions::modified_time.eq(get_current_timestamp()),
+            ))
+            .execute(&mut connection)
+            .await?;
+
+        // once the last bytes are written, we verify the content and update the content_valid flag
         let file_version_size: u64 = self.size.try_into()?;
 
-        debug!(
+        trace!(
             "Got offset: {}, length: {}, file_version_size: {} for file version: {:?}",
-            offset, length, file_version_size, self
+            offset,
+            length,
+            file_version_size,
+            self
         );
 
         if offset + length == file_version_size {
             if let Some(expected_sha256_digest) = &self.content_expected_sha256_digest {
-                debug!(
+                trace!(
                     "Verifying content for file version: {:?} with expected digest: {}",
-                    self, expected_sha256_digest
+                    self,
+                    expected_sha256_digest
                 );
 
                 let content_digest = storage_location
                     .get_content_sha256_digest(
                         storage_locations_provider_state,
-                        &self.get_file_version_identifier()?,
+                        &file_version_identifier,
                         timing,
                     )
                     .await?;
 
-                debug!(
+                trace!(
                     "Content digest for file version: {:?} is: {}",
-                    self, content_digest
+                    self,
+                    content_digest
                 );
 
                 if &content_digest == expected_sha256_digest {
                     let mut connection = database.get_connection().await?;
-                    diesel::update(filter_file_version_by_identifier!(
-                        self.get_file_version_identifier()?
-                    ))
-                    .set((
-                        file_versions::content_valid.eq(true),
-                        file_versions::modified_time.eq(get_current_timestamp()),
-                    ))
-                    .execute(&mut connection)
-                    .await?;
+                    diesel::update(filter_file_version_by_identifier!(file_version_identifier))
+                        .set((
+                            file_versions::content_valid.eq(true),
+                            file_versions::modified_time.eq(get_current_timestamp()),
+                        ))
+                        .execute(&mut connection)
+                        .await?;
                 } else {
                     return Err(FilezError::FileVersionContentDigestMismatch {
                         expected: expected_sha256_digest.clone(),
@@ -411,9 +432,14 @@ impl FileVersion {
         file_version_to_delete: &FileVersion,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), FilezError> {
-        file_version_to_delete
-            .delete_content(storage_locations_provider_state, database, timing)
-            .await?;
+        if file_version_to_delete
+            .existing_content_bytes
+            .is_some_and(|b| b > 0)
+        {
+            file_version_to_delete
+                .delete_content(storage_locations_provider_state, database, timing)
+                .await?;
+        }
 
         with_timing!(
             file_version_to_delete

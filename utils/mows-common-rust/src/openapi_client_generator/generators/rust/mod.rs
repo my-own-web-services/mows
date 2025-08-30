@@ -89,8 +89,7 @@ pub use futures;
             .join("\n\n    ");
 
         let client_content = format!(
-            r#"use reqwest::Client;
-use crate::types::*;
+            r#"use crate::types::*;
 use uuid::Uuid;
 use reqwest::Url;
 use reqwest::header::HeaderMap;

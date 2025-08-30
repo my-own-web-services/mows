@@ -18,7 +18,7 @@ use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
 use thiserror_context::Context;
 use tokio::io::AsyncWriteExt;
-use tracing::{instrument, trace};
+use tracing::trace;
 pub mod config;
 pub mod errors;
 
@@ -50,7 +50,7 @@ pub struct PreviewFile {
     pub app_path: String,
 }
 
-#[instrument]
+#[tracing::instrument(level = "trace")]
 pub async fn handle_job(job: FilezJob, filez_client: &ApiClient) -> Result<(), ImageError> {
     match job.execution_information.job_type {
         JobType::CreatePreview(create_preview_infos) => {
@@ -67,7 +67,7 @@ pub async fn handle_job(job: FilezJob, filez_client: &ApiClient) -> Result<(), I
     }
 }
 
-#[instrument]
+#[tracing::instrument(level = "trace")]
 async fn create_previews(
     image_preview_config: ImagePreviewConfig,
     job_execution_information: &JobTypeCreatePreview,
@@ -180,7 +180,7 @@ async fn create_previews(
     Ok(())
 }
 
-#[instrument]
+#[tracing::instrument(level = "trace")]
 async fn create_basic_versions(
     source_path: &PathBuf,
     target_path: &PathBuf,

@@ -8,7 +8,7 @@ import {
     FileGroupType,
     StorageQuotaSubjectType
 } from "../../api-client";
-import { createExampleUser, getBlobSha256Digest, impersonateUser } from "../../utils";
+import { createExampleUser, defaultAppId, getBlobSha256Digest, impersonateUser } from "../../utils";
 
 export default async (filezClient: Api<unknown>) => {
     await filezClient.api.listAccessPolicies({});
@@ -377,7 +377,7 @@ export default async (filezClient: Api<unknown>) => {
 
     // List files in the first file group
     const listFilesInGroup1 = (
-        await filezClient.api.listFilesByFileGroups(
+        await filezClient.api.listFilesInFileGroup(
             {
                 file_group_id: aliceFileGroup1.id
             },
@@ -393,7 +393,7 @@ export default async (filezClient: Api<unknown>) => {
     );
 
     const listFilesInGroup2 = (
-        await filezClient.api.listFilesByFileGroups(
+        await filezClient.api.listFilesInFileGroup(
             {
                 file_group_id: aliceFileGroup2.id
             },
@@ -410,7 +410,7 @@ export default async (filezClient: Api<unknown>) => {
 
     // try to list files in the first file group as Bob
     const bobListFilesInGroup1BeforePolicyCreation = await filezClient.api
-        .listFilesByFileGroups(
+        .listFilesInFileGroup(
             {
                 file_group_id: aliceFileGroup1.id
             },
@@ -443,7 +443,7 @@ export default async (filezClient: Api<unknown>) => {
                 access_policy_resource_type: AccessPolicyResourceType.FileGroup,
                 resource_id: aliceFileGroup1.id,
                 access_policy_effect: AccessPolicyEffect.Allow,
-                context_app_ids: ["00000000-0000-0000-0000-000000000000"],
+                context_app_ids: [defaultAppId],
                 access_policy_name: "Allow Bob to list files in Alice's first file group"
             },
             impersonateAliceParams
@@ -458,7 +458,7 @@ export default async (filezClient: Api<unknown>) => {
 
     // Try to list files in Alice's first file group
     const bobListFilesInGroup1 = (
-        await filezClient.api.listFilesByFileGroups(
+        await filezClient.api.listFilesInFileGroup(
             {
                 file_group_id: aliceFileGroup1.id
             },
@@ -493,7 +493,7 @@ export default async (filezClient: Api<unknown>) => {
 
     // Try to list files in Alice's second file group (should fail)
     const bobListFilesInGroup2 = await filezClient.api
-        .listFilesByFileGroups(
+        .listFilesInFileGroup(
             {
                 file_group_id: aliceFileGroup2.id
             },

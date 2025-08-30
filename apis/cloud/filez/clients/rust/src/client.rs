@@ -1,4 +1,3 @@
-use reqwest::Client;
 use crate::types::*;
 use uuid::Uuid;
 use reqwest::Url;
@@ -117,8 +116,8 @@ impl ApiClient {
 
 
 
-    #[tracing::instrument]
-pub async fn check_resource_access(&self, request_body: CheckResourceAccessRequestBody) -> Result<ApiResponseCheckResourceAccessResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn check_resource_access(&self, request_body: CheckResourceAccessRequestBody) -> Result<ApiResponseCheckResourceAccessResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/check", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -133,8 +132,8 @@ pub async fn check_resource_access(&self, request_body: CheckResourceAccessReque
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn create_access_policy(&self, request_body: CreateAccessPolicyRequestBody) -> Result<ApiResponseCreateAccessPolicyResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn create_access_policy(&self, request_body: CreateAccessPolicyRequestBody) -> Result<ApiResponseCreateAccessPolicyResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -149,8 +148,8 @@ pub async fn create_access_policy(&self, request_body: CreateAccessPolicyRequest
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn delete_access_policy(&self, access_policy_id: AccessPolicyId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn delete_access_policy(&self, access_policy_id: AccessPolicyId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/delete/{access_policy_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -165,8 +164,8 @@ pub async fn delete_access_policy(&self, access_policy_id: AccessPolicyId) -> Re
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_access_policy(&self, request_body: GetAccessPolicyRequestBody) -> Result<ApiResponseGetAccessPolicyResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_access_policy(&self, request_body: GetAccessPolicyRequestBody) -> Result<ApiResponseGetAccessPolicyResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -181,8 +180,8 @@ pub async fn get_access_policy(&self, request_body: GetAccessPolicyRequestBody) 
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_access_policies(&self, request_body: ListAccessPoliciesRequestBody) -> Result<ApiResponseListAccessPoliciesResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_access_policies(&self, request_body: ListAccessPoliciesRequestBody) -> Result<ApiResponseListAccessPoliciesResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/list", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -197,8 +196,8 @@ pub async fn list_access_policies(&self, request_body: ListAccessPoliciesRequest
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_access_policy(&self, request_body: UpdateAccessPolicyRequestBody) -> Result<ApiResponseUpdateAccessPolicyResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_access_policy(&self, request_body: UpdateAccessPolicyRequestBody) -> Result<ApiResponseUpdateAccessPolicyResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/access_policies/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -213,8 +212,8 @@ pub async fn update_access_policy(&self, request_body: UpdateAccessPolicyRequest
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_apps(&self ) -> Result<ApiResponseGetAppsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_apps(&self ) -> Result<ApiResponseGetAppsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/apps/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -229,8 +228,8 @@ pub async fn get_apps(&self ) -> Result<ApiResponseGetAppsResponseBody, ApiClien
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_apps(&self, request_body: ListAppsRequestBody) -> Result<ApiResponseListAppsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_apps(&self, request_body: ListAppsRequestBody) -> Result<ApiResponseListAppsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/apps/list", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -245,8 +244,24 @@ pub async fn list_apps(&self, request_body: ListAppsRequestBody) -> Result<ApiRe
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn create_file_group(&self, request_body: CreateFileGroupRequestBody) -> Result<ApiResponseCreateFileGroupResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn reset_database(&self, request_body: DevResetDatabaseRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        
+        let full_url = format!("{}/api/dev/reset_database", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+        
+        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            return Err(ApiClientError::ApiError(response.text().await?));
+        }
+            
+        let response = response.json().await?;
+        Ok(response)
+    }
+
+    #[tracing::instrument(level = "trace")]
+    pub async fn create_file_group(&self, request_body: CreateFileGroupRequestBody) -> Result<ApiResponseCreateFileGroupResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -261,8 +276,8 @@ pub async fn create_file_group(&self, request_body: CreateFileGroupRequestBody) 
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn delete_file_group(&self, file_group_id: FileGroupId) -> Result<ApiResponseString, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn delete_file_group(&self, file_group_id: FileGroupId) -> Result<ApiResponseString, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/delete/{file_group_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -277,8 +292,8 @@ pub async fn delete_file_group(&self, file_group_id: FileGroupId) -> Result<ApiR
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_file_group(&self, request_body: GetFileGroupsRequestBody) -> Result<ApiResponseGetFileGroupsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_file_group(&self, request_body: GetFileGroupsRequestBody) -> Result<ApiResponseGetFileGroupsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -293,8 +308,8 @@ pub async fn get_file_group(&self, request_body: GetFileGroupsRequestBody) -> Re
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_file_groups(&self, request_body: ListFileGroupsRequestBody) -> Result<ApiResponseListFileGroupsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_file_groups(&self, request_body: ListFileGroupsRequestBody) -> Result<ApiResponseListFileGroupsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/list", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -309,8 +324,8 @@ pub async fn list_file_groups(&self, request_body: ListFileGroupsRequestBody) ->
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_files_by_file_groups(&self, request_body: ListFilesRequestBody) -> Result<ApiResponseListFilesResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_files_in_file_group(&self, request_body: ListFilesRequestBody) -> Result<ApiResponseListFilesResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/list_files", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -325,8 +340,8 @@ pub async fn list_files_by_file_groups(&self, request_body: ListFilesRequestBody
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_file_group(&self, request_body: UpdateFileGroupRequestBody) -> Result<ApiResponseUpdateFileGroupResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_file_group(&self, request_body: UpdateFileGroupRequestBody) -> Result<ApiResponseUpdateFileGroupResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -341,8 +356,8 @@ pub async fn update_file_group(&self, request_body: UpdateFileGroupRequestBody) 
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_file_group_members(&self, request_body: UpdateFileGroupMembersRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_file_group_members(&self, request_body: UpdateFileGroupMembersRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/file_groups/update_members", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -357,8 +372,8 @@ pub async fn update_file_group_members(&self, request_body: UpdateFileGroupMembe
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_file_version_content(&self, file_id: Uuid, version: Option<u32>, app_id: Option<String>, app_path: Option<String>, disposition: bool, cache: u64) -> Result<reqwest::Response, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_file_version_content(&self, file_id: Uuid, version: Option<u32>, app_id: Option<String>, app_path: Option<String>, disposition: bool, cache: u64) -> Result<reqwest::Response, ApiClientError> {
         let version = OptionAsNull(version);
         let app_id = OptionAsNull(app_id);
         let app_path = OptionAsNull(app_path);
@@ -375,8 +390,8 @@ pub async fn get_file_version_content(&self, file_id: Uuid, version: Option<u32>
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn file_versions_content_tus_head(&self, file_id: Uuid, version: Option<u32>, app_id: Option<String>, app_path: Option<String>) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn file_versions_content_tus_head(&self, file_id: Uuid, version: Option<u32>, app_id: Option<String>, app_path: Option<String>) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let version = OptionAsNull(version);
         let app_id = OptionAsNull(app_id);
         let app_path = OptionAsNull(app_path);
@@ -393,8 +408,8 @@ pub async fn file_versions_content_tus_head(&self, file_id: Uuid, version: Optio
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn file_versions_content_tus_patch(&self, file_id: Uuid, version: Option<u32>, app_path: Option<String>, request_body: reqwest::Body, upload_offset: u64, content_length: u64) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn file_versions_content_tus_patch(&self, file_id: Uuid, version: Option<u32>, app_path: Option<String>, request_body: reqwest::Body, upload_offset: u64, content_length: u64) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let version = OptionAsNull(version);
         let app_path = OptionAsNull(app_path);
         let full_url = format!("{}/api/file_versions/content/tus/{file_id}/{version}/{app_path}", self.base_url);
@@ -410,8 +425,8 @@ pub async fn file_versions_content_tus_patch(&self, file_id: Uuid, version: Opti
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn create_file_version(&self, request_body: CreateFileVersionRequestBody) -> Result<ApiResponseCreateFileVersionResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn create_file_version(&self, request_body: CreateFileVersionRequestBody) -> Result<ApiResponseCreateFileVersionResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_versions/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -426,8 +441,8 @@ pub async fn create_file_version(&self, request_body: CreateFileVersionRequestBo
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn delete_file_versions(&self, file_version_id: FileVersionId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn delete_file_versions(&self, file_version_id: FileVersionId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/file_versions/delete/{file_version_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -442,8 +457,8 @@ pub async fn delete_file_versions(&self, file_version_id: FileVersionId) -> Resu
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_file_versions(&self, request_body: GetFileVersionsRequestBody) -> Result<ApiResponseGetFileVersionsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_file_versions(&self, request_body: GetFileVersionsRequestBody) -> Result<ApiResponseGetFileVersionsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_versions/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -458,8 +473,8 @@ pub async fn get_file_versions(&self, request_body: GetFileVersionsRequestBody) 
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_file_version(&self, request_body: UpdateFileVersionsRequestBody) -> Result<ApiResponseUpdateFileVersionsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_file_version(&self, request_body: UpdateFileVersionsRequestBody) -> Result<ApiResponseUpdateFileVersionsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/file_versions/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -474,8 +489,8 @@ pub async fn update_file_version(&self, request_body: UpdateFileVersionsRequestB
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn create_file(&self, request_body: CreateFileRequestBody) -> Result<ApiResponseCreateFileResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn create_file(&self, request_body: CreateFileRequestBody) -> Result<ApiResponseCreateFileResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/files/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -490,8 +505,8 @@ pub async fn create_file(&self, request_body: CreateFileRequestBody) -> Result<A
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn delete_file(&self, file_id: FilezFileId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn delete_file(&self, file_id: FilezFileId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/files/delete/{file_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -506,8 +521,8 @@ pub async fn delete_file(&self, file_id: FilezFileId) -> Result<ApiResponseEmpty
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_files(&self ) -> Result<ApiResponseGetFilesResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_files(&self ) -> Result<ApiResponseGetFilesResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/files/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -522,8 +537,8 @@ pub async fn get_files(&self ) -> Result<ApiResponseGetFilesResponseBody, ApiCli
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_file(&self, request_body: UpdateFileRequestBody) -> Result<ApiResponseUpdateFileResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_file(&self, request_body: UpdateFileRequestBody) -> Result<ApiResponseUpdateFileResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/files/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -538,8 +553,8 @@ pub async fn update_file(&self, request_body: UpdateFileRequestBody) -> Result<A
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_health(&self ) -> Result<ApiResponseHealthResBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_health(&self ) -> Result<ApiResponseHealthResBody, ApiClientError> {
         
         let full_url = format!("{}/api/health", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -554,8 +569,8 @@ pub async fn get_health(&self ) -> Result<ApiResponseHealthResBody, ApiClientErr
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn pickup_job(&self, request_body: PickupJobRequestBody) -> Result<ApiResponsePickupJobResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn pickup_job(&self, request_body: PickupJobRequestBody) -> Result<ApiResponsePickupJobResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/jobs/apps/pickup", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -570,8 +585,8 @@ pub async fn pickup_job(&self, request_body: PickupJobRequestBody) -> Result<Api
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_job_status(&self, request_body: UpdateJobStatusRequestBody) -> Result<ApiResponseUpdateJobStatusResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_job_status(&self, request_body: UpdateJobStatusRequestBody) -> Result<ApiResponseUpdateJobStatusResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/jobs/apps/update_status", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -586,8 +601,8 @@ pub async fn update_job_status(&self, request_body: UpdateJobStatusRequestBody) 
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn create_job(&self, request_body: CreateJobRequestBody) -> Result<ApiResponseCreateJobResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn create_job(&self, request_body: CreateJobRequestBody) -> Result<ApiResponseCreateJobResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/jobs/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -602,8 +617,8 @@ pub async fn create_job(&self, request_body: CreateJobRequestBody) -> Result<Api
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn delete_job(&self, job_id: FilezJobId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn delete_job(&self, job_id: FilezJobId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/jobs/delete/{job_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -618,8 +633,8 @@ pub async fn delete_job(&self, job_id: FilezJobId) -> Result<ApiResponseEmptyApi
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_job(&self, request_body: GetJobRequestBody) -> Result<ApiResponseGetJobResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_job(&self, request_body: GetJobRequestBody) -> Result<ApiResponseGetJobResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/jobs/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -634,8 +649,8 @@ pub async fn get_job(&self, request_body: GetJobRequestBody) -> Result<ApiRespon
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_jobs(&self, request_body: ListJobsRequestBody) -> Result<ApiResponseListJobsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_jobs(&self, request_body: ListJobsRequestBody) -> Result<ApiResponseListJobsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/jobs/list", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -650,8 +665,8 @@ pub async fn list_jobs(&self, request_body: ListJobsRequestBody) -> Result<ApiRe
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_job(&self, request_body: UpdateJobRequestBody) -> Result<ApiResponseUpdateJobResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_job(&self, request_body: UpdateJobRequestBody) -> Result<ApiResponseUpdateJobResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/jobs/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -666,8 +681,8 @@ pub async fn update_job(&self, request_body: UpdateJobRequestBody) -> Result<Api
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_storage_locations(&self, request_body: ListStorageLocationsRequestBody) -> Result<ApiResponseListStorageLocationsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_storage_locations(&self, request_body: ListStorageLocationsRequestBody) -> Result<ApiResponseListStorageLocationsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/storage_locations/list", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -682,8 +697,8 @@ pub async fn list_storage_locations(&self, request_body: ListStorageLocationsReq
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn create_storage_quota(&self, request_body: CreateStorageQuotaRequestBody) -> Result<ApiResponseCreateStorageQuotaResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn create_storage_quota(&self, request_body: CreateStorageQuotaRequestBody) -> Result<ApiResponseCreateStorageQuotaResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/storage_quotas/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -698,8 +713,8 @@ pub async fn create_storage_quota(&self, request_body: CreateStorageQuotaRequest
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn delete_storage_quota(&self, storage_quota_id: StorageQuotaId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn delete_storage_quota(&self, storage_quota_id: StorageQuotaId) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/storage_quotas/delete/{storage_quota_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -714,8 +729,8 @@ pub async fn delete_storage_quota(&self, storage_quota_id: StorageQuotaId) -> Re
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_storage_quotas(&self, request_body: GetStorageQuotaRequestBody) -> Result<ApiResponseGetStorageQuotaResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_storage_quotas(&self, request_body: GetStorageQuotaRequestBody) -> Result<ApiResponseGetStorageQuotaResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/storage_quotas/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -730,8 +745,8 @@ pub async fn get_storage_quotas(&self, request_body: GetStorageQuotaRequestBody)
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_storage_quotas(&self, request_body: ListStorageQuotasRequestBody) -> Result<ApiResponseListStorageQuotasResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_storage_quotas(&self, request_body: ListStorageQuotasRequestBody) -> Result<ApiResponseListStorageQuotasResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/storage_quotas/list", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -746,8 +761,8 @@ pub async fn list_storage_quotas(&self, request_body: ListStorageQuotasRequestBo
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_storage_quota(&self, request_body: UpdateStorageQuotaRequestBody) -> Result<ApiResponseUpdateStorageQuotaResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_storage_quota(&self, request_body: UpdateStorageQuotaRequestBody) -> Result<ApiResponseUpdateStorageQuotaResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/storage_quotas/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -762,8 +777,8 @@ pub async fn update_storage_quota(&self, request_body: UpdateStorageQuotaRequest
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_tags(&self, request_body: GetTagsRequestBody) -> Result<ApiResponseGetTagsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_tags(&self, request_body: GetTagsRequestBody) -> Result<ApiResponseGetTagsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/tags/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -778,8 +793,8 @@ pub async fn get_tags(&self, request_body: GetTagsRequestBody) -> Result<ApiResp
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_tags(&self, request_body: UpdateTagsRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_tags(&self, request_body: UpdateTagsRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/tags/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -794,8 +809,8 @@ pub async fn update_tags(&self, request_body: UpdateTagsRequestBody) -> Result<A
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn create_user_group(&self, request_body: CreateUserGroupRequestBody) -> Result<ApiResponseCreateUserGroupResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn create_user_group(&self, request_body: CreateUserGroupRequestBody) -> Result<ApiResponseCreateUserGroupResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/user_groups/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -810,8 +825,8 @@ pub async fn create_user_group(&self, request_body: CreateUserGroupRequestBody) 
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn delete_user_group(&self, user_group_id: Uuid) -> Result<ApiResponseString, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn delete_user_group(&self, user_group_id: Uuid) -> Result<ApiResponseString, ApiClientError> {
         
         let full_url = format!("{}/api/user_groups/delete/{user_group_id}", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -826,8 +841,8 @@ pub async fn delete_user_group(&self, user_group_id: Uuid) -> Result<ApiResponse
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_user_groups(&self, request_body: GetUserGroupsRequestBody) -> Result<ApiResponseGetUserGroupsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_user_groups(&self, request_body: GetUserGroupsRequestBody) -> Result<ApiResponseGetUserGroupsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/user_groups/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -842,8 +857,8 @@ pub async fn get_user_groups(&self, request_body: GetUserGroupsRequestBody) -> R
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_user_groups(&self, request_body: ListUserGroupsRequestBody) -> Result<ApiResponseListUserGroupsResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_user_groups(&self, request_body: ListUserGroupsRequestBody) -> Result<ApiResponseListUserGroupsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/user_groups/list", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -858,8 +873,8 @@ pub async fn list_user_groups(&self, request_body: ListUserGroupsRequestBody) ->
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_users_by_user_group(&self, request_body: ListUsersRequestBody) -> Result<ApiResponseListUsersResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_users_by_user_group(&self, request_body: ListUsersRequestBody) -> Result<ApiResponseListUsersResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/user_groups/list_users", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -874,8 +889,8 @@ pub async fn list_users_by_user_group(&self, request_body: ListUsersRequestBody)
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_user_group(&self, request_body: UpdateUserGroupRequestBody) -> Result<ApiResponseUpdateUserGroupResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_user_group(&self, request_body: UpdateUserGroupRequestBody) -> Result<ApiResponseUpdateUserGroupResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/user_groups/update", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -890,8 +905,8 @@ pub async fn update_user_group(&self, request_body: UpdateUserGroupRequestBody) 
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn update_user_group_members(&self, request_body: UpdateUserGroupMembersRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn update_user_group_members(&self, request_body: UpdateUserGroupMembersRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/user_groups/update_members", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -906,8 +921,8 @@ pub async fn update_user_group_members(&self, request_body: UpdateUserGroupMembe
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn create_user(&self, request_body: CreateUserRequestBody) -> Result<ApiResponseCreateUserResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn create_user(&self, request_body: CreateUserRequestBody) -> Result<ApiResponseCreateUserResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/users/create", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -922,8 +937,8 @@ pub async fn create_user(&self, request_body: CreateUserRequestBody) -> Result<A
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn delete_user(&self, request_body: DeleteUserRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn delete_user(&self, request_body: DeleteUserRequestBody) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         
         let full_url = format!("{}/api/users/delete", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -938,8 +953,8 @@ pub async fn delete_user(&self, request_body: DeleteUserRequestBody) -> Result<A
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_users(&self, request_body: GetUsersReqBody) -> Result<ApiResponseGetUsersResBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_users(&self, request_body: GetUsersReqBody) -> Result<ApiResponseGetUsersResBody, ApiClientError> {
         
         let full_url = format!("{}/api/users/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -954,8 +969,8 @@ pub async fn get_users(&self, request_body: GetUsersReqBody) -> Result<ApiRespon
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn get_own_user(&self ) -> Result<ApiResponseGetOwnUserBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_own_user(&self ) -> Result<ApiResponseGetOwnUserBody, ApiClientError> {
         
         let full_url = format!("{}/api/users/get_own", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
@@ -970,8 +985,8 @@ pub async fn get_own_user(&self ) -> Result<ApiResponseGetOwnUserBody, ApiClient
         Ok(response)
     }
 
-    #[tracing::instrument]
-pub async fn list_users(&self, request_body: ListUsersRequestBody) -> Result<ApiResponseListUsersResponseBody, ApiClientError> {
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_users(&self, request_body: ListUsersRequestBody) -> Result<ApiResponseListUsersResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/users/list", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();

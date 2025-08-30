@@ -4,6 +4,7 @@ use crate::{
     http_api::jobs::list::ListJobsSortBy,
     impl_typed_uuid,
     models::{
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         apps::{MowsApp, MowsAppId},
         files::FilezFileId,
         storage_locations::StorageLocationId,
@@ -313,24 +314,27 @@ impl FilezJob {
         Ok(jobs.into_iter().map(|job| (job.id, job)).collect())
     }
 
-    #[tracing::instrument(level = "trace", skip(database, requesting_user, requesting_app))]
-    pub async fn list(
+    #[tracing::instrument(level = "trace", skip(database, maybe_requesting_user, requesting_app))]
+    pub async fn list_with_user_access(
         database: &Database,
-        requesting_user: Option<&FilezUser>,
+        maybe_requesting_user: Option<&FilezUser>,
         requesting_app: &MowsApp,
         from_index: Option<u64>,
         limit: Option<u64>,
         sort_by: Option<ListJobsSortBy>,
         sort_order: Option<SortDirection>,
-    ) -> Result<Vec<FilezJob>, FilezError> {
+    ) -> Result<(Vec<FilezJob>, u64), FilezError> {
         let mut connection = database.get_connection().await?;
         let mut query = schema::jobs::table.into_boxed();
 
-        if let Some(user) = requesting_user {
-            query = query.filter(schema::jobs::owner_id.eq(user.id));
-        } else {
-            query = query.filter(schema::jobs::app_id.eq(requesting_app.id));
-        }
+        let resources_with_access = AccessPolicy::get_resources_with_access(
+            database,
+            maybe_requesting_user,
+            requesting_app,
+            AccessPolicyResourceType::FilezJob,
+            AccessPolicyAction::FilezJobsList,
+        )
+        .await?;
 
         if let Some(from) = from_index {
             query = query.offset(from as i64);
@@ -340,32 +344,35 @@ impl FilezJob {
             query = query.limit(lim as i64);
         }
 
-        let order = sort_order.unwrap_or(SortDirection::Ascending);
-        let sort = sort_by.unwrap_or(ListJobsSortBy::CreatedTime);
+        let sort_order = sort_order.unwrap_or(SortDirection::Ascending);
+        let sort_by = sort_by.unwrap_or(ListJobsSortBy::CreatedTime);
 
-        match order {
-            SortDirection::Ascending => match sort {
-                ListJobsSortBy::Name => query = query.order(schema::jobs::name.asc()),
-                ListJobsSortBy::CreatedTime => {
-                    query = query.order(schema::jobs::created_time.asc())
-                }
-                ListJobsSortBy::ModifiedTime => {
-                    query = query.order(schema::jobs::modified_time.asc())
-                }
-            },
-            SortDirection::Descending => match sort {
-                ListJobsSortBy::Name => query = query.order(schema::jobs::name.desc()),
-                ListJobsSortBy::CreatedTime => {
-                    query = query.order(schema::jobs::created_time.desc())
-                }
-                ListJobsSortBy::ModifiedTime => {
-                    query = query.order(schema::jobs::modified_time.desc())
-                }
-            },
+        match (sort_by, sort_order) {
+            (ListJobsSortBy::CreatedTime, SortDirection::Ascending) => {
+                query = query.order(schema::jobs::created_time.asc())
+            }
+            (ListJobsSortBy::CreatedTime, SortDirection::Descending) => {
+                query = query.order(schema::jobs::created_time.desc())
+            }
+            (ListJobsSortBy::ModifiedTime, SortDirection::Ascending) => {
+                query = query.order(schema::jobs::modified_time.asc())
+            }
+            (ListJobsSortBy::ModifiedTime, SortDirection::Descending) => {
+                query = query.order(schema::jobs::modified_time.desc())
+            }
+            (ListJobsSortBy::Name, SortDirection::Ascending) => {
+                query = query.order(schema::jobs::name.asc())
+            }
+            (ListJobsSortBy::Name, SortDirection::Descending) => {
+                query = query.order(schema::jobs::name.desc())
+            }
         }
 
         let jobs = query.load::<FilezJob>(&mut connection).await?;
-        Ok(jobs)
+
+        let total_count = resources_with_access.len();
+
+        Ok((jobs, total_count.try_into()?))
     }
 
     #[tracing::instrument(level = "trace", skip(database))]

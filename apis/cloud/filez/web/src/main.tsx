@@ -49,7 +49,7 @@ const AuthProviderWrapper = () => {
                 onSigninCallback
             }}
         >
-            <App serverUrl={clientConfig.serverUrl} />
+            <App clientConfig={clientConfig} />
         </AuthProvider>
     );
 };

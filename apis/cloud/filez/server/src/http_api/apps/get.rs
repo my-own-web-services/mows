@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::validation::Json;
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
@@ -11,7 +12,6 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
-use crate::validation::Json;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension};
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
@@ -20,6 +20,7 @@ use utoipa::ToSchema;
 #[utoipa::path(
     post,
     path = "/api/apps/get",
+    request_body = GetAppsRequestBody,
     description = "Get apps from the server",
     responses(
         (
@@ -45,7 +46,7 @@ pub async fn get_apps(
         AccessPolicy::check(
             &database,
             &authentication_information,
-            AccessPolicyResourceType::App,
+            AccessPolicyResourceType::MowsApp,
             Some(
                 &request_body
                     .app_ids

@@ -10,7 +10,6 @@ use crate::{
     storage::providers::StorageProvider,
 };
 use anyhow::Context;
-use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use kube::Client;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
@@ -40,20 +39,7 @@ impl ServerState {
             .await
             .context("Failed to create introspection state")?;
 
-        let connection_manager =
-            AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(
-                config.db_url.clone(),
-            );
-
-        let pool = match Pool::builder(connection_manager).build() {
-            Ok(pool) => Some(pool),
-            Err(e) => {
-                tracing::error!("Failed to create database connection pool: {}", e);
-                None
-            }
-        };
-
-        let database = Database::new(pool).await;
+        let database = Database::new(&config.db_url).await;
 
         match database.create_filez_server_app().await {
             Ok(_) => tracing::info!("Filez server app created successfully"),

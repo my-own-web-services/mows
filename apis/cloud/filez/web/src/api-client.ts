@@ -126,7 +126,7 @@ export enum AccessPolicyResourceType {
   AccessPolicy = "AccessPolicy",
   StorageQuota = "StorageQuota",
   FilezJob = "FilezJob",
-  App = "App",
+  MowsApp = "MowsApp",
 }
 
 export enum AccessPolicyEffect {
@@ -422,6 +422,11 @@ export interface ApiResponseHealthResBody {
 export interface ApiResponseListAccessPoliciesResponseBody {
   data?: {
     access_policies: AccessPolicy[];
+    /**
+     * @format int64
+     * @min 0
+     */
+    total_count: number;
   };
   message: string;
   status: ApiResponseStatus;
@@ -438,6 +443,11 @@ export interface ApiResponseListAppsResponseBody {
 export interface ApiResponseListFileGroupsResponseBody {
   data?: {
     file_groups: FileGroup[];
+    /**
+     * @format int64
+     * @min 0
+     */
+    total_count: number;
   };
   message: string;
   status: ApiResponseStatus;
@@ -459,6 +469,11 @@ export interface ApiResponseListFilesResponseBody {
 export interface ApiResponseListJobsResponseBody {
   data?: {
     jobs: FilezJob[];
+    /**
+     * @format int64
+     * @min 0
+     */
+    total_count: number;
   };
   message: string;
   status: ApiResponseStatus;
@@ -475,6 +490,11 @@ export interface ApiResponseListStorageLocationsResponseBody {
 export interface ApiResponseListStorageQuotasResponseBody {
   data?: {
     storage_quotas: StorageQuota[];
+    /**
+     * @format int64
+     * @min 0
+     */
+    total_count: number;
   };
   message: string;
   status: ApiResponseStatus;
@@ -482,6 +502,11 @@ export interface ApiResponseListStorageQuotasResponseBody {
 
 export interface ApiResponseListUserGroupsResponseBody {
   data?: {
+    /**
+     * @format int64
+     * @min 0
+     */
+    total_count: number;
     user_groups: UserGroup[];
   };
   message: string;
@@ -815,6 +840,8 @@ export interface DeleteUserRequestBody {
   delete_user_method: DeleteUserMethod;
 }
 
+export type DevResetDatabaseRequestBody = object;
+
 export type DynamicGroupRule = object;
 
 export type EmptyApiResponse = object;
@@ -854,6 +881,8 @@ export interface FileVersion {
   content_valid: boolean;
   /** @format date-time */
   created_time: string;
+  /** @format int64 */
+  existing_content_bytes?: number | null;
   file_id: FilezFileId;
   id: FileVersionId;
   metadata: FileVersionMetadata;
@@ -1153,6 +1182,11 @@ export interface ListAccessPoliciesRequestBody {
 
 export interface ListAccessPoliciesResponseBody {
   access_policies: AccessPolicy[];
+  /**
+   * @format int64
+   * @min 0
+   */
+  total_count: number;
 }
 
 export type ListAppsRequestBody = object;
@@ -1178,6 +1212,11 @@ export interface ListFileGroupsRequestBody {
 
 export interface ListFileGroupsResponseBody {
   file_groups: FileGroup[];
+  /**
+   * @format int64
+   * @min 0
+   */
+  total_count: number;
 }
 
 export interface ListFilesRequestBody {
@@ -1240,6 +1279,11 @@ export interface ListJobsRequestBody {
 
 export interface ListJobsResponseBody {
   jobs: FilezJob[];
+  /**
+   * @format int64
+   * @min 0
+   */
+  total_count: number;
 }
 
 export interface ListStorageLocationsRequestBody {
@@ -1268,6 +1312,11 @@ export interface ListStorageQuotasRequestBody {
 
 export interface ListStorageQuotasResponseBody {
   storage_quotas: StorageQuota[];
+  /**
+   * @format int64
+   * @min 0
+   */
+  total_count: number;
 }
 
 export interface ListUserGroupsRequestBody {
@@ -1286,6 +1335,11 @@ export interface ListUserGroupsRequestBody {
 }
 
 export interface ListUserGroupsResponseBody {
+  /**
+   * @format int64
+   * @min 0
+   */
+  total_count: number;
   user_groups: UserGroup[];
 }
 
@@ -1996,6 +2050,25 @@ export class Api<
       }),
 
     /**
+     * @description Resets the database to its initial state (for development purposes only)
+     *
+     * @name ResetDatabase
+     * @request POST:/api/dev/reset_database
+     */
+    resetDatabase: (
+      data: DevResetDatabaseRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/dev/reset_database`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Create a new file group
      *
      * @name CreateFileGroup
@@ -2078,10 +2151,10 @@ export class Api<
     /**
      * @description Lists files in a file group
      *
-     * @name ListFilesByFileGroups
+     * @name ListFilesInFileGroup
      * @request POST:/api/file_groups/list_files
      */
-    listFilesByFileGroups: (
+    listFilesInFileGroup: (
       data: ListFilesRequestBody,
       params: RequestParams = {},
     ) =>
@@ -2254,7 +2327,7 @@ export class Api<
       }),
 
     /**
-     * @description Get file versions from the server
+     * @description Get file versions from the server for the given file version IDs
      *
      * @name GetFileVersions
      * @request POST:/api/file_versions/get

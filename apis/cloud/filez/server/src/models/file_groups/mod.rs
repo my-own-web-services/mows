@@ -156,7 +156,7 @@ impl FileGroup {
         limit: Option<u64>,
         sort_by: Option<ListFileGroupsSortBy>,
         sort_order: Option<SortDirection>,
-    ) -> Result<Vec<FileGroup>, FilezError> {
+    ) -> Result<(Vec<FileGroup>, u64), FilezError> {
         let mut connection = database.get_connection().await?;
 
         let resources_with_access = AccessPolicy::get_resources_with_access(
@@ -167,6 +167,8 @@ impl FileGroup {
             AccessPolicyAction::FileGroupsList,
         )
         .await?;
+
+        let total_count = resources_with_access.len().try_into()?;
 
         let mut query = schema::file_groups::table
             .filter(schema::file_groups::id.eq_any(resources_with_access))
@@ -205,7 +207,8 @@ impl FileGroup {
         }
 
         let file_groups = query.load::<FileGroup>(&mut connection).await?;
-        Ok(file_groups)
+
+        Ok((file_groups, total_count))
     }
 
     #[tracing::instrument(skip(database), level = "trace")]

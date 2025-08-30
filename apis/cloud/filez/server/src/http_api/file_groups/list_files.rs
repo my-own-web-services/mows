@@ -1,5 +1,5 @@
-use axum::{extract::State, Extension};
 use crate::validation::Json;
+use axum::{extract::State, Extension};
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use utoipa::ToSchema;
@@ -37,7 +37,7 @@ use crate::{
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
-pub async fn list_files_by_file_groups(
+pub async fn list_files_in_file_group(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
