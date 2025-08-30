@@ -120,7 +120,7 @@ pub enum AccessPolicyResourceType {
     AccessPolicy = 5,
     StorageQuota = 6,
     FilezJob = 7,
-    App = 8,
+    MowsApp = 8,
 }
 
 #[derive(
@@ -481,13 +481,13 @@ impl AccessPolicy {
                  FROM {group_membership_table} gm
                  JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
                  WHERE ap.resource_type = $1
-                   AND ap.context_app_id @> $2
+                   AND ap.context_app_ids @> $2
                    AND ap.actions @> $3
                    AND (
-                        (ap.subject_type = 'User' AND ap.subject_id = $4) OR
-                        (ap.subject_type = 'UserGroup' AND ap.subject_id = ANY($5)) OR
-                        (ap.subject_type = 'ServerMember') OR
-                        (ap.subject_type = 'Public')
+                        (ap.subject_type = 0 AND ap.subject_id = $4) OR
+                        (ap.subject_type = 1 AND ap.subject_id = ANY($5)) OR
+                        (ap.subject_type = 2) OR
+                        (ap.subject_type = 3)
                    )",
                         resource_id_col = group_membership_table_resource_id_column,
                         group_id_col = group_membership_table_group_id_column,
@@ -515,7 +515,7 @@ impl AccessPolicy {
                  WHERE ap.resource_type = $1
                    AND ap.context_app_id @> $2
                    AND ap.actions @> $3
-                   AND ap.subject_type = 'Public'",
+                   AND ap.subject_type = 3",
                         resource_id_col = group_membership_table_resource_id_column,
                         group_id_col = group_membership_table_group_id_column,
                         group_membership_table = group_membership_table
@@ -559,7 +559,7 @@ impl AccessPolicy {
         limit: Option<u64>,
         sort_by: Option<ListAccessPoliciesSortBy>,
         sort_order: Option<SortDirection>,
-    ) -> Result<Vec<AccessPolicy>, FilezError> {
+    ) -> Result<(Vec<AccessPolicy>, u64), FilezError> {
         let mut connection = database.get_connection().await?;
 
         let resources_with_access = Self::get_resources_with_access(
@@ -570,6 +570,8 @@ impl AccessPolicy {
             AccessPolicyAction::AccessPoliciesList,
         )
         .await?;
+
+        let total_count = resources_with_access.len();
 
         let mut query = schema::access_policies::table
             .select(AccessPolicy::as_select())
@@ -609,7 +611,7 @@ impl AccessPolicy {
         }
 
         let access_policies = query.load::<AccessPolicy>(&mut connection).await?;
-        Ok(access_policies)
+        Ok((access_policies, total_count.try_into()?))
     }
 
     #[tracing::instrument(level = "trace", skip(database))]

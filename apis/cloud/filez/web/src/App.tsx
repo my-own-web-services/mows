@@ -6,13 +6,13 @@ import { Api } from "./api-client";
 import Auth from "./routes/Auth";
 import Dev from "./routes/Dev";
 import Home from "./routes/Home";
-import { createFilezClient } from "./utils";
+import { ClientConfig, createFilezClient } from "./utils";
 
 interface AppProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly auth?: AuthContextProps;
-    readonly serverUrl: string;
+    readonly clientConfig: ClientConfig;
 }
 
 interface AppState {
@@ -33,8 +33,11 @@ class App extends Component<AppProps, AppState> {
         previousState: Readonly<AppState>,
         snapshot: any
     ) => {
-        if (!this.state.filezClient && this.props.auth?.user && this.props.serverUrl) {
-            const filezClient = createFilezClient(this.props.serverUrl, this.props.auth);
+        if (!this.state.filezClient && this.props.auth?.user && this.props.clientConfig.serverUrl) {
+            const filezClient = createFilezClient(
+                this.props.clientConfig.serverUrl,
+                this.props.auth
+            );
 
             this.setState({ filezClient }, async () => {
                 console.log("Api client initialized with user token");
@@ -57,7 +60,11 @@ class App extends Component<AppProps, AppState> {
             >
                 <Router>
                     <Route path="/" component={Home} />
-                    <Dev path="/dev" filezClient={this.state.filezClient} />
+                    <Dev
+                        path="/dev"
+                        filezClient={this.state.filezClient}
+                        clientConfig={this.props.clientConfig}
+                    />
                     <Auth path="/auth/:remaining_path*" />
                 </Router>
             </div>

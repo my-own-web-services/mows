@@ -52,6 +52,8 @@ export const createFilezClient = (serverUrl: string, auth?: AuthState) => {
     });
 };
 
+export const defaultAppId = "00000000-0000-0000-0000-000000000000";
+
 export const createExampleUser = async (filezClient: Api<unknown>): Promise<FilezUser> => {
     const email = `example-${Date.now()}@example.com`;
     const user = await filezClient.api.createUser({ email });

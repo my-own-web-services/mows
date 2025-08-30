@@ -24,7 +24,7 @@ export default async (filezClient: Api<unknown>) => {
     }
     console.log(`Created file for Alice: ${aliceFileResponse.created_file.id}`);
 
-    const aliceFileVersion = await filezClient.api
+    const aliceFileVersion1ShouldFail = await filezClient.api
         .createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
@@ -47,13 +47,13 @@ export default async (filezClient: Api<unknown>) => {
             return null; // Return null to indicate the expected failure
         });
 
-    if (aliceFileVersion) {
+    if (aliceFileVersion1ShouldFail) {
         throw new Error("File version creation for Alice should have failed due to storage quota.");
     }
 
     // try to create 2 file versions for alice withing the storage quota the third file should fail
 
-    const aliceFileVersion1ShouldWork = (
+    const aliceFileVersion2ShouldWork = (
         await filezClient.api.createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
@@ -66,13 +66,13 @@ export default async (filezClient: Api<unknown>) => {
         )
     ).data?.data?.created_file_version;
 
-    if (!aliceFileVersion1ShouldWork) {
+    if (!aliceFileVersion2ShouldWork) {
         throw new Error("Failed to create second file version for Alice.");
     }
 
-    console.log(`Created second file version for Alice: ${aliceFileVersion1ShouldWork.id}`);
+    console.log(`Created second file version for Alice: ${aliceFileVersion2ShouldWork.id}`);
 
-    const aliceFileVersion2ShouldWork = (
+    const aliceFileVersion3ShouldWork = (
         await filezClient.api.createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
@@ -84,11 +84,12 @@ export default async (filezClient: Api<unknown>) => {
             impersonateAliceParams
         )
     ).data?.data?.created_file_version;
-    if (!aliceFileVersion2ShouldWork) {
+    if (!aliceFileVersion3ShouldWork) {
         throw new Error("Failed to create third file version for Alice.");
     }
-    console.log(`Created third file version for Alice: ${aliceFileVersion2ShouldWork.id}`);
-    const aliceFileVersion3ShouldFail = await filezClient.api
+    console.log(`Created third file version for Alice: ${aliceFileVersion3ShouldWork.id}`);
+
+    const aliceFileVersion4ShouldFail = await filezClient.api
         .createFileVersion(
             {
                 file_id: aliceFileResponse.created_file.id,
@@ -110,20 +111,19 @@ export default async (filezClient: Api<unknown>) => {
             );
             return null; // Return null to indicate the expected failure
         });
-    if (aliceFileVersion3ShouldFail) {
+    if (aliceFileVersion4ShouldFail) {
         throw new Error(
             "Third file version creation for Alice should have failed due to storage quota."
         );
     }
 
-    // delete aliceFileVersion2ShouldWork
     await filezClient.api.deleteFileVersions(
-        aliceFileVersion2ShouldWork.id,
+        aliceFileVersion3ShouldWork.id,
         impersonateAliceParams
     );
 
     console.log(
-        `Deleted file version for Alice: ${aliceFileVersion2ShouldWork.id} to free up space in storage quota`
+        `Deleted file version for Alice: ${aliceFileVersion3ShouldWork.id} to free up space in storage quota`
     );
 
     const aliceFileVersion4ShouldWork = (

@@ -1,5 +1,5 @@
-use axum::{extract::State, Extension};
 use crate::validation::Json;
+use axum::{extract::State, Extension};
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use utoipa::ToSchema;
@@ -38,7 +38,7 @@ pub async fn list_access_policies(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListAccessPoliciesRequestBody>,
 ) -> Result<Json<ApiResponse<ListAccessPoliciesResponseBody>>, FilezError> {
-    let access_policies = with_timing!(
+    let (access_policies, total_count) = with_timing!(
         AccessPolicy::list_with_user_access(
             &database,
             authentication_information.requesting_user.as_ref(),
@@ -56,7 +56,10 @@ pub async fn list_access_policies(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Access policies listed".to_string(),
-        data: Some(ListAccessPoliciesResponseBody { access_policies }),
+        data: Some(ListAccessPoliciesResponseBody {
+            access_policies,
+            total_count,
+        }),
     }))
 }
 
@@ -77,5 +80,6 @@ pub enum ListAccessPoliciesSortBy {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListAccessPoliciesResponseBody {
+    pub total_count: u64,
     pub access_policies: Vec<AccessPolicy>,
 }

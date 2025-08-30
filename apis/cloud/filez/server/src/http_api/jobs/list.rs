@@ -1,5 +1,5 @@
-use axum::{extract::State, Extension};
 use crate::validation::Json;
+use axum::{extract::State, Extension};
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use utoipa::ToSchema;
@@ -55,8 +55,8 @@ pub async fn list_jobs(
         timing
     );
 
-    let jobs = with_timing!(
-        FilezJob::list(
+    let (jobs, total_count) = with_timing!(
+        FilezJob::list_with_user_access(
             &database,
             authentication_information.requesting_user.as_ref(),
             &authentication_information.requesting_app,
@@ -73,7 +73,7 @@ pub async fn list_jobs(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Jobs listed".to_string(),
-        data: Some(ListJobsResponseBody { jobs }),
+        data: Some(ListJobsResponseBody { jobs, total_count }),
     }))
 }
 
@@ -88,6 +88,7 @@ pub struct ListJobsRequestBody {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListJobsResponseBody {
     pub jobs: Vec<FilezJob>,
+    pub total_count: u64,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Copy, Debug)]

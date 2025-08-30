@@ -1,5 +1,5 @@
-use axum::{extract::State, Extension};
 use crate::validation::Json;
+use axum::{extract::State, Extension};
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use utoipa::ToSchema;
@@ -38,7 +38,7 @@ pub async fn list_file_groups(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListFileGroupsRequestBody>,
 ) -> Result<Json<ApiResponse<ListFileGroupsResponseBody>>, FilezError> {
-    let file_groups = with_timing!(
+    let (file_groups, total_count) = with_timing!(
         FileGroup::list_with_user_access(
             &database,
             authentication_information.requesting_user.as_ref(),
@@ -56,7 +56,10 @@ pub async fn list_file_groups(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "File groups listed".to_string(),
-        data: Some(ListFileGroupsResponseBody { file_groups }),
+        data: Some(ListFileGroupsResponseBody {
+            file_groups,
+            total_count,
+        }),
     }))
 }
 
@@ -71,6 +74,7 @@ pub struct ListFileGroupsRequestBody {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListFileGroupsResponseBody {
     pub file_groups: Vec<FileGroup>,
+    pub total_count: u64,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]

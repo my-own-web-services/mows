@@ -23,6 +23,7 @@ use tower_http::{
     decompression::DecompressionLayer,
     set_header::SetResponseHeaderLayer,
 };
+use tracing::error;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
@@ -44,11 +45,10 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     // run pending migrations
-    match Database::run_migrations(&config).await {
+    match Database::run_migrations().await {
         Ok(_) => info!("Migrations completed successfully"),
-        Err(_) => {
-            Database::drop_if_dev_mode(&config).await?;
-            Database::run_migrations(&config).await?;
+        Err(e) => {
+            error!("Failed to run migrations: {e}");
         }
     }
 
@@ -97,7 +97,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(http_api::file_groups::delete::delete_file_group))
         .routes(routes!(http_api::file_groups::list::list_file_groups))
         .routes(routes!(
-            http_api::file_groups::list_files::list_files_by_file_groups
+            http_api::file_groups::list_files::list_files_in_file_group
         ))
         .routes(routes!(
             http_api::file_groups::update_members::update_file_group_members
@@ -173,6 +173,8 @@ async fn main() -> Result<(), anyhow::Error> {
         ))
         // HEALTH
         .routes(routes!(http_api::health::get_health))
+        // DEV
+        .routes(routes!(http_api::dev::reset_database::reset_database))
         .with_state(server_state.clone())
         .layer(
             ServiceBuilder::new()

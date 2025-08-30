@@ -1,3 +1,4 @@
+use crate::validation::Json;
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
@@ -7,7 +8,6 @@ use crate::{
     with_timing,
 };
 use axum::{extract::State, Extension};
-use crate::validation::Json;
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use utoipa::ToSchema;
@@ -36,12 +36,12 @@ pub async fn list_storage_quotas(
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListStorageQuotasRequestBody>,
-) -> Result<Json<ApiResponse<Vec<StorageQuota>>>, FilezError> {
+) -> Result<Json<ApiResponse<ListStorageQuotasResponseBody>>, FilezError> {
     let requesting_user = authentication_information.requesting_user.ok_or_else(|| {
         FilezError::Unauthorized("User must be authenticated to list storage quotas".to_string())
     })?;
 
-    let storage_quotas = with_timing!(
+    let (storage_quotas, total_count) = with_timing!(
         StorageQuota::list_with_user_access(
             &database,
             &requesting_user.id,
@@ -59,7 +59,10 @@ pub async fn list_storage_quotas(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Storage quotas retrieved".to_string(),
-        data: Some(storage_quotas),
+        data: Some(ListStorageQuotasResponseBody {
+            storage_quotas,
+            total_count,
+        }),
     }))
 }
 
@@ -83,4 +86,5 @@ pub enum ListStorageQuotasSortBy {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct ListStorageQuotasResponseBody {
     pub storage_quotas: Vec<StorageQuota>,
+    pub total_count: u64,
 }

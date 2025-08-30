@@ -93,3 +93,7 @@ pub mod jobs {
 
 pub mod authentication;
 pub mod health;
+
+pub mod dev {
+    pub mod reset_database;
+}

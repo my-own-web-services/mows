@@ -98,7 +98,7 @@ impl UserGroup {
         limit: Option<u64>,
         sort_by: Option<ListUserGroupsSortBy>,
         sort_order: Option<SortDirection>,
-    ) -> Result<Vec<UserGroup>, FilezError> {
+    ) -> Result<(Vec<UserGroup>, u64), FilezError> {
         let mut connection = database.get_connection().await?;
 
         let resources_with_access = AccessPolicy::get_resources_with_access(
@@ -109,6 +109,12 @@ impl UserGroup {
             AccessPolicyAction::UserGroupsList,
         )
         .await?;
+
+        let total_count = schema::user_groups::table
+            .filter(schema::user_groups::id.eq_any(&resources_with_access))
+            .count()
+            .get_result::<i64>(&mut connection)
+            .await?;
 
         let mut query = schema::user_groups::table
             .filter(schema::user_groups::id.eq_any(resources_with_access))
@@ -147,7 +153,7 @@ impl UserGroup {
         }
 
         let user_groups = query.load::<UserGroup>(&mut connection).await?;
-        Ok(user_groups)
+        Ok((user_groups, total_count.try_into()?))
     }
 
     #[tracing::instrument(level = "trace", skip(database))]

@@ -20,7 +20,6 @@ use mows_common_rust::get_current_config_cloned;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
-use tracing::debug;
 use tracing::trace;
 use url::Url;
 use utoipa::ToSchema;
@@ -320,7 +319,7 @@ impl MowsApp {
         database: &Database,
         origin: &str,
     ) -> Result<MowsApp, FilezError> {
-        debug!("Getting app from origin string: {}", origin);
+        trace!("Getting app from origin string: {}", origin);
         let config = get_current_config_cloned!(config());
 
         let origin_url = Url::from_str(&origin)?;
@@ -341,7 +340,7 @@ impl MowsApp {
     ) -> Result<MowsApp, FilezError> {
         use diesel_async::RunQueryDsl;
 
-        debug!("Getting app by origin from database: {}", origin);
+        trace!("Getting app by origin from database: {}", origin);
 
         let mut connection = database.get_connection().await?;
 

@@ -213,7 +213,7 @@ impl StorageQuota {
         limit: Option<u64>,
         sort_by: Option<ListStorageQuotasSortBy>,
         sort_order: Option<SortDirection>,
-    ) -> Result<Vec<StorageQuota>, FilezError> {
+    ) -> Result<(Vec<StorageQuota>, u64), FilezError> {
         let mut connection = database.get_connection().await?;
 
         let user_groups = UserGroup::get_all_ids_by_user_id(database, requesting_user_id).await?;
@@ -221,7 +221,7 @@ impl StorageQuota {
         let mut query = schema::storage_quotas::table
             .filter(filter_subject_storage_quotas!(
                 requesting_user_id,
-                user_groups
+                user_groups.clone()
             ))
             .select(StorageQuota::as_select())
             .into_boxed();
@@ -270,7 +270,17 @@ impl StorageQuota {
         }
 
         let storage_quotas = query.load::<StorageQuota>(&mut connection).await?;
-        Ok(storage_quotas)
+
+        let total_count = schema::storage_quotas::table
+            .filter(filter_subject_storage_quotas!(
+                requesting_user_id,
+                user_groups
+            ))
+            .count()
+            .get_result::<i64>(&mut connection)
+            .await?;
+
+        Ok((storage_quotas, total_count.try_into()?))
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
