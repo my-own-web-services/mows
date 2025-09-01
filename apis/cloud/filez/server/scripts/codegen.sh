@@ -28,7 +28,7 @@ mkdir -p tmp
 docker build -t filez-server-codegen ./codegen/typescript -f codegen/typescript/codegen.Dockerfile
 docker run --rm -v ./openapi.json:/app/openapi.json -v ./tmp:/app/out filez-server-codegen --name filez-server-codegen
 
-cp tmp/api-client.ts ../web/src/
+cp tmp/api-client.ts ../clients/typescript/src/
 
 rm -rf tmp
 

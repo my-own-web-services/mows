@@ -1,0 +1,4 @@
+packages:
+    - apis/cloud/filez/components/react
+    - apis/cloud/filez/clients/typescript
+    - apis/cloud/filez/web

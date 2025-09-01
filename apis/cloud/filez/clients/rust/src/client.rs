@@ -213,12 +213,12 @@ impl ApiClient {
     }
 
     #[tracing::instrument(level = "trace")]
-    pub async fn get_apps(&self ) -> Result<ApiResponseGetAppsResponseBody, ApiClientError> {
+    pub async fn get_apps(&self, request_body: GetAppsRequestBody) -> Result<ApiResponseGetAppsResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/apps/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
-        let response = self.client.post(full_url).headers(self.add_auth_headers()?).send().await?;
+        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));

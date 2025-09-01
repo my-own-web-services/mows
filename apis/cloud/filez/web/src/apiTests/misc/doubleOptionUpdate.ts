@@ -1,11 +1,11 @@
-import { isEqual } from "lodash";
 import {
     AccessPolicyEffect,
     AccessPolicyResourceType,
     AccessPolicySubjectType,
-    Api
-} from "../../api-client";
-import { createExampleUser } from "../../utils";
+    Api,
+    createExampleUser
+} from "filez-client-typescript";
+import { isEqual } from "lodash";
 
 export default async (filezClient: Api<unknown>) => {
     const alice = await createExampleUser(filezClient);

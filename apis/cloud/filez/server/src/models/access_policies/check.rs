@@ -563,20 +563,6 @@ pub async fn check_resources_access_control(
                 });
             }
 
-            /*
-            TODO: ??
-            // If the app is trusted, and no policies exist, allow access by default
-            if context_app_trusted {
-                return Ok(AuthResult {
-                    access_granted: true,
-                    evaluations: vec![AuthEvaluation {
-                        resource_id: None,
-                        is_allowed: true,
-                        reason: AuthReason::Owned, // Default to owned since no policies exist
-                    }],
-                });
-            }*/
-
             let evaluation = AuthEvaluation {
                 resource_id: None,
                 is_allowed: false,

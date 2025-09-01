@@ -4,9 +4,11 @@ import {
     AccessPolicyResourceType,
     AccessPolicySubjectType,
     Api,
-    FileGroupType
-} from "../../api-client";
-import { createExampleUser, defaultAppId, impersonateUser } from "../../utils";
+    createExampleUser,
+    defaultAppId,
+    FileGroupType,
+    impersonateUser
+} from "filez-client-typescript";
 
 export default async (filezClient: Api<unknown>) => {
     const alice = await createExampleUser(filezClient);
@@ -472,12 +474,6 @@ export default async (filezClient: Api<unknown>) => {
     // Create new user Larry
     const larry = await createExampleUser(filezClient);
     console.log(`Created users: Larry (${larry.id})`);
-
-    const impersonateLarryParams = {
-        headers: {
-            ...impersonateUser(larry.id)
-        }
-    };
 
     // try as Alice to add Larry to Bob's user group, this should fail
     const aliceAddingLarryToBobsGroupShouldFail = await filezClient.api

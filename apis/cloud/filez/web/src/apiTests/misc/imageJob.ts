@@ -1,5 +1,11 @@
-import { Api, ContentType, JobPersistenceType, StorageQuotaSubjectType } from "../../api-client";
-import { createExampleUser, impersonateUser } from "../../utils";
+import {
+    Api,
+    ContentType,
+    createExampleUser,
+    impersonateUser,
+    JobPersistenceType,
+    StorageQuotaSubjectType
+} from "filez-client-typescript";
 
 export default async (filezClient: Api<unknown>) => {
     const alice = await createExampleUser(filezClient);

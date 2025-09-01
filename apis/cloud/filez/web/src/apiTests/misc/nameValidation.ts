@@ -1,4 +1,4 @@
-import { Api } from "../../api-client";
+import { Api } from "filez-client-typescript";
 
 export default async (filezClient: Api<unknown>) => {
     const fileShouldWork = await filezClient.api.createFile({

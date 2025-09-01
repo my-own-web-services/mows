@@ -1,0 +1,4 @@
+packages:
+    - filez-components-react
+    - filez-client-typescript
+    - filez-web

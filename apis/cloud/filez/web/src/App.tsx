@@ -1,12 +1,12 @@
+import { Api, createFilezClient } from "filez-client-typescript";
 import { Component } from "preact";
 import { Route, Router } from "preact-router";
 import { CSSProperties } from "preact/compat";
 import { AuthContextProps, withAuth } from "react-oidc-context";
-import { Api } from "./api-client";
 import Auth from "./routes/Auth";
 import Dev from "./routes/Dev";
 import Home from "./routes/Home";
-import { ClientConfig, createFilezClient } from "./utils";
+import { ClientConfig } from "./utils";
 
 interface AppProps {
     readonly className?: string;
@@ -36,7 +36,7 @@ class App extends Component<AppProps, AppState> {
         if (!this.state.filezClient && this.props.auth?.user && this.props.clientConfig.serverUrl) {
             const filezClient = createFilezClient(
                 this.props.clientConfig.serverUrl,
-                this.props.auth
+                this.props.auth?.user?.access_token
             );
 
             this.setState({ filezClient }, async () => {
