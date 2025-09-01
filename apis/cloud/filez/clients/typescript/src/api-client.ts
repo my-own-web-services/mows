@@ -1009,6 +1009,10 @@ export interface GetAccessPolicyResponseBody {
   access_policies: AccessPolicy[];
 }
 
+export interface GetAppsRequestBody {
+  app_ids: MowsAppId[];
+}
+
 export interface GetAppsResponseBody {
   apps: Record<string, MowsApp>;
 }
@@ -2020,11 +2024,13 @@ export class Api<
      * @name GetApps
      * @request POST:/api/apps/get
      */
-    getApps: (params: RequestParams = {}) =>
+    getApps: (data: GetAppsRequestBody, params: RequestParams = {}) =>
       this.request<ApiResponseGetAppsResponseBody, ApiResponseEmptyApiResponse>(
         {
           path: `/api/apps/get`,
           method: "POST",
+          body: data,
+          type: ContentType.Json,
           format: "json",
           ...params,
         },

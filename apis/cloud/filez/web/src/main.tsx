@@ -4,8 +4,10 @@ import { User, WebStorageStateStore } from "oidc-client-ts";
 import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { AuthProvider } from "react-oidc-context";
+import { CustomProvider } from "rsuite";
 import App from "./App.tsx";
 import "./index.css";
+import "./index.less";
 import { ClientConfig, getClientConfig } from "./utils.ts";
 
 const onSigninCallback = (_user: User | void): void => {
@@ -54,4 +56,9 @@ const AuthProviderWrapper = () => {
     );
 };
 
-render(<AuthProviderWrapper />, document.getElementById("root")!);
+render(
+    <CustomProvider theme="dark">
+        <AuthProviderWrapper />
+    </CustomProvider>,
+    document.getElementById("root")!
+);

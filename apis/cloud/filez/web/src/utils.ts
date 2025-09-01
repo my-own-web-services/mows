@@ -1,6 +1,3 @@
-import { AuthState } from "react-oidc-context";
-import { Api, FilezUser, StorageQuota, StorageQuotaSubjectType } from "./api-client";
-
 export interface ClientConfig {
     serverUrl: string;
     oidcClientId: string;
@@ -27,97 +24,6 @@ export const fetchAndUpdateClientConfig = async (): Promise<ClientConfig> => {
     const config: ClientConfig = await response.json();
     localStorage.setItem("clientConfig", JSON.stringify(config));
     return config;
-};
-
-export const impersonateUser = (userId: string) => {
-    return {
-        "X-Filez-Impersonate-User": userId
-    };
-};
-
-export const createFilezClient = (serverUrl: string, auth?: AuthState) => {
-    return new Api({
-        baseUrl: serverUrl,
-        baseApiParams: { secure: true },
-        securityWorker: async () => ({
-            // https://github.com/acacode/swagger-typescript-api/issues/300
-            headers: {
-                ...(auth?.user?.access_token
-                    ? {
-                          Authorization: `Bearer ${auth?.user?.access_token}`
-                      }
-                    : {})
-            }
-        })
-    });
-};
-
-export const defaultAppId = "00000000-0000-0000-0000-000000000000";
-
-export const createExampleUser = async (filezClient: Api<unknown>): Promise<FilezUser> => {
-    const email = `example-${Date.now()}@example.com`;
-    const user = await filezClient.api.createUser({ email });
-    if (!user.data?.data) {
-        throw new Error("Failed to create example user");
-    }
-    console.log(`Created example user: ${email} (${user.data.data.created_user.id})`);
-    return user.data.data.created_user;
-};
-
-export const createDefaultStorageQuotaForUser = async (
-    filezClient: Api<unknown>,
-    user: FilezUser,
-    quotaBytes: number = 10_000_000
-): Promise<StorageQuota> => {
-    const storage_locations = (await filezClient.api.listStorageLocations({})).data?.data
-        ?.storage_locations;
-
-    if (storage_locations?.length === 0) {
-        throw new Error("No storage locations found. Please create a storage location first.");
-    } else if (storage_locations?.length !== undefined && storage_locations?.length > 1) {
-        console.warn("Multiple storage locations found. Using the first one.");
-    }
-
-    const storage_location_id = storage_locations?.[0].id;
-
-    if (!storage_location_id) {
-        throw new Error("No storage location ID found. Please create a storage location first.");
-    }
-
-    const storage_quota = (
-        await filezClient.api.createStorageQuota({
-            storage_quota_bytes: quotaBytes,
-            storage_quota_subject_type: StorageQuotaSubjectType.User,
-            storage_quota_subject_id: user.id,
-            storage_location_id,
-            storage_quota_name: `${user.id}'s Storage Quota`
-        })
-    ).data?.data?.created_storage_quota;
-
-    if (!storage_quota) {
-        throw new Error("Failed to create storage quota for user.");
-    }
-
-    return storage_quota;
-};
-
-export const getBlobSha256Digest = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const arrayBuffer = reader.result as ArrayBuffer;
-            const hashBuffer = crypto.subtle.digest("SHA-256", arrayBuffer);
-            hashBuffer
-                .then((hash) => {
-                    const hashArray = Array.from(new Uint8Array(hash));
-                    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-                    resolve(hashHex);
-                })
-                .catch(reject);
-        };
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(blob);
-    });
 };
 
 export const logSuccess = (message: string) => {

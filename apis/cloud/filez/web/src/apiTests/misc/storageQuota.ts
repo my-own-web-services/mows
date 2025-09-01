@@ -1,5 +1,9 @@
-import { Api } from "../../api-client";
-import { createDefaultStorageQuotaForUser, createExampleUser, impersonateUser } from "../../utils";
+import {
+    Api,
+    createDefaultStorageQuotaForUser,
+    createExampleUser,
+    impersonateUser
+} from "filez-client-typescript";
 
 export default async (filezClient: Api<unknown>) => {
     const alice = await createExampleUser(filezClient);
@@ -51,7 +55,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error("File version creation for Alice should have failed due to storage quota.");
     }
 
-    // try to create 2 file versions for alice withing the storage quota the third file should fail
+    //  Try to create 2 file versions for Alice within the storage quota; the fourth should fail.
 
     const aliceFileVersion2ShouldWork = (
         await filezClient.api.createFileVersion(
@@ -109,7 +113,6 @@ export default async (filezClient: Api<unknown>) => {
             console.log(
                 "Expected error when creating third file version for Alice due to storage quota."
             );
-            return null; // Return null to indicate the expected failure
         });
     if (aliceFileVersion4ShouldFail) {
         throw new Error(

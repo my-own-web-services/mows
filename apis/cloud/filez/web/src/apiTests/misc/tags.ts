@@ -1,5 +1,10 @@
-import { Api, TagResourceType } from "../../api-client";
-import { createDefaultStorageQuotaForUser, createExampleUser, impersonateUser } from "../../utils";
+import {
+    Api,
+    createDefaultStorageQuotaForUser,
+    createExampleUser,
+    impersonateUser,
+    TagResourceType
+} from "filez-client-typescript";
 
 export default async (filezClient: Api<unknown>) => {
     const alice = await createExampleUser(filezClient);

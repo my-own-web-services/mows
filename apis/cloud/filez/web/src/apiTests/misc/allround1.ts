@@ -5,10 +5,13 @@ import {
     AccessPolicySubjectType,
     Api,
     ContentType,
+    createExampleUser,
+    defaultAppId,
     FileGroupType,
+    getBlobSha256Digest,
+    impersonateUser,
     StorageQuotaSubjectType
-} from "../../api-client";
-import { createExampleUser, defaultAppId, getBlobSha256Digest, impersonateUser } from "../../utils";
+} from "filez-client-typescript";
 
 export default async (filezClient: Api<unknown>) => {
     await filezClient.api.listAccessPolicies({});
