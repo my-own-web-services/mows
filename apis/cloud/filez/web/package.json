@@ -12,7 +12,11 @@
         "@fontsource-variable/inter": "^5.2.6",
         "@fontsource/inter": "^5.2.6",
         "@tailwindcss/vite": "^4.1.1",
+        "@types/react": "^19.1.12",
+        "@types/react-dom": "^19.1.9",
         "autoprefixer": "^10.4.21",
+        "filez-client-typescript": "workspace:*",
+        "filez-components-react": "workspace:*",
         "less": "^4.4.1",
         "lodash": "4.17.21",
         "oidc-client-ts": "^3.2.1",
@@ -24,12 +28,12 @@
         "react-oidc-context": "^3.3.0",
         "rsuite": "^5.83.3",
         "tailwindcss": "3.4.17",
-        "ts-pattern": "^5.7.0",
-        "filez-client-typescript": "workspace:*"
+        "ts-pattern": "^5.7.0"
     },
     "devDependencies": {
         "@preact/preset-vite": "^2.10.1",
         "@types/lodash": "^4.14.195",
+        "@vitejs/plugin-react": "^5.0.0",
         "prettier": "^3.3.2",
         "prettier-plugin-organize-imports": "^3.2.4",
         "prettier-plugin-tailwindcss": "^0.6.4",
