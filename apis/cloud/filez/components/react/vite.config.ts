@@ -1,20 +1,28 @@
-import { defineConfig } from "vite";
+import tailwindcssPostcss from "@tailwindcss/postcss";
+import tailwindcssVite from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
 
 export default defineConfig({
-    plugins: [react(),tailwindcss()],
+    plugins: [
+        react(),
+        tailwindcssVite(),
+        dts({ include: ["lib"], rollupTypes: true, tsconfigPath: "tsconfig.app.json" })
+    ],
+    css: {
+        postcss: {
+            plugins: [tailwindcssPostcss]
+        }
+    },
     build: {
         lib: {
             entry: resolve(__dirname, "lib/main.ts"),
-            name: "FilezComponentsReact",
-
-            fileName: "filez-components-react",
+            fileName: "main",
             formats: ["es"]
         },
-        rollupOptions: {
-        external: ['react', 'react/jsx-runtime'],
-        }
+        sourcemap: true,
+        emptyOutDir: true
     }
 });

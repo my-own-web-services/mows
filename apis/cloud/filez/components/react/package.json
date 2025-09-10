@@ -2,21 +2,48 @@
     "name": "filez-components-react",
     "version": "0.0.1",
     "type": "module",
+    "main": "dist/main.js",
+    "types": "dist/main.d.ts",
     "scripts": {
         "dev": "vite",
         "build": "tsc -b ./tsconfig.lib.json && vite build",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "storybook": "storybook dev -p 6006",
+        "build-storybook": "storybook build"
+    },
+    "peerDependencies": {
+        "react": "^19.1.1",
+        "react-dom": "^19.1.1"
     },
     "dependencies": {
+        "@tailwindcss/postcss": "^4.1.13",
         "@tailwindcss/vite": "^4.1.12",
+        "@types/lodash": "^4.14.195",
         "@types/node": "^24.3.0",
-        "react": "^19.1.1",
-        "react-dom": "^19.1.1",
+        "@types/openseadragon": "^4.1.0",
+        "@types/react-window-infinite-loader": "^1.0.9",
+        "filez-client-typescript": "workspace:*",
+        "immutability-helper": "^3.1.1",
+        "less": "^4.4.1",
+        "lodash": "4.17.21",
+        "oidc-client-ts": "^3.2.1",
+        "openseadragon": "^5.0.1",
+        "react-contexify": "^6.0.0",
+        "react-dnd": "^16.0.1",
+        "react-dnd-html5-backend": "^16.0.1",
+        "react-dnd-preview": "^9.0.0",
         "react-icons": "^5.5.0",
+        "react-oidc-context": "^3.3.0",
+        "react-split": "^2.0.14",
+        "react-virtualized-auto-sizer": "^1.0.26",
+        "react-window": "^2.1.0",
+        "react-window-infinite-loader": "^1.0.10",
+        "rsuite": "^5.83.3",
+        "shaka-player": "^4.16.1",
         "tailwindcss": "^4.1.12",
         "ts-pattern": "^5.8.0",
-        "filez-client-typescript": "workspace:*"
+        "vite-plugin-dts": "^4.5.4"
     },
     "devDependencies": {
         "@eslint/js": "^9.33.0",
@@ -27,11 +54,13 @@
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.20",
         "globals": "^16.3.0",
-        "typescript": "~5.8.3",
-        "typescript-eslint": "^8.39.1",
-        "vite": "^7.1.2",
         "prettier": "^3.3.2",
         "prettier-plugin-organize-imports": "^3.2.4",
-        "prettier-plugin-tailwindcss": "^0.6.4"
+        "prettier-plugin-tailwindcss": "^0.6.4",
+        "react": "^19.1.1",
+        "react-dom": "^19.1.1",
+        "typescript": "~5.8.3",
+        "typescript-eslint": "^8.39.1",
+        "vite": "^7.1.2"
     }
 }

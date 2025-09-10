@@ -1,3 +1,4 @@
 /target
 .aider*
 node_modules
+.claude*
