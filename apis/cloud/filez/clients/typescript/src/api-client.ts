@@ -29,6 +29,7 @@ export enum StorageQuotaSubjectType {
 export enum SortDirection {
   Ascending = "Ascending",
   Descending = "Descending",
+  Neutral = "Neutral",
 }
 
 export enum ListUsersSortBy {
@@ -1031,6 +1032,10 @@ export interface GetFileVersionsRequestBody {
 
 export interface GetFileVersionsResponseBody {
   file_versions: FileVersion[];
+}
+
+export interface GetFilesRequestBody {
+  file_ids: FilezFileId[];
 }
 
 export interface GetFilesResponseBody {
@@ -2415,13 +2420,15 @@ export class Api<
      * @name GetFiles
      * @request POST:/api/files/get
      */
-    getFiles: (params: RequestParams = {}) =>
+    getFiles: (data: GetFilesRequestBody, params: RequestParams = {}) =>
       this.request<
         ApiResponseGetFilesResponseBody,
         ApiResponseEmptyApiResponse
       >({
         path: `/api/files/get`,
         method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),

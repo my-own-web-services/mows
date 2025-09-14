@@ -197,6 +197,9 @@ impl FileGroup {
             (ListFileGroupsSortBy::ModifiedTime, SortDirection::Descending) => {
                 query = query.order_by(schema::file_groups::modified_time.desc());
             }
+            _ => {
+                query = query.order_by(schema::file_groups::created_time.desc());
+            }
         };
 
         if let Some(from_index) = from_index {
@@ -333,6 +336,10 @@ impl FileGroup {
                         query = query
                             .order_by(schema::file_group_file_sort_order_items::position.desc());
                     }
+                    _ => {
+                        query = query
+                            .order_by(schema::file_group_file_sort_order_items::position.desc());
+                    }
                 }
                 if let Some(from_index) = from_index {
                     query = query.offset(from_index.try_into()?);
@@ -374,6 +381,9 @@ impl FileGroup {
                     }
                     (ListFilesSortBy::ModifiedTime, SortDirection::Descending) => {
                         query = query.order_by(schema::files::modified_time.desc());
+                    }
+                    _ => {
+                        query = query.order_by(schema::files::created_time.desc());
                     }
                 }
                 if let Some(from_index) = from_index {

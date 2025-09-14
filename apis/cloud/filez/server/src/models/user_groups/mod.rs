@@ -143,6 +143,9 @@ impl UserGroup {
             (ListUserGroupsSortBy::ModifiedTime, SortDirection::Descending) => {
                 query = query.order_by(schema::user_groups::modified_time.desc());
             }
+            _ => {
+                query = query.order_by(schema::user_groups::created_time.desc());
+            }
         };
 
         if let Some(from_index) = from_index {

@@ -1,7 +1,6 @@
+import { FilezFile } from "filez-client-typescript";
 import { PureComponent } from "react";
-import { FilezContext } from "../../../FilezProvider";
-import { bytesToHumanReadableSize } from "../../../utils";
-import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+import { FilezContext } from "../../../FilezContext";
 import { FileViewerViewMode } from "../FileViewer";
 
 interface TextProps {
@@ -29,16 +28,16 @@ export default class Text extends PureComponent<TextProps, TextState> {
     };
 
     componentDidUpdate = async (prevProps: TextProps) => {
-        if (prevProps.file._id !== this.props.file._id) {
+        if (prevProps.file.id !== this.props.file.id) {
             await this.init();
         }
     };
 
     init = async () => {
-        if (this.context === null) {
-            throw new Error(
-                "FileList must be used inside Filez to provide the FilezContext"
-            );
+        // TODO
+        /*
+        if (!this.context) {
+            throw new Error("FileList must be used inside Filez to provide the FilezContext");
         } else {
             // 10 MB
             const fileSizeLimit = 10 * 1024 * 1024;
@@ -54,7 +53,7 @@ export default class Text extends PureComponent<TextProps, TextState> {
                 return;
             }
             const res = await this.context.filezClient.get_file(
-                this.props.file._id,
+                this.props.file.id,
                 this.props.viewMode === FileViewerViewMode.Preview
                     ? { range: { from: 0, to: 100 }, cache: true }
                     : undefined
@@ -65,7 +64,7 @@ export default class Text extends PureComponent<TextProps, TextState> {
             this.setState({
                 textContent: text
             });
-        }
+        }*/
     };
 
     render = () => {
@@ -73,10 +72,7 @@ export default class Text extends PureComponent<TextProps, TextState> {
             <div
                 className="Text"
                 style={{
-                    overflow:
-                        this.props.viewMode === FileViewerViewMode.Preview
-                            ? "hidden"
-                            : "auto"
+                    overflow: this.props.viewMode === FileViewerViewMode.Preview ? "hidden" : "auto"
                 }}
             >
                 <pre>{this.state.textContent}</pre>

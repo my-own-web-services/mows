@@ -155,6 +155,6 @@ export interface Column<FilezResource> {
 }
 
 export interface BaseResource {
-    _id: string;
+    id: string;
     [key: string]: any;
 }

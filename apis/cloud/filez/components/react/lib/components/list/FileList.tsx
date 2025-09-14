@@ -1,20 +1,16 @@
 import { CSSProperties, PureComponent, createRef } from "react";
-import { FilezContext } from "../../FilezProvider";
-import { bytesToHumanReadableSize, utcTimeStampToTimeAndDate } from "../../utils";
 import {
     Column,
-    ColumnDirection,
+    ListResourceRequestBody,
+    ListResourceResponseBody,
     ResourceListHandlers,
     ResourceListRowHandlers
 } from "./resource/ResourceListTypes";
 
-import { FileGroupType } from "@firstdorsal/filez-client/dist/js/apiTypes/FileGroupType";
-import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
-import { Button, Modal } from "rsuite";
-import { match } from "ts-pattern";
 import FileIcon from "../fileIcons/FileIcon";
-import MetaEditor from "../resources/FileInfos";
-import UploadFile from "../resources/UploadFile";
+
+import { FileGroupType, FilezFile, ListFilesSortBy, SortDirection } from "filez-client-typescript";
+import { FilezContext } from "../../FilezContext";
 import ResourceList from "./resource/ResourceList";
 import ColumnListRowRenderer from "./resource/rowRenderers/Column";
 import GridRowRenderer from "./resource/rowRenderers/Grid";
@@ -23,7 +19,7 @@ const defaultColumns: Column<FilezFile>[] = [
     {
         field: "name",
         label: "Name",
-        direction: ColumnDirection.ASCENDING,
+        direction: SortDirection.Ascending,
         widthPercent: 30,
         minWidthPixels: 50,
         visible: true,
@@ -43,21 +39,11 @@ const defaultColumns: Column<FilezFile>[] = [
             );
         }
     },
-    {
-        field: "size",
-        label: "Size",
-        direction: ColumnDirection.NEUTRAL,
-        widthPercent: 10,
-        minWidthPixels: 50,
-        visible: true,
-        render: (item: FilezFile) => {
-            return <span>{bytesToHumanReadableSize(item.size)}</span>;
-        }
-    },
+
     {
         field: "mime_type",
         label: "Mime Type",
-        direction: ColumnDirection.NEUTRAL,
+        direction: SortDirection.Neutral,
         widthPercent: 20,
         minWidthPixels: 50,
         visible: true,
@@ -68,12 +54,12 @@ const defaultColumns: Column<FilezFile>[] = [
     {
         field: "modified",
         label: "Modified",
-        direction: ColumnDirection.NEUTRAL,
+        direction: SortDirection.Neutral,
         widthPercent: 20,
         minWidthPixels: 50,
         visible: true,
         render: (item: FilezFile) => {
-            return <span>{utcTimeStampToTimeAndDate(item.modified)}</span>;
+            return <span>{item.modified_time}</span>;
         }
     }
 ];
@@ -118,7 +104,6 @@ export default class FileList extends PureComponent<FileListProps, FileListState
     declare context: React.ContextType<typeof FilezContext>;
 
     resourceListRef = createRef<ResourceList<FilezFile>>();
-    uploadFilesRef = createRef<UploadFile>();
 
     constructor(props: FileListProps) {
         super(props);
@@ -130,34 +115,6 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         };
     }
 
-    onDrop = async (targetItemId: string, targetItemType: string, selectedFiles: FilezFile[]) => {
-        if (!this.context) return;
-        if (targetItemType === "FileGroup") {
-            console.log(targetItemId);
-
-            const res = await this.context.filezClient.update_file_infos({
-                data: {
-                    StaticFileGroupsIds: selectedFiles.flatMap((f) => {
-                        if (f.static_file_group_ids.includes(targetItemId)) {
-                            return [];
-                        }
-                        return [
-                            {
-                                file_id: f._id,
-                                field: [...f.static_file_group_ids, targetItemId]
-                            }
-                        ];
-                    })
-                }
-            });
-
-            if (res.status === 200) {
-                this.resourceListRef.current?.refreshList();
-                this.props.handlers?.onChange?.();
-            }
-        }
-    };
-
     onCreateClick = async () => {
         this.setState({ createModalOpen: true });
     };
@@ -168,14 +125,6 @@ export default class FileList extends PureComponent<FileListProps, FileListState
 
     closeDeleteModal = () => {
         this.setState({ deleteModalOpen: false });
-    };
-
-    uploadClick = async () => {
-        if (!this.uploadFilesRef.current) return;
-        await this.uploadFilesRef.current.create();
-        this.closeCreateModal();
-        this.resourceListRef.current?.refreshList();
-        this.props.handlers?.onChange?.();
     };
 
     onContextMenuItemClick = (
@@ -204,14 +153,8 @@ export default class FileList extends PureComponent<FileListProps, FileListState
 
     deleteClick = async () => {
         if (!this.context) return;
-        const selectedFiles = this.state.selectedFiles;
-        for (const file of selectedFiles) {
-            if (file.readonly || typeof file.storage_id !== "string") {
-                return false;
-            }
-        }
 
-        await this.context.filezClient.delete_files(selectedFiles.map((f) => f._id));
+        // TODO
 
         this.closeDeleteModal();
         this.resourceListRef.current?.refreshList();
@@ -227,9 +170,30 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         this.props.handlers?.onChange?.();
     };
 
+    getFilesList = async (
+        request: ListResourceRequestBody
+    ): Promise<ListResourceResponseBody<FilezFile>> => {
+        if (!this.context) return { totalCount: 0, items: [] };
+        if (!this.props.id) return { totalCount: 0, items: [] };
+        const res = await this.context.filezClient.api.listFilesInFileGroup({
+            file_group_id: this.props.id,
+            from_index: request.fromIndex,
+            limit: request.limit,
+            sort: {
+                SortOrder: {
+                    sort_by: request.sortBy as ListFilesSortBy,
+                    sort_order: request.sortDirection
+                }
+            }
+        });
+        if (res.status === 200 && res.data.data) {
+            return { totalCount: res.data.data.total_count, items: res.data.data.files };
+        }
+        return { totalCount: 0, items: [] };
+    };
+
     render = () => {
         if (!this.context) return;
-        const items = this.state.selectedFiles;
         return (
             <div className="Filez FileList" style={{ ...this.props.style }}>
                 <ResourceList
@@ -237,12 +201,8 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     resourceType="File"
                     defaultSortField="name"
                     initialListType={"ColumnListRowRenderer"}
-                    getResourcesList={this.context.filezClient.list_file_infos_by_group_id}
+                    getResourcesList={this.getFilesList}
                     dropTargetAcceptsTypes={["File"]}
-                    subResourceType={match(this.props.listSubType)
-                        .with("Static", () => "static_file_group_ids")
-                        .with("Dynamic", () => "dynamic_file_group_ids")
-                        .otherwise(() => undefined)}
                     id={this.props.id}
                     rowRenderers={[
                         GridRowRenderer<FilezFile>(),
@@ -251,7 +211,6 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     displaySortingBar={this.props.displaySortingBar}
                     displayTopBar={this.props.displayTopBar}
                     rowHandlers={{
-                        onDrop: this.onDrop,
                         onContextMenuItemClick: this.onContextMenuItemClick,
                         ...this.props.resourceListRowHandlers
                     }}
@@ -261,50 +220,6 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                         ...this.props.resourceListHandlers
                     }}
                 />
-
-                <Modal open={this.state.createModalOpen} onClose={this.closeCreateModal}>
-                    <Modal.Header>
-                        <Modal.Title>Upload File</Modal.Title>
-                    </Modal.Header>
-
-                    <Modal.Body>
-                        <UploadFile ref={this.uploadFilesRef} />
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button onClick={this.uploadClick} appearance="primary">
-                            Upload
-                        </Button>
-                        <Button onClick={this.closeCreateModal} appearance="subtle">
-                            Cancel
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
-                <Modal open={this.state.deleteModalOpen} onClose={this.closeDeleteModal}>
-                    <Modal.Header>
-                        <Modal.Title>
-                            Delete {items?.length} files? This cannot be undone.
-                        </Modal.Title>
-                    </Modal.Header>
-                    <Modal.Footer>
-                        <Button onClick={this.deleteClick} appearance="primary" color="red">
-                            Delete
-                        </Button>
-                        <Button onClick={this.closeDeleteModal} appearance="subtle">
-                            Cancel
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
-                <Modal open={this.state.editModalOpen} onClose={this.closeEditModal}>
-                    <Modal.Header>
-                        <Modal.Title>Edit File</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                        <MetaEditor
-                            onChange={this.onEditChange}
-                            fileIds={items.map((it) => it._id)}
-                        />
-                    </Modal.Body>
-                </Modal>
             </div>
         );
     };

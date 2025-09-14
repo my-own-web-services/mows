@@ -44,7 +44,7 @@ export const impersonateUser = (userId: string) => {
 
 export const defaultAppId = "00000000-0000-0000-0000-000000000000";
 
-export const createFilezClient = (serverUrl: string, bearer_token?: string) => {
+export const createFilezClientWithAuth = (serverUrl: string, bearer_token?: string) => {
     return new Api({
         baseUrl: serverUrl,
         baseApiParams: { secure: true },
