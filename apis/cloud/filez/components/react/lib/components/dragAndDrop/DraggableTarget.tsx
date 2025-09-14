@@ -31,9 +31,8 @@ export const DraggableTarget: FC<DraggableTargetProps> = (props) => {
                 opacity: isDragging && !canDrop ? 0.5 : 1,
                 ...props.style
             }}
-            className={`DraggableTarget${
-                canDrop && isOver ? " dragOverActive" : ""
-            }`}
+            className={`DraggableTarget${canDrop && isOver ? "dragOverActive" : ""}`}
+            //@ts-ignore
             ref={drop}
         >
             {props.children}

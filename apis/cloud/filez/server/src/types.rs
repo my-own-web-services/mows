@@ -28,6 +28,8 @@ pub struct FilezApiDoc;
 pub enum SortDirection {
     Ascending,
     Descending,
+    /// When neutral is selected, the default sorting is used (usually by creation date descending)
+    Neutral,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]

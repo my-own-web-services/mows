@@ -18,6 +18,7 @@ use uuid::Uuid;
 #[utoipa::path(
     post,
     path = "/api/files/get",
+    request_body = GetFilesRequestBody,
     description = "Get files from the server, NOT their content",
     responses(
         (

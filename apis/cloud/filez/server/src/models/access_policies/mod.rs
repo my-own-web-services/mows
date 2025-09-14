@@ -600,6 +600,9 @@ impl AccessPolicy {
             (ListAccessPoliciesSortBy::ModifiedTime, SortDirection::Descending) => {
                 query = query.order_by(schema::access_policies::modified_time.desc());
             }
+            _ => {
+                query = query.order_by(schema::access_policies::created_time.desc());
+            }
         };
 
         if let Some(from_index) = from_index {

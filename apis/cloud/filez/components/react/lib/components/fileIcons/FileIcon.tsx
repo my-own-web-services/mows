@@ -1,4 +1,5 @@
 import { FilezFile } from "filez-client-typescript";
+
 import { PureComponent } from "react";
 
 interface FileIconProps {
@@ -17,12 +18,8 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
     componentDidMount = async () => {};
 
     getIcon = () => {
-        return (
-            <img
-                style={{ height: "100%" }}
-                src={`/file-icons/${getIconName(this.props.file.name)}.svg`}
-            />
-        );
+        // TODO
+        return <img style={{ height: "100%" }} src={`/file-icons/.svg`} />;
     };
 
     render = () => {
@@ -33,5 +30,3 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
         );
     };
 }
-
-export const getIconName = (name?: string) => {};

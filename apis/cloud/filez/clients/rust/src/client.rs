@@ -522,12 +522,12 @@ impl ApiClient {
     }
 
     #[tracing::instrument(level = "trace")]
-    pub async fn get_files(&self ) -> Result<ApiResponseGetFilesResponseBody, ApiClientError> {
+    pub async fn get_files(&self, request_body: GetFilesRequestBody) -> Result<ApiResponseGetFilesResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/files/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
-        let response = self.client.post(full_url).headers(self.add_auth_headers()?).send().await?;
+        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));

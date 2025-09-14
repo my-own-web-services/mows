@@ -82,7 +82,7 @@ export default class Video extends PureComponent<VideoProps, VideoState> {
         ui.getControls();
 
         this.player.getNetworkingEngine().registerRequestFilter(function (
-            request_type: any,
+            _request_type: any,
             request: any
         ) {
             request.allowCrossSiteCredentials = true;
@@ -117,7 +117,7 @@ export default class Video extends PureComponent<VideoProps, VideoState> {
         return mimeType;
     };
 
-    hasConvertedVersion = (file: FilezFile) => {
+    hasConvertedVersion = (_file: FilezFile) => {
         return true;
         // TODO
         /*

@@ -1,6 +1,7 @@
 import { Component, createRef } from "react";
-import { FilezContext } from "../../../FilezProvider";
-import { FilezFile } from "@firstdorsal/filez-client/dist/js/apiTypes/FilezFile";
+
+import { FilezFile } from "filez-client-typescript";
+import { FilezContext } from "../../../FilezContext";
 import { FileViewerViewMode } from "../FileViewer";
 import Image from "./Image";
 
@@ -20,19 +21,16 @@ export default class Audio extends Component<AudioProps, AudioState> {
         }
     };
     render = () => {
-        const uiConfig = this.context?.uiConfig;
+        const uiConfig = this.context?.clientConfig;
         if (!uiConfig) return;
         return (
             <div className="Audio">
                 {this.props.viewMode === FileViewerViewMode.Preview ? (
-                    <Image
-                        file={this.props.file}
-                        viewMode={this.props.viewMode}
-                     />
+                    <Image file={this.props.file} viewMode={this.props.viewMode} />
                 ) : (
                     <audio ref={this.audioRef} controls>
                         <source
-                            src={`${uiConfig.filezServerAddress}/api/file/get/${this.props.file._id}`}
+                            src={`${uiConfig.serverUrl}/api/file/get/${this.props.file.id}`}
                             type={this.props.file.mime_type}
                         />
                     </audio>

@@ -1,6 +1,7 @@
 import {
+    Api,
     ClientConfig,
-    createFilezClient,
+    createFilezClientWithAuth,
     FilezClient,
     getClientConfig
 } from "filez-client-typescript";
@@ -10,13 +11,12 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
 import { CustomProvider as ReactSuiteProvider } from "rsuite";
-import Login from "./components/Login";
 //import { generateDndPreview } from "./components/dragAndDrop/generatePreview";
 
 export interface FilezContextType {
     readonly auth: AuthContextProps;
-    readonly filezClient: FilezClient | null;
-    readonly clientConfig: ClientConfig | null;
+    readonly filezClient: FilezClient;
+    readonly clientConfig: ClientConfig;
     readonly isLoading: boolean;
 }
 
@@ -82,11 +82,16 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
     };
 
     updateFilezClient = () => {
-        const { auth, clientConfig } = this.props;
-
         // Effect to create or destroy the filezClient based on auth state.
-        if (auth?.user && !auth.isLoading && clientConfig.serverUrl) {
-            const client = createFilezClient(clientConfig.serverUrl, auth.user.access_token);
+        if (
+            this.props.auth?.user &&
+            !this.props.auth.isLoading &&
+            this.props.clientConfig.serverUrl
+        ) {
+            const client = createFilezClientWithAuth(
+                this.props.clientConfig.serverUrl,
+                this.props.auth.user.access_token
+            );
             this.setState({ filezClient: client });
 
             console.log("Filez API client initialized with user token.");
@@ -96,12 +101,16 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
                 if (response?.error?.status?.Error === "IntrospectionGuardError::Inactive") {
                     console.error("User token is inactive, redirecting to sign in.");
                     localStorage.setItem("redirect_uri", window.location.href);
-                    await auth.signinRedirect();
+                    await this.props.auth?.signinRedirect();
                 }
             });
         } else {
             // User is not authenticated, ensure the client is null.
-            this.setState({ filezClient: null });
+            this.setState({
+                filezClient: new Api({
+                    baseUrl: this.props.clientConfig.serverUrl
+                })
+            });
         }
     };
 
@@ -111,7 +120,7 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
 
         const contextValue: FilezContextType = {
             auth: auth!,
-            filezClient,
+            filezClient: filezClient!,
             clientConfig,
             isLoading: auth?.isLoading || !clientConfig
         };
@@ -153,8 +162,8 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
     };
 
     onSigninCallback = (_user: User | void): void => {
-        const redirectUri = localStorage.getItem("redirect_uri");
-        localStorage.removeItem("redirect_uri");
+        const redirectUri = localStorage.getItem("filez_redirect_uri");
+        localStorage.removeItem("filez_redirect_uri");
         // Restore the original path the user was trying to access.
         window.history.replaceState({}, document.title, redirectUri || window.location.pathname);
     };
@@ -187,7 +196,6 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
                 <ReactSuiteProvider theme="dark">
                     <DndProvider backend={HTML5Backend}>
                         <FilezClientManager clientConfig={clientConfig}>
-                            <Login></Login>
                             {children}
                         </FilezClientManager>
                     </DndProvider>

@@ -260,6 +260,9 @@ impl StorageQuota {
             (ListStorageQuotasSortBy::StorageLocationId, SortDirection::Descending) => {
                 query = query.order_by(schema::storage_quotas::storage_location_id.desc());
             }
+            _ => {
+                query = query.order_by(schema::storage_quotas::created_time.desc());
+            }
         };
 
         if let Some(from_index) = from_index {

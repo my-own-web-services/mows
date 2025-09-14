@@ -366,6 +366,7 @@ impl FilezJob {
             (ListJobsSortBy::Name, SortDirection::Descending) => {
                 query = query.order(schema::jobs::name.desc())
             }
+            _ => query = query.order(schema::jobs::created_time.desc()),
         }
 
         let jobs = query.load::<FilezJob>(&mut connection).await?;
