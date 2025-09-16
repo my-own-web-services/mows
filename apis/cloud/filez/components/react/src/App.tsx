@@ -1,5 +1,5 @@
 import { CSSProperties, PureComponent } from "react";
-import Login from "../lib/components/Login";
+import PrimaryMenu from "../lib/components/PrimaryMenu";
 
 interface AppProps {
     readonly className?: string;
@@ -20,9 +20,9 @@ export default class App extends PureComponent<AppProps, AppState> {
         return (
             <div
                 style={{ ...this.props.style }}
-                className={`App h-full w-full bg-gray-900 ${this.props.className ?? ""}`}
+                className={`App h-full w-full ${this.props.className ?? ""}`}
             >
-                <Login></Login>
+                <PrimaryMenu defaultOpen></PrimaryMenu>
             </div>
         );
     };
