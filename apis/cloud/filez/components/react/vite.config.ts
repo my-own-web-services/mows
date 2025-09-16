@@ -2,6 +2,7 @@ import tailwindcssPostcss from "@tailwindcss/postcss";
 import tailwindcssVite from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
+import path from "path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
@@ -24,5 +25,10 @@ export default defineConfig({
         },
         sourcemap: true,
         emptyOutDir: true
+    },
+    resolve: {
+        alias: {
+            "@": path.resolve(__dirname, "./lib")
+        }
     }
 });

@@ -10,7 +10,7 @@ import React, { Component, createContext, ReactNode } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
-import { CustomProvider as ReactSuiteProvider } from "rsuite";
+import { loadThemeCSS } from "./utils";
 //import { generateDndPreview } from "./components/dragAndDrop/generatePreview";
 
 export interface FilezContextType {
@@ -18,6 +18,8 @@ export interface FilezContextType {
     readonly filezClient: FilezClient;
     readonly clientConfig: ClientConfig;
     readonly isLoading: boolean;
+    readonly setTheme: (theme: string) => Promise<void>;
+    readonly currentTheme: string;
 }
 
 // Create the context. An undefined default value ensures a provider is always used.
@@ -57,19 +59,24 @@ interface FilezClientManagerProps {
 
 interface FilezClientManagerState {
     filezClient: FilezClient | null;
+    currentTheme: string;
 }
+
+export const themePrefix = "filez-ui-theme-";
 
 // Internal component to manage the client lifecycle after auth is ready.
 class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezClientManagerState> {
     constructor(props: FilezClientManagerProps) {
         super(props);
         this.state = {
-            filezClient: null
+            filezClient: null,
+            currentTheme: "system"
         };
     }
 
     componentDidMount = () => {
         this.updateFilezClient();
+        this.setTheme(this.state.currentTheme);
     };
 
     componentDidUpdate = (prevProps: FilezClientManagerProps) => {
@@ -114,22 +121,47 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
         }
     };
 
+    setTheme = async (theme: string) => {
+        const root = window.document.documentElement;
+
+        root.classList.forEach((cls) => {
+            if (cls.startsWith(themePrefix)) {
+                root.classList.remove(cls);
+            }
+        });
+
+        if (theme === "system") {
+            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? `${themePrefix}dark`
+                : `${themePrefix}light`;
+
+            root.classList.add(systemTheme);
+            return;
+        }
+
+        // IMPORTANT: The order matters here.
+        root.classList.add(theme);
+        await loadThemeCSS("/test.css");
+        this.setState({ currentTheme: theme });
+    };
+
     render = () => {
         const { children, auth, clientConfig } = this.props;
-        const { filezClient } = this.state;
+        const { filezClient, currentTheme } = this.state;
 
         const contextValue: FilezContextType = {
             auth: auth!,
             filezClient: filezClient!,
             clientConfig,
-            isLoading: auth?.isLoading || !clientConfig
+            isLoading: auth?.isLoading || !clientConfig,
+            setTheme: this.setTheme,
+            currentTheme
         };
 
         return <FilezContext.Provider value={contextValue}>{children}</FilezContext.Provider>;
     };
 }
 
-// Wrap FilezClientManagerBase with auth context
 const FilezClientManager = withAuth(FilezClientManagerBase);
 
 interface FilezProviderProps {
@@ -193,13 +225,9 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
 
         return (
             <AuthProvider {...oidcConfig}>
-                <ReactSuiteProvider theme="dark">
-                    <DndProvider backend={HTML5Backend}>
-                        <FilezClientManager clientConfig={clientConfig}>
-                            {children}
-                        </FilezClientManager>
-                    </DndProvider>
-                </ReactSuiteProvider>
+                <DndProvider backend={HTML5Backend}>
+                    <FilezClientManager clientConfig={clientConfig}>{children}</FilezClientManager>
+                </DndProvider>
             </AuthProvider>
         );
     };

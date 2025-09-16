@@ -1,5 +1,19 @@
 import { FilezFile } from "filez-client-typescript";
 
+export const loadThemeCSS = (href: string): Promise<HTMLLinkElement> => {
+    return new Promise((resolve, reject) => {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.type = "text/css";
+        link.href = href;
+
+        link.onload = () => resolve(link);
+        link.onerror = () => reject(new Error(`Failed to load CSS: ${href}`));
+
+        document.head.appendChild(link);
+    });
+};
+
 export const rawFileEndings = [
     "3fr",
     "ari",
