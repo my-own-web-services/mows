@@ -12,6 +12,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { I18nextProvider } from "react-i18next";
 import { AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
 import i18n from "./lib/i18n";
+import { FilezTheme, themeLocalStorageKey, themePrefix, themes } from "./lib/themes";
 import { loadThemeCSS } from "./utils";
 //import { generateDndPreview } from "./components/dragAndDrop/generatePreview";
 
@@ -20,14 +21,12 @@ export interface FilezContextType {
     readonly filezClient: FilezClient;
     readonly clientConfig: ClientConfig;
     readonly isLoading: boolean;
-    readonly setTheme: (theme: string) => Promise<void>;
-    readonly currentTheme: string;
+    readonly setTheme: (theme: FilezTheme) => Promise<void>;
+    readonly currentTheme: FilezTheme;
 }
 
-// Create the context. An undefined default value ensures a provider is always used.
 export const FilezContext = createContext<FilezContextType | undefined>(undefined);
 
-// Helper HOC to consume the context in class components
 export const withFilez = <P extends object>(
     WrappedComponent: React.ComponentType<P & { filez: FilezContextType }>
 ) => {
@@ -44,7 +43,6 @@ export const withFilez = <P extends object>(
     };
 };
 
-// For functional components, keep the hook
 export const useFilez = (): FilezContextType => {
     const context = React.useContext(FilezContext);
     if (context === undefined) {
@@ -61,18 +59,17 @@ interface FilezClientManagerProps {
 
 interface FilezClientManagerState {
     filezClient: FilezClient | null;
-    currentTheme: string;
+    currentTheme: FilezTheme;
 }
 
-export const themePrefix = "filez-ui-theme-";
-
-// Internal component to manage the client lifecycle after auth is ready.
 class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezClientManagerState> {
     constructor(props: FilezClientManagerProps) {
         super(props);
+        const currentThemeId = localStorage.getItem(themeLocalStorageKey) || "system";
+
         this.state = {
             filezClient: null,
-            currentTheme: "system"
+            currentTheme: themes.find((t) => t.id === currentThemeId) || themes[0]
         };
     }
 
@@ -123,7 +120,7 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
         }
     };
 
-    setTheme = async (theme: string) => {
+    setTheme = async (theme: FilezTheme) => {
         const root = window.document.documentElement;
 
         root.classList.forEach((cls) => {
@@ -132,18 +129,20 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
             }
         });
 
-        if (theme === "system") {
+        if (theme.id === "system") {
             const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? `${themePrefix}dark`
-                : `${themePrefix}light`;
+                ? `dark`
+                : `light`;
 
-            root.classList.add(systemTheme);
+            root.classList.add(themePrefix + systemTheme);
             return;
         }
 
         // IMPORTANT: The order matters here.
-        root.classList.add(theme);
-        await loadThemeCSS("/test.css");
+        root.classList.add(themePrefix + theme.id);
+        if (theme.url) await loadThemeCSS(theme.url);
+        // set to local storage
+        localStorage.setItem(themeLocalStorageKey, theme.id);
         this.setState({ currentTheme: theme });
     };
 
@@ -174,7 +173,6 @@ interface FilezProviderState {
     clientConfig: ClientConfig | null;
 }
 
-// The main provider component exported for use in the app.
 export class FilezProvider extends Component<FilezProviderProps, FilezProviderState> {
     constructor(props: FilezProviderProps) {
         super(props);
@@ -184,21 +182,18 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
     }
 
     componentDidMount = () => {
-        // Fetch client configuration on component mount.
         getClientConfig()
             .then((config) => {
                 this.setState({ clientConfig: config });
             })
             .catch((error) => {
                 console.error("Failed to fetch OIDC config", error);
-                // Consider rendering an error message to the user.
             });
     };
 
     onSigninCallback = (_user: User | void): void => {
         const redirectUri = localStorage.getItem("filez_redirect_uri");
         localStorage.removeItem("filez_redirect_uri");
-        // Restore the original path the user was trying to access.
         window.history.replaceState({}, document.title, redirectUri || window.location.pathname);
     };
 
@@ -206,8 +201,6 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
         const { clientConfig } = this.state;
         const { children } = this.props;
 
-        // Display a loading state until the configuration is fetched.
-        // This prevents AuthProvider from initializing with invalid config.
         if (!clientConfig) {
             return <div>Loading Configuration...</div>;
         }

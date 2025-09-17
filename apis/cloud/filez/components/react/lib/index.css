@@ -13,7 +13,7 @@ button {
 
 @plugin "tailwindcss-animate";
 
-@custom-variant dark (&:is(.filez-ui-theme-dark *));
+@custom-variant dark (&:is(.filez-theme-dark *));
 
 @theme inline {
     --radius-sm: calc(var(--radius) - 4px);
@@ -90,7 +90,7 @@ button {
     --sidebar-ring: oklch(0.708 0 0);
 }
 
-.filez-ui-theme-dark {
+.filez-theme-dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

@@ -9,10 +9,15 @@
         "settings": "Einstellungen",
         "language": "Sprache",
         "login": "Anmelden",
-        "logout": "Abmelden"
+        "logout": "Abmelden",
+        "theme": "Design"
     },
     "languagePicker": {
         "noLanguageFound": "Keine Sprache gefunden",
         "selectLanguage": "Sprache auswählen"
+    },
+    "themePicker": {
+        "selectTheme": "Design auswählen",
+        "noThemeFound": "Kein Design gefunden"
     }
 }

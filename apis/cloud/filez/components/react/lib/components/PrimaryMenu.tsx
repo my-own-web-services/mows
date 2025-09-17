@@ -17,6 +17,7 @@ import { FilezContext } from "../FilezContext";
 import Avatar from "./atoms/Avatar";
 import CopyValueButton from "./atoms/CopyValueButton";
 import LanguagePicker from "./atoms/LanguagePicker";
+import ThemePicker from "./atoms/ThemePicker";
 
 interface PrimaryMenuProps {
     readonly className?: string;
@@ -146,6 +147,9 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
                                         {t("primaryMenu.language")}
                                     </DropdownMenuLabel>
                                     <LanguagePicker className="w-full" style={{}} />
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel>{t("primaryMenu.theme")}</DropdownMenuLabel>
+                                    <ThemePicker className="w-full" style={{}} />
                                 </DropdownMenuContent>
                             </>
                         ))
