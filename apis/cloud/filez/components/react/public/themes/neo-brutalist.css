@@ -1,0 +1,242 @@
+.filez-theme-neo-brutalist {
+    /* Base colors */
+    --background: oklch(1 0 0);
+    --foreground: oklch(0 0 0);
+
+    /* Card */
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0 0 0);
+
+    /* Popover */
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0 0 0);
+
+    /* Primary - Bold electric blue */
+    --primary: oklch(0.58 0.25 249);
+    --primary-foreground: oklch(1 0 0);
+
+    /* Secondary - Bright yellow */
+    --secondary: oklch(0.9 0.15 85);
+    --secondary-foreground: oklch(0 0 0);
+
+    /* Muted colors */
+    --muted: oklch(0.96 0 0);
+    --muted-foreground: oklch(0.4 0 0);
+
+    /* Accent - Hot pink */
+    --accent: oklch(0.7 0.28 330);
+    --accent-foreground: oklch(1 0 0);
+
+    /* Destructive - Bold red */
+    --destructive: oklch(0.65 0.25 25);
+    --destructive-foreground: oklch(1 0 0);
+
+    /* Border and input */
+    --border: oklch(0 0 0);
+    --input: oklch(0 0 0);
+
+    /* Ring */
+    --ring: oklch(0.58 0.25 249);
+
+    /* Charts - Bold colors */
+    --chart-1: oklch(0.7 0.25 330);
+    --chart-2: oklch(0.58 0.25 249);
+    --chart-3: oklch(0.9 0.15 85);
+    --chart-4: oklch(0.65 0.25 25);
+    --chart-5: oklch(0.6 0.25 120);
+
+    /* Sidebar */
+    --sidebar: oklch(1 0 0);
+    --sidebar-foreground: oklch(0 0 0);
+    --sidebar-primary: oklch(0.58 0.25 249);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent: oklch(0.96 0 0);
+    --sidebar-accent-foreground: oklch(0 0 0);
+    --sidebar-border: oklch(0 0 0);
+    --sidebar-ring: oklch(0.58 0.25 249);
+
+    /* Radius - Sharp corners for brutalist look */
+    --radius: 0rem;
+}
+
+.filez-ui-theme-neo-brutalist {
+    /* Override components with brutalist styling */
+
+    /* Buttons get thick borders and box shadows */
+    .btn,
+    button {
+        border: 3px solid black !important;
+        box-shadow: 4px 4px 0px 0px black !important;
+        transition: none !important;
+        text-transform: uppercase !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    .btn:hover,
+    button:hover {
+        transform: translate(-2px, -2px) !important;
+        box-shadow: 6px 6px 0px 0px black !important;
+    }
+
+    .btn:active,
+    button:active {
+        transform: translate(2px, 2px) !important;
+        box-shadow: 2px 2px 0px 0px black !important;
+    }
+
+    /* Input fields */
+    input,
+    textarea,
+    select {
+        border: 3px solid black !important;
+        border-radius: 0 !important;
+        background: white !important;
+        font-weight: 600 !important;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+        outline: none !important;
+        border-color: oklch(var(--primary)) !important;
+        box-shadow: 4px 4px 0px 0px oklch(var(--primary)) !important;
+    }
+
+    /* Cards and containers */
+    .card,
+    [role="dialog"],
+    .popover-content {
+        border: 3px solid black !important;
+        border-radius: 0 !important;
+        box-shadow: 6px 6px 0px 0px black !important;
+        background: white !important;
+    }
+
+    /* Command palette */
+    [cmdk-root] {
+        border: 3px solid black !important;
+        border-radius: 0 !important;
+        box-shadow: 8px 8px 0px 0px black !important;
+    }
+
+    [cmdk-input] {
+        border: none !important;
+        border-bottom: 3px solid black !important;
+        border-radius: 0 !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    [cmdk-item] {
+        border-radius: 0 !important;
+        font-weight: 600 !important;
+    }
+
+    [cmdk-item][aria-selected="true"] {
+        background: oklch(var(--primary)) !important;
+        color: white !important;
+        font-weight: 900 !important;
+    }
+
+    /* Menu items */
+    .menu-item,
+    [role="menuitem"] {
+        border-radius: 0 !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    .menu-item:hover,
+    [role="menuitem"]:hover {
+        background: oklch(var(--accent)) !important;
+        color: white !important;
+        transform: translate(-1px, -1px) !important;
+    }
+
+    /* Typography overrides */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-weight: 900 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.1em !important;
+        text-shadow: 2px 2px 0px oklch(var(--secondary)) !important;
+    }
+
+    /* Icons */
+    svg {
+        filter: drop-shadow(1px 1px 0px black) !important;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+        width: 16px !important;
+        background: white !important;
+        border: 2px solid black !important;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: oklch(var(--primary)) !important;
+        border: 2px solid black !important;
+        border-radius: 0 !important;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: oklch(var(--accent)) !important;
+    }
+
+    /* Tooltips */
+    [data-tooltip],
+    .tooltip {
+        border: 2px solid black !important;
+        border-radius: 0 !important;
+        background: oklch(var(--secondary)) !important;
+        color: black !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        box-shadow: 3px 3px 0px 0px black !important;
+    }
+
+    /* Loading states */
+    .loading,
+    [aria-busy="true"] {
+        animation: brutalist-pulse 0.5s infinite alternate !important;
+    }
+
+    @keyframes brutalist-pulse {
+        from {
+            background: white !important;
+            border-color: black !important;
+        }
+        to {
+            background: oklch(var(--secondary)) !important;
+            border-color: oklch(var(--primary)) !important;
+        }
+    }
+
+    /* File icons and thumbnails */
+    .file-icon,
+    .thumbnail {
+        filter: contrast(1.2) saturate(1.3) !important;
+        border: 2px solid black !important;
+        border-radius: 0 !important;
+    }
+
+    /* Status indicators */
+    .badge,
+    .status {
+        border: 2px solid black !important;
+        border-radius: 0 !important;
+        font-weight: 900 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.1em !important;
+        box-shadow: 2px 2px 0px 0px black !important;
+    }
+}

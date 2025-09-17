@@ -9,10 +9,15 @@
         "settings": "Settings",
         "language": "Language",
         "login": "Login",
-        "logout": "Logout"
+        "logout": "Logout",
+        "theme": "Theme"
     },
     "languagePicker": {
         "noLanguageFound": "No language found",
         "selectLanguage": "Select language"
+    },
+    "themePicker": {
+        "selectTheme": "Select theme",
+        "noThemeFound": "No theme found"
     }
 }

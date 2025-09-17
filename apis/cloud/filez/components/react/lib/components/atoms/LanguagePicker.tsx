@@ -10,7 +10,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { languages } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Settings } from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -35,6 +35,9 @@ export default function LanguagePicker({
 
     const { t, i18n } = useTranslation();
     const [selectedValue, setSelectedValue] = useState(value || i18n.language);
+    
+    // Get browser's preferred language
+    const browserLanguage = navigator.language || navigator.languages?.[0] || 'en-US';
 
     const selectedLanguage = languages.find((lang) => lang.code === selectedValue);
 
@@ -98,9 +101,16 @@ export default function LanguagePicker({
                                     <div className="flex items-center gap-2">
                                         <span className="text-lg">{language.emoji}</span>
                                         <div className="flex flex-col">
-                                            <span className="font-medium">
-                                                {language.originalName}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">
+                                                    {language.originalName}
+                                                </span>
+                                                {language.code === browserLanguage && (
+                                                    <span className="text-xs text-muted-foreground opacity-60">
+                                                        (system)
+                                                    </span>
+                                                )}
+                                            </div>
                                             <span className="text-muted-foreground text-xs">
                                                 {language.englishName}
                                             </span>

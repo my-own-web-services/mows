@@ -1,0 +1,60 @@
+.filez-theme-neo-brutalist-dark {
+    /* Base colors - Dark background */
+    --background: oklch(0.1 0 0);
+    --foreground: oklch(1 0 0);
+
+    /* Card */
+    --card: oklch(0.15 0 0);
+    --card-foreground: oklch(1 0 0);
+
+    /* Popover */
+    --popover: oklch(0.15 0 0);
+    --popover-foreground: oklch(1 0 0);
+
+    /* Primary - Electric cyan */
+    --primary: oklch(0.7 0.3 180);
+    --primary-foreground: oklch(0.1 0 0);
+
+    /* Secondary - Neon green */
+    --secondary: oklch(0.8 0.25 130);
+    --secondary-foreground: oklch(0.1 0 0);
+
+    /* Muted colors */
+    --muted: oklch(0.2 0 0);
+    --muted-foreground: oklch(0.7 0 0);
+
+    /* Accent - Electric purple */
+    --accent: oklch(44.685% 0.18067 306.982);
+    --accent-foreground: oklch(1 0 0);
+
+    /* Destructive - Neon red */
+    --destructive: oklch(0.7 0.3 25);
+    --destructive-foreground: oklch(1 0 0);
+
+    /* Border and input - Bright white borders */
+    --border: oklch(1 0 0);
+    --input: oklch(1 0 0);
+
+    /* Ring */
+    --ring: oklch(0.7 0.3 180);
+
+    /* Charts - Neon colors */
+    --chart-1: oklch(0.65 0.3 300);
+    --chart-2: oklch(0.7 0.3 180);
+    --chart-3: oklch(0.8 0.25 130);
+    --chart-4: oklch(0.7 0.3 25);
+    --chart-5: oklch(0.75 0.25 60);
+
+    /* Sidebar */
+    --sidebar: oklch(0.15 0 0);
+    --sidebar-foreground: oklch(1 0 0);
+    --sidebar-primary: oklch(0.7 0.3 180);
+    --sidebar-primary-foreground: oklch(0.1 0 0);
+    --sidebar-accent: oklch(0.2 0 0);
+    --sidebar-accent-foreground: oklch(1 0 0);
+    --sidebar-border: oklch(1 0 0);
+    --sidebar-ring: oklch(0.7 0.3 180);
+
+    /* Radius - Sharp corners for brutalist look */
+    --radius: 0rem;
+}
