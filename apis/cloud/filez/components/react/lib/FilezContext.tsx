@@ -9,7 +9,9 @@ import { User, WebStorageStateStore } from "oidc-client-ts";
 import React, { Component, createContext, ReactNode } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { I18nextProvider } from "react-i18next";
 import { AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
+import i18n from "./lib/i18n";
 import { loadThemeCSS } from "./utils";
 //import { generateDndPreview } from "./components/dragAndDrop/generatePreview";
 
@@ -224,12 +226,15 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
         };
 
         return (
-            <AuthProvider {...oidcConfig}>
-                <DndProvider backend={HTML5Backend}>
-                    <FilezClientManager clientConfig={clientConfig}>{children}</FilezClientManager>
-                </DndProvider>
-            </AuthProvider>
+            <I18nextProvider i18n={i18n} defaultNS={"default"}>
+                <AuthProvider {...oidcConfig}>
+                    <DndProvider backend={HTML5Backend}>
+                        <FilezClientManager clientConfig={clientConfig}>
+                            {children}
+                        </FilezClientManager>
+                    </DndProvider>
+                </AuthProvider>
+            </I18nextProvider>
         );
     };
 }
-//                     <DndPreview generator={generateDndPreview} />

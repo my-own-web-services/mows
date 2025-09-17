@@ -1,0 +1,18 @@
+{
+    "primaryMenu": {
+        "loggedInAs": "Signed in as",
+        "copyUserId": {
+            "label": "Copy User ID",
+            "title": "Copy User ID to clipboard"
+        },
+        "profile": "Profile",
+        "settings": "Settings",
+        "language": "Language",
+        "login": "Login",
+        "logout": "Logout"
+    },
+    "languagePicker": {
+        "noLanguageFound": "No language found",
+        "selectLanguage": "Select language"
+    }
+}

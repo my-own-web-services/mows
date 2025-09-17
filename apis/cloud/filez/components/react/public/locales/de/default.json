@@ -1,0 +1,18 @@
+{
+    "primaryMenu": {
+        "loggedInAs": "Angemeldet als",
+        "copyUserId": {
+            "label": "Benutzer ID kopieren",
+            "title": "Benutzer ID in die Zwischenablage kopieren"
+        },
+        "profile": "Profil",
+        "settings": "Einstellungen",
+        "language": "Sprache",
+        "login": "Anmelden",
+        "logout": "Abmelden"
+    },
+    "languagePicker": {
+        "noLanguageFound": "Keine Sprache gefunden",
+        "selectLanguage": "Sprache auswählen"
+    }
+}
