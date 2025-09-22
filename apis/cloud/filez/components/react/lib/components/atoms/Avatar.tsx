@@ -21,7 +21,6 @@ export default class Avatar extends PureComponent<AvatarProps, AvatarState> {
 
     render = () => {
         const userName = this.props.filezUser?.display_name;
-        const userId = this.props.filezUser?.id;
 
         return (
             <div

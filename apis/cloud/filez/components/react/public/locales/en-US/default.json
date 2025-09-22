@@ -6,11 +6,14 @@
             "title": "Copy User ID to clipboard"
         },
         "profile": "Profile",
-        "settings": "Settings",
         "language": "Language",
         "login": "Login",
         "logout": "Logout",
-        "theme": "Theme"
+        "theme": "Theme",
+        "openMenu": "Open menu",
+        "switchUser": "Switch User",
+        "developerTools": "Developer Tools",
+        "developer": "Developer"
     },
     "languagePicker": {
         "noLanguageFound": "No language found",

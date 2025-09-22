@@ -1,6 +1,5 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
-import Nav from "../components/Nav";
 
 interface HomeProps {
     readonly className?: string;
@@ -19,9 +18,10 @@ export default class Home extends Component<HomeProps, HomeState> {
 
     render = () => {
         return (
-            <div style={{ ...this.props.style }} className={`Home ${this.props.className ?? ""}`}>
-                <Nav></Nav>
-            </div>
+            <div
+                style={{ ...this.props.style }}
+                className={`Home ${this.props.className ?? ""}`}
+            ></div>
         );
     };
 }
