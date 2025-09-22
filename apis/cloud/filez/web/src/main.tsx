@@ -2,13 +2,12 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 import { FilezProvider } from "filez-components-react";
 import { render } from "preact";
-import AppNew from "./AppNew";
+import App from "./App";
 import "./index.css";
-import "./index.less";
 
 render(
     <FilezProvider>
-        <AppNew></AppNew>
+        <App></App>
     </FilezProvider>,
     document.getElementById("root")!
 );

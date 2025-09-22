@@ -3,6 +3,7 @@ import {
     ClientConfig,
     createFilezClientWithAuth,
     FilezClient,
+    FilezUser,
     getClientConfig
 } from "filez-client-typescript";
 import { User, WebStorageStateStore } from "oidc-client-ts";
@@ -13,6 +14,7 @@ import { I18nextProvider } from "react-i18next";
 import { AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
 import i18n from "./lib/i18n";
 import { FilezTheme, themeLocalStorageKey, themePrefix, themes } from "./lib/themes";
+import { filezPostLoginRedirectPathLocalStorageKey } from "./lib/utils";
 import { loadThemeCSS } from "./utils";
 //import { generateDndPreview } from "./components/dragAndDrop/generatePreview";
 
@@ -20,9 +22,10 @@ export interface FilezContextType {
     readonly auth: AuthContextProps;
     readonly filezClient: FilezClient;
     readonly clientConfig: ClientConfig;
-    readonly isLoading: boolean;
+    readonly clientLoading: boolean;
     readonly setTheme: (theme: FilezTheme) => Promise<void>;
     readonly currentTheme: FilezTheme;
+    readonly ownFilezUser?: FilezUser | null;
 }
 
 export const FilezContext = createContext<FilezContextType | undefined>(undefined);
@@ -57,18 +60,20 @@ interface FilezClientManagerProps {
     auth?: AuthContextProps;
 }
 
+// Undefined means still loading, null means no user, otherwise a user.
 interface FilezClientManagerState {
-    filezClient: FilezClient | null;
+    filezClient?: FilezClient;
     currentTheme: FilezTheme;
+    ownUser?: FilezUser | null;
 }
 
 class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezClientManagerState> {
     constructor(props: FilezClientManagerProps) {
         super(props);
         const currentThemeId = localStorage.getItem(themeLocalStorageKey) || "system";
+        console.log("Current theme ID:", currentThemeId);
 
         this.state = {
-            filezClient: null,
             currentTheme: themes.find((t) => t.id === currentThemeId) || themes[0]
         };
     }
@@ -78,44 +83,60 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
         this.setTheme(this.state.currentTheme);
     };
 
-    componentDidUpdate = (prevProps: FilezClientManagerProps) => {
+    componentDidUpdate = async (prevProps: FilezClientManagerProps) => {
         const { auth } = this.props;
         const prevAuth = prevProps.auth;
 
+        if (auth?.user !== prevAuth?.user) {
+            this.restoreRedirectPath();
+        }
+
         if (auth?.user !== prevAuth?.user || auth?.isLoading !== prevAuth?.isLoading) {
-            this.updateFilezClient();
+            await this.updateFilezClient();
         }
     };
 
-    updateFilezClient = () => {
+    restoreRedirectPath = () => {
+        const redirectPath = localStorage.getItem(filezPostLoginRedirectPathLocalStorageKey);
+        console.log("Restoring redirect path:", redirectPath);
+        if (redirectPath) {
+            localStorage.removeItem(filezPostLoginRedirectPathLocalStorageKey);
+            window.history.replaceState({}, document.title, redirectPath);
+        }
+    };
+
+    updateFilezClient = async () => {
         // Effect to create or destroy the filezClient based on auth state.
         if (
-            this.props.auth?.user &&
+            this.props.auth?.user?.access_token &&
             !this.props.auth.isLoading &&
             this.props.clientConfig.serverUrl
         ) {
-            const client = createFilezClientWithAuth(
+            const filezClient = createFilezClientWithAuth(
                 this.props.clientConfig.serverUrl,
                 this.props.auth.user.access_token
             );
-            this.setState({ filezClient: client });
-
+            this.setState({ filezClient });
             console.log("Filez API client initialized with user token.");
 
             // Verify the token is active, otherwise force a new sign-in.
-            client.api.getOwnUser().catch(async (response) => {
+            const ownUserRes = await filezClient?.api.getOwnUser().catch(async (response) => {
                 if (response?.error?.status?.Error === "IntrospectionGuardError::Inactive") {
                     console.error("User token is inactive, redirecting to sign in.");
                     localStorage.setItem("redirect_uri", window.location.href);
                     await this.props.auth?.signinRedirect();
                 }
             });
+
+            if (ownUserRes?.data?.data?.user) {
+                this.setState({ ownUser: ownUserRes?.data?.data?.user });
+            }
         } else {
-            // User is not authenticated, ensure the client is null.
             this.setState({
                 filezClient: new Api({
                     baseUrl: this.props.clientConfig.serverUrl
-                })
+                }),
+                ownUser: null
             });
         }
     };
@@ -128,6 +149,8 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
                 root.classList.remove(cls);
             }
         });
+
+        localStorage.setItem(themeLocalStorageKey, theme.id);
 
         if (theme.id === "system") {
             const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -142,7 +165,6 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
         root.classList.add(themePrefix + theme.id);
         if (theme.url) await loadThemeCSS(theme.url);
         // set to local storage
-        localStorage.setItem(themeLocalStorageKey, theme.id);
         this.setState({ currentTheme: theme });
     };
 
@@ -154,9 +176,10 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
             auth: auth!,
             filezClient: filezClient!,
             clientConfig,
-            isLoading: auth?.isLoading || !clientConfig,
+            clientLoading: auth?.isLoading || !clientConfig,
             setTheme: this.setTheme,
-            currentTheme
+            currentTheme,
+            ownFilezUser: this.state.ownUser
         };
 
         return <FilezContext.Provider value={contextValue}>{children}</FilezContext.Provider>;

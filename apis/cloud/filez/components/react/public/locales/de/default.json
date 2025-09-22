@@ -6,11 +6,12 @@
             "title": "Benutzer ID in die Zwischenablage kopieren"
         },
         "profile": "Profil",
-        "settings": "Einstellungen",
         "language": "Sprache",
         "login": "Anmelden",
         "logout": "Abmelden",
-        "theme": "Design"
+        "theme": "Design",
+        "openMenu": "Menü öffnen",
+        "switchUser": "Benutzer wechseln"
     },
     "languagePicker": {
         "noLanguageFound": "Keine Sprache gefunden",

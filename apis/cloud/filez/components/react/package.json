@@ -2,15 +2,18 @@
     "name": "filez-components-react",
     "version": "0.0.1",
     "type": "module",
-    "main": "dist/main.js",
-    "types": "dist/main.d.ts",
+    "main": "dist/filez-components-react.cjs",
+    "module": "dist/filez-components-react.js",
+    "types": "dist/filez-components-react.d.ts",
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "dev": "vite",
-        "build": "tsc -b ./tsconfig.lib.json && vite build",
+        "build": "pnpm run build:lib",
+        "build:lib": "TARGET=lib vite build",
         "lint": "eslint .",
-        "preview": "vite preview",
-        "storybook": "storybook dev -p 6006",
-        "build-storybook": "storybook build"
+        "preview": "vite preview"
     },
     "peerDependencies": {
         "react": "^19.1.1",
@@ -53,6 +56,7 @@
         "react-virtualized-auto-sizer": "^1.0.26",
         "react-window": "^2.1.0",
         "react-window-infinite-loader": "^1.0.10",
+        "rollup-plugin-visualizer": "^6.0.3",
         "shaka-player": "^4.16.1",
         "tailwind-merge": "^3.3.1",
         "tailwindcss": "^4.1.12",

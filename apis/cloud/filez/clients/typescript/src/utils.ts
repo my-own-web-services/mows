@@ -44,7 +44,11 @@ export const impersonateUser = (userId: string) => {
 
 export const defaultAppId = "00000000-0000-0000-0000-000000000000";
 
-export const createFilezClientWithAuth = (serverUrl: string, bearer_token?: string) => {
+export const createFilezClientWithAuth = (serverUrl: string, bearer_token: string) => {
+    if (!serverUrl) {
+        throw new Error("Server URL is required to create Filez client");
+    }
+
     return new Api({
         baseUrl: serverUrl,
         baseApiParams: { secure: true },

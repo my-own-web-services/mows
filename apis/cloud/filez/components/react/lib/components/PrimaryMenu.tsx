@@ -1,5 +1,5 @@
 import { CSSProperties, PureComponent } from "react";
-import { IoPersonSharp, IoSettingsSharp } from "react-icons/io5";
+import { IoCodeSlashSharp, IoLogOutSharp, IoMenuSharp, IoPersonSharp } from "react-icons/io5";
 
 import {
     DropdownMenu,
@@ -10,8 +10,9 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FilezUser } from "filez-client-typescript";
+import { cn, filezPostLoginRedirectPathLocalStorageKey } from "@/lib/utils";
 import { withTranslation } from "react-i18next";
+import { PiUserSwitchFill } from "react-icons/pi";
 import { match } from "ts-pattern";
 import { FilezContext } from "../FilezContext";
 import Avatar from "./atoms/Avatar";
@@ -26,9 +27,7 @@ interface PrimaryMenuProps {
     readonly t: (key: string) => string;
 }
 
-interface PrimaryMenuState {
-    readonly filezUser?: FilezUser;
-}
+interface PrimaryMenuState {}
 
 class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
     static contextType = FilezContext;
@@ -36,73 +35,70 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
 
     constructor(props: PrimaryMenuProps) {
         super(props);
-        this.state = {
-            filezUser: undefined
-        };
+        this.state = {};
     }
 
-    componentDidMount = async () => {
-        await this.reloadUserInfo();
-    };
+    componentDidMount = async () => {};
 
-    componentDidUpdate = async () => {
-        if (this.state.filezUser === undefined) {
-            await this.reloadUserInfo();
-        }
-    };
-
-    reloadUserInfo = async () => {
-        if (this.context?.filezClient !== null && this.context?.auth?.isAuthenticated) {
-            const response = await this.context?.filezClient.api.getOwnUser();
-            this.setState({ filezUser: response?.data?.data?.user });
-        }
-    };
+    componentDidUpdate = async () => {};
 
     loginClick = async () => {
-        const redirect_uri = new URLSearchParams(window.location.search).get("redirect_uri");
-        if (redirect_uri) {
-            localStorage.setItem("redirect_uri", redirect_uri);
-        }
+        const redirect_uri = window.location.pathname + window.location.search;
+        localStorage.setItem(filezPostLoginRedirectPathLocalStorageKey, redirect_uri);
 
         this.context?.auth?.signinRedirect();
     };
 
     logoutClick = async () => {
-        this.context?.auth?.signoutRedirect();
+        this.context?.auth?.removeUser();
     };
 
     render = () => {
-        const loggedIn = this.context?.auth?.isAuthenticated;
-        const loading = this.context?.auth?.isLoading;
-        if (loading) {
+        const loggedIn = !!this.context?.auth?.isAuthenticated;
+        if (this.context?.clientLoading) {
             return <></>;
         }
 
-        const userName = this.state.filezUser?.display_name;
-        const userId = this.state.filezUser?.id;
+        const userName = this.context?.ownFilezUser?.display_name;
+        const userId = this.context?.ownFilezUser?.id;
 
         const { t } = this.props;
 
         return (
             <div
-                className={`PrimaryMenu fixed top-3 right-3 z-20 ${this.props.className ?? ""} text-foreground flex flex-col items-end gap-2`}
+                className={cn(
+                    `PrimaryMenu text-foreground fixed top-3 right-3 z-20 flex flex-col items-end gap-2`,
+                    this.props.className
+                )}
             >
                 <DropdownMenu defaultOpen={this.props.defaultOpen}>
                     {match(loggedIn)
                         .with(true, () => (
-                            <>
-                                <DropdownMenuTrigger
-                                    className="outline-0"
-                                    title={`Logged in as ${userName}`}
-                                >
-                                    <Avatar filezUser={this.state.filezUser} />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
+                            <DropdownMenuTrigger
+                                className="outline-0"
+                                title={`${t("primaryMenu.loggedInAs")} ${userName}`}
+                            >
+                                <Avatar filezUser={this.context?.ownFilezUser!} />
+                            </DropdownMenuTrigger>
+                        ))
+                        .otherwise(() => (
+                            <DropdownMenuTrigger
+                                className="outline-0"
+                                title={t("primaryMenu.openMenu")}
+                            >
+                                <IoMenuSharp className="h-10 w-10 cursor-pointer rounded-full border-2 border-neutral-100 p-2 text-neutral-100" />
+                            </DropdownMenuTrigger>
+                        ))}
+
+                    <DropdownMenuContent>
+                        {match(loggedIn)
+                            .with(true, () => (
+                                <>
                                     <DropdownMenuLabel>
                                         <div className="flex items-center">
                                             <Avatar
                                                 className="h-16 w-16 text-xl"
-                                                filezUser={this.state.filezUser}
+                                                filezUser={this.context?.ownFilezUser!}
                                             />
                                             <div className="flex flex-col gap-1 px-4 py-2 pb-4">
                                                 <span className="text-muted-foreground space-y-1 text-sm select-none">
@@ -133,37 +129,54 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
                                             </div>
                                         </div>
                                     </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem>
-                                        <IoPersonSharp className="h-4 w-4" />
-                                        <span>{t("primaryMenu.profile")}</span>
+
+                                    <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={this.logoutClick}
+                                    >
+                                        <IoLogOutSharp className="h-4 w-4" />
+                                        <span>{t("primaryMenu.logout")}</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        <IoSettingsSharp className="h-4 w-4" />
-                                        <span>{t("primaryMenu.settings")}</span>
+                                    <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={this.logoutClick}
+                                    >
+                                        <PiUserSwitchFill className="h-4 w-4" />
+                                        <span>{t("primaryMenu.switchUser")}</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuLabel>
-                                        {t("primaryMenu.language")}
-                                    </DropdownMenuLabel>
-                                    <LanguagePicker className="w-full" style={{}} />
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuLabel>{t("primaryMenu.theme")}</DropdownMenuLabel>
-                                    <ThemePicker className="w-full" style={{}} />
-                                </DropdownMenuContent>
-                            </>
-                        ))
-                        .with(false, () => (
-                            <button
-                                className="cursor-pointer rounded-full border-2 border-neutral-100 p-2 text-neutral-100"
-                                onClick={this.loginClick}
-                                title="PrimaryMenu"
-                            >
-                                {t("primaryMenu.signIn")}
-                            </button>
-                        ))
-                        .with(undefined, () => <></>)
-                        .exhaustive()}
+                                </>
+                            ))
+                            .with(false, () => (
+                                <DropdownMenuItem
+                                    className="cursor-pointer"
+                                    onClick={this.loginClick}
+                                >
+                                    <IoPersonSharp className="h-4 w-4" />
+                                    <span>{t("primaryMenu.login")}</span>
+                                </DropdownMenuItem>
+                            ))
+                            .exhaustive()}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="select-none">
+                            {t("primaryMenu.language")}
+                        </DropdownMenuLabel>
+                        <LanguagePicker className="w-full" style={{}} />
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="select-none">
+                            {t("primaryMenu.theme")}
+                        </DropdownMenuLabel>
+                        <ThemePicker className="w-full" style={{}} />
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuLabel className="select-none">
+                            {t("primaryMenu.developer")}
+                        </DropdownMenuLabel>
+
+                        <DropdownMenuItem className="cursor-pointer">
+                            <IoCodeSlashSharp className="inline h-4 w-4" />
+                            <span> {t("primaryMenu.developerTools")}</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
                 </DropdownMenu>
             </div>
         );

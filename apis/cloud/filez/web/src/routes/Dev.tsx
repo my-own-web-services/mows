@@ -1,16 +1,12 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
-import { Button, Panel, Table } from "rsuite";
 
-import { Api } from "filez-client-typescript";
-import Nav from "../components/Nav";
-import { ClientConfig, logError, logSuccess } from "../utils";
+import { List } from "react-window";
+import { logError, logSuccess } from "../utils";
 
 interface DevProps {
     readonly className?: string;
     readonly style?: CSSProperties;
-    readonly filezClient: Api<unknown> | null;
-    readonly clientConfig: ClientConfig;
 }
 
 interface DevState {}
@@ -34,7 +30,7 @@ export default class Dev extends Component<DevProps, DevState> {
     }
 
     runAllTests = async () => {
-        if (!this.props.filezClient) {
+        if (!this.context?.filezClient) {
             console.error("Filez client is not initialized.");
             return;
         }
@@ -47,7 +43,7 @@ export default class Dev extends Component<DevProps, DevState> {
     };
 
     runTest = async (testName: string) => {
-        if (!this.props.filezClient) {
+        if (!this.context?.filezClient) {
             console.error("Filez client is not initialized.");
             return;
         }
@@ -59,7 +55,7 @@ export default class Dev extends Component<DevProps, DevState> {
         }
         console.log(`Running test: ${testName}`);
         try {
-            await mod.default(this.props.filezClient);
+            await mod.default(this.context.filezClient);
             logSuccess(`Test ${testName} completed successfully.`);
         } catch (error) {
             logError(`Test ${testName} failed: ${error}`);
@@ -70,12 +66,12 @@ export default class Dev extends Component<DevProps, DevState> {
     componentDidMount = async () => {};
 
     resetDatabase = async () => {
-        if (!this.props.filezClient) {
+        if (!this.context?.filezClient) {
             console.error("Filez client is not initialized.");
             return;
         }
         try {
-            await this.props.filezClient.api.resetDatabase({});
+            await this.context.filezClient.api.resetDatabase({});
             logSuccess("Database reset successfully.");
         } catch (error) {
             logError(`Failed to reset database: ${error}`);
@@ -88,81 +84,49 @@ export default class Dev extends Component<DevProps, DevState> {
                 style={{ ...this.props.style }}
                 className={`Dev ${this.props.className ?? ""} h-full w-full`}
             >
-                <Nav></Nav>
                 <div className={"flex flex-col gap-8 p-8"}>
                     <div className="justify-left flex h-full w-full flex-row items-start gap-8">
-                        <Panel
-                            header="Tests"
-                            bordered
-                            collapsible
-                            className="w-1/4"
-                            defaultExpanded
-                        >
-                            <div className="flex flex-col gap-4">
-                                <Button onClick={this.runAllTests}>Run All Tests</Button>
-                                <div className="flex flex-col gap-2">
-                                    {tests.map((test) => (
-                                        <Button
-                                            key={test}
-                                            appearance="primary"
-                                            onClick={() => this.runTest(test)}
-                                        >
-                                            Run {test} Test
-                                        </Button>
-                                    ))}
-                                </div>
+                        <div className="flex flex-col gap-4">
+                            <button onClick={this.runAllTests}>Run All Tests</button>
+                            <div className="flex flex-col gap-2">
+                                {tests.map((test) => (
+                                    <button key={test} onClick={() => this.runTest(test)}>
+                                        Run {test} Test
+                                    </button>
+                                ))}
                             </div>
-                        </Panel>
+                        </div>
 
-                        <Panel
-                            header="Actions"
-                            bordered
-                            collapsible
-                            className="w-1/4"
-                            defaultExpanded
-                        >
-                            <div className="flex flex-col gap-4">
-                                <Button
-                                    onClick={this.resetDatabase}
-                                    color="red"
-                                    appearance="primary"
-                                    title="Resets the database, DELETES ALL DATA (Only works in development mode, set in the server config)"
-                                >
-                                    Reset Database
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        window.open(
-                                            `${this.props.clientConfig.serverUrl}/api/health`,
-                                            "_blank"
-                                        );
-                                    }}
-                                >
-                                    Open Health Check in new tab
-                                </Button>
-                            </div>
-                        </Panel>
+                        <div className="flex flex-col gap-4">
+                            <button
+                                onClick={this.resetDatabase}
+                                title="Resets the database, DELETES ALL DATA (Only works in development mode, set in the server config)"
+                            >
+                                Reset Database
+                            </button>
+                            <button
+                                onClick={() => {
+                                    window.open(
+                                        `${this.context?.clientConfig?.serverUrl}/api/health`,
+                                        "_blank"
+                                    );
+                                }}
+                            >
+                                Open Health Check in new tab
+                            </button>
+
+                            <List
+                                rowComponent={() => <></>}
+                                rowCount={10}
+                                rowHeight={10}
+                                rowProps={{}}
+                            >
+                                {" "}
+                            </List>
+                        </div>
                     </div>
-                    <Panel
-                        header="Resources"
-                        bordered
-                        collapsible
-                        className="w-full"
-                        defaultExpanded
-                    >
-                        <Table virtualized>
-                            {columns.map((column) => (
-                                <Table.Column width={100} align="center" resizable sortable>
-                                    <Table.HeaderCell>{column.label}</Table.HeaderCell>
-                                    <Table.Cell dataKey={column.key} />
-                                </Table.Column>
-                            ))}
-                        </Table>
-                    </Panel>
                 </div>
             </div>
         );
     };
 }
-
-const columns = [{ key: "id", label: "Id" }];

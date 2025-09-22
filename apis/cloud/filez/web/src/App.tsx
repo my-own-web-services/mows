@@ -1,75 +1,32 @@
-import { Api, createFilezClient } from "filez-client-typescript";
 import { Component } from "preact";
-import { Route, Router } from "preact-router";
+import Router, { Route } from "preact-router";
 import { CSSProperties } from "preact/compat";
-import { AuthContextProps, withAuth } from "react-oidc-context";
-import Auth from "./routes/Auth";
 import Dev from "./routes/Dev";
 import Home from "./routes/Home";
-import { ClientConfig } from "./utils";
 
 interface AppProps {
     readonly className?: string;
     readonly style?: CSSProperties;
-    readonly auth?: AuthContextProps;
-    readonly clientConfig: ClientConfig;
 }
 
-interface AppState {
-    readonly filezClient: Api<unknown> | null;
-}
-class App extends Component<AppProps, AppState> {
+interface AppState {}
+
+export default class App extends Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
-        this.state = {
-            filezClient: null
-        };
+        this.state = {};
     }
 
-    componentDidMount = () => {};
-
-    componentDidUpdate = async (
-        previousProps: Readonly<AppProps>,
-        previousState: Readonly<AppState>,
-        snapshot: any
-    ) => {
-        if (!this.state.filezClient && this.props.auth?.user && this.props.clientConfig.serverUrl) {
-            const filezClient = createFilezClient(
-                this.props.clientConfig.serverUrl,
-                this.props.auth?.user?.access_token
-            );
-
-            this.setState({ filezClient }, async () => {
-                console.log("Api client initialized with user token");
-                await this.state.filezClient?.api.getOwnUser().catch(async (response) => {
-                    if (response.error.status.Error === "IntrospectionGuardError::Inactive") {
-                        console.error("User is inactive, signing out.");
-                        localStorage.setItem("redirect_uri", window.location.href);
-                        await this.props.auth?.signinRedirect();
-                    }
-                });
-            });
-        }
-    };
+    componentDidMount = async () => {};
 
     render = () => {
         return (
-            <div
-                style={{ ...this.props.style }}
-                className={`App ${this.props.className ?? ""} min-h-full w-full bg-zinc-950`}
-            >
+            <div style={{ ...this.props.style }} className={`App ${this.props.className ?? ""}`}>
                 <Router>
                     <Route path="/" component={Home} />
-                    <Dev
-                        path="/dev"
-                        filezClient={this.state.filezClient}
-                        clientConfig={this.props.clientConfig}
-                    />
-                    <Auth path="/auth/:remaining_path*" />
+                    <Dev path="/dev" />
                 </Router>
             </div>
         );
     };
 }
-
-export default withAuth(App);
