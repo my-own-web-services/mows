@@ -1,4 +1,4 @@
-import { FilezFile } from "filez-client-typescript";
+import { type FilezFile } from "filez-client-typescript";
 
 export const loadThemeCSS = (href: string): Promise<HTMLLinkElement> => {
     return new Promise((resolve, reject) => {

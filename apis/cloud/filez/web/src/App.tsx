@@ -1,3 +1,4 @@
+import { PrimaryMenu } from "filez-components-react";
 import { Component } from "preact";
 import Router, { Route } from "preact-router";
 import { CSSProperties } from "preact/compat";
@@ -22,6 +23,7 @@ export default class App extends Component<AppProps, AppState> {
     render = () => {
         return (
             <div style={{ ...this.props.style }} className={`App ${this.props.className ?? ""}`}>
+                <PrimaryMenu defaultOpen />
                 <Router>
                     <Route path="/" component={Home} />
                     <Dev path="/dev" />

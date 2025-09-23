@@ -28,6 +28,3 @@ export const themes: FilezTheme[] = [
         url: "/themes/neo-brutalist-dark.css"
     }
 ];
-
-export const themeLocalStorageKey = "filez_theme";
-export const themePrefix = "filez-theme-";

@@ -1,5 +1,5 @@
-import { CSSProperties, PureComponent } from "react";
-import PrimaryMenu from "../lib/components/PrimaryMenu";
+import PrimaryMenu from "@/components/PrimaryMenu";
+import { type CSSProperties, PureComponent } from "react";
 
 interface AppProps {
     readonly className?: string;

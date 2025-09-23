@@ -6,12 +6,14 @@ import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig, UserConfig } from "vite";
 import dts from "vite-plugin-dts";
+import { libInjectCss } from "vite-plugin-lib-inject-css";
 
 const libraryConfig: UserConfig = {
     plugins: [
         react(),
+        libInjectCss(),
         tailwindcssVite(),
-        dts({ rollupTypes: true, tsconfigPath: "tsconfig.lib.json" }),
+        dts({ rollupTypes: true, tsconfigPath: resolve(__dirname, "tsconfig.lib.json") }),
         visualizer({
             emitFile: true,
             filename: "stats.html"
@@ -30,10 +32,17 @@ const libraryConfig: UserConfig = {
             formats: ["es", "cjs"]
         },
         rollupOptions: {
-            external: ["react", "react-dom", "react/jsx-runtime"]
+            external: [
+                "react",
+                "react-dom",
+                "react/jsx-runtime",
+                "tailwindcss",
+                "filez-client-typescript"
+            ]
         },
         sourcemap: true,
-        emptyOutDir: true
+        emptyOutDir: true,
+        copyPublicDir: false
     },
     resolve: {
         alias: {

@@ -23,8 +23,7 @@
         "build": "pnpm run build:lib",
         "build:lib": "TARGET=lib vite build",
         "lint": "eslint .",
-        "preview": "vite preview",
-        "prepublish": "pnpm run build"
+        "preview": "vite preview"
     },
     "peerDependencies": {
         "react": "^19.1.1",
@@ -49,6 +48,7 @@
         "cmdk": "^1.1.1",
         "filez-client-typescript": "file:.yalc/filez-client-typescript",
         "immutability-helper": "^3.1.1",
+        "less": "^4.4.1",
         "lodash": "4.17.21",
         "lucide-react": "^0.544.0",
         "oidc-client-ts": "^3.2.1",
@@ -72,22 +72,5 @@
         "vite-plugin-dts": "^4.5.4",
         "vite-plugin-lib-inject-css": "^2.2.2"
     },
-    "devDependencies": {
-        "@eslint/js": "^9.33.0",
-        "@types/react": "^19.1.10",
-        "@types/react-dom": "^19.1.7",
-        "@vitejs/plugin-react": "^5.0.0",
-        "eslint": "^9.33.0",
-        "eslint-plugin-react-hooks": "^5.2.0",
-        "eslint-plugin-react-refresh": "^0.4.20",
-        "globals": "^16.3.0",
-        "prettier": "^3.3.2",
-        "prettier-plugin-organize-imports": "^3.2.4",
-        "prettier-plugin-tailwindcss": "^0.6.4",
-        "react": "^19.1.1",
-        "react-dom": "^19.1.1",
-        "typescript": "~5.8.3",
-        "typescript-eslint": "^8.39.1",
-        "vite": "^7.1.2"
-    }
+    "yalcSig": "67b5ec964f9657693f0dd7dc85742971"
 }

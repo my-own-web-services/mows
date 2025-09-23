@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "packages": {
+    "filez-components-react": {
+      "signature": "67b5ec964f9657693f0dd7dc85742971",
+      "file": true,
+      "replaced": "workspace:*"
+    },
+    "filez-client-typescript": {
+      "signature": "5305ee64e051ec3f6fce37c434a55106",
+      "file": true,
+      "replaced": "workspace:*"
+    }
+  }
+}

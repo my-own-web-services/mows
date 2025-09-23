@@ -1,0 +1,33 @@
+import type { Translation } from "@/lib/languages";
+
+const translation: Translation = {
+    primaryMenu: {
+        loggedInAs: "Signed in as",
+        copyUserId: {
+            label: "Copy User ID",
+            title: "Copy User ID to clipboard"
+        },
+        profile: "Profile",
+        language: "Language",
+        login: "Login",
+        logout: "Logout",
+        theme: "Theme",
+        openMenu: "Open menu",
+        switchUser: "Switch User",
+        developerTools: "Developer Tools",
+        developer: "Developer"
+    },
+    languagePicker: {
+        noLanguageFound: "No language found",
+        selectLanguage: "Select language"
+    },
+    themePicker: {
+        selectTheme: "Select theme",
+        noThemeFound: "No theme found"
+    },
+    keyboardShortcuts: {
+        label: "Keyboard Shortcuts"
+    }
+};
+
+export default translation;
