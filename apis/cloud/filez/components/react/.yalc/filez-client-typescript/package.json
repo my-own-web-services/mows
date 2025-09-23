@@ -1,0 +1,12 @@
+{
+    "name": "filez-client-typescript",
+    "version": "0.0.1",
+    "type": "module",
+    "main": "src/main.ts",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc -b ./tsconfig.lib.json && vite build",
+        "preview": "vite preview"
+    },
+    "yalcSig": "5305ee64e051ec3f6fce37c434a55106"
+}

@@ -1,4 +1,4 @@
-import { CSSProperties, PureComponent } from "react";
+import { type CSSProperties, PureComponent } from "react";
 import { IoCodeSlashSharp, IoLogOutSharp, IoMenuSharp, IoPersonSharp } from "react-icons/io5";
 
 import {
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, filezPostLoginRedirectPathLocalStorageKey } from "@/lib/utils";
-import { withTranslation } from "react-i18next";
+import { LiaKeyboard } from "react-icons/lia";
 import { PiUserSwitchFill } from "react-icons/pi";
 import { match } from "ts-pattern";
 import { FilezContext } from "../FilezContext";
@@ -24,18 +24,23 @@ interface PrimaryMenuProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly defaultOpen?: boolean;
-    readonly t: (key: string) => string;
 }
 
-interface PrimaryMenuState {}
+interface PrimaryMenuState {
+    languagePickerOpen: boolean;
+    themePickerOpen: boolean;
+}
 
-class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
+export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
     constructor(props: PrimaryMenuProps) {
         super(props);
-        this.state = {};
+        this.state = {
+            languagePickerOpen: false,
+            themePickerOpen: false
+        };
     }
 
     componentDidMount = async () => {};
@@ -62,7 +67,7 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
         const userName = this.context?.ownFilezUser?.display_name;
         const userId = this.context?.ownFilezUser?.id;
 
-        const { t } = this.props;
+        const { t } = this.context!;
 
         return (
             <div
@@ -76,7 +81,7 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
                         .with(true, () => (
                             <DropdownMenuTrigger
                                 className="outline-0"
-                                title={`${t("primaryMenu.loggedInAs")} ${userName}`}
+                                title={`${t.primaryMenu.loggedInAs} ${userName}`}
                             >
                                 <Avatar filezUser={this.context?.ownFilezUser!} />
                             </DropdownMenuTrigger>
@@ -84,7 +89,7 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
                         .otherwise(() => (
                             <DropdownMenuTrigger
                                 className="outline-0"
-                                title={t("primaryMenu.openMenu")}
+                                title={t.primaryMenu.openMenu}
                             >
                                 <IoMenuSharp className="h-10 w-10 cursor-pointer rounded-full border-2 border-neutral-100 p-2 text-neutral-100" />
                             </DropdownMenuTrigger>
@@ -102,7 +107,7 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
                                             />
                                             <div className="flex flex-col gap-1 px-4 py-2 pb-4">
                                                 <span className="text-muted-foreground space-y-1 text-sm select-none">
-                                                    {this.props.t("primaryMenu.loggedInAs")}
+                                                    {t.primaryMenu.loggedInAs}
                                                 </span>
                                                 <span className="flex items-center gap-2 font-bold">
                                                     {userName ? (
@@ -113,15 +118,17 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
                                                 </span>
                                                 <div className="">
                                                     {userId ? (
-                                                        <CopyValueButton
-                                                            value={userId}
-                                                            label={t(
-                                                                "primaryMenu.copyUserId.label"
-                                                            )}
-                                                            title={t(
-                                                                "primaryMenu.copyUserId.title"
-                                                            )}
-                                                        />
+                                                        <DropdownMenuItem className="p-0" asChild>
+                                                            <CopyValueButton
+                                                                value={userId}
+                                                                label={
+                                                                    t.primaryMenu.copyUserId.label
+                                                                }
+                                                                title={
+                                                                    t.primaryMenu.copyUserId.title
+                                                                }
+                                                            />
+                                                        </DropdownMenuItem>
                                                     ) : (
                                                         <Skeleton className="h-4 w-full" />
                                                     )}
@@ -135,14 +142,14 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
                                         onClick={this.logoutClick}
                                     >
                                         <IoLogOutSharp className="h-4 w-4" />
-                                        <span>{t("primaryMenu.logout")}</span>
+                                        <span>{t.primaryMenu.logout}</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         className="cursor-pointer"
                                         onClick={this.logoutClick}
                                     >
                                         <PiUserSwitchFill className="h-4 w-4" />
-                                        <span>{t("primaryMenu.switchUser")}</span>
+                                        <span>{t.primaryMenu.switchUser}</span>
                                     </DropdownMenuItem>
                                 </>
                             ))
@@ -152,29 +159,63 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
                                     onClick={this.loginClick}
                                 >
                                     <IoPersonSharp className="h-4 w-4" />
-                                    <span>{t("primaryMenu.login")}</span>
+                                    <span>{t.primaryMenu.login}</span>
                                 </DropdownMenuItem>
                             ))
                             .exhaustive()}
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel className="select-none">
-                            {t("primaryMenu.language")}
+                            {t.primaryMenu.language}
                         </DropdownMenuLabel>
-                        <LanguagePicker className="w-full" style={{}} />
+                        <DropdownMenuItem
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                this.setState({ languagePickerOpen: true });
+                            }}
+                            asChild
+                        >
+                            <LanguagePicker
+                                defaultOpen={this.state.languagePickerOpen}
+                                onValueChange={() => this.setState({ languagePickerOpen: false })}
+                            />
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel className="select-none">
-                            {t("primaryMenu.theme")}
+                            {t.primaryMenu.theme}
                         </DropdownMenuLabel>
-                        <ThemePicker className="w-full" style={{}} />
+                        <DropdownMenuItem
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                this.setState({ themePickerOpen: true });
+                            }}
+                            asChild
+                        >
+                            <ThemePicker
+                                defaultOpen={this.state.themePickerOpen}
+                                onValueChange={() => this.setState({ themePickerOpen: false })}
+                            />
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-
-                        <DropdownMenuLabel className="select-none">
-                            {t("primaryMenu.developer")}
-                        </DropdownMenuLabel>
-
                         <DropdownMenuItem className="cursor-pointer">
+                            <>
+                                <LiaKeyboard></LiaKeyboard>
+                                <span>{t.keyboardShortcuts.label}</span>
+                            </>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuLabel className="select-none">
+                            {t.primaryMenu.developer}
+                        </DropdownMenuLabel>
+
+                        <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => {
+                                history.pushState({}, "", "/dev/");
+                            }}
+                        >
                             <IoCodeSlashSharp className="inline h-4 w-4" />
-                            <span> {t("primaryMenu.developerTools")}</span>
+                            <span> {t.primaryMenu.developerTools}</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -182,5 +223,3 @@ class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
         );
     };
 }
-
-export default withTranslation()(PrimaryMenu);

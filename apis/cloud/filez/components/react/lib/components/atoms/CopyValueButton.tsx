@@ -1,4 +1,5 @@
-import { CSSProperties, PureComponent } from "react";
+import { cn } from "@/lib/utils";
+import { type CSSProperties, forwardRef, useEffect, useRef, useState } from "react";
 import { IoCheckmarkSharp, IoCopySharp } from "react-icons/io5";
 
 interface CopyValueButtonProps {
@@ -9,68 +10,62 @@ interface CopyValueButtonProps {
     readonly title?: string;
 }
 
-interface CopyValueButtonState {
-    copied: boolean;
-}
+const CopyValueButton = forwardRef<HTMLDivElement, CopyValueButtonProps>(
+    ({ className, style, value, label, title, ...props }, ref) => {
+        const [copied, setCopied] = useState(false);
+        const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-export default class CopyValueButton extends PureComponent<
-    CopyValueButtonProps,
-    CopyValueButtonState
-> {
-    private timeoutId: NodeJS.Timeout | null = null;
+        useEffect(() => {
+            return () => {
+                // Clean up timeout if component unmounts
+                if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                }
+            };
+        }, []);
 
-    constructor(props: CopyValueButtonProps) {
-        super(props);
-        this.state = {
-            copied: false
-        };
-    }
+        const copyClick = async () => {
+            try {
+                await navigator.clipboard.writeText(value);
 
-    componentDidMount = async () => {};
+                setCopied(true);
 
-    componentWillUnmount = () => {
-        // Clean up timeout if component unmounts
-        if (this.timeoutId) {
-            clearTimeout(this.timeoutId);
-        }
-    };
+                if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                }
 
-    copyClick = async () => {
-        try {
-            await navigator.clipboard.writeText(this.props.value);
-
-            this.setState({ copied: true });
-
-            if (this.timeoutId) {
-                clearTimeout(this.timeoutId);
+                timeoutRef.current = setTimeout(() => {
+                    setCopied(false);
+                    timeoutRef.current = null;
+                }, 1500);
+            } catch (err) {
+                console.error("Failed to copy text: ", err);
             }
-
-            this.timeoutId = setTimeout(() => {
-                this.setState({ copied: false });
-                this.timeoutId = null;
-            }, 1500);
-        } catch (err) {
-            console.error("Failed to copy text: ", err);
-        }
-    };
-
-    render = () => {
-        const { copied } = this.state;
+        };
 
         return (
-            <button
-                style={{ ...this.props.style }}
-                className={`CopyValueButton ${this.props.className ?? ""} text-muted-foreground flex cursor-pointer items-center gap-2 rounded text-sm transition-all duration-200 select-none`}
-                onClick={this.copyClick}
-                title={copied ? "Copied!" : (this.props.title ?? this.props.label ?? "Copy Value")}
+            <div
+                {...props}
+                ref={ref}
+                style={style}
+                className={cn(
+                    className,
+                    "CopyValueButton text-muted-foreground flex cursor-pointer items-center gap-2 rounded text-sm transition-all duration-200 select-none"
+                )}
+                onClick={copyClick}
+                title={copied ? "Copied!" : (title ?? label ?? "Copy Value")}
             >
-                <span>{this.props.label}</span>
+                <span>{label}</span>
                 {copied ? (
                     <IoCheckmarkSharp className="text-success duration-200" />
                 ) : (
                     <IoCopySharp />
                 )}
-            </button>
+            </div>
         );
-    };
-}
+    }
+);
+
+CopyValueButton.displayName = "CopyValueButton";
+
+export default CopyValueButton;

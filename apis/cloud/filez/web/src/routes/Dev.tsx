@@ -1,7 +1,7 @@
 import { Component } from "preact";
 import { CSSProperties } from "preact/compat";
 
-import { List } from "react-window";
+import { FilezContext } from "filez-components-react";
 import { logError, logSuccess } from "../utils";
 
 interface DevProps {
@@ -22,6 +22,8 @@ const tests = [
 ];
 
 export default class Dev extends Component<DevProps, DevState> {
+    static contextType = FilezContext;
+    declare context: React.ContextType<typeof FilezContext>;
     constructor(props: DevProps) {
         super(props);
         this.state = {
@@ -114,15 +116,6 @@ export default class Dev extends Component<DevProps, DevState> {
                             >
                                 Open Health Check in new tab
                             </button>
-
-                            <List
-                                rowComponent={() => <></>}
-                                rowCount={10}
-                                rowHeight={10}
-                                rowProps={{}}
-                            >
-                                {" "}
-                            </List>
                         </div>
                     </div>
                 </div>

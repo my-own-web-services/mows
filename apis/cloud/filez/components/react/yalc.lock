@@ -1,0 +1,10 @@
+{
+  "version": "v1",
+  "packages": {
+    "filez-client-typescript": {
+      "signature": "5305ee64e051ec3f6fce37c434a55106",
+      "file": true,
+      "replaced": "workspace:*"
+    }
+  }
+}
