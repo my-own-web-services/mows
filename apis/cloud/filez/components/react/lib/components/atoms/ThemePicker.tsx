@@ -7,7 +7,7 @@ import {
     CommandList
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useFilez } from "@/FilezContext";
+import { useFilez } from "@/lib/FilezContext";
 import { type FilezTheme, themes } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, Monitor, Moon, Sun } from "lucide-react";

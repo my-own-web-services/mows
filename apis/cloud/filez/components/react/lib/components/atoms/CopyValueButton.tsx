@@ -1,3 +1,4 @@
+import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { type CSSProperties, forwardRef, useEffect, useRef, useState } from "react";
 import { IoCheckmarkSharp, IoCopySharp } from "react-icons/io5";
@@ -39,7 +40,7 @@ const CopyValueButton = forwardRef<HTMLDivElement, CopyValueButtonProps>(
                     timeoutRef.current = null;
                 }, 1500);
             } catch (err) {
-                console.error("Failed to copy text: ", err);
+                log.error("Failed to copy text: ", err);
             }
         };
 

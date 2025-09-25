@@ -43,10 +43,10 @@ export const DraggableItem = <FilezResource,>(props: DraggableItemProps<FilezRes
 
             if (dropResult) {
                 const selectedItems = item.getSelectedItems();
-                console.log(selectedItems);
+                log.info(selectedItems);
 
                 if (selectedItems.length === 0) {
-                    console.log(item.resource);
+                    log.info(item.resource);
 
                     selectedItems.push(item.resource);
                 }

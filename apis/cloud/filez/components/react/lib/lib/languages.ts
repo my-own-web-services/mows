@@ -27,6 +27,29 @@ export interface Translation {
     };
     keyboardShortcuts: {
         label: string;
+        title: string;
+        resetAll: string;
+        edit: string;
+        reset: string;
+        hotkeyDialog: {
+            editTitle: string;
+            addTitle: string;
+            editDescription: string;
+            addDescription: string;
+            pressKeys: string;
+            cancel: string;
+            save: string;
+            addHotkey: string;
+            keyAlreadyInUse: string;
+        };
+    };
+    actions: {
+        [actionId: string]: string;
+    };
+    commandPalette: {
+        placeholder: string;
+        noResults: string;
+        suggestions: string;
     };
 }
 

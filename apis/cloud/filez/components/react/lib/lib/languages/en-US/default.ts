@@ -26,7 +26,32 @@ const translation: Translation = {
         noThemeFound: "No theme found"
     },
     keyboardShortcuts: {
-        label: "Keyboard Shortcuts"
+        label: "Keyboard Shortcuts",
+        title: "Keyboard Shortcuts",
+        resetAll: "Reset All",
+        edit: "Edit",
+        reset: "Reset",
+        hotkeyDialog: {
+            editTitle: "Edit Keyboard Shortcut",
+            addTitle: "Add New Hotkey",
+            editDescription: "Press the key combination you want to use for this action.",
+            addDescription: "Add a new hotkey for",
+            pressKeys: "Press keys...",
+            cancel: "Cancel",
+            save: "Save",
+            addHotkey: "Add Hotkey",
+            keyAlreadyInUse: 'This combination is already used by "{action}"'
+        }
+    },
+    actions: {
+        "app.openPrimaryMenu": "Open the primary menu",
+        "app.openCommandPalette": "Open command palette",
+        "app.openKeyboardShortcuts": "Open keyboard shortcuts"
+    },
+    commandPalette: {
+        placeholder: "Type a command or search...",
+        noResults: "No results found.",
+        suggestions: "Suggestions"
     }
 };
 

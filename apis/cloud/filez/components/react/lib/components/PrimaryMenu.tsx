@@ -10,11 +10,12 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, filezPostLoginRedirectPathLocalStorageKey } from "@/lib/utils";
+import { log } from "@/lib/logging";
+import { cn, signinRedirectSavePath } from "@/lib/utils";
 import { LiaKeyboard } from "react-icons/lia";
 import { PiUserSwitchFill } from "react-icons/pi";
 import { match } from "ts-pattern";
-import { FilezContext } from "../FilezContext";
+import { FilezContext } from "../lib/FilezContext";
 import Avatar from "./atoms/Avatar";
 import CopyValueButton from "./atoms/CopyValueButton";
 import LanguagePicker from "./atoms/LanguagePicker";
@@ -24,11 +25,14 @@ interface PrimaryMenuProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly defaultOpen?: boolean;
+    readonly position?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
 }
 
 interface PrimaryMenuState {
-    languagePickerOpen: boolean;
-    themePickerOpen: boolean;
+    readonly languagePickerOpen: boolean;
+    readonly themePickerOpen: boolean;
+    readonly keyboardShortcutsOpen: boolean;
+    readonly menuOpen?: boolean;
 }
 
 export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
@@ -39,19 +43,32 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
         super(props);
         this.state = {
             languagePickerOpen: false,
-            themePickerOpen: false
+            themePickerOpen: false,
+            keyboardShortcutsOpen: false,
+            menuOpen: this.props.defaultOpen ?? false
         };
     }
 
-    componentDidMount = async () => {};
+    componentDidMount = async () => {
+        log.debug("PrimaryMenu mounted, setting up hotkey handler");
+        log.debug("HotkeyManager exists:", !!this.context?.hotkeyManager);
+        log.debug("Active scopes:", this.context?.hotkeyManager?.getActiveScopes());
+
+        this.context?.hotkeyManager?.setHandler("app.openPrimaryMenu", () => {
+            log.debug("Escape pressed, opening primary menu");
+            this.setState({ menuOpen: true });
+            return true;
+        });
+    };
 
     componentDidUpdate = async () => {};
 
     loginClick = async () => {
-        const redirect_uri = window.location.pathname + window.location.search;
-        localStorage.setItem(filezPostLoginRedirectPathLocalStorageKey, redirect_uri);
-
-        this.context?.auth?.signinRedirect();
+        if (!this.context?.auth?.signinRedirect) {
+            log.error("No signinRedirect function available");
+            return;
+        }
+        await signinRedirectSavePath(this.context?.auth?.signinRedirect);
     };
 
     logoutClick = async () => {
@@ -69,14 +86,31 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
 
         const { t } = this.context!;
 
+        const positionClass = (() => {
+            switch (this.props.position) {
+                case "top-left":
+                    return "top-3 left-3";
+                case "bottom-right":
+                    return "bottom-3 right-3";
+                case "bottom-left":
+                    return "bottom-3 left-3";
+                case "top-right":
+                default:
+                    return "top-3 right-3";
+            }
+        })();
+
         return (
             <div
                 className={cn(
-                    `PrimaryMenu text-foreground fixed top-3 right-3 z-20 flex flex-col items-end gap-2`,
+                    `PrimaryMenu text-foreground fixed ${positionClass} z-20 flex flex-col items-end gap-2`,
                     this.props.className
                 )}
             >
-                <DropdownMenu defaultOpen={this.props.defaultOpen}>
+                <DropdownMenu
+                    open={this.state.menuOpen}
+                    onOpenChange={(open) => this.setState({ menuOpen: open })}
+                >
                     {match(loggedIn)
                         .with(true, () => (
                             <DropdownMenuTrigger
@@ -196,11 +230,14 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                             />
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer">
-                            <>
-                                <LiaKeyboard></LiaKeyboard>
-                                <span>{t.keyboardShortcuts.label}</span>
-                            </>
+                        <DropdownMenuItem
+                            onClick={() => {
+                                this.context?.changeActiveModal("keyboardShortcutEditor");
+                            }}
+                            className="cursor-pointer"
+                        >
+                            <LiaKeyboard></LiaKeyboard>
+                            <span>{t.keyboardShortcuts.label}</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
 

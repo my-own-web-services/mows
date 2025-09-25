@@ -13,14 +13,19 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { type AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
 import {
     CSS_VARIABLE_THEME_PREFIX,
+    FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY,
     SELECTED_LANGUAGE_LOCAL_STORAGE_KEY,
     THEME_LOCAL_STORAGE_KEY
-} from "./lib/constants";
-import { getBrowserLanguage, type Language, type Translation } from "./lib/languages";
-import englishTranslation from "./lib/languages/en-US/default";
-import { type FilezTheme, themes } from "./lib/themes";
-import { filezPostLoginRedirectPathLocalStorageKey } from "./lib/utils";
-import { loadThemeCSS } from "./utils";
+} from "./constants";
+import { ActionManager } from "./ActionManager";
+import { defineApplicationActions } from "./actions";
+import { defineApplicationHotkeys } from "./defaultHotkeys";
+import { HotkeyManager } from "./HotkeyManager";
+import { getBrowserLanguage, type Language, type Translation } from "./languages";
+import englishTranslation from "./languages/en-US/default";
+import { log } from "./logging";
+import { type FilezTheme, loadThemeCSS, themes } from "./themes";
+import { signinRedirectSavePath } from "./utils";
 //import { generateDndPreview } from "./components/dragAndDrop/generatePreview";
 
 export interface FilezContextType {
@@ -34,40 +39,69 @@ export interface FilezContextType {
     readonly setLanguage: (language?: Language) => void;
     readonly t: Translation;
     readonly currentLanguage?: Language;
+    readonly actionManager: ActionManager;
+    readonly hotkeyManager: HotkeyManager;
+    readonly currentlyOpenModal?: ModalType;
+    readonly changeActiveModal: (modalType?: ModalType) => void;
 }
 
+export type ModalType = "keyboardShortcutEditor" | "themeSelector" | "languageSelector";
+
 interface FilezClientManagerProps {
-    children: ReactNode;
-    clientConfig: ClientConfig;
-    auth?: AuthContextProps;
+    readonly children: ReactNode;
+    readonly clientConfig: ClientConfig;
+    readonly auth?: AuthContextProps;
 }
 
 // Undefined means still loading, null means no user, otherwise a user.
 interface FilezClientManagerState {
-    filezClient?: FilezClient;
-    currentTheme: FilezTheme;
-    ownUser?: FilezUser | null;
-    currentTranslation: Translation;
-    currentLanguage?: Language;
+    readonly filezClient?: FilezClient;
+    readonly currentTheme: FilezTheme;
+    readonly ownUser?: FilezUser | null;
+    readonly currentTranslation: Translation;
+    readonly currentLanguage?: Language;
+    readonly currentlyOpenModal?: ModalType;
 }
 
-class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezClientManagerState> {
+export class FilezClientManagerBase extends Component<
+    FilezClientManagerProps,
+    FilezClientManagerState
+> {
+    private actionManager: ActionManager;
+    private hotkeyManager: HotkeyManager;
+
     constructor(props: FilezClientManagerProps) {
         super(props);
         const currentThemeId = localStorage.getItem(THEME_LOCAL_STORAGE_KEY) || "system";
-        console.log("Current theme ID:", currentThemeId);
+        log.info("Current theme ID:", currentThemeId);
 
         this.state = {
             currentTheme: themes.find((t) => t.id === currentThemeId) || themes[0],
             currentTranslation: englishTranslation,
             currentLanguage: getBrowserLanguage()
         };
+
+        this.actionManager = new ActionManager();
+        this.hotkeyManager = new HotkeyManager(this.actionManager);
     }
 
     componentDidMount = () => {
+        if (this.context) {
+            // Define actions first
+            const actions = defineApplicationActions(this);
+            this.actionManager.defineMultipleActions(actions);
+            
+            // Then define hotkeys that reference those actions
+            defineApplicationHotkeys(this.hotkeyManager, this);
+        }
         this.updateFilezClient();
         this.setTheme(this.state.currentTheme);
         this.setLanguage(this.state.currentLanguage);
+    };
+
+    changeActiveModal = (modalType?: ModalType) => {
+        log.debug("Changing active modal to:", modalType);
+        this.setState({ currentlyOpenModal: modalType });
     };
 
     componentDidUpdate = async (prevProps: FilezClientManagerProps) => {
@@ -83,17 +117,20 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
         }
     };
 
+    componentWillUnmount = () => {
+        this.hotkeyManager.destroy();
+    };
+
     restoreRedirectPath = () => {
-        const redirectPath = localStorage.getItem(filezPostLoginRedirectPathLocalStorageKey);
-        console.log("Restoring redirect path:", redirectPath);
+        const redirectPath = localStorage.getItem(FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY);
+        log.info("Restoring redirect path:", redirectPath);
         if (redirectPath) {
-            localStorage.removeItem(filezPostLoginRedirectPathLocalStorageKey);
+            localStorage.removeItem(FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY);
             window.history.replaceState({}, document.title, redirectPath);
         }
     };
 
     updateFilezClient = async () => {
-        // Effect to create or destroy the filezClient based on auth state.
         if (
             this.props.auth?.user?.access_token &&
             !this.props.auth.isLoading &&
@@ -104,14 +141,17 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
                 this.props.auth.user.access_token
             );
             this.setState({ filezClient });
-            console.log("Filez API client initialized with user token.");
+            log.debug("Filez API client initialized with user token.");
 
             // Verify the token is active, otherwise force a new sign-in.
             const ownUserRes = await filezClient?.api.getOwnUser().catch(async (response) => {
                 if (response?.error?.status?.Error === "IntrospectionGuardError::Inactive") {
-                    console.error("User token is inactive, redirecting to sign in.");
-                    localStorage.setItem("redirect_uri", window.location.href);
-                    await this.props.auth?.signinRedirect();
+                    log.debug("User token is inactive, redirecting to sign in.");
+                    if (!this.props.auth?.signinRedirect) {
+                        log.error("No signinRedirect function available in auth context.");
+                        return;
+                    }
+                    await signinRedirectSavePath(this.props.auth?.signinRedirect);
                 }
             });
 
@@ -153,13 +193,12 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
         // IMPORTANT: The order matters here.
         root.classList.add(CSS_VARIABLE_THEME_PREFIX + theme.id);
         if (theme.url) await loadThemeCSS(theme.url);
-        // set to local storage
         this.setState({ currentTheme: theme });
     };
 
     setLanguage = async (languageToSet?: Language) => {
         if (!languageToSet) {
-            console.error("No language provided");
+            log.error("No language provided");
             return;
         }
         this.setState({ currentLanguage: languageToSet });
@@ -175,6 +214,10 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
         const { children, auth, clientConfig } = this.props;
         const { filezClient, currentTheme } = this.state;
 
+        if (!this.context) {
+            throw new Error("FilezClientManager must be used within a ModalManagerProvider");
+        }
+
         const contextValue: FilezContextType = {
             auth: auth!,
             filezClient: filezClient!,
@@ -185,7 +228,11 @@ class FilezClientManagerBase extends Component<FilezClientManagerProps, FilezCli
             ownFilezUser: this.state.ownUser,
             t: this.state.currentTranslation,
             setLanguage: this.setLanguage,
-            currentLanguage: this.state.currentLanguage
+            currentLanguage: this.state.currentLanguage,
+            actionManager: this.actionManager,
+            hotkeyManager: this.hotkeyManager,
+            currentlyOpenModal: this.state.currentlyOpenModal,
+            changeActiveModal: this.changeActiveModal
         };
 
         return <FilezContext.Provider value={contextValue}>{children}</FilezContext.Provider>;
@@ -242,7 +289,7 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
                 this.setState({ clientConfig: config });
             })
             .catch((error) => {
-                console.error("Failed to fetch OIDC config", error);
+                log.error("Failed to fetch OIDC config", error);
             });
     };
 
