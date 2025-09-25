@@ -71,7 +71,7 @@ export const createExampleUser = async (filezClient: Api<unknown>): Promise<File
     if (!user.data?.data) {
         throw new Error("Failed to create example user");
     }
-    console.log(`Created example user: ${email} (${user.data.data.created_user.id})`);
+    console.info(`Created example user: ${email} (${user.data.data.created_user.id})`);
     return user.data.data.created_user;
 };
 

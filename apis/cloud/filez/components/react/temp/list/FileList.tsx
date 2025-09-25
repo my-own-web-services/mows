@@ -134,9 +134,9 @@ export default class FileList extends PureComponent<FileListProps, FileListState
     ) => {
         if (menuItemId === "log") {
             if (selectedItems?.length === 1) {
-                console.log(item);
+                log.info(item);
             } else {
-                console.log(selectedItems);
+                log.info(selectedItems);
             }
         } else if (menuItemId === "delete") {
             this.setState({

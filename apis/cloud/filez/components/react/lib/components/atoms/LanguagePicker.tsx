@@ -7,7 +7,7 @@ import {
     CommandList
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useFilez } from "@/FilezContext";
+import { useFilez } from "@/lib/FilezContext";
 import { getBrowserLanguage, languages, type Language } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";

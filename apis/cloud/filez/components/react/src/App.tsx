@@ -1,4 +1,6 @@
+import CommandPalette from "@/components/atoms/CommandPalette";
 import PrimaryMenu from "@/components/PrimaryMenu";
+import { ModalHandler } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
 
 interface AppProps {
@@ -22,7 +24,9 @@ export default class App extends PureComponent<AppProps, AppState> {
                 style={{ ...this.props.style }}
                 className={`App h-full w-full ${this.props.className ?? ""}`}
             >
-                <PrimaryMenu defaultOpen></PrimaryMenu>
+                <PrimaryMenu position="top-right" defaultOpen></PrimaryMenu>
+                <CommandPalette />
+                <ModalHandler />
             </div>
         );
     };
