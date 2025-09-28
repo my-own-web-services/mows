@@ -33,10 +33,10 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
             component: () => (
                 <DialogContent className="max-h-[90vh] overflow-y-auto select-none">
                     <DialogHeader>
-                        <DialogTitle>Theme Selector</DialogTitle>
+                        <DialogTitle>{this.context?.t.themePicker.title}</DialogTitle>
                         <DialogDescription aria-describedby={undefined} />
                     </DialogHeader>
-                    <ThemePicker />
+                    <ThemePicker standalone />
                 </DialogContent>
             )
         },
@@ -44,10 +44,10 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
             component: () => (
                 <DialogContent className="max-h-[90vh] overflow-y-auto select-none">
                     <DialogHeader>
-                        <DialogTitle>Language Selector</DialogTitle>
+                        <DialogTitle>{this.context?.t.languagePicker.title}</DialogTitle>
                         <DialogDescription aria-describedby={undefined} />
                     </DialogHeader>
-                    <LanguagePicker />
+                    <LanguagePicker standalone />
                 </DialogContent>
             )
         }

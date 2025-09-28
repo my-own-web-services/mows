@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { type CSSProperties } from "react";
+import { FilezContext } from "@/main";
+import { useContext, type CSSProperties } from "react";
 
 interface KeyComboDisplayProps {
     readonly keyCombo: string;
@@ -8,7 +9,11 @@ interface KeyComboDisplayProps {
 }
 
 export default function KeyComboDisplay({ keyCombo, className, style }: KeyComboDisplayProps) {
-    const keys = keyCombo.split(" + ");
+    const filezContext = useContext(FilezContext);
+    const keys = filezContext?.hotkeyManager.parseKeyCombo(keyCombo).split(" + ");
+    if (!keys || keys.length === 0) {
+        return null;
+    }
 
     return (
         <div className={cn("flex items-center gap-1", className)} style={style}>

@@ -1,3 +1,4 @@
+import { ActionIds } from "@/lib/defaultActions";
 import { type CSSProperties, PureComponent } from "react";
 import { IoCodeSlashSharp, IoLogOutSharp, IoMenuSharp, IoPersonSharp } from "react-icons/io5";
 
@@ -15,7 +16,7 @@ import { cn, signinRedirectSavePath } from "@/lib/utils";
 import { LiaKeyboard } from "react-icons/lia";
 import { PiUserSwitchFill } from "react-icons/pi";
 import { match } from "ts-pattern";
-import { FilezContext } from "../lib/FilezContext";
+import { FilezContext } from "../lib/filezContext/FilezContext";
 import Avatar from "./atoms/Avatar";
 import CopyValueButton from "./atoms/CopyValueButton";
 import LanguagePicker from "./atoms/LanguagePicker";
@@ -49,19 +50,18 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
         };
     }
 
-    componentDidMount = async () => {
-        log.debug("PrimaryMenu mounted, setting up hotkey handler");
-        log.debug("HotkeyManager exists:", !!this.context?.hotkeyManager);
-        log.debug("Active scopes:", this.context?.hotkeyManager?.getActiveScopes());
+    componentDidMount = async () => {};
 
-        this.context?.hotkeyManager?.setHandler("app.openPrimaryMenu", () => {
-            log.debug("Escape pressed, opening primary menu");
-            this.setState({ menuOpen: true });
-            return true;
-        });
+    componentDidUpdate = async () => {
+        if (
+            this.context?.actionManager &&
+            !this.context?.actionManager.handlerExists(ActionIds.OPEN_PRIMARY_MENU)
+        ) {
+            this.context?.actionManager?.setHandler(ActionIds.OPEN_PRIMARY_MENU, () => {
+                this.setState({ menuOpen: true });
+            });
+        }
     };
-
-    componentDidUpdate = async () => {};
 
     loginClick = async () => {
         if (!this.context?.auth?.signinRedirect) {
@@ -125,7 +125,7 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                                 className="outline-0"
                                 title={t.primaryMenu.openMenu}
                             >
-                                <IoMenuSharp className="h-10 w-10 cursor-pointer rounded-full border-2 border-neutral-100 p-2 text-neutral-100" />
+                                <IoMenuSharp className="border-primary text-primary h-10 w-10 cursor-pointer rounded-full border-2 p-2" />
                             </DropdownMenuTrigger>
                         ))}
 

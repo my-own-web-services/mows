@@ -1,4 +1,5 @@
-import type { ActionDefinition } from "@/lib/ActionManager";
+import { ActionIds } from "@/lib/defaultActions";
+import type { ActionDefinition } from "@/lib/filezContext/ActionManager";
 import { FilezContext } from "@/main";
 import { PureComponent, type CSSProperties } from "react";
 import {
@@ -41,16 +42,12 @@ export default class CommandPalette extends PureComponent<
     componentDidMount = async () => {};
 
     componentDidUpdate = (prevProps: CommandPaletteProps) => {
-        if (this.context?.hotkeyManager && !this.hotkeyRegistered) {
-            this.context?.hotkeyManager?.setHandler("app.openCommandPalette", () => {
+        if (this.context?.actionManager && !this.hotkeyRegistered) {
+            this.context?.actionManager?.setHandler(ActionIds.OPEN_COMMAND_PALETTE, () => {
                 this.handleOpenChange(true);
             });
             this.hotkeyRegistered = true;
         }
-    };
-
-    componentWillUnmount = () => {
-        this.context?.hotkeyManager?.removeHandler("app.openCommandPalette");
     };
 
     handleOpenChange = (open: boolean) => {
@@ -62,10 +59,8 @@ export default class CommandPalette extends PureComponent<
     };
 
     executeCommand = (actionId: string) => {
-        const action = this.context?.hotkeyManager?.getAction(actionId);
-        if (action?.handler) {
-            action.handler();
-        }
+        this.context?.actionManager?.dispatchAction(actionId);
+
         this.handleOpenChange(false);
     };
 
@@ -79,6 +74,7 @@ export default class CommandPalette extends PureComponent<
             if (!byCategory.has(category)) {
                 byCategory.set(category, []);
             }
+            if (action.hideInCommandPalette) return;
             byCategory.get(category)!.push(action);
         });
 
@@ -93,52 +89,75 @@ export default class CommandPalette extends PureComponent<
         return byCategory;
     };
 
+    renderCommandItem = (action: ActionDefinition, keyPrefix: string = "") => {
+        // Get all hotkeys for this action
+        const hotkeys = this.context?.hotkeyManager?.getHotkeysByActionId(action.id) || [];
+
+        const description = this.context?.t?.actions?.[action.id] || action.id;
+
+        return (
+            <CommandItem
+                key={`${keyPrefix}${action.id}`}
+                onSelect={() => this.executeCommand(action.id)}
+                disabled={!action.handler}
+            >
+                <span>{description}</span>
+                {hotkeys.length > 0 && (
+                    <div className="ml-auto flex items-center gap-2">
+                        {hotkeys.map((keyCombo, index) => (
+                            <span key={index} className="flex items-center gap-2">
+                                <KeyComboDisplay keyCombo={keyCombo} />
+                                {index < hotkeys.length - 1 && (
+                                    <span className="text-muted-foreground text-xs">|</span>
+                                )}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </CommandItem>
+        );
+    };
+
     render = () => {
         const open = this.props.open ?? this.state.internalOpen;
         const { t } = this.context || {};
         const commandsByCategory = this.getCommandsByCategory();
         const categories = Array.from(commandsByCategory.keys()).sort();
+        const recentCommands = this.context?.actionManager?.getRecentCommands() || [];
+        const recentCommandIds = new Set(recentCommands.map((cmd) => cmd.actionId));
 
         return (
             <CommandDialog open={open} onOpenChange={this.handleOpenChange}>
                 <CommandInput
                     placeholder={t?.commandPalette?.placeholder || "Type a command or search..."}
                 />
-                <CommandList>
+                <CommandList className="overflow-y-scroll">
                     <CommandEmpty>
                         {t?.commandPalette?.noResults || "No results found."}
                     </CommandEmpty>
+
+                    {/* Recent Commands Section */}
+                    {recentCommands.length > 0 && (
+                        <CommandGroup
+                            className="select-none"
+                            heading={t?.commandPalette?.recentCommands || "Recent Commands"}
+                        >
+                            {recentCommands.map((recentCmd) => {
+                                const action = this.context?.actionManager?.getAction(
+                                    recentCmd.actionId
+                                );
+                                return action ? this.renderCommandItem(action, "recent-") : null;
+                            })}
+                        </CommandGroup>
+                    )}
+
+                    {/* All Commands by Category */}
                     {categories.map((category) => (
                         <CommandGroup className="select-none" key={category} heading={category}>
-                            {commandsByCategory.get(category)!.map((action) => {
-                                // Get the first/primary hotkey for this action
-                                const hotkeys = this.context?.hotkeyManager?.getHotkeysByAction(action.id) || [];
-                                const primaryHotkey = hotkeys[0];
-                                const currentKey = primaryHotkey 
-                                    ? this.context?.hotkeyManager?.getCurrentKey(primaryHotkey.actionId, primaryHotkey.defaultKey) || ""
-                                    : "";
-                                const parsedKey = currentKey
-                                    ? this.context?.hotkeyManager?.parseKeyCombo(currentKey) || currentKey
-                                    : "";
-
-                                const description =
-                                    t?.actions?.[action.id] || action.id;
-
-                                return (
-                                    <CommandItem
-                                        key={action.id}
-                                        onSelect={() => this.executeCommand(action.id)}
-                                    >
-                                        <span>{description}</span>
-                                        {parsedKey && (
-                                            <KeyComboDisplay
-                                                keyCombo={parsedKey}
-                                                className="ml-auto"
-                                            />
-                                        )}
-                                    </CommandItem>
-                                );
-                            })}
+                            {commandsByCategory
+                                .get(category)!
+                                .filter((action) => !recentCommandIds.has(action.id))
+                                .map((action) => this.renderCommandItem(action, `${category}-`))}
                         </CommandGroup>
                     ))}
                 </CommandList>

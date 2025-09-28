@@ -24,7 +24,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                 style={{ ...this.props.style }}
                 className={`App h-full w-full ${this.props.className ?? ""}`}
             >
-                <PrimaryMenu position="top-right" defaultOpen></PrimaryMenu>
+                <PrimaryMenu position="top-right"></PrimaryMenu>
                 <CommandPalette />
                 <ModalHandler />
             </div>

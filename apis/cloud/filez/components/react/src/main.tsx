@@ -1,5 +1,5 @@
 import ReactDOM from "react-dom/client";
-import { FilezProvider } from "../lib/lib/FilezContext.tsx";
+import { FilezProvider } from "../lib/lib/filezContext/FilezContext.tsx";
 import "../lib/main.css";
 import App from "./App.tsx";
 import "./main.css";
