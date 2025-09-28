@@ -1,4 +1,5 @@
-import type { ActionDefinition } from "@/lib/ActionManager";
+import type { ActionDefinition } from "@/lib/filezContext/ActionManager";
+import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
@@ -76,6 +77,9 @@ export default class KeyboardShortcutEditor extends PureComponent<
 
     handleSaveBinding = () => {
         const { actionId, oldKey, recordedKey, dialogMode } = this.state;
+        console.log(
+            `handleSaveBinding called: actionId=${actionId}, oldKey=${oldKey}, recordedKey=${recordedKey}, dialogMode=${dialogMode}`
+        );
         if (!actionId || !recordedKey || !this.context) return;
 
         // Don't save if there's a validation error
@@ -84,7 +88,15 @@ export default class KeyboardShortcutEditor extends PureComponent<
         try {
             if (dialogMode === "edit") {
                 if (!oldKey) return;
-                this.context.hotkeyManager.updateBinding(actionId, oldKey, recordedKey);
+                const existingHotkeys = this.context.hotkeyManager
+                    .getHotkeysByActionId(actionId)
+                    .filter((hk) => {
+                        return hk !== oldKey;
+                    });
+                this.context.hotkeyManager.updateHotkey(actionId, [
+                    ...existingHotkeys,
+                    recordedKey
+                ]);
             } else if (dialogMode === "add") {
                 const action = this.context.actionManager.getAction(actionId);
                 if (!action) {
@@ -92,11 +104,11 @@ export default class KeyboardShortcutEditor extends PureComponent<
                     return;
                 }
 
-                // Add the new hotkey
-                this.context.hotkeyManager.defineHotkey({
-                    actionId: actionId,
-                    defaultKey: recordedKey
-                });
+                const existingHotkeys = this.context.hotkeyManager.getHotkeysByActionId(actionId);
+                this.context.hotkeyManager.updateHotkey(actionId, [
+                    ...existingHotkeys,
+                    recordedKey
+                ]);
             }
 
             this.setState({
@@ -127,15 +139,15 @@ export default class KeyboardShortcutEditor extends PureComponent<
         });
     };
 
-    handleResetToDefault = (actionId: string, key: string) => {
+    handleResetToDefault = (actionId: string) => {
         if (!this.context) return;
-        this.context.hotkeyManager.resetSingleToDefault(actionId, key);
+        this.context.hotkeyManager.resetActionHotkeysToDefault(actionId);
         this.forceUpdate();
     };
 
     handleResetAll = () => {
         if (!this.context) return;
-        this.context.hotkeyManager.resetToDefaults();
+        this.context.hotkeyManager.resetAllToDefaults();
         this.forceUpdate();
     };
 
@@ -168,14 +180,13 @@ export default class KeyboardShortcutEditor extends PureComponent<
         if (!action) return;
 
         // Check if the key combination is already in use by another action
-        const conflictingAction = this.context.hotkeyManager.getActionUsingKey(
-            this.state.recordedKey,
-            action.scope
+        const conflictingActionId = this.context.hotkeyManager.getActionByHotkey(
+            this.state.recordedKey
         );
 
-        if (conflictingAction) {
+        if (conflictingActionId) {
             const conflictingDescription =
-                this.context?.t?.actions?.[conflictingAction.id] || conflictingAction.id;
+                this.context?.t?.actions?.[conflictingActionId] || conflictingActionId;
             const errorTemplate =
                 this.context?.t?.keyboardShortcuts?.hotkeyDialog?.keyAlreadyInUse ||
                 'Key combination is already used by "{action}"';
@@ -189,8 +200,12 @@ export default class KeyboardShortcutEditor extends PureComponent<
     handleDeleteHotkey = (actionId: string, key: string) => {
         if (!this.context) return;
 
-        // Remove the hotkey
-        this.context.hotkeyManager.removeHotkey(actionId, key);
+        const existingHotkeys = this.context.hotkeyManager
+            .getHotkeysByActionId(actionId)
+            .filter((hk) => {
+                return hk !== key;
+            });
+        this.context.hotkeyManager.updateHotkey(actionId, existingHotkeys);
         this.forceUpdate();
     };
 
@@ -201,7 +216,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
     getCategories = (): string[] => {
         if (!this.context) return [];
         const categories = new Set<string>();
-        this.context.hotkeyManager.getAllDefinitions().forEach((def) => {
+        this.context.actionManager.getAllActions().forEach((def) => {
             categories.add(def.category);
         });
         return Array.from(categories).sort();
@@ -223,11 +238,11 @@ export default class KeyboardShortcutEditor extends PureComponent<
                 const category = action.category.toLowerCase();
 
                 // Get all hotkeys for this action to search their key combinations
-                const hotkeys = this.context?.hotkeyManager.getHotkeysByAction(action.id) || [];
+                const hotkeys = this.context?.hotkeyManager.getHotkeysByActionId(action.id) || [];
                 const keyMatches = hotkeys.some(
                     (hotkey) =>
-                        hotkey.defaultKey.toLowerCase().includes(searchQuery) ||
-                        (this.context?.hotkeyManager.parseKeyCombo(hotkey.defaultKey) || "")
+                        hotkey.toLowerCase().includes(searchQuery) ||
+                        (this.context?.hotkeyManager.parseKeyCombo(hotkey) || "")
                             .toLowerCase()
                             .includes(searchQuery)
                 );
@@ -258,6 +273,8 @@ export default class KeyboardShortcutEditor extends PureComponent<
             });
         });
 
+        log.debug("Actions by category:", byCategory);
+
         return byCategory;
     };
 
@@ -275,10 +292,6 @@ export default class KeyboardShortcutEditor extends PureComponent<
             >
                 <div className="mb-4 space-y-2">
                     <div className="flex items-center justify-between gap-4">
-                        <Button variant="outline" onClick={this.handleResetAll}>
-                            <MdRestartAlt className="h-4 w-4" />
-                            {this.context?.t.keyboardShortcuts.resetAll}
-                        </Button>
                         <div className="max-w-sm flex-1">
                             <Input
                                 placeholder="Search actions..."
@@ -287,6 +300,10 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                 className="w-full"
                             />
                         </div>
+                        <Button variant="outline" onClick={this.handleResetAll}>
+                            <MdRestartAlt className="h-4 w-4" />
+                            {this.context?.t.keyboardShortcuts.resetAll}
+                        </Button>
                     </div>
                 </div>
 
@@ -303,11 +320,11 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                 </h3>
                                 <div className="space-y-3">
                                     {actionsByCategory.get(category)!.map((action) => {
-                                        // Get all hotkeys for this action
                                         const hotkeys =
-                                            this.context?.hotkeyManager.getHotkeysByAction(
+                                            this.context?.hotkeyManager.getHotkeysByActionId(
                                                 action.id
                                             ) || [];
+
                                         const description =
                                             this.context?.t?.actions?.[action.id] || action.id;
 
@@ -333,27 +350,14 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                 </div>
                                                 <div className="space-y-1">
                                                     {hotkeys.map((hotkey) => {
-                                                        const currentKey =
-                                                            this.context?.hotkeyManager.getCurrentKey(
-                                                                hotkey.actionId,
-                                                                hotkey.defaultKey
-                                                            ) || "";
-                                                        const hotkeyId = `${hotkey.actionId}::${hotkey.defaultKey}`;
-                                                        const isCustomized =
-                                                            currentKey !== hotkey.defaultKey;
-
                                                         return (
                                                             <div
-                                                                key={hotkeyId}
+                                                                key={hotkey}
                                                                 className="flex min-w-0 items-center justify-between gap-4 pl-4"
                                                             >
                                                                 <div className="flex w-full items-center justify-between">
                                                                     <KeyComboDisplay
-                                                                        keyCombo={
-                                                                            this.context?.hotkeyManager.parseKeyCombo(
-                                                                                currentKey
-                                                                            ) || currentKey
-                                                                        }
+                                                                        keyCombo={hotkey}
                                                                     />
                                                                     <div className="flex items-center">
                                                                         <Button
@@ -361,8 +365,8 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                             size="icon"
                                                                             onClick={() =>
                                                                                 this.handleStartRecording(
-                                                                                    hotkey.actionId,
-                                                                                    hotkey.defaultKey
+                                                                                    action.id,
+                                                                                    hotkey
                                                                                 )
                                                                             }
                                                                             title={
@@ -378,11 +382,9 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                             size="icon"
                                                                             onClick={() =>
                                                                                 this.handleResetToDefault(
-                                                                                    hotkey.actionId,
-                                                                                    hotkey.defaultKey
+                                                                                    action.id
                                                                                 )
                                                                             }
-                                                                            disabled={!isCustomized}
                                                                             title={
                                                                                 this.context?.t
                                                                                     .keyboardShortcuts
@@ -396,8 +398,8 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                             size="icon"
                                                                             onClick={() =>
                                                                                 this.handleDeleteHotkey(
-                                                                                    hotkey.actionId,
-                                                                                    hotkey.defaultKey
+                                                                                    action.id,
+                                                                                    hotkey
                                                                                 )
                                                                             }
                                                                             title="Delete hotkey"

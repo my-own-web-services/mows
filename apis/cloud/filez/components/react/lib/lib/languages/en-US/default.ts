@@ -1,3 +1,4 @@
+import { ActionIds } from "@/lib/defaultActions";
 import type { Translation } from "@/lib/languages";
 
 const translation: Translation = {
@@ -18,10 +19,12 @@ const translation: Translation = {
         developer: "Developer"
     },
     languagePicker: {
+        title: "Language Selector",
         noLanguageFound: "No language found",
         selectLanguage: "Select language"
     },
     themePicker: {
+        title: "Theme Selector",
         selectTheme: "Select theme",
         noThemeFound: "No theme found"
     },
@@ -44,14 +47,19 @@ const translation: Translation = {
         }
     },
     actions: {
-        "app.openPrimaryMenu": "Open the primary menu",
-        "app.openCommandPalette": "Open command palette",
-        "app.openKeyboardShortcuts": "Open keyboard shortcuts"
+        [ActionIds.OPEN_COMMAND_PALETTE]: "Open command palette",
+        [ActionIds.OPEN_KEYBOARD_SHORTCUTS]: "Open keyboard shortcuts",
+        [ActionIds.OPEN_LANGUAGE_SETTINGS]: "Open language settings",
+        [ActionIds.OPEN_THEME_SELECTOR]: "Open theme selector",
+        [ActionIds.OPEN_PRIMARY_MENU]: "Open primary menu",
+        [ActionIds.LOGIN]: "Login",
+        [ActionIds.LOGOUT]: "Logout"
     },
     commandPalette: {
         placeholder: "Type a command or search...",
         noResults: "No results found.",
-        suggestions: "Suggestions"
+        suggestions: "Suggestions",
+        recentCommands: "Recent Commands"
     }
 };
 

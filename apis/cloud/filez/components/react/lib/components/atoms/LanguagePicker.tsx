@@ -7,7 +7,7 @@ import {
     CommandList
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useFilez } from "@/lib/FilezContext";
+import { useFilez } from "@/lib/filezContext/FilezContext";
 import { getBrowserLanguage, languages, type Language } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
@@ -21,6 +21,8 @@ interface LanguagePickerProps {
     readonly value?: string;
     readonly onValueChange?: (value?: Language) => void;
     readonly defaultOpen?: boolean;
+    readonly standalone?: boolean;
+    readonly autofocus?: boolean;
 }
 
 const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
@@ -31,6 +33,8 @@ const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
             value,
             onValueChange,
             defaultOpen = false,
+            standalone = false,
+            autofocus = false,
             ...props
         }: LanguagePickerProps,
         ref
@@ -69,6 +73,62 @@ const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
                 onValueChange?.();
             }
         };
+
+        // If standalone (used in modal), render the command directly without popover
+        if (standalone) {
+            return (
+                <div {...props} ref={ref} className={cn(className, "w-full")} style={style}>
+                    <Command filter={filterLanguages}>
+                        <CommandInput
+                            placeholder={t.languagePicker.selectLanguage}
+                            autoFocus={autofocus}
+                        />
+                        <CommandList>
+                            <CommandEmpty className="py-6 text-center text-sm select-none">
+                                {t.languagePicker.noLanguageFound}
+                            </CommandEmpty>
+                            <CommandGroup>
+                                {languages.map((language) => (
+                                    <CommandItem
+                                        key={language.code}
+                                        value={language.code}
+                                        className="cursor-pointer"
+                                        onSelect={() => handleSelect(language)}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">{language.emoji}</span>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">
+                                                        {language.originalName}
+                                                    </span>
+                                                    {language.code === browserLanguage && (
+                                                        <span className="text-muted-foreground text-xs opacity-60">
+                                                            (system)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="text-muted-foreground text-xs">
+                                                    {language.englishName}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <Check
+                                            className={cn(
+                                                "ml-auto h-4 w-4",
+                                                currentLanguage?.code === language.code
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                            )}
+                                        />
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </div>
+            );
+        }
 
         return (
             <Popover modal open={open} onOpenChange={handleOpenChange}>

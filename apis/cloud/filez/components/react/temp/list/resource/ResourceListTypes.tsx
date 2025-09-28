@@ -107,11 +107,10 @@ export interface ResourceListHandlers<FilezResource> {
     readonly onCreateClick?: ResourceListHandlersOnCreateClick;
     readonly onSelect?: ResourceListHandlersOnSelect<FilezResource>;
 }
-export const RowRendererDirection = {
-    Vertical: "vertical",
-    Horizontal: "horizontal"
-} as const;
-export type RowRendererDirection = (typeof RowRendererDirection)[keyof typeof RowRendererDirection];
+export enum RowRendererDirection {
+    Vertical = "vertical",
+    Horizontal = "horizontal"
+}
 
 export interface ListRowProps<FilezResource> {
     readonly data?: ListData<FilezResource>;

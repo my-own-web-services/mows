@@ -1,3 +1,4 @@
+import { ActionIds } from "@/lib/defaultActions";
 import type { Translation } from "@/lib/languages";
 
 const translation: Translation = {
@@ -18,10 +19,12 @@ const translation: Translation = {
         developer: "Entwickler"
     },
     languagePicker: {
+        title: "Sprachauswahl",
         noLanguageFound: "Keine Sprache gefunden",
         selectLanguage: "Sprache auswählen"
     },
     themePicker: {
+        title: "Theme-Auswahl",
         selectTheme: "Design auswählen",
         noThemeFound: "Kein Design gefunden"
     },
@@ -45,14 +48,19 @@ const translation: Translation = {
         }
     },
     actions: {
-        "app.openPrimaryMenu": "Hauptmenü öffnen",
-        "app.openCommandPalette": "Befehlspalette öffnen",
-        "app.openKeyboardShortcuts": "Tastenkombinationen öffnen"
+        [ActionIds.OPEN_COMMAND_PALETTE]: "Befehlspalette öffnen",
+        [ActionIds.OPEN_KEYBOARD_SHORTCUTS]: "Tastenkombinationen öffnen",
+        [ActionIds.OPEN_LANGUAGE_SETTINGS]: "Spracheinstellungen öffnen",
+        [ActionIds.OPEN_THEME_SELECTOR]: "Theme-Auswahl öffnen",
+        [ActionIds.OPEN_PRIMARY_MENU]: "Hauptmenü öffnen",
+        [ActionIds.LOGIN]: "Anmelden",
+        [ActionIds.LOGOUT]: "Abmelden"
     },
     commandPalette: {
         placeholder: "Befehl eingeben oder suchen...",
         noResults: "Keine Ergebnisse gefunden.",
-        suggestions: "Vorschläge"
+        suggestions: "Vorschläge",
+        recentCommands: "Zuletzt verwendet"
     }
 };
 

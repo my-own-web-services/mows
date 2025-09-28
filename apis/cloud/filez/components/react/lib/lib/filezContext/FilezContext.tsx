@@ -16,16 +16,15 @@ import {
     FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY,
     SELECTED_LANGUAGE_LOCAL_STORAGE_KEY,
     THEME_LOCAL_STORAGE_KEY
-} from "./constants";
+} from "../constants";
+import { defineApplicationActions } from "../defaultActions";
+import { getBrowserLanguage, type Language, type Translation } from "../languages";
+import englishTranslation from "../languages/en-US/default";
+import { log } from "../logging";
+import { type FilezTheme, loadThemeCSS, themes } from "../themes";
+import { signinRedirectSavePath } from "../utils";
 import { ActionManager } from "./ActionManager";
-import { defineApplicationActions } from "./actions";
-import { defineApplicationHotkeys } from "./defaultHotkeys";
 import { HotkeyManager } from "./HotkeyManager";
-import { getBrowserLanguage, type Language, type Translation } from "./languages";
-import englishTranslation from "./languages/en-US/default";
-import { log } from "./logging";
-import { type FilezTheme, loadThemeCSS, themes } from "./themes";
-import { signinRedirectSavePath } from "./utils";
 //import { generateDndPreview } from "./components/dragAndDrop/generatePreview";
 
 export interface FilezContextType {
@@ -90,9 +89,8 @@ export class FilezClientManagerBase extends Component<
             // Define actions first
             const actions = defineApplicationActions(this);
             this.actionManager.defineMultipleActions(actions);
-            
+
             // Then define hotkeys that reference those actions
-            defineApplicationHotkeys(this.hotkeyManager, this);
         }
         this.updateFilezClient();
         this.setTheme(this.state.currentTheme);
@@ -117,9 +115,7 @@ export class FilezClientManagerBase extends Component<
         }
     };
 
-    componentWillUnmount = () => {
-        this.hotkeyManager.destroy();
-    };
+    componentWillUnmount = () => {};
 
     restoreRedirectPath = () => {
         const redirectPath = localStorage.getItem(FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY);

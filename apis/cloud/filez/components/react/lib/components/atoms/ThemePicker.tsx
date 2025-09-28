@@ -7,7 +7,7 @@ import {
     CommandList
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useFilez } from "@/lib/FilezContext";
+import { useFilez } from "@/lib/filezContext/FilezContext";
 import { type FilezTheme, themes } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, Monitor, Moon, Sun } from "lucide-react";
@@ -19,6 +19,7 @@ interface ThemePickerProps {
     readonly style?: React.CSSProperties;
     readonly defaultOpen?: boolean;
     readonly onValueChange?: (value?: FilezTheme) => void;
+    readonly standalone?: boolean;
 }
 
 const getThemeIcon = (themeId: string) => {
@@ -34,7 +35,17 @@ const getThemeIcon = (themeId: string) => {
 };
 
 const ThemePicker = forwardRef<HTMLDivElement, ThemePickerProps>(
-    ({ className, style, defaultOpen = false, onValueChange, ...props }: ThemePickerProps, ref) => {
+    (
+        {
+            className,
+            style,
+            defaultOpen = false,
+            onValueChange,
+            standalone = false,
+            ...props
+        }: ThemePickerProps,
+        ref
+    ) => {
         const [open, setOpen] = useState(defaultOpen);
 
         useEffect(() => {
@@ -70,6 +81,56 @@ const ThemePicker = forwardRef<HTMLDivElement, ThemePickerProps>(
                 onValueChange?.();
             }
         };
+
+        // If standalone (used in modal), render the command directly without popover
+        if (standalone) {
+            return (
+                <div {...props} ref={ref} className={cn(className, "w-full")} style={style}>
+                    <Command filter={filterThemes}>
+                        <CommandInput placeholder={t.themePicker.selectTheme} autoFocus />
+                        <CommandList>
+                            <CommandEmpty className="py-6 text-center text-sm select-none">
+                                {t.themePicker.noThemeFound}
+                            </CommandEmpty>
+                            <CommandGroup>
+                                {themes.map((theme) => (
+                                    <CommandItem
+                                        key={theme.id}
+                                        value={theme.id}
+                                        className="cursor-pointer"
+                                        onSelect={() => handleSelect(theme)}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {getThemeIcon(theme.id)}
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">
+                                                        {theme.name}
+                                                    </span>
+                                                    {theme.id === "system" && (
+                                                        <span className="text-muted-foreground text-xs opacity-60">
+                                                            ({systemTheme})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Check
+                                            className={cn(
+                                                "ml-auto h-4 w-4",
+                                                currentTheme.id === theme.id
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                            )}
+                                        />
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </div>
+            );
+        }
 
         return (
             <Popover modal open={open} onOpenChange={handleOpenChange}>

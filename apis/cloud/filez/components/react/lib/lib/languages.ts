@@ -1,4 +1,5 @@
 import { SELECTED_LANGUAGE_LOCAL_STORAGE_KEY } from "./constants.ts";
+import { ActionIds } from "./defaultActions.ts";
 
 export interface Translation {
     primaryMenu: {
@@ -18,10 +19,12 @@ export interface Translation {
         developer: string;
     };
     languagePicker: {
+        title: string;
         noLanguageFound: string;
         selectLanguage: string;
     };
     themePicker: {
+        title: string;
         selectTheme: string;
         noThemeFound: string;
     };
@@ -44,12 +47,15 @@ export interface Translation {
         };
     };
     actions: {
-        [actionId: string]: string;
+        [K in ActionIds]: string;
+    } & {
+        [key: string]: string;
     };
     commandPalette: {
         placeholder: string;
         noResults: string;
         suggestions: string;
+        recentCommands: string;
     };
 }
 

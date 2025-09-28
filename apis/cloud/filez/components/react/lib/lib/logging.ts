@@ -63,7 +63,7 @@ export class Logger {
         let messagePart = `${timestamp} %c${level.padEnd(5)} %c${caller.file}:${caller.line}: `;
         args.forEach((arg) => {
             if (typeof arg === "object" && arg !== null) {
-                messagePart += "%c[Expand log to see object] ";
+                messagePart += "%c[expand] ";
                 styles.push("color:lightcoral;");
             } else {
                 messagePart += `%c${arg} `;

@@ -1,20 +1,8 @@
-import type { HotkeyDefinition, HotkeyManager } from "./HotkeyManager";
+import { ActionIds } from "./defaultActions";
+import { HotkeyConfig } from "./filezContext/HotkeyManager";
 
-export const defineApplicationHotkeys = (hotkeyManager: HotkeyManager) => {
-    const hotkeys: HotkeyDefinition[] = [
-        {
-            actionId: "app.openPrimaryMenu",
-            defaultKey: "esc"
-        },
-        {
-            actionId: "app.openCommandPalette",
-            defaultKey: "ctrl+shift+p"
-        },
-        {
-            actionId: "app.openCommandPalette",
-            defaultKey: "meta+k"
-        }
-    ];
-
-    hotkeyManager.defineMultipleHotkeys(hotkeys);
+export const defaultHotkeys: HotkeyConfig = {
+    [ActionIds.OPEN_COMMAND_PALETTE]: {
+        keyCombinations: ["ctrl+shift+p", "meta+k"]
+    }
 };
