@@ -54,7 +54,7 @@ const CopyValueButton = forwardRef<HTMLDivElement, CopyValueButtonProps>(
                     "CopyValueButton text-muted-foreground flex cursor-pointer items-center gap-2 rounded text-sm transition-all duration-200 select-none"
                 )}
                 onClick={copyClick}
-                title={copied ? "Copied!" : (title ?? label ?? "Copy Value")}
+                title={copied ? "Copied!" : (title ?? "")}
             >
                 <span>{label}</span>
                 {copied ? (

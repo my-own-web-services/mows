@@ -3,7 +3,6 @@
     "version": "0.0.1",
     "type": "module",
     "types": "dist/filez-components-react.d.ts",
-    "main": "dist/filez-components-react.cjs",
     "module": "dist/filez-components-react.js",
     "files": [
         "dist"
@@ -11,8 +10,7 @@
     "exports": {
         ".": {
             "types": "./dist/filez-components-react.d.ts",
-            "import": "./dist/filez-components-react.js",
-            "require": "./dist/filez-components-react.cjs"
+            "import": "./dist/filez-components-react.js"
         }
     },
     "sideEffects": [
@@ -23,8 +21,8 @@
         "build": "pnpm run build:lib",
         "build:lib": "TARGET=lib vite build",
         "lint": "eslint .",
-        "preview": "vite preview",
-        "prepublish": "pnpm run build"
+        "prepublish": "pnpm run test && pnpm run build",
+        "test": "vitest"
     },
     "peerDependencies": {
         "filez-client-typescript": ">=0.0.1",
@@ -49,6 +47,7 @@
         "immutability-helper": "^3.1.1",
         "lodash": "4.17.21",
         "lucide-react": "^0.544.0",
+        "next-themes": "^0.4.6",
         "oidc-client-ts": "^3.2.1",
         "openseadragon": "^5.0.1",
         "react-dnd": "^16.0.1",
@@ -61,6 +60,7 @@
         "react-window": "^2.1.0",
         "react-window-infinite-loader": "^1.0.10",
         "shaka-player": "^4.16.1",
+        "sonner": "^2.0.7",
         "tailwind-merge": "^3.3.1",
         "tailwindcss": "^4.1.12",
         "tailwindcss-animate": "^1.0.7",
@@ -69,26 +69,31 @@
         "vite-plugin-lib-inject-css": "^2.2.2"
     },
     "devDependencies": {
+        "@eslint/js": "^9.33.0",
+        "@testing-library/jest-dom": "^6.8.0",
+        "@testing-library/react": "^16.3.0",
+        "@testing-library/user-event": "^14.6.1",
         "@types/lodash": "^4.14.195",
         "@types/node": "^24.3.0",
         "@types/openseadragon": "^4.1.0",
-        "@types/react-window-infinite-loader": "^1.0.9",
-        "rollup-plugin-visualizer": "^6.0.3",
-        "@eslint/js": "^9.33.0",
         "@types/react": "^19.1.10",
         "@types/react-dom": "^19.1.7",
+        "@types/react-window-infinite-loader": "^1.0.9",
         "@vitejs/plugin-react": "^5.0.0",
         "eslint": "^9.33.0",
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.20",
         "globals": "^16.3.0",
+        "jsdom": "^27.0.0",
         "prettier": "^3.3.2",
         "prettier-plugin-organize-imports": "^3.2.4",
         "prettier-plugin-tailwindcss": "^0.6.4",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
+        "rollup-plugin-visualizer": "^6.0.3",
         "typescript": "~5.8.3",
         "typescript-eslint": "^8.39.1",
-        "vite": "^7.1.2"
+        "vite": "^7.1.2",
+        "vitest": "^3.2.4"
     }
 }

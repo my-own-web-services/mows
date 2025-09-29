@@ -22,10 +22,13 @@
         "erasableSyntaxOnly": false,
         "noFallthroughCasesInSwitch": true,
         "noUncheckedSideEffectImports": true,
+        
+        /* Testing */
+        "types": ["vitest/globals", "@testing-library/jest-dom"],
         "baseUrl": ".",
         "paths": {
             "@/*": ["./lib/*"]
         }
     },
-    "include": ["src"]
+    "include": ["src", "lib/**/*.test.tsx", "lib/**/*.test.ts"]
 }

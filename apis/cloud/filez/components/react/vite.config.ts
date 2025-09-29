@@ -29,7 +29,7 @@ const libraryConfig: UserConfig = {
             entry: resolve(__dirname, "lib/main.ts"),
             fileName: "filez-components-react",
             name: "filez-components-react",
-            formats: ["es", "cjs"]
+            formats: ["es"]
         },
         rollupOptions: {
             external: [

@@ -128,19 +128,15 @@ export default class CommandPalette extends PureComponent<
 
         return (
             <CommandDialog open={open} onOpenChange={this.handleOpenChange}>
-                <CommandInput
-                    placeholder={t?.commandPalette?.placeholder || "Type a command or search..."}
-                />
+                <CommandInput placeholder={t!.commandPalette.placeholder} />
                 <CommandList className="overflow-y-scroll">
-                    <CommandEmpty>
-                        {t?.commandPalette?.noResults || "No results found."}
-                    </CommandEmpty>
+                    <CommandEmpty>{t?.commandPalette?.noResults}</CommandEmpty>
 
                     {/* Recent Commands Section */}
                     {recentCommands.length > 0 && (
                         <CommandGroup
                             className="select-none"
-                            heading={t?.commandPalette?.recentCommands || "Recent Commands"}
+                            heading={t?.commandPalette?.recentCommands}
                         >
                             {recentCommands.map((recentCmd) => {
                                 const action = this.context?.actionManager?.getAction(
