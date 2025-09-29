@@ -34,6 +34,7 @@ export interface Translation {
         resetAll: string;
         edit: string;
         reset: string;
+        delete: string;
         hotkeyDialog: {
             editTitle: string;
             addTitle: string;

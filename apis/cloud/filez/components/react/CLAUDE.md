@@ -13,3 +13,5 @@ Style:
 
 - only arrow functions
 - All constants defined in constants.ts, local storage access keys for example
+- No fallback translations in the components
+- translations must be added to the translation type

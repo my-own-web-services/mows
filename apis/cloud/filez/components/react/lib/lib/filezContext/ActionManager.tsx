@@ -56,31 +56,31 @@ export class ActionManager {
         actions.forEach((action) => this.defineAction(action));
     }
 
-    getAllActions(): Map<string, ActionDefinition> {
+    getAllActions = (): Map<string, ActionDefinition> => {
         return this.actions;
-    }
+    };
 
-    getActionsByCategory(category: string): ActionDefinition[] {
+    getActionsByCategory = (category: string): ActionDefinition[] => {
         return Array.from(this.actions.values()).filter((action) => action.category === category);
-    }
+    };
 
-    getActionsByScope(scope: string): ActionDefinition[] {
+    getActionsByScope = (scope: string): ActionDefinition[] => {
         return Array.from(this.actions.values()).filter((action) => action.scope === scope);
-    }
+    };
 
-    getCategories(): string[] {
+    getCategories = (): string[] => {
         const categories = new Set<string>();
         this.actions.forEach((action) => categories.add(action.category));
         return Array.from(categories).sort();
-    }
+    };
 
-    getScopes(): string[] {
+    getScopes = (): string[] => {
         const scopes = new Set<string>();
         this.actions.forEach((action) => scopes.add(action.scope));
         return Array.from(scopes).sort();
-    }
+    };
 
-    setHandler(actionId: string, handler: (event?: KeyboardEvent) => void): void {
+    setHandler = (actionId: string, handler: (event?: KeyboardEvent) => void): void => {
         log.debug(`Setting handler for action: ${actionId}`);
         const existingAction = this.actions.get(actionId);
 
@@ -90,14 +90,14 @@ export class ActionManager {
                 handler
             });
         }
-    }
+    };
 
     handlerExists = (actionId: string): boolean => {
         const action = this.actions.get(actionId);
         return !!(action && action.handler);
     };
 
-    trackCommandUsage(action: ActionDefinition): void {
+    trackCommandUsage = (action: ActionDefinition): void => {
         log.debug(`trackCommandUsage called for action: ${action.id}`);
         log.debug(`Action retrieved for tracking:`, action);
         if (!action || action.doNotTrackUsage) return;
@@ -110,7 +110,7 @@ export class ActionManager {
         ].slice(0, FILEZ_MAXIMUM_RECENT_ACTIONS);
         this.recentActions = updatedCommands;
         this.saveRecentActions();
-    }
+    };
 
     loadRecentActions = () => {
         const stored = localStorage.getItem(FILEZ_RECENT_ACTIONS_STORAGE_KEY);

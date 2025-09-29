@@ -1,6 +1,6 @@
 import CommandPalette from "@/components/atoms/CommandPalette";
 import PrimaryMenu from "@/components/PrimaryMenu";
-import { ModalHandler } from "@/main";
+import { ModalHandler, Toaster } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
 
 interface AppProps {
@@ -27,6 +27,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                 <PrimaryMenu position="top-right"></PrimaryMenu>
                 <CommandPalette />
                 <ModalHandler />
+                <Toaster></Toaster>
             </div>
         );
     };

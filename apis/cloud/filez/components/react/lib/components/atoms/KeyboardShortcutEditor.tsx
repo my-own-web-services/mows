@@ -184,11 +184,12 @@ export default class KeyboardShortcutEditor extends PureComponent<
             this.state.recordedKey
         );
 
+        const t = this.context.t;
+
         if (conflictingActionId) {
-            const conflictingDescription =
-                this.context?.t?.actions?.[conflictingActionId] || conflictingActionId;
+            const conflictingDescription = t.actions?.[conflictingActionId] || conflictingActionId;
             const errorTemplate =
-                this.context?.t?.keyboardShortcuts?.hotkeyDialog?.keyAlreadyInUse ||
+                t.keyboardShortcuts?.hotkeyDialog?.keyAlreadyInUse ||
                 'Key combination is already used by "{action}"';
             const errorMessage = errorTemplate.replace("{action}", conflictingDescription);
             this.setState({ error: errorMessage });
@@ -232,7 +233,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
             // Apply search filter if there's a search query
             if (searchQuery) {
                 const description = (
-                    this.context?.t?.actions?.[action.id] || action.id
+                    this.context?.t.actions?.[action.id] || action.id
                 ).toLowerCase();
                 const actionId = action.id.toLowerCase();
                 const category = action.category.toLowerCase();
@@ -267,8 +268,8 @@ export default class KeyboardShortcutEditor extends PureComponent<
 
         byCategory.forEach((actions) => {
             actions.sort((a, b) => {
-                const aDesc = this.context?.t?.actions?.[a.id] || a.id;
-                const bDesc = this.context?.t?.actions?.[b.id] || b.id;
+                const aDesc = this.context?.t.actions?.[a.id] || a.id;
+                const bDesc = this.context?.t.actions?.[b.id] || b.id;
                 return aDesc.localeCompare(bDesc);
             });
         });
@@ -281,6 +282,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
     render = () => {
         const actionsByCategory = this.getActionsByCategory();
         const categories = Array.from(actionsByCategory.keys()).sort();
+        const t = this.context?.t!;
 
         return (
             <div
@@ -302,7 +304,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
                         </div>
                         <Button variant="outline" onClick={this.handleResetAll}>
                             <MdRestartAlt className="h-4 w-4" />
-                            {this.context?.t.keyboardShortcuts.resetAll}
+                            {t.keyboardShortcuts.resetAll}
                         </Button>
                     </div>
                 </div>
@@ -325,8 +327,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                 action.id
                                             ) || [];
 
-                                        const description =
-                                            this.context?.t?.actions?.[action.id] || action.id;
+                                        const description = t.actions?.[action.id] || action.id;
 
                                         return (
                                             <div
@@ -370,8 +371,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                                 )
                                                                             }
                                                                             title={
-                                                                                this.context?.t
-                                                                                    .keyboardShortcuts
+                                                                                t.keyboardShortcuts
                                                                                     .edit
                                                                             }
                                                                         >
@@ -386,8 +386,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                                 )
                                                                             }
                                                                             title={
-                                                                                this.context?.t
-                                                                                    .keyboardShortcuts
+                                                                                t.keyboardShortcuts
                                                                                     .reset
                                                                             }
                                                                         >
@@ -402,7 +401,10 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                                     hotkey
                                                                                 )
                                                                             }
-                                                                            title="Delete hotkey"
+                                                                            title={
+                                                                                t.keyboardShortcuts
+                                                                                    .delete
+                                                                            }
                                                                             className="hover:text-destructive"
                                                                         >
                                                                             <MdDelete className="h-4 w-4" />
@@ -434,19 +436,15 @@ export default class KeyboardShortcutEditor extends PureComponent<
                         <DialogHeader>
                             <DialogTitle>
                                 {this.state.dialogMode === "edit"
-                                    ? this.context?.t?.keyboardShortcuts?.hotkeyDialog?.editTitle ||
-                                      "Edit Keyboard Shortcut"
-                                    : this.context?.t?.keyboardShortcuts?.hotkeyDialog?.addTitle ||
-                                      "Add New Hotkey"}
+                                    ? t.keyboardShortcuts?.hotkeyDialog?.editTitle
+                                    : t.keyboardShortcuts?.hotkeyDialog?.addTitle}
                             </DialogTitle>
                             <DialogDescription>
                                 {this.state.dialogMode === "edit"
-                                    ? this.context?.t?.keyboardShortcuts?.hotkeyDialog
-                                          ?.editDescription ||
-                                      "Press the key combination you want to use for this action."
-                                    : `${this.context?.t?.keyboardShortcuts?.hotkeyDialog?.addDescription || "Add a new hotkey for"} "${
+                                    ? t.keyboardShortcuts?.hotkeyDialog?.editDescription
+                                    : `${t.keyboardShortcuts?.hotkeyDialog?.addDescription} "${
                                           this.state.actionId
-                                              ? this.context?.t?.actions?.[this.state.actionId] ||
+                                              ? t.actions?.[this.state.actionId] ||
                                                 this.state.actionId
                                               : ""
                                       }"`}
@@ -469,8 +467,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                     />
                                 ) : (
                                     <span className="text-muted-foreground">
-                                        {this.context?.t?.keyboardShortcuts?.hotkeyDialog
-                                            ?.pressKeys || "Press keys..."}
+                                        {t.keyboardShortcuts?.hotkeyDialog?.pressKeys}
                                     </span>
                                 )}
                                 <input
@@ -478,6 +475,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                     onKeyDown={this.handleKeyDown}
                                     onKeyUp={this.handleKeyUp}
                                     autoFocus
+                                    aria-label="hotkey-input"
                                 />
                             </div>
                             {this.state.error && (
@@ -485,18 +483,15 @@ export default class KeyboardShortcutEditor extends PureComponent<
                             )}
                             <div className="flex justify-end gap-2">
                                 <Button variant="outline" onClick={this.handleCancelEdit}>
-                                    {this.context?.t?.keyboardShortcuts?.hotkeyDialog?.cancel ||
-                                        "Cancel"}
+                                    {t.keyboardShortcuts?.hotkeyDialog?.cancel}
                                 </Button>
                                 <Button
                                     onClick={this.handleSaveBinding}
                                     disabled={!this.state.recordedKey || !!this.state.error}
                                 >
                                     {this.state.dialogMode === "edit"
-                                        ? this.context?.t?.keyboardShortcuts?.hotkeyDialog?.save ||
-                                          "Save"
-                                        : this.context?.t?.keyboardShortcuts?.hotkeyDialog
-                                              ?.addHotkey || "Add Hotkey"}
+                                        ? t.keyboardShortcuts?.hotkeyDialog?.save
+                                        : t.keyboardShortcuts?.hotkeyDialog?.addHotkey}
                                 </Button>
                             </div>
                         </div>
