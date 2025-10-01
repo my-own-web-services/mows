@@ -3,7 +3,6 @@
     "version": "0.0.1",
     "type": "module",
     "types": "dist/filez-components-react.d.ts",
-    "main": "dist/filez-components-react.cjs",
     "module": "dist/filez-components-react.js",
     "files": [
         "dist"
@@ -11,8 +10,7 @@
     "exports": {
         ".": {
             "types": "./dist/filez-components-react.d.ts",
-            "import": "./dist/filez-components-react.js",
-            "require": "./dist/filez-components-react.cjs"
+            "import": "./dist/filez-components-react.js"
         }
     },
     "sideEffects": [
@@ -23,37 +21,34 @@
         "build": "pnpm run build:lib",
         "build:lib": "TARGET=lib vite build",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "test": "vitest run"
     },
     "peerDependencies": {
+        "filez-client-typescript": ">=0.0.1",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
-        "tailwindcss": "^4.1.12",
-        "filez-client-typescript": ">=0.0.1"
+        "tailwindcss": "^4.1.12"
     },
     "dependencies": {
+        "@radix-ui/react-context-menu": "^2.2.16",
         "@radix-ui/react-dialog": "^1.1.15",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
         "@radix-ui/react-popover": "^1.1.15",
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slot": "^1.2.3",
+        "@radix-ui/react-visually-hidden": "^1.2.3",
         "@tailwindcss/postcss": "^4.1.13",
         "@tailwindcss/vite": "^4.1.12",
-        "@types/lodash": "^4.14.195",
-        "@types/node": "^24.3.0",
-        "@types/openseadragon": "^4.1.0",
-        "@types/react-window-infinite-loader": "^1.0.9",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
         "filez-client-typescript": "file:.yalc/filez-client-typescript",
         "immutability-helper": "^3.1.1",
-        "less": "^4.4.1",
         "lodash": "4.17.21",
         "lucide-react": "^0.544.0",
+        "next-themes": "^0.4.6",
         "oidc-client-ts": "^3.2.1",
         "openseadragon": "^5.0.1",
-        "react-contexify": "^6.0.0",
         "react-dnd": "^16.0.1",
         "react-dnd-html5-backend": "^16.0.1",
         "react-dnd-preview": "^9.0.0",
@@ -63,8 +58,8 @@
         "react-virtualized-auto-sizer": "^1.0.26",
         "react-window": "^2.1.0",
         "react-window-infinite-loader": "^1.0.10",
-        "rollup-plugin-visualizer": "^6.0.3",
         "shaka-player": "^4.16.1",
+        "sonner": "^2.0.7",
         "tailwind-merge": "^3.3.1",
         "tailwindcss": "^4.1.12",
         "tailwindcss-animate": "^1.0.7",
@@ -72,5 +67,5 @@
         "vite-plugin-dts": "^4.5.4",
         "vite-plugin-lib-inject-css": "^2.2.2"
     },
-    "yalcSig": "67b5ec964f9657693f0dd7dc85742971"
+    "yalcSig": "bc5896e3fcca74df8a42630972ad472c"
 }
