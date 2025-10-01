@@ -18,7 +18,8 @@ const tests = [
     "imageJob",
     "doubleOptionUpdate",
     "nameValidation",
-    "accessPoliciesListFiles"
+    "accessPoliciesListFiles",
+    "createMockFiles"
 ];
 
 export default class Dev extends Component<DevProps, DevState> {

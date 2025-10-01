@@ -32,6 +32,7 @@ export interface FilezContextType {
     readonly filezClient: FilezClient;
     readonly clientConfig: ClientConfig;
     readonly clientLoading: boolean;
+    readonly clientAuthenticated: boolean;
     readonly setTheme: (theme: FilezTheme) => Promise<void>;
     readonly currentTheme: FilezTheme;
     readonly ownFilezUser?: FilezUser | null;
@@ -60,6 +61,7 @@ interface FilezClientManagerState {
     readonly currentTranslation: Translation;
     readonly currentLanguage?: Language;
     readonly currentlyOpenModal?: ModalType;
+    readonly clientAuthenticated?: boolean;
 }
 
 export class FilezClientManagerBase extends Component<
@@ -77,7 +79,8 @@ export class FilezClientManagerBase extends Component<
         this.state = {
             currentTheme: themes.find((t) => t.id === currentThemeId) || themes[0],
             currentTranslation: englishTranslation,
-            currentLanguage: getBrowserLanguage()
+            currentLanguage: getBrowserLanguage(),
+            clientAuthenticated: false
         };
 
         this.actionManager = new ActionManager();
@@ -152,7 +155,7 @@ export class FilezClientManagerBase extends Component<
             });
 
             if (ownUserRes?.data?.data?.user) {
-                this.setState({ ownUser: ownUserRes?.data?.data?.user });
+                this.setState({ ownUser: ownUserRes?.data?.data?.user, clientAuthenticated: true });
             }
         } else {
             this.setState({
@@ -219,6 +222,7 @@ export class FilezClientManagerBase extends Component<
             filezClient: filezClient!,
             clientConfig,
             clientLoading: auth?.isLoading || !clientConfig,
+            clientAuthenticated: this.state.clientAuthenticated || false,
             setTheme: this.setTheme,
             currentTheme,
             ownFilezUser: this.state.ownUser,

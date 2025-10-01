@@ -2,7 +2,7 @@
   "version": "v1",
   "packages": {
     "filez-components-react": {
-      "signature": "67b5ec964f9657693f0dd7dc85742971",
+      "signature": "bc5896e3fcca74df8a42630972ad472c",
       "file": true,
       "replaced": "workspace:*"
     },
