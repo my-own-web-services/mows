@@ -7,49 +7,12 @@ import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
 import ResourceList from "./ResourceList/ResourceList";
 import {
-    Column,
     ListResourceRequestBody,
     ListResourceResponseBody,
     ResourceListHandlers,
     ResourceListRowHandlers
 } from "./ResourceList/ResourceListTypes";
-import ColumnListRowHandler from "./ResourceList/rowRenderers/Column";
-
-const defaultColumns: Column<FilezFile>[] = [
-    {
-        field: "Name",
-        label: "Name",
-        direction: SortDirection.Ascending,
-        widthPercent: 30,
-        minWidthPixels: 50,
-        visible: true,
-        render: (item: FilezFile) => {
-            return <span style={{ height: "100%" }}>{item.name}</span>;
-        }
-    },
-    {
-        field: "MimeType",
-        label: "Mime Type",
-        direction: SortDirection.Neutral,
-        widthPercent: 20,
-        minWidthPixels: 50,
-        visible: true,
-        render: (item: FilezFile) => {
-            return <span>{item.mime_type}</span>;
-        }
-    },
-    {
-        field: "ModifiedTime",
-        label: "Modified",
-        direction: SortDirection.Neutral,
-        widthPercent: 20,
-        minWidthPixels: 50,
-        visible: true,
-        render: (item: FilezFile) => {
-            return <span>{item.modified_time}</span>;
-        }
-    }
-];
+import ColumnListRowHandler, { Column } from "./ResourceList/rowHandlers/Column";
 
 interface FileListProps {
     readonly id?: string;
@@ -195,12 +158,13 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                 <ResourceList<FilezFile>
                     ref={this.resourceListRef}
                     resourceType="File"
-                    defaultSortBy="CreatedTime"
+                    defaultSortBy={"Name"}
+                    defaultSortDirection={SortDirection.Ascending}
                     initialRowHandler={"ColumnListRowHandler"}
                     getResourcesList={this.getFilesList}
                     dropTargetAcceptsTypes={["File"]}
                     id={this.props.id}
-                    rowHandlers={[ColumnListRowHandler()]}
+                    rowHandlers={[new ColumnListRowHandler({ columns: defaultColumns })]}
                     displaySortingBar={this.props.displaySortingBar}
                     displayListHeader={this.props.displayTopBar}
                     handlers={{
@@ -212,3 +176,51 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         );
     };
 }
+
+const defaultColumns: Column<FilezFile>[] = [
+    {
+        field: "Name",
+        label: "Name",
+        direction: SortDirection.Ascending,
+        widthPercent: 40,
+        minWidthPixels: 50,
+        enabled: true,
+        render: (item: FilezFile, style: CSSProperties, className: string) => {
+            return (
+                <span style={{ ...style }} className={className}>
+                    {item.name}
+                </span>
+            );
+        }
+    },
+    {
+        field: "MimeType",
+        label: "Mime Type",
+        direction: SortDirection.Neutral,
+        widthPercent: 30,
+        minWidthPixels: 50,
+        enabled: true,
+        render: (item: FilezFile, style: CSSProperties, className: string) => {
+            return (
+                <span style={{ ...style }} className={className}>
+                    {item.mime_type}
+                </span>
+            );
+        }
+    },
+    {
+        field: "ModifiedTime",
+        label: "Modified",
+        direction: SortDirection.Neutral,
+        widthPercent: 30,
+        minWidthPixels: 50,
+        enabled: true,
+        render: (item: FilezFile, style: CSSProperties, className: string) => {
+            return (
+                <span style={{ ...style }} className={className}>
+                    {item.modified_time}
+                </span>
+            );
+        }
+    }
+];
