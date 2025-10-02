@@ -1,5 +1,6 @@
 import { SortDirection } from "filez-client-typescript";
 import { ComponentType, JSX } from "react";
+import ResourceList from "./ResourceList";
 
 export interface ListResourceResponseBody<FilezResourceType> {
     items: FilezResourceType[];
@@ -16,7 +17,8 @@ export interface ListResourceRequestBody {
 export interface ListRowHandler<FilezResourceType> {
     readonly name: string;
     readonly icon: JSX.Element;
-    readonly component: ComponentType<RowComponentProps<FilezResourceType>>;
+    readonly rowRenderer: ComponentType<RowComponentProps<FilezResourceType>>;
+    readonly headerRenderer?: () => JSX.Element;
     readonly getRowHeight: (width: number, height: number, gridColumnCount: number) => number;
     readonly getRowCount: (itemCount: number, gridColumnCount: number) => number;
     readonly direction: RowRendererDirection;
@@ -44,6 +46,7 @@ export interface ListRowHandler<FilezResourceType> {
         arrowKeyShiftSelectItemIndex: number | undefined,
         gridColumnCount: number
     ) => SelectedItemsAfterKeypress | undefined;
+    resourceList: InstanceType<typeof ResourceList> | undefined;
 }
 
 export interface SelectedItemsAfterKeypress {
@@ -141,17 +144,6 @@ export interface RowComponentData<FilezResourceType> {
     readonly gridColumnCount: number;
     readonly rowHeight: number;
     readonly rowHandlers?: ListRowHandler<FilezResourceType>[];
-}
-
-export interface Column<FilezResourceType> {
-    field: string;
-    alternateField?: string;
-    label: string;
-    direction: SortDirection;
-    widthPercent: number;
-    minWidthPixels: number;
-    visible: boolean;
-    render?: (item: FilezResourceType) => JSX.Element;
 }
 
 export interface BaseResource {

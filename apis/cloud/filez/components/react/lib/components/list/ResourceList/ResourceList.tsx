@@ -17,7 +17,7 @@ import {
     RowRendererDirection
 } from "./ResourceListTypes";
 
-enum LoadItemMode {
+export enum LoadItemMode {
     Reload,
     NewId,
     All
@@ -77,6 +77,7 @@ interface ResourceListState<ResourceType> {
     readonly totalCount: number;
     readonly committedSearch: string;
     readonly selectedItems: (true | undefined)[];
+
     readonly lastSelectedItemIndex?: number;
     readonly arrowKeyShiftSelectItemIndex?: number;
     readonly gridColumnCount: number;
@@ -118,7 +119,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             sortDirection: this.props.defaultSortDirection ?? SortDirection.Descending
         };
 
-        this.currentRowHandler = this.getRowHandlerById(this.props.initialRowHandler);
+        this.currentRowHandler = this.setNewRowHandler(this.props.initialRowHandler);
 
         log.debug("ResourceList initial state:", this.state);
     }
@@ -423,10 +424,13 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         this.props.handlers?.onCreateClick?.();
     };
 
-    getRowHandlerById = (rowHandlerId: string) => {
+    setNewRowHandler = (rowHandlerId: string) => {
         const rowHandler = this.props.rowHandlers.find((r) => r.name === rowHandlerId);
 
         if (rowHandler) {
+            this.currentRowHandler = rowHandler;
+            //@ts-ignore
+            this.currentRowHandler.resourceList = this;
             return rowHandler;
         }
 
@@ -439,22 +443,41 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         return this.state.resources[index];
     };
 
+    selectAll = async () => {
+        this.setState(
+            {
+                selectedItems: new Array(this.state.totalCount).fill(true)
+            },
+            async () => {
+                await this.loadItems(LoadItemMode.All);
+                this.props.handlers?.onSelect?.(
+                    this.getSelectedItems(),
+                    this.state.resources[this.state.lastSelectedItemIndex ?? 0]
+                );
+            }
+        );
+    };
+
+    deselectAll = () => {
+        this.setState(
+            {
+                selectedItems: new Array(this.state.totalCount).fill(false)
+            },
+            async () => {
+                await this.loadItems(LoadItemMode.All);
+                this.props.handlers?.onSelect?.(
+                    this.getSelectedItems(),
+                    this.state.resources[this.state.lastSelectedItemIndex ?? 0]
+                );
+            }
+        );
+    };
+
     handleCommonHotkeys = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.ctrlKey) {
             if (e.key === "a") {
                 e.preventDefault();
-                this.setState(
-                    {
-                        selectedItems: new Array(this.state.totalCount).fill(true)
-                    },
-                    async () => {
-                        await this.loadItems(LoadItemMode.All);
-                        this.props.handlers?.onSelect?.(
-                            this.getSelectedItems(),
-                            this.state.resources[this.state.lastSelectedItemIndex ?? 0]
-                        );
-                    }
-                );
+                this.selectAll();
             }
         }
     };
@@ -531,9 +554,10 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
         return (
             <div
-                className={cn(`ResourceList h-full w-full`, this.props.className)}
+                className={cn(`ResourceList flex h-full w-full flex-col`, this.props.className)}
                 style={{ ...this.props.style }}
             >
+                {this.currentRowHandler.headerRenderer?.()}
                 <div
                     className="OuterResourceList h-full w-full focus:outline-none"
                     onKeyDown={this.onListKeyDown}
@@ -568,7 +592,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 itemKey={this.getItemKey}
                                                 // @ts-ignore
                                                 onScroll={this.onScroll}
-                                                overscanCount={this.props.overscanCount ?? 20}
+                                                overscanCount={this.props.overscanCount ?? 100}
                                                 width={width}
                                                 height={height}
                                                 itemCount={itemCount}
@@ -610,7 +634,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 }}
                                             >
                                                 {/*@ts-ignore*/}
-                                                {this.currentRowHandler.component}
+                                                {this.currentRowHandler.rowRenderer}
                                             </FixedSizeList>
                                         );
                                     }}
@@ -636,9 +660,10 @@ export const getSelectedItems = <ResourceType,>(
     });
 };
 
-export const getSelectedCount = (selectedItems: (boolean | undefined)[], total_count: number) => {
+export const getSelectedCount = (selectedItems?: (boolean | undefined)[]) => {
+    if (selectedItems === undefined) return 0;
     let count = 0;
-    for (let i = 0; i < total_count; i++) {
+    for (let i = 0; i < selectedItems.length; i++) {
         if (selectedItems[i] === true) {
             count++;
         }
