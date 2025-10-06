@@ -13,6 +13,7 @@ import {
     ResourceListRowHandlers
 } from "./ResourceList/ResourceListTypes";
 import ColumnListRowHandler, { Column } from "./ResourceList/rowHandlers/Column";
+import GridListRowHandler from "./ResourceList/rowHandlers/Grid";
 
 interface FileListProps {
     readonly id?: string;
@@ -160,13 +161,18 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     resourceType="File"
                     defaultSortBy={"Name"}
                     defaultSortDirection={SortDirection.Ascending}
-                    initialRowHandler={"ColumnListRowHandler"}
+                    initialRowHandler={"GridListRowHandler"}
                     getResourcesList={this.getFilesList}
                     dropTargetAcceptsTypes={["File"]}
                     id={this.props.id}
-                    rowHandlers={[new ColumnListRowHandler({ columns: defaultColumns })]}
-                    displaySortingBar={this.props.displaySortingBar}
+                    rowHandlers={[
+                        new ColumnListRowHandler({
+                            columns: defaultColumns
+                        }),
+                        new GridListRowHandler({})
+                    ]}
                     displayListHeader={this.props.displayTopBar}
+                    displayDebugBar={true}
                     handlers={{
                         onCreateClick: this.onCreateClick,
                         ...this.props.resourceListHandlers

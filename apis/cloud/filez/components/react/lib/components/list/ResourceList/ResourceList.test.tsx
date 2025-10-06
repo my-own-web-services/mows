@@ -1,5 +1,5 @@
 import { FilezProvider } from "@/main";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { SortDirection } from "filez-client-typescript";
 import { expect, test, vi } from "vitest";
 import ResourceList from "./ResourceList";
@@ -75,13 +75,13 @@ test("ColumnListRowHandler creates correctly with proper configuration", () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: true
     });
 
     // Test basic properties
-    expect(columnHandler.name).toBe("ColumnListRowHandler");
+    expect(columnHandler.id).toBe("ColumnListRowHandler");
     expect(columnHandler.columns).toHaveLength(4);
-    expect(columnHandler.props.checkboxSelectionColumn).toBe(true);
+    expect(columnHandler.props.hideSelectionCheckboxColumn).toBe(true);
 
     // Test that columns are correctly copied
     expect(columnHandler.columns[0].field).toBe("name");
@@ -100,23 +100,27 @@ test("ResourceList renders with data and calls API correctly", async () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: false // Changed to false to expect checkboxes
     });
 
-    const { container } = render(
-        <div style={{ width: 800, height: 600 }}>
-            <FilezProvider>
-                <ResourceList<TestResource>
-                    resourceType="TestResource"
-                    defaultSortBy="name"
-                    defaultSortDirection={SortDirection.Ascending}
-                    initialRowHandler="ColumnListRowHandler"
-                    getResourcesList={mockGetResourcesList}
-                    rowHandlers={[columnHandler]}
-                />
-            </FilezProvider>
-        </div>
-    );
+    let container: any;
+    act(() => {
+        const result = render(
+            <div style={{ width: 800, height: 600 }}>
+                <FilezProvider>
+                    <ResourceList<TestResource>
+                        resourceType="TestResource"
+                        defaultSortBy="name"
+                        defaultSortDirection={SortDirection.Ascending}
+                        initialRowHandler="ColumnListRowHandler"
+                        getResourcesList={mockGetResourcesList}
+                        rowHandlers={[columnHandler]}
+                    />
+                </FilezProvider>
+            </div>
+        );
+        container = result.container;
+    });
 
     // Wait for data to load
     await waitFor(
@@ -162,7 +166,7 @@ test("ResourceList keyboard navigation setup works", async () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: true
     });
 
     const { container } = render(
@@ -224,7 +228,7 @@ test("Column sorting callback works correctly", () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: true
     });
 
     // Mock the resource list to test the callback
@@ -270,7 +274,7 @@ test("ResourceList click handler integration works", async () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: false // Changed to false to expect checkboxes
     });
 
     const { container } = render(
@@ -327,7 +331,7 @@ test("ResourceList checkbox functionality setup", async () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: false // Changed to false to expect checkboxes
     });
 
     const { container } = render(
@@ -357,7 +361,7 @@ test("ResourceList checkbox functionality setup", async () => {
     );
 
     // Verify checkbox selection is enabled
-    expect(columnHandler.props.checkboxSelectionColumn).toBe(true);
+    expect(columnHandler.props.hideSelectionCheckboxColumn).toBe(false);
 
     // Find checkboxes - should have at least the header checkbox
     const checkboxes = screen.getAllByRole("checkbox");
@@ -385,7 +389,7 @@ test("ResourceList selection state management", async () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: false // Changed to false to expect checkboxes
     });
 
     const { container } = render(
@@ -454,7 +458,7 @@ test("Column handler implements required ListRowHandler methods", () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: true
     });
 
     // Test required methods exist
@@ -477,18 +481,20 @@ test("Column handler without checkbox selection column", () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: false
+        hideSelectionCheckboxColumn: true // Changed to true to hide checkboxes
     });
 
-    expect(columnHandler.props.checkboxSelectionColumn).toBe(false);
+    expect(columnHandler.props.hideSelectionCheckboxColumn).toBe(true); // Updated expectation
 
     const HeaderComponent = columnHandler.headerRenderer;
 
-    render(
-        <FilezProvider>
-            <HeaderComponent />
-        </FilezProvider>
-    );
+    act(() => {
+        render(
+            <FilezProvider>
+                <HeaderComponent />
+            </FilezProvider>
+        );
+    });
 
     // Should not have any checkboxes when disabled
     const checkboxes = screen.queryAllByRole("checkbox");
@@ -505,7 +511,7 @@ test("ResourceList handles empty data gracefully", async () => {
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: true
     });
 
     render(
@@ -586,7 +592,7 @@ test("ResourceList calls API with correct parameters on sort change", async () =
 
     const columnHandler = new ColumnListRowHandler({
         columns,
-        checkboxSelectionColumn: true
+        hideSelectionCheckboxColumn: true
     });
 
     render(
@@ -619,7 +625,9 @@ test("ResourceList calls API with correct parameters on sort change", async () =
     );
 
     // Simulate sorting change by calling the column handler's sort method
-    columnHandler.setColumSorting("size", SortDirection.Descending);
+    act(() => {
+        columnHandler.setColumSorting("size", SortDirection.Descending);
+    });
 
     // Wait for the sort change to trigger a new API call
     await waitFor(

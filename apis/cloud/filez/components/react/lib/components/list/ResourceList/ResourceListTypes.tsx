@@ -14,28 +14,40 @@ export interface ListResourceRequestBody {
     sortDirection: SortDirection;
 }
 
+export enum LoadItemMode {
+    Reload,
+    NewId,
+    All
+}
+
+/**
+ * Items are individual resources. Rows may contain multiple items depending on the layout.
+ */
 export interface ListRowHandler<FilezResourceType> {
+    // Unique ID for the row handler
+    readonly id: string;
+    // Display name for the row handler
     readonly name: string;
+    // Icon for the row handler
     readonly icon: JSX.Element;
+    // The component rendering each row
     readonly rowRenderer: ComponentType<RowComponentProps<FilezResourceType>>;
+    // Optional component rendering the header (e.g., for column titles)
     readonly headerRenderer?: () => JSX.Element;
-    readonly getRowHeight: (width: number, height: number, gridColumnCount: number) => number;
-    readonly getRowCount: (itemCount: number, gridColumnCount: number) => number;
+    // Height of each row in pixels
+    readonly getRowHeight: (width: number, height: number) => number;
+    // Number of rows to display
+    readonly getRowCount: (itemCount: number) => number;
+    // The direction of the row renderer (vertical or horizontal)
     readonly direction: RowRendererDirection;
-    readonly isItemLoaded: (
-        items: (FilezResourceType | undefined)[],
-        index: number,
-        gridColumnCount: number
-    ) => boolean;
-    readonly getItemKey: (
-        items: (FilezResourceType | undefined)[],
-        index: number,
-        gridColumnCount: number
-    ) => number;
+    // Whether an item is loaded
+    readonly isItemLoaded: (items: (FilezResourceType | undefined)[], rowIndex: number) => boolean;
+    // Get the unique key for an item
+    readonly getItemKey: (items: (FilezResourceType | undefined)[], index: number) => number;
+
     readonly getStartIndexAndLimit: (
         startIndex: number,
-        limit: number,
-        gridColumnCount: number
+        limit: number
     ) => { startIndex: number; limit: number };
     readonly getSelectedItemsAfterKeypress: (
         e: React.KeyboardEvent<HTMLDivElement>,
@@ -43,14 +55,16 @@ export interface ListRowHandler<FilezResourceType> {
         total_count: number,
         selectedItems: (boolean | undefined)[],
         lastSelectedItemIndex: number | undefined,
-        arrowKeyShiftSelectItemIndex: number | undefined,
-        gridColumnCount: number
+        arrowKeyShiftSelectItemIndex: number | undefined
     ) => SelectedItemsAfterKeypress | undefined;
     resourceList: InstanceType<typeof ResourceList> | undefined;
+
+    getMinimumBatchSize: (totalCount: number) => number;
+    getLoadMoreItemsThreshold: (totalCount: number) => number;
 }
 
 export interface SelectedItemsAfterKeypress {
-    readonly scrollToRowIndex: number;
+    readonly scrollToRowIndex?: number;
     readonly nextSelectedItemIndex: number;
     readonly arrowKeyShiftSelectItemIndex?: number;
 }
@@ -141,7 +155,6 @@ export interface RowComponentData<FilezResourceType> {
     readonly lastSelectedItemIndex?: number;
     readonly disableContextMenu?: boolean;
     readonly resourceType: string;
-    readonly gridColumnCount: number;
     readonly rowHeight: number;
     readonly rowHandlers?: ListRowHandler<FilezResourceType>[];
 }

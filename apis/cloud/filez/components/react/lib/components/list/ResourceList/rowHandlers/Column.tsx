@@ -9,41 +9,56 @@ import { CSSProperties, JSX } from "react";
 import { FaThList } from "react-icons/fa";
 import { IoChevronUp } from "react-icons/io5";
 import { match } from "ts-pattern";
-import ResourceList, { getSelectedCount, LoadItemMode } from "../ResourceList";
+import ResourceList from "../ResourceList";
 import {
     BaseResource,
     ListRowHandler,
+    LoadItemMode,
     RowComponentProps,
     RowRendererDirection,
     SelectedItemsAfterKeypress
 } from "../ResourceListTypes";
+import { getSelectedCount } from "../utils";
 
 export interface ColumnListRowHandlerProps<FilezResourceType> {
     columns: Column<FilezResourceType>[];
-    checkboxSelectionColumn?: boolean;
+    hideSelectionCheckboxColumn?: boolean;
+    hideColumnPicker?: boolean;
+    hideColumnHeader?: boolean;
+    disableColumnSorting?: boolean;
+    disableColumnResizing?: boolean;
+    rowHeightPixels?: number;
 }
 
 export default class ColumnListRowHandler<FilezResourceType extends BaseResource>
     implements ListRowHandler<FilezResourceType>
 {
-    name = "ColumnListRowHandler";
-    icon = (<FaThList style={{ transform: "scale(0.9)", pointerEvents: "none" }} size={17} />);
-    //component = ColumnRowRenderer;
+    id = "ColumnListRowHandler";
+    name = "Columns";
+    icon = (<FaThList height={"100%"} />);
     direction = RowRendererDirection.Vertical;
     columns: Column<FilezResourceType>[];
     resourceList: InstanceType<typeof ResourceList> | undefined;
-    rowHeight = 24;
+    rowHeightPixels = 24;
     props: ColumnListRowHandlerProps<FilezResourceType>;
 
     constructor(props: ColumnListRowHandlerProps<FilezResourceType>) {
         this.props = props;
 
-        if (props.checkboxSelectionColumn === undefined) {
-            this.props.checkboxSelectionColumn = true;
+        if (props.rowHeightPixels !== undefined) {
+            this.rowHeightPixels = props.rowHeightPixels;
         }
 
         this.columns = cloneDeep(props.columns);
     }
+
+    getMinimumBatchSize = (_totalCount: number): number => {
+        return 50;
+    };
+
+    getLoadMoreItemsThreshold = (_totalCount: number): number => {
+        return 20;
+    };
 
     setColumSorting = (field: string, newDirection: SortDirection) => {
         this.columns = this.columns.map((c) => {
@@ -70,15 +85,17 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
         const columns = this.columns;
         const activeColumns = columns.filter((c) => c.enabled);
 
+        if (this.props.hideColumnHeader === true) return <></>;
+
         return (
             <div className="relative flex h-8 border-b-1" style={{ width: `calc(100% - 17px)` }}>
-                {this.props.checkboxSelectionColumn && (
+                {this.props.hideSelectionCheckboxColumn !== true && (
                     <div className="flex h-full w-8 items-center justify-center">
                         <Checkbox
                             checked={
                                 getSelectedCount(this.resourceList?.state.selectedItems) ===
-                                    this.resourceList?.state.totalCount &&
-                                (this.resourceList?.state.totalCount ?? 0) > 0
+                                    this.resourceList?.state.totalItemCount &&
+                                (this.resourceList?.state.totalItemCount ?? 0) > 0
                             }
                             onCheckedChange={(checkedState) => {
                                 checkedState.valueOf()
@@ -110,8 +127,14 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                 className="flex items-center overflow-hidden font-medium text-ellipsis select-none"
                             >
                                 <span
-                                    className="flex cursor-pointer items-center gap-2 overflow-hidden px-2 text-ellipsis whitespace-nowrap"
-                                    onClick={() =>
+                                    className={cn(
+                                        "flex items-center gap-2 overflow-hidden px-2 text-ellipsis whitespace-nowrap",
+                                        this.props.disableColumnSorting === true
+                                            ? "cursor-default"
+                                            : "cursor-pointer"
+                                    )}
+                                    onClick={() => {
+                                        if (this.props.disableColumnSorting === true) return;
                                         this.setColumSorting(
                                             column.field,
                                             match(column.direction)
@@ -128,51 +151,58 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                                     () => SortDirection.Ascending
                                                 )
                                                 .exhaustive()
-                                        )
-                                    }
+                                        );
+                                    }}
                                 >
                                     {column.label}
-                                    {match(column.direction)
-                                        .with(SortDirection.Ascending, () => <IoChevronUp />)
-                                        .with(SortDirection.Descending, () => (
-                                            <IoChevronUp className="mt-[1px] rotate-180" />
-                                        ))
-                                        .with(SortDirection.Neutral, () => "")
-                                        .exhaustive()}
+                                    {this.props.disableColumnSorting === true
+                                        ? null
+                                        : match(column.direction)
+                                              .with(SortDirection.Ascending, () => <IoChevronUp />)
+                                              .with(SortDirection.Descending, () => (
+                                                  <IoChevronUp className="mt-[1px] rotate-180" />
+                                              ))
+                                              .with(SortDirection.Neutral, () => "")
+                                              .exhaustive()}
                                 </span>
                             </ResizablePanel>,
-                            index !== activeColumns.length - 1 && (
-                                <ResizableHandle
-                                    className="group-hover:bg-border bg- hover:bg-accent active:bg-accent h-3/4"
-                                    key={column.field + index + "Handle"}
-                                />
-                            )
+                            index !== activeColumns.length - 1 &&
+                                this.props.disableColumnResizing !== true && (
+                                    <ResizableHandle
+                                        className={cn(
+                                            "group-hover:bg-border bg- hover:bg-accent active:bg-accent h-3/4"
+                                        )}
+                                        key={column.field + index + "Handle"}
+                                    />
+                                )
                         ];
                     })}
                 </ResizablePanelGroup>
-                <span className="absolute top-0 right-0">
-                    <OptionPicker
-                        triggerComponent={<LucideColumns3 />}
-                        header="Columns"
-                        showCount={false}
-                        onOptionChange={(id: string, enabled: boolean) => {
-                            this.columns = this.columns.map((c) => {
-                                if (c.field === id) {
-                                    c.enabled = enabled;
-                                }
-                                return c;
-                            });
-                            this.resourceList?.forceUpdate();
-                        }}
-                        options={this.columns.map((column) => {
-                            return {
-                                id: column.field,
-                                label: column.label,
-                                enabled: column.enabled
-                            };
-                        })}
-                    />
-                </span>
+                {this.props.hideColumnPicker !== true && (
+                    <span className="absolute top-0 -right-4">
+                        <OptionPicker
+                            triggerComponent={<LucideColumns3 />}
+                            header="Columns"
+                            showCount={false}
+                            onOptionChange={(id: string, enabled: boolean) => {
+                                this.columns = this.columns.map((c) => {
+                                    if (c.field === id) {
+                                        c.enabled = enabled;
+                                    }
+                                    return c;
+                                });
+                                this.resourceList?.forceUpdate();
+                            }}
+                            options={this.columns.map((column) => {
+                                return {
+                                    id: column.field,
+                                    label: column.label,
+                                    enabled: column.enabled
+                                };
+                            })}
+                        />
+                    </span>
+                )}
             </div>
         );
     };
@@ -199,12 +229,12 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                     ...style
                 }}
                 className={cn(
-                    `ColumnListRowRenderer flex w-full flex-row gap-[1px] overflow-hidden whitespace-nowrap select-none`,
-                    isSelected ? "bg-accent" : "",
-                    isLastSelected ? "bg-accent" : ""
+                    `ColumnListRowRenderer hover:bg-secondary/100 flex w-full flex-row gap-[1px] overflow-hidden whitespace-nowrap select-none`,
+                    isSelected ?? "bg-secondary/60",
+                    isLastSelected ?? "bg-secondary/100"
                 )}
             >
-                {this.props.checkboxSelectionColumn && (
+                {this.props.hideSelectionCheckboxColumn !== true && (
                     <div className="flex h-full w-8 items-center justify-center">
                         <Checkbox
                             onClick={(e) => {
@@ -236,30 +266,21 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
         );
     };
 
-    getRowCount = (itemCount: number, _gridColumnCount: number): number => {
+    getRowCount = (itemCount: number): number => {
         return itemCount;
     };
-    getRowHeight = (_width: number, _height: number, _gridColumnCount: number): number => {
-        return this.rowHeight;
+    getRowHeight = (_width: number, _height: number): number => {
+        return this.rowHeightPixels;
     };
-    getItemKey = (
-        _items: (FilezResourceType | undefined)[],
-        index: number,
-        _gridColumnCount: number
-    ): number => {
+    getItemKey = (_items: (FilezResourceType | undefined)[], index: number): number => {
         return index;
     };
-    isItemLoaded = (
-        items: (FilezResourceType | undefined)[],
-        index: number,
-        _gridColumnCount: number
-    ): boolean => {
+    isItemLoaded = (items: (FilezResourceType | undefined)[], index: number): boolean => {
         return items[index] !== undefined;
     };
     getStartIndexAndLimit = (
         startIndex: number,
-        limit: number,
-        _gridColumnCount: number
+        limit: number
     ): { startIndex: number; limit: number } => {
         return { startIndex, limit };
     };
@@ -269,8 +290,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
         total_count: number,
         selectedItems: (boolean | undefined)[],
         lastSelectedItemIndex: number | undefined,
-        arrowKeyShiftSelectItemIndex: number | undefined,
-        _gridColumnCount: number
+        arrowKeyShiftSelectItemIndex: number | undefined
     ) => {
         const keyOptions = ["ArrowUp", "ArrowDown"];
         if (keyOptions.includes(e.key)) {

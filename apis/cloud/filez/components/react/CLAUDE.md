@@ -24,3 +24,9 @@
 - vitest with @testing-library/jest-dom/vitest @testing-library/react, setup can be found in the root of the project at vitest.config.ts and vitest.setup.ts
 
 - Use `pnpm test` to test the project but try `pnpm build` first to check for typescript errors
+
+## Component Testing Guidelines
+
+- Row handlers (like ColumnListRowHandler) should be tested through the ResourceList component, not standalone, as they are tightly integrated and rely on ResourceList's state and lifecycle
+- Test row handler configuration options by passing them to ResourceList and verifying the resulting DOM structure and behavior
+- Use proper FilezProvider setup or appropriate mocks when testing components that depend on the Filez context
