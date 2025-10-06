@@ -1,3 +1,4 @@
+import ButtonSelect from "@/components/atoms/ButtonSelect";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
@@ -13,15 +14,11 @@ import {
     ListResourceRequestBody,
     ListResourceResponseBody,
     ListRowHandler,
+    LoadItemMode,
     ResourceListHandlers,
     RowRendererDirection
 } from "./ResourceListTypes";
-
-export enum LoadItemMode {
-    Reload,
-    NewId,
-    All
-}
+import { getSelectedCount, getSelectedItems } from "./utils";
 
 interface ResourceListProps<FilezResourceType> {
     /**
@@ -59,7 +56,6 @@ interface ResourceListProps<FilezResourceType> {
     readonly defaultSortDirection?: SortDirection;
 
     readonly displayListHeader?: boolean;
-    readonly displaySortingBar?: boolean;
 
     /**
      * The number of items to render outside of the visible area. This can help with smoother scrolling.
@@ -70,22 +66,24 @@ interface ResourceListProps<FilezResourceType> {
     readonly id?: string;
     readonly handlers?: ResourceListHandlers<FilezResourceType>;
     readonly dropTargetAcceptsTypes?: string[];
+
+    readonly displayDebugBar?: boolean;
 }
 
 interface ResourceListState<ResourceType> {
     readonly resources: (ResourceType | undefined)[];
-    readonly totalCount: number;
+    readonly totalItemCount: number;
     readonly committedSearch: string;
     readonly selectedItems: (true | undefined)[];
 
     readonly lastSelectedItemIndex?: number;
     readonly arrowKeyShiftSelectItemIndex?: number;
-    readonly gridColumnCount: number;
     readonly scrollOffset: number;
     readonly width: number | null;
     readonly height: number | null;
     readonly sortBy: string;
     readonly sortDirection: SortDirection;
+    readonly currentRowHandler: ListRowHandler<ResourceType>;
 }
 
 export default class ResourceList<ResourceType extends BaseResource> extends PureComponent<
@@ -100,7 +98,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     moreItemsLoading = false;
     lastStartIndex = 0;
     contextMenuRender: JSX.Element;
-    currentRowHandler: ListRowHandler<ResourceType>;
 
     constructor(props: ResourceListProps<ResourceType>) {
         super(props);
@@ -108,18 +105,16 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
         this.state = {
             resources: [],
-            totalCount: 0,
+            totalItemCount: 0,
             committedSearch: "",
             selectedItems: [],
-            gridColumnCount: 10,
             scrollOffset: 0,
             width: null,
             height: null,
             sortBy: this.props.defaultSortBy ?? "CreatedTime",
-            sortDirection: this.props.defaultSortDirection ?? SortDirection.Descending
+            sortDirection: this.props.defaultSortDirection ?? SortDirection.Descending,
+            currentRowHandler: this.getRowHandlerById(this.props.initialRowHandler)!
         };
-
-        this.currentRowHandler = this.setNewRowHandler(this.props.initialRowHandler);
 
         log.debug("ResourceList initial state:", this.state);
     }
@@ -147,11 +142,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         const { width, height } = this.state;
         if (width === null || height === null) return { startIndex: 0, endIndex: 30 };
 
-        const rowHeight = this.currentRowHandler.getRowHeight(
-            width,
-            height,
-            this.state.gridColumnCount
-        );
+        const rowHeight = this.state.currentRowHandler.getRowHeight(width, height);
         const startIndex = Math.floor(scrollOffset / rowHeight);
         const endIndex = Math.ceil((scrollOffset + height) / rowHeight);
 
@@ -161,23 +152,21 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     loadItems = async (mode?: LoadItemMode) => {
         log.debug("loadItems called with mode:", mode);
         if (mode === LoadItemMode.NewId) {
-            //@ts-ignore
-            this.infiniteLoaderRef.current._listRef.scrollToItem(0);
+            this.scrollToRow(0);
         }
 
         const currentlyVisibleItemRange = this.getCurrentVisibleItemsRange(
             mode === LoadItemMode.NewId ? 0 : this.state.scrollOffset
         );
 
-        let { startIndex, limit } = this.currentRowHandler.getStartIndexAndLimit(
+        let { startIndex, limit } = this.state.currentRowHandler.getStartIndexAndLimit(
             currentlyVisibleItemRange.startIndex,
-            currentlyVisibleItemRange.endIndex - currentlyVisibleItemRange.startIndex + 1,
-            this.state.gridColumnCount
+            currentlyVisibleItemRange.endIndex - currentlyVisibleItemRange.startIndex + 1
         );
 
         if (mode === LoadItemMode.All) {
             startIndex = 0;
-            limit = this.state.totalCount;
+            limit = this.state.totalItemCount;
         }
 
         this.moreItemsLoading = true;
@@ -208,7 +197,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                 selectedItemsLength: selectedItems.length
             });
 
-            return { resources: items, totalCount, selectedItems };
+            return { resources: items, totalItemCount: totalCount, selectedItems };
         });
     };
 
@@ -216,10 +205,9 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         let limit = endIndex - startIndex + 1;
         //if (this.moreItemsLoading) return;
 
-        const startIndexAndLimit = this.currentRowHandler.getStartIndexAndLimit(
+        const startIndexAndLimit = this.state.currentRowHandler.getStartIndexAndLimit(
             startIndex,
-            limit,
-            this.state.gridColumnCount
+            limit
         );
         startIndex = startIndexAndLimit.startIndex;
         limit = startIndexAndLimit.limit;
@@ -383,11 +371,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     };
 
     isItemLoaded = (index: number) => {
-        return this.currentRowHandler.isItemLoaded(
-            this.state.resources,
-            index,
-            this.state.gridColumnCount
-        );
+        return this.state.currentRowHandler.isItemLoaded(this.state.resources, index);
     };
 
     onScroll = ({
@@ -401,11 +385,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     };
 
     getItemKey = (index: number) => {
-        return this.currentRowHandler?.getItemKey(
-            this.state.resources,
-            index,
-            this.state.gridColumnCount
-        );
+        return this.state.currentRowHandler?.getItemKey(this.state.resources, index);
     };
 
     updateDimensions = ({
@@ -424,17 +404,19 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
         this.props.handlers?.onCreateClick?.();
     };
 
-    setNewRowHandler = (rowHandlerId: string) => {
-        const rowHandler = this.props.rowHandlers.find((r) => r.name === rowHandlerId);
+    updateRowHandler = (rowHandlerId: string) => {
+        const rowHandler = this.getRowHandlerById(rowHandlerId);
+        this.setState({ currentRowHandler: rowHandler });
+    };
 
-        if (rowHandler) {
-            this.currentRowHandler = rowHandler;
-            //@ts-ignore
-            this.currentRowHandler.resourceList = this;
-            return rowHandler;
-        }
+    getRowHandlerById = (id: string) => {
+        const rowHandler = this.props.rowHandlers.find((r) => r.id === id);
+        if (!rowHandler)
+            throw new Error(`No row handler found with name ${this.props.initialRowHandler}`);
 
-        throw new Error(`No row handler found with name ${this.props.initialRowHandler}`);
+        //@ts-ignore
+        rowHandler.resourceList = this;
+        return rowHandler;
     };
 
     getLastSelectedItem = () => {
@@ -446,7 +428,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     selectAll = async () => {
         this.setState(
             {
-                selectedItems: new Array(this.state.totalCount).fill(true)
+                selectedItems: new Array(this.state.totalItemCount).fill(true)
             },
             async () => {
                 await this.loadItems(LoadItemMode.All);
@@ -461,7 +443,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
     deselectAll = () => {
         this.setState(
             {
-                selectedItems: new Array(this.state.totalCount).fill(false)
+                selectedItems: new Array(this.state.totalItemCount).fill(false)
             },
             async () => {
                 await this.loadItems(LoadItemMode.All);
@@ -489,15 +471,15 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
 
         this.handleCommonHotkeys(e);
 
-        const selectedItemsAfterKeypress = this.currentRowHandler.getSelectedItemsAfterKeypress(
-            e,
-            this.state.resources,
-            this.state.totalCount,
-            this.state.selectedItems,
-            this.state.lastSelectedItemIndex,
-            this.state.arrowKeyShiftSelectItemIndex,
-            this.state.gridColumnCount
-        );
+        const selectedItemsAfterKeypress =
+            this.state.currentRowHandler.getSelectedItemsAfterKeypress(
+                e,
+                this.state.resources,
+                this.state.totalItemCount,
+                this.state.selectedItems,
+                this.state.lastSelectedItemIndex,
+                this.state.arrowKeyShiftSelectItemIndex
+            );
 
         if (selectedItemsAfterKeypress === undefined) return;
 
@@ -535,43 +517,85 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             }
         );
 
-        // scroll to the new selected item
+        this.scrollToRow(scrollToRowIndex);
+    };
+
+    scrollToRow = (index?: number) => {
+        if (index === undefined) return;
         // @ts-ignore
-        this.infiniteLoaderRef.current._listRef.scrollToItem(scrollToRowIndex);
+        this.infiniteLoaderRef.current._listRef.scrollToItem(index);
+    };
+
+    debugBar = () => {
+        if (this.props.displayDebugBar !== true) return null;
+        return (
+            <div className="DebugBar text-primary/30 flex gap-2 border-t-1 border-b-1 p-1 text-xs">
+                <span>
+                    {this.state.resources.length} / {this.state.totalItemCount} items loaded.
+                </span>
+                <span>{getSelectedCount(this.state.selectedItems)} items selected. </span>
+                <span>Current Row Handler: {this.state.currentRowHandler.id}. </span>
+                <span>
+                    Current Sort: {this.state.sortBy} ({SortDirection[this.state.sortDirection]}).
+                </span>
+            </div>
+        );
+    };
+
+    listHeader = () => {
+        if (this.props.displayListHeader === false) return null;
+        if (this.props.listHeaderElement) return this.props.listHeaderElement;
+        return (
+            <div className="flex h-12 w-full items-center justify-end pr-4">
+                {this.props.rowHandlers.length > 1 && (
+                    <ButtonSelect
+                        size={"xs"}
+                        onSelectionChange={(id: string) => {
+                            log.debug("Switching row handler to", id);
+                            this.updateRowHandler(id);
+                        }}
+                        selectedId={this.state.currentRowHandler.id}
+                        options={this.props.rowHandlers.map((rowHandler) => {
+                            return {
+                                id: rowHandler.id,
+                                icon: rowHandler.icon,
+                                label: rowHandler.name
+                            };
+                        })}
+                    />
+                )}
+            </div>
+        );
     };
 
     render = () => {
-        const fullListLength = this.state.totalCount;
+        const totalRowCount = this.state.currentRowHandler.getRowCount(this.state.totalItemCount);
 
-        const itemCount = this.currentRowHandler.getRowCount(
-            fullListLength,
-            this.state.gridColumnCount
+        const minimumBatchSize = this.state.currentRowHandler.getMinimumBatchSize(
+            this.state.totalItemCount
         );
-
-        // TODO this should be adjusted depending on the row renderer
-        const minimumBatchSize = Math.max(Math.min(20, this.state.totalCount / 1000), 1000);
-        const loadMoreItemsThreshold = minimumBatchSize / 2;
+        const loadMoreItemsThreshold = this.state.currentRowHandler.getLoadMoreItemsThreshold(
+            this.state.totalItemCount
+        );
 
         return (
             <div
                 className={cn(`ResourceList flex h-full w-full flex-col`, this.props.className)}
                 style={{ ...this.props.style }}
             >
-                {this.currentRowHandler.headerRenderer?.()}
+                {this.listHeader()}
+                {this.state.currentRowHandler.headerRenderer?.()}
                 <div
                     className="OuterResourceList h-full w-full focus:outline-none"
                     onKeyDown={this.onListKeyDown}
                     tabIndex={0}
                 >
-                    <AutoSizer
-                        style={{ width: "100%", height: "100%" }}
-                        onResize={this.updateDimensions}
-                    >
+                    <AutoSizer onResize={this.updateDimensions}>
                         {({ height, width }) => {
                             return (
                                 <InfiniteLoader
                                     isItemLoaded={this.isItemLoaded}
-                                    itemCount={itemCount}
+                                    itemCount={totalRowCount}
                                     loadMoreItems={this.loadMoreItems}
                                     //@ts-ignore
                                     ref={this.infiniteLoaderRef}
@@ -579,10 +603,9 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                     threshold={loadMoreItemsThreshold}
                                 >
                                     {({ onItemsRendered, ref }) => {
-                                        const rowHeight = this.currentRowHandler.getRowHeight(
+                                        const rowHeight = this.state.currentRowHandler.getRowHeight(
                                             width,
-                                            height,
-                                            this.state.gridColumnCount
+                                            height
                                         );
 
                                         return (
@@ -595,7 +618,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 overscanCount={this.props.overscanCount ?? 100}
                                                 width={width}
                                                 height={height}
-                                                itemCount={itemCount}
+                                                itemCount={totalRowCount}
                                                 onItemsRendered={onItemsRendered}
                                                 ref={ref}
                                                 // without this the context menu cannot be positioned fixed
@@ -605,14 +628,14 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                     overflowY: "scroll"
                                                 }}
                                                 layout={
-                                                    this.currentRowHandler.direction ===
+                                                    this.state.currentRowHandler.direction ===
                                                     RowRendererDirection.Horizontal
                                                         ? "horizontal"
                                                         : "vertical"
                                                 }
                                                 itemData={{
                                                     items: this.state.resources,
-                                                    total_count: this.state.totalCount,
+                                                    total_count: this.state.totalItemCount,
                                                     dropTargetAcceptsTypes:
                                                         this.props.dropTargetAcceptsTypes,
                                                     handlers: {
@@ -628,13 +651,12 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                         this.state.lastSelectedItemIndex,
 
                                                     resourceType: this.props.resourceType,
-                                                    gridColumnCount: this.state.gridColumnCount,
                                                     rowHeight,
                                                     rowHandlers: this.props.rowHandlers
                                                 }}
                                             >
                                                 {/*@ts-ignore*/}
-                                                {this.currentRowHandler.rowRenderer}
+                                                {this.state.currentRowHandler.rowRenderer}
                                             </FixedSizeList>
                                         );
                                     }}
@@ -643,31 +665,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                         }}
                     </AutoSizer>
                 </div>
+                {this.debugBar()}
             </div>
         );
     };
 }
-
-export const getSelectedItems = <ResourceType,>(
-    items: (ResourceType | undefined)[],
-    selectedItems: (boolean | undefined)[]
-): ResourceType[] => {
-    return selectedItems.flatMap((selected, index) => {
-        if (selected === true) {
-            return items[index] ?? [];
-        }
-        return [];
-    });
-};
-
-export const getSelectedCount = (selectedItems?: (boolean | undefined)[]) => {
-    if (selectedItems === undefined) return 0;
-    let count = 0;
-    for (let i = 0; i < selectedItems.length; i++) {
-        if (selectedItems[i] === true) {
-            count++;
-        }
-    }
-
-    return count;
-};

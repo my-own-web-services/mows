@@ -10,3 +10,5 @@ export const FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY = "filez_post_logi
 
 export const FILEZ_RECENT_ACTIONS_STORAGE_KEY = "filez_recent_actions";
 export const FILEZ_MAXIMUM_RECENT_ACTIONS = 5;
+
+export const COMPONENT_SIZE_OPTIONS = ["xs", "sm", "default", "lg"] as const;

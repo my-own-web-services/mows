@@ -31,7 +31,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                 <Toaster></Toaster>
                 <FileList
                     id="01999b67-500a-7f90-aa59-77737adbabc2"
-                    className="bg-muted h-[500px] w-full"
+                    className="h-[500px] w-full"
                 ></FileList>
             </div>
         );
