@@ -40,15 +40,17 @@ export interface ListRowHandler<FilezResourceType> {
     readonly getRowCount: (itemCount: number) => number;
     // The direction of the row renderer (vertical or horizontal)
     readonly direction: RowRendererDirection;
-    // Whether an item is loaded
+    // Check whether an item is loaded at a given index or not
     readonly isItemLoaded: (items: (FilezResourceType | undefined)[], rowIndex: number) => boolean;
     // Get the unique key for an item
     readonly getItemKey: (items: (FilezResourceType | undefined)[], index: number) => number;
 
+    // Transform the start index and limit based on the row handler's layout
     readonly getStartIndexAndLimit: (
         startIndex: number,
         limit: number
     ) => { startIndex: number; limit: number };
+    // Handle keypress events for selection and navigation based on the row handler's layout
     readonly getSelectedItemsAfterKeypress: (
         e: React.KeyboardEvent<HTMLDivElement>,
         items: (FilezResourceType | undefined)[],
@@ -57,9 +59,12 @@ export interface ListRowHandler<FilezResourceType> {
         lastSelectedItemIndex: number | undefined,
         arrowKeyShiftSelectItemIndex: number | undefined
     ) => SelectedItemsAfterKeypress | undefined;
+    // Reference to the parent ResourceList component
     resourceList: InstanceType<typeof ResourceList> | undefined;
 
+    // Minimum batch size for loading items from the server
     getMinimumBatchSize: (totalCount: number) => number;
+    // Threshold to trigger loading more items when scrolling
     getLoadMoreItemsThreshold: (totalCount: number) => number;
 }
 

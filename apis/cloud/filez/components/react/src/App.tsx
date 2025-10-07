@@ -1,7 +1,10 @@
 import CommandPalette from "@/components/atoms/CommandPalette";
+import { ResourceTagsMap } from "@/components/atoms/ResourceTags";
 import FileList from "@/components/list/FileList";
 import PrimaryMenu from "@/components/PrimaryMenu";
-import { ModalHandler, Toaster } from "@/main";
+import { log } from "@/lib/logging";
+import { ModalHandler, ResourceTags, Toaster } from "@/main";
+import { TagResourceType } from "filez-client-typescript";
 import { type CSSProperties, PureComponent } from "react";
 
 interface AppProps {
@@ -9,12 +12,25 @@ interface AppProps {
     readonly style?: CSSProperties;
 }
 
-interface AppState {}
+interface AppState {
+    readonly tagsMap: ResourceTagsMap;
+}
 
 export default class App extends PureComponent<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
-        this.state = {};
+        this.state = {
+            tagsMap: {
+                bildVonNürnberg: [
+                    { key: "City", value: "Nürnberg" },
+                    { key: "Country", value: "Germany" }
+                ],
+                bildVonAugsburg: [
+                    { key: "City", value: "Augsburg" },
+                    { key: "Country", value: "Germany" }
+                ]
+            }
+        };
     }
 
     componentDidMount = async () => {};
@@ -33,6 +49,13 @@ export default class App extends PureComponent<AppProps, AppState> {
                     id="01999b67-500a-7f90-aa59-77737adbabc2"
                     className="h-[500px] w-full"
                 ></FileList>
+                <ResourceTags
+                    tagsMap={this.state.tagsMap}
+                    resourceType={TagResourceType.File}
+                    onCommit={(changes) => {
+                        log.debug("Committed changes:", changes);
+                    }}
+                ></ResourceTags>
             </div>
         );
     };
