@@ -1,10 +1,10 @@
-import { CSSProperties, PureComponent, createRef } from "react";
+import { CSSProperties, JSX, PureComponent, createRef } from "react";
 
 import { FileGroupType, FilezFile, ListFilesSortBy, SortDirection } from "filez-client-typescript";
 
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
-import { FilezContext } from "@/main";
+import { ContextMenu, FilezContext } from "@/main";
 import ResourceList from "./ResourceList/ResourceList";
 import {
     ListResourceRequestBody,
@@ -55,61 +55,6 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         };
     }
 
-    onCreateClick = async () => {
-        this.setState({ createModalOpen: true });
-    };
-
-    closeCreateModal = () => {
-        this.setState({ createModalOpen: false });
-    };
-
-    closeDeleteModal = () => {
-        this.setState({ deleteModalOpen: false });
-    };
-
-    onContextMenuItemClick = (
-        item: FilezFile,
-        menuItemId?: string,
-        selectedItems?: FilezFile[]
-    ) => {
-        if (menuItemId === "log") {
-            if (selectedItems?.length === 1) {
-                log.info(item);
-            } else {
-                log.info(selectedItems);
-            }
-        } else if (menuItemId === "delete") {
-            this.setState({
-                deleteModalOpen: true,
-                selectedFiles: selectedItems ?? []
-            });
-        } else if (menuItemId === "edit") {
-            this.setState({
-                editModalOpen: true,
-                selectedFiles: selectedItems ?? []
-            });
-        }
-    };
-
-    deleteClick = async () => {
-        if (!this.context) return;
-
-        // TODO
-
-        this.closeDeleteModal();
-        this.resourceListRef.current?.refreshList();
-        this.props.handlers?.onChange?.();
-    };
-
-    closeEditModal = () => {
-        this.setState({ editModalOpen: false });
-    };
-
-    onEditChange = () => {
-        this.resourceListRef.current?.refreshList();
-        this.props.handlers?.onChange?.();
-    };
-
     getFilesList = async (
         request: ListResourceRequestBody
     ): Promise<ListResourceResponseBody<FilezFile>> => {
@@ -149,6 +94,25 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         return { totalCount: 0, items: [] };
     };
 
+    itemContextMenu = (triggerElement: JSX.Element) => {
+        return (
+            <ContextMenu
+                items={[
+                    {
+                        id: "delete",
+                        label: "Delete",
+                        type: "action",
+                        onSelect: () => {
+                            log.debug("Delete", this.resourceListRef.current?.getSelectedItems());
+                        }
+                    }
+                ]}
+            >
+                {triggerElement}
+            </ContextMenu>
+        );
+    };
+
     render = () => {
         if (!this.context?.clientAuthenticated) {
             return <></>;
@@ -174,7 +138,6 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     displayListHeader={this.props.displayTopBar}
                     displayDebugBar={true}
                     handlers={{
-                        onCreateClick: this.onCreateClick,
                         ...this.props.resourceListHandlers
                     }}
                 />

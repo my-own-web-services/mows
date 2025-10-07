@@ -534,9 +534,11 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                     {this.state.resources.length} / {this.state.totalItemCount} items loaded.
                 </span>
                 <span>{getSelectedCount(this.state.selectedItems)} items selected. </span>
+                <span>Last selected item index: {this.state.lastSelectedItemIndex}</span>
                 <span>Current Row Handler: {this.state.currentRowHandler.id}. </span>
                 <span>
-                    Current Sort: {this.state.sortBy} ({SortDirection[this.state.sortDirection]}).
+                    Current Sorting: {this.state.sortBy} ({SortDirection[this.state.sortDirection]}
+                    ).
                 </span>
             </div>
         );

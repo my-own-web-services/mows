@@ -8,8 +8,11 @@ export type {
     SubMenuItem
 } from "./components/atoms/ContextMenu";
 export { default as ModalHandler } from "./components/atoms/ModalHandler";
+export { default as ResourceTags } from "./components/atoms/ResourceTags";
+
 export { default as FileList } from "./components/list/FileList";
 export { default as PrimaryMenu } from "./components/PrimaryMenu";
 export * from "./components/ui/sonner";
 export * from "./lib/filezContext/FilezContext";
+
 import "./main.css";

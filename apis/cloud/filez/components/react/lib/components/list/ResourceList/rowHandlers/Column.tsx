@@ -230,8 +230,8 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                 }}
                 className={cn(
                     `ColumnListRowRenderer hover:bg-secondary/100 flex w-full flex-row gap-[1px] overflow-hidden whitespace-nowrap select-none`,
-                    isSelected ?? "bg-secondary/60",
-                    isLastSelected ?? "bg-secondary/100"
+                    isSelected && "bg-secondary/60",
+                    isLastSelected && "bg-secondary/100"
                 )}
             >
                 {this.props.hideSelectionCheckboxColumn !== true && (
