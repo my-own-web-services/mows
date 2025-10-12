@@ -774,4 +774,610 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
             expect(screen.getByText("Type")).toBeInTheDocument();
         });
     });
+
+    describe("Individual Column Properties", () => {
+        describe("disableSorting property", () => {
+            test("disableSorting: true - should disable sorting for specific column", async () => {
+                const testResources = createTestResources(3);
+                const columns: Column<TestResource>[] = [
+                    {
+                        field: "name",
+                        label: "Name",
+                        direction: SortDirection.Ascending,
+                        widthPercent: 40,
+                        minWidthPixels: 200,
+                        enabled: true,
+                        disableSorting: true, // Disable sorting for this column
+                        render: (item) => <span>{item.name}</span>
+                    },
+                    {
+                        field: "size",
+                        label: "Size",
+                        direction: SortDirection.Neutral,
+                        widthPercent: 20,
+                        minWidthPixels: 100,
+                        enabled: true,
+                        disableSorting: false, // Explicitly enable sorting
+                        render: (item) => <span>{item.size} bytes</span>
+                    }
+                ];
+
+                const mockGetResourcesList = vi.fn().mockResolvedValue({
+                    items: testResources,
+                    totalCount: testResources.length
+                });
+
+                const columnHandler = new ColumnListRowHandler({
+                    columns,
+                    disableColumnSorting: false,
+                    hideColumnHeader: false,
+                    hideSelectionCheckboxColumn: true
+                });
+
+                render(
+                    <div style={{ width: 800, height: 600 }}>
+                        <FilezProvider>
+                            <ResourceList<TestResource>
+                                resourceType="TestResource"
+                                defaultSortBy="name"
+                                defaultSortDirection={SortDirection.Ascending}
+                                initialRowHandler="ColumnListRowHandler"
+                                getResourcesList={mockGetResourcesList}
+                                rowHandlers={[columnHandler]}
+                            />
+                        </FilezProvider>
+                    </div>
+                );
+
+                await waitFor(
+                    () => {
+                        expect(mockGetResourcesList).toHaveBeenCalled();
+                        expect(screen.getByText("Name")).toBeInTheDocument();
+                        expect(screen.getByText("Size")).toBeInTheDocument();
+                    },
+                    { timeout: 3000 }
+                );
+
+                // Name column should have cursor-default (not clickable due to disableSorting: true)
+                const nameColumn = screen.getByText("Name");
+                expect(nameColumn.closest("span")).toHaveClass("cursor-default");
+
+                // Size column should have cursor-pointer (clickable due to disableSorting: false)
+                const sizeColumn = screen.getByText("Size");
+                expect(sizeColumn.closest("span")).toHaveClass("cursor-pointer");
+            });
+
+            test("disableSorting: false - should enable sorting for specific column", async () => {
+                const testResources = createTestResources(3);
+                const columns: Column<TestResource>[] = [
+                    {
+                        field: "name",
+                        label: "Name",
+                        direction: SortDirection.Ascending,
+                        widthPercent: 40,
+                        minWidthPixels: 200,
+                        enabled: true,
+                        disableSorting: false, // Explicitly enable sorting
+                        render: (item) => <span>{item.name}</span>
+                    }
+                ];
+
+                const mockGetResourcesList = vi.fn().mockResolvedValue({
+                    items: testResources,
+                    totalCount: testResources.length
+                });
+
+                const columnHandler = new ColumnListRowHandler({
+                    columns,
+                    disableColumnSorting: false,
+                    hideColumnHeader: false,
+                    hideSelectionCheckboxColumn: true
+                });
+
+                render(
+                    <div style={{ width: 800, height: 600 }}>
+                        <FilezProvider>
+                            <ResourceList<TestResource>
+                                resourceType="TestResource"
+                                defaultSortBy="name"
+                                defaultSortDirection={SortDirection.Ascending}
+                                initialRowHandler="ColumnListRowHandler"
+                                getResourcesList={mockGetResourcesList}
+                                rowHandlers={[columnHandler]}
+                            />
+                        </FilezProvider>
+                    </div>
+                );
+
+                await waitFor(
+                    () => {
+                        expect(mockGetResourcesList).toHaveBeenCalled();
+                        expect(screen.getByText("Name")).toBeInTheDocument();
+                    },
+                    { timeout: 3000 }
+                );
+
+                // Name column should have cursor-pointer (clickable due to disableSorting: false)
+                const nameColumn = screen.getByText("Name");
+                expect(nameColumn.closest("span")).toHaveClass("cursor-pointer");
+
+                // Sort icon should be present for ascending column
+                const sortIcons = document.querySelectorAll("svg");
+                expect(sortIcons.length).toBeGreaterThan(0);
+            });
+
+            test("disableSorting: undefined - should inherit global sorting setting", async () => {
+                const testResources = createTestResources(3);
+                const columns: Column<TestResource>[] = [
+                    {
+                        field: "name",
+                        label: "Name",
+                        direction: SortDirection.Ascending,
+                        widthPercent: 40,
+                        minWidthPixels: 200,
+                        enabled: true,
+                        // disableSorting not specified - should inherit global setting
+                        render: (item) => <span>{item.name}</span>
+                    }
+                ];
+
+                const mockGetResourcesList = vi.fn().mockResolvedValue({
+                    items: testResources,
+                    totalCount: testResources.length
+                });
+
+                const columnHandler = new ColumnListRowHandler({
+                    columns,
+                    disableColumnSorting: true, // Global setting: disable sorting
+                    hideColumnHeader: false,
+                    hideSelectionCheckboxColumn: true
+                });
+
+                render(
+                    <div style={{ width: 800, height: 600 }}>
+                        <FilezProvider>
+                            <ResourceList<TestResource>
+                                resourceType="TestResource"
+                                defaultSortBy="name"
+                                defaultSortDirection={SortDirection.Ascending}
+                                initialRowHandler="ColumnListRowHandler"
+                                getResourcesList={mockGetResourcesList}
+                                rowHandlers={[columnHandler]}
+                            />
+                        </FilezProvider>
+                    </div>
+                );
+
+                await waitFor(
+                    () => {
+                        expect(mockGetResourcesList).toHaveBeenCalled();
+                        expect(screen.getByText("Name")).toBeInTheDocument();
+                    },
+                    { timeout: 3000 }
+                );
+
+                // Name column should have cursor-default (not clickable due to global disableColumnSorting: true)
+                const nameColumn = screen.getByText("Name");
+                expect(nameColumn.closest("span")).toHaveClass("cursor-default");
+            });
+        });
+
+        describe("disableResizing property", () => {
+            test("disableResizing: true - should disable resizing for specific column", async () => {
+                const testResources = createTestResources(3);
+                const columns: Column<TestResource>[] = [
+                    {
+                        field: "name",
+                        label: "Name",
+                        direction: SortDirection.Ascending,
+                        widthPercent: 40,
+                        minWidthPixels: 200,
+                        enabled: true,
+                        disableResizing: true, // Disable resizing for this column
+                        render: (item) => <span>{item.name}</span>
+                    },
+                    {
+                        field: "size",
+                        label: "Size",
+                        direction: SortDirection.Neutral,
+                        widthPercent: 20,
+                        minWidthPixels: 100,
+                        enabled: true,
+                        disableResizing: false, // Explicitly enable resizing
+                        render: (item) => <span>{item.size} bytes</span>
+                    },
+                    {
+                        field: "type",
+                        label: "Type",
+                        direction: SortDirection.Neutral,
+                        widthPercent: 20,
+                        minWidthPixels: 100,
+                        enabled: true,
+                        // disableResizing not specified - should inherit global setting
+                        render: (item) => <span>{item.type}</span>
+                    }
+                ];
+
+                const mockGetResourcesList = vi.fn().mockResolvedValue({
+                    items: testResources,
+                    totalCount: testResources.length
+                });
+
+                const columnHandler = new ColumnListRowHandler({
+                    columns,
+                    disableColumnResizing: false, // Global setting: enable resizing
+                    hideColumnHeader: false,
+                    hideSelectionCheckboxColumn: true
+                });
+
+                render(
+                    <div style={{ width: 800, height: 600 }}>
+                        <FilezProvider>
+                            <ResourceList<TestResource>
+                                resourceType="TestResource"
+                                defaultSortBy="name"
+                                defaultSortDirection={SortDirection.Ascending}
+                                initialRowHandler="ColumnListRowHandler"
+                                getResourcesList={mockGetResourcesList}
+                                rowHandlers={[columnHandler]}
+                            />
+                        </FilezProvider>
+                    </div>
+                );
+
+                await waitFor(
+                    () => {
+                        expect(mockGetResourcesList).toHaveBeenCalled();
+                        expect(screen.getByText("Name")).toBeInTheDocument();
+                    },
+                    { timeout: 3000 }
+                );
+
+                // Should have some resizable handles between columns
+                // With 3 columns (Name, Size, Type), there are 2 possible handle positions:
+                // - After Name (between Name and Size) - disabled because Name has disableResizing: true
+                // - After Size (between Size and Type) - enabled because Size has disableResizing: false
+                const resizableElements = document.querySelectorAll(
+                    '[data-panel-resize-handle-enabled="true"]'
+                );
+                expect(resizableElements.length).toBe(1);
+            });
+
+            test("disableResizing: false - should inherit global resizing setting", async () => {
+                const testResources = createTestResources(3);
+                const columns: Column<TestResource>[] = [
+                    {
+                        field: "name",
+                        label: "Name",
+                        direction: SortDirection.Ascending,
+                        widthPercent: 50,
+                        minWidthPixels: 200,
+                        enabled: true,
+                        disableResizing: false, // Explicitly set to false
+                        render: (item) => <span>{item.name}</span>
+                    },
+                    {
+                        field: "size",
+                        label: "Size",
+                        direction: SortDirection.Neutral,
+                        widthPercent: 50,
+                        minWidthPixels: 100,
+                        enabled: true,
+                        disableResizing: false, // Explicitly set to false
+                        render: (item) => <span>{item.size} bytes</span>
+                    }
+                ];
+
+                const mockGetResourcesList = vi.fn().mockResolvedValue({
+                    items: testResources,
+                    totalCount: testResources.length
+                });
+
+                const columnHandler = new ColumnListRowHandler({
+                    columns,
+                    disableColumnResizing: false, // Global setting: enable resizing
+                    hideColumnHeader: false,
+                    hideSelectionCheckboxColumn: true
+                });
+
+                render(
+                    <div style={{ width: 800, height: 600 }}>
+                        <FilezProvider>
+                            <ResourceList<TestResource>
+                                resourceType="TestResource"
+                                defaultSortBy="name"
+                                defaultSortDirection={SortDirection.Ascending}
+                                initialRowHandler="ColumnListRowHandler"
+                                getResourcesList={mockGetResourcesList}
+                                rowHandlers={[columnHandler]}
+                            />
+                        </FilezProvider>
+                    </div>
+                );
+
+                await waitFor(
+                    () => {
+                        expect(mockGetResourcesList).toHaveBeenCalled();
+                        expect(screen.getByText("Name")).toBeInTheDocument();
+                    },
+                    { timeout: 3000 }
+                );
+
+                // Should have 1 resizable handle (after Name column, before Size column)
+                // No handle after Size because it's the last column
+                const resizableElements = document.querySelectorAll(
+                    '[data-panel-resize-handle-enabled="true"]'
+                );
+                expect(resizableElements.length).toBe(1);
+            });
+        });
+
+        describe("disableLabel property", () => {
+            test("disableLabel: true - should hide label for specific column", async () => {
+                const testResources = createTestResources(3);
+                const columns: Column<TestResource>[] = [
+                    {
+                        field: "name",
+                        label: "Name",
+                        direction: SortDirection.Ascending,
+                        widthPercent: 40,
+                        minWidthPixels: 200,
+                        enabled: true,
+                        disableLabel: true, // Hide label for this column
+                        render: (item) => <span>{item.name}</span>
+                    },
+                    {
+                        field: "size",
+                        label: "Size",
+                        direction: SortDirection.Neutral,
+                        widthPercent: 20,
+                        minWidthPixels: 100,
+                        enabled: true,
+                        disableLabel: false, // Explicitly show label
+                        render: (item) => <span>{item.size} bytes</span>
+                    },
+                    {
+                        field: "type",
+                        label: "Type",
+                        direction: SortDirection.Neutral,
+                        widthPercent: 20,
+                        minWidthPixels: 100,
+                        enabled: true,
+                        // disableLabel not specified - should show label by default
+                        render: (item) => <span>{item.type}</span>
+                    }
+                ];
+
+                const mockGetResourcesList = vi.fn().mockResolvedValue({
+                    items: testResources,
+                    totalCount: testResources.length
+                });
+
+                const columnHandler = new ColumnListRowHandler({
+                    columns,
+                    hideColumnHeader: false,
+                    hideSelectionCheckboxColumn: true
+                });
+
+                render(
+                    <div style={{ width: 800, height: 600 }}>
+                        <FilezProvider>
+                            <ResourceList<TestResource>
+                                resourceType="TestResource"
+                                defaultSortBy="name"
+                                defaultSortDirection={SortDirection.Ascending}
+                                initialRowHandler="ColumnListRowHandler"
+                                getResourcesList={mockGetResourcesList}
+                                rowHandlers={[columnHandler]}
+                            />
+                        </FilezProvider>
+                    </div>
+                );
+
+                await waitFor(
+                    () => {
+                        expect(mockGetResourcesList).toHaveBeenCalled();
+                    },
+                    { timeout: 3000 }
+                );
+
+                // Name label should be hidden due to disableLabel: true
+                expect(screen.queryByText("Name")).not.toBeInTheDocument();
+
+                // Size and Type labels should be visible
+                expect(screen.getByText("Size")).toBeInTheDocument();
+                expect(screen.getByText("Type")).toBeInTheDocument();
+            });
+
+            test("disableLabel: false - should show label for specific column", async () => {
+                const testResources = createTestResources(3);
+                const columns: Column<TestResource>[] = [
+                    {
+                        field: "name",
+                        label: "Name",
+                        direction: SortDirection.Ascending,
+                        widthPercent: 40,
+                        minWidthPixels: 200,
+                        enabled: true,
+                        disableLabel: false, // Explicitly show label
+                        render: (item) => <span>{item.name}</span>
+                    }
+                ];
+
+                const mockGetResourcesList = vi.fn().mockResolvedValue({
+                    items: testResources,
+                    totalCount: testResources.length
+                });
+
+                const columnHandler = new ColumnListRowHandler({
+                    columns,
+                    hideColumnHeader: false,
+                    hideSelectionCheckboxColumn: true
+                });
+
+                render(
+                    <div style={{ width: 800, height: 600 }}>
+                        <FilezProvider>
+                            <ResourceList<TestResource>
+                                resourceType="TestResource"
+                                defaultSortBy="name"
+                                defaultSortDirection={SortDirection.Ascending}
+                                initialRowHandler="ColumnListRowHandler"
+                                getResourcesList={mockGetResourcesList}
+                                rowHandlers={[columnHandler]}
+                            />
+                        </FilezProvider>
+                    </div>
+                );
+
+                await waitFor(
+                    () => {
+                        expect(mockGetResourcesList).toHaveBeenCalled();
+                        expect(screen.getByText("Name")).toBeInTheDocument();
+                    },
+                    { timeout: 3000 }
+                );
+
+                // Name label should be visible due to disableLabel: false
+                expect(screen.getByText("Name")).toBeInTheDocument();
+            });
+
+            test("disableLabel: undefined - should show label by default", async () => {
+                const testResources = createTestResources(3);
+                const columns: Column<TestResource>[] = [
+                    {
+                        field: "name",
+                        label: "Name",
+                        direction: SortDirection.Ascending,
+                        widthPercent: 40,
+                        minWidthPixels: 200,
+                        enabled: true,
+                        // disableLabel not specified - should show label by default
+                        render: (item) => <span>{item.name}</span>
+                    }
+                ];
+
+                const mockGetResourcesList = vi.fn().mockResolvedValue({
+                    items: testResources,
+                    totalCount: testResources.length
+                });
+
+                const columnHandler = new ColumnListRowHandler({
+                    columns,
+                    hideColumnHeader: false,
+                    hideSelectionCheckboxColumn: true
+                });
+
+                render(
+                    <div style={{ width: 800, height: 600 }}>
+                        <FilezProvider>
+                            <ResourceList<TestResource>
+                                resourceType="TestResource"
+                                defaultSortBy="name"
+                                defaultSortDirection={SortDirection.Ascending}
+                                initialRowHandler="ColumnListRowHandler"
+                                getResourcesList={mockGetResourcesList}
+                                rowHandlers={[columnHandler]}
+                            />
+                        </FilezProvider>
+                    </div>
+                );
+
+                await waitFor(
+                    () => {
+                        expect(mockGetResourcesList).toHaveBeenCalled();
+                        expect(screen.getByText("Name")).toBeInTheDocument();
+                    },
+                    { timeout: 3000 }
+                );
+
+                // Name label should be visible by default
+                expect(screen.getByText("Name")).toBeInTheDocument();
+            });
+        });
+
+        describe("Combined column properties", () => {
+            test("should handle multiple properties on same column", async () => {
+                const testResources = createTestResources(3);
+                const columns: Column<TestResource>[] = [
+                    {
+                        field: "name",
+                        label: "Name",
+                        direction: SortDirection.Ascending,
+                        widthPercent: 50,
+                        minWidthPixels: 200,
+                        enabled: true,
+                        disableSorting: true,
+                        disableResizing: true,
+                        disableLabel: true,
+                        render: (item) => <span>{item.name}</span>
+                    },
+                    {
+                        field: "size",
+                        label: "Size",
+                        direction: SortDirection.Neutral,
+                        widthPercent: 50,
+                        minWidthPixels: 100,
+                        enabled: true,
+                        disableSorting: false,
+                        disableResizing: false,
+                        disableLabel: false,
+                        render: (item) => <span>{item.size} bytes</span>
+                    }
+                ];
+
+                const mockGetResourcesList = vi.fn().mockResolvedValue({
+                    items: testResources,
+                    totalCount: testResources.length
+                });
+
+                const columnHandler = new ColumnListRowHandler({
+                    columns,
+                    disableColumnSorting: false,
+                    disableColumnResizing: false,
+                    hideColumnHeader: false,
+                    hideSelectionCheckboxColumn: true
+                });
+
+                render(
+                    <div style={{ width: 800, height: 600 }}>
+                        <FilezProvider>
+                            <ResourceList<TestResource>
+                                resourceType="TestResource"
+                                defaultSortBy="name"
+                                defaultSortDirection={SortDirection.Ascending}
+                                initialRowHandler="ColumnListRowHandler"
+                                getResourcesList={mockGetResourcesList}
+                                rowHandlers={[columnHandler]}
+                            />
+                        </FilezProvider>
+                    </div>
+                );
+
+                await waitFor(
+                    () => {
+                        expect(mockGetResourcesList).toHaveBeenCalled();
+                    },
+                    { timeout: 3000 }
+                );
+
+                // Name column: label hidden, sorting disabled, resizing disabled
+                expect(screen.queryByText("Name")).not.toBeInTheDocument();
+
+                // Size column: label visible, sorting enabled, resizing enabled
+                expect(screen.getByText("Size")).toBeInTheDocument();
+                const sizeColumn = screen.getByText("Size");
+                expect(sizeColumn.closest("span")).toHaveClass("cursor-pointer");
+
+                // Should have only one resizable handle (after Name column, before Size column)
+                // Name has disableResizing: true, but Size has disableResizing: false
+                // Since Size is the last column, there's no handle after it
+                // The handle between Name and Size should be disabled because Name has disableResizing: true
+                const resizableElements = document.querySelectorAll(
+                    '[data-panel-resize-handle-enabled="true"]'
+                );
+                expect(resizableElements.length).toBe(0);
+            });
+        });
+    });
 });

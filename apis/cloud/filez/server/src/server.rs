@@ -160,6 +160,7 @@ async fn main() -> Result<(), anyhow::Error> {
         // TAGS
         .routes(routes!(http_api::tags::get::get_tags))
         .routes(routes!(http_api::tags::update::update_tags))
+        .routes(routes!(http_api::tags::list::list_tags))
         // JOBS
         .routes(routes!(http_api::jobs::create::create_job))
         .routes(routes!(http_api::jobs::get::get_job))

@@ -64,9 +64,9 @@ export default class OptionPicker extends PureComponent<OptionPickerProps, Optio
             <DropdownMenu open={this.state.open} onOpenChange={this.handleOpenChange}>
                 <DropdownMenuTrigger asChild>
                     <Button
-                        variant="icon"
+                        variant="iconStandalone"
+                        size={"icon-xs"}
                         disabled={disabled}
-                        size={"icon"}
                         style={{ ...this.props.style }}
                         className={cn(
                             "OptionPicker flex cursor-pointer items-center justify-between",

@@ -34,6 +34,7 @@ const translation: Translation = {
         resetAll: "Alle zurücksetzen",
         edit: "Bearbeiten",
         reset: "Zurücksetzen",
+        delete: "Löschen",
         hotkeyDialog: {
             editTitle: "Tastenkombination bearbeiten",
             addTitle: "Neue Tastenkombination hinzufügen",
@@ -61,6 +62,35 @@ const translation: Translation = {
         noResults: "Keine Ergebnisse gefunden.",
         suggestions: "Vorschläge",
         recentCommands: "Zuletzt verwendet"
+    },
+    resourceTags: {
+        badges: "Tags",
+        text: "Text",
+        selected: "ausgewählt",
+        addToAll: "Zu allen hinzufügen",
+        removeFromAll: "Von allen entfernen",
+        saveTextTags: "Speichern",
+        cancel: "Abbrechen",
+        searchPlaceholder: "Tags durchsuchen...",
+        clearSearch: "Suche löschen"
+    },
+    upload: {
+        dropFilesHere: "Dateien hier ablegen",
+        dropFoldersHere: "Ordner hier ablegen",
+        orClickToSelect: "oder klicken zum Auswählen",
+        orClickToSelectFolder: "oder klicken zum Ordner auswählen",
+        selectFiles: "Dateien zum Hochladen auswählen",
+        removeFile: "Datei entfernen",
+        uploadFiles: "Dateien hochladen",
+        dropFilesOrFoldersHere: "Dateien oder Ordner hier ablegen",
+        orUseButtonsBelow: "oder die Schaltflächen unten verwenden",
+        selectAll: "Alle auswählen",
+        status: {
+            pending: "Wartend",
+            uploading: "Hochladen",
+            completed: "Abgeschlossen",
+            error: "Fehler"
+        }
     }
 };
 

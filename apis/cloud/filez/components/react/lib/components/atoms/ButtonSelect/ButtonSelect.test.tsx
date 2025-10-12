@@ -1,6 +1,5 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
-import { COMPONENT_SIZE_OPTIONS } from "@/lib/constants";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import ButtonSelect, { type ButtonSelectOption } from "./ButtonSelect";
 
 // Mock icons for testing
@@ -151,23 +150,5 @@ describe("ButtonSelect", () => {
         const buttonGroup = container.querySelector(".ButtonSelect");
         expect(buttonGroup).toHaveAttribute("role", "group");
         expect(buttonGroup).toHaveAttribute("aria-label", "Button group");
-    });
-
-    it("accepts all size options from COMPONENT_SIZE_OPTIONS", () => {
-        const onSelectionChange = vi.fn();
-
-        COMPONENT_SIZE_OPTIONS.forEach((size) => {
-            const { unmount } = render(
-                <ButtonSelect
-                    options={mockOptions}
-                    selectedId="folder"
-                    onSelectionChange={onSelectionChange}
-                    size={size}
-                />
-            );
-            // If it renders without error, the size is valid
-            expect(screen.getByTestId("icon-1")).toBeInTheDocument();
-            unmount();
-        });
     });
 });

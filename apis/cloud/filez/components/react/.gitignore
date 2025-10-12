@@ -25,4 +25,4 @@ dist-ssr
 
 *storybook.log
 storybook-static
-public/file-icons
+public/assets/file-icons

@@ -213,8 +213,7 @@ test("ResourceList keyboard navigation setup works", async () => {
         testResources.length,
         [false, false, false],
         undefined,
-        undefined,
-        1
+        undefined
     );
 
     console.log("Keyboard navigation result:", keyboardResult);
@@ -437,8 +436,7 @@ test("ResourceList selection state management", async () => {
             testResources.length,
             testCase.selectedItems,
             undefined,
-            undefined,
-            1
+            undefined
         );
         // Method should be callable (result can be undefined for some cases)
         expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe("function");
@@ -472,8 +470,8 @@ test("Column handler implements required ListRowHandler methods", () => {
     expect(typeof columnHandler.headerRenderer).toBe("function");
 
     // Test some basic method calls
-    expect(columnHandler.getRowHeight(800, 600, 1)).toBe(24);
-    expect(columnHandler.getRowCount(10, 1)).toBe(10);
+    expect(columnHandler.getRowHeight(800, 600)).toBe(24);
+    expect(columnHandler.getRowCount(10)).toBe(10);
 });
 
 test("Column handler without checkbox selection column", () => {

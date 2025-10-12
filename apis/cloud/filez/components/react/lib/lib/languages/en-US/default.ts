@@ -34,6 +34,7 @@ const translation: Translation = {
         resetAll: "Reset All",
         edit: "Edit",
         reset: "Reset",
+        delete: "Delete",
         hotkeyDialog: {
             editTitle: "Edit Keyboard Shortcut",
             addTitle: "Add New Hotkey",
@@ -60,6 +61,35 @@ const translation: Translation = {
         noResults: "No results found.",
         suggestions: "Suggestions",
         recentCommands: "Recent Commands"
+    },
+    resourceTags: {
+        badges: "Badges",
+        text: "Text",
+        selected: "selected",
+        addToAll: "Add to all",
+        removeFromAll: "Remove from all",
+        saveTextTags: "Save",
+        cancel: "Cancel",
+        searchPlaceholder: "Search tags...",
+        clearSearch: "Clear search"
+    },
+    upload: {
+        dropFilesHere: "Drop files here",
+        dropFoldersHere: "Drop folders here",
+        orClickToSelect: "or click to select files",
+        orClickToSelectFolder: "or click to select folder",
+        selectFiles: "Select files to upload",
+        removeFile: "Remove file",
+        uploadFiles: "Upload Files",
+        dropFilesOrFoldersHere: "Drop files or folders here",
+        orUseButtonsBelow: "or use the buttons below to select",
+        selectAll: "Select All",
+        status: {
+            pending: "Pending",
+            uploading: "Uploading",
+            completed: "Completed",
+            error: "Error"
+        }
     }
 };
 

@@ -45,6 +45,7 @@ pub async fn get_tags(
     Json(request_body): Json<GetTagsRequestBody>,
 ) -> Result<Json<ApiResponse<GetTagsResponseBody>>, FilezError> {
     with_timing!(
+        // If a user is allowed to get a resource, they are allowed to get its tags
         AccessPolicy::check(
             &database,
             &authentication_information,
@@ -52,7 +53,7 @@ pub async fn get_tags(
                 .tag_resource_type
                 .to_access_policy_resource_type(),
             Some(&request_body.resource_ids),
-            AccessPolicyAction::TagsGet,
+            request_body.tag_resource_type.to_access_policy_get_action()
         )
         .await?
         .verify()?,

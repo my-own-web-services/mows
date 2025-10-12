@@ -58,6 +58,35 @@ export interface Translation {
         suggestions: string;
         recentCommands: string;
     };
+    resourceTags: {
+        badges: string;
+        text: string;
+        selected: string;
+        addToAll: string;
+        removeFromAll: string;
+        saveTextTags: string;
+        cancel: string;
+        searchPlaceholder: string;
+        clearSearch: string;
+    };
+    upload: {
+        dropFilesHere: string;
+        dropFoldersHere: string;
+        orClickToSelect: string;
+        orClickToSelectFolder: string;
+        selectFiles: string;
+        removeFile: string;
+        uploadFiles: string;
+        dropFilesOrFoldersHere: string;
+        orUseButtonsBelow: string;
+        selectAll: string;
+        status: {
+            pending: string;
+            uploading: string;
+            completed: string;
+            error: string;
+        };
+    };
 }
 
 export const getBrowserLanguage = (): Language => {

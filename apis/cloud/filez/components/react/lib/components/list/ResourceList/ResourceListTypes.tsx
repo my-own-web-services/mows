@@ -166,8 +166,6 @@ export interface RowComponentData<FilezResourceType> {
 
 export interface BaseResource {
     id: string;
-    name: string;
-    created_time: string;
-    modified_time: string;
+
     [key: string]: any;
 }

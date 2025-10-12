@@ -62,7 +62,7 @@ export const signinRedirectSavePath = async (
     await signinRedirectFunction();
 };
 
-export const bytesToHumanReadableSize = (maybe_bigint_bytes: bigint | number): string => {
+export const formatFileSizeToHumanReadable = (maybe_bigint_bytes: bigint | number): string => {
     const bytes = Number(maybe_bigint_bytes);
     const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB"];
     if (bytes === 0) {

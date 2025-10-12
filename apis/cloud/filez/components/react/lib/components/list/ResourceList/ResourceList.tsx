@@ -1,10 +1,10 @@
-import ButtonSelect from "@/components/atoms/ButtonSelect";
+import ButtonSelect from "@/components/atoms/ButtonSelect/ButtonSelect";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
 import { SortDirection } from "filez-client-typescript";
 import update from "immutability-helper";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import React, { CSSProperties, JSX, PureComponent, createRef } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
@@ -551,7 +551,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
             <div className="flex h-12 w-full items-center justify-end pr-4">
                 {this.props.rowHandlers.length > 1 && (
                     <ButtonSelect
-                        size={"xs"}
+                        size={"icon-sm"}
                         onSelectionChange={(id: string) => {
                             log.debug("Switching row handler to", id);
                             this.updateRowHandler(id);
@@ -617,7 +617,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Pur
                                                 itemKey={this.getItemKey}
                                                 // @ts-ignore
                                                 onScroll={this.onScroll}
-                                                overscanCount={this.props.overscanCount ?? 100}
+                                                overscanCount={this.props.overscanCount ?? 20}
                                                 width={width}
                                                 height={height}
                                                 itemCount={totalRowCount}

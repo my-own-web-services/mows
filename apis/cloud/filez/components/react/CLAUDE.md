@@ -6,18 +6,36 @@
 - React
 - Mostly react class components
 - shadcn and radixui
+- vitest
 
 # General
 
+- When you are done with a task and wait for the next instructions it may be that i manually change some of your created code, when the next instruction comes and you find some inconsistencies between the last time you read the file, assume that i did them and that they should be there, don't blindly change them back, if in doubt ask me
+
+- backward compatibility is NOT required yet, nobody is currently using this library, just check if it breaks something internally and fix it
+
+# Style
+
 - use only arrow functions where possible especially in classes
 - All constants should be defined in constants.ts, for example local storage access keys
-- No fallback translations in the components
-- translations must be added to the Translation type in lib/lib/languages.ts and then to their respective language files in lib/lib/languages/[lang]/default.ts
-- backward compatibility is NOT required yet, nobody is currently using this library, just check if it breaks something internally and fix it
 
 # Building
 
 - Use `pnpm build` to build the project and check if typescript has any errors
+
+# Translations
+
+- No fallback translations in the components
+- translations must be added to the Translation type in lib/lib/languages.ts and then to their respective language files in lib/lib/languages/[lang]/default.ts
+- the translation is available with the filez provider like this: `const { t } = this.context!;`
+- the context must be added, in class components for example like this:
+
+```ts
+export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
+    static contextType = FilezContext;
+    declare context: React.ContextType<typeof FilezContext>;
+}
+```
 
 # Testing
 

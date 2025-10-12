@@ -1,9 +1,9 @@
 import CommandPalette from "@/components/atoms/CommandPalette";
-import { ResourceTagsMap } from "@/components/atoms/ResourceTags";
+import { ResourceTagsMap } from "@/components/atoms/ResourceTags/ResourceTags";
 import FileList from "@/components/list/FileList";
 import PrimaryMenu from "@/components/PrimaryMenu";
 import { log } from "@/lib/logging";
-import { ModalHandler, ResourceTags, Toaster } from "@/main";
+import { ModalHandler, ResourceTags, Toaster, Upload } from "@/main";
 import { TagResourceType } from "filez-client-typescript";
 import { type CSSProperties, PureComponent } from "react";
 
@@ -23,7 +23,8 @@ export default class App extends PureComponent<AppProps, AppState> {
             tagsMap: {
                 bildVonNürnberg: [
                     { key: "City", value: "Nürnberg" },
-                    { key: "Country", value: "Germany" }
+                    { key: "Country", value: "Germany" },
+                    { key: "People", value: "Paul Hennig" }
                 ],
                 bildVonAugsburg: [
                     { key: "City", value: "Augsburg" },
@@ -50,12 +51,14 @@ export default class App extends PureComponent<AppProps, AppState> {
                     className="h-[500px] w-full"
                 ></FileList>
                 <ResourceTags
+                    className="w-[500px] p-4"
                     tagsMap={this.state.tagsMap}
                     resourceType={TagResourceType.File}
                     onCommit={(changes) => {
                         log.debug("Committed changes:", changes);
                     }}
                 ></ResourceTags>
+                <Upload className="h-[800px] w-[1000px]" onUpload={() => {}}></Upload>
             </div>
         );
     };
