@@ -1,13 +1,17 @@
 use crate::{
     database::Database,
     errors::FilezError,
-    http_api::tags::update::UpdateTagsMethod,
+    http_api::tags::{
+        list::{ListTagResult, ListTagsSearch, ListTagsSortBy},
+        update::UpdateTagsMethod,
+    },
     models::{
-        access_policies::AccessPolicyResourceType,
+        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
         tags::{FilezTag, TagId},
         users::FilezUserId,
     },
     schema::{self},
+    types::SortDirection,
     utils::{get_current_timestamp, InvalidEnumType},
 };
 use diesel::{
@@ -65,6 +69,19 @@ impl TagResourceType {
             TagResourceType::StorageLocation => AccessPolicyResourceType::StorageLocation,
             TagResourceType::AccessPolicy => AccessPolicyResourceType::AccessPolicy,
             TagResourceType::StorageQuota => AccessPolicyResourceType::StorageQuota,
+        }
+    }
+
+    pub fn to_access_policy_get_action(&self) -> AccessPolicyAction {
+        match self {
+            TagResourceType::File => AccessPolicyAction::FilezFilesGet,
+            TagResourceType::FileVersion => AccessPolicyAction::FilezFilesGet,
+            TagResourceType::FileGroup => AccessPolicyAction::FileGroupsGet,
+            TagResourceType::User => AccessPolicyAction::UsersGet,
+            TagResourceType::UserGroup => AccessPolicyAction::UserGroupsGet,
+            TagResourceType::StorageLocation => AccessPolicyAction::StorageLocationsGet,
+            TagResourceType::AccessPolicy => AccessPolicyAction::AccessPoliciesGet,
+            TagResourceType::StorageQuota => AccessPolicyAction::StorageQuotasGet,
         }
     }
 }
@@ -309,5 +326,21 @@ impl TagMember {
         }
 
         Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn list_tags(
+        database: &Database,
+        search: Option<&ListTagsSearch>,
+        resource_type: Option<TagResourceType>,
+        accessible_resource_ids: Option<&[Uuid]>,
+        from_index: Option<u64>,
+        limit: Option<u64>,
+        sort_by: Option<ListTagsSortBy>,
+        sort_order: Option<SortDirection>,
+    ) -> Result<(Vec<ListTagResult>, u64), FilezError> {
+        let mut connection = database.get_connection().await?;
+
+        todo!()
     }
 }

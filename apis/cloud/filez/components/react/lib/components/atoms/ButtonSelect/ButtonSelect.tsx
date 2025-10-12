@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { COMPONENT_SIZE_OPTIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties, type ReactNode } from "react";
 
@@ -17,7 +16,7 @@ interface ButtonSelectProps {
     readonly selectedId?: string;
     readonly onSelectionChange: (id: string) => void;
     readonly disabled?: boolean;
-    readonly size?: (typeof COMPONENT_SIZE_OPTIONS)[number];
+    readonly size?: "sm" | "lg" | "icon-sm" | "icon" | "icon-lg" | "default";
 }
 
 interface ButtonSelectState {}

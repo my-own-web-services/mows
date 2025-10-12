@@ -1,5 +1,5 @@
 import { FilezFile } from "filez-client-typescript";
-import { PureComponent } from "react";
+import { PureComponent, createRef } from "react";
 import { FilezContext } from "../../../FilezContext";
 import { FileViewerViewMode } from "../FileViewer";
 
@@ -10,7 +10,9 @@ interface ImageProps {
     readonly disableFallback?: boolean;
 }
 
-interface ImageState {}
+interface ImageState {
+    readonly isGif: boolean;
+}
 
 export default class Image extends PureComponent<ImageProps, ImageState> {
     static contextType = FilezContext;

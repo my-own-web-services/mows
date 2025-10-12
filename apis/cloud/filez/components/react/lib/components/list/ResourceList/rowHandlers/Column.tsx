@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
 import { SortDirection } from "filez-client-typescript";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { LucideColumns3 } from "lucide-react";
 import { CSSProperties, JSX } from "react";
 import { FaThList } from "react-icons/fa";
@@ -28,6 +28,7 @@ export interface ColumnListRowHandlerProps<FilezResourceType> {
     disableColumnSorting?: boolean;
     disableColumnResizing?: boolean;
     rowHeightPixels?: number;
+    selectAllTitle?: string;
 }
 
 export default class ColumnListRowHandler<FilezResourceType extends BaseResource>
@@ -49,8 +50,29 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
             this.rowHeightPixels = props.rowHeightPixels;
         }
 
-        this.columns = cloneDeep(props.columns);
+        const columns = cloneDeep(props.columns);
+
+        this.checkColumns(columns);
+        this.columns = columns;
     }
+
+    checkColumns = (columns: Column<FilezResourceType>[]) => {
+        // check if the columns have unique field names else throw an error
+        const fieldNames = columns.map((c) => c.field);
+        const uniqueFieldNames = Array.from(new Set(fieldNames));
+        if (fieldNames.length !== uniqueFieldNames.length) {
+            throw new Error("Column field names must be unique");
+        }
+
+        // check if only one column has the sort order set to anything but neutral
+        const sortedColumns = columns.filter((c) => c.direction !== SortDirection.Neutral);
+        if (sortedColumns.length > 1) {
+            const sortedColumnNames = sortedColumns.map((c) => c.field).join(", ");
+            throw new Error(
+                `Only one column can have the sort order set to anything but neutral. The following columns are wrong: ${sortedColumnNames}`
+            );
+        }
+    };
 
     getMinimumBatchSize = (_totalCount: number): number => {
         return 50;
@@ -102,6 +124,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                     ? this.resourceList?.selectAll()
                                     : this.resourceList?.deselectAll();
                             }}
+                            title={this.props.selectAllTitle}
                         ></Checkbox>
                     </div>
                 )}
@@ -119,6 +142,15 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                     }}
                 >
                     {activeColumns.flatMap((column, index) => {
+                        const disableColumnSorting =
+                            this.props.disableColumnSorting === true ||
+                            column.disableSorting === true;
+
+                        const disableColumnResizing =
+                            this.props.disableColumnResizing === true ||
+                            column.disableResizing === true;
+
+                        const isLastColumn = index === activeColumns.length - 1;
                         return [
                             <ResizablePanel
                                 minSize={5}
@@ -129,12 +161,10 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                 <span
                                     className={cn(
                                         "flex items-center gap-2 overflow-hidden px-2 text-ellipsis whitespace-nowrap",
-                                        this.props.disableColumnSorting === true
-                                            ? "cursor-default"
-                                            : "cursor-pointer"
+                                        disableColumnSorting ? "cursor-default" : "cursor-pointer"
                                     )}
                                     onClick={() => {
-                                        if (this.props.disableColumnSorting === true) return;
+                                        if (disableColumnSorting) return;
                                         this.setColumSorting(
                                             column.field,
                                             match(column.direction)
@@ -154,8 +184,8 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                         );
                                     }}
                                 >
-                                    {column.label}
-                                    {this.props.disableColumnSorting === true
+                                    {column.disableLabel ? null : column.label}
+                                    {disableColumnSorting
                                         ? null
                                         : match(column.direction)
                                               .with(SortDirection.Ascending, () => <IoChevronUp />)
@@ -166,15 +196,14 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                               .exhaustive()}
                                 </span>
                             </ResizablePanel>,
-                            index !== activeColumns.length - 1 &&
-                                this.props.disableColumnResizing !== true && (
-                                    <ResizableHandle
-                                        className={cn(
-                                            "group-hover:bg-border bg- hover:bg-accent active:bg-accent h-3/4"
-                                        )}
-                                        key={column.field + index + "Handle"}
-                                    />
-                                )
+                            !isLastColumn && !disableColumnResizing && (
+                                <ResizableHandle
+                                    className={cn(
+                                        "group-hover:bg-border bg- hover:bg-accent active:bg-accent h-3/4"
+                                    )}
+                                    key={column.field + index + "Handle"}
+                                />
+                            )
                         ];
                     })}
                 </ResizablePanelGroup>
@@ -235,14 +264,14 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                 )}
             >
                 {this.props.hideSelectionCheckboxColumn !== true && (
-                    <div className="flex h-full w-8 items-center justify-center">
-                        <Checkbox
-                            onClick={(e) => {
-                                e.ctrlKey = true;
-                                onItemClick(e as any);
-                            }}
-                            checked={isSelected}
-                        ></Checkbox>
+                    <div
+                        onClick={(e) => {
+                            e.ctrlKey = true;
+                            onItemClick(e as any);
+                        }}
+                        className="flex h-full w-8 cursor-pointer items-center justify-center"
+                    >
+                        <Checkbox checked={isSelected}></Checkbox>
                     </div>
                 )}
 
@@ -338,11 +367,13 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
 
 export interface Column<FilezResourceType> {
     field: string;
-    alternateField?: string;
     label: string;
     direction: SortDirection;
     widthPercent: number;
     minWidthPixels: number;
     enabled: boolean;
+    disableSorting?: boolean;
+    disableResizing?: boolean;
+    disableLabel?: boolean;
     render: (item: FilezResourceType, style: CSSProperties, className: string) => JSX.Element;
 }

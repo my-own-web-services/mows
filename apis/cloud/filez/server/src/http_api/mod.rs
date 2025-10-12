@@ -76,6 +76,7 @@ pub mod storage_locations {
 
 pub mod tags {
     pub mod get;
+    pub mod list;
     pub mod update;
 }
 
