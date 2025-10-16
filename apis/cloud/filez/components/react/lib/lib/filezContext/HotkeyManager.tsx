@@ -8,8 +8,6 @@ export interface HotkeyConfig {
     [actionId: string]: {
         // List of key combinations that trigger the action
         keyCombinations?: string[];
-        // Conditions under which the hotkey is active
-        when?: string[];
     };
 }
 
@@ -24,6 +22,7 @@ export class HotkeyManager {
 
         // capture hotkeys and dispatch actions
         document.addEventListener("keydown", (event) => {
+            //log.debug("Keydown event:", event);
             const keyCombo = this.formatKeyCombo(event);
             const actionId = this.getActionByHotkey(keyCombo);
             if (actionId) {
@@ -44,7 +43,6 @@ export class HotkeyManager {
     };
 
     getHotkeysByActionId = (actionId: string): string[] => {
-        log.debug("Retrieving hotkeys for action:", actionId, this.hotkeyConfig[actionId]);
         return this.hotkeyConfig[actionId]?.keyCombinations || [];
     };
 

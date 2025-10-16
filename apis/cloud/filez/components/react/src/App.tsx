@@ -1,10 +1,7 @@
 import CommandPalette from "@/components/atoms/CommandPalette";
 import { ResourceTagsMap } from "@/components/atoms/ResourceTags/ResourceTags";
-import FileList from "@/components/list/FileList";
 import PrimaryMenu from "@/components/PrimaryMenu";
-import { log } from "@/lib/logging";
-import { ModalHandler, ResourceTags, Toaster, Upload } from "@/main";
-import { TagResourceType } from "filez-client-typescript";
+import { FilezContext, GlobalContextMenu, ModalHandler, Toaster, Upload } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
 
 interface AppProps {
@@ -17,6 +14,9 @@ interface AppState {
 }
 
 export default class App extends PureComponent<AppProps, AppState> {
+    static contextType = FilezContext;
+    declare context: React.ContextType<typeof FilezContext>;
+
     constructor(props: AppProps) {
         super(props);
         this.state = {
@@ -46,7 +46,16 @@ export default class App extends PureComponent<AppProps, AppState> {
                 <CommandPalette />
                 <ModalHandler />
                 <Toaster></Toaster>
-                <FileList
+
+                <Upload className="h-[500px] w-full"></Upload>
+                <GlobalContextMenu></GlobalContextMenu>
+            </div>
+        );
+    };
+}
+
+/*
+               <FileList
                     id="01999b67-500a-7f90-aa59-77737adbabc2"
                     className="h-[500px] w-full"
                 ></FileList>
@@ -58,8 +67,5 @@ export default class App extends PureComponent<AppProps, AppState> {
                         log.debug("Committed changes:", changes);
                     }}
                 ></ResourceTags>
-                <Upload className="h-[800px] w-[1000px]" onUpload={() => {}}></Upload>
-            </div>
-        );
-    };
-}
+
+*/

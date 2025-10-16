@@ -11,20 +11,32 @@ kubectl patch crd/filezresources.filez.k8s.mows.cloud -p '{"metadata":{"finalize
 
 # Access Control
 
-# Entities
+# Subjects
 
 1. Human Users logged in through oauth
 2. Apps
    2.1 Frontend Apps: That can only access resources and display them to the users if granted before by the user in combination with an oauth login/token
    2.2 Backend Apps: That authenticate with their kubernetes service account tokens and can act on behalf of the user if allowed to
-3. API Users, that authenticate with an API token, they are created by a user and are allowed access to resources by the user
-4. User Groups: User inherit allowances from their groups, if the group has access to it, they have
+3. API Users, that authenticate with an API token, they are created by a user and are allowed access resources if the user allows it, (nothing complicated, its just another user)
+4. User Groups: User inherit permissions from their user groups, if the user group has access to it, they have
 
 # Resources
 
-1. Resources: Entities can be given access to resources depending on the actions
+1. Resources: Subjects can be given access to resources depending on the actions (Read, Update etc.)
 2. Resource Groups: Resources can be part of resource groups, if access is given to a resource group the resource inherits it
 
 ReBAC
 
-Evaluate policies beforehand for every resource for speed
+Main Problems with spicedb or similar solutions:
+
+- synchronization of relations
+
+With https://github.com/rover-app/pgfga nothing needs to be synced
+
+- listing remains a problem
+
+10mio resources
+
+10k users
+
+user, app, resource, action

@@ -9,7 +9,6 @@ use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
-        access_policies::{AccessPolicy, AccessPolicyAction},
         tag_members::{TagMember, TagResourceType},
     },
     state::ServerState,
@@ -42,27 +41,27 @@ pub async fn list_tags(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListTagsRequestBody>,
 ) -> Result<Json<ApiResponse<ListTagsResponseBody>>, FilezError> {
-    let _list_results = with_timing!(
-        {
-            // TODO: Replace this placeholder with actual list implementation
-            // TagMember::list_tags(
-            //     &database,
-            //     request_body.resource_type,
-            //     request_body.from_index,
-            //     request_body.limit,
-            //     request_body.sort_by,
-            //     request_body.sort_order,
-            // ).await?
-
-            // Placeholder return for now
-            ListTagsResponseBody {
-                tags: vec![],
-                total_count: 0,
-            }
-        },
+    let (tags, total_count) = with_timing!(
+        TagMember::list_tags_with_access(
+            &database,
+            authentication_information.requesting_user.as_ref(),
+            &authentication_information.requesting_app,
+            request_body.search.as_ref(),
+            request_body.resource_type.unwrap_or(TagResourceType::File),
+            request_body.from_index,
+            request_body.limit,
+            request_body.sort_by,
+            request_body.sort_order,
+        )
+        .await?,
         "Database operation to list tags",
         timing
     );
+
+    let _list_results = ListTagsResponseBody {
+        tags,
+        total_count,
+    };
 
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},

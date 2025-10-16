@@ -73,6 +73,21 @@ pub struct StorageLocationListItem {
 #[serde(rename_all = "camelCase")]
 pub struct StorageLocationConfigCrd {
     pub provider_config: StorageProviderConfigCrd,
+    pub default_quotas: Vec<DefaultQuota>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum DefaultQuota {
+    DefaultUserQuota(DefaultUserQuota),
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+/// A default quota that gets applied to all users for a storage location.
+pub struct DefaultUserQuota {
+    pub name: String,
+    pub max_size_bytes: u64,
 }
 
 impl StorageLocation {

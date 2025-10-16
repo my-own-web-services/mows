@@ -5,7 +5,7 @@ import { FilezContext } from "@/main";
 import { SortDirection } from "filez-client-typescript";
 import update from "immutability-helper";
 import cloneDeep from "lodash/cloneDeep";
-import React, { CSSProperties, JSX, PureComponent, createRef } from "react";
+import React, { CSSProperties, Component, JSX, createRef } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 import InfiniteLoader from "react-window-infinite-loader";
@@ -86,7 +86,7 @@ interface ResourceListState<ResourceType> {
     readonly currentRowHandler: ListRowHandler<ResourceType>;
 }
 
-export default class ResourceList<ResourceType extends BaseResource> extends PureComponent<
+export default class ResourceList<ResourceType extends BaseResource> extends Component<
     ResourceListProps<ResourceType>,
     ResourceListState<ResourceType>
 > {

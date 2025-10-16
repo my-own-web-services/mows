@@ -1,5 +1,6 @@
 import { ActionIds } from "@/lib/defaultActions";
-import type { ActionDefinition } from "@/lib/filezContext/ActionManager";
+import type { Action } from "@/lib/filezContext/ActionManager";
+import { log } from "@/lib/logging";
 import { FilezContext } from "@/main";
 import { PureComponent, type CSSProperties } from "react";
 import {
@@ -30,8 +31,6 @@ export default class CommandPalette extends PureComponent<
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
-    hotkeyRegistered: boolean = false;
-
     constructor(props: CommandPaletteProps) {
         super(props);
         this.state = {
@@ -39,15 +38,32 @@ export default class CommandPalette extends PureComponent<
         };
     }
 
-    componentDidMount = async () => {};
+    componentDidMount = async () => {
+        log.debug("CommandPalette mounted:", this.props);
+        this.registerActionHandler();
+    };
 
     componentDidUpdate = (prevProps: CommandPaletteProps) => {
-        if (this.context?.actionManager && !this.hotkeyRegistered) {
-            this.context?.actionManager?.setHandler(ActionIds.OPEN_COMMAND_PALETTE, () => {
+        log.debug("CommandPalette props updated:", this.props);
+
+        this.registerActionHandler();
+    };
+
+    componentWillUnmount = () => {
+        this.context?.actionManager?.unregisterActionHandler(
+            ActionIds.OPEN_COMMAND_PALETTE,
+            "GlobalCommandPalette"
+        );
+    };
+
+    registerActionHandler = () => {
+        this.context?.actionManager?.registerActionHandler(ActionIds.OPEN_COMMAND_PALETTE, {
+            executeAction: () => {
                 this.handleOpenChange(true);
-            });
-            this.hotkeyRegistered = true;
-        }
+            },
+            id: "GlobalCommandPalette",
+            getState: () => ({ visibility: "active" })
+        });
     };
 
     handleOpenChange = (open: boolean) => {
@@ -64,17 +80,18 @@ export default class CommandPalette extends PureComponent<
         this.handleOpenChange(false);
     };
 
-    getCommandsByCategory = (): Map<string, ActionDefinition[]> => {
-        const byCategory = new Map<string, ActionDefinition[]>();
+    getCommandsByCategory = (): Map<string, Action[]> => {
+        const byCategory = new Map<string, Action[]>();
 
         if (!this.context?.hotkeyManager) return byCategory;
 
-        this.context.actionManager.getAllActions().forEach((action) => {
+        Array.from(this.context.actionManager.getAllActions().values()).forEach((action) => {
             const category = action.category;
             if (!byCategory.has(category)) {
                 byCategory.set(category, []);
             }
             if (action.hideInCommandPalette) return;
+            if (action.getState()?.visibility === "inactive") return;
             byCategory.get(category)!.push(action);
         });
 
@@ -89,19 +106,21 @@ export default class CommandPalette extends PureComponent<
         return byCategory;
     };
 
-    renderCommandItem = (action: ActionDefinition, keyPrefix: string = "") => {
+    renderCommandItem = (action: Action, keyPrefix: string = "") => {
         // Get all hotkeys for this action
         const hotkeys = this.context?.hotkeyManager?.getHotkeysByActionId(action.id) || [];
 
         const description = this.context?.t?.actions?.[action.id] || action.id;
 
+        const itemState = action.getState();
+
         return (
             <CommandItem
                 key={`${keyPrefix}${action.id}`}
                 onSelect={() => this.executeCommand(action.id)}
-                disabled={!action.handler}
+                disabled={itemState?.visibility === "disabled"}
             >
-                <span>{description}</span>
+                <span title={itemState?.disabledReason || undefined}>{description}</span>
                 {hotkeys.length > 0 && (
                     <div className="ml-auto flex items-center gap-2">
                         {hotkeys.map((keyCombo, index) => (
@@ -126,6 +145,13 @@ export default class CommandPalette extends PureComponent<
         const recentCommands = this.context?.actionManager?.getRecentCommands() || [];
         const recentCommandIds = new Set(recentCommands.map((cmd) => cmd.actionId));
 
+        log.debug("Rendering CommandPalette:", {
+            open,
+            recentCommands,
+            categories,
+            commandsByCategory
+        });
+
         return (
             <CommandDialog open={open} onOpenChange={this.handleOpenChange}>
                 <CommandInput placeholder={t!.commandPalette.placeholder} />
@@ -148,14 +174,23 @@ export default class CommandPalette extends PureComponent<
                     )}
 
                     {/* All Commands by Category */}
-                    {categories.map((category) => (
-                        <CommandGroup className="select-none" key={category} heading={category}>
-                            {commandsByCategory
+                    {categories
+                        .filter((category) => {
+                            const categoryActions = commandsByCategory
                                 .get(category)!
-                                .filter((action) => !recentCommandIds.has(action.id))
-                                .map((action) => this.renderCommandItem(action, `${category}-`))}
-                        </CommandGroup>
-                    ))}
+                                .filter((action) => !recentCommandIds.has(action.id));
+                            return categoryActions.length > 0;
+                        })
+                        .map((category) => (
+                            <CommandGroup className="select-none" key={category} heading={category}>
+                                {commandsByCategory
+                                    .get(category)!
+                                    .filter((action) => !recentCommandIds.has(action.id))
+                                    .map((action) =>
+                                        this.renderCommandItem(action, `${category}-`)
+                                    )}
+                            </CommandGroup>
+                        ))}
                 </CommandList>
             </CommandDialog>
         );

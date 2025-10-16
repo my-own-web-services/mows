@@ -1,4 +1,4 @@
-import type { ActionDefinition } from "@/lib/filezContext/ActionManager";
+import type { Action } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
@@ -223,8 +223,8 @@ export default class KeyboardShortcutEditor extends PureComponent<
         return Array.from(categories).sort();
     };
 
-    getActionsByCategory = (): Map<string, ActionDefinition[]> => {
-        const byCategory = new Map<string, ActionDefinition[]>();
+    getActionsByCategory = (): Map<string, Action[]> => {
+        const byCategory = new Map<string, Action[]>();
         if (!this.context) return byCategory;
 
         const searchQuery = this.state.searchQuery.toLowerCase().trim();

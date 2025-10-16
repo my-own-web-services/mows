@@ -2,7 +2,7 @@ type LogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
 
 export class Logger {
     static fileFilter: Record<string, LogLevel> = {
-        HotkeyManager: "ERROR"
+        HotkeyManager: "DEBUG"
     };
 
     static defaultLevel: LogLevel = "TRACE";
