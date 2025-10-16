@@ -100,11 +100,6 @@ export class FilezClientManagerBase extends Component<
         this.setLanguage(this.state.currentLanguage);
     };
 
-    changeActiveModal = (modalType?: ModalType) => {
-        log.debug("Changing active modal to:", modalType);
-        this.setState({ currentlyOpenModal: modalType });
-    };
-
     componentDidUpdate = async (prevProps: FilezClientManagerProps) => {
         const { auth } = this.props;
         const prevAuth = prevProps.auth;
@@ -116,6 +111,11 @@ export class FilezClientManagerBase extends Component<
         if (auth?.user !== prevAuth?.user || auth?.isLoading !== prevAuth?.isLoading) {
             await this.updateFilezClient();
         }
+    };
+
+    changeActiveModal = (modalType?: ModalType) => {
+        log.debug("Changing active modal to:", modalType);
+        this.setState({ currentlyOpenModal: modalType });
     };
 
     componentWillUnmount = () => {};

@@ -5,13 +5,16 @@ import {
 } from "@/components/list/ResourceList/ResourceListTypes";
 import ColumnListRowHandler from "@/components/list/ResourceList/rowHandlers/Column";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { log } from "@/lib/logging";
 import { cn, formatFileSizeToHumanReadable } from "@/lib/utils";
-import { SortDirection } from "filez-client-typescript";
+import { SortDirection, StorageQuota } from "filez-client-typescript";
 import { Folder, Upload as UploadIcon } from "lucide-react";
 import { createRef, PureComponent, type CSSProperties, type ReactNode } from "react";
 import DateTime from "../DateTime/DateTime";
+import StorageQuotaPicker from "../StorageQuotaPicker";
+import { handleFileUpload, UploadFileRequest, UploadProgressData } from "./handleUpload";
 import ImagePreview from "./ImagePreview";
 
 export interface UploadFile {
@@ -26,8 +29,11 @@ export interface UploadFile {
 interface UploadProps {
     readonly className?: string;
     readonly style?: CSSProperties;
-    readonly onUpload: (files: File[]) => void;
+    readonly onUpload?: (files: File[], storageQuota?: StorageQuota) => void;
     readonly onFileRemove?: (fileId: string) => void;
+    readonly getStorageQuotas?: () => Promise<StorageQuota[] | undefined>;
+    readonly selectedStorageQuota?: StorageQuota;
+    readonly onStorageQuotaChange?: (storageQuota?: StorageQuota) => void;
     readonly accept?: string;
     readonly multiple?: boolean;
     readonly maxSize?: number;
@@ -38,6 +44,7 @@ interface UploadProps {
 interface UploadState {
     readonly isDragOver: boolean;
     readonly selectedFiles: UploadFile[];
+    readonly selectedStorageQuota?: StorageQuota;
 }
 
 export default class Upload extends PureComponent<UploadProps, UploadState> {
@@ -52,11 +59,18 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
         super(props);
         this.state = {
             isDragOver: false,
-            selectedFiles: []
+            selectedFiles: [],
+            selectedStorageQuota: props.selectedStorageQuota
         };
     }
 
     componentDidMount = async () => {};
+
+    componentDidUpdate = (prevProps: UploadProps) => {
+        if (this.props.selectedStorageQuota !== prevProps.selectedStorageQuota) {
+            this.setState({ selectedStorageQuota: this.props.selectedStorageQuota });
+        }
+    };
 
     componentWillUnmount = () => {
         // Cleanup is now handled by individual ImagePreview components
@@ -278,11 +292,98 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
         this.props.onFileRemove?.(fileId);
     };
 
-    handleUpload = () => {
-        const { selectedFiles } = this.state;
-        if (selectedFiles.length > 0) {
-            const files = selectedFiles.map((uploadFile) => uploadFile.file);
-            this.props.onUpload(files);
+    handleStorageQuotaChange = (storageQuota?: StorageQuota) => {
+        this.setState({ selectedStorageQuota: storageQuota });
+        this.props.onStorageQuotaChange?.(storageQuota);
+    };
+
+    handleUpload = async () => {
+        const { selectedFiles, selectedStorageQuota } = this.state;
+        if (selectedFiles.length === 0) return;
+
+        const files = selectedFiles.map((uploadFile) => uploadFile.file);
+
+        if (this.props.onUpload) {
+            // Use provided onUpload handler
+            this.props.onUpload(files, selectedStorageQuota);
+        } else {
+            // Handle upload automatically
+            await this.handleAutomaticUpload();
+        }
+    };
+
+    handleAutomaticUpload = async () => {
+        const { selectedFiles, selectedStorageQuota } = this.state;
+
+        if (!this.context?.filezClient) {
+            console.error("FilezClient not available for automatic upload");
+            return;
+        }
+
+        if (!selectedStorageQuota) {
+            console.error("Storage quota not selected for automatic upload");
+            return;
+        }
+
+        // Update upload status for each file
+        this.setState((prevState) => ({
+            selectedFiles: prevState.selectedFiles.map((uploadFile) => ({
+                ...uploadFile,
+                status: "uploading" as const
+            }))
+        }));
+
+        try {
+            // Upload files sequentially
+            for (let i = 0; i < this.state.selectedFiles.length; i++) {
+                const uploadFile = this.state.selectedFiles[i];
+                const uploadRequest: UploadFileRequest = {
+                    file: uploadFile.file,
+                    name: uploadFile.file.name,
+                    mimeType: uploadFile.file.type
+                };
+
+                await handleFileUpload(
+                    this.context.filezClient,
+                    selectedStorageQuota,
+                    uploadRequest,
+                    (progress: UploadProgressData) => {
+                        // Update progress for this specific file
+                        this.setState(
+                            (prevState) => ({
+                                selectedFiles: prevState.selectedFiles.map((file, index) =>
+                                    index === i
+                                        ? {
+                                              ...file,
+                                              progress: progress.percentage,
+                                              status:
+                                                  progress.phase === "completed"
+                                                      ? ("completed" as const)
+                                                      : ("uploading" as const)
+                                          }
+                                        : file
+                                )
+                            }),
+                            () => {
+                                this.resourceListRef?.current?.forceUpdate();
+                            }
+                        );
+                    }
+                );
+            }
+
+            log.info(`Successfully uploaded ${this.state.selectedFiles.length} file(s)`);
+        } catch (error) {
+            log.error("Error during automatic upload:", error);
+
+            // Mark all files as error
+            this.setState((prevState) => ({
+                selectedFiles: prevState.selectedFiles.map((uploadFile) => ({
+                    ...uploadFile,
+                    status: "error" as const,
+                    error: error instanceof Error ? error.message : "Upload failed"
+                }))
+            }));
         }
     };
 
@@ -387,7 +488,7 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                                     field: "file.name",
                                     label: "Name",
                                     minWidthPixels: 150,
-                                    widthPercent: 30,
+                                    widthPercent: 25,
                                     render: (
                                         item: UploadFile,
                                         style: CSSProperties,
@@ -421,7 +522,7 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                                     field: "file.lastModified",
                                     label: "Last Modified",
                                     minWidthPixels: 200,
-                                    widthPercent: 15,
+                                    widthPercent: 12,
                                     render: (
                                         item: UploadFile,
                                         style: CSSProperties,
@@ -440,7 +541,7 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                                     field: "path",
                                     label: "Path",
                                     minWidthPixels: 200,
-                                    widthPercent: 40,
+                                    widthPercent: 25,
                                     render: (
                                         item: UploadFile,
                                         style: CSSProperties,
@@ -448,16 +549,91 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                                     ) => {
                                         return <span>{item.path || "-"}</span>;
                                     }
+                                },
+                                {
+                                    direction: SortDirection.Neutral,
+                                    enabled: true,
+                                    field: "status",
+                                    label: "Status",
+                                    minWidthPixels: 150,
+                                    widthPercent: 25,
+                                    render: (
+                                        item: UploadFile,
+                                        style: CSSProperties,
+                                        className: string
+                                    ) => {
+                                        const { status, progress, error } = item;
+
+                                        if (status === "pending") {
+                                            return (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-muted-foreground text-sm">
+                                                        {t.upload.status.pending}
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+
+                                        if (status === "uploading") {
+                                            return (
+                                                <div className="flex items-center gap-2">
+                                                    <Progress
+                                                        value={progress || 0}
+                                                        className="flex-1"
+                                                    />
+                                                    <span className="text-muted-foreground min-w-[40px] text-sm">
+                                                        {progress || 0}%
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+
+                                        if (status === "completed") {
+                                            return (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm text-green-600">
+                                                        {t.upload.status.completed}
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+
+                                        if (status === "error") {
+                                            return (
+                                                <div className="flex items-center gap-2">
+                                                    <span
+                                                        className="text-sm text-red-600"
+                                                        title={error}
+                                                    >
+                                                        {t.upload.status.error}
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <span className="text-muted-foreground text-sm">-</span>
+                                        );
+                                    }
                                 }
                             ]
                         })
                     ]}
                 ></ResourceList>
-                <div className="flex w-full justify-end pt-2">
+                <div className="flex w-full items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <StorageQuotaPicker
+                            className="w-full"
+                            value={this.state.selectedStorageQuota}
+                            onValueChange={this.handleStorageQuotaChange}
+                            getStorageQuotas={this.props.getStorageQuotas}
+                            disabled={this.props.disabled}
+                        />
+                    </div>
                     <Button
                         onClick={this.handleUpload}
-                        disabled={this.props.disabled}
-                        className="min-w-[100px]"
+                        disabled={this.props.disabled || !this.state.selectedStorageQuota}
+                        className="min-w-[100px] flex-shrink-0"
                     >
                         {t.upload.uploadFiles}
                     </Button>

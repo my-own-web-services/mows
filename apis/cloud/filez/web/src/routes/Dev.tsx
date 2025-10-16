@@ -19,7 +19,8 @@ const tests = [
     "doubleOptionUpdate",
     "nameValidation",
     "accessPoliciesListFiles",
-    "createMockFiles"
+    "createMockFiles",
+    "createAdminStorageQuota"
 ];
 
 export default class Dev extends Component<DevProps, DevState> {

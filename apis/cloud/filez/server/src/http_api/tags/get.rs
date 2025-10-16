@@ -11,7 +11,7 @@ use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
-        access_policies::{AccessPolicy, AccessPolicyAction},
+        access_policies::AccessPolicy,
         tag_members::{TagMember, TagResourceType},
     },
     state::ServerState,

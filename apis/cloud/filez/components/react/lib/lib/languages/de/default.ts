@@ -55,7 +55,8 @@ const translation: Translation = {
         [ActionIds.OPEN_THEME_SELECTOR]: "Theme-Auswahl öffnen",
         [ActionIds.OPEN_PRIMARY_MENU]: "Hauptmenü öffnen",
         [ActionIds.LOGIN]: "Anmelden",
-        [ActionIds.LOGOUT]: "Abmelden"
+        [ActionIds.LOGOUT]: "Abmelden",
+        [ActionIds.DELETE_FILES]: "Dateien löschen"
     },
     commandPalette: {
         placeholder: "Befehl eingeben oder suchen...",
@@ -91,6 +92,18 @@ const translation: Translation = {
             completed: "Abgeschlossen",
             error: "Fehler"
         }
+    },
+    storageLocationPicker: {
+        title: "Speicherort-Auswahl",
+        selectStorageLocation: "Speicherort auswählen",
+        noStorageLocationFound: "Kein Speicherort gefunden",
+        loading: "Lade Speicherorte..."
+    },
+    storageQuotaPicker: {
+        title: "Speicherkontingent-Auswahl",
+        selectStorageQuota: "Speicherkontingent auswählen",
+        noStorageQuotaFound: "Kein Speicherkontingent gefunden",
+        loading: "Lade Speicherkontingente..."
     }
 };
 

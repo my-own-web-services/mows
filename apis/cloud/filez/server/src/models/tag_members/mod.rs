@@ -6,9 +6,10 @@ use crate::{
         update::UpdateTagsMethod,
     },
     models::{
-        access_policies::{AccessPolicyAction, AccessPolicyResourceType},
+        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        apps::MowsApp,
         tags::{FilezTag, TagId},
-        users::FilezUserId,
+        users::{FilezUser, FilezUserId},
     },
     schema::{self},
     types::SortDirection,
@@ -38,6 +39,7 @@ use utoipa::ToSchema;
     Copy,
     PartialEq,
     Eq,
+    Hash,
     AsExpression,
     FromSqlRow,
     DbEnum,
@@ -329,11 +331,12 @@ impl TagMember {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn list_tags(
+    pub async fn list_tags_with_access(
         database: &Database,
+        maybe_requesting_user: Option<&FilezUser>,
+        requesting_app: &MowsApp,
         search: Option<&ListTagsSearch>,
-        resource_type: Option<TagResourceType>,
-        accessible_resource_ids: Option<&[Uuid]>,
+        resource_type: TagResourceType,
         from_index: Option<u64>,
         limit: Option<u64>,
         sort_by: Option<ListTagsSortBy>,
@@ -341,6 +344,219 @@ impl TagMember {
     ) -> Result<(Vec<ListTagResult>, u64), FilezError> {
         let mut connection = database.get_connection().await?;
 
-        todo!()
+        let owned_resource_ids = match resource_type {
+            TagResourceType::File => {
+                AccessPolicy::get_resources_with_access(
+                    database,
+                    maybe_requesting_user,
+                    requesting_app,
+                    AccessPolicyResourceType::File,
+                    AccessPolicyAction::FilezFilesGet,
+                )
+                .await?
+            }
+            TagResourceType::FileVersion => {
+                AccessPolicy::get_resources_with_access(
+                    database,
+                    maybe_requesting_user,
+                    requesting_app,
+                    AccessPolicyResourceType::File,
+                    AccessPolicyAction::FilezFilesGet,
+                )
+                .await?
+            }
+            TagResourceType::FileGroup => {
+                AccessPolicy::get_resources_with_access(
+                    database,
+                    maybe_requesting_user,
+                    requesting_app,
+                    AccessPolicyResourceType::FileGroup,
+                    AccessPolicyAction::FileGroupsGet,
+                )
+                .await?
+            }
+            TagResourceType::User => {
+                AccessPolicy::get_resources_with_access(
+                    database,
+                    maybe_requesting_user,
+                    requesting_app,
+                    AccessPolicyResourceType::User,
+                    AccessPolicyAction::UsersGet,
+                )
+                .await?
+            }
+            TagResourceType::UserGroup => {
+                AccessPolicy::get_resources_with_access(
+                    database,
+                    maybe_requesting_user,
+                    requesting_app,
+                    AccessPolicyResourceType::UserGroup,
+                    AccessPolicyAction::UserGroupsGet,
+                )
+                .await?
+            }
+            TagResourceType::StorageLocation => {
+                AccessPolicy::get_resources_with_access(
+                    database,
+                    maybe_requesting_user,
+                    requesting_app,
+                    AccessPolicyResourceType::StorageLocation,
+                    AccessPolicyAction::StorageLocationsGet,
+                )
+                .await?
+            }
+            TagResourceType::AccessPolicy => {
+                AccessPolicy::get_resources_with_access(
+                    database,
+                    maybe_requesting_user,
+                    requesting_app,
+                    AccessPolicyResourceType::AccessPolicy,
+                    AccessPolicyAction::AccessPoliciesGet,
+                )
+                .await?
+            }
+            TagResourceType::StorageQuota => {
+                AccessPolicy::get_resources_with_access(
+                    database,
+                    maybe_requesting_user,
+                    requesting_app,
+                    AccessPolicyResourceType::StorageQuota,
+                    AccessPolicyAction::StorageQuotasGet,
+                )
+                .await?
+            }
+        };
+
+        if owned_resource_ids.is_empty() {
+            return Ok((vec![], 0));
+        }
+
+        // Build the main query to get tags for accessible resources
+        let mut query = schema::tag_members::table
+            .inner_join(schema::tags::table)
+            .filter(schema::tag_members::resource_type.eq(resource_type))
+            .filter(schema::tag_members::resource_id.eq_any(&owned_resource_ids))
+            .group_by((schema::tags::key, schema::tags::value))
+            .select((
+                schema::tags::key,
+                schema::tags::value,
+                diesel::dsl::count_star(),
+            ))
+            .into_boxed();
+
+        // Apply search filters if provided
+        if let Some(search) = search {
+            if let Some(plain_string) = &search.plain_string {
+                let search_pattern = format!("%{}%", plain_string.to_lowercase());
+                query = query.filter(diesel::dsl::sql::<diesel::sql_types::Bool>(&format!(
+                    "LOWER(tags.key) LIKE '{}' OR LOWER(tags.value) LIKE '{}'",
+                    search_pattern, search_pattern
+                )));
+            }
+
+            if let Some(tag_key) = &search.tag_key {
+                let key_pattern = format!("%{}%", tag_key.to_lowercase());
+                query = query.filter(diesel::dsl::sql::<diesel::sql_types::Bool>(&format!(
+                    "LOWER(tags.key) LIKE '{}'",
+                    key_pattern
+                )));
+            }
+
+            if let Some(tag_value) = &search.tag_value {
+                let value_pattern = format!("%{}%", tag_value.to_lowercase());
+                query = query.filter(diesel::dsl::sql::<diesel::sql_types::Bool>(&format!(
+                    "LOWER(tags.value) LIKE '{}'",
+                    value_pattern
+                )));
+            }
+        }
+
+        // Execute query to get all results first (for counting)
+        let all_results: Vec<(String, String, i64)> = query.load(&mut connection).await?;
+        let total_count: u64 = all_results.len().try_into()?;
+
+        // Apply sorting to the results
+        let mut sorted_results = all_results;
+
+        let sort_by = sort_by.unwrap_or(ListTagsSortBy::UsageCount);
+        let sort_order = sort_order.unwrap_or(SortDirection::Descending);
+
+        match (sort_by, sort_order) {
+            (ListTagsSortBy::TagKey, SortDirection::Ascending) => {
+                sorted_results.sort_by(|a, b| a.0.cmp(&b.0));
+            }
+            (ListTagsSortBy::TagKey, SortDirection::Descending) => {
+                sorted_results.sort_by(|a, b| b.0.cmp(&a.0));
+            }
+            (ListTagsSortBy::TagValue, SortDirection::Ascending) => {
+                sorted_results.sort_by(|a, b| a.1.cmp(&b.1));
+            }
+            (ListTagsSortBy::TagValue, SortDirection::Descending) => {
+                sorted_results.sort_by(|a, b| b.1.cmp(&a.1));
+            }
+            (ListTagsSortBy::UsageCount, SortDirection::Ascending) => {
+                sorted_results.sort_by(|a, b| a.2.cmp(&b.2));
+            }
+            (ListTagsSortBy::UsageCount, SortDirection::Descending) => {
+                sorted_results.sort_by(|a, b| b.2.cmp(&a.2));
+            }
+            // For CreatedTime and ModifiedTime, we'll use tag key as fallback since
+            // the aggregated query doesn't have access to timestamp fields
+            (ListTagsSortBy::CreatedTime, SortDirection::Ascending) => {
+                sorted_results.sort_by(|a, b| a.0.cmp(&b.0));
+            }
+            (ListTagsSortBy::CreatedTime, SortDirection::Descending) => {
+                sorted_results.sort_by(|a, b| b.0.cmp(&a.0));
+            }
+            (ListTagsSortBy::ModifiedTime, SortDirection::Ascending) => {
+                sorted_results.sort_by(|a, b| a.0.cmp(&b.0));
+            }
+            (ListTagsSortBy::ModifiedTime, SortDirection::Descending) => {
+                sorted_results.sort_by(|a, b| b.0.cmp(&a.0));
+            }
+            // Handle Neutral cases by defaulting to descending order
+            (ListTagsSortBy::TagKey, SortDirection::Neutral) => {
+                sorted_results.sort_by(|a, b| b.0.cmp(&a.0));
+            }
+            (ListTagsSortBy::TagValue, SortDirection::Neutral) => {
+                sorted_results.sort_by(|a, b| b.1.cmp(&a.1));
+            }
+            (ListTagsSortBy::UsageCount, SortDirection::Neutral) => {
+                sorted_results.sort_by(|a, b| b.2.cmp(&a.2));
+            }
+            (ListTagsSortBy::CreatedTime, SortDirection::Neutral) => {
+                sorted_results.sort_by(|a, b| b.0.cmp(&a.0));
+            }
+            (ListTagsSortBy::ModifiedTime, SortDirection::Neutral) => {
+                sorted_results.sort_by(|a, b| b.0.cmp(&a.0));
+            }
+        }
+
+        // Apply pagination
+        let from_index = from_index.unwrap_or(0) as usize;
+        let limit = limit.map(|l| l as usize);
+
+        let paginated_results: Vec<(String, String, i64)> = if let Some(limit) = limit {
+            sorted_results
+                .into_iter()
+                .skip(from_index)
+                .take(limit)
+                .collect()
+        } else {
+            sorted_results.into_iter().skip(from_index).collect()
+        };
+
+        // Convert to ListTagResult
+        let final_results: Vec<ListTagResult> = paginated_results
+            .into_iter()
+            .map(|(tag_key, tag_value, usage_count)| ListTagResult {
+                tag_key,
+                tag_value,
+                resource_type,
+                usage_count: usage_count.try_into().unwrap_or(0),
+            })
+            .collect();
+
+        Ok((final_results, total_count))
     }
 }

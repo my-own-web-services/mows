@@ -1,12 +1,6 @@
 export { default as CommandPalette } from "./components/atoms/CommandPalette";
-export { default as ContextMenu } from "./components/atoms/ContextMenu";
-export type {
-    ActionMenuItem,
-    LabelMenuItem,
-    MenuItem,
-    SeparatorMenuItem,
-    SubMenuItem
-} from "./components/atoms/ContextMenu";
+export { default as GlobalContextMenu } from "./components/atoms/GlobalContextMenu";
+
 export { default as ModalHandler } from "./components/atoms/ModalHandler";
 export { default as ResourceTags } from "./components/atoms/ResourceTags/ResourceTags";
 

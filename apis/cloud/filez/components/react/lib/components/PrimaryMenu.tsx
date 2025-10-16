@@ -49,17 +49,29 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
         };
     }
 
-    componentDidMount = async () => {};
+    componentDidMount = async () => {
+        this.registerActionHandler();
+    };
 
     componentDidUpdate = async () => {
-        if (
-            this.context?.actionManager &&
-            !this.context?.actionManager.handlerExists(ActionIds.OPEN_PRIMARY_MENU)
-        ) {
-            this.context?.actionManager?.setHandler(ActionIds.OPEN_PRIMARY_MENU, () => {
+        this.registerActionHandler();
+    };
+
+    registerActionHandler = () => {
+        this.context?.actionManager?.registerActionHandler(ActionIds.OPEN_PRIMARY_MENU, {
+            getState: () => ({ visibility: "active" }),
+            id: "GlobalOpenPrimaryMenu",
+            executeAction: async () => {
                 this.setState({ menuOpen: true });
-            });
-        }
+            }
+        });
+    };
+
+    componentWillUnmount = () => {
+        this.context?.actionManager?.unregisterActionHandler(
+            ActionIds.OPEN_PRIMARY_MENU,
+            "GlobalOpenPrimaryMenu"
+        );
     };
 
     loginClick = async () => {

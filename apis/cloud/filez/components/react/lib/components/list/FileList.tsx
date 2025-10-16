@@ -1,10 +1,12 @@
-import { CSSProperties, JSX, PureComponent, createRef } from "react";
+import { CSSProperties, PureComponent, createRef } from "react";
 
 import { FileGroupType, FilezFile, ListFilesSortBy, SortDirection } from "filez-client-typescript";
 
+import { ActionIds } from "@/lib/defaultActions";
+import { ActionHandler } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
-import { ContextMenu, FilezContext } from "@/main";
+import { FilezContext } from "@/main";
 import ResourceList from "./ResourceList/ResourceList";
 import {
     ListResourceRequestBody,
@@ -45,6 +47,10 @@ export default class FileList extends PureComponent<FileListProps, FileListState
 
     resourceListRef = createRef<ResourceList<FilezFile>>();
 
+    listId: string;
+
+    actionHandler: ActionHandler;
+
     constructor(props: FileListProps) {
         super(props);
         this.state = {
@@ -53,7 +59,55 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             editModalOpen: false,
             selectedFiles: []
         };
+
+        this.listId = Math.random().toString(36).substring(2, 15);
+
+        this.actionHandler = {
+            executeAction: () => {
+                const selectedItems = this.resourceListRef.current?.getSelectedItems() || [];
+                if (selectedItems.length === 0) {
+                    log.debug("No files selected, cannot delete");
+                    return;
+                }
+                log.debug("Delete files action triggered for files:", selectedItems);
+            },
+            id: this.listId,
+            getState: () => {
+                const selectedItems = this.resourceListRef.current?.getSelectedItems() || [];
+                if (selectedItems.length === 0) {
+                    return { visibility: "inactive", disabledReason: "No files selected" };
+                }
+                return { visibility: "active" };
+            }
+        };
     }
+
+    componentDidMount = async () => {
+        log.debug("CommandPalette mounted:", this.props);
+        this.registerActionHandler();
+    };
+
+    componentDidUpdate = (prevProps: FileListProps) => {
+        log.debug("CommandPalette props updated:", this.props);
+
+        this.registerActionHandler();
+    };
+
+    registerActionHandler = () => {
+        if (this.context?.actionManager?.registerActionHandler) {
+            this.context?.actionManager?.registerActionHandler(
+                ActionIds.DELETE_FILES,
+                this.actionHandler
+            );
+        }
+    };
+
+    componentWillUnmount = () => {
+        this.context?.actionManager?.unregisterActionHandler(
+            ActionIds.DELETE_FILES,
+            this.actionHandler.id
+        );
+    };
 
     getFilesList = async (
         request: ListResourceRequestBody
@@ -94,32 +148,17 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         return { totalCount: 0, items: [] };
     };
 
-    itemContextMenu = (triggerElement: JSX.Element) => {
-        return (
-            <ContextMenu
-                items={[
-                    {
-                        id: "delete",
-                        label: "Delete",
-                        type: "action",
-                        onSelect: () => {
-                            log.debug("Delete", this.resourceListRef.current?.getSelectedItems());
-                        }
-                    }
-                ]}
-            >
-                {triggerElement}
-            </ContextMenu>
-        );
-    };
-
     render = () => {
         if (!this.context?.clientAuthenticated) {
             return <></>;
         }
 
         return (
-            <div className={cn("FileList", this.props.className)} style={{ ...this.props.style }}>
+            <div
+                data-actionscope={this.listId}
+                className={cn("FileList", this.props.className)}
+                style={{ ...this.props.style }}
+            >
                 <ResourceList<FilezFile>
                     ref={this.resourceListRef}
                     resourceType="File"
@@ -145,6 +184,21 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         );
     };
 }
+
+/*
+Delete File -> 
+    - Should only be active when one or more files are selected -> No feedback no display when nothing is selected
+    - should only be active when the user has delete permissions -> feedback: disabled action in commandPalette and context menu, toast when hotkey is pressed
+
+If two File lists are open and files are selected in both, the delete action should only delete files from the last focused list
+
+Copy File
+Duplicate File
+Open File
+Open file with
+
+New File
+*/
 
 const defaultColumns: Column<FilezFile>[] = [
     {

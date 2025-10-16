@@ -54,7 +54,8 @@ const translation: Translation = {
         [ActionIds.OPEN_THEME_SELECTOR]: "Open theme selector",
         [ActionIds.OPEN_PRIMARY_MENU]: "Open primary menu",
         [ActionIds.LOGIN]: "Login",
-        [ActionIds.LOGOUT]: "Logout"
+        [ActionIds.LOGOUT]: "Logout",
+        [ActionIds.DELETE_FILES]: "Delete files"
     },
     commandPalette: {
         placeholder: "Type a command or search...",
@@ -90,6 +91,18 @@ const translation: Translation = {
             completed: "Completed",
             error: "Error"
         }
+    },
+    storageLocationPicker: {
+        title: "Storage Location Selector",
+        selectStorageLocation: "Select storage location",
+        noStorageLocationFound: "No storage location found",
+        loading: "Loading storage locations..."
+    },
+    storageQuotaPicker: {
+        title: "Storage Quota Selector",
+        selectStorageQuota: "Select storage quota",
+        noStorageQuotaFound: "No storage quota found",
+        loading: "Loading storage quotas..."
     }
 };
 

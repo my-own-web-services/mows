@@ -44,6 +44,14 @@ export enum ListUserGroupsSortBy {
   ModifiedTime = "ModifiedTime",
 }
 
+export enum ListTagsSortBy {
+  TagKey = "TagKey",
+  TagValue = "TagValue",
+  UsageCount = "UsageCount",
+  CreatedTime = "CreatedTime",
+  ModifiedTime = "ModifiedTime",
+}
+
 export enum ListStorageQuotasSortBy {
   CreatedTime = "CreatedTime",
   ModifiedTime = "ModifiedTime",
@@ -491,6 +499,19 @@ export interface ApiResponseListStorageLocationsResponseBody {
 export interface ApiResponseListStorageQuotasResponseBody {
   data?: {
     storage_quotas: StorageQuota[];
+    /**
+     * @format int64
+     * @min 0
+     */
+    total_count: number;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseListTagsResponseBody {
+  data?: {
+    tags: ListTagResult[];
     /**
      * @format int64
      * @min 0
@@ -1326,6 +1347,55 @@ export interface ListStorageQuotasResponseBody {
    * @min 0
    */
   total_count: number;
+}
+
+export interface ListTagResult {
+  resource_type: TagResourceType;
+  tag_key: string;
+  tag_value: string;
+  /**
+   * @format int64
+   * @min 0
+   */
+  usage_count: number;
+}
+
+export interface ListTagsRequestBody {
+  /**
+   * @format int64
+   * @min 0
+   */
+  from_index?: number | null;
+  /**
+   * @format int64
+   * @min 0
+   */
+  limit?: number | null;
+  resource_type?: null | TagResourceType;
+  search?: null | ListTagsSearch;
+  sort_by?: null | ListTagsSortBy;
+  sort_order?: null | SortDirection;
+}
+
+export interface ListTagsResponseBody {
+  tags: ListTagResult[];
+  /**
+   * @format int64
+   * @min 0
+   */
+  total_count: number;
+}
+
+export interface ListTagsSearch {
+  plain_string?: string | null;
+  search_context?: null | ListTagsSearchContext;
+  tag_key?: string | null;
+  tag_value?: string | null;
+}
+
+export interface ListTagsSearchContext {
+  /** The resource IDs that are currently selected in the UI, this could be used in the future to prioritize tags that are already in use by similar resources */
+  resource_ids: string[];
 }
 
 export interface ListUserGroupsRequestBody {
@@ -2733,6 +2803,25 @@ export class Api<
         ApiResponseGetTagsResponseBody
       >({
         path: `/api/tags/get`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description List tags across resources with pagination and filtering
+     *
+     * @name ListTags
+     * @request POST:/api/tags/list
+     */
+    listTags: (data: ListTagsRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseListTagsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/tags/list`,
         method: "POST",
         body: data,
         type: ContentType.Json,

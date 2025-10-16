@@ -87,6 +87,18 @@ export interface Translation {
             error: string;
         };
     };
+    storageLocationPicker: {
+        title: string;
+        selectStorageLocation: string;
+        noStorageLocationFound: string;
+        loading: string;
+    };
+    storageQuotaPicker: {
+        title: string;
+        selectStorageQuota: string;
+        noStorageQuotaFound: string;
+        loading: string;
+    };
 }
 
 export const getBrowserLanguage = (): Language => {
