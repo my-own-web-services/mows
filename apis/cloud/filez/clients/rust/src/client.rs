@@ -746,6 +746,22 @@ impl ApiClient {
     }
 
     #[tracing::instrument(level = "trace")]
+    pub async fn get_storage_quota_usage(&self, request_body: GetStorageQuotaUsageRequestBody) -> Result<ApiResponseGetStorageQuotaUsageResponseBody, ApiClientError> {
+        
+        let full_url = format!("{}/api/storage_quotas/get_usage", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+        
+        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            return Err(ApiClientError::ApiError(response.text().await?));
+        }
+            
+        let response = response.json().await?;
+        Ok(response)
+    }
+
+    #[tracing::instrument(level = "trace")]
     pub async fn list_storage_quotas(&self, request_body: ListStorageQuotasRequestBody) -> Result<ApiResponseListStorageQuotasResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/storage_quotas/list", self.base_url);

@@ -104,6 +104,11 @@ const translation: Translation = {
         selectStorageQuota: "Speicherkontingent auswählen",
         noStorageQuotaFound: "Kein Speicherkontingent gefunden",
         loading: "Lade Speicherkontingente..."
+    },
+    common: {
+        files: {
+            delete: (fileCount: number) => fileCount === 1 ? "Datei löschen" : `${fileCount} Dateien löschen`
+        }
     }
 };
 

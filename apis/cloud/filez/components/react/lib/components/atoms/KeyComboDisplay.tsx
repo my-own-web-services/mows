@@ -15,6 +15,8 @@ export default function KeyComboDisplay({ keyCombo, className, style }: KeyCombo
         return null;
     }
 
+    // TODO: translate key names based on OS and language
+
     return (
         <div className={cn("flex items-center gap-1", className)} style={style}>
             {keys.map((key, i, arr) => (

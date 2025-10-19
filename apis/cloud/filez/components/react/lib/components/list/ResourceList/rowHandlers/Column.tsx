@@ -3,9 +3,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
 import { SortDirection } from "filez-client-typescript";
-import cloneDeep from "lodash/cloneDeep";
 import { LucideColumns3 } from "lucide-react";
-import { CSSProperties, JSX } from "react";
+import { Component, CSSProperties, JSX } from "react";
 import { FaThList } from "react-icons/fa";
 import { IoChevronUp } from "react-icons/io5";
 import { match } from "ts-pattern";
@@ -31,29 +30,36 @@ export interface ColumnListRowHandlerProps<FilezResourceType> {
     selectAllTitle?: string;
 }
 
+export interface ColumnListRowHandlerState<FilezResourceType> {
+    columns: Column<FilezResourceType>[];
+}
+
 export default class ColumnListRowHandler<FilezResourceType extends BaseResource>
+    extends Component<
+        ColumnListRowHandlerProps<FilezResourceType>,
+        ColumnListRowHandlerState<FilezResourceType>
+    >
     implements ListRowHandler<FilezResourceType>
 {
     id = "ColumnListRowHandler";
     name = "Columns";
     icon = (<FaThList height={"100%"} />);
     direction = RowRendererDirection.Vertical;
-    columns: Column<FilezResourceType>[];
+    //columns: Column<FilezResourceType>[];
     resourceList: InstanceType<typeof ResourceList> | undefined;
     rowHeightPixels = 24;
     props: ColumnListRowHandlerProps<FilezResourceType>;
 
     constructor(props: ColumnListRowHandlerProps<FilezResourceType>) {
+        super(props);
         this.props = props;
 
         if (props.rowHeightPixels !== undefined) {
             this.rowHeightPixels = props.rowHeightPixels;
         }
 
-        const columns = cloneDeep(props.columns);
-
-        this.checkColumns(columns);
-        this.columns = columns;
+        this.checkColumns(props.columns);
+        this.state = { columns: props.columns };
     }
 
     checkColumns = (columns: Column<FilezResourceType>[]) => {
@@ -83,14 +89,20 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
     };
 
     setColumSorting = (field: string, newDirection: SortDirection) => {
-        this.columns = this.columns.map((c) => {
-            if (c.field === field) {
-                c.direction = newDirection;
-            } else {
-                c.direction = SortDirection.Neutral;
-            }
-            return c;
-        });
+        // Only update state if component is mounted
+        if (this.state) {
+            this.setState({
+                columns: this.state.columns.map((c) => {
+                    if (c.field === field) {
+                        c.direction = newDirection;
+                    } else {
+                        c.direction = SortDirection.Neutral;
+                    }
+                    return c;
+                })
+            });
+        }
+
         this.resourceList?.setState(
             {
                 sortBy: field,
@@ -104,7 +116,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
     };
 
     headerRenderer = () => {
-        const columns = this.columns;
+        const columns = this.state.columns;
         const activeColumns = columns.filter((c) => c.enabled);
 
         if (this.props.hideColumnHeader === true) return <></>;
@@ -214,15 +226,17 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                             header="Columns"
                             showCount={false}
                             onOptionChange={(id: string, enabled: boolean) => {
-                                this.columns = this.columns.map((c) => {
-                                    if (c.field === id) {
-                                        c.enabled = enabled;
-                                    }
-                                    return c;
+                                this.setState({
+                                    columns: columns.map((c) => {
+                                        if (c.field === id) {
+                                            c.enabled = enabled;
+                                        }
+                                        return c;
+                                    })
                                 });
                                 this.resourceList?.forceUpdate();
                             }}
-                            options={this.columns.map((column) => {
+                            options={columns.map((column) => {
                                 return {
                                     id: column.field,
                                     label: column.label,
@@ -239,6 +253,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
     rowRenderer = (rowProps: RowComponentProps<FilezResourceType>) => {
         if (rowProps.data === undefined) return;
         const item = rowProps.data?.items?.[rowProps.index]!;
+        const listId = rowProps.data?.listInstanceId;
         if (!item) return;
         const isSelected = rowProps.data.selectedItems[rowProps.index] === true;
         const style = rowProps.style;
@@ -251,6 +266,8 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
         const getCurrentItem = (): FilezResourceType => {
             return rowProps.data?.items?.[rowProps.index]!;
         };
+
+        const columns = this.state.columns;
 
         return (
             <div
@@ -275,19 +292,22 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                     </div>
                 )}
 
-                {this.columns
+                {columns
                     .filter((c) => c.enabled)
                     .map((column, index) => {
                         return (
                             <span
                                 onClick={onItemClick}
+                                onContextMenu={onItemClick}
                                 key={column.field + index}
                                 className="flex h-full items-center overflow-hidden text-ellipsis whitespace-nowrap"
                                 style={{
                                     flex: `${column.widthPercent} 1 0px`
                                 }}
                             >
-                                <span className="p-2">{column.render(item, {}, "w-full")}</span>
+                                <span className="p-2">
+                                    {column.render(item, {}, "w-full", listId)}
+                                </span>
                             </span>
                         );
                     })}
@@ -375,5 +395,10 @@ export interface Column<FilezResourceType> {
     disableSorting?: boolean;
     disableResizing?: boolean;
     disableLabel?: boolean;
-    render: (item: FilezResourceType, style: CSSProperties, className: string) => JSX.Element;
+    render: (
+        item: FilezResourceType,
+        style: CSSProperties,
+        className: string,
+        listId: string
+    ) => JSX.Element;
 }

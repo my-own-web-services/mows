@@ -80,13 +80,13 @@ test("ColumnListRowHandler creates correctly with proper configuration", () => {
 
     // Test basic properties
     expect(columnHandler.id).toBe("ColumnListRowHandler");
-    expect(columnHandler.columns).toHaveLength(4);
+    expect(columnHandler.state.columns).toHaveLength(4);
     expect(columnHandler.props.hideSelectionCheckboxColumn).toBe(true);
 
     // Test that columns are correctly copied
-    expect(columnHandler.columns[0].field).toBe("name");
-    expect(columnHandler.columns[0].enabled).toBe(true);
-    expect(columnHandler.columns[3].enabled).toBe(false); // Date Modified is disabled
+    expect(columnHandler.state.columns[0].field).toBe("name");
+    expect(columnHandler.state.columns[0].enabled).toBe(true);
+    expect(columnHandler.state.columns[3].enabled).toBe(false); // Date Modified is disabled
 });
 
 test("ResourceList renders with data and calls API correctly", async () => {
@@ -109,6 +109,7 @@ test("ResourceList renders with data and calls API correctly", async () => {
             <div style={{ width: 800, height: 600 }}>
                 <FilezProvider>
                     <ResourceList<TestResource>
+                        listInstanceId="test-resource-list-1"
                         resourceType="TestResource"
                         defaultSortBy="name"
                         defaultSortDirection={SortDirection.Ascending}
@@ -173,6 +174,7 @@ test("ResourceList keyboard navigation setup works", async () => {
         <div style={{ width: 800, height: 600 }}>
             <FilezProvider>
                 <ResourceList<TestResource>
+                    listInstanceId="test-resource-list-1"
                     resourceType="TestResource"
                     defaultSortBy="name"
                     defaultSortDirection={SortDirection.Ascending}
@@ -243,11 +245,11 @@ test("Column sorting callback works correctly", () => {
     columnHandler.setColumSorting("size", SortDirection.Ascending);
 
     // Check that the column direction was updated
-    const sizeColumn = columnHandler.columns.find((c) => c.field === "size");
+    const sizeColumn = columnHandler.state.columns.find((c) => c.field === "size");
     expect(sizeColumn?.direction).toBe(SortDirection.Ascending);
 
     // Check that other columns were reset to Neutral
-    const nameColumn = columnHandler.columns.find((c) => c.field === "name");
+    const nameColumn = columnHandler.state.columns.find((c) => c.field === "name");
     expect(nameColumn?.direction).toBe(SortDirection.Neutral);
 
     // Check that the resource list setState was called
@@ -280,6 +282,7 @@ test("ResourceList click handler integration works", async () => {
         <div style={{ width: 800, height: 600 }}>
             <FilezProvider>
                 <ResourceList<TestResource>
+                    listInstanceId="test-resource-list-1"
                     resourceType="TestResource"
                     defaultSortBy="name"
                     defaultSortDirection={SortDirection.Ascending}
@@ -337,6 +340,7 @@ test("ResourceList checkbox functionality setup", async () => {
         <div style={{ width: 800, height: 600 }}>
             <FilezProvider>
                 <ResourceList<TestResource>
+                    listInstanceId="test-resource-list-1"
                     resourceType="TestResource"
                     defaultSortBy="name"
                     defaultSortDirection={SortDirection.Ascending}
@@ -395,6 +399,7 @@ test("ResourceList selection state management", async () => {
         <div style={{ width: 800, height: 600 }}>
             <FilezProvider>
                 <ResourceList<TestResource>
+                    listInstanceId="test-resource-list-1"
                     resourceType="TestResource"
                     defaultSortBy="name"
                     defaultSortDirection={SortDirection.Ascending}
@@ -515,6 +520,7 @@ test("ResourceList handles empty data gracefully", async () => {
     render(
         <FilezProvider>
             <ResourceList<TestResource>
+                listInstanceId="test-resource-list-1"
                 resourceType="TestResource"
                 defaultSortBy="name"
                 defaultSortDirection={SortDirection.Ascending}
@@ -596,6 +602,7 @@ test("ResourceList calls API with correct parameters on sort change", async () =
     render(
         <FilezProvider>
             <ResourceList<TestResource>
+                listInstanceId="test-resource-list-1"
                 resourceType="TestResource"
                 defaultSortBy="name"
                 defaultSortDirection={SortDirection.Ascending}

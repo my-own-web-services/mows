@@ -239,7 +239,9 @@ path "mows-core-secrets-vrc/*" {
                 &mut CreateKubernetesRoleRequestBuilder::default()
                     .bound_service_account_names(vec![s!("vault-resource-controller")])
                     .bound_service_account_namespaces(vec![s!("mows-core-secrets-vault")])
-                    .token_policies(vec![s!(token_policy_name)]),
+                    .token_policies(vec![s!(token_policy_name)])
+                    .token_ttl("1h")
+                    .token_max_ttl("1h"),
             ),
         )
         .await

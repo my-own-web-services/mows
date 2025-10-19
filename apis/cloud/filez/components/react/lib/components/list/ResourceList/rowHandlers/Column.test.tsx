@@ -644,11 +644,11 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
             columnHandler.setColumSorting("size", SortDirection.Ascending);
 
             // Check that the column direction was updated
-            const sizeColumn = columnHandler.columns.find((c) => c.field === "size");
+            const sizeColumn = columnHandler.state.columns.find((c) => c.field === "size");
             expect(sizeColumn?.direction).toBe(SortDirection.Ascending);
 
             // Check that other columns were reset to Neutral
-            const nameColumn = columnHandler.columns.find((c) => c.field === "name");
+            const nameColumn = columnHandler.state.columns.find((c) => c.field === "name");
             expect(nameColumn?.direction).toBe(SortDirection.Neutral);
 
             // Check that the resource list setState was called

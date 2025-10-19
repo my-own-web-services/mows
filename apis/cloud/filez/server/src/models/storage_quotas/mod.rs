@@ -149,6 +149,30 @@ impl StorageQuota {
         storage_quota_id: &StorageQuotaId,
         requested_size: u64,
     ) -> Result<(), FilezError> {
+        let (storage_quota, used_size_bytes) =
+            Self::get_usage(database, requesting_user_id, storage_quota_id).await?;
+
+        let quota_allowed_bytes: u64 = storage_quota.quota_bytes.try_into()?;
+
+        if used_size_bytes + requested_size > quota_allowed_bytes {
+            return Err(FilezError::StorageQuotaExceeded {
+                quota_label: get_resource_label!(storage_quota),
+                requested_bytes: requested_size,
+                quota_allowed_bytes,
+                quota_used_bytes: used_size_bytes,
+                request_over_quota_bytes: requested_size + used_size_bytes - quota_allowed_bytes,
+            });
+        }
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_usage(
+        database: &Database,
+        requesting_user_id: &FilezUserId,
+        storage_quota_id: &StorageQuotaId,
+    ) -> Result<(StorageQuota, u64), FilezError> {
         let mut connection = database.get_connection().await?;
 
         let user_groups = UserGroup::get_all_ids_by_user_id(database, requesting_user_id).await?;
@@ -189,19 +213,7 @@ impl StorageQuota {
                 "Failed to convert used size to u64. It looks like you have a LOT of data."
             ))?;
 
-        let quota_allowed_bytes: u64 = storage_quota.quota_bytes.try_into()?;
-
-        if used_size + requested_size > quota_allowed_bytes {
-            return Err(FilezError::StorageQuotaExceeded {
-                quota_label: get_resource_label!(storage_quota),
-                requested_bytes: requested_size,
-                quota_allowed_bytes,
-                quota_used_bytes: used_size,
-                request_over_quota_bytes: requested_size + used_size - quota_allowed_bytes,
-            });
-        }
-
-        Ok(())
+        Ok((storage_quota, used_size))
     }
 
     #[tracing::instrument(level = "trace", skip(database))]

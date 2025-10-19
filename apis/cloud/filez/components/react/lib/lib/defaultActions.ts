@@ -1,4 +1,3 @@
-import { ACTION_GLOBAL_SCOPE } from "./constants";
 import { Action } from "./filezContext/ActionManager";
 import type { FilezClientManagerBase } from "./filezContext/FilezContext";
 import { log } from "./logging";
@@ -23,7 +22,7 @@ export const defineApplicationActions = (
             category: "General",
             actionHandlers: new Map([
                 [
-                    ACTION_GLOBAL_SCOPE,
+                    "GlobalOpenKeyboardShortcuts",
                     {
                         id: "GlobalOpenKeyboardShortcuts",
                         executeAction: () =>
@@ -38,7 +37,7 @@ export const defineApplicationActions = (
             category: "General",
             actionHandlers: new Map([
                 [
-                    ACTION_GLOBAL_SCOPE,
+                    "GlobalOpenLanguageSettings",
                     {
                         id: "GlobalOpenLanguageSettings",
                         executeAction: () =>
@@ -53,7 +52,7 @@ export const defineApplicationActions = (
             category: "General",
             actionHandlers: new Map([
                 [
-                    ACTION_GLOBAL_SCOPE,
+                    "GlobalOpenThemeSelector",
                     {
                         id: "GlobalOpenThemeSelector",
                         executeAction: () =>
@@ -72,7 +71,7 @@ export const defineApplicationActions = (
             category: "User",
             actionHandlers: new Map([
                 [
-                    ACTION_GLOBAL_SCOPE,
+                    "GlobalLogin",
                     {
                         id: "GlobalLogin",
                         getState: () => {
@@ -100,7 +99,7 @@ export const defineApplicationActions = (
             category: "User",
             actionHandlers: new Map([
                 [
-                    ACTION_GLOBAL_SCOPE,
+                    "GlobalLogout",
                     {
                         id: "GlobalLogout",
                         getState: () => {

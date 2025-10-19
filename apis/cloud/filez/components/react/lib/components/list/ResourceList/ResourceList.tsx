@@ -1,7 +1,7 @@
 import ButtonSelect from "@/components/atoms/ButtonSelect/ButtonSelect";
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
-import { FilezContext } from "@/main";
 import { SortDirection } from "filez-client-typescript";
 import update from "immutability-helper";
 import cloneDeep from "lodash/cloneDeep";
@@ -21,6 +21,11 @@ import {
 import { getSelectedCount, getSelectedItems } from "./utils";
 
 interface ResourceListProps<FilezResourceType> {
+    /**
+     A DOM wide unique ID for the list instance.
+     */
+    readonly listInstanceId: string;
+
     /**
      The type of the resource to be displayed.
      */
@@ -63,7 +68,6 @@ interface ResourceListProps<FilezResourceType> {
      */
     readonly overscanCount?: number;
     readonly listHeaderElement?: JSX.Element;
-    readonly id?: string;
     readonly handlers?: ResourceListHandlers<FilezResourceType>;
     readonly dropTargetAcceptsTypes?: string[];
 
@@ -130,7 +134,10 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         prevProps: Readonly<ResourceListProps<ResourceType>>,
         _prevState: Readonly<ResourceListState<ResourceType>>
     ) => {
-        if (prevProps.id !== this.props.id || prevProps.resourceType !== this.props.resourceType) {
+        if (
+            prevProps.listInstanceId !== this.props.listInstanceId ||
+            prevProps.resourceType !== this.props.resourceType
+        ) {
             await this.loadItems(LoadItemMode.NewId);
             //this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
         }
@@ -654,7 +661,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
 
                                                     resourceType: this.props.resourceType,
                                                     rowHeight,
-                                                    rowHandlers: this.props.rowHandlers
+                                                    rowHandlers: this.props.rowHandlers,
+                                                    listInstanceId: this.props.listInstanceId
                                                 }}
                                             >
                                                 {/*@ts-ignore*/}

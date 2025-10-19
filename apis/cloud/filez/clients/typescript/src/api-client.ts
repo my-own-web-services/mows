@@ -391,6 +391,19 @@ export interface ApiResponseGetStorageQuotaResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseGetStorageQuotaUsageResponseBody {
+  data?: {
+    storage_quota: StorageQuota;
+    /**
+     * @format int64
+     * @min 0
+     */
+    used_bytes: number;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseGetTagsResponseBody {
   data?: {
     resource_tags: Record<string, Record<string, string>>;
@@ -1081,6 +1094,19 @@ export interface GetStorageQuotaRequestBody {
 
 export interface GetStorageQuotaResponseBody {
   storage_quotas: StorageQuota[];
+}
+
+export interface GetStorageQuotaUsageRequestBody {
+  storage_quota_id: StorageQuotaId;
+}
+
+export interface GetStorageQuotaUsageResponseBody {
+  storage_quota: StorageQuota;
+  /**
+   * @format int64
+   * @min 0
+   */
+  used_bytes: number;
 }
 
 export interface GetTagsRequestBody {
@@ -2740,6 +2766,28 @@ export class Api<
         ApiResponseEmptyApiResponse
       >({
         path: `/api/storage_quotas/get`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Get storage quota usage information
+     *
+     * @name GetStorageQuotaUsage
+     * @request POST:/api/storage_quotas/get_usage
+     */
+    getStorageQuotaUsage: (
+      data: GetStorageQuotaUsageRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        ApiResponseGetStorageQuotaUsageResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/storage_quotas/get_usage`,
         method: "POST",
         body: data,
         type: ContentType.Json,

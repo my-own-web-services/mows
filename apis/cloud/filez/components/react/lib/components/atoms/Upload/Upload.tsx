@@ -365,7 +365,7 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                                 )
                             }),
                             () => {
-                                this.resourceListRef?.current?.forceUpdate();
+                                this.resourceListRef?.current?.loadItems();
                             }
                         );
                     }
@@ -621,7 +621,7 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                     ]}
                 ></ResourceList>
                 <div className="flex w-full items-center justify-between gap-4">
-                    <div className="flex-1">
+                    <div className="max-w-[400px] flex-1">
                         <StorageQuotaPicker
                             className="w-full"
                             value={this.state.selectedStorageQuota}

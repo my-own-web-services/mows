@@ -49,6 +49,27 @@ spec:
                 type: object
               storageLocation:
                 properties:
+                  defaultQuotas:
+                    items:
+                      oneOf:
+                      - required:
+                        - defaultUserQuota
+                      properties:
+                        defaultUserQuota:
+                          description: A default quota that gets applied to all users for a storage location.
+                          properties:
+                            maxSizeBytes:
+                              format: uint64
+                              minimum: 0.0
+                              type: integer
+                            name:
+                              type: string
+                          required:
+                          - maxSizeBytes
+                          - name
+                          type: object
+                      type: object
+                    type: array
                   providerConfig:
                     oneOf:
                     - required:
@@ -136,6 +157,7 @@ spec:
                         type: object
                     type: object
                 required:
+                - defaultQuotas
                 - providerConfig
                 type: object
             type: object

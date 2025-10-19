@@ -103,6 +103,11 @@ const translation: Translation = {
         selectStorageQuota: "Select storage quota",
         noStorageQuotaFound: "No storage quota found",
         loading: "Loading storage quotas..."
+    },
+    common: {
+        files: {
+            delete: (fileCount: number) => fileCount === 1 ? "Delete file" : `Delete ${fileCount} files`
+        }
     }
 };
 

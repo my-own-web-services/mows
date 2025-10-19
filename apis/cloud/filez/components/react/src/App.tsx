@@ -1,7 +1,7 @@
 import CommandPalette from "@/components/atoms/CommandPalette";
 import { ResourceTagsMap } from "@/components/atoms/ResourceTags/ResourceTags";
 import PrimaryMenu from "@/components/PrimaryMenu";
-import { FilezContext, GlobalContextMenu, ModalHandler, Toaster, Upload } from "@/main";
+import { FileList, FilezContext, GlobalContextMenu, ModalHandler, Toaster } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
 
 interface AppProps {
@@ -46,8 +46,10 @@ export default class App extends PureComponent<AppProps, AppState> {
                 <CommandPalette />
                 <ModalHandler />
                 <Toaster></Toaster>
-
-                <Upload className="h-[500px] w-full"></Upload>
+                <FileList
+                    fileGroupId="01999b67-500a-7f90-aa59-77737adbabc2"
+                    className="h-[500px] w-full"
+                ></FileList>
                 <GlobalContextMenu></GlobalContextMenu>
             </div>
         );
@@ -55,10 +57,8 @@ export default class App extends PureComponent<AppProps, AppState> {
 }
 
 /*
-               <FileList
-                    id="01999b67-500a-7f90-aa59-77737adbabc2"
-                    className="h-[500px] w-full"
-                ></FileList>
+                              <Upload className="h-[800px] w-full"></Upload>
+
                 <ResourceTags
                     className="w-[500px] p-4"
                     tagsMap={this.state.tagsMap}
