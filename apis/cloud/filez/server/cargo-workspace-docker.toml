@@ -114,7 +114,6 @@ version = "=0.26.0"
 
 [workspace.dependencies.opentelemetry_sdk]
 default-features = false
-features = ["rt-tokio"]
 version = "=0.26.0"
 
 [workspace.dependencies.pbjson-types]
@@ -198,7 +197,6 @@ version = "0.1.40"
 
 [workspace.dependencies.tracing-opentelemetry]
 default-features = false
-features = ["metrics", "tracing-log"]
 version = "=0.27.0"
 
 [workspace.dependencies.tracing-subscriber]

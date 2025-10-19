@@ -66,6 +66,7 @@ pub mod storage_quotas {
     pub mod create;
     pub mod delete;
     pub mod get;
+    pub mod get_usage;
     pub mod list;
     pub mod update;
 }

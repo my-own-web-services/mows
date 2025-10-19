@@ -99,6 +99,11 @@ export interface Translation {
         noStorageQuotaFound: string;
         loading: string;
     };
+    common: {
+        files: {
+            delete: (fileCount: number) => string;
+        };
+    };
 }
 
 export const getBrowserLanguage = (): Language => {

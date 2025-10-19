@@ -11,7 +11,7 @@ import {
     CommandItem,
     CommandList
 } from "../ui/command";
-import KeyComboDisplay from "./KeyComboDisplay";
+import ActionComponent from "./ActionComponent";
 
 interface CommandPaletteProps {
     readonly className?: string;
@@ -61,6 +61,7 @@ export default class CommandPalette extends PureComponent<
             executeAction: () => {
                 this.handleOpenChange(true);
             },
+
             id: "GlobalCommandPalette",
             getState: () => ({ visibility: "active" })
         });
@@ -107,32 +108,14 @@ export default class CommandPalette extends PureComponent<
     };
 
     renderCommandItem = (action: Action, keyPrefix: string = "") => {
-        // Get all hotkeys for this action
-        const hotkeys = this.context?.hotkeyManager?.getHotkeysByActionId(action.id) || [];
-
-        const description = this.context?.t?.actions?.[action.id] || action.id;
-
         const itemState = action.getState();
-
         return (
             <CommandItem
                 key={`${keyPrefix}${action.id}`}
                 onSelect={() => this.executeCommand(action.id)}
                 disabled={itemState?.visibility === "disabled"}
             >
-                <span title={itemState?.disabledReason || undefined}>{description}</span>
-                {hotkeys.length > 0 && (
-                    <div className="ml-auto flex items-center gap-2">
-                        {hotkeys.map((keyCombo, index) => (
-                            <span key={index} className="flex items-center gap-2">
-                                <KeyComboDisplay keyCombo={keyCombo} />
-                                {index < hotkeys.length - 1 && (
-                                    <span className="text-muted-foreground text-xs">|</span>
-                                )}
-                            </span>
-                        ))}
-                    </div>
-                )}
+                <ActionComponent action={action} />
             </CommandItem>
         );
     };

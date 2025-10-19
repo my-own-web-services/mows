@@ -9,9 +9,9 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { cn, formatFileSizeToHumanReadable } from "@/lib/utils";
+import { StorageQuota } from "filez-client-typescript";
 import { Check, ChevronsUpDown, Database } from "lucide-react";
 import { PureComponent, type CSSProperties, type ReactNode } from "react";
-import { StorageQuota } from "filez-client-typescript";
 
 interface StorageQuotaPickerProps {
     readonly className?: string;
@@ -132,27 +132,16 @@ export default class StorageQuotaPicker extends PureComponent<
         const displayPlaceholder = placeholder || t.storageQuotaPicker.selectStorageQuota;
 
         if (loading) {
-            return (
-                <div className="py-6 text-center text-sm">
-                    {t.storageQuotaPicker.loading}
-                </div>
-            );
+            return <div className="py-6 text-center text-sm">{t.storageQuotaPicker.loading}</div>;
         }
 
         if (error) {
-            return (
-                <div className="py-6 text-center text-sm text-destructive">
-                    {error}
-                </div>
-            );
+            return <div className="text-destructive py-6 text-center text-sm">{error}</div>;
         }
 
         return (
             <Command filter={this.filterStorageQuotas}>
-                <CommandInput
-                    placeholder={displayPlaceholder}
-                    autoFocus={autofocus}
-                />
+                <CommandInput placeholder={displayPlaceholder} autoFocus={autofocus} />
                 <CommandList>
                     <CommandEmpty className="py-6 text-center text-sm select-none">
                         {t.storageQuotaPicker.noStorageQuotaFound}
@@ -168,22 +157,19 @@ export default class StorageQuotaPicker extends PureComponent<
                                 <div className="flex items-center gap-2">
                                     <Database className="h-4 w-4" />
                                     <div className="flex flex-col">
-                                        <span className="font-medium">
-                                            {quota.name}
-                                        </span>
-                                        <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                                        <span className="font-medium">{quota.name}</span>
+                                        <div className="text-muted-foreground flex items-center gap-2 text-xs">
                                             <span>{quota.id}</span>
-                                            <span>•</span>
-                                            <span>{formatFileSizeToHumanReadable(quota.quota_bytes)}</span>
+                                            <span>
+                                                {formatFileSizeToHumanReadable(quota.quota_bytes)}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                                 <Check
                                     className={cn(
                                         "ml-auto h-4 w-4",
-                                        value?.id === quota.id
-                                            ? "opacity-100"
-                                            : "opacity-0"
+                                        value?.id === quota.id ? "opacity-100" : "opacity-0"
                                     )}
                                 />
                             </CommandItem>
@@ -224,41 +210,35 @@ export default class StorageQuotaPicker extends PureComponent<
                     <div
                         className={cn(
                             className,
-                            "flex w-full cursor-pointer items-center justify-between px-3 py-2 border rounded-md",
+                            "flex h-10 max-w-[400px] cursor-pointer items-center justify-between rounded-md border px-3 py-2",
                             disabled && "pointer-events-none cursor-not-allowed opacity-50"
                         )}
                         style={style}
-                        title={displayPlaceholder}
+                        title={value ? `${value.name} (${value.id}) - ${formatFileSizeToHumanReadable(value.quota_bytes)}` : displayPlaceholder}
                     >
                         {triggerComponent || (
                             <>
-                                <div className="flex items-center gap-2">
-                                    <Database className="h-4 w-4" />
+                                <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+                                    <Database className="h-4 w-4 flex-shrink-0" />
                                     {value ? (
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">
-                                                {value.name}
+                                        <div className="min-w-0 flex-1 truncate">
+                                            <span className="font-medium truncate">{value.name}</span>
+                                            <span className="text-muted-foreground ml-2 text-xs">
+                                                ({formatFileSizeToHumanReadable(value.quota_bytes)})
                                             </span>
-                                            <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                                                <span>{value.id}</span>
-                                                <span>•</span>
-                                                <span>{formatFileSizeToHumanReadable(value.quota_bytes)}</span>
-                                            </div>
                                         </div>
                                     ) : (
-                                        <span className="text-muted-foreground">
+                                        <span className="text-muted-foreground truncate">
                                             {displayPlaceholder}
                                         </span>
                                     )}
                                 </div>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                <ChevronsUpDown className="ml-2 h-4 w-4 flex-shrink-0 opacity-50" />
                             </>
                         )}
                     </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0">
-                    {this.renderContent()}
-                </PopoverContent>
+                <PopoverContent className="w-[400px] p-0">{this.renderContent()}</PopoverContent>
             </Popover>
         );
     };

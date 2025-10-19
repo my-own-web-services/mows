@@ -121,7 +121,9 @@ pub async fn apply_k8s_auth_role(
             &mut CreateKubernetesRoleRequestBuilder::default()
                 .bound_service_account_names(vec![role.service_account_name.clone()])
                 .bound_service_account_namespaces(vec![namespace.clone()])
-                .token_policies(policy_ids),
+                .token_policies(policy_ids)
+                .token_ttl("1h")
+                .token_max_ttl("1h"),
         ),
     )
     .await

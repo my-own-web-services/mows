@@ -1,9 +1,11 @@
+import { JSX } from "react";
 import { FILEZ_MAXIMUM_RECENT_ACTIONS, FILEZ_RECENT_ACTIONS_STORAGE_KEY } from "../constants";
 import { log } from "../logging";
 
 export interface ActionState {
     visibility: "active" | "inactive" | "disabled";
-    disabledReason?: string;
+    disabledReasonText?: string;
+    component?: () => JSX.Element;
 }
 
 export interface ActionConstructorParams {
@@ -39,11 +41,14 @@ export class Action {
         const handler = this.getCurrentHandler();
         if (!handler) {
             log.warn(`No handler defined for action: ${this.id}`);
-            return { visibility: "inactive", disabledReason: "No handler defined" };
+            return { visibility: "inactive", disabledReasonText: "No handler defined" };
         }
         if (!handler.executeAction) {
             log.warn(`No executeAction function defined for action: ${this.id}`);
-            return { visibility: "inactive", disabledReason: "No executeAction function defined" };
+            return {
+                visibility: "inactive",
+                disabledReasonText: "No executeAction function defined"
+            };
         }
 
         return handler.getState();
@@ -52,6 +57,8 @@ export class Action {
 
 export interface ActionHandler {
     id: string;
+    // The scopes where this action handler is applicable
+    scopes?: string[];
     // The function to execute when the action is triggered
     executeAction?: (event?: KeyboardEvent) => void;
     getState: () => ActionState;
@@ -106,6 +113,30 @@ export class ActionManager {
     defineMultipleActions(actions: Action[]): void {
         actions.forEach((action) => this.defineAction(action));
     }
+
+    getActionHandlersByScope = (scope: string): ActionHandler[] => {
+        const handlers: ActionHandler[] = [];
+        this.actions.forEach((action) => {
+            action.actionHandlers.forEach((handler) => {
+                if (handler.scopes?.includes(scope)) {
+                    handlers.push(handler);
+                }
+            });
+        });
+        return handlers;
+    };
+
+    getActionsByHandlerScope = (scope: string): Action[] => {
+        const actions: Action[] = [];
+        this.actions.forEach((action) => {
+            action.actionHandlers.forEach((handler) => {
+                if (handler.scopes?.includes(scope)) {
+                    actions.push(action);
+                }
+            });
+        });
+        return actions;
+    };
 
     getAllActions = (): Map<string, Action> => {
         return this.actions;

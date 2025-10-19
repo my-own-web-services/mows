@@ -29,6 +29,40 @@
         "backend"
       ]
     },
+    "DefaultQuota": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "defaultUserQuota"
+          ],
+          "properties": {
+            "defaultUserQuota": {
+              "$ref": "#/definitions/DefaultUserQuota"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "DefaultUserQuota": {
+      "description": "A default quota that gets applied to all users for a storage location.",
+      "type": "object",
+      "required": [
+        "maxSizeBytes",
+        "name"
+      ],
+      "properties": {
+        "maxSizeBytes": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
     "FilezResourceSpec": {
       "oneOf": [
         {
@@ -101,9 +135,16 @@
     "StorageLocationConfigCrd": {
       "type": "object",
       "required": [
+        "defaultQuotas",
         "providerConfig"
       ],
       "properties": {
+        "defaultQuotas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DefaultQuota"
+          }
+        },
         "providerConfig": {
           "$ref": "#/definitions/StorageProviderConfigCrd"
         }

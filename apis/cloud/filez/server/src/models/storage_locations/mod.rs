@@ -76,6 +76,8 @@ pub struct StorageLocationConfigCrd {
     pub default_quotas: Vec<DefaultQuota>,
 }
 
+// TODO: implement default quotas
+
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum DefaultQuota {

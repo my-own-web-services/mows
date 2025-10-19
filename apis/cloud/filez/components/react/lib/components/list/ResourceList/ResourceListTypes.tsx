@@ -145,6 +145,7 @@ export interface RowComponentProps<FilezResourceType> {
 
 export interface RowComponentData<FilezResourceType> {
     readonly items: (FilezResourceType | undefined)[];
+    readonly listInstanceId: string;
     readonly total_count: number;
     readonly handlers: {
         readonly onItemClick: ResourceListRowHandlersOnClick<FilezResourceType>;

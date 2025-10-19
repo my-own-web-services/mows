@@ -18,7 +18,7 @@ import ColumnListRowHandler, { Column } from "./ResourceList/rowHandlers/Column"
 import GridListRowHandler from "./ResourceList/rowHandlers/Grid";
 
 interface FileListProps {
-    readonly id?: string;
+    readonly fileGroupId: string;
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly displayTopBar?: boolean;
@@ -48,8 +48,57 @@ export default class FileList extends PureComponent<FileListProps, FileListState
     resourceListRef = createRef<ResourceList<FilezFile>>();
 
     listId: string;
+    listActionScopeId: string;
 
     actionHandler: ActionHandler;
+
+    defaultColumns: Column<FilezFile>[] = [
+        {
+            field: "Name",
+            label: "Name",
+            direction: SortDirection.Ascending,
+            widthPercent: 40,
+            minWidthPixels: 50,
+            enabled: true,
+            render: (item: FilezFile, style: CSSProperties, className: string) => {
+                return (
+                    <span style={{ ...style }} className={className}>
+                        {item.name}
+                    </span>
+                );
+            }
+        },
+        {
+            field: "MimeType",
+            label: "Mime Type",
+            direction: SortDirection.Neutral,
+            widthPercent: 30,
+            minWidthPixels: 50,
+            enabled: true,
+            render: (item: FilezFile, style: CSSProperties, className: string) => {
+                return (
+                    <span style={{ ...style }} className={className}>
+                        {item.mime_type}
+                    </span>
+                );
+            }
+        },
+        {
+            field: "ModifiedTime",
+            label: "Modified",
+            direction: SortDirection.Neutral,
+            widthPercent: 30,
+            minWidthPixels: 50,
+            enabled: true,
+            render: (item: FilezFile, style: CSSProperties, className: string) => {
+                return (
+                    <span data-actionscope={"test"} style={{ ...style }} className={className}>
+                        {item.modified_time}
+                    </span>
+                );
+            }
+        }
+    ];
 
     constructor(props: FileListProps) {
         super(props);
@@ -61,6 +110,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         };
 
         this.listId = Math.random().toString(36).substring(2, 15);
+        this.listActionScopeId = `FileList-${this.listId}`;
 
         this.actionHandler = {
             executeAction: () => {
@@ -72,12 +122,17 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                 log.debug("Delete files action triggered for files:", selectedItems);
             },
             id: this.listId,
+            scopes: [this.listActionScopeId],
             getState: () => {
                 const selectedItems = this.resourceListRef.current?.getSelectedItems() || [];
                 if (selectedItems.length === 0) {
-                    return { visibility: "inactive", disabledReason: "No files selected" };
+                    return { visibility: "inactive", disabledReasonText: "No files selected" };
                 }
-                return { visibility: "active" };
+                const { t } = this.context!;
+                return {
+                    visibility: "active",
+                    component: () => <span>{t.common.files.delete(selectedItems.length)}</span>
+                };
             }
         };
     }
@@ -116,17 +171,14 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             log.warn("No filezClient available");
             return { totalCount: 0, items: [] };
         }
-        if (!this.props.id) {
-            log.warn("No file group ID provided");
-            return { totalCount: 0, items: [] };
-        }
+
         if (!this.context?.clientAuthenticated) {
             log.warn("Client not authenticated");
             return { totalCount: 0, items: [] };
         }
 
         const apiRequest = {
-            file_group_id: this.props.id,
+            file_group_id: this.props.fileGroupId,
             from_index: request.fromIndex,
             limit: request.limit,
             sort: {
@@ -155,7 +207,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
 
         return (
             <div
-                data-actionscope={this.listId}
+                data-actionscope={this.listActionScopeId}
                 className={cn("FileList", this.props.className)}
                 style={{ ...this.props.style }}
             >
@@ -167,10 +219,10 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     initialRowHandler={"GridListRowHandler"}
                     getResourcesList={this.getFilesList}
                     dropTargetAcceptsTypes={["File"]}
-                    id={this.props.id}
+                    listInstanceId={this.listId}
                     rowHandlers={[
                         new ColumnListRowHandler({
-                            columns: defaultColumns
+                            columns: this.defaultColumns
                         }),
                         new GridListRowHandler({})
                     ]}
@@ -186,64 +238,16 @@ export default class FileList extends PureComponent<FileListProps, FileListState
 }
 
 /*
-Delete File -> 
+Delete Files -> 
     - Should only be active when one or more files are selected -> No feedback no display when nothing is selected
     - should only be active when the user has delete permissions -> feedback: disabled action in commandPalette and context menu, toast when hotkey is pressed
 
 If two File lists are open and files are selected in both, the delete action should only delete files from the last focused list
 
-Copy File
-Duplicate File
-Open File
-Open file with
+Copy Files
+Duplicate Files
+Open Files
+Open files with
 
 New File
 */
-
-const defaultColumns: Column<FilezFile>[] = [
-    {
-        field: "Name",
-        label: "Name",
-        direction: SortDirection.Ascending,
-        widthPercent: 40,
-        minWidthPixels: 50,
-        enabled: true,
-        render: (item: FilezFile, style: CSSProperties, className: string) => {
-            return (
-                <span style={{ ...style }} className={className}>
-                    {item.name}
-                </span>
-            );
-        }
-    },
-    {
-        field: "MimeType",
-        label: "Mime Type",
-        direction: SortDirection.Neutral,
-        widthPercent: 30,
-        minWidthPixels: 50,
-        enabled: true,
-        render: (item: FilezFile, style: CSSProperties, className: string) => {
-            return (
-                <span style={{ ...style }} className={className}>
-                    {item.mime_type}
-                </span>
-            );
-        }
-    },
-    {
-        field: "ModifiedTime",
-        label: "Modified",
-        direction: SortDirection.Neutral,
-        widthPercent: 30,
-        minWidthPixels: 50,
-        enabled: true,
-        render: (item: FilezFile, style: CSSProperties, className: string) => {
-            return (
-                <span style={{ ...style }} className={className}>
-                    {item.modified_time}
-                </span>
-            );
-        }
-    }
-];

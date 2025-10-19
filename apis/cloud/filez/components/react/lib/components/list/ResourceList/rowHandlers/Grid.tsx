@@ -1,6 +1,7 @@
+import FileViewer from "@/components/fileViewer/FileViewer";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import { SortDirection } from "filez-client-typescript";
+import { FilezFile, SortDirection } from "filez-client-typescript";
 import { CSSProperties, JSX } from "react";
 import { BsFillGridFill } from "react-icons/bs";
 import ResourceList from "../ResourceList";
@@ -121,7 +122,7 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
                             }}
                             key={key}
                         >
-                            {item.name}
+                            <FileViewer file={item as unknown as FilezFile}></FileViewer>
                         </div>
                     );
                 })}

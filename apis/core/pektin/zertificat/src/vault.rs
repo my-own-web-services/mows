@@ -9,6 +9,8 @@ use vaultrs::{
     client::{VaultClient, VaultClientSettingsBuilder},
 };
 
+// TODO: use vaultrs client instead, don't create the client every time the procedure is called
+
 pub async fn get_kv_value(token: &str, key: &str) -> anyhow::Result<Value> {
     let config = get_current_config_cloned!(config());
     let endpoint = config.vault_uri.clone();

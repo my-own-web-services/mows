@@ -147,6 +147,9 @@ async fn main() -> Result<(), anyhow::Error> {
         ))
         .routes(routes!(http_api::storage_quotas::get::get_storage_quotas))
         .routes(routes!(
+            http_api::storage_quotas::get_usage::get_storage_quota_usage
+        ))
+        .routes(routes!(
             http_api::storage_quotas::update::update_storage_quota
         ))
         .routes(routes!(
