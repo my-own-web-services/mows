@@ -2,6 +2,7 @@ import {
     ContentType,
     FilezClient,
     getBlobSha256Digest,
+    JobPersistenceType,
     StorageQuota
 } from "filez-client-typescript";
 
@@ -24,6 +25,8 @@ export const handleFileUpload = async (
     filezClient: FilezClient,
     storageQuota: StorageQuota,
     fileToUpload: UploadFileRequest,
+    addToFileGroupId?: string,
+    createPreviews?: boolean,
     onProgress?: (progress: UploadProgressData) => void
 ): Promise<UploadFileResponse> => {
     const mimeType = fileToUpload.mimeType || fileToUpload.file.type;
@@ -44,6 +47,18 @@ export const handleFileUpload = async (
 
     if (!createFileResponse?.created_file) {
         throw new Error(`Failed to create file: ${JSON.stringify(createFileResponse)}`);
+    }
+
+    if (addToFileGroupId) {
+        const addToFileGroupResponse = await filezClient.api.updateFileGroupMembers({
+            file_group_id: addToFileGroupId,
+            files_to_add: [createFileResponse.created_file.id]
+        });
+        if (addToFileGroupResponse.status !== 200) {
+            throw new Error(
+                `Failed to add file to file group: ${addToFileGroupResponse.statusText}`
+            );
+        }
     }
 
     const fileVersionResponse = (
@@ -98,6 +113,41 @@ export const handleFileUpload = async (
             total: fileToUpload.file.size,
             percentage: Math.round((offset / fileToUpload.file.size) * 100),
             phase: "uploading"
+        });
+    }
+
+    if (createPreviews) {
+        const apps = await filezClient.api.listApps({});
+
+        const previewGeneratorApp = apps.data?.data?.apps.find(
+            (app) => app.name === "mows-core-storage-filez-filez-apps-backend-images"
+        );
+
+        if (!previewGeneratorApp) {
+            throw new Error("Preview generator app not found");
+        }
+
+        const jobResponse = await filezClient.api.createJob({
+            job_execution_details: {
+                job_type: {
+                    CreatePreview: {
+                        file_id: createFileResponse.created_file.id,
+                        file_version_number: fileVersionResponse.version,
+                        storage_location_id: fileVersionResponse.storage_location_id,
+                        storage_quota_id: storageQuota.id,
+                        allowed_number_of_previews: 5,
+                        allowed_size_bytes: 10_000_000,
+                        allowed_mime_types: ["image/avif"],
+                        preview_config: {
+                            widths: [100, 250, 500, 1000, 2000],
+                            formats: ["Avif"]
+                        }
+                    }
+                }
+            },
+            job_handling_app_id: previewGeneratorApp?.id,
+            job_name: "Generate Previews",
+            job_persistence: JobPersistenceType.Temporary
         });
     }
 

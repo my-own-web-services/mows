@@ -83,7 +83,7 @@ pub struct FilezJob {
     pub name: String,
     /// The current status of the job
     pub status: JobStatus,
-
+    /// Additional details about the current status of the job
     pub status_details: Option<JobStatusDetails>,
     /// Details relevant for the execution of the job
     pub execution_information: JobExecutionInformation,
@@ -193,6 +193,7 @@ pub struct JobExecutionInformation {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub enum JobType {
     CreatePreview(JobTypeCreatePreview),
+    ExtractMetadata(JobTypeExtractMetadata),
 }
 
 /// Allows the app to create a set of previews for a existing file_version_number and file_id
@@ -207,6 +208,14 @@ pub struct JobTypeCreatePreview {
     pub allowed_mime_types: Vec<String>,
     #[schema(value_type = Object)]
     pub preview_config: Value,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
+pub struct JobTypeExtractMetadata {
+    pub file_id: FilezFileId,
+    pub file_version_number: u32,
+    #[schema(value_type = Object)]
+    pub extract_metadata_config: Value,
 }
 
 impl FilezJob {
@@ -327,7 +336,7 @@ impl FilezJob {
         let mut connection = database.get_connection().await?;
         let mut query = schema::jobs::table.into_boxed();
 
-        let resources_with_access = AccessPolicy::get_resources_with_access(
+        let resources_with_access = AccessPolicy::get_all_resources_with_user_access(
             database,
             maybe_requesting_user,
             requesting_app,

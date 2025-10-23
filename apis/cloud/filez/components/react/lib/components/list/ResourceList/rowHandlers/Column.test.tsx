@@ -92,6 +92,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -139,6 +140,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -187,6 +189,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -243,6 +246,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -296,6 +300,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -342,6 +347,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -386,6 +392,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -433,6 +440,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -478,6 +486,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -522,6 +531,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -575,6 +585,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -702,6 +713,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -746,6 +758,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                 <div style={{ width: 800, height: 600 }}>
                     <FilezProvider>
                         <ResourceList<TestResource>
+                            listInstanceId="test-list"
                             resourceType="TestResource"
                             defaultSortBy="name"
                             defaultSortDirection={SortDirection.Ascending}
@@ -818,6 +831,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                     <div style={{ width: 800, height: 600 }}>
                         <FilezProvider>
                             <ResourceList<TestResource>
+                                listInstanceId="test-list"
                                 resourceType="TestResource"
                                 defaultSortBy="name"
                                 defaultSortDirection={SortDirection.Ascending}
@@ -878,6 +892,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                     <div style={{ width: 800, height: 600 }}>
                         <FilezProvider>
                             <ResourceList<TestResource>
+                                listInstanceId="test-list"
                                 resourceType="TestResource"
                                 defaultSortBy="name"
                                 defaultSortDirection={SortDirection.Ascending}
@@ -937,6 +952,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                     <div style={{ width: 800, height: 600 }}>
                         <FilezProvider>
                             <ResourceList<TestResource>
+                                listInstanceId="test-list"
                                 resourceType="TestResource"
                                 defaultSortBy="name"
                                 defaultSortDirection={SortDirection.Ascending}
@@ -1014,6 +1030,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                     <div style={{ width: 800, height: 600 }}>
                         <FilezProvider>
                             <ResourceList<TestResource>
+                                listInstanceId="test-list"
                                 resourceType="TestResource"
                                 defaultSortBy="name"
                                 defaultSortDirection={SortDirection.Ascending}
@@ -1084,6 +1101,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                     <div style={{ width: 800, height: 600 }}>
                         <FilezProvider>
                             <ResourceList<TestResource>
+                                listInstanceId="test-list"
                                 resourceType="TestResource"
                                 defaultSortBy="name"
                                 defaultSortDirection={SortDirection.Ascending}
@@ -1163,6 +1181,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                     <div style={{ width: 800, height: 600 }}>
                         <FilezProvider>
                             <ResourceList<TestResource>
+                                listInstanceId="test-list"
                                 resourceType="TestResource"
                                 defaultSortBy="name"
                                 defaultSortDirection={SortDirection.Ascending}
@@ -1219,6 +1238,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                     <div style={{ width: 800, height: 600 }}>
                         <FilezProvider>
                             <ResourceList<TestResource>
+                                listInstanceId="test-list"
                                 resourceType="TestResource"
                                 defaultSortBy="name"
                                 defaultSortDirection={SortDirection.Ascending}
@@ -1272,6 +1292,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                     <div style={{ width: 800, height: 600 }}>
                         <FilezProvider>
                             <ResourceList<TestResource>
+                                listInstanceId="test-list"
                                 resourceType="TestResource"
                                 defaultSortBy="name"
                                 defaultSortDirection={SortDirection.Ascending}
@@ -1343,6 +1364,7 @@ describe("ColumnListRowHandler via ResourceList Integration", () => {
                     <div style={{ width: 800, height: 600 }}>
                         <FilezProvider>
                             <ResourceList<TestResource>
+                                listInstanceId="test-list"
                                 resourceType="TestResource"
                                 defaultSortBy="name"
                                 defaultSortDirection={SortDirection.Ascending}

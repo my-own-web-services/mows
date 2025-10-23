@@ -8,5 +8,5 @@
         "build": "tsc -b ./tsconfig.lib.json && vite build",
         "preview": "vite preview"
     },
-    "yalcSig": "5305ee64e051ec3f6fce37c434a55106"
+    "yalcSig": "9f002ffc28c52fceb10240bc7dfb26fb"
 }

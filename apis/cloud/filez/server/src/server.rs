@@ -237,7 +237,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .await
             .context("Failed to bind TCP listener to address ::1:8080")?;
 
-    let controller = controller::run(server_state.clone());
+    let controller = controller::run_controller(server_state.clone());
 
     let server = axum::serve(
         listener,

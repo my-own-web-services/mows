@@ -280,11 +280,11 @@ impl StorageProviderMinio {
         match self.client.bucket_exists(&self.bucket).send().await {
             Ok(_) => HealthStatus {
                 healthy: true,
-                response: "Healthy".to_string(),
+                message: "Healthy".to_string(),
             },
             Err(e) => HealthStatus {
                 healthy: false,
-                response: e.to_string(),
+                message: e.to_string(),
             },
         }
     }

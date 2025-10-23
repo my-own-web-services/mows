@@ -39,7 +39,7 @@ pub async fn list_access_policies(
     Json(request_body): Json<ListAccessPoliciesRequestBody>,
 ) -> Result<Json<ApiResponse<ListAccessPoliciesResponseBody>>, FilezError> {
     let (access_policies, total_count) = with_timing!(
-        AccessPolicy::list_with_user_access(
+        AccessPolicy::list_access_policies_with_user_access(
             &database,
             authentication_information.requesting_user.as_ref(),
             &authentication_information.requesting_app,

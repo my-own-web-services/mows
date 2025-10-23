@@ -40,6 +40,8 @@ pub enum ApiClientError {
     IoError(#[from] std::io::Error),
     #[error("API error: {0}")]
     ApiError(String),
+    #[error(transparent)]
+    GenericError(#[from] anyhow::Error),
 }
 
 impl ApiClient {
@@ -554,7 +556,7 @@ impl ApiClient {
     }
 
     #[tracing::instrument(level = "trace")]
-    pub async fn get_health(&self ) -> Result<ApiResponseHealthResBody, ApiClientError> {
+    pub async fn get_health(&self, pretty: bool) -> Result<ApiResponseHealthResBody, ApiClientError> {
         
         let full_url = format!("{}/api/health", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();

@@ -11,7 +11,7 @@ import {
     CommandItem,
     CommandList
 } from "../ui/command";
-import ActionComponent from "./ActionComponent";
+import ActionComponent from "./ActionDisplay";
 
 interface CommandPaletteProps {
     readonly className?: string;

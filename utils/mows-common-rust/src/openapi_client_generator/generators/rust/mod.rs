@@ -50,6 +50,7 @@ tokio = {{ version = "1.47.0", features = ["full"] }}
 uuid = {{ version = "1.17.0", features = ["serde", "v7"] }}
 chrono = {{ version = "0.4.41", features = ["serde"] }}
 thiserror = {{ version = "2.0.12" }}
+anyhow = {{ version = "1" }}
 tokio-util = {{ version = "0.7", features = ["codec"] }}
 futures = "0.3"
 reqwest-tracing = {{ version = "0.5.8", features = ["opentelemetry_0_26"] }}
@@ -131,6 +132,8 @@ pub enum ApiClientError {{
     IoError(#[from] std::io::Error),
     #[error("API error: {{0}}")]
     ApiError(String),
+    #[error(transparent)]
+    GenericError(#[from] anyhow::Error),
 }}
 
 impl ApiClient {{

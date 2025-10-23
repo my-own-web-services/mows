@@ -15,7 +15,7 @@ path = "src/controller/crdgen.rs"
 
 [[bin]]
 name = "clientgen"
-path = "src/client_gen.rs"
+path = "src/client_gen/mod.rs"
 
 [[bin]]
 name = "schemagen"

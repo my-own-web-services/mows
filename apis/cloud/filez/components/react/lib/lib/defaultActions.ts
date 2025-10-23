@@ -114,6 +114,21 @@ export const defineApplicationActions = (
                     }
                 ]
             ])
+        }),
+        new Action({
+            id: ActionIds.CREATE_FILE_GROUP,
+            category: "File Groups",
+            actionHandlers: new Map([
+                [
+                    "GlobalCreateFileGroup",
+                    {
+                        id: "GlobalCreateFileGroup",
+                        executeAction: () =>
+                            filezContextProvider.changeActiveModal("fileGroupCreate"),
+                        getState: () => ({ visibility: "active" })
+                    }
+                ]
+            ])
         })
     ];
 };
@@ -126,5 +141,6 @@ export enum ActionIds {
     OPEN_PRIMARY_MENU = "filez.openPrimaryMenu",
     LOGIN = "filez.user.login",
     LOGOUT = "filez.user.logout",
-    DELETE_FILES = "filez.files.delete"
+    DELETE_FILES = "filez.files.delete",
+    CREATE_FILE_GROUP = "filez.fileGroups.create"
 }

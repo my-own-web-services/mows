@@ -80,3 +80,13 @@ export const isText = (file: FilezFile): boolean => {
 
     return false;
 };
+
+export const generateRandomId = (length: number = 16): string => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
+    let result = "";
+    const charactersLength = chars.length;
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+};

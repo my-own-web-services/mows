@@ -16,12 +16,13 @@ const tests = [
     "tags",
     "storageQuota",
     "imageJob",
+    "metadataJob",
     "doubleOptionUpdate",
     "nameValidation",
-    "accessPoliciesListFiles",
-    "createMockFiles",
-    "createAdminStorageQuota"
+    "accessPoliciesListFiles"
 ];
+
+const actions = ["createMockFiles", "createAdminStorageQuota"];
 
 export default class Dev extends Component<DevProps, DevState> {
     static contextType = FilezContext;
@@ -96,6 +97,16 @@ export default class Dev extends Component<DevProps, DevState> {
                                 {tests.map((test) => (
                                     <button key={test} onClick={() => this.runTest(test)}>
                                         Run {test} Test
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                {actions.map((test) => (
+                                    <button key={test} onClick={() => this.runTest(test)}>
+                                        Run {test} Action
                                     </button>
                                 ))}
                             </div>

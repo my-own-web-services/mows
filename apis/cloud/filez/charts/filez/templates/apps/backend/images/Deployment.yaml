@@ -43,7 +43,7 @@ spec:
                     env:
                         -   name: FILEZ_SERVER_URL
                             value: {{ .Values.server.internalUrl }}
-                        -   name: ORKING_DIRECTORY
+                        -   name: WORKING_DIRECTORY
                             value: /working
                         -   name: NO_WORK_WAIT_SECONDS
                             value: "10"

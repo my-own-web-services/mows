@@ -80,6 +80,9 @@ export interface Translation {
         dropFilesOrFoldersHere: string;
         orUseButtonsBelow: string;
         selectAll: string;
+        selectFileGroup: string;
+        dragToResize: string;
+        showPreviews: string;
         status: {
             pending: string;
             uploading: string;
@@ -98,6 +101,25 @@ export interface Translation {
         selectStorageQuota: string;
         noStorageQuotaFound: string;
         loading: string;
+    };
+    fileGroupPicker: {
+        title: string;
+        selectFileGroup: string;
+        noFileGroupFound: string;
+        loading: string;
+    };
+    fileGroupCreate: {
+        createFileGroup: string;
+        title: string;
+        description: string;
+        nameLabel: string;
+        namePlaceholder: string;
+        nameRequired: string;
+        nameTooLong: string;
+        createFailed: string;
+        cancel: string;
+        create: string;
+        creating: string;
     };
     common: {
         files: {

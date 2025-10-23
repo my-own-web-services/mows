@@ -432,8 +432,8 @@ export interface ApiResponseGetUsersResBody {
 export interface ApiResponseHealthResBody {
   data?: {
     all_healthy: boolean;
-    controller: HealthStatus;
-    database: HealthStatus;
+    controller: ControllerHealthStatus;
+    database: DatabaseHealthStatus;
     storage_locations: Record<string, HealthStatus>;
     zitadel: HealthStatus;
   };
@@ -735,6 +735,23 @@ export interface CheckResourceAccessResponseBody {
   auth_evaluations: AuthEvaluation[];
 }
 
+export interface ControllerHealthDetails {
+  crd_error?: string | null;
+  crd_installed: boolean;
+  kubernetes_error?: string | null;
+  kubernetes_reachable: boolean;
+  /** @format date-time */
+  last_reconcile_event?: string | null;
+  reconcile_loop_running: boolean;
+  reconcile_stale: boolean;
+}
+
+export interface ControllerHealthStatus {
+  details?: null | ControllerHealthDetails;
+  healthy: boolean;
+  response: string;
+}
+
 export interface CreateAccessPolicyRequestBody {
   access_policy_actions: AccessPolicyAction[];
   access_policy_effect: AccessPolicyEffect;
@@ -860,6 +877,30 @@ export interface CreateUserResponseBody {
   created_user: FilezUser;
 }
 
+export interface DatabaseHealthDetails {
+  /** @format int64 */
+  connection_count?: number | null;
+  /** @format int64 */
+  database_size?: number | null;
+  error?: string | null;
+  /**
+   * @format int64
+   * @min 0
+   */
+  latency_ms?: number | null;
+  /** @format int32 */
+  max_connections?: number | null;
+  pool_status?: null | PoolStatus;
+  reachable: boolean;
+  version?: string | null;
+}
+
+export interface DatabaseHealthStatus {
+  details?: null | DatabaseHealthDetails;
+  healthy: boolean;
+  message: string;
+}
+
 export type DeleteUserMethod =
   | {
       ById: FilezUserId;
@@ -899,14 +940,14 @@ export type FileGroupId = string;
 export interface FileMetadata {
   default_preview_app_id?: null | MowsAppId;
   /** Extracted data from the file, such as text content, metadata, etc. */
-  extracted_data: Record<string, any>;
+  extracted_data: object;
   /**
    * Place for apps to store custom data related to the file.
    * every app is identified by its id, and can only access its own data.
    */
-  private_app_data: Record<string, any>;
+  private_app_data: object;
   /** Apps can provide and request shared app data from other apps on creation */
-  shared_app_data: Record<string, any>;
+  shared_app_data: object;
 }
 
 export interface FileVersion {
@@ -1009,6 +1050,7 @@ export interface FilezJob {
   start_time?: string | null;
   /** The current status of the job */
   status: JobStatus;
+  /** Additional details about the current status of the job */
   status_details?: null | JobStatusDetails;
 }
 
@@ -1138,15 +1180,15 @@ export interface GetUsersResBody {
 
 export interface HealthResBody {
   all_healthy: boolean;
-  controller: HealthStatus;
-  database: HealthStatus;
+  controller: ControllerHealthStatus;
+  database: DatabaseHealthStatus;
   storage_locations: Record<string, HealthStatus>;
   zitadel: HealthStatus;
 }
 
 export interface HealthStatus {
   healthy: boolean;
-  response: string;
+  message: string;
 }
 
 export interface JobExecutionInformation {
@@ -1192,10 +1234,14 @@ export interface JobStatusDetailsInProgress {
   message: string;
 }
 
-export type JobType = {
-  /** Allows the app to create a set of previews for a existing file_version_number and file_id */
-  CreatePreview: JobTypeCreatePreview;
-};
+export type JobType =
+  | {
+      /** Allows the app to create a set of previews for a existing file_version_number and file_id */
+      CreatePreview: JobTypeCreatePreview;
+    }
+  | {
+      ExtractMetadata: JobTypeExtractMetadata;
+    };
 
 /** Allows the app to create a set of previews for a existing file_version_number and file_id */
 export interface JobTypeCreatePreview {
@@ -1219,6 +1265,16 @@ export interface JobTypeCreatePreview {
   preview_config: object;
   storage_location_id: StorageLocationId;
   storage_quota_id: StorageQuotaId;
+}
+
+export interface JobTypeExtractMetadata {
+  extract_metadata_config: object;
+  file_id: FilezFileId;
+  /**
+   * @format int32
+   * @min 0
+   */
+  file_version_number: number;
 }
 
 export interface ListAccessPoliciesRequestBody {
@@ -1397,7 +1453,7 @@ export interface ListTagsRequestBody {
    * @min 0
    */
   limit?: number | null;
-  resource_type?: null | TagResourceType;
+  resource_type: TagResourceType;
   search?: null | ListTagsSearch;
   sort_by?: null | ListTagsSortBy;
   sort_order?: null | SortDirection;
@@ -1519,6 +1575,15 @@ export type PickupJobRequestBody = object;
 
 export interface PickupJobResponseBody {
   job?: null | FilezJob;
+}
+
+export interface PoolStatus {
+  /** @min 0 */
+  available: number;
+  /** @min 0 */
+  max_size: number;
+  /** @min 0 */
+  size: number;
 }
 
 /** @format uuid */
@@ -1986,7 +2051,7 @@ export class HttpClient<SecurityDataType = unknown> {
  * @version 0.0.1
  * @license
  *
- * API for managing files in MOWS Filez
+ * API for MOWS Filez
  */
 export class Api<
   SecurityDataType extends unknown,
@@ -2554,7 +2619,7 @@ export class Api<
      * @name GetHealth
      * @request GET:/api/health
      */
-    getHealth: (params: RequestParams = {}) =>
+    getHealth: (pretty: boolean, params: RequestParams = {}) =>
       this.request<ApiResponseHealthResBody, ApiResponseHealthResBody>({
         path: `/api/health`,
         method: "GET",

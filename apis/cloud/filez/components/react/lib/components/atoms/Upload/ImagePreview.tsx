@@ -1,6 +1,7 @@
 import FileIcon from "@/components/atoms/FileIcon/FileIcon";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { log } from "@/lib/logging";
 import { cn, formatFileSizeToHumanReadable } from "@/lib/utils";
 import { Component, createRef } from "react";
@@ -20,6 +21,9 @@ interface ImagePreviewState {
 }
 
 export default class ImagePreview extends Component<ImagePreviewProps, ImagePreviewState> {
+    static contextType = FilezContext;
+    declare context: React.ContextType<typeof FilezContext>;
+
     private canvasRef = createRef<HTMLCanvasElement>();
     private isResizing = false;
     private resizeStartX = 0;
@@ -309,7 +313,7 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                             clipPath: "polygon(100% 0%, 0% 100%, 100% 100%)"
                         }}
                         onMouseDown={this.handleResizeStart}
-                        title="Drag to resize"
+                        title={this.context?.t.upload.dragToResize}
                     />
                 </HoverCardContent>
             </HoverCard>

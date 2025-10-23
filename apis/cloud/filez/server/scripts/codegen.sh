@@ -30,6 +30,8 @@ docker run --rm -v ./openapi.json:/app/openapi.json -v ./tmp:/app/out filez-serv
 
 cp tmp/api-client.ts ../clients/typescript/src/
 
+cd ../clients/typescript/ && yalc publish --push && cd -
+
 rm -rf tmp
 
 docker remove filez-server-codegen-server --force

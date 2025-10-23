@@ -2368,6 +2368,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "filez-apps-backend-metadata"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "filez-server-client",
+ "mows-common-rust",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "thiserror-context",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "filez-server"
 version = "0.1.0"
 dependencies = [
@@ -2425,6 +2442,7 @@ dependencies = [
 name = "filez-server-client"
 version = "0.0.1"
 dependencies = [
+ "anyhow",
  "chrono",
  "futures",
  "reqwest 0.12.22",

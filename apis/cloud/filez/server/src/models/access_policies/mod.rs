@@ -380,9 +380,9 @@ impl AccessPolicy {
         Ok(access_policies)
     }
 
-    /// Lists all resource ids that the user has access to, for a specific resource type.
+    /// Lists all resource ids that the user has access to for a specific resource type.
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn get_resources_with_access(
+    pub async fn get_all_resources_with_user_access(
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
         requesting_app: &MowsApp,
@@ -477,18 +477,19 @@ impl AccessPolicy {
             let resource_group_policies: Vec<GroupPolicyResult> = match maybe_requesting_user {
                 Some(requesting_user) => {
                     let resource_group_policies_query = format!(
-                        "SELECT gm.{resource_id_col} as id, ap.effect
-                 FROM {group_membership_table} gm
-                 JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
-                 WHERE ap.resource_type = $1
-                   AND ap.context_app_ids @> $2
-                   AND ap.actions @> $3
-                   AND (
-                        (ap.subject_type = 0 AND ap.subject_id = $4) OR
-                        (ap.subject_type = 1 AND ap.subject_id = ANY($5)) OR
-                        (ap.subject_type = 2) OR
-                        (ap.subject_type = 3)
-                   )",
+                        "
+                        SELECT gm.{resource_id_col} as id, ap.effect
+                        FROM {group_membership_table} gm
+                        JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
+                        WHERE ap.resource_type = $1
+                            AND ap.context_app_ids @> $2
+                            AND ap.actions @> $3
+                            AND (
+                                (ap.subject_type = 0 AND ap.subject_id = $4) OR
+                                (ap.subject_type = 1 AND ap.subject_id = ANY($5)) OR
+                                (ap.subject_type = 2) OR
+                                (ap.subject_type = 3)
+                            )",
                         resource_id_col = group_membership_table_resource_id_column,
                         group_id_col = group_membership_table_group_id_column,
                         group_membership_table = group_membership_table
@@ -509,13 +510,14 @@ impl AccessPolicy {
                 }
                 None => {
                     let resource_group_policies_query = format!(
-                        "SELECT gm.{resource_id_col} as id, ap.effect
-                 FROM {group_membership_table} gm
-                 JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
-                 WHERE ap.resource_type = $1
-                   AND ap.context_app_id @> $2
-                   AND ap.actions @> $3
-                   AND ap.subject_type = 3",
+                        "
+                        SELECT gm.{resource_id_col} as id, ap.effect
+                        FROM {group_membership_table} gm
+                        JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
+                        WHERE ap.resource_type = $1
+                            AND ap.context_app_id @> $2
+                            AND ap.actions @> $3
+                            AND ap.subject_type = 3",
                         resource_id_col = group_membership_table_resource_id_column,
                         group_id_col = group_membership_table_group_id_column,
                         group_membership_table = group_membership_table
@@ -551,7 +553,7 @@ impl AccessPolicy {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn list_with_user_access(
+    pub async fn list_access_policies_with_user_access(
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
         requesting_app: &MowsApp,
@@ -562,7 +564,7 @@ impl AccessPolicy {
     ) -> Result<(Vec<AccessPolicy>, u64), FilezError> {
         let mut connection = database.get_connection().await?;
 
-        let resources_with_access = Self::get_resources_with_access(
+        let resources_with_access = Self::get_all_resources_with_user_access(
             database,
             maybe_requesting_user,
             requesting_app,

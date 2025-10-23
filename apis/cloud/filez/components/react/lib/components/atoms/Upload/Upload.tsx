@@ -5,14 +5,17 @@ import {
 } from "@/components/list/ResourceList/ResourceListTypes";
 import ColumnListRowHandler from "@/components/list/ResourceList/rowHandlers/Column";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { log } from "@/lib/logging";
-import { cn, formatFileSizeToHumanReadable } from "@/lib/utils";
-import { SortDirection, StorageQuota } from "filez-client-typescript";
+import { cn, formatFileSizeToHumanReadable, generateRandomId } from "@/lib/utils";
+import { FileGroup, SortDirection, StorageQuota } from "filez-client-typescript";
 import { Folder, Upload as UploadIcon } from "lucide-react";
 import { createRef, PureComponent, type CSSProperties, type ReactNode } from "react";
 import DateTime from "../DateTime/DateTime";
+import FileGroupPicker from "../FileGroupPicker";
+import FileIcon from "../FileIcon/FileIcon";
 import StorageQuotaPicker from "../StorageQuotaPicker";
 import { handleFileUpload, UploadFileRequest, UploadProgressData } from "./handleUpload";
 import ImagePreview from "./ImagePreview";
@@ -29,11 +32,14 @@ export interface UploadFile {
 interface UploadProps {
     readonly className?: string;
     readonly style?: CSSProperties;
-    readonly onUpload?: (files: File[], storageQuota?: StorageQuota) => void;
+    readonly onUpload?: (files: File[], storageQuota?: StorageQuota, fileGroup?: FileGroup) => void;
     readonly onFileRemove?: (fileId: string) => void;
     readonly getStorageQuotas?: () => Promise<StorageQuota[] | undefined>;
     readonly selectedStorageQuota?: StorageQuota;
     readonly onStorageQuotaChange?: (storageQuota?: StorageQuota) => void;
+    readonly getFileGroups?: () => Promise<FileGroup[] | undefined>;
+    readonly selectedFileGroup?: FileGroup;
+    readonly onFileGroupChange?: (fileGroup?: FileGroup) => void;
     readonly accept?: string;
     readonly multiple?: boolean;
     readonly maxSize?: number;
@@ -45,6 +51,8 @@ interface UploadState {
     readonly isDragOver: boolean;
     readonly selectedFiles: UploadFile[];
     readonly selectedStorageQuota?: StorageQuota;
+    readonly selectedFileGroup?: FileGroup;
+    readonly createPreviews: boolean;
 }
 
 export default class Upload extends PureComponent<UploadProps, UploadState> {
@@ -54,13 +62,16 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
     private fileInputRef: HTMLInputElement | null = null;
     private folderInputRef: HTMLInputElement | null = null;
     resourceListRef = createRef<ResourceList<UploadFile>>();
+    listInstanceId = generateRandomId();
 
     constructor(props: UploadProps) {
         super(props);
         this.state = {
             isDragOver: false,
             selectedFiles: [],
-            selectedStorageQuota: props.selectedStorageQuota
+            selectedStorageQuota: props.selectedStorageQuota,
+            selectedFileGroup: props.selectedFileGroup,
+            createPreviews: true
         };
     }
 
@@ -69,6 +80,9 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
     componentDidUpdate = (prevProps: UploadProps) => {
         if (this.props.selectedStorageQuota !== prevProps.selectedStorageQuota) {
             this.setState({ selectedStorageQuota: this.props.selectedStorageQuota });
+        }
+        if (this.props.selectedFileGroup !== prevProps.selectedFileGroup) {
+            this.setState({ selectedFileGroup: this.props.selectedFileGroup });
         }
     };
 
@@ -297,15 +311,24 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
         this.props.onStorageQuotaChange?.(storageQuota);
     };
 
+    handleFileGroupChange = (fileGroup?: FileGroup) => {
+        this.setState({ selectedFileGroup: fileGroup });
+        this.props.onFileGroupChange?.(fileGroup);
+    };
+
+    handleShowPreviewsChange = (checked: boolean) => {
+        this.setState({ createPreviews: checked });
+    };
+
     handleUpload = async () => {
-        const { selectedFiles, selectedStorageQuota } = this.state;
+        const { selectedFiles, selectedStorageQuota, selectedFileGroup } = this.state;
         if (selectedFiles.length === 0) return;
 
         const files = selectedFiles.map((uploadFile) => uploadFile.file);
 
         if (this.props.onUpload) {
             // Use provided onUpload handler
-            this.props.onUpload(files, selectedStorageQuota);
+            this.props.onUpload(files, selectedStorageQuota, selectedFileGroup);
         } else {
             // Handle upload automatically
             await this.handleAutomaticUpload();
@@ -347,6 +370,8 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                     this.context.filezClient,
                     selectedStorageQuota,
                     uploadRequest,
+                    this.state.selectedFileGroup?.id,
+                    this.state.createPreviews,
                     (progress: UploadProgressData) => {
                         // Update progress for this specific file
                         this.setState(
@@ -398,6 +423,7 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                 <ResourceList<UploadFile>
                     className="min-h-0 w-full flex-1"
                     ref={this.resourceListRef}
+                    listInstanceId={this.listInstanceId}
                     initialRowHandler="ColumnListRowHandler"
                     resourceType="UploadFile"
                     getResourcesList={async (request: ListResourceRequestBody) => {
@@ -620,23 +646,51 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                         })
                     ]}
                 ></ResourceList>
-                <div className="flex w-full items-center justify-between gap-4">
-                    <div className="max-w-[400px] flex-1">
-                        <StorageQuotaPicker
-                            className="w-full"
-                            value={this.state.selectedStorageQuota}
-                            onValueChange={this.handleStorageQuotaChange}
-                            getStorageQuotas={this.props.getStorageQuotas}
-                            disabled={this.props.disabled}
-                        />
+                <div className="flex w-full flex-col gap-4">
+                    <div className="flex w-full items-center gap-4">
+                        <div className="max-w-[400px] flex-1">
+                            <StorageQuotaPicker
+                                className="w-full"
+                                value={this.state.selectedStorageQuota}
+                                onValueChange={this.handleStorageQuotaChange}
+                                getStorageQuotas={this.props.getStorageQuotas}
+                                disabled={this.props.disabled}
+                            />
+                        </div>
+                        <div className="max-w-[400px] flex-1">
+                            <FileGroupPicker
+                                className="w-full"
+                                value={this.state.selectedFileGroup}
+                                onValueChange={this.handleFileGroupChange}
+                                getFileGroups={this.props.getFileGroups}
+                                disabled={this.props.disabled}
+                                placeholder={t.upload.selectFileGroup}
+                            />
+                        </div>
                     </div>
-                    <Button
-                        onClick={this.handleUpload}
-                        disabled={this.props.disabled || !this.state.selectedStorageQuota}
-                        className="min-w-[100px] flex-shrink-0"
-                    >
-                        {t.upload.uploadFiles}
-                    </Button>
+                    <div className="flex w-full items-center gap-4">
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="showPreviews"
+                                checked={this.state.createPreviews}
+                                onCheckedChange={this.handleShowPreviewsChange}
+                                disabled={this.props.disabled}
+                            />
+                            <label
+                                htmlFor="showPreviews"
+                                className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                                {t.upload.showPreviews}
+                            </label>
+                        </div>
+                        <Button
+                            onClick={this.handleUpload}
+                            disabled={this.props.disabled || !this.state.selectedStorageQuota}
+                            className="min-w-[100px] flex-shrink-0"
+                        >
+                            {t.upload.uploadFiles}
+                        </Button>
+                    </div>
                 </div>
             </div>
         );

@@ -10,7 +10,7 @@ use crate::models::files::FileMetadata;
     ),
     info(
         title = env!("CARGO_PKG_NAME"),
-        description = "API for managing files in MOWS Filez",
+        description = "API for MOWS Filez",
         version = env!("CARGO_PKG_VERSION"),
     ),
     components(

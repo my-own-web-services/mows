@@ -55,7 +55,8 @@ const translation: Translation = {
         [ActionIds.OPEN_PRIMARY_MENU]: "Open primary menu",
         [ActionIds.LOGIN]: "Login",
         [ActionIds.LOGOUT]: "Logout",
-        [ActionIds.DELETE_FILES]: "Delete files"
+        [ActionIds.DELETE_FILES]: "Delete files",
+        [ActionIds.CREATE_FILE_GROUP]: "Create file group"
     },
     commandPalette: {
         placeholder: "Type a command or search...",
@@ -85,6 +86,9 @@ const translation: Translation = {
         dropFilesOrFoldersHere: "Drop files or folders here",
         orUseButtonsBelow: "or use the buttons below to select",
         selectAll: "Select All",
+        selectFileGroup: "Select file group (optional)",
+        dragToResize: "Drag to resize",
+        showPreviews: "Create previews",
         status: {
             pending: "Pending",
             uploading: "Uploading",
@@ -103,6 +107,25 @@ const translation: Translation = {
         selectStorageQuota: "Select storage quota",
         noStorageQuotaFound: "No storage quota found",
         loading: "Loading storage quotas..."
+    },
+    fileGroupPicker: {
+        title: "File Group Selector",
+        selectFileGroup: "Select file group",
+        noFileGroupFound: "No file group found",
+        loading: "Loading file groups..."
+    },
+    fileGroupCreate: {
+        createFileGroup: "Create File Group",
+        title: "Create New File Group",
+        description: "Create a new file group to organize your files.",
+        nameLabel: "File Group Name",
+        namePlaceholder: "Enter file group name",
+        nameRequired: "File group name is required",
+        nameTooLong: "File group name must be 256 characters or less",
+        createFailed: "Failed to create file group",
+        cancel: "Cancel",
+        create: "Create",
+        creating: "Creating..."
     },
     common: {
         files: {

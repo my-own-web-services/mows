@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { FilezContext, ModalType } from "@/main";
 import { PureComponent, type CSSProperties, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
+import FileGroupCreate from "./FileGroupCreate";
 import KeyboardShortcuts from "./KeyboardShortcutEditor";
 import LanguagePicker from "./LanguagePicker";
 import ThemePicker from "./ThemePicker";
@@ -48,6 +49,20 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
                         <DialogDescription aria-describedby={undefined} />
                     </DialogHeader>
                     <LanguagePicker standalone />
+                </DialogContent>
+            )
+        },
+        fileGroupCreate: {
+            component: () => (
+                <DialogContent className="max-h-[90vh] overflow-y-auto select-none">
+                    <DialogHeader>
+                        <DialogTitle>{this.context?.t.fileGroupCreate.title}</DialogTitle>
+                        <DialogDescription>{this.context?.t.fileGroupCreate.description}</DialogDescription>
+                    </DialogHeader>
+                    <FileGroupCreate
+                        onCancel={() => this.context?.changeActiveModal(undefined)}
+                        onFileGroupCreated={() => this.context?.changeActiveModal(undefined)}
+                    />
                 </DialogContent>
             )
         }

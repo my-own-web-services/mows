@@ -1,0 +1,28 @@
+[package]
+name = "filez-apps-backend-metadata"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "filez-apps-backend-metadata"
+path = "src/main.rs"
+
+[dependencies]
+filez-server-client = { workspace = true }
+
+tokio = { workspace = true, features = ["full"] }
+mows-common-rust = { workspace = true, features = ["default"] }
+url = { workspace = true, features = ["serde"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+tracing = { workspace = true, features = ["default"] }
+
+uuid.workspace = true
+thiserror-context = "0.1.2"
+
+
+[lints]
+workspace = true

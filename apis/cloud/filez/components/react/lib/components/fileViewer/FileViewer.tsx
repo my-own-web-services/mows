@@ -10,6 +10,8 @@ interface FileViewerProps {
     readonly file: FilezFile;
     readonly fileVersion?: number;
     readonly appId?: string;
+    readonly width?: number;
+    readonly height?: number;
 }
 
 interface FileViewerState {}
@@ -25,13 +27,16 @@ export default class FileViewer extends PureComponent<FileViewerProps, FileViewe
     componentDidMount = async () => {};
 
     render = () => {
-        const { file } = this.props;
+        const { file, width, height } = this.props;
         return (
-            <div style={{ ...this.props.style }} className={cn(`FileViewer`, this.props.className)}>
+            <div
+                style={{ ...this.props.style }}
+                className={cn(`FileViewer h-full w-full`, this.props.className)}
+            >
                 {(() => {
                     const fileType = file.mime_type;
                     if (fileType.startsWith("image/")) {
-                        return <ImageViewer file={file} />;
+                        return <ImageViewer width={width} height={height} file={file} />;
                     } else {
                         return <span>{file.name}</span>;
                     }
