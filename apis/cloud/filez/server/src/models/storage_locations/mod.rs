@@ -73,7 +73,7 @@ pub struct StorageLocationListItem {
 #[serde(rename_all = "camelCase")]
 pub struct StorageLocationConfigCrd {
     pub provider_config: StorageProviderConfigCrd,
-    pub default_quotas: Vec<DefaultQuota>,
+    pub default_quotas: Option<Vec<DefaultQuota>>,
 }
 
 // TODO: implement default quotas

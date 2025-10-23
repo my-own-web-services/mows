@@ -2,7 +2,7 @@
   "version": "v1",
   "packages": {
     "filez-client-typescript": {
-      "signature": "5305ee64e051ec3f6fce37c434a55106",
+      "signature": "9f002ffc28c52fceb10240bc7dfb26fb",
       "file": true,
       "replaced": "workspace:*"
     }

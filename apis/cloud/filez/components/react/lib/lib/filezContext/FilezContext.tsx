@@ -45,7 +45,7 @@ export interface FilezContextType {
     readonly changeActiveModal: (modalType?: ModalType) => void;
 }
 
-export type ModalType = "keyboardShortcutEditor" | "themeSelector" | "languageSelector";
+export type ModalType = "keyboardShortcutEditor" | "themeSelector" | "languageSelector" | "fileGroupCreate";
 
 interface FilezClientManagerProps {
     readonly children: ReactNode;

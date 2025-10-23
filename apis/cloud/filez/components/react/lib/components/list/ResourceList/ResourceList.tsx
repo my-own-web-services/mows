@@ -662,7 +662,9 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                     resourceType: this.props.resourceType,
                                                     rowHeight,
                                                     rowHandlers: this.props.rowHandlers,
-                                                    listInstanceId: this.props.listInstanceId
+                                                    listInstanceId: this.props.listInstanceId,
+                                                    listWidth: width,
+                                                    listHeight: height
                                                 }}
                                             >
                                                 {/*@ts-ignore*/}

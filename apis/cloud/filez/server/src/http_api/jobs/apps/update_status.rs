@@ -44,7 +44,7 @@ pub async fn update_job_status(
     trace!(
         requesting_app = ?requesting_app,
         requesting_app_runtime_instance_id = ?requesting_app_runtime_instance_id,
-        "Received request to pickup job by app: {:?} with runtime instance ID: {:?}",
+        "Received request to update job by app: {:?} with runtime instance ID: {:?}",
         requesting_app,
         requesting_app_runtime_instance_id
     );

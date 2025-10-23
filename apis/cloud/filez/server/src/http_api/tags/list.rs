@@ -8,9 +8,7 @@ use uuid::Uuid;
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
-    models::{
-        tag_members::{TagMember, TagResourceType},
-    },
+    models::tag_members::{TagMember, TagResourceType},
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
@@ -47,7 +45,7 @@ pub async fn list_tags(
             authentication_information.requesting_user.as_ref(),
             &authentication_information.requesting_app,
             request_body.search.as_ref(),
-            request_body.resource_type.unwrap_or(TagResourceType::File),
+            request_body.resource_type,
             request_body.from_index,
             request_body.limit,
             request_body.sort_by,
@@ -58,22 +56,20 @@ pub async fn list_tags(
         timing
     );
 
-    let _list_results = ListTagsResponseBody {
-        tags,
-        total_count,
-    };
+    let list_results = ListTagsResponseBody { tags, total_count };
 
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Tags listed successfully".to_string(),
-        data: Some(_list_results),
+        data: Some(list_results),
     }))
 }
 
 #[derive(Deserialize, Serialize, ToSchema, Debug, Validate)]
 pub struct ListTagsRequestBody {
+    pub resource_type: TagResourceType,
+
     pub search: Option<ListTagsSearch>,
-    pub resource_type: Option<TagResourceType>,
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
     pub sort_by: Option<ListTagsSortBy>,

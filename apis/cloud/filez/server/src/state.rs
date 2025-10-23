@@ -16,7 +16,7 @@ use tokio::sync::RwLock;
 
 use zitadel::oidc::introspection::cache::in_memory::InMemoryIntrospectionCache;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ServerState {
     pub database: Database,
     pub introspection_state: IntrospectionState,

@@ -8,6 +8,7 @@ members = [
     "apis/core/pektin/*",
     "apis/cloud/filez/server",
     "apis/cloud/filez/apps/backend/images",
+    "apis/cloud/filez/apps/backend/metadata",
     "apis/cloud/filez/clients/rust",
 
 ]

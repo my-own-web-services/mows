@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ .Values.apps.backend.metadata.name }}
+    {{- if .Values.apps.backend.metadata.dev.autoUpdate }}
+    annotations:
+        keel.sh/policy: force
+        keel.sh/trigger: poll
+        keel.sh/pollSchedule: "@every 1s"
+    {{- end }}
+spec:
+    replicas: {{ .Values.apps.backend.metadata.replicaCount }}
+    revisionHistoryLimit: 0
+    selector:
+        matchLabels:
+            app: {{ .Values.apps.backend.metadata.name }}
+    template:
+        metadata:
+            labels:
+                app: {{ .Values.apps.backend.metadata.name }}
+        spec:
+            serviceAccountName: {{ .Values.apps.backend.metadata.name }}
+            volumes:
+                -   name: working-volume
+                    emptyDir: 
+                        sizeLimit: {{ .Values.apps.backend.metadata.workingVolume.sizeLimit }}
+            containers:
+                -   name: {{ .Values.apps.backend.metadata.name }}
+                    image: "{{ .Values.apps.backend.metadata.image }}"
+                    imagePullPolicy: {{ .Values.apps.backend.metadata.imagePullPolicy }}
+                    securityContext:
+                        allowPrivilegeEscalation: false
+                        readOnlyRootFilesystem: true
+                        runAsNonRoot: true
+                        runAsUser: 50003
+                    resources:
+                        limits:
+                            memory: 1024Mi
+                            cpu: 1000m
+                    volumeMounts:
+                        -   name: working-volume
+                            mountPath: /working
+                    env:
+                        -   name: FILEZ_SERVER_URL
+                            value: {{ .Values.server.internalUrl }}
+                        -   name: WORKING_DIRECTORY
+                            value: /working
+                        -   name: NO_WORK_WAIT_SECONDS
+                            value: "10"
+                        -   name: TRACING_FILTER
+                            value: {{ .Values.apps.backend.metadata.tracing.filter | quote }}
+                        -   name: LOG_FILTER
+                            value: {{ .Values.apps.backend.metadata.log.filter | quote }}

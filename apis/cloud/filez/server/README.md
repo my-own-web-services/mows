@@ -40,3 +40,27 @@ With https://github.com/rover-app/pgfga nothing needs to be synced
 10k users
 
 user, app, resource, action
+
+```rs
+diesel::table! {
+    authorization (user_id) {
+        user_id -> Uuid,
+        app_id -> Uuid,
+        resource_type -> SmallInt,
+        resource_id -> Uuid,
+        action -> SmallInt,
+    }
+}
+```
+
+# Tags
+
+Tag Knowledge Table
+
+UserId, TagId
+
+# Next steps
+
+- Create a realistic load
+- Don't worry about large scale yet!
+- Add user sessions

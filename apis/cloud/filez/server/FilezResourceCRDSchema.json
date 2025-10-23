@@ -135,12 +135,14 @@
     "StorageLocationConfigCrd": {
       "type": "object",
       "required": [
-        "defaultQuotas",
         "providerConfig"
       ],
       "properties": {
         "defaultQuotas": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/definitions/DefaultQuota"
           }

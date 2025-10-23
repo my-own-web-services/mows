@@ -122,7 +122,11 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
                             }}
                             key={key}
                         >
-                            <FileViewer file={item as unknown as FilezFile}></FileViewer>
+                            <FileViewer
+                                width={data.listWidth / gridColumnCount}
+                                height={data.listWidth / gridColumnCount}
+                                file={item as unknown as FilezFile}
+                            ></FileViewer>
                         </div>
                     );
                 })}

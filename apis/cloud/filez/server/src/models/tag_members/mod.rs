@@ -346,7 +346,7 @@ impl TagMember {
 
         let owned_resource_ids = match resource_type {
             TagResourceType::File => {
-                AccessPolicy::get_resources_with_access(
+                AccessPolicy::get_all_resources_with_user_access(
                     database,
                     maybe_requesting_user,
                     requesting_app,
@@ -356,7 +356,7 @@ impl TagMember {
                 .await?
             }
             TagResourceType::FileVersion => {
-                AccessPolicy::get_resources_with_access(
+                AccessPolicy::get_all_resources_with_user_access(
                     database,
                     maybe_requesting_user,
                     requesting_app,
@@ -366,7 +366,7 @@ impl TagMember {
                 .await?
             }
             TagResourceType::FileGroup => {
-                AccessPolicy::get_resources_with_access(
+                AccessPolicy::get_all_resources_with_user_access(
                     database,
                     maybe_requesting_user,
                     requesting_app,
@@ -376,7 +376,7 @@ impl TagMember {
                 .await?
             }
             TagResourceType::User => {
-                AccessPolicy::get_resources_with_access(
+                AccessPolicy::get_all_resources_with_user_access(
                     database,
                     maybe_requesting_user,
                     requesting_app,
@@ -386,7 +386,7 @@ impl TagMember {
                 .await?
             }
             TagResourceType::UserGroup => {
-                AccessPolicy::get_resources_with_access(
+                AccessPolicy::get_all_resources_with_user_access(
                     database,
                     maybe_requesting_user,
                     requesting_app,
@@ -396,7 +396,7 @@ impl TagMember {
                 .await?
             }
             TagResourceType::StorageLocation => {
-                AccessPolicy::get_resources_with_access(
+                AccessPolicy::get_all_resources_with_user_access(
                     database,
                     maybe_requesting_user,
                     requesting_app,
@@ -406,7 +406,7 @@ impl TagMember {
                 .await?
             }
             TagResourceType::AccessPolicy => {
-                AccessPolicy::get_resources_with_access(
+                AccessPolicy::get_all_resources_with_user_access(
                     database,
                     maybe_requesting_user,
                     requesting_app,
@@ -416,7 +416,7 @@ impl TagMember {
                 .await?
             }
             TagResourceType::StorageQuota => {
-                AccessPolicy::get_resources_with_access(
+                AccessPolicy::get_all_resources_with_user_access(
                     database,
                     maybe_requesting_user,
                     requesting_app,

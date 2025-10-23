@@ -233,12 +233,12 @@ impl StorageProviderFilesystem {
                 let _ = fs::remove_file(&test_file_path).await;
                 HealthStatus {
                     healthy: true,
-                    response: "Healthy".to_string(),
+                    message: "Healthy".to_string(),
                 }
             }
             Err(e) => HealthStatus {
                 healthy: false,
-                response: e.to_string(),
+                message: e.to_string(),
             },
         }
     }

@@ -163,6 +163,8 @@ export interface RowComponentData<FilezResourceType> {
     readonly resourceType: string;
     readonly rowHeight: number;
     readonly rowHandlers?: ListRowHandler<FilezResourceType>[];
+    readonly listWidth: number;
+    readonly listHeight: number;
 }
 
 export interface BaseResource {

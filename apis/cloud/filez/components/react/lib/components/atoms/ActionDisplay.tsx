@@ -4,22 +4,19 @@ import { FilezContext } from "@/main";
 import { PureComponent, type CSSProperties } from "react";
 import KeyComboDisplay from "./KeyComboDisplay";
 
-interface ActionComponentProps {
+interface ActionDisplayProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly action: Action;
 }
 
-interface ActionComponentState {}
+interface ActionDisplayState {}
 
-export default class ActionComponent extends PureComponent<
-    ActionComponentProps,
-    ActionComponentState
-> {
+export default class ActionDisplay extends PureComponent<ActionDisplayProps, ActionDisplayState> {
     static contextType = FilezContext;
     declare context: React.ContextType<typeof FilezContext>;
 
-    constructor(props: ActionComponentProps) {
+    constructor(props: ActionDisplayProps) {
         super(props);
         this.state = {};
     }
@@ -37,7 +34,7 @@ export default class ActionComponent extends PureComponent<
             <span
                 style={{ ...this.props.style }}
                 className={cn(
-                    `ActionComponent`,
+                    `ActionDisplay`,
                     "flex w-full justify-between gap-2",
                     this.props.className
                 )}

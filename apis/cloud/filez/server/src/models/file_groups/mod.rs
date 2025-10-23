@@ -159,7 +159,7 @@ impl FileGroup {
     ) -> Result<(Vec<FileGroup>, u64), FilezError> {
         let mut connection = database.get_connection().await?;
 
-        let resources_with_access = AccessPolicy::get_resources_with_access(
+        let resources_with_access = AccessPolicy::get_all_resources_with_user_access(
             database,
             maybe_requesting_user,
             requesting_app,

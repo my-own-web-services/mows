@@ -56,7 +56,8 @@ const translation: Translation = {
         [ActionIds.OPEN_PRIMARY_MENU]: "Hauptmenü öffnen",
         [ActionIds.LOGIN]: "Anmelden",
         [ActionIds.LOGOUT]: "Abmelden",
-        [ActionIds.DELETE_FILES]: "Dateien löschen"
+        [ActionIds.DELETE_FILES]: "Dateien löschen",
+        [ActionIds.CREATE_FILE_GROUP]: "Dateigruppe erstellen"
     },
     commandPalette: {
         placeholder: "Befehl eingeben oder suchen...",
@@ -86,6 +87,9 @@ const translation: Translation = {
         dropFilesOrFoldersHere: "Dateien oder Ordner hier ablegen",
         orUseButtonsBelow: "oder die Schaltflächen unten verwenden",
         selectAll: "Alle auswählen",
+        selectFileGroup: "Dateigruppe auswählen (optional)",
+        dragToResize: "Ziehen zum Größe ändern",
+        showPreviews: "Vorschau erstellen",
         status: {
             pending: "Wartend",
             uploading: "Hochladen",
@@ -104,6 +108,25 @@ const translation: Translation = {
         selectStorageQuota: "Speicherkontingent auswählen",
         noStorageQuotaFound: "Kein Speicherkontingent gefunden",
         loading: "Lade Speicherkontingente..."
+    },
+    fileGroupPicker: {
+        title: "Dateigruppen-Auswahl",
+        selectFileGroup: "Dateigruppe auswählen",
+        noFileGroupFound: "Keine Dateigruppe gefunden",
+        loading: "Lade Dateigruppen..."
+    },
+    fileGroupCreate: {
+        createFileGroup: "Dateigruppe erstellen",
+        title: "Neue Dateigruppe erstellen",
+        description: "Erstellen Sie eine neue Dateigruppe, um Ihre Dateien zu organisieren.",
+        nameLabel: "Dateigruppenname",
+        namePlaceholder: "Dateigruppenname eingeben",
+        nameRequired: "Dateigruppenname ist erforderlich",
+        nameTooLong: "Dateigruppenname darf maximal 256 Zeichen lang sein",
+        createFailed: "Fehler beim Erstellen der Dateigruppe",
+        cancel: "Abbrechen",
+        create: "Erstellen",
+        creating: "Wird erstellt..."
     },
     common: {
         files: {
