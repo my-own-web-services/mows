@@ -2,6 +2,7 @@ export { default as CommandPalette } from "./components/atoms/CommandPalette";
 export { default as FileGroupCreate } from "./components/atoms/FileGroupCreate";
 export { default as FileGroupPicker } from "./components/atoms/FileGroupPicker";
 export { default as GlobalContextMenu } from "./components/atoms/GlobalContextMenu";
+export { default as JobsProgress } from "./components/atoms/Jobs/JobsProgress";
 
 export { default as ModalHandler } from "./components/atoms/ModalHandler";
 export { default as ResourceTags } from "./components/atoms/ResourceTags/ResourceTags";

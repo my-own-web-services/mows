@@ -121,6 +121,12 @@ export interface Translation {
         create: string;
         creating: string;
     };
+    jobsProgress: {
+        title: string;
+        inProgress: string;
+        created: string;
+        failed: string;
+    };
     common: {
         files: {
             delete: (fileCount: number) => string;

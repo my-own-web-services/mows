@@ -142,6 +142,20 @@ impl FilezUser {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_one_by_id_optional(
+        database: &Database,
+        user_id: &FilezUserId,
+    ) -> Result<Option<Self>, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let user = schema::users::table
+            .find(user_id)
+            .first::<FilezUser>(&mut connection)
+            .await
+            .optional()?;
+        Ok(user)
+    }
+
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_one_by_email(database: &Database, email: &str) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
         let user = schema::users::table

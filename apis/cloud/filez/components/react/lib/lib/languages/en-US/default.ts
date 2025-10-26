@@ -127,6 +127,12 @@ const translation: Translation = {
         create: "Create",
         creating: "Creating..."
     },
+    jobsProgress: {
+        title: "Jobs Progress",
+        inProgress: "In Progress",
+        created: "Created",
+        failed: "Failed"
+    },
     common: {
         files: {
             delete: (fileCount: number) => fileCount === 1 ? "Delete file" : `Delete ${fileCount} files`

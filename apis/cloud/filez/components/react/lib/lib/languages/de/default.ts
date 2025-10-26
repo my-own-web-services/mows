@@ -128,6 +128,12 @@ const translation: Translation = {
         create: "Erstellen",
         creating: "Wird erstellt..."
     },
+    jobsProgress: {
+        title: "Jobs Fortschritt",
+        inProgress: "In Bearbeitung",
+        created: "Erstellt",
+        failed: "Fehlgeschlagen"
+    },
     common: {
         files: {
             delete: (fileCount: number) => fileCount === 1 ? "Datei löschen" : `${fileCount} Dateien löschen`
