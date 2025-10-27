@@ -1,7 +1,7 @@
-use crate::controller::crd::SecretReadableByFilezController;
 use crate::http_api::health::HealthStatus;
+use crate::kubernetes_controller::crd::SecretReadableByFilezController;
 use crate::models::file_versions::ContentRange;
-use crate::{controller::crd::ValueOrSecretReference, storage::errors::StorageError};
+use crate::{kubernetes_controller::crd::ValueOrSecretReference, storage::errors::StorageError};
 use anyhow::Context;
 use axum::body::Body;
 use axum::extract::Request;

@@ -255,19 +255,6 @@ fn parse_function_arguments(
                     });
                 }
             } else if media_type == "application/offset+octet-stream" {
-                // Handle binary data
-                parsed_arguments.push(FunctionArgument {
-                    name: "request_body".to_string(),
-                    optional: false,
-                    rust_type: "reqwest::Body".to_string(),
-                    parameter_in: ParameterIn::RequestBody(BodyType::Binary),
-                });
-                parsed_arguments.push(FunctionArgument {
-                    name: "upload_offset".to_string(),
-                    optional: false,
-                    rust_type: "u64".to_string(),
-                    parameter_in: ParameterIn::Header(("Upload-Offset".to_string(), None)),
-                });
                 parsed_arguments.push(FunctionArgument {
                     name: "content_length".to_string(),
                     optional: false,
@@ -275,14 +262,12 @@ fn parse_function_arguments(
                     parameter_in: ParameterIn::Header(("Content-Length".to_string(), None)),
                 });
 
+                // Handle binary data
                 parsed_arguments.push(FunctionArgument {
-                    name: "Tus-Resumable".to_string(),
+                    name: "request_body".to_string(),
                     optional: false,
-                    rust_type: "String".to_string(),
-                    parameter_in: ParameterIn::Header((
-                        "Tus-Resumable".to_string(),
-                        Some("1.0.0".to_string()),
-                    )),
+                    rust_type: "reqwest::Body".to_string(),
+                    parameter_in: ParameterIn::RequestBody(BodyType::Binary),
                 });
 
                 parsed_arguments.push(FunctionArgument {

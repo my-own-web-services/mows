@@ -1,6 +1,6 @@
 use crate::errors::FilezError;
 use anyhow::bail;
-use axum::http::HeaderValue;
+use axum::http::{HeaderName, HeaderValue};
 use serde::{
     de::{self, Deserializer, Visitor},
     Deserialize,
@@ -10,6 +10,10 @@ use std::str::FromStr;
 use tokio::signal::{self};
 use url::Url;
 use utoipa::ToSchema;
+
+pub fn static_as_header(static_str: &'static str) -> HeaderName {
+    HeaderName::from_lowercase(static_str.to_lowercase().as_bytes()).unwrap()
+}
 
 pub fn get_current_timestamp() -> chrono::NaiveDateTime {
     chrono::Utc::now().naive_utc()

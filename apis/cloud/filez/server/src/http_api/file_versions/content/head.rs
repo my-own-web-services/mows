@@ -1,5 +1,4 @@
 use crate::{
-    config::TUS_VERSION,
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
@@ -89,26 +88,6 @@ pub async fn file_versions_content_tus_head(
     let app_id: Option<MowsAppId> = app_id.into();
     let app_path: Option<String> = app_path.into();
 
-    if request_headers
-        .get("Tus-Resumable")
-        .ok_or_else(|| FilezError::InvalidRequest("Missing Tus-Resumable header".to_string()))?
-        .to_str()
-        .map_err(|_| FilezError::InvalidRequest("Invalid Tus-Resumable header".to_string()))?
-        != TUS_VERSION
-    {
-        let mut response_headers = HeaderMap::new();
-        response_headers.insert("Tus-Resumable", TUS_VERSION.parse().unwrap());
-        return Ok((
-            StatusCode::PRECONDITION_FAILED,
-            response_headers,
-            Json(ApiResponse::<EmptyApiResponse> {
-                status: ApiResponseStatus::Error("GenericError".to_string()),
-                message: "Invalid Tus-Resumable header".to_string(),
-                data: None,
-            }),
-        ));
-    };
-
     with_timing!(
         AccessPolicy::check(
             &database,
@@ -142,7 +121,6 @@ pub async fn file_versions_content_tus_head(
 
     let mut response_headers = HeaderMap::new();
 
-    response_headers.insert("Tus-Resumable", "1.0.0".parse().unwrap());
     response_headers.insert(
         "Upload-Offset",
         real_content_size.to_string().parse().unwrap(),
@@ -157,7 +135,7 @@ pub async fn file_versions_content_tus_head(
     Ok((
         StatusCode::OK,
         response_headers,
-        Json(ApiResponse {
+        Json(ApiResponse::<EmptyApiResponse> {
             status: ApiResponseStatus::Success {},
             message: "Got Offset".to_string(),
             data: None,

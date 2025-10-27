@@ -1,15 +1,7 @@
 import CommandPalette from "@/components/atoms/CommandPalette";
 import { ResourceTagsMap } from "@/components/atoms/ResourceTags/ResourceTags";
 import PrimaryMenu from "@/components/PrimaryMenu";
-import {
-    FileList,
-    FilezContext,
-    GlobalContextMenu,
-    JobsProgress,
-    ModalHandler,
-    Toaster,
-    Upload
-} from "@/main";
+import { FileList, FilezContext, GlobalContextMenu, ModalHandler, Toaster, Upload } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
 
 interface AppProps {
@@ -51,7 +43,6 @@ export default class App extends PureComponent<AppProps, AppState> {
                 className={`App h-full w-full overflow-x-hidden ${this.props.className ?? ""}`}
             >
                 <PrimaryMenu position="bottom-right"></PrimaryMenu>
-                <JobsProgress></JobsProgress>
                 <CommandPalette />
                 <ModalHandler />
                 <Toaster></Toaster>
@@ -68,6 +59,7 @@ export default class App extends PureComponent<AppProps, AppState> {
 
 /*
                               <Upload className="h-[800px] w-full"></Upload>
+                <JobsProgress></JobsProgress>
 
                 <ResourceTags
                     className="w-[500px] p-4"

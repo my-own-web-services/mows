@@ -411,13 +411,13 @@ impl ApiClient {
     }
 
     #[tracing::instrument(level = "trace")]
-    pub async fn file_versions_content_tus_patch(&self, file_id: Uuid, version: Option<u32>, app_path: Option<String>, request_body: reqwest::Body, upload_offset: u64, content_length: u64) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    pub async fn file_versions_content_tus_patch(&self, file_id: Uuid, version: Option<u32>, app_path: Option<String>, upload_offset: u64, content_length: u64, request_body: reqwest::Body) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let version = OptionAsNull(version);
         let app_path = OptionAsNull(app_path);
         let full_url = format!("{}/api/file_versions/content/tus/{file_id}/{version}/{app_path}", self.base_url);
-        let full_url = Url::parse(&full_url).unwrap();
+        let full_url = Url::parse(&full_url).unwrap().query_pairs_mut().append_pair("upload_offset", &upload_offset.to_string()).finish().clone();
         
-        let response = self.client.patch(full_url).header("Upload-Offset", upload_offset).header("Content-Length", content_length).header("Tus-Resumable", "1.0.0").header("Content-Type", "application/offset+octet-stream").headers(self.add_auth_headers()?).body(request_body).send().await?;
+        let response = self.client.patch(full_url).header("Content-Length", content_length).header("Content-Type", "application/offset+octet-stream").headers(self.add_auth_headers()?).body(request_body).send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             return Err(ApiClientError::ApiError(response.text().await?));
@@ -671,6 +671,22 @@ impl ApiClient {
     pub async fn update_job(&self, request_body: UpdateJobRequestBody) -> Result<ApiResponseUpdateJobResponseBody, ApiClientError> {
         
         let full_url = format!("{}/api/jobs/update", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+        
+        let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            return Err(ApiClientError::ApiError(response.text().await?));
+        }
+            
+        let response = response.json().await?;
+        Ok(response)
+    }
+
+    #[tracing::instrument(level = "trace")]
+    pub async fn start_session(&self, request_body: StartSessionRequestBody) -> Result<ApiResponseStartSessionResponseBody, ApiClientError> {
+        
+        let full_url = format!("{}/api/sessions/start", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
         
         let response = self.client.post(full_url).headers(self.add_auth_headers()?).json(&request_body).send().await?;

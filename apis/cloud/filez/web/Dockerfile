@@ -2,14 +2,14 @@
 FROM scratch AS sources
 COPY --from=filez-client-typescript . filez-client-typescript
 COPY --from=filez-components-react . filez-components-react
-COPY pnpm-workspace-docker.yaml ./pnpm-workspace.yaml
 
 
 FROM node:23-alpine3.19 AS build-stage
 WORKDIR /build
 RUN yarn global add pnpm
-COPY --from=sources / /build/
 WORKDIR /build/filez-web
+COPY --from=sources / .yalc/
+
 COPY package.json pnpm-lock.yaml ./
 
 RUN pnpm install

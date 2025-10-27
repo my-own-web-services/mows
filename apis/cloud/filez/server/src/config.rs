@@ -4,8 +4,6 @@ use std::sync::OnceLock;
 use tokio::sync::RwLock;
 use url::Url;
 
-pub const TUS_VERSION: &str = "1.0.0";
-
 pub const IMPERSONATE_USER_HEADER_NAME: &str = "X-Filez-Impersonate-User";
 
 pub const KEY_ACCESS_HEADER_NAME: &str = "X-Filez-Key-Access";
@@ -13,6 +11,9 @@ pub const KEY_ACCESS_HEADER_NAME: &str = "X-Filez-Key-Access";
 pub const SERVICE_ACCOUNT_TOKEN_HEADER_NAME: &str = "X-Service-Account-Token";
 
 pub const RUNTIME_INSTANCE_ID_HEADER_NAME: &str = "X-Filez-Runtime-Instance-ID";
+
+pub const SESSION_INFO_KEY: &str = "user_id";
+pub const SESSION_IMPERSONATED_USER_KEY: &str = "impersonated_user_id";
 
 pub fn config() -> &'static RwLock<FilezServerConfig> {
     static CONFIG: OnceLock<RwLock<FilezServerConfig>> = OnceLock::new();

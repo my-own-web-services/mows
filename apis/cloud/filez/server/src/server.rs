@@ -1,16 +1,20 @@
 use anyhow::Context;
-use axum::http::{header::CONTENT_SECURITY_POLICY, request::Parts, HeaderValue};
+use axum::http::{
+    header::{AUTHORIZATION, CONTENT_SECURITY_POLICY, CONTENT_TYPE},
+    request::Parts,
+    HeaderValue, Method,
+};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use filez_server_lib::{
     background_tasks::run_background_tasks,
-    config::config,
-    controller,
+    config::{config, IMPERSONATE_USER_HEADER_NAME},
+    kubernetes_controller,
     database::Database,
     http_api::{self, authentication::middleware::authentication_middleware},
     models::apps::MowsApp,
     state::ServerState,
     types::FilezApiDoc,
-    utils::shutdown_signal,
+    utils::{shutdown_signal, static_as_header},
 };
 use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
@@ -19,10 +23,11 @@ use std::net::SocketAddr;
 use tower::ServiceBuilder;
 use tower_http::{
     compression::CompressionLayer,
-    cors::{AllowOrigin, Any, CorsLayer},
+    cors::{AllowOrigin, CorsLayer},
     decompression::DecompressionLayer,
     set_header::SetResponseHeaderLayer,
 };
+use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, SessionManagerLayer};
 use tracing::error;
 use tracing::info;
 use utoipa::OpenApi;
@@ -58,6 +63,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let database_for_cors_layer = server_state.database.clone();
 
+    let session_storage_adapter = MemoryStore::default();
+
     let (router, api) = OpenApiRouter::with_openapi(FilezApiDoc::openapi())
         // NOTE!
         // Sometimes when something is wrong with the extractors a warning will appear of an axum version mismatch.
@@ -83,12 +90,11 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(
             http_api::file_versions::content::get::get_file_version_content
         ))
-        //    tus
         .routes(routes!(
-            http_api::file_versions::content::tus::head::file_versions_content_tus_head
+            http_api::file_versions::content::head::file_versions_content_tus_head
         ))
         .routes(routes!(
-            http_api::file_versions::content::tus::patch::file_versions_content_tus_patch
+            http_api::file_versions::content::patch::file_versions_content_tus_patch
         ))
         // FILE GROUPS
         .routes(routes!(http_api::file_groups::create::create_file_group))
@@ -177,11 +183,20 @@ async fn main() -> Result<(), anyhow::Error> {
         ))
         // HEALTH
         .routes(routes!(http_api::health::get_health))
+        // SESSIONS
+        .routes(routes!(http_api::sessions::start::start_session))
         // DEV
         .routes(routes!(http_api::dev::reset_database::reset_database))
         .with_state(server_state.clone())
         .layer(
             ServiceBuilder::new()
+                .layer(
+                    SessionManagerLayer::new(session_storage_adapter)
+                        .with_secure(true)
+                        .with_http_only(true)
+                        .with_same_site(tower_sessions::cookie::SameSite::None)
+                        .with_expiry(Expiry::OnInactivity(Duration::seconds(600))),
+                )
                 .layer(OtelAxumLayer::default())
                 .layer(OtelInResponseLayer::default())
                 .layer(axum::middleware::from_fn(
@@ -210,8 +225,20 @@ async fn main() -> Result<(), anyhow::Error> {
                                 }
                             },
                         ))
-                        .allow_methods(Any)
-                        .allow_headers(Any),
+                        .allow_methods([
+                            Method::GET,
+                            Method::POST,
+                            Method::PUT,
+                            Method::DELETE,
+                            Method::PATCH,
+                            Method::HEAD,
+                        ])
+                        .allow_credentials(true)
+                        .allow_headers([
+                            AUTHORIZATION,
+                            CONTENT_TYPE,
+                            static_as_header(IMPERSONATE_USER_HEADER_NAME),
+                        ]),
                 )
                 .layer(SetResponseHeaderLayer::overriding(
                     CONTENT_SECURITY_POLICY,
@@ -237,7 +264,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .await
             .context("Failed to bind TCP listener to address ::1:8080")?;
 
-    let controller = controller::run_controller(server_state.clone());
+    let controller = kubernetes_controller::run_controller(server_state.clone());
 
     let server = axum::serve(
         listener,

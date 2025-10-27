@@ -1,4 +1,4 @@
-use filez_server_lib::controller::crd::FilezResource;
+use filez_server_lib::kubernetes_controller::crd::FilezResource;
 use schemars::schema_for;
 fn main() {
     print!(

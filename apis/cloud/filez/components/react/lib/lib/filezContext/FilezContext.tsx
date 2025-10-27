@@ -45,7 +45,11 @@ export interface FilezContextType {
     readonly changeActiveModal: (modalType?: ModalType) => void;
 }
 
-export type ModalType = "keyboardShortcutEditor" | "themeSelector" | "languageSelector" | "fileGroupCreate";
+export type ModalType =
+    | "keyboardShortcutEditor"
+    | "themeSelector"
+    | "languageSelector"
+    | "fileGroupCreate";
 
 interface FilezClientManagerProps {
     readonly children: ReactNode;
@@ -153,6 +157,16 @@ export class FilezClientManagerBase extends Component<
                     await signinRedirectSavePath(this.props.auth?.signinRedirect);
                 }
             });
+
+            await filezClient.api.startSession(
+                {},
+                {
+                    credentials: "include",
+                    headers: {
+                        Cookie: ""
+                    }
+                }
+            );
 
             if (ownUserRes?.data?.data?.user) {
                 this.setState({ ownUser: ownUserRes?.data?.data?.user, clientAuthenticated: true });
