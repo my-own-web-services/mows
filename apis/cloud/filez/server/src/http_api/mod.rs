@@ -12,10 +12,8 @@ pub mod file_versions {
     pub mod update;
     pub mod content {
         pub mod get;
-        pub mod tus {
-            pub mod head;
-            pub mod patch;
-        }
+        pub mod head;
+        pub mod patch;
     }
 }
 
@@ -95,6 +93,10 @@ pub mod jobs {
 
 pub mod authentication;
 pub mod health;
+
+pub mod sessions {
+    pub mod start;
+}
 
 pub mod dev {
     pub mod reset_database;

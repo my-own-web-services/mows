@@ -92,12 +92,11 @@ export const handleFileUpload = async (
             createFileResponse.created_file.id,
             fileVersionResponse.version,
             null,
+            {
+                upload_offset: offset
+            },
             chunk,
             {
-                headers: {
-                    "Tus-Resumable": "1.0.0",
-                    "Upload-Offset": offset.toString()
-                },
                 type: ContentType.BinaryWithOffset
             }
         );

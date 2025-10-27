@@ -16,6 +16,7 @@ use axum_extra::{
     TypedHeader,
 };
 
+use tower_sessions::Session;
 use tracing::trace;
 
 #[derive(Clone, Debug)]
@@ -36,6 +37,7 @@ pub async fn authentication_middleware(
     }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     maybe_bearer: Option<TypedHeader<Authorization<Bearer>>>,
+    session: Session,
     mut request: axum::extract::Request,
     next: Next,
 ) -> Result<Response, FilezError> {
@@ -52,16 +54,20 @@ pub async fn authentication_middleware(
         external_user
     );
 
-    let headers = request.headers();
+    let request_headers = request.headers();
+    let request_method = request.method();
 
-    let (mut requesting_user, requesting_app) = with_timing!(
-        tokio::try_join!(
-            FilezUser::get_from_external(&database, &external_user, &headers),
-            MowsApp::get_from_headers(&database, &headers)
-        )?,
-        "Database operations to get user and app",
-        timing
-    );
+    let requesting_app = MowsApp::get_from_headers(&database, &request_headers).await?;
+
+    let mut requesting_user = FilezUser::handle_authentication(
+        &database,
+        &external_user,
+        &request_headers,
+        &request_method,
+        &session,
+        &requesting_app,
+    )
+    .await?;
 
     trace!(
         requesting_user=?requesting_user,
@@ -73,7 +79,7 @@ pub async fn authentication_middleware(
 
     let (job, requesting_app_runtime_instance_id) =
         if requesting_user.is_none() && requesting_app.app_type == AppType::Backend {
-            match headers
+            match request_headers
                 .get(RUNTIME_INSTANCE_ID_HEADER_NAME)
                 .and_then(|v| v.to_str().ok())
                 .map(String::from)

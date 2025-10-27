@@ -1,0 +1,25 @@
+{
+    "cSpell.words": [
+        "actionscope",
+        "filez",
+        "lucide",
+        "oidc",
+        "overscan",
+        "resetload",
+        "rsuite",
+        "signin",
+        "signout",
+        "tailwindcss",
+        "zitadel"
+    ],
+    "restoreTerminals.terminals": [
+        {
+            "splitTerminals": [
+                {
+                    "name": "dev server",
+                    "commands": ["pnpm dev"]
+                }
+            ]
+        }
+    ]
+}

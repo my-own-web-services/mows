@@ -5,7 +5,8 @@ export class Logger {
         HotkeyManager: "DEBUG"
     };
 
-    static defaultLevel: LogLevel = "TRACE";
+    static defaultLevel: LogLevel = "ERROR";
+    enableCallerInfo: boolean = true;
 
     private logLevels: Record<LogLevel, number> = {
         TRACE: 0,
@@ -15,12 +16,12 @@ export class Logger {
         ERROR: 4
     };
 
-    private getTimestamp(): string {
+    private getTimestamp = (): string => {
         const now = new Date();
         return now.toTimeString().split(" ")[0];
-    }
+    };
 
-    private getCallerInfo(): { file: string; line: number; stack: string } | null {
+    private getCallerInfo = (): { file: string; line: number; stack?: string } | null => {
         const stackLines = Error().stack?.split("\n");
         if (!stackLines) return null;
 
@@ -33,11 +34,11 @@ export class Logger {
         return {
             file: match[1].replace(/\?.*$/, ""),
             line: parseInt(match[2]),
-            stack: stackLines.slice(4).join("\n")
+            stack: this.enableCallerInfo ? stackLines.slice(4).join("\n") : undefined
         };
-    }
+    };
 
-    private shouldLog(level: LogLevel, file: string): boolean {
+    private shouldLog = (level: LogLevel, file: string): boolean => {
         // Check for specific file filters first
         for (const [filePattern, minLevel] of Object.entries(Logger.fileFilter)) {
             if (file.includes(filePattern)) {
@@ -47,9 +48,9 @@ export class Logger {
 
         // If no specific filter matches, use the default level
         return this.logLevels[level] >= this.logLevels[Logger.defaultLevel];
-    }
+    };
 
-    private log(level: LogLevel, color: string, ...args: any[]) {
+    private log = (level: LogLevel, color: string, ...args: any[]): void => {
         const caller = this.getCallerInfo();
         if (!caller) return;
 
@@ -75,29 +76,31 @@ export class Logger {
         args.forEach((arg) => {
             if (typeof arg === "object" && arg !== null) console.log(arg);
         });
-        console.log(caller.stack);
+        if (caller.stack) {
+            console.log(caller.stack);
+        }
         console.groupEnd();
-    }
+    };
 
-    info(...args: any[]) {
+    info = (...args: any[]): void => {
         this.log("INFO", "lime", ...args);
-    }
+    };
 
-    warn(...args: any[]) {
+    warn = (...args: any[]): void => {
         this.log("WARN", "yellow", ...args);
-    }
+    };
 
-    error(...args: any[]) {
+    error = (...args: any[]): void => {
         this.log("ERROR", "red", ...args);
-    }
+    };
 
-    debug(...args: any[]) {
+    debug = (...args: any[]): void => {
         this.log("DEBUG", "blue", ...args);
-    }
+    };
 
-    trace(...args: any[]) {
+    trace = (...args: any[]): void => {
         this.log("TRACE", "cyan", ...args);
-    }
+    };
 }
 
 export const log = new Logger();

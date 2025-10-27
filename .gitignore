@@ -2,3 +2,5 @@
 .aider*
 node_modules
 .claude*
+.yalc
+yalc.lock

@@ -9,10 +9,14 @@ use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::{Debug, Formatter};
+use tower_sessions::session;
 use utoipa::ToSchema;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FilezError {
+    #[error("Session Error: {0}")]
+    SessionError(#[from] session::Error),
+
     #[error("JSON Rejection Error: {0}")]
     JsonRejectionError(#[from] axum::extract::rejection::JsonRejection),
 
@@ -261,6 +265,11 @@ impl IntoResponse for FilezError {
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 None,
                 "ControllerKubeError".to_string(),
+            ),
+            FilezError::SessionError(_) => (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                "SessionError".to_string(),
             ),
             FilezError::ControllerFinalizerError(_) => (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,

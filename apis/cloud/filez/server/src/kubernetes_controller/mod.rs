@@ -247,7 +247,7 @@ pub async fn get_controller_health() -> Result<ControllerHealthDetails, FilezErr
 }
 
 pub async fn get_controller_health_with_state(
-    controller_state: &crate::controller::ControllerState,
+    controller_state: &crate::kubernetes_controller::ControllerState,
 ) -> Result<ControllerHealthDetails, FilezError> {
     let mut details = get_controller_health().await?;
 

@@ -1,11 +1,11 @@
 use crate::{
     config::FilezServerConfig,
-    controller::{ControllerContext, ControllerState, Diagnostics},
     database::Database,
     errors::FilezError,
     http_api::authentication::{
         state::IntrospectionState, state_builder::IntrospectionStateBuilder,
     },
+    kubernetes_controller::{ControllerContext, ControllerState, Diagnostics},
     models::storage_locations::{StorageLocation, StorageLocationId},
     storage::providers::StorageProvider,
 };

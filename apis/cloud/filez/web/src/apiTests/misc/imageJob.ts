@@ -110,11 +110,12 @@ export default async (filezClient: Api<unknown>) => {
         aliceFile.created_file.id,
         aliceFileVersion.version,
         null,
+        {
+            upload_offset: 0
+        },
         blob,
         {
             headers: {
-                "Tus-Resumable": "1.0.0",
-                "Upload-Offset": "0",
                 ...impersonateAliceParams.headers
             },
             type: ContentType.BinaryWithOffset

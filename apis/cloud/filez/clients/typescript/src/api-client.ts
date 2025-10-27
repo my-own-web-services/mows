@@ -569,6 +569,12 @@ export interface ApiResponsePickupJobResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseStartSessionResponseBody {
+  data?: object;
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseString {
   data?: string;
   message: string;
@@ -1586,6 +1592,10 @@ export interface PoolStatus {
   size: number;
 }
 
+export type StartSessionRequestBody = object;
+
+export type StartSessionResponseBody = object;
+
 /** @format uuid */
 export type StorageLocationId = string;
 
@@ -2444,6 +2454,14 @@ export class Api<
       fileId: string,
       version: number | null,
       appPath: string | null,
+      query: {
+        /**
+         * The current upload offset in bytes
+         * @format int64
+         * @min 0
+         */
+        upload_offset: number;
+      },
       data: any,
       params: RequestParams = {},
     ) =>
@@ -2454,6 +2472,7 @@ export class Api<
       >({
         path: `/api/file_versions/content/tus/${fileId}/${version}/${appPath}`,
         method: "PATCH",
+        query: query,
         body: data,
         format: "json",
         ...params,
@@ -2748,6 +2767,25 @@ export class Api<
         ApiResponseEmptyApiResponse
       >({
         path: `/api/jobs/update`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Starts a new session valid for get requests from the same origin
+     *
+     * @name StartSession
+     * @request POST:/api/sessions/start
+     */
+    startSession: (data: StartSessionRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseStartSessionResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/sessions/start`,
         method: "POST",
         body: data,
         type: ContentType.Json,

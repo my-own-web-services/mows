@@ -1,5 +1,4 @@
-import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { Component, CSSProperties } from "preact";
 
 interface HomeProps {
     readonly className?: string;

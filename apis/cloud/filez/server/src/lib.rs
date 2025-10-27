@@ -1,9 +1,9 @@
 pub mod background_tasks;
 pub mod config;
-pub mod controller;
 pub mod database;
 pub mod errors;
 pub mod http_api;
+pub mod kubernetes_controller;
 pub mod macros;
 pub mod models;
 pub mod schema;

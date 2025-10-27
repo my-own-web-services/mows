@@ -1,4 +1,6 @@
 use super::key_access::KeyAccess;
+use crate::config::SESSION_INFO_KEY;
+use crate::http_api::authentication::sessions::SessionInfo;
 use crate::http_api::authentication::user::IntrospectedUser;
 use crate::impl_typed_uuid;
 use crate::models::files::FilezFileId;
@@ -12,7 +14,7 @@ use crate::{
     types::SortDirection,
     utils::{get_current_timestamp, InvalidEnumType},
 };
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, Method};
 use diesel::prelude::AsChangeset;
 use diesel::{
     deserialize::FromSqlRow,
@@ -28,6 +30,7 @@ use diesel_enum::DbEnum;
 use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tower_sessions::Session;
 use tracing::trace;
 use tracing::{debug, warn};
 use utoipa::ToSchema;
@@ -386,10 +389,13 @@ impl FilezUser {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn get_from_external(
+    pub async fn handle_authentication(
         database: &Database,
         external_user: &Option<IntrospectedUser>,
         request_headers: &HeaderMap,
+        request_method: &Method,
+        session: &Session,
+        requesting_app: &MowsApp,
     ) -> Result<Option<FilezUser>, FilezError> {
         let mut connection = database.get_connection().await?;
 
@@ -397,8 +403,11 @@ impl FilezUser {
             .get(KEY_ACCESS_HEADER_NAME)
             .and_then(|v| v.to_str().ok().map(|s| s.to_string()));
 
-        let original_requesting_user = match (&external_user, maybe_key_access) {
-            (Some(external_user), None) => {
+        let maybe_session_info = session.get::<SessionInfo>(SESSION_INFO_KEY).await?;
+
+        let original_requesting_user = match (&external_user, maybe_key_access, maybe_session_info)
+        {
+            (Some(external_user), None, _) => {
                 match schema::users::table
                     .filter(schema::users::external_user_id.eq(&external_user.user_id))
                     .first::<FilezUser>(&mut connection)
@@ -409,23 +418,61 @@ impl FilezUser {
                     None => FilezUser::apply_one(&database, external_user.clone()).await?,
                 }
             }
-            (None, Some(key_access)) => {
+            (None, Some(key_access), None) => {
                 KeyAccess::get_user_by_key_access_string(database, key_access).await?
             }
-            (Some(_), Some(_)) => {
-                return Err(FilezError::InvalidRequest(
-                    "Cannot use both external user ID and key access header".to_string(),
-                ));
+            (None, None, Some(session_info)) => {
+                if request_method != &Method::GET {
+                    return Err(FilezError::Forbidden(
+                        "Session authentication is only allowed for GET requests".to_string(),
+                    ));
+                }
+
+                if requesting_app.app_type != crate::models::apps::AppType::Frontend {
+                    return Err(FilezError::Forbidden(
+                        "Session authentication is only allowed for frontend apps".to_string(),
+                    ));
+                }
+
+                if requesting_app.id != session_info.app_id {
+                    return Err(FilezError::Forbidden(
+                        "Session app ID does not match requesting app ID".to_string(),
+                    ));
+                }
+
+                schema::users::table
+                    .find(&session_info.user_id)
+                    .first::<FilezUser>(&mut connection)
+                    .await?
             }
-            (None, None) => {
-                return Ok(None);
+            (None, None, None) => return Ok(None),
+            _ => {
+                return Err(FilezError::InvalidRequest(
+                    "Cannot use Authorization and Key Access at the same time.".to_string(),
+                ));
             }
         };
 
-        if let Some(impersonate_user_id) = request_headers
+        // TODO impersonate user with session
+
+        let impersonate_user_header = request_headers
             .get(IMPERSONATE_USER_HEADER_NAME)
-            .and_then(|v| v.to_str().ok().and_then(|s| s.parse::<Uuid>().ok()))
-        {
+            .and_then(|v| v.to_str().ok().and_then(|s| s.parse::<Uuid>().ok()));
+
+        let impersonate_user_session = session.get::<Uuid>("impersonate_user_id").await?;
+
+        let maybe_impersonate_user_id = match (impersonate_user_header, impersonate_user_session) {
+            (Some(header_id), None) => Some(header_id),
+            (None, Some(session_id)) => Some(session_id),
+            (None, None) => None,
+            (Some(_), Some(_)) => {
+                return Err(FilezError::InvalidRequest(
+                    "Cannot use both impersonate user header and session".to_string(),
+                ));
+            }
+        };
+
+        if let Some(impersonate_user_id) = maybe_impersonate_user_id {
             if original_requesting_user.user_type == FilezUserType::SuperAdmin {
                 let impersonated_user = schema::users::table
                     .filter(schema::users::id.eq(impersonate_user_id))

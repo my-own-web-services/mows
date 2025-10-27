@@ -1,7 +1,4 @@
-use argon2::{
-    password_hash::{rand_core::OsRng, SaltString},
-    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
-};
+use sha2::{Digest, Sha256};
 use diesel::{
     pg::Pg,
     prelude::{Insertable, Queryable},
@@ -80,12 +77,9 @@ impl KeyAccess {
 
         let key = generate_id(100);
 
-        let salt = SaltString::generate(&mut OsRng);
-
-        let key_hash = Argon2::default()
-            .hash_password(key.as_bytes(), &salt)
-            .map_err(|e| anyhow::anyhow!("Failed to hash key: {}", e))?
-            .to_string();
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        let key_hash = format!("{:x}", hasher.finalize());
 
         let new_key_access = KeyAccess::new(owner_id, name, key_hash, description, user_id);
 
@@ -130,13 +124,11 @@ impl KeyAccess {
             .first::<KeyAccess>(&mut connection)
             .await?;
 
-        let parsed_hash = PasswordHash::new(&key_access.key_hash)
-            .map_err(|e| anyhow::anyhow!("Failed to parse key hash: {}", e))?;
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        let computed_hash = format!("{:x}", hasher.finalize());
 
-        if Argon2::default()
-            .verify_password(key.as_bytes(), &parsed_hash)
-            .is_ok()
-        {
+        if computed_hash == key_access.key_hash {
             let user = FilezUser::get_one_by_id(database, &user_id).await?;
             if user.user_type != FilezUserType::KeyAccess {
                 return Err(FilezError::Unauthorized(

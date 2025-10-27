@@ -1,0 +1,22 @@
+{
+    "cSpell.words": [
+        "allround",
+        "filez",
+        "oidc",
+        "preact",
+        "signin",
+        "tweakpane",
+        "wireframe",
+        "zitadel"
+    ],
+    "restoreTerminals.terminals": [
+        {
+            "splitTerminals": [
+                {
+                    "name": "dev server",
+                    "commands": ["pnpm dev"]
+                }
+            ]
+        }
+    ]
+}

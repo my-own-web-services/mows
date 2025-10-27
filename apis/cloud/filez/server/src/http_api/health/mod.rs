@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    controller::{get_controller_health_with_state, ControllerHealthDetails},
+    kubernetes_controller::{get_controller_health_with_state, ControllerHealthDetails},
     database::DatabaseHealthDetails,
     errors::FilezError,
     models::storage_locations::{StorageLocation, StorageLocationId},

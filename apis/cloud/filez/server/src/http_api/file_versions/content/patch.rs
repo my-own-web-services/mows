@@ -1,5 +1,4 @@
 use crate::{
-    config::TUS_VERSION,
     errors::{FileVersionSizeExceededErrorBody, FilezError},
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
@@ -13,11 +12,19 @@ use crate::{
     with_timing,
 };
 use axum::{
-    extract::{Path, Request, State},
+    extract::{Path, Query, Request, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Extension, Json,
 };
+use serde::Deserialize;
+use utoipa::ToSchema;
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct PatchQueryParams {
+    #[serde(rename = "upload_offset")]
+    pub upload_offset: u64,
+}
 
 #[utoipa::path(
     tag = "FileVersion",
@@ -43,11 +50,10 @@ use axum::{
             Path
         ),
         (
-            "Tus-Resumable" = String,
-            Header,
-            description = "The Tus protocol version.",
-            example = "1.0.0"
-        )
+            "upload_offset" = u64,
+            Query,
+            description = "The current upload offset in bytes"
+        ),
     ),
     responses(
         (
@@ -59,11 +65,6 @@ use axum::{
             status = 404,
             body = ApiResponse<EmptyApiResponse>,
             description = "File not found"
-        ),
-        (
-            status = 412,
-            body = ApiResponse<EmptyApiResponse>,
-            description = "Precondition failed, likely due to missing or invalid Tus-Resumable header"
         ),
         (
             status = 400,
@@ -101,31 +102,12 @@ pub async fn file_versions_content_tus_patch(
         OptionalPath<u32>,
         OptionalPath<String>,
     )>,
+    Query(query_params): Query<PatchQueryParams>,
     request_headers: HeaderMap,
     request: Request,
 ) -> Result<impl IntoResponse, FilezError> {
     let version = version.into();
     let app_path: Option<String> = app_path.into();
-
-    if request_headers
-        .get("Tus-Resumable")
-        .ok_or_else(|| FilezError::InvalidRequest("Missing Tus-Resumable header".to_string()))?
-        .to_str()
-        .map_err(|_| FilezError::InvalidRequest("Invalid Tus-Resumable header".to_string()))?
-        != TUS_VERSION
-    {
-        let mut response_headers = HeaderMap::new();
-        response_headers.insert("Tus-Resumable", TUS_VERSION.parse().unwrap());
-        return Ok((
-            StatusCode::PRECONDITION_FAILED,
-            response_headers,
-            Json(ApiResponse::<EmptyApiResponse> {
-                status: ApiResponseStatus::Error("GenericError".to_string()),
-                message: "Invalid Tus-Resumable header".to_string(),
-                data: None,
-            }),
-        ));
-    };
 
     if request_headers
         .get("Content-Type")
@@ -141,13 +123,7 @@ pub async fn file_versions_content_tus_patch(
         ));
     }
 
-    let request_upload_offset = request_headers
-        .get("Upload-Offset")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.parse::<u64>().ok())
-        .ok_or_else(|| {
-            FilezError::InvalidRequest("Missing or invalid Upload-Offset header".to_string())
-        })?;
+    let request_upload_offset = query_params.upload_offset;
 
     let content_length = request_headers
         .get("Content-Length")
@@ -210,7 +186,6 @@ pub async fn file_versions_content_tus_patch(
         .checked_add(content_length)
         .ok_or_else(|| FilezError::InvalidRequest("Upload-Offset overflow".to_string()))?;
 
-    response_headers.insert("Tus-Resumable", "1.0.0".parse().unwrap());
     response_headers.insert(
         "Upload-Offset",
         new_upload_offset.to_string().parse().unwrap(),
@@ -219,7 +194,7 @@ pub async fn file_versions_content_tus_patch(
     Ok((
         StatusCode::OK,
         response_headers,
-        Json(ApiResponse {
+        Json(ApiResponse::<EmptyApiResponse> {
             status: ApiResponseStatus::Success {},
             message: "Success".to_string(),
             data: None,

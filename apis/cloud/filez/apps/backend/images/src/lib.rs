@@ -220,11 +220,11 @@ async fn create_basic_versions(
                         job_execution_information.file_id,
                         Some(job_execution_information.file_version_number),
                         Some(preview_file.app_path.clone()),
-                        body,
                         0,
                         std::fs::metadata(&preview_file.path)
                             .map_err(|e| InnerImageError::IoError(e.into()))?
                             .len(),
+                        body,
                     )
                     .await
                     .context("Failed to upload to file version")?;
