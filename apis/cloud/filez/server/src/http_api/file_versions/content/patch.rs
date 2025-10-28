@@ -28,12 +28,12 @@ pub struct PatchQueryParams {
 
 #[utoipa::path(
     tag = "FileVersion",
-    description = "Patch a file version using the TUS protocol. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.",
+    description = "Patch a file version. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.",
     patch,
     request_body(
         content_type = "application/offset+octet-stream"
     ),
-    path = "/api/file_versions/content/tus/{file_id}/{version}/{app_path}",
+    path = "/api/file_versions/content/{file_id}/{version}/{app_path}",
     params(
         (
             "file_id" = Uuid,

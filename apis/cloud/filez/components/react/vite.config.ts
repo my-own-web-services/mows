@@ -13,10 +13,10 @@ const libraryConfig: UserConfig = {
         react(),
         libInjectCss(),
         tailwindcssVite(),
-        dts({ rollupTypes: true, tsconfigPath: resolve(__dirname, "tsconfig.lib.json") }),
+        dts({ rollupTypes: true, tsconfigPath: resolve(__dirname, `tsconfig.lib.json`) }),
         visualizer({
             emitFile: true,
-            filename: "stats.html"
+            filename: `stats.html`
         })
     ],
     css: {
@@ -26,18 +26,18 @@ const libraryConfig: UserConfig = {
     },
     build: {
         lib: {
-            entry: resolve(__dirname, "lib/main.ts"),
-            fileName: "filez-components-react",
-            name: "filez-components-react",
-            formats: ["es"]
+            entry: resolve(__dirname, `lib/main.ts`),
+            fileName: `filez-components-react`,
+            name: `filez-components-react`,
+            formats: [`es`]
         },
         rollupOptions: {
             external: [
-                "react",
-                "react-dom",
-                "react/jsx-runtime",
-                "tailwindcss",
-                "filez-client-typescript"
+                `react`,
+                `react-dom`,
+                `react/jsx-runtime`,
+                `tailwindcss`,
+                `filez-client-typescript`
             ]
         },
         sourcemap: true,
@@ -46,7 +46,7 @@ const libraryConfig: UserConfig = {
     },
     resolve: {
         alias: {
-            "@": path.resolve(__dirname, "./lib")
+            "@": path.resolve(__dirname, `./lib`)
         }
     }
 };
@@ -54,7 +54,7 @@ const libraryConfig: UserConfig = {
 let config: UserConfig = {};
 
 switch (process.env.TARGET) {
-    case "lib": {
+    case `lib`: {
         config = libraryConfig;
         break;
     }

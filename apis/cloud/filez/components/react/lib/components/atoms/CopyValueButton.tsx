@@ -40,7 +40,7 @@ const CopyValueButton = forwardRef<HTMLDivElement, CopyValueButtonProps>(
                     timeoutRef.current = null;
                 }, 1500);
             } catch (err) {
-                log.error("Failed to copy text: ", err);
+                log.error(`Failed to copy text: `, err);
             }
         };
 
@@ -51,14 +51,14 @@ const CopyValueButton = forwardRef<HTMLDivElement, CopyValueButtonProps>(
                 style={style}
                 className={cn(
                     className,
-                    "CopyValueButton text-muted-foreground flex cursor-pointer items-center gap-2 rounded text-sm transition-all duration-200 select-none"
+                    `CopyValueButton text-muted-foreground flex cursor-pointer items-center gap-2 rounded text-sm transition-all duration-200 select-none`
                 )}
                 onClick={copyClick}
-                title={copied ? "Copied!" : (title ?? "")}
+                title={copied ? `Copied!` : (title ?? ``)}
             >
                 <span>{label}</span>
                 {copied ? (
-                    <IoCheckmarkSharp className="text-success duration-200" />
+                    <IoCheckmarkSharp className={`text-success duration-200`} />
                 ) : (
                     <IoCopySharp />
                 )}
@@ -67,6 +67,6 @@ const CopyValueButton = forwardRef<HTMLDivElement, CopyValueButtonProps>(
     }
 );
 
-CopyValueButton.displayName = "CopyValueButton";
+CopyValueButton.displayName = `CopyValueButton`;
 
 export default CopyValueButton;

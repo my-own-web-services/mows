@@ -448,7 +448,8 @@ impl FilezUser {
             (None, None, None) => return Ok(None),
             _ => {
                 return Err(FilezError::InvalidRequest(
-                    "Cannot use Authorization and Key Access at the same time.".to_string(),
+                    "Cannot use Authorization (or Session) and Key Access at the same time."
+                        .to_string(),
                 ));
             }
         };

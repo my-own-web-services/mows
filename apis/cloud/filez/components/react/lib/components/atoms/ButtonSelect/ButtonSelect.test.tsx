@@ -3,152 +3,152 @@ import { describe, expect, it, vi } from "vitest";
 import ButtonSelect, { type ButtonSelectOption } from "./ButtonSelect";
 
 // Mock icons for testing
-const TestIcon1 = () => <span data-testid="icon-1">📁</span>;
-const TestIcon2 = () => <span data-testid="icon-2">📄</span>;
-const TestIcon3 = () => <span data-testid="icon-3">⚙️</span>;
+const TestIcon1 = () => <span data-testid={`icon-1`}>📁</span>;
+const TestIcon2 = () => <span data-testid={`icon-2`}>📄</span>;
+const TestIcon3 = () => <span data-testid={`icon-3`}>⚙️</span>;
 
 const mockOptions: ButtonSelectOption[] = [
-    { id: "folder", icon: <TestIcon1 />, label: "Folder View" },
-    { id: "file", icon: <TestIcon2 />, label: "File View" },
-    { id: "settings", icon: <TestIcon3 />, label: "Settings", disabled: true }
+    { id: `folder`, icon: <TestIcon1 />, label: `Folder View` },
+    { id: `file`, icon: <TestIcon2 />, label: `File View` },
+    { id: `settings`, icon: <TestIcon3 />, label: `Settings`, disabled: true }
 ];
 
-describe("ButtonSelect", () => {
-    it("renders all options", () => {
+describe(`ButtonSelect`, () => {
+    it(`renders all options`, () => {
         const onSelectionChange = vi.fn();
         render(
             <ButtonSelect
                 options={mockOptions}
-                selectedId="folder"
+                selectedId={`folder`}
                 onSelectionChange={onSelectionChange}
             />
         );
 
-        expect(screen.getByTestId("icon-1")).toBeInTheDocument();
-        expect(screen.getByTestId("icon-2")).toBeInTheDocument();
-        expect(screen.getByTestId("icon-3")).toBeInTheDocument();
+        expect(screen.getByTestId(`icon-1`)).toBeInTheDocument();
+        expect(screen.getByTestId(`icon-2`)).toBeInTheDocument();
+        expect(screen.getByTestId(`icon-3`)).toBeInTheDocument();
     });
 
-    it("shows selected option with default variant", () => {
+    it(`shows selected option with default variant`, () => {
         const onSelectionChange = vi.fn();
         render(
             <ButtonSelect
                 options={mockOptions}
-                selectedId="folder"
+                selectedId={`folder`}
                 onSelectionChange={onSelectionChange}
             />
         );
 
-        const selectedButton = screen.getByTitle("Folder View");
-        expect(selectedButton).toHaveAttribute("aria-pressed", "true");
+        const selectedButton = screen.getByTitle(`Folder View`);
+        expect(selectedButton).toHaveAttribute(`aria-pressed`, `true`);
     });
 
-    it("shows non-selected options with outline variant", () => {
+    it(`shows non-selected options with outline variant`, () => {
         const onSelectionChange = vi.fn();
         render(
             <ButtonSelect
                 options={mockOptions}
-                selectedId="folder"
+                selectedId={`folder`}
                 onSelectionChange={onSelectionChange}
             />
         );
 
-        const nonSelectedButton = screen.getByTitle("File View");
-        expect(nonSelectedButton).toHaveAttribute("aria-pressed", "false");
+        const nonSelectedButton = screen.getByTitle(`File View`);
+        expect(nonSelectedButton).toHaveAttribute(`aria-pressed`, `false`);
     });
 
-    it("calls onSelectionChange when option is clicked", () => {
+    it(`calls onSelectionChange when option is clicked`, () => {
         const onSelectionChange = vi.fn();
         render(
             <ButtonSelect
                 options={mockOptions}
-                selectedId="folder"
+                selectedId={`folder`}
                 onSelectionChange={onSelectionChange}
             />
         );
 
-        const fileButton = screen.getByTitle("File View");
+        const fileButton = screen.getByTitle(`File View`);
         fireEvent.click(fileButton);
 
-        expect(onSelectionChange).toHaveBeenCalledWith("file");
+        expect(onSelectionChange).toHaveBeenCalledWith(`file`);
     });
 
-    it("does not call onSelectionChange when disabled option is clicked", () => {
+    it(`does not call onSelectionChange when disabled option is clicked`, () => {
         const onSelectionChange = vi.fn();
         render(
             <ButtonSelect
                 options={mockOptions}
-                selectedId="folder"
+                selectedId={`folder`}
                 onSelectionChange={onSelectionChange}
             />
         );
 
-        const settingsButton = screen.getByTitle("Settings");
+        const settingsButton = screen.getByTitle(`Settings`);
         fireEvent.click(settingsButton);
 
         expect(onSelectionChange).not.toHaveBeenCalled();
     });
 
-    it("does not call onSelectionChange when component is disabled", () => {
+    it(`does not call onSelectionChange when component is disabled`, () => {
         const onSelectionChange = vi.fn();
         render(
             <ButtonSelect
                 options={mockOptions}
-                selectedId="folder"
+                selectedId={`folder`}
                 onSelectionChange={onSelectionChange}
                 disabled
             />
         );
 
-        const fileButton = screen.getByTitle("File View");
+        const fileButton = screen.getByTitle(`File View`);
         fireEvent.click(fileButton);
 
         expect(onSelectionChange).not.toHaveBeenCalled();
     });
 
-    it("applies custom className", () => {
+    it(`applies custom className`, () => {
         const onSelectionChange = vi.fn();
         const { container } = render(
             <ButtonSelect
                 options={mockOptions}
-                selectedId="folder"
+                selectedId={`folder`}
                 onSelectionChange={onSelectionChange}
-                className="custom-class"
+                className={`custom-class`}
             />
         );
 
-        const buttonGroup = container.querySelector(".ButtonSelect");
-        expect(buttonGroup).toHaveClass("custom-class");
+        const buttonGroup = container.querySelector(`.ButtonSelect`);
+        expect(buttonGroup).toHaveClass(`custom-class`);
     });
 
-    it("applies custom styles", () => {
+    it(`applies custom styles`, () => {
         const onSelectionChange = vi.fn();
-        const customStyle = { backgroundColor: "red" };
+        const customStyle = { backgroundColor: `red` };
         const { container } = render(
             <ButtonSelect
                 options={mockOptions}
-                selectedId="folder"
+                selectedId={`folder`}
                 onSelectionChange={onSelectionChange}
                 style={customStyle}
             />
         );
 
-        const buttonGroup = container.querySelector(".ButtonSelect");
-        expect(buttonGroup).toHaveStyle("background-color: rgb(255, 0, 0)");
+        const buttonGroup = container.querySelector(`.ButtonSelect`);
+        expect(buttonGroup).toHaveStyle(`background-color: rgb(255, 0, 0)`);
     });
 
-    it("has proper accessibility attributes", () => {
+    it(`has proper accessibility attributes`, () => {
         const onSelectionChange = vi.fn();
         const { container } = render(
             <ButtonSelect
                 options={mockOptions}
-                selectedId="folder"
+                selectedId={`folder`}
                 onSelectionChange={onSelectionChange}
             />
         );
 
-        const buttonGroup = container.querySelector(".ButtonSelect");
-        expect(buttonGroup).toHaveAttribute("role", "group");
-        expect(buttonGroup).toHaveAttribute("aria-label", "Button group");
+        const buttonGroup = container.querySelector(`.ButtonSelect`);
+        expect(buttonGroup).toHaveAttribute(`role`, `group`);
+        expect(buttonGroup).toHaveAttribute(`aria-label`, `Button group`);
     });
 });

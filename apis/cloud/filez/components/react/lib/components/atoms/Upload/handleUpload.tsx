@@ -6,7 +6,7 @@ import {
     StorageQuota
 } from "filez-client-typescript";
 
-export interface UploadFileResponse {}
+export type UploadFileResponse = Record<string, never>;
 
 export interface UploadFileRequest {
     file: File;
@@ -18,7 +18,7 @@ export interface UploadProgressData {
     loaded: number;
     total: number;
     percentage: number;
-    phase: "preparing" | "uploading" | "completed";
+    phase: `preparing` | `uploading` | `completed`;
 }
 
 export const handleFileUpload = async (
@@ -35,7 +35,7 @@ export const handleFileUpload = async (
         loaded: 0,
         total: fileToUpload.file.size,
         percentage: 0,
-        phase: "preparing"
+        phase: `preparing`
     });
 
     const createFileResponse = (
@@ -83,7 +83,7 @@ export const handleFileUpload = async (
         loaded: 0,
         total: fileToUpload.file.size,
         percentage: 0,
-        phase: "uploading"
+        phase: `uploading`
     });
 
     while (offset < fileToUpload.file.size) {
@@ -111,7 +111,7 @@ export const handleFileUpload = async (
             loaded: offset,
             total: fileToUpload.file.size,
             percentage: Math.round((offset / fileToUpload.file.size) * 100),
-            phase: "uploading"
+            phase: `uploading`
         });
     }
 
@@ -119,14 +119,14 @@ export const handleFileUpload = async (
         const apps = await filezClient.api.listApps({});
 
         const previewGeneratorApp = apps.data?.data?.apps.find(
-            (app) => app.name === "mows-core-storage-filez-filez-apps-backend-images"
+            (app) => app.name === `mows-core-storage-filez-filez-apps-backend-images`
         );
 
         if (!previewGeneratorApp) {
-            throw new Error("Preview generator app not found");
+            throw new Error(`Preview generator app not found`);
         }
 
-        const jobResponse = await filezClient.api.createJob({
+        const _jobResponse = await filezClient.api.createJob({
             job_execution_details: {
                 job_type: {
                     CreatePreview: {
@@ -136,16 +136,16 @@ export const handleFileUpload = async (
                         storage_quota_id: storageQuota.id,
                         allowed_number_of_previews: 5,
                         allowed_size_bytes: 10_000_000,
-                        allowed_mime_types: ["image/avif"],
+                        allowed_mime_types: [`image/avif`],
                         preview_config: {
                             widths: [100, 250, 500, 1000, 2000],
-                            formats: ["Avif"]
+                            formats: [`Avif`]
                         }
                     }
                 }
             },
             job_handling_app_id: previewGeneratorApp?.id,
-            job_name: "Generate Previews",
+            job_name: `Generate Previews`,
             job_persistence: JobPersistenceType.Temporary
         });
     }
@@ -154,7 +154,7 @@ export const handleFileUpload = async (
         loaded: fileToUpload.file.size,
         total: fileToUpload.file.size,
         percentage: 100,
-        phase: "completed"
+        phase: `completed`
     });
 
     return {};

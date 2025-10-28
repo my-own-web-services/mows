@@ -25,7 +25,7 @@ interface PrimaryMenuProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly defaultOpen?: boolean;
-    readonly position?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
+    readonly position?: `top-right` | `top-left` | `bottom-right` | `bottom-left`;
 }
 
 interface PrimaryMenuState {
@@ -59,8 +59,8 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
 
     registerActionHandler = () => {
         this.context?.actionManager?.registerActionHandler(ActionIds.OPEN_PRIMARY_MENU, {
-            getState: () => ({ visibility: "active" }),
-            id: "GlobalOpenPrimaryMenu",
+            getState: () => ({ visibility: `active` }),
+            id: `GlobalOpenPrimaryMenu`,
             executeAction: async () => {
                 this.setState({ menuOpen: true });
             }
@@ -70,13 +70,13 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
     componentWillUnmount = () => {
         this.context?.actionManager?.unregisterActionHandler(
             ActionIds.OPEN_PRIMARY_MENU,
-            "GlobalOpenPrimaryMenu"
+            `GlobalOpenPrimaryMenu`
         );
     };
 
     loginClick = async () => {
         if (!this.context?.auth?.signinRedirect) {
-            log.error("No signinRedirect function available");
+            log.error(`No signinRedirect function available`);
             return;
         }
         await signinRedirectSavePath(this.context?.auth?.signinRedirect);
@@ -99,15 +99,15 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
 
         const positionClass = (() => {
             switch (this.props.position) {
-                case "top-left":
-                    return "top-3 left-3";
-                case "bottom-right":
-                    return "bottom-3 right-3";
-                case "bottom-left":
-                    return "bottom-3 left-3";
-                case "top-right":
+                case `top-left`:
+                    return `top-3 left-3`;
+                case `bottom-right`:
+                    return `bottom-3 right-3`;
+                case `bottom-left`:
+                    return `bottom-3 left-3`;
+                case `top-right`:
                 default:
-                    return "top-3 right-3";
+                    return `top-3 right-3`;
             }
         })();
 
@@ -125,7 +125,7 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                     {match(loggedIn)
                         .with(true, () => (
                             <DropdownMenuTrigger
-                                className="outline-0"
+                                className={`outline-0`}
                                 title={`${t.primaryMenu.loggedInAs} ${userName}`}
                             >
                                 <Avatar filezUser={this.context?.ownFilezUser!} />
@@ -133,10 +133,10 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                         ))
                         .otherwise(() => (
                             <DropdownMenuTrigger
-                                className="outline-0"
+                                className={`outline-0`}
                                 title={t.primaryMenu.openMenu}
                             >
-                                <IoMenuSharp className="border-primary text-primary h-10 w-10 cursor-pointer rounded-full border-2 p-2" />
+                                <IoMenuSharp className={`border-primary text-primary h-10 w-10 cursor-pointer rounded-full border-2 p-2`} />
                             </DropdownMenuTrigger>
                         ))}
 
@@ -145,25 +145,25 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                             .with(true, () => (
                                 <>
                                     <DropdownMenuLabel>
-                                        <div className="flex items-center">
+                                        <div className={`flex items-center`}>
                                             <Avatar
-                                                className="h-16 w-16 text-xl"
+                                                className={`h-16 w-16 text-xl`}
                                                 filezUser={this.context?.ownFilezUser!}
                                             />
-                                            <div className="flex flex-col gap-1 px-4 py-2 pb-4">
-                                                <span className="text-muted-foreground space-y-1 text-sm select-none">
+                                            <div className={`flex flex-col gap-1 px-4 py-2 pb-4`}>
+                                                <span className={`text-muted-foreground space-y-1 text-sm select-none`}>
                                                     {t.primaryMenu.loggedInAs}
                                                 </span>
-                                                <span className="flex items-center gap-2 font-bold">
+                                                <span className={`flex items-center gap-2 font-bold`}>
                                                     {userName ? (
                                                         userName
                                                     ) : (
-                                                        <Skeleton className="h-4 w-full" />
+                                                        <Skeleton className={`h-4 w-full`} />
                                                     )}
                                                 </span>
-                                                <div className="">
+                                                <div className={``}>
                                                     {userId ? (
-                                                        <DropdownMenuItem className="p-0" asChild>
+                                                        <DropdownMenuItem className={`p-0`} asChild>
                                                             <CopyValueButton
                                                                 value={userId}
                                                                 label={
@@ -175,7 +175,7 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                                                             />
                                                         </DropdownMenuItem>
                                                     ) : (
-                                                        <Skeleton className="h-4 w-full" />
+                                                        <Skeleton className={`h-4 w-full`} />
                                                     )}
                                                 </div>
                                             </div>
@@ -183,33 +183,33 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                                     </DropdownMenuLabel>
 
                                     <DropdownMenuItem
-                                        className="cursor-pointer"
+                                        className={`cursor-pointer`}
                                         onClick={this.logoutClick}
                                     >
-                                        <IoLogOutSharp className="h-4 w-4" />
+                                        <IoLogOutSharp className={`h-4 w-4`} />
                                         <span>{t.primaryMenu.logout}</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                        className="cursor-pointer"
+                                        className={`cursor-pointer`}
                                         onClick={this.logoutClick}
                                     >
-                                        <PiUserSwitchFill className="h-4 w-4" />
+                                        <PiUserSwitchFill className={`h-4 w-4`} />
                                         <span>{t.primaryMenu.switchUser}</span>
                                     </DropdownMenuItem>
                                 </>
                             ))
                             .with(false, () => (
                                 <DropdownMenuItem
-                                    className="cursor-pointer"
+                                    className={`cursor-pointer`}
                                     onClick={this.loginClick}
                                 >
-                                    <IoPersonSharp className="h-4 w-4" />
+                                    <IoPersonSharp className={`h-4 w-4`} />
                                     <span>{t.primaryMenu.login}</span>
                                 </DropdownMenuItem>
                             ))
                             .exhaustive()}
                         <DropdownMenuSeparator />
-                        <DropdownMenuLabel className="select-none">
+                        <DropdownMenuLabel className={`select-none`}>
                             {t.primaryMenu.language}
                         </DropdownMenuLabel>
                         <DropdownMenuItem
@@ -225,7 +225,7 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                             />
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuLabel className="select-none">
+                        <DropdownMenuLabel className={`select-none`}>
                             {t.primaryMenu.theme}
                         </DropdownMenuLabel>
                         <DropdownMenuItem
@@ -243,26 +243,26 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() => {
-                                this.context?.changeActiveModal("keyboardShortcutEditor");
+                                this.context?.changeActiveModal(`keyboardShortcutEditor`);
                             }}
-                            className="cursor-pointer"
+                            className={`cursor-pointer`}
                         >
                             <LiaKeyboard></LiaKeyboard>
                             <span>{t.keyboardShortcuts.label}</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
 
-                        <DropdownMenuLabel className="select-none">
+                        <DropdownMenuLabel className={`select-none`}>
                             {t.primaryMenu.developer}
                         </DropdownMenuLabel>
 
                         <DropdownMenuItem
-                            className="cursor-pointer"
+                            className={`cursor-pointer`}
                             onClick={() => {
-                                history.pushState({}, "", "/dev/");
+                                history.pushState({}, ``, `/dev/`);
                             }}
                         >
-                            <IoCodeSlashSharp className="inline h-4 w-4" />
+                            <IoCodeSlashSharp className={`inline h-4 w-4`} />
                             <span> {t.primaryMenu.developerTools}</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>

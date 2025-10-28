@@ -41,9 +41,9 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
     >
     implements ListRowHandler<FilezResourceType>
 {
-    id = "ColumnListRowHandler";
-    name = "Columns";
-    icon = (<FaThList height={"100%"} />);
+    id = `ColumnListRowHandler`;
+    name = `Columns`;
+    icon = (<FaThList height={`100%`} />);
     direction = RowRendererDirection.Vertical;
     //columns: Column<FilezResourceType>[];
     resourceList: InstanceType<typeof ResourceList> | undefined;
@@ -67,13 +67,13 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
         const fieldNames = columns.map((c) => c.field);
         const uniqueFieldNames = Array.from(new Set(fieldNames));
         if (fieldNames.length !== uniqueFieldNames.length) {
-            throw new Error("Column field names must be unique");
+            throw new Error(`Column field names must be unique`);
         }
 
         // check if only one column has the sort order set to anything but neutral
         const sortedColumns = columns.filter((c) => c.direction !== SortDirection.Neutral);
         if (sortedColumns.length > 1) {
-            const sortedColumnNames = sortedColumns.map((c) => c.field).join(", ");
+            const sortedColumnNames = sortedColumns.map((c) => c.field).join(`, `);
             throw new Error(
                 `Only one column can have the sort order set to anything but neutral. The following columns are wrong: ${sortedColumnNames}`
             );
@@ -122,9 +122,9 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
         if (this.props.hideColumnHeader === true) return <></>;
 
         return (
-            <div className="relative flex h-8 border-b-1" style={{ width: `calc(100% - 17px)` }}>
+            <div className={`relative flex h-8 border-b-1`} style={{ width: `calc(100% - 17px)` }}>
                 {this.props.hideSelectionCheckboxColumn !== true && (
-                    <div className="flex h-full w-8 items-center justify-center">
+                    <div className={`flex h-full w-8 items-center justify-center`}>
                         <Checkbox
                             checked={
                                 getSelectedCount(this.resourceList?.state.selectedItems) ===
@@ -132,17 +132,19 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                 (this.resourceList?.state.totalItemCount ?? 0) > 0
                             }
                             onCheckedChange={(checkedState) => {
-                                checkedState.valueOf()
-                                    ? this.resourceList?.selectAll()
-                                    : this.resourceList?.deselectAll();
+                                if (checkedState.valueOf()) {
+                                    this.resourceList?.selectAll();
+                                } else {
+                                    this.resourceList?.deselectAll();
+                                }
                             }}
                             title={this.props.selectAllTitle}
                         ></Checkbox>
                     </div>
                 )}
                 <ResizablePanelGroup
-                    className="group items-center"
-                    direction="horizontal"
+                    className={`group items-center`}
+                    direction={`horizontal`}
                     onLayout={(l) => {
                         l.forEach((widthPercent, index) => {
                             const col = activeColumns[index];
@@ -168,12 +170,12 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                 minSize={5}
                                 defaultSize={column.widthPercent}
                                 key={column.field + index}
-                                className="flex items-center overflow-hidden font-medium text-ellipsis select-none"
+                                className={`flex items-center overflow-hidden font-medium text-ellipsis select-none`}
                             >
                                 <span
                                     className={cn(
-                                        "flex items-center gap-2 overflow-hidden px-2 text-ellipsis whitespace-nowrap",
-                                        disableColumnSorting ? "cursor-default" : "cursor-pointer"
+                                        `flex items-center gap-2 overflow-hidden px-2 text-ellipsis whitespace-nowrap`,
+                                        disableColumnSorting ? `cursor-default` : `cursor-pointer`
                                     )}
                                     onClick={() => {
                                         if (disableColumnSorting) return;
@@ -202,28 +204,28 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                         : match(column.direction)
                                               .with(SortDirection.Ascending, () => <IoChevronUp />)
                                               .with(SortDirection.Descending, () => (
-                                                  <IoChevronUp className="mt-[1px] rotate-180" />
+                                                  <IoChevronUp className={`mt-[1px] rotate-180`} />
                                               ))
-                                              .with(SortDirection.Neutral, () => "")
+                                              .with(SortDirection.Neutral, () => ``)
                                               .exhaustive()}
                                 </span>
                             </ResizablePanel>,
                             !isLastColumn && !disableColumnResizing && (
                                 <ResizableHandle
                                     className={cn(
-                                        "group-hover:bg-border bg- hover:bg-accent active:bg-accent h-3/4"
+                                        `group-hover:bg-border bg- hover:bg-accent active:bg-accent h-3/4`
                                     )}
-                                    key={column.field + index + "Handle"}
+                                    key={column.field + index + `Handle`}
                                 />
                             )
                         ];
                     })}
                 </ResizablePanelGroup>
                 {this.props.hideColumnPicker !== true && (
-                    <span className="absolute top-0 -right-4">
+                    <span className={`absolute top-0 -right-4`}>
                         <OptionPicker
                             triggerComponent={<LucideColumns3 />}
-                            header="Columns"
+                            header={`Columns`}
                             showCount={false}
                             onOptionChange={(id: string, enabled: boolean) => {
                                 this.setState({
@@ -276,8 +278,8 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                 }}
                 className={cn(
                     `ColumnListRowRenderer hover:bg-secondary/100 flex w-full flex-row gap-[1px] overflow-hidden whitespace-nowrap select-none`,
-                    isSelected && "bg-secondary/60",
-                    isLastSelected && "bg-secondary/100"
+                    isSelected && `bg-secondary/60`,
+                    isLastSelected && `bg-secondary/100`
                 )}
             >
                 {this.props.hideSelectionCheckboxColumn !== true && (
@@ -286,7 +288,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                             e.ctrlKey = true;
                             onItemClick(e as any);
                         }}
-                        className="flex h-full w-8 cursor-pointer items-center justify-center"
+                        className={`flex h-full w-8 cursor-pointer items-center justify-center`}
                     >
                         <Checkbox checked={isSelected}></Checkbox>
                     </div>
@@ -300,13 +302,13 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                                 onClick={onItemClick}
                                 onContextMenu={onItemClick}
                                 key={column.field + index}
-                                className="flex h-full items-center overflow-hidden text-ellipsis whitespace-nowrap"
+                                className={`flex h-full items-center overflow-hidden text-ellipsis whitespace-nowrap`}
                                 style={{
                                     flex: `${column.widthPercent} 1 0px`
                                 }}
                             >
-                                <span className="p-2">
-                                    {column.render(item, {}, "w-full", listId)}
+                                <span className={`p-2`}>
+                                    {column.render(item, {}, `w-full`, listId)}
                                 </span>
                             </span>
                         );
@@ -341,7 +343,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
         lastSelectedItemIndex: number | undefined,
         arrowKeyShiftSelectItemIndex: number | undefined
     ) => {
-        const keyOptions = ["ArrowUp", "ArrowDown"];
+        const keyOptions = [`ArrowUp`, `ArrowDown`];
         if (keyOptions.includes(e.key)) {
             // if no item is selected select the first one
 
@@ -358,7 +360,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                 }
 
                 let newIndex =
-                    e.key === "ArrowUp" ? lastSelectedItemIndex - 1 : lastSelectedItemIndex + 1;
+                    e.key === `ArrowUp` ? lastSelectedItemIndex - 1 : lastSelectedItemIndex + 1;
 
                 if (newIndex >= items.length) {
                     newIndex = 0;

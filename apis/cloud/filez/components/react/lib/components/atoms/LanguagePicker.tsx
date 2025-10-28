@@ -30,7 +30,7 @@ const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
         {
             className,
             style,
-            value,
+            value: _value,
             onValueChange,
             defaultOpen = false,
             standalone = false,
@@ -40,7 +40,7 @@ const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
         ref
     ) => {
         const [open, setOpen] = useState(defaultOpen);
-        const triggerRef = useRef<HTMLButtonElement>(null);
+        const _triggerRef = useRef<HTMLButtonElement>(null);
 
         useEffect(() => {
             setOpen(defaultOpen);
@@ -77,14 +77,14 @@ const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
         // If standalone (used in modal), render the command directly without popover
         if (standalone) {
             return (
-                <div {...props} ref={ref} className={cn(className, "w-full")} style={style}>
+                <div {...props} ref={ref} className={cn(className, `w-full`)} style={style}>
                     <Command filter={filterLanguages}>
                         <CommandInput
                             placeholder={t.languagePicker.selectLanguage}
                             autoFocus={autofocus}
                         />
                         <CommandList>
-                            <CommandEmpty className="py-6 text-center text-sm select-none">
+                            <CommandEmpty className={`py-6 text-center text-sm select-none`}>
                                 {t.languagePicker.noLanguageFound}
                             </CommandEmpty>
                             <CommandGroup>
@@ -92,33 +92,33 @@ const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
                                     <CommandItem
                                         key={language.code}
                                         value={language.code}
-                                        className="cursor-pointer"
+                                        className={`cursor-pointer`}
                                         onSelect={() => handleSelect(language)}
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-lg">{language.emoji}</span>
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">
+                                        <div className={`flex items-center gap-2`}>
+                                            <span className={`text-lg`}>{language.emoji}</span>
+                                            <div className={`flex flex-col`}>
+                                                <div className={`flex items-center gap-2`}>
+                                                    <span className={`font-medium`}>
                                                         {language.originalName}
                                                     </span>
                                                     {language.code === browserLanguage && (
-                                                        <span className="text-muted-foreground text-xs opacity-60">
+                                                        <span className={`text-muted-foreground text-xs opacity-60`}>
                                                             (system)
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className="text-muted-foreground text-xs">
+                                                <span className={`text-muted-foreground text-xs`}>
                                                     {language.englishName}
                                                 </span>
                                             </div>
                                         </div>
                                         <Check
                                             className={cn(
-                                                "ml-auto h-4 w-4",
+                                                `ml-auto h-4 w-4`,
                                                 currentLanguage?.code === language.code
-                                                    ? "opacity-100"
-                                                    : "opacity-0"
+                                                    ? `opacity-100`
+                                                    : `opacity-0`
                                             )}
                                         />
                                     </CommandItem>
@@ -138,30 +138,30 @@ const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
                         ref={ref}
                         className={cn(
                             className,
-                            "flex w-full cursor-pointer items-center justify-between px-2"
+                            `flex w-full cursor-pointer items-center justify-between px-2`
                         )}
                         style={style}
                         title={t.languagePicker.selectLanguage}
                     >
-                        <IoLanguageSharp className="h-5 w-5" />{" "}
+                        <IoLanguageSharp className={`h-5 w-5`} />{` `}
                         {currentLanguage ? (
-                            <span className="flex w-full items-center gap-2">
-                                <span>{currentLanguage.originalName}</span>{" "}
-                                <span className="text-sm">{currentLanguage.emoji}</span>
+                            <span className={`flex w-full items-center gap-2`}>
+                                <span>{currentLanguage.originalName}</span>{` `}
+                                <span className={`text-sm`}>{currentLanguage.emoji}</span>
                             </span>
                         ) : (
                             <span>
                                 <span>{t.languagePicker.selectLanguage}</span>
                             </span>
                         )}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                        <ChevronsUpDown className={`ml-2 h-4 w-4 opacity-50`} />
                     </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
+                <PopoverContent className={`w-[200px] p-0`}>
                     <Command filter={filterLanguages}>
                         <CommandInput placeholder={t.languagePicker.selectLanguage} />
                         <CommandList>
-                            <CommandEmpty className="py-6 text-center text-sm select-none">
+                            <CommandEmpty className={`py-6 text-center text-sm select-none`}>
                                 {t.languagePicker.noLanguageFound}
                             </CommandEmpty>
                             <CommandGroup>
@@ -169,33 +169,33 @@ const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
                                     <CommandItem
                                         key={language.code}
                                         value={language.code}
-                                        className="cursor-pointer"
+                                        className={`cursor-pointer`}
                                         onSelect={() => handleSelect(language)}
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-lg">{language.emoji}</span>
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">
+                                        <div className={`flex items-center gap-2`}>
+                                            <span className={`text-lg`}>{language.emoji}</span>
+                                            <div className={`flex flex-col`}>
+                                                <div className={`flex items-center gap-2`}>
+                                                    <span className={`font-medium`}>
                                                         {language.originalName}
                                                     </span>
                                                     {language.code === browserLanguage && (
-                                                        <span className="text-muted-foreground text-xs opacity-60">
+                                                        <span className={`text-muted-foreground text-xs opacity-60`}>
                                                             (system)
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className="text-muted-foreground text-xs">
+                                                <span className={`text-muted-foreground text-xs`}>
                                                     {language.englishName}
                                                 </span>
                                             </div>
                                         </div>
                                         <Check
                                             className={cn(
-                                                "ml-auto h-4 w-4",
+                                                `ml-auto h-4 w-4`,
                                                 currentLanguage?.code === language.code
-                                                    ? "opacity-100"
-                                                    : "opacity-0"
+                                                    ? `opacity-100`
+                                                    : `opacity-0`
                                             )}
                                         />
                                     </CommandItem>
@@ -209,6 +209,6 @@ const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
     }
 );
 
-LanguagePicker.displayName = "LanguagePicker";
+LanguagePicker.displayName = `LanguagePicker`;
 
 export default LanguagePicker;

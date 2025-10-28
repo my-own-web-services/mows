@@ -21,7 +21,7 @@ export class HotkeyManager {
         this.mergeWithDefaultHotkeys();
 
         // capture hotkeys and dispatch actions
-        document.addEventListener("keydown", (event) => {
+        document.addEventListener(`keydown`, (event) => {
             //log.debug("Keydown event:", event);
             const keyCombo = this.formatKeyCombo(event);
             const actionId = this.getActionByHotkey(keyCombo);
@@ -73,28 +73,28 @@ export class HotkeyManager {
     formatKeyCombo(event: KeyboardEvent | React.KeyboardEvent): string {
         const keys = [];
 
-        if (event.ctrlKey || event.metaKey) keys.push("ctrl");
-        if (event.altKey) keys.push("alt");
-        if (event.shiftKey) keys.push("shift");
+        if (event.ctrlKey || event.metaKey) keys.push(`ctrl`);
+        if (event.altKey) keys.push(`alt`);
+        if (event.shiftKey) keys.push(`shift`);
 
         // Add the actual key
         let key = event.key.toLowerCase();
-        if (!["control", "alt", "shift", "meta"].includes(key)) {
-            if (key === "escape") key = "esc";
-            if (key === " ") key = "space";
+        if (![`control`, `alt`, `shift`, `meta`].includes(key)) {
+            if (key === `escape`) key = `esc`;
+            if (key === ` `) key = `space`;
             keys.push(key);
         }
 
-        return keys.join("+");
+        return keys.join(`+`);
     }
 
     // Normalize key combo for display
     parseKeyCombo = (combo: string): string => {
         return combo
-            .replace(/\s+/g, "")
-            .split("+")
+            .replace(/\s+/g, ``)
+            .split(`+`)
             .map((k) => k.charAt(0).toUpperCase() + k.slice(1))
-            .join(" + ");
+            .join(` + `);
     };
 
     mergeWithDefaultHotkeys = (): void => {
@@ -103,7 +103,7 @@ export class HotkeyManager {
     };
 
     private saveHotkeyConfig = (hotkeyConfig: HotkeyConfig): void => {
-        log.debug("Saving custom hotkey config to localStorage:", hotkeyConfig);
+        log.debug(`Saving custom hotkey config to localStorage:`, hotkeyConfig);
         localStorage.setItem(HOTKEY_CONFIG_LOCAL_STORAGE_KEY, JSON.stringify(hotkeyConfig));
     };
 

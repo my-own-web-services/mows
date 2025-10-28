@@ -90,7 +90,7 @@ export default class StorageQuotaPicker extends PureComponent<
             this.setState({
                 storageQuotas: [],
                 loading: false,
-                error: error instanceof Error ? error.message : "Failed to load storage quotas"
+                error: error instanceof Error ? error.message : `Failed to load storage quotas`
             });
         }
     };
@@ -132,18 +132,18 @@ export default class StorageQuotaPicker extends PureComponent<
         const displayPlaceholder = placeholder || t.storageQuotaPicker.selectStorageQuota;
 
         if (loading) {
-            return <div className="py-6 text-center text-sm">{t.storageQuotaPicker.loading}</div>;
+            return <div className={`py-6 text-center text-sm`}>{t.storageQuotaPicker.loading}</div>;
         }
 
         if (error) {
-            return <div className="text-destructive py-6 text-center text-sm">{error}</div>;
+            return <div className={`text-destructive py-6 text-center text-sm`}>{error}</div>;
         }
 
         return (
             <Command filter={this.filterStorageQuotas}>
                 <CommandInput placeholder={displayPlaceholder} autoFocus={autofocus} />
                 <CommandList>
-                    <CommandEmpty className="py-6 text-center text-sm select-none">
+                    <CommandEmpty className={`py-6 text-center text-sm select-none`}>
                         {t.storageQuotaPicker.noStorageQuotaFound}
                     </CommandEmpty>
                     <CommandGroup>
@@ -151,14 +151,14 @@ export default class StorageQuotaPicker extends PureComponent<
                             <CommandItem
                                 key={quota.id}
                                 value={quota.id}
-                                className="cursor-pointer"
+                                className={`cursor-pointer`}
                                 onSelect={() => this.handleSelect(quota)}
                             >
-                                <div className="flex items-center gap-2">
-                                    <Database className="h-4 w-4" />
-                                    <div className="flex flex-col">
-                                        <span className="font-medium">{quota.name}</span>
-                                        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                                <div className={`flex items-center gap-2`}>
+                                    <Database className={`h-4 w-4`} />
+                                    <div className={`flex flex-col`}>
+                                        <span className={`font-medium`}>{quota.name}</span>
+                                        <div className={`text-muted-foreground flex items-center gap-2 text-xs`}>
                                             <span>{quota.id}</span>
                                             <span>
                                                 {formatFileSizeToHumanReadable(quota.quota_bytes)}
@@ -168,8 +168,8 @@ export default class StorageQuotaPicker extends PureComponent<
                                 </div>
                                 <Check
                                     className={cn(
-                                        "ml-auto h-4 w-4",
-                                        value?.id === quota.id ? "opacity-100" : "opacity-0"
+                                        `ml-auto h-4 w-4`,
+                                        value?.id === quota.id ? `opacity-100` : `opacity-0`
                                     )}
                                 />
                             </CommandItem>
@@ -198,7 +198,7 @@ export default class StorageQuotaPicker extends PureComponent<
         // If standalone (used in modal), render the command directly without popover
         if (standalone) {
             return (
-                <div className={cn(className, "w-full")} style={style}>
+                <div className={cn(className, `w-full`)} style={style}>
                     {this.renderContent()}
                 </div>
             );
@@ -210,35 +210,35 @@ export default class StorageQuotaPicker extends PureComponent<
                     <div
                         className={cn(
                             className,
-                            "flex h-10 max-w-[400px] cursor-pointer items-center justify-between rounded-md border px-3 py-2",
-                            disabled && "pointer-events-none cursor-not-allowed opacity-50"
+                            `flex h-10 max-w-[400px] cursor-pointer items-center justify-between rounded-md border px-3 py-2`,
+                            disabled && `pointer-events-none cursor-not-allowed opacity-50`
                         )}
                         style={style}
                         title={value ? `${value.name} (${value.id}) - ${formatFileSizeToHumanReadable(value.quota_bytes)}` : displayPlaceholder}
                     >
                         {triggerComponent || (
                             <>
-                                <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-                                    <Database className="h-4 w-4 flex-shrink-0" />
+                                <div className={`flex min-w-0 items-center gap-2 overflow-hidden`}>
+                                    <Database className={`h-4 w-4 flex-shrink-0`} />
                                     {value ? (
-                                        <div className="min-w-0 flex-1 truncate">
-                                            <span className="font-medium truncate">{value.name}</span>
-                                            <span className="text-muted-foreground ml-2 text-xs">
+                                        <div className={`min-w-0 flex-1 truncate`}>
+                                            <span className={`font-medium truncate`}>{value.name}</span>
+                                            <span className={`text-muted-foreground ml-2 text-xs`}>
                                                 ({formatFileSizeToHumanReadable(value.quota_bytes)})
                                             </span>
                                         </div>
                                     ) : (
-                                        <span className="text-muted-foreground truncate">
+                                        <span className={`text-muted-foreground truncate`}>
                                             {displayPlaceholder}
                                         </span>
                                     )}
                                 </div>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 flex-shrink-0 opacity-50" />
+                                <ChevronsUpDown className={`ml-2 h-4 w-4 flex-shrink-0 opacity-50`} />
                             </>
                         )}
                     </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0">{this.renderContent()}</PopoverContent>
+                <PopoverContent className={`w-[400px] p-0`}>{this.renderContent()}</PopoverContent>
             </Popover>
         );
     };

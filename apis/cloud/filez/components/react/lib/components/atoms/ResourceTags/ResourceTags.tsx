@@ -55,7 +55,7 @@ export interface ResourceTagsProps {
     readonly searchHandler?: (searchQuery: TagSearchQuery) => TagSearchResponse;
 }
 
-export type PickerMode = "Badges" | "Text";
+export type PickerMode = `Badges` | `Text`;
 
 export interface ResourceTagsState {
     readonly pickerMode: PickerMode;
@@ -78,9 +78,9 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
     constructor(props: ResourceTagsProps) {
         super(props);
         this.state = {
-            pickerMode: props.defaultPickerMode || "Badges",
+            pickerMode: props.defaultPickerMode || `Badges`,
             textValue: this.tagsToString(this.props.tagsMap),
-            searchTerm: "",
+            searchTerm: ``,
             searchResults: [],
             showSearchResults: false
         };
@@ -106,14 +106,14 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
         const resourceIds = Object.keys(tagMap);
 
         if (resourceIds.length === 0) {
-            return "";
+            return ``;
         }
 
         if (resourceIds.length === 1) {
             const tags = tagMap[resourceIds[0]];
             return tags
                 .map((tag) => `${tag.key}${RESOURCE_TAGS_KEY_VALUE_SEPARATOR}${tag.value}`)
-                .join(RESOURCE_TAGS_SEPARATOR + " ");
+                .join(RESOURCE_TAGS_SEPARATOR + ` `);
         }
 
         const allTagKeys = new Set<string>();
@@ -147,7 +147,7 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
             });
         });
 
-        return tagStrings.join(RESOURCE_TAGS_SEPARATOR + " ");
+        return tagStrings.join(RESOURCE_TAGS_SEPARATOR + ` `);
     };
 
     stringToTags = (text: string): WorkingTag[] => {
@@ -401,7 +401,7 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
                     showSearchResults: response.tags.length > 0
                 });
             } catch (error) {
-                console.error("Tag search error:", error);
+                console.error(`Tag search error:`, error);
                 this.setState({ searchResults: [], showSearchResults: false });
             }
         }, 300); // 300ms debounce
@@ -431,7 +431,7 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
 
         // Clear search and hide results
         this.setState({
-            searchTerm: "",
+            searchTerm: ``,
             searchResults: [],
             showSearchResults: false
         });
@@ -441,16 +441,16 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
         const { t } = this.context!;
         const allTags = this.convertMapToCommonTags(this.props.tagsMap);
         return (
-            <div className="outline-muted flex min-h-[40px] flex-wrap gap-2 rounded-lg p-2 outline-1">
+            <div className={`outline-muted flex min-h-[40px] flex-wrap gap-2 rounded-lg p-2 outline-1`}>
                 {allTags.map((tag, index) => {
                     const matches = this.tagMatchesSearch(tag);
                     return (
                         <Badge
-                            variant={"outline"}
+                            variant={`outline`}
                             key={`${tag.key}-${tag.value}-${index}`}
                             className={cn(
-                                "inline-flex items-center justify-between gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium transition-colors",
-                                !matches && "opacity-30 hover:opacity-100"
+                                `inline-flex items-center justify-between gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium transition-colors`,
+                                !matches && `opacity-30 hover:opacity-100`
                             )}
                         >
                             <span>
@@ -458,13 +458,13 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
                                 {RESOURCE_TAGS_KEY_VALUE_SEPARATOR}
                                 {tag.value}
                             </span>
-                            <span className="-gap-1 flex items-center">
+                            <span className={`-gap-1 flex items-center`}>
                                 {!tag.assignedToAllResources && (
                                     <Button
                                         title={t.resourceTags.addToAll}
-                                        variant={"iconStandalone"}
-                                        size="icon-xs"
-                                        className="TagAddToAll hover:text-success"
+                                        variant={`iconStandalone`}
+                                        size={`icon-xs`}
+                                        className={`TagAddToAll hover:text-success`}
                                         onClick={() => this.handleAddToAll(tag)}
                                     >
                                         <MdOutlineLibraryAdd />
@@ -472,9 +472,9 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
                                 )}
                                 <Button
                                     title={t.resourceTags.removeFromAll}
-                                    variant={"iconStandalone"}
-                                    size="icon-xs"
-                                    className="TagRemoveFromAll hover:text-destructive"
+                                    variant={`iconStandalone`}
+                                    size={`icon-xs`}
+                                    className={`TagRemoveFromAll hover:text-destructive`}
                                     onClick={() => this.handleRemoveFromAll(tag)}
                                 >
                                     <IoClose />
@@ -492,15 +492,13 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
             return null;
         }
 
-        const { t } = this.context!;
-
         return (
-            <div className="bg-popover absolute top-full right-0 left-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border shadow-md">
+            <div className={`bg-popover absolute top-full right-0 left-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border shadow-md`}>
                 {this.state.searchResults.map((tag, index) => (
                     <button
                         key={`${tag.key}-${tag.value}-${index}`}
-                        type="button"
-                        className="hover:bg-accent hover:text-accent-foreground flex w-full items-center justify-between px-3 py-2 text-left text-sm"
+                        type={`button`}
+                        className={`hover:bg-accent hover:text-accent-foreground flex w-full items-center justify-between px-3 py-2 text-left text-sm`}
                         onClick={() => this.handleSelectSearchResult(tag)}
                     >
                         <span>
@@ -508,7 +506,7 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
                             {RESOURCE_TAGS_KEY_VALUE_SEPARATOR}
                             {tag.value}
                         </span>
-                        <span className="text-muted-foreground text-xs">{tag.usageCount}</span>
+                        <span className={`text-muted-foreground text-xs`}>{tag.usageCount}</span>
                     </button>
                 ))}
             </div>
@@ -529,24 +527,24 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
         const notChanged = this.state.textValue === this.tagsToString(this.props.tagsMap);
 
         return (
-            <div className="flex flex-col gap-2">
+            <div className={`flex flex-col gap-2`}>
                 <Textarea
                     value={this.state.textValue}
                     onChange={(e) => {
                         this.setState({ textValue: e.target.value });
                     }}
                     onKeyDown={(e) => {
-                        if (e.key === "Enter") {
+                        if (e.key === `Enter`) {
                             e.preventDefault();
                             this.commitTextArea();
                         }
                     }}
                 />
-                <span className="flex gap-2">
+                <span className={`flex gap-2`}>
                     <Button disabled={notChanged} onClick={this.commitTextArea}>
                         {t.resourceTags.saveTextTags}
                     </Button>
-                    <Button disabled={notChanged} variant={"secondary"}>
+                    <Button disabled={notChanged} variant={`secondary`}>
                         {t.resourceTags.cancel}
                     </Button>
                 </span>
@@ -560,14 +558,14 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
         return (
             <div
                 style={{ ...this.props.style }}
-                className={cn(`ResourceTags`, "flex flex-col gap-2", this.props.className)}
+                className={cn(`ResourceTags`, `flex flex-col gap-2`, this.props.className)}
             >
-                <div className="flex items-center justify-between gap-4">
+                <div className={`flex items-center justify-between gap-4`}>
                     <ButtonSelect
-                        size="icon-sm"
+                        size={`icon-sm`}
                         options={[
-                            { label: t.resourceTags.badges, id: "Badges", icon: <TagIcon /> },
-                            { label: t.resourceTags.text, id: "Text", icon: <Text /> }
+                            { label: t.resourceTags.badges, id: `Badges`, icon: <TagIcon /> },
+                            { label: t.resourceTags.text, id: `Text`, icon: <Text /> }
                         ]}
                         onSelectionChange={(option) => {
                             this.setState({ pickerMode: option as PickerMode });
@@ -581,39 +579,39 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
 
                 <div>
                     {match(this.state.pickerMode)
-                        .with("Badges", () => this.renderBadges())
-                        .with("Text", () => this.renderTextArea())
+                        .with(`Badges`, () => this.renderBadges())
+                        .with(`Text`, () => this.renderTextArea())
                         .exhaustive()}
                 </div>
-                {this.state.pickerMode === "Badges" && (
-                    <div className="relative">
+                {this.state.pickerMode === `Badges` && (
+                    <div className={`relative`}>
                         <InputGroup>
                             <InputGroupAddon>
-                                <Search className="text-muted-foreground h-4 w-4" />
+                                <Search className={`text-muted-foreground h-4 w-4`} />
                             </InputGroupAddon>
                             <InputGroupInput
-                                type="text"
+                                type={`text`}
                                 placeholder={t.resourceTags.searchPlaceholder}
                                 value={this.state.searchTerm}
                                 onChange={(e) => this.handleSearchChange(e.target.value)}
-                                className="pr-8 pl-8"
+                                className={`pr-8 pl-8`}
                             />
                             {this.state.searchTerm && (
                                 <InputGroupAddon>
                                     <Button
-                                        variant="iconStandalone"
-                                        size="icon-xs"
-                                        className="hover:text-destructive absolute top-1/2 right-2 -translate-y-1/2"
+                                        variant={`iconStandalone`}
+                                        size={`icon-xs`}
+                                        className={`hover:text-destructive absolute top-1/2 right-2 -translate-y-1/2`}
                                         onClick={() => {
                                             this.setState({
-                                                searchTerm: "",
+                                                searchTerm: ``,
                                                 searchResults: [],
                                                 showSearchResults: false
                                             });
                                         }}
                                         title={t.resourceTags.clearSearch}
                                     >
-                                        <X className="h-3 w-3" />
+                                        <X className={`h-3 w-3`} />
                                     </Button>
                                 </InputGroupAddon>
                             )}

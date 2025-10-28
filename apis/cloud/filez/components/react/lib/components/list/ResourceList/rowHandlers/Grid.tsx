@@ -14,7 +14,7 @@ import {
     SelectedItemsAfterKeypress
 } from "../ResourceListTypes";
 
-export interface GridListRowHandlerProps<FilezResourceType> {
+export interface GridListRowHandlerProps<_FilezResourceType> {
     hideCheckboxSelection?: boolean;
     defaultGridColumnCount?: number;
 }
@@ -22,9 +22,9 @@ export interface GridListRowHandlerProps<FilezResourceType> {
 export default class GridListRowHandler<FilezResourceType extends BaseResource>
     implements ListRowHandler<FilezResourceType>
 {
-    id = "GridListRowHandler";
-    name = "Grid";
-    icon = (<BsFillGridFill height={"100%"} />);
+    id = `GridListRowHandler`;
+    name = `Grid`;
+    icon = (<BsFillGridFill height={`100%`} />);
     direction = RowRendererDirection.Vertical;
     resourceList: InstanceType<typeof ResourceList> | undefined;
     rowHeight = 24;
@@ -37,11 +37,11 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
         this.gridColumnCount = props.defaultGridColumnCount ?? 10;
     }
 
-    getMinimumBatchSize = (totalCount: number): number => {
+    getMinimumBatchSize = (_totalCount: number): number => {
         return 50;
     };
 
-    getLoadMoreItemsThreshold = (totalCount: number): number => {
+    getLoadMoreItemsThreshold = (_totalCount: number): number => {
         return 20;
     };
 
@@ -61,11 +61,11 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
     headerRenderer = () => {
         return (
             <div
-                className="relative flex h-8 justify-end border-t-1 border-b-1"
+                className={`relative flex h-8 justify-end border-t-1 border-b-1`}
                 style={{ width: `calc(100% - 17px)` }}
             >
                 <Slider
-                    className="w-52"
+                    className={`w-52`}
                     defaultValue={[this.gridColumnCount]}
                     max={50}
                     min={1}
@@ -93,7 +93,7 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
         const rowItems = allItems.slice(startIndex, endIndex);
 
         return (
-            <div className={cn("GridRow")} style={{ ...style }}>
+            <div className={cn(`GridRow`)} style={{ ...style }}>
                 {rowItems.map((item, i) => {
                     const actualListIndex = index * gridColumnCount + i;
 
@@ -104,7 +104,7 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
 
                     const isLastSelected = actualListIndex === data.lastSelectedItemIndex;
 
-                    const key = "GridRowItem" + actualListIndex;
+                    const key = `GridRowItem` + actualListIndex;
                     return (
                         <div
                             onClick={(e) => onItemClick?.(e, item, actualListIndex)}
@@ -112,10 +112,10 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
                                 onItemClick?.(e, item, actualListIndex, true);
                             }}
                             className={cn(
-                                "GridRowItem",
-                                isSelected && "bg-secondary/60",
-                                isLastSelected && "bg-secondary/100",
-                                "float-left h-full cursor-default overflow-hidden p-2 text-ellipsis outline-1 select-none"
+                                `GridRowItem`,
+                                isSelected && `bg-secondary/60`,
+                                isLastSelected && `bg-secondary/100`,
+                                `float-left h-full cursor-default overflow-hidden p-1 text-ellipsis outline-1 select-none`
                             )}
                             style={{
                                 width: `calc(100% / ${gridColumnCount})`
@@ -126,7 +126,7 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
                                 width={data.listWidth / gridColumnCount}
                                 height={data.listWidth / gridColumnCount}
                                 file={item as unknown as FilezFile}
-                            ></FileViewer>
+                            />
                         </div>
                     );
                 })}
@@ -169,7 +169,7 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
         lastSelectedItemIndex: number | undefined,
         arrowKeyShiftSelectItemIndex: number | undefined
     ) => {
-        const keyOptions = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+        const keyOptions = [`ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`];
         if (keyOptions.includes(e.key)) {
             // if no item is selected select the first one
 
@@ -188,7 +188,7 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
                 const lastItemIndex = total_count - 1;
 
                 const newItemIndex = (() => {
-                    if (e.key === "ArrowUp") {
+                    if (e.key === `ArrowUp`) {
                         const mb = lastSelectedItemIndex - this.gridColumnCount;
 
                         return mb > 0
@@ -196,15 +196,15 @@ export default class GridListRowHandler<FilezResourceType extends BaseResource>
                             : lastItemIndex -
                                   (lastItemIndex % this.gridColumnCount) +
                                   (lastSelectedItemIndex % this.gridColumnCount);
-                    } else if (e.key === "ArrowDown") {
+                    } else if (e.key === `ArrowDown`) {
                         const mb = lastSelectedItemIndex + this.gridColumnCount;
                         return mb < lastItemIndex
                             ? mb
                             : 0 + (lastSelectedItemIndex % this.gridColumnCount);
-                    } else if (e.key === "ArrowLeft") {
+                    } else if (e.key === `ArrowLeft`) {
                         const mb = lastSelectedItemIndex - 1;
                         return mb >= 0 ? mb : lastItemIndex;
-                    } else if (e.key === "ArrowRight") {
+                    } else if (e.key === `ArrowRight`) {
                         const mb = lastSelectedItemIndex + 1;
                         return mb <= lastItemIndex ? mb : 0;
                     } else {

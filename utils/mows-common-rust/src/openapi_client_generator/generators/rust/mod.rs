@@ -96,7 +96,7 @@ use reqwest::Url;
 use reqwest::header::HeaderMap;
 use reqwest_middleware::{{ClientBuilder, ClientWithMiddleware}};
 use reqwest_tracing::TracingMiddleware;
-
+use tracing::error;
 
 
 #[derive(Debug, Clone)]
@@ -245,7 +245,7 @@ mod tests {
             None,
         ).unwrap();
 
-        client.get_health().await.unwrap();
+        client.get_health(true).await.unwrap();
     }
 
 }"#;

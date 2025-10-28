@@ -1,4 +1,3 @@
-use sha2::{Digest, Sha256};
 use diesel::{
     pg::Pg,
     prelude::{Insertable, Queryable},
@@ -7,6 +6,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use mows_common_rust::utils::generate_id;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use utoipa::ToSchema;
 use uuid::Uuid;
 

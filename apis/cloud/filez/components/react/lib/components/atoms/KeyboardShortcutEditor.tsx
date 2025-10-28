@@ -8,14 +8,14 @@ import { RiResetLeftFill } from "react-icons/ri";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
-import KeyComboDisplay from "./KeyComboDisplay";
+import { KeyComboDisplay } from "./KeyComboDisplay";
 
 interface KeyboardShortcutEditorProps {
     readonly className?: string;
     readonly style?: CSSProperties;
 }
 
-type DialogMode = "edit" | "add";
+type DialogMode = `edit` | `add`;
 
 interface KeyboardShortcutEditorState {
     dialogOpen: boolean;
@@ -44,10 +44,10 @@ export default class KeyboardShortcutEditor extends PureComponent<
             actionId: null,
             oldKey: null,
             recordingKey: false,
-            recordedKey: "",
+            recordedKey: ``,
             categoryFilter: null,
             error: null,
-            searchQuery: ""
+            searchQuery: ``
         };
     }
 
@@ -56,11 +56,11 @@ export default class KeyboardShortcutEditor extends PureComponent<
     handleStartRecording = (actionId: string, key: string) => {
         this.setState({
             dialogOpen: true,
-            dialogMode: "edit",
+            dialogMode: `edit`,
             actionId: actionId,
             oldKey: key,
             recordingKey: true,
-            recordedKey: "",
+            recordedKey: ``,
             error: null
         });
     };
@@ -86,7 +86,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
         if (this.state.error) return;
 
         try {
-            if (dialogMode === "edit") {
+            if (dialogMode === `edit`) {
                 if (!oldKey) return;
                 const existingHotkeys = this.context.hotkeyManager
                     .getHotkeysByActionId(actionId)
@@ -97,10 +97,10 @@ export default class KeyboardShortcutEditor extends PureComponent<
                     ...existingHotkeys,
                     recordedKey
                 ]);
-            } else if (dialogMode === "add") {
+            } else if (dialogMode === `add`) {
                 const action = this.context.actionManager.getAction(actionId);
                 if (!action) {
-                    this.setState({ error: "Action not found" });
+                    this.setState({ error: `Action not found` });
                     return;
                 }
 
@@ -117,7 +117,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
                 actionId: null,
                 oldKey: null,
                 recordingKey: false,
-                recordedKey: "",
+                recordedKey: ``,
                 error: null
             });
 
@@ -134,7 +134,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
             actionId: null,
             oldKey: null,
             recordingKey: false,
-            recordedKey: "",
+            recordedKey: ``,
             error: null
         });
     };
@@ -154,16 +154,16 @@ export default class KeyboardShortcutEditor extends PureComponent<
     handleStartAddingHotkey = (actionId: string) => {
         this.setState({
             dialogOpen: true,
-            dialogMode: "add",
+            dialogMode: `add`,
             actionId: actionId,
             oldKey: null,
             recordingKey: true,
-            recordedKey: "",
+            recordedKey: ``,
             error: null
         });
     };
 
-    handleKeyUp = (event: React.KeyboardEvent) => {
+    handleKeyUp = () => {
         if (
             !this.state.recordingKey ||
             !this.context ||
@@ -173,7 +173,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
             return;
 
         // Only validate for add mode, not edit mode
-        if (this.state.dialogMode !== "add") return;
+        if (this.state.dialogMode !== `add`) return;
 
         // Get the action we're adding a hotkey for
         const action = this.context.actionManager.getAction(this.state.actionId);
@@ -190,8 +190,8 @@ export default class KeyboardShortcutEditor extends PureComponent<
             const conflictingDescription = t.actions?.[conflictingActionId] || conflictingActionId;
             const errorTemplate =
                 t.keyboardShortcuts?.hotkeyDialog?.keyAlreadyInUse ||
-                'Key combination is already used by "{action}"';
-            const errorMessage = errorTemplate.replace("{action}", conflictingDescription);
+                `Key combination is already used by "{action}"`;
+            const errorMessage = errorTemplate.replace(`{action}`, conflictingDescription);
             this.setState({ error: errorMessage });
         } else {
             this.setState({ error: null });
@@ -243,7 +243,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
                 const keyMatches = hotkeys.some(
                     (hotkey) =>
                         hotkey.toLowerCase().includes(searchQuery) ||
-                        (this.context?.hotkeyManager.parseKeyCombo(hotkey) || "")
+                        (this.context?.hotkeyManager.parseKeyCombo(hotkey) || ``)
                             .toLowerCase()
                             .includes(searchQuery)
                 );
@@ -274,7 +274,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
             });
         });
 
-        log.debug("Actions by category:", byCategory);
+        log.debug(`Actions by category:`, byCategory);
 
         return byCategory;
     };
@@ -292,35 +292,35 @@ export default class KeyboardShortcutEditor extends PureComponent<
                     this.props.className
                 )}
             >
-                <div className="mb-4 space-y-2">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="max-w-sm flex-1">
+                <div className={`mb-4 space-y-2`}>
+                    <div className={`flex items-center justify-between gap-4`}>
+                        <div className={`max-w-sm flex-1`}>
                             <Input
-                                placeholder="Search actions..."
+                                placeholder={`Search actions...`}
                                 value={this.state.searchQuery}
                                 onChange={(e) => this.handleSearchChange(e.target.value)}
-                                className="w-full"
+                                className={`w-full`}
                             />
                         </div>
-                        <Button variant="outline" onClick={this.handleResetAll}>
-                            <MdRestartAlt className="h-4 w-4" />
+                        <Button variant={`outline`} onClick={this.handleResetAll}>
+                            <MdRestartAlt className={`h-4 w-4`} />
                             {t.keyboardShortcuts.resetAll}
                         </Button>
                     </div>
                 </div>
 
-                <div className="space-y-6">
+                <div className={`space-y-6`}>
                     {categories.length === 0 && this.state.searchQuery ? (
-                        <div className="text-muted-foreground py-8 text-center">
+                        <div className={`text-muted-foreground py-8 text-center`}>
                             <p>No actions found matching "{this.state.searchQuery}"</p>
                         </div>
                     ) : (
                         categories.map((category) => (
-                            <div key={category} className="space-y-2">
-                                <h3 className="text-muted-foreground text-lg font-semibold">
+                            <div key={category} className={`space-y-2`}>
+                                <h3 className={`text-muted-foreground text-lg font-semibold`}>
                                     {category}
                                 </h3>
-                                <div className="space-y-3">
+                                <div className={`space-y-3`}>
                                     {actionsByCategory.get(category)!.map((action) => {
                                         const hotkeys =
                                             this.context?.hotkeyManager.getHotkeysByActionId(
@@ -332,38 +332,38 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                         return (
                                             <div
                                                 key={action.id}
-                                                className="space-y-2 rounded-lg border p-3"
+                                                className={`space-y-2 rounded-lg border p-3`}
                                             >
-                                                <div className="flex items-center justify-between">
-                                                    <h4 className="text-sm font-medium">
+                                                <div className={`flex items-center justify-between`}>
+                                                    <h4 className={`text-sm font-medium`}>
                                                         {description}
                                                     </h4>
                                                     <Button
-                                                        variant="outline"
-                                                        size="sm"
+                                                        variant={`outline`}
+                                                        size={`sm`}
                                                         onClick={() =>
                                                             this.handleStartAddingHotkey(action.id)
                                                         }
-                                                        className="text-xs"
+                                                        className={`text-xs`}
                                                     >
                                                         + Add Hotkey
                                                     </Button>
                                                 </div>
-                                                <div className="space-y-1">
+                                                <div className={`space-y-1`}>
                                                     {hotkeys.map((hotkey) => {
                                                         return (
                                                             <div
                                                                 key={hotkey}
-                                                                className="flex min-w-0 items-center justify-between gap-4 pl-4"
+                                                                className={`flex min-w-0 items-center justify-between gap-4 pl-4`}
                                                             >
-                                                                <div className="flex w-full items-center justify-between">
+                                                                <div className={`flex w-full items-center justify-between`}>
                                                                     <KeyComboDisplay
                                                                         keyCombo={hotkey}
                                                                     />
-                                                                    <div className="flex items-center">
+                                                                    <div className={`flex items-center`}>
                                                                         <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
+                                                                            variant={`ghost`}
+                                                                            size={`icon`}
                                                                             onClick={() =>
                                                                                 this.handleStartRecording(
                                                                                     action.id,
@@ -375,11 +375,11 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                                     .edit
                                                                             }
                                                                         >
-                                                                            <MdEdit className="h-4 w-4" />
+                                                                            <MdEdit className={`h-4 w-4`} />
                                                                         </Button>
                                                                         <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
+                                                                            variant={`ghost`}
+                                                                            size={`icon`}
                                                                             onClick={() =>
                                                                                 this.handleResetToDefault(
                                                                                     action.id
@@ -390,11 +390,11 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                                     .reset
                                                                             }
                                                                         >
-                                                                            <RiResetLeftFill className="h-4 w-4" />
+                                                                            <RiResetLeftFill className={`h-4 w-4`} />
                                                                         </Button>
                                                                         <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
+                                                                            variant={`ghost`}
+                                                                            size={`icon`}
                                                                             onClick={() =>
                                                                                 this.handleDeleteHotkey(
                                                                                     action.id,
@@ -405,9 +405,9 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                                 t.keyboardShortcuts
                                                                                     .delete
                                                                             }
-                                                                            className="hover:text-destructive"
+                                                                            className={`hover:text-destructive`}
                                                                         >
-                                                                            <MdDelete className="h-4 w-4" />
+                                                                            <MdDelete className={`h-4 w-4`} />
                                                                         </Button>
                                                                     </div>
                                                                 </div>
@@ -435,26 +435,26 @@ export default class KeyboardShortcutEditor extends PureComponent<
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>
-                                {this.state.dialogMode === "edit"
+                                {this.state.dialogMode === `edit`
                                     ? t.keyboardShortcuts?.hotkeyDialog?.editTitle
                                     : t.keyboardShortcuts?.hotkeyDialog?.addTitle}
                             </DialogTitle>
                             <DialogDescription>
-                                {this.state.dialogMode === "edit"
+                                {this.state.dialogMode === `edit`
                                     ? t.keyboardShortcuts?.hotkeyDialog?.editDescription
                                     : `${t.keyboardShortcuts?.hotkeyDialog?.addDescription} "${
                                           this.state.actionId
                                               ? t.actions?.[this.state.actionId] ||
                                                 this.state.actionId
-                                              : ""
+                                              : ``
                                       }"`}
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4">
+                        <div className={`space-y-4`}>
                             <div
-                                className="border-input flex min-h-10 w-full cursor-text items-center gap-2 rounded-md border bg-transparent px-3 py-2"
+                                className={`border-input flex min-h-10 w-full cursor-text items-center gap-2 rounded-md border bg-transparent px-3 py-2`}
                                 onClick={(e) =>
-                                    (e.target as HTMLElement).querySelector("input")?.focus()
+                                    (e.target as HTMLElement).querySelector(`input`)?.focus()
                                 }
                             >
                                 {this.state.recordedKey ? (
@@ -466,30 +466,30 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                         }
                                     />
                                 ) : (
-                                    <span className="text-muted-foreground">
+                                    <span className={`text-muted-foreground`}>
                                         {t.keyboardShortcuts?.hotkeyDialog?.pressKeys}
                                     </span>
                                 )}
                                 <input
-                                    className="sr-only"
+                                    className={`sr-only`}
                                     onKeyDown={this.handleKeyDown}
                                     onKeyUp={this.handleKeyUp}
                                     autoFocus
-                                    aria-label="hotkey-input"
+                                    aria-label={`hotkey-input`}
                                 />
                             </div>
                             {this.state.error && (
-                                <p className="text-destructive text-sm">{this.state.error}</p>
+                                <p className={`text-destructive text-sm`}>{this.state.error}</p>
                             )}
-                            <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={this.handleCancelEdit}>
+                            <div className={`flex justify-end gap-2`}>
+                                <Button variant={`outline`} onClick={this.handleCancelEdit}>
                                     {t.keyboardShortcuts?.hotkeyDialog?.cancel}
                                 </Button>
                                 <Button
                                     onClick={this.handleSaveBinding}
                                     disabled={!this.state.recordedKey || !!this.state.error}
                                 >
-                                    {this.state.dialogMode === "edit"
+                                    {this.state.dialogMode === `edit`
                                         ? t.keyboardShortcuts?.hotkeyDialog?.save
                                         : t.keyboardShortcuts?.hotkeyDialog?.addHotkey}
                                 </Button>

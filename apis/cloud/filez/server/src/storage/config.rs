@@ -1,4 +1,4 @@
-use crate::{kubernetes_controller::crd::SecretReadableByFilezController, errors::FilezError};
+use crate::{errors::FilezError, kubernetes_controller::crd::SecretReadableByFilezController};
 
 use super::providers::{
     filesystem::{StorageProviderConfigFileSystem, StorageProviderConfigFileSystemCrd},

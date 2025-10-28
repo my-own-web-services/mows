@@ -22,7 +22,7 @@ use axum::{
     params(
         (
             "file_id" = FilezFileId,
-            Path, 
+            Path,
             description = "The ID of the file to delete"
         )
     ),

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    kubernetes_controller::{get_controller_health_with_state, ControllerHealthDetails},
     database::DatabaseHealthDetails,
     errors::FilezError,
+    kubernetes_controller::{get_controller_health_with_state, ControllerHealthDetails},
     models::storage_locations::{StorageLocation, StorageLocationId},
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus},
@@ -100,10 +100,7 @@ pub async fn get_health(
 
                 if let Some(conn_count) = details.connection_count {
                     if let Some(max_conn) = details.max_connections {
-                        message_parts.push(format!(
-                            "Connections: {}/{}",
-                            conn_count, max_conn
-                        ));
+                        message_parts.push(format!("Connections: {}/{}", conn_count, max_conn));
                     }
                 }
             }
@@ -121,7 +118,7 @@ pub async fn get_health(
                 },
                 details: Some(details),
             }
-        },
+        }
         Err(e) => DatabaseHealthStatus {
             healthy: false,
             message: format!("Database health check failed: {}", e),

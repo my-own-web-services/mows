@@ -37,7 +37,7 @@ export default class ImageViewer extends PureComponent<ImageViewerProps, ImageVi
     componentDidMount = () => {};
 
     getImageVersion = () => {
-        const formats = ["avif"];
+        const formats = [`avif`];
         const sizes = [100, 250, 500, 1000, 2000];
         const containerWidth = this.props.width || 0;
 
@@ -51,7 +51,7 @@ export default class ImageViewer extends PureComponent<ImageViewerProps, ImageVi
     };
 
     render = () => {
-        const appId = "019a1146-f11c-78d4-8d70-b289b97b8514";
+        const appId = `019a1146-f11c-78d4-8d70-b289b97b8514`;
         const appPath = this.getImageVersion();
 
         const url = `${this.context?.filezClient.baseUrl}/api/file_versions/content/get/${this.props.file.id}/${this.props.fileVersion || 0}/${appId}/${appPath}`;
@@ -60,17 +60,16 @@ export default class ImageViewer extends PureComponent<ImageViewerProps, ImageVi
             <div
                 style={{ ...this.props.style }}
                 className={cn(
-                    "ImageViewer flex h-full w-full items-center justify-center",
+                    `ImageViewer flex h-full w-full items-center justify-center`,
                     this.props.className
                 )}
             >
                 <img
                     src={url}
-                    loading="eager"
+                    loading={`eager`}
                     draggable={false}
                     alt={this.props.file.name}
-                    width={this.props.width}
-                    className="max-w-full object-contain"
+                    className={`max-h-full max-w-full object-contain`}
                 />
             </div>
         );

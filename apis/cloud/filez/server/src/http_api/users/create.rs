@@ -1,3 +1,4 @@
+use crate::validation::Json;
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
@@ -10,7 +11,6 @@ use crate::{
     with_timing,
 };
 use axum::{extract::State, Extension};
-use crate::validation::Json;
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use utoipa::ToSchema;

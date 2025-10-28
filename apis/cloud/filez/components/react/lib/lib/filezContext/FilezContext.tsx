@@ -46,10 +46,10 @@ export interface FilezContextType {
 }
 
 export type ModalType =
-    | "keyboardShortcutEditor"
-    | "themeSelector"
-    | "languageSelector"
-    | "fileGroupCreate";
+    | `keyboardShortcutEditor`
+    | `themeSelector`
+    | `languageSelector`
+    | `fileGroupCreate`;
 
 interface FilezClientManagerProps {
     readonly children: ReactNode;
@@ -77,8 +77,8 @@ export class FilezClientManagerBase extends Component<
 
     constructor(props: FilezClientManagerProps) {
         super(props);
-        const currentThemeId = localStorage.getItem(THEME_LOCAL_STORAGE_KEY) || "system";
-        log.info("Current theme ID:", currentThemeId);
+        const currentThemeId = localStorage.getItem(THEME_LOCAL_STORAGE_KEY) || `system`;
+        log.info(`Current theme ID:`, currentThemeId);
 
         this.state = {
             currentTheme: themes.find((t) => t.id === currentThemeId) || themes[0],
@@ -118,7 +118,7 @@ export class FilezClientManagerBase extends Component<
     };
 
     changeActiveModal = (modalType?: ModalType) => {
-        log.debug("Changing active modal to:", modalType);
+        log.debug(`Changing active modal to:`, modalType);
         this.setState({ currentlyOpenModal: modalType });
     };
 
@@ -126,7 +126,7 @@ export class FilezClientManagerBase extends Component<
 
     restoreRedirectPath = () => {
         const redirectPath = localStorage.getItem(FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY);
-        log.info("Restoring redirect path:", redirectPath);
+        log.info(`Restoring redirect path:`, redirectPath);
         if (redirectPath) {
             localStorage.removeItem(FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY);
             window.history.replaceState({}, document.title, redirectPath);
@@ -144,14 +144,14 @@ export class FilezClientManagerBase extends Component<
                 this.props.auth.user.access_token
             );
             this.setState({ filezClient });
-            log.debug("Filez API client initialized with user token.");
+            log.debug(`Filez API client initialized with user token.`);
 
             // Verify the token is active, otherwise force a new sign-in.
             const ownUserRes = await filezClient?.api.getOwnUser().catch(async (response) => {
-                if (response?.error?.status?.Error === "IntrospectionGuardError::Inactive") {
-                    log.debug("User token is inactive, redirecting to sign in.");
+                if (response?.error?.status?.Error === `IntrospectionGuardError::Inactive`) {
+                    log.debug(`User token is inactive, redirecting to sign in.`);
                     if (!this.props.auth?.signinRedirect) {
-                        log.error("No signinRedirect function available in auth context.");
+                        log.error(`No signinRedirect function available in auth context.`);
                         return;
                     }
                     await signinRedirectSavePath(this.props.auth?.signinRedirect);
@@ -161,9 +161,9 @@ export class FilezClientManagerBase extends Component<
             await filezClient.api.startSession(
                 {},
                 {
-                    credentials: "include",
+                    credentials: `include`,
                     headers: {
-                        Cookie: ""
+                        Cookie: ``
                     }
                 }
             );
@@ -192,8 +192,8 @@ export class FilezClientManagerBase extends Component<
 
         localStorage.setItem(THEME_LOCAL_STORAGE_KEY, theme.id);
 
-        if (theme.id === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+        if (theme.id === `system`) {
+            const systemTheme = window.matchMedia(`(prefers-color-scheme: dark)`).matches
                 ? `dark`
                 : `light`;
 
@@ -211,7 +211,7 @@ export class FilezClientManagerBase extends Component<
 
     setLanguage = async (languageToSet?: Language) => {
         if (!languageToSet) {
-            log.error("No language provided");
+            log.error(`No language provided`);
             return;
         }
         this.setState({ currentLanguage: languageToSet });
@@ -228,7 +228,7 @@ export class FilezClientManagerBase extends Component<
         const { filezClient, currentTheme } = this.state;
 
         if (!this.context) {
-            throw new Error("FilezClientManager must be used within a ModalManagerProvider");
+            throw new Error(`FilezClientManager must be used within a ModalManagerProvider`);
         }
 
         const contextValue: FilezContextType = {
@@ -264,7 +264,7 @@ export const withFilez = <P extends object>(
 
         render = () => {
             if (this.context === undefined) {
-                throw new Error("withFilez must be used within a FilezProvider");
+                throw new Error(`withFilez must be used within a FilezProvider`);
             }
             return <WrappedComponent {...this.props} filez={this.context} />;
         };
@@ -274,7 +274,7 @@ export const withFilez = <P extends object>(
 export const useFilez = (): FilezContextType => {
     const context = React.useContext(FilezContext);
     if (context === undefined) {
-        throw new Error("useFilez must be used within a FilezProvider");
+        throw new Error(`useFilez must be used within a FilezProvider`);
     }
     return context;
 };
@@ -303,13 +303,13 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
                 this.setState({ clientConfig: config });
             })
             .catch((error) => {
-                log.error("Failed to fetch OIDC config", error);
+                log.error(`Failed to fetch OIDC config`, error);
             });
     };
 
     onSigninCallback = (_user: User | void): void => {
-        const redirectUri = localStorage.getItem("filez_redirect_uri");
-        localStorage.removeItem("filez_redirect_uri");
+        const redirectUri = localStorage.getItem(`filez_redirect_uri`);
+        localStorage.removeItem(`filez_redirect_uri`);
         window.history.replaceState({}, document.title, redirectUri || window.location.pathname);
     };
 
@@ -325,11 +325,11 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
             userStore: new WebStorageStateStore({ store: window.localStorage }),
             authority: clientConfig.oidcIssuerUrl,
             client_id: clientConfig.oidcClientId,
-            redirect_uri: window.location.origin + "/auth/callback",
-            response_type: "code",
-            scope: "openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-auth:aud",
+            redirect_uri: window.location.origin + `/auth/callback`,
+            response_type: `code`,
+            scope: `openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-auth:aud`,
             post_logout_redirect_uri: window.location.origin,
-            response_mode: "query",
+            response_mode: `query`,
             automaticSilentRenew: true,
             onSigninCallback: this.onSigninCallback
         };

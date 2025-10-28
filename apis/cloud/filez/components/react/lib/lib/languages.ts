@@ -141,11 +141,11 @@ export const getBrowserLanguage = (): Language => {
         if (lang) return lang;
     }
 
-    const languageCode = navigator.language || navigator.languages?.[0] || "en-US";
+    const languageCode = navigator.language || navigator.languages?.[0] || `en-US`;
     return (
         languages.find((lang) => lang.code === languageCode) ||
-        languages.find((lang) => lang.code === languageCode.split("-")[0]) ||
-        languages.find((lang) => lang.code === "en-US")!
+        languages.find((lang) => lang.code === languageCode.split(`-`)[0]) ||
+        languages.find((lang) => lang.code === `en-US`)!
     );
 };
 
@@ -159,17 +159,17 @@ export interface Language {
 
 export const languages: Language[] = [
     {
-        code: "de",
-        originalName: "Deutsch",
-        englishName: "German",
-        emoji: "🇩🇪",
-        import: () => import("./languages/de/default.ts")
+        code: `de`,
+        originalName: `Deutsch`,
+        englishName: `German`,
+        emoji: `🇩🇪`,
+        import: () => import(`./languages/de/default.ts`)
     },
     {
-        code: "en-US",
-        originalName: "English (US)",
-        englishName: "English (US)",
-        emoji: "🇺🇸",
-        import: () => import("./languages/en-US/default.ts")
+        code: `en-US`,
+        originalName: `English (US)`,
+        englishName: `English (US)`,
+        emoji: `🇺🇸`,
+        import: () => import(`./languages/en-US/default.ts`)
     }
 ];

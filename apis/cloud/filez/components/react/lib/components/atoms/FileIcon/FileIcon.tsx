@@ -28,7 +28,7 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
     constructor(props: FileIconProps) {
         super(props);
         this.state = {
-            iconName: "file",
+            iconName: `file`,
             iconUrl: null,
             isLoading: true,
             hasError: false
@@ -59,9 +59,9 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
                 hasError: false
             });
         } catch (error) {
-            console.error("Error loading file icon:", error);
+            console.error(`Error loading file icon:`, error);
             this.setState({
-                iconName: "file",
+                iconName: `file`,
                 iconUrl: null,
                 isLoading: false,
                 hasError: true
@@ -94,7 +94,7 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
     };
 
     getFileExtension = (fileName: string): string | null => {
-        const lastDotIndex = fileName.lastIndexOf(".");
+        const lastDotIndex = fileName.lastIndexOf(`.`);
         if (lastDotIndex === -1 || lastDotIndex === 0) {
             return null;
         }
@@ -102,7 +102,7 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
     };
 
     getBaseName = (fileName: string): string => {
-        const lastSlashIndex = fileName.lastIndexOf("/");
+        const lastSlashIndex = fileName.lastIndexOf(`/`);
         return lastSlashIndex === -1 ? fileName : fileName.substring(lastSlashIndex + 1);
     };
 
@@ -132,10 +132,10 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
             return (
                 <div
                     style={{ ...style, width: size, height: size }}
-                    className={cn("FileIcon flex items-center justify-center", className)}
+                    className={cn(`FileIcon flex items-center justify-center`, className)}
                 >
                     <div
-                        className="animate-pulse rounded bg-gray-300"
+                        className={`animate-pulse rounded bg-gray-300`}
                         style={{ width: size, height: size }}
                     />
                 </div>
@@ -146,21 +146,21 @@ export default class FileIcon extends PureComponent<FileIconProps, FileIconState
             return (
                 <div
                     style={{ ...style, width: size, height: size }}
-                    className={cn("FileIcon flex items-center justify-center rounded", className)}
+                    className={cn(`FileIcon flex items-center justify-center rounded`, className)}
                 >
-                    <File size={size} className="text-primary-foreground" />
+                    <File size={size} className={`text-primary-foreground`} />
                 </div>
             );
         }
 
         return (
-            <div style={{ ...style }} className={cn("FileIcon", className)}>
+            <div style={{ ...style }} className={cn(`FileIcon`, className)}>
                 <img
                     src={iconUrl}
                     alt={`${this.props.fileName} file icon`}
                     width={size}
                     height={size}
-                    className="object-contain"
+                    className={`object-contain`}
                     onError={() => {
                         this.setState({ hasError: true });
                     }}

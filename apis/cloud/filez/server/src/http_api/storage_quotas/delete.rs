@@ -1,4 +1,7 @@
-use axum::{extract::{Path, State}, Extension, Json};
+use axum::{
+    extract::{Path, State},
+    Extension, Json,
+};
 
 use crate::{
     errors::FilezError,
@@ -22,7 +25,7 @@ use crate::{
             Path,
             description = "The ID of the storage quota to delete"
         ),
-    ),    
+    ),
     responses(
         (
             status = 200,
@@ -69,4 +72,3 @@ pub async fn delete_storage_quota(
         data: None,
     }))
 }
-

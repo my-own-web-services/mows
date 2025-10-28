@@ -21,8 +21,8 @@ use axum::{
 
 #[utoipa::path(
     head,
-    path = "/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}",
-    description = "Get the offset of a file version for resuming a Tus upload",
+    path = "/api/file_versions/content/{file_id}/{version}/{app_id}/{app_path}",
+    description = "Get the offset of a file version for resuming a upload",
     params(
         (
             "file_id" = Uuid,

@@ -54,8 +54,8 @@ export default class FileList extends PureComponent<FileListProps, FileListState
 
     defaultColumns: Column<FilezFile>[] = [
         {
-            field: "Name",
-            label: "Name",
+            field: `Name`,
+            label: `Name`,
             direction: SortDirection.Ascending,
             widthPercent: 40,
             minWidthPixels: 50,
@@ -69,8 +69,8 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             }
         },
         {
-            field: "MimeType",
-            label: "Mime Type",
+            field: `MimeType`,
+            label: `Mime Type`,
             direction: SortDirection.Neutral,
             widthPercent: 30,
             minWidthPixels: 50,
@@ -84,15 +84,15 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             }
         },
         {
-            field: "ModifiedTime",
-            label: "Modified",
+            field: `ModifiedTime`,
+            label: `Modified`,
             direction: SortDirection.Neutral,
             widthPercent: 30,
             minWidthPixels: 50,
             enabled: true,
             render: (item: FilezFile, style: CSSProperties, className: string) => {
                 return (
-                    <span data-actionscope={"test"} style={{ ...style }} className={className}>
+                    <span data-actionscope={`test`} style={{ ...style }} className={className}>
                         {item.modified_time}
                     </span>
                 );
@@ -116,21 +116,21 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             executeAction: () => {
                 const selectedItems = this.resourceListRef.current?.getSelectedItems() || [];
                 if (selectedItems.length === 0) {
-                    log.debug("No files selected, cannot delete");
+                    log.debug(`No files selected, cannot delete`);
                     return;
                 }
-                log.debug("Delete files action triggered for files:", selectedItems);
+                log.debug(`Delete files action triggered for files:`, selectedItems);
             },
             id: this.listId,
             scopes: [this.listActionScopeId],
             getState: () => {
                 const selectedItems = this.resourceListRef.current?.getSelectedItems() || [];
                 if (selectedItems.length === 0) {
-                    return { visibility: "inactive", disabledReasonText: "No files selected" };
+                    return { visibility: `inactive`, disabledReasonText: `No files selected` };
                 }
                 const { t } = this.context!;
                 return {
-                    visibility: "active",
+                    visibility: `active`,
                     component: () => <span>{t.common.files.delete(selectedItems.length)}</span>
                 };
             }
@@ -138,12 +138,12 @@ export default class FileList extends PureComponent<FileListProps, FileListState
     }
 
     componentDidMount = async () => {
-        log.debug("CommandPalette mounted:", this.props);
+        log.debug(`CommandPalette mounted:`, this.props);
         this.registerActionHandler();
     };
 
-    componentDidUpdate = (prevProps: FileListProps) => {
-        log.debug("CommandPalette props updated:", this.props);
+    componentDidUpdate = (_prevProps: FileListProps) => {
+        log.debug(`CommandPalette props updated:`, this.props);
 
         this.registerActionHandler();
     };
@@ -168,12 +168,12 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         request: ListResourceRequestBody
     ): Promise<ListResourceResponseBody<FilezFile>> => {
         if (!this.context?.filezClient) {
-            log.warn("No filezClient available");
+            log.warn(`No filezClient available`);
             return { totalCount: 0, items: [] };
         }
 
         if (!this.context?.clientAuthenticated) {
-            log.warn("Client not authenticated");
+            log.warn(`Client not authenticated`);
             return { totalCount: 0, items: [] };
         }
 
@@ -196,7 +196,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             return result;
         }
 
-        log.warn("API response not successful or no data");
+        log.warn(`API response not successful or no data`);
         return { totalCount: 0, items: [] };
     };
 
@@ -208,17 +208,17 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         return (
             <div
                 data-actionscope={this.listActionScopeId}
-                className={cn("FileList", this.props.className)}
+                className={cn(`FileList`, this.props.className)}
                 style={{ ...this.props.style }}
             >
                 <ResourceList<FilezFile>
                     ref={this.resourceListRef}
-                    resourceType="File"
-                    defaultSortBy={"Name"}
+                    resourceType={`File`}
+                    defaultSortBy={`Name`}
                     defaultSortDirection={SortDirection.Ascending}
-                    initialRowHandler={"GridListRowHandler"}
+                    initialRowHandler={`GridListRowHandler`}
                     getResourcesList={this.getFilesList}
-                    dropTargetAcceptsTypes={["File"]}
+                    dropTargetAcceptsTypes={[`File`]}
                     listInstanceId={this.listId}
                     rowHandlers={[
                         new ColumnListRowHandler({

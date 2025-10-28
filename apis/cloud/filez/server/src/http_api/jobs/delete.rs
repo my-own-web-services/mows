@@ -16,14 +16,13 @@ use axum::{
     Extension, Json,
 };
 
-
 #[utoipa::path(
     delete,
     path = "/api/jobs/delete/{job_id}",
     params(
         (
             "job_id" = FilezJobId,
-            Path, 
+            Path,
             description = "The ID of the job to delete"
         )
     ),

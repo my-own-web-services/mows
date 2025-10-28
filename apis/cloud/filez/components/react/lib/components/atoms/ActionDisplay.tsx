@@ -10,7 +10,7 @@ interface ActionDisplayProps {
     readonly action: Action;
 }
 
-interface ActionDisplayState {}
+type ActionDisplayState = Record<string, never>;
 
 export default class ActionDisplay extends PureComponent<ActionDisplayProps, ActionDisplayState> {
     static contextType = FilezContext;
@@ -35,7 +35,7 @@ export default class ActionDisplay extends PureComponent<ActionDisplayProps, Act
                 style={{ ...this.props.style }}
                 className={cn(
                     `ActionDisplay`,
-                    "flex w-full justify-between gap-2",
+                    `flex w-full justify-between gap-2`,
                     this.props.className
                 )}
             >
@@ -43,12 +43,12 @@ export default class ActionDisplay extends PureComponent<ActionDisplayProps, Act
                     {itemState.component?.() || description}
                 </span>
                 {hotkeys.length > 0 && (
-                    <div className="ml-auto flex items-center gap-2">
+                    <div className={`ml-auto flex items-center gap-2`}>
                         {hotkeys.map((keyCombo, index) => (
-                            <span key={index} className="flex items-center gap-2">
+                            <span key={index} className={`flex items-center gap-2`}>
                                 <KeyComboDisplay keyCombo={keyCombo} />
                                 {index < hotkeys.length - 1 && (
-                                    <span className="text-muted-foreground text-xs">|</span>
+                                    <span className={`text-muted-foreground text-xs`}>|</span>
                                 )}
                             </span>
                         ))}

@@ -12,7 +12,7 @@ interface ModalHandlerProps {
     readonly style?: CSSProperties;
 }
 
-interface ModalHandlerState {}
+type ModalHandlerState = Record<string, never>;
 
 export default class ModalHandler extends PureComponent<ModalHandlerProps, ModalHandlerState> {
     static contextType = FilezContext;
@@ -21,7 +21,7 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
     modals: Record<ModalType, { component: () => ReactNode }> = {
         keyboardShortcutEditor: {
             component: () => (
-                <DialogContent className="max-h-[90vh] max-w-4xl w-full overflow-y-auto select-none">
+                <DialogContent className={`max-h-[90vh] max-w-4xl w-full overflow-y-auto select-none`}>
                     <DialogHeader>
                         <DialogTitle>{this.context?.t.keyboardShortcuts.title}</DialogTitle>
                         <DialogDescription aria-describedby={undefined} />
@@ -32,7 +32,7 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
         },
         themeSelector: {
             component: () => (
-                <DialogContent className="max-h-[90vh] overflow-y-auto select-none">
+                <DialogContent className={`max-h-[90vh] overflow-y-auto select-none`}>
                     <DialogHeader>
                         <DialogTitle>{this.context?.t.themePicker.title}</DialogTitle>
                         <DialogDescription aria-describedby={undefined} />
@@ -43,7 +43,7 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
         },
         languageSelector: {
             component: () => (
-                <DialogContent className="max-h-[90vh] overflow-y-auto select-none">
+                <DialogContent className={`max-h-[90vh] overflow-y-auto select-none`}>
                     <DialogHeader>
                         <DialogTitle>{this.context?.t.languagePicker.title}</DialogTitle>
                         <DialogDescription aria-describedby={undefined} />
@@ -54,7 +54,7 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
         },
         fileGroupCreate: {
             component: () => (
-                <DialogContent className="max-h-[90vh] overflow-y-auto select-none">
+                <DialogContent className={`max-h-[90vh] overflow-y-auto select-none`}>
                     <DialogHeader>
                         <DialogTitle>{this.context?.t.fileGroupCreate.title}</DialogTitle>
                         <DialogDescription>{this.context?.t.fileGroupCreate.description}</DialogDescription>

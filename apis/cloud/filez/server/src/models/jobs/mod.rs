@@ -143,7 +143,7 @@ pub enum JobStatus {
     InProgress = 1,
     /// The job was successfully completed by the app
     Completed = 2,
-    /// The job failed to be processed by the app
+    /// The job failed to be processed by the app it can be automatically retried
     Failed = 3,
     /// The job was cancelled by the user or the system
     Cancelled = 4,
@@ -166,6 +166,14 @@ pub struct JobStatusDetailsCreated {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct JobStatusDetailsInProgress {
     pub message: String,
+    pub steps: Option<Vec<ProgressStep>>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
+pub struct ProgressStep {
+    pub name: String,
+    pub description: Option<String>,
+    pub completed: bool,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
@@ -504,16 +512,19 @@ impl FilezJob {
         )
         .await?;
 
-        if existing_job.is_some_and(|job| job.status == JobStatus::InProgress) {
-            error!(
-                app_id=?app.id,
-                app_runtime_instance_id=?app_runtime_instance_id,
-                "Job pickup failed: App already has a job with status InProgress assigned"
-            );
-            return Err(FilezError::InvalidRequest(
-                "App already has a job with status InProgress assigned".to_string(),
-            ));
-        }
+        if let Some(job) = existing_job {
+            if job.status == JobStatus::InProgress {
+                error!(
+                    app_id=?app.id,
+                    app_runtime_instance_id=?app_runtime_instance_id,
+                    existing_job=?job,
+                    "Job pickup failed: App already has a job with status InProgress assigned"
+                );
+                return Err(FilezError::InvalidRequest(
+                    "App instance already has a job with status InProgress assigned".to_string(),
+                ));
+            };
+        };
 
         let mut connection = database.get_connection().await?;
 
@@ -546,6 +557,7 @@ impl FilezJob {
                             Some(JobStatusDetails::InProgress(JobStatusDetailsInProgress {
                                 message: "Job has been picked up and is now in progress"
                                     .to_string(),
+                                steps: None,
                             }));
 
                         let updated_job = diesel::update(schema::jobs::table.find(job.id))
@@ -615,15 +627,16 @@ impl FilezJob {
                         )));
                     }
 
-                    let mut updated_job = job.clone();
+                    let mut job_to_update = job.clone();
 
                     if new_status == JobStatus::Completed || new_status == JobStatus::Failed {
-                        updated_job.end_time = Some(get_current_timestamp());
-                    } else {
+                        job_to_update.end_time = Some(get_current_timestamp());
+                        job_to_update.assigned_app_runtime_instance_id = None;
+                    }  else if new_status != JobStatus::InProgress {
                         error!(
-                            job_id=?updated_job.id,
+                            job_id=?job_to_update.id,
                             new_status=?new_status,
-                            "Job status update failed: New status is not Completed or Failed, new status: {:?}",
+                            "Job status update failed: New status is not Completed, Failed or InProgress, new status: {:?}",
                             new_status
                         );
                         return Err(FilezError::InvalidRequest(
@@ -631,14 +644,13 @@ impl FilezJob {
                         ));
                     }
 
-                    updated_job.status = new_status;
-                    updated_job.status_details = new_status_details;
-                    updated_job.modified_time = get_current_timestamp();
-                    updated_job.app_instance_last_seen_time = Some(get_current_timestamp());
-                    updated_job.assigned_app_runtime_instance_id = None;
+                    job_to_update.status = new_status;
+                    job_to_update.status_details = new_status_details;
+                    job_to_update.modified_time = get_current_timestamp();
+                    job_to_update.app_instance_last_seen_time = Some(get_current_timestamp());
 
-                    let updated_job = diesel::update(schema::jobs::table.find(updated_job.id))
-                        .set(&updated_job)
+                    let updated_job = diesel::update(schema::jobs::table.find(job_to_update.id))
+                        .set(&job_to_update)
                         .get_result::<FilezJob>(conn)
                         .await?;
 

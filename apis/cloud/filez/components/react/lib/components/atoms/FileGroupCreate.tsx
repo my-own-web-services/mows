@@ -27,7 +27,7 @@ export default class FileGroupCreate extends PureComponent<
     constructor(props: FileGroupCreateProps) {
         super(props);
         this.state = {
-            name: "",
+            name: ``,
             isCreating: false,
             error: null
         };
@@ -63,7 +63,7 @@ export default class FileGroupCreate extends PureComponent<
 
             if (createdFileGroup) {
                 this.props.onFileGroupCreated?.(createdFileGroup);
-                this.setState({ name: "", isCreating: false });
+                this.setState({ name: ``, isCreating: false });
             } else {
                 this.setState({
                     error: t.fileGroupCreate.createFailed,
@@ -79,12 +79,12 @@ export default class FileGroupCreate extends PureComponent<
     };
 
     handleCancel = () => {
-        this.setState({ name: "", error: null });
+        this.setState({ name: ``, error: null });
         this.props.onCancel?.();
     };
 
     handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && !this.state.isCreating) {
+        if (e.key === `Enter` && !this.state.isCreating) {
             e.preventDefault();
             this.handleCreate();
         }
@@ -97,13 +97,13 @@ export default class FileGroupCreate extends PureComponent<
 
         return (
             <div className={className} style={style}>
-                <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <label htmlFor="name" className="text-sm font-medium">
+                <div className={`space-y-4 py-4`}>
+                    <div className={`space-y-2`}>
+                        <label htmlFor={`name`} className={`text-sm font-medium`}>
                             {t.fileGroupCreate.nameLabel}
                         </label>
                         <Input
-                            id="name"
+                            id={`name`}
                             value={name}
                             onChange={this.handleNameChange}
                             onKeyDown={this.handleKeyDown}
@@ -112,11 +112,11 @@ export default class FileGroupCreate extends PureComponent<
                             autoFocus
                             maxLength={256}
                         />
-                        {error && <p className="text-sm text-red-600">{error}</p>}
+                        {error && <p className={`text-sm text-red-600`}>{error}</p>}
                     </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={this.handleCancel} disabled={isCreating}>
+                <div className={`flex justify-end gap-2`}>
+                    <Button variant={`outline`} onClick={this.handleCancel} disabled={isCreating}>
                         {t.fileGroupCreate.cancel}
                     </Button>
                     <Button onClick={this.handleCreate} disabled={isCreating || !name.trim()}>

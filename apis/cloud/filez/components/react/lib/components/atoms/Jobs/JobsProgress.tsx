@@ -2,7 +2,7 @@ import { Progress } from "@/components/ui/progress";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties } from "react";
-import type { FilezJob, JobStatus, MowsApp, MowsAppId } from "filez-client-typescript";
+import type { FilezJob, MowsApp, MowsAppId } from "filez-client-typescript";
 
 interface JobsProgressProps {
     readonly className?: string;
@@ -85,7 +85,7 @@ export default class JobsProgress extends PureComponent<JobsProgressProps, JobsP
 
             this.setState({ jobsByApp, loading: false });
         } catch (error) {
-            console.error("Failed to fetch jobs:", error);
+            console.error(`Failed to fetch jobs:`, error);
             this.setState({ loading: false });
         }
     };
@@ -102,7 +102,7 @@ export default class JobsProgress extends PureComponent<JobsProgressProps, JobsP
 
             this.setState({ apps: appsMap });
         } catch (error) {
-            console.error("Failed to fetch app names:", error);
+            console.error(`Failed to fetch app names:`, error);
         }
     };
 
@@ -124,11 +124,11 @@ export default class JobsProgress extends PureComponent<JobsProgressProps, JobsP
             const updated: AppJobProgress = {
                 ...existing,
                 totalJobs: existing.totalJobs + 1,
-                completedJobs: existing.completedJobs + (job.status === "Completed" ? 1 : 0),
-                failedJobs: existing.failedJobs + (job.status === "Failed" ? 1 : 0),
-                cancelledJobs: existing.cancelledJobs + (job.status === "Cancelled" ? 1 : 0),
-                inProgressJobs: existing.inProgressJobs + (job.status === "InProgress" ? 1 : 0),
-                createdJobs: existing.createdJobs + (job.status === "Created" ? 1 : 0)
+                completedJobs: existing.completedJobs + (job.status === `Completed` ? 1 : 0),
+                failedJobs: existing.failedJobs + (job.status === `Failed` ? 1 : 0),
+                cancelledJobs: existing.cancelledJobs + (job.status === `Cancelled` ? 1 : 0),
+                inProgressJobs: existing.inProgressJobs + (job.status === `InProgress` ? 1 : 0),
+                createdJobs: existing.createdJobs + (job.status === `Created` ? 1 : 0)
             };
 
             grouped.set(appId, updated);
@@ -175,7 +175,7 @@ export default class JobsProgress extends PureComponent<JobsProgressProps, JobsP
                     this.props.className
                 )}
             >
-                <div className="text-muted-foreground text-xs font-medium">
+                <div className={`text-muted-foreground text-xs font-medium`}>
                     {t.jobsProgress.title}
                 </div>
                 {visibleEntries.map((appProgress) => {
@@ -184,32 +184,32 @@ export default class JobsProgress extends PureComponent<JobsProgressProps, JobsP
                     const appName = apps.get(appProgress.appId)?.name || appProgress.appId;
 
                     return (
-                        <div key={appProgress.appId} className="flex flex-col gap-1">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-foreground truncate font-medium">
+                        <div key={appProgress.appId} className={`flex flex-col gap-1`}>
+                            <div className={`flex items-center justify-between text-xs`}>
+                                <span className={`text-foreground truncate font-medium`}>
                                     {appName}
                                 </span>
-                                <span className="text-muted-foreground ml-2 shrink-0 text-xs">
+                                <span className={`text-muted-foreground ml-2 shrink-0 text-xs`}>
                                     {appProgress.completedJobs + appProgress.failedJobs + appProgress.cancelledJobs}/{appProgress.totalJobs}
                                 </span>
                             </div>
                             <Progress
                                 value={progressValue}
-                                className={cn("h-1.5", hasActive && "animate-pulse")}
+                                className={cn(`h-1.5`, hasActive && `animate-pulse`)}
                             />
-                            <div className="text-muted-foreground flex gap-2 text-xs">
+                            <div className={`text-muted-foreground flex gap-2 text-xs`}>
                                 {appProgress.inProgressJobs > 0 && (
-                                    <span className="text-blue-500">
+                                    <span className={`text-blue-500`}>
                                         {t.jobsProgress.inProgress}: {appProgress.inProgressJobs}
                                     </span>
                                 )}
                                 {appProgress.createdJobs > 0 && (
-                                    <span className="text-yellow-500">
+                                    <span className={`text-yellow-500`}>
                                         {t.jobsProgress.created}: {appProgress.createdJobs}
                                     </span>
                                 )}
                                 {appProgress.failedJobs > 0 && (
-                                    <span className="text-red-500">
+                                    <span className={`text-red-500`}>
                                         {t.jobsProgress.failed}: {appProgress.failedJobs}
                                     </span>
                                 )}

@@ -32,16 +32,16 @@ export default class GlobalContextMenu extends PureComponent<
     }
 
     componentDidMount = async () => {
-        document.addEventListener("contextmenu", (event) => {
+        document.addEventListener(`contextmenu`, (event) => {
             event.preventDefault();
-            log.debug("Document click:", event);
+            log.debug(`Document click:`, event);
 
             // get the first parent element with the attribute data-actionscope
             const scope = (event.target as HTMLElement)
-                ?.closest?.("[data-actionScope]")
-                ?.getAttribute("data-actionscope");
+                ?.closest?.(`[data-actionScope]`)
+                ?.getAttribute(`data-actionscope`);
 
-            log.debug("Context menu element:", scope);
+            log.debug(`Context menu element:`, scope);
 
             if (!scope) {
                 this.setState({ open: false, actions: [] });
@@ -63,7 +63,7 @@ export default class GlobalContextMenu extends PureComponent<
             <div
                 style={{
                     ...this.props.style,
-                    position: "absolute",
+                    position: `absolute`,
                     top: this.state.position?.y,
                     left: this.state.position?.x
                 }}
@@ -77,15 +77,15 @@ export default class GlobalContextMenu extends PureComponent<
                     }}
                 >
                     {this.state.open && <DropdownMenuTrigger></DropdownMenuTrigger>}
-                    <DropdownMenuContent align="start">
+                    <DropdownMenuContent align={`start`}>
                         {this.state.actions?.map((action) => {
                             const itemState = action.getState();
 
-                            log.debug("Rendering action in context menu:", action.id);
+                            log.debug(`Rendering action in context menu:`, action.id);
                             return (
                                 <DropdownMenuItem
                                     key={action.id}
-                                    disabled={itemState?.visibility === "disabled"}
+                                    disabled={itemState?.visibility === `disabled`}
                                     onClick={() => {
                                         this.context?.actionManager.dispatchAction(action.id);
                                         this.setState({ open: false });
