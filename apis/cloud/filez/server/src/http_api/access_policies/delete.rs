@@ -1,3 +1,4 @@
+use crate::validation::Json;
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
@@ -12,7 +13,6 @@ use axum::{
     extract::{Path, State},
     Extension,
 };
-use crate::validation::Json;
 
 #[utoipa::path(
     delete,

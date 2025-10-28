@@ -11,7 +11,7 @@ mod tests {
             None,
         ).unwrap();
 
-        client.get_health().await.unwrap();
+        client.get_health(true).await.unwrap();
     }
 
 }

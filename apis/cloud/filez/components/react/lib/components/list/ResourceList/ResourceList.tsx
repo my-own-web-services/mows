@@ -110,21 +110,21 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         this.state = {
             resources: [],
             totalItemCount: 0,
-            committedSearch: "",
+            committedSearch: ``,
             selectedItems: [],
             scrollOffset: 0,
             width: null,
             height: null,
-            sortBy: this.props.defaultSortBy ?? "CreatedTime",
+            sortBy: this.props.defaultSortBy ?? `CreatedTime`,
             sortDirection: this.props.defaultSortDirection ?? SortDirection.Descending,
             currentRowHandler: this.getRowHandlerById(this.props.initialRowHandler)!
         };
 
-        log.debug("ResourceList initial state:", this.state);
+        log.debug(`ResourceList initial state:`, this.state);
     }
 
     componentDidMount = async () => {
-        log.debug("ResourceList componentDidMount called");
+        log.debug(`ResourceList componentDidMount called`);
         await this.loadItems();
     };
 
@@ -157,7 +157,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
     };
 
     loadItems = async (mode?: LoadItemMode) => {
-        log.debug("loadItems called with mode:", mode);
+        log.debug(`loadItems called with mode:`, mode);
         if (mode === LoadItemMode.NewId) {
             this.scrollToRow(0);
         }
@@ -199,7 +199,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                 selectedItems = [];
             }
 
-            log.debug("Updated items and selectedItems in state:", {
+            log.debug(`Updated items and selectedItems in state:`, {
                 itemsLength: items.length,
                 selectedItemsLength: selectedItems.length
             });
@@ -246,14 +246,14 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
 
     commitSearch = (search: string) => {
         this.setState({ committedSearch: search }, () => {
-            //@ts-ignore
+            //@ts-expect-error
             this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
             this.loadItems(LoadItemMode.NewId);
         });
     };
 
     refreshList = async () => {
-        //@ts-ignore
+        //@ts-expect-error
         this.infiniteLoaderRef.current?.resetloadMoreItemsCache(true);
         await this.loadItems(LoadItemMode.Reload);
     };
@@ -265,8 +265,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         rightClick?: boolean,
         dragged?: boolean
     ) => {
-        // @ts-ignore
-        if (e.target?.classList?.contains("clickable")) return; // eslint-disable-line
+        // @ts-expect-error
+        if (e.target?.classList?.contains(`clickable`)) return;
 
         const afterStateUpdate = () =>
             this.props.handlers?.onSelect?.(this.getSelectedItems(), item);
@@ -304,7 +304,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                 });
 
                 if (noneSelected) {
-                    //@ts-ignore
+                    //@ts-expect-error
                     selectedItems[index] = true;
                     return selectedItems;
                 }
@@ -384,7 +384,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
     onScroll = ({
         scrollOffset
     }: {
-        scrollDirection: "forward" | "backward";
+        scrollDirection: `forward` | `backward`;
         scrollOffset: number;
         scrollUpdateWasRequested: boolean;
     }) => {
@@ -421,7 +421,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         if (!rowHandler)
             throw new Error(`No row handler found with name ${this.props.initialRowHandler}`);
 
-        //@ts-ignore
+        //@ts-expect-error
         rowHandler.resourceList = this;
         return rowHandler;
     };
@@ -464,7 +464,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
 
     handleCommonHotkeys = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.ctrlKey) {
-            if (e.key === "a") {
+            if (e.key === `a`) {
                 e.preventDefault();
                 this.selectAll();
             }
@@ -529,14 +529,14 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
 
     scrollToRow = (index?: number) => {
         if (index === undefined) return;
-        // @ts-ignore
+        // @ts-expect-error
         this.infiniteLoaderRef.current._listRef.scrollToItem(index);
     };
 
     debugBar = () => {
         if (this.props.displayDebugBar !== true) return null;
         return (
-            <div className="DebugBar text-primary/30 flex gap-2 border-t-1 border-b-1 p-1 text-xs">
+            <div className={`DebugBar text-primary/30 flex gap-2 border-t-1 border-b-1 p-1 text-xs`}>
                 <span>
                     {this.state.resources.length} / {this.state.totalItemCount} items loaded.
                 </span>
@@ -555,12 +555,12 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         if (this.props.displayListHeader === false) return null;
         if (this.props.listHeaderElement) return this.props.listHeaderElement;
         return (
-            <div className="flex h-12 w-full items-center justify-end pr-4">
+            <div className={`flex h-12 w-full items-center justify-end pr-4`}>
                 {this.props.rowHandlers.length > 1 && (
                     <ButtonSelect
-                        size={"icon-sm"}
+                        size={`icon-sm`}
                         onSelectionChange={(id: string) => {
-                            log.debug("Switching row handler to", id);
+                            log.debug(`Switching row handler to`, id);
                             this.updateRowHandler(id);
                         }}
                         selectedId={this.state.currentRowHandler.id}
@@ -595,7 +595,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                 {this.listHeader()}
                 {this.state.currentRowHandler.headerRenderer?.()}
                 <div
-                    className="OuterResourceList h-full w-full focus:outline-none"
+                    className={`OuterResourceList h-full w-full focus:outline-none`}
                     onKeyDown={this.onListKeyDown}
                     tabIndex={0}
                 >
@@ -606,7 +606,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                     isItemLoaded={this.isItemLoaded}
                                     itemCount={totalRowCount}
                                     loadMoreItems={this.loadMoreItems}
-                                    //@ts-ignore
+                                    //@ts-expect-error
                                     ref={this.infiniteLoaderRef}
                                     minimumBatchSize={minimumBatchSize}
                                     threshold={loadMoreItemsThreshold}
@@ -622,7 +622,6 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                 outerRef={this.listOuterRef}
                                                 itemSize={rowHeight}
                                                 itemKey={this.getItemKey}
-                                                // @ts-ignore
                                                 onScroll={this.onScroll}
                                                 overscanCount={this.props.overscanCount ?? 20}
                                                 width={width}
@@ -633,14 +632,14 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                 // without this the context menu cannot be positioned fixed
                                                 // https://stackoverflow.com/questions/2637058/position-fixed-doesnt-work-when-using-webkit-transform
                                                 style={{
-                                                    willChange: "none",
-                                                    overflowY: "scroll"
+                                                    willChange: `none`,
+                                                    overflowY: `scroll`
                                                 }}
                                                 layout={
                                                     this.state.currentRowHandler.direction ===
                                                     RowRendererDirection.Horizontal
-                                                        ? "horizontal"
-                                                        : "vertical"
+                                                        ? `horizontal`
+                                                        : `vertical`
                                                 }
                                                 itemData={{
                                                     items: this.state.resources,
@@ -667,7 +666,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                     listHeight: height
                                                 }}
                                             >
-                                                {/*@ts-ignore*/}
+                                                {/*@ts-expect-error*/}
                                                 {this.state.currentRowHandler.rowRenderer}
                                             </FixedSizeList>
                                         );

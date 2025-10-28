@@ -71,15 +71,15 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
     };
 
     isImageFile = (file: File): boolean => {
-        return file.type.startsWith("image/");
+        return file.type.startsWith(`image/`);
     };
 
     isGifFile = (file: File): boolean => {
-        return file.type === "image/gif";
+        return file.type === `image/gif`;
     };
 
     isVideoFile = (file: File): boolean => {
-        return file.type.startsWith("video/");
+        return file.type.startsWith(`video/`);
     };
 
     loadPreview = async () => {
@@ -104,7 +104,7 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                 }, 0);
             }
         } catch (error) {
-            log.error("Error loading image preview:", error);
+            log.error(`Error loading image preview:`, error);
             this.setState({ isLoading: false, hasError: true });
         }
     };
@@ -119,7 +119,7 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                 }
             });
         } catch (error) {
-            log.error("Error creating preview URL:", error);
+            log.error(`Error creating preview URL:`, error);
             this.setState({ isLoading: false, hasError: true });
         }
     };
@@ -128,7 +128,7 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
         const canvas = this.canvasRef.current;
         if (!canvas) return;
 
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext(`2d`);
         if (!ctx) return;
 
         const img = new Image();
@@ -162,7 +162,7 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
             ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
         };
         img.onerror = () => {
-            log.error("Error loading GIF for canvas rendering");
+            log.error(`Error loading GIF for canvas rendering`);
         };
         img.src = imageUrl;
     };
@@ -175,8 +175,8 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
         this.startWidth = this.state.hoverCardWidth;
         this.startHeight = this.state.hoverCardHeight;
 
-        document.addEventListener("mousemove", this.handleResizeMove);
-        document.addEventListener("mouseup", this.handleResizeEnd);
+        document.addEventListener(`mousemove`, this.handleResizeMove);
+        document.addEventListener(`mouseup`, this.handleResizeEnd);
     };
 
     handleResizeMove = (e: MouseEvent) => {
@@ -196,8 +196,8 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
 
     handleResizeEnd = () => {
         this.isResizing = false;
-        document.removeEventListener("mousemove", this.handleResizeMove);
-        document.removeEventListener("mouseup", this.handleResizeEnd);
+        document.removeEventListener(`mousemove`, this.handleResizeMove);
+        document.removeEventListener(`mouseup`, this.handleResizeEnd);
     };
 
     componentWillUnmount = () => {
@@ -205,8 +205,8 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
             URL.revokeObjectURL(this.state.previewUrl);
         }
         // Clean up resize event listeners
-        document.removeEventListener("mousemove", this.handleResizeMove);
-        document.removeEventListener("mouseup", this.handleResizeEnd);
+        document.removeEventListener(`mousemove`, this.handleResizeMove);
+        document.removeEventListener(`mouseup`, this.handleResizeEnd);
     };
 
     render = () => {
@@ -216,13 +216,13 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
         const isVideo = this.isVideoFile(this.props.file);
 
         if (isLoading) {
-            return <Skeleton className={cn("h-10 w-10 rounded", className)} />;
+            return <Skeleton className={cn(`h-10 w-10 rounded`, className)} />;
         }
 
         if (hasError || !previewUrl) {
             // Use FileIcon for non-image/video files or when preview fails
             return (
-                <div className={cn("flex h-10 w-10 items-center justify-center", className)}>
+                <div className={cn(`flex h-10 w-10 items-center justify-center`, className)}>
                     <FileIcon fileName={this.props.file.name} size={40} />
                 </div>
             );
@@ -233,7 +233,7 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                 <HoverCardTrigger asChild>
                     <div
                         className={cn(
-                            "flex h-10 w-10 cursor-pointer items-center justify-center",
+                            `flex h-10 w-10 cursor-pointer items-center justify-center`,
                             className
                         )}
                     >
@@ -242,7 +242,7 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                         ) : isGif ? (
                             <canvas
                                 ref={this.canvasRef}
-                                className="h-10 w-10 rounded object-cover"
+                                className={`h-10 w-10 rounded object-cover`}
                                 width={40}
                                 height={40}
                             />
@@ -250,7 +250,7 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                             <img
                                 src={previewUrl}
                                 alt={this.props.file.name}
-                                className="h-10 w-10 rounded object-cover"
+                                className={`h-10 w-10 rounded object-cover`}
                                 onError={() => {
                                     this.setState({ hasError: true });
                                 }}
@@ -259,17 +259,17 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                     </div>
                 </HoverCardTrigger>
                 <HoverCardContent
-                    className="relative w-auto p-2"
-                    side="right"
-                    align="start"
+                    className={`relative w-auto p-2`}
+                    side={`right`}
+                    align={`start`}
                     style={{ width: hoverCardWidth + 16, height: hoverCardHeight + 60 }}
                 >
-                    <div className="flex h-full flex-col space-y-2">
-                        <div className="flex flex-1 items-center justify-center">
+                    <div className={`flex h-full flex-col space-y-2`}>
+                        <div className={`flex flex-1 items-center justify-center`}>
                             {isVideo ? (
                                 <video
                                     src={previewUrl}
-                                    className="rounded object-cover"
+                                    className={`rounded object-cover`}
                                     style={{ width: hoverCardWidth, height: hoverCardHeight }}
                                     controls
                                     autoPlay
@@ -284,11 +284,11 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                                 <img
                                     src={previewUrl}
                                     alt={this.props.file.name}
-                                    className="rounded object-cover"
+                                    className={`rounded object-cover`}
                                     style={{
                                         width: hoverCardWidth,
                                         height: hoverCardHeight,
-                                        objectFit: "contain"
+                                        objectFit: `contain`
                                     }}
                                     onError={() => {
                                         this.setState({ hasError: true });
@@ -296,10 +296,10 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                                 />
                             )}
                         </div>
-                        <div className="text-center">
-                            <p className="truncate text-sm font-medium">{this.props.file.name}</p>
+                        <div className={`text-center`}>
+                            <p className={`truncate text-sm font-medium`}>{this.props.file.name}</p>
                             <p
-                                className="text-muted-foreground text-xs"
+                                className={`text-muted-foreground text-xs`}
                                 title={`${this.props.file.size} bytes`}
                             >
                                 {formatFileSizeToHumanReadable(this.props.file.size)}
@@ -308,9 +308,9 @@ export default class ImagePreview extends Component<ImagePreviewProps, ImagePrev
                     </div>
                     {/* Resize handle */}
                     <div
-                        className="absolute right-0 bottom-0 h-4 w-4 cursor-se-resize bg-gray-400 opacity-50 hover:bg-gray-600 hover:opacity-75"
+                        className={`absolute right-0 bottom-0 h-4 w-4 cursor-se-resize bg-gray-400 opacity-50 hover:bg-gray-600 hover:opacity-75`}
                         style={{
-                            clipPath: "polygon(100% 0%, 0% 100%, 100% 100%)"
+                            clipPath: `polygon(100% 0%, 0% 100%, 100% 100%)`
                         }}
                         onMouseDown={this.handleResizeStart}
                         title={this.context?.t.upload.dragToResize}

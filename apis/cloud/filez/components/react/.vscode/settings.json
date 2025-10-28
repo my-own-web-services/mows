@@ -1,17 +1,5 @@
 {
-    "cSpell.words": [
-        "actionscope",
-        "filez",
-        "lucide",
-        "oidc",
-        "overscan",
-        "resetload",
-        "rsuite",
-        "signin",
-        "signout",
-        "tailwindcss",
-        "zitadel"
-    ],
+    "cSpell.words": ["Filez", "lucide", "signin"],
     "restoreTerminals.terminals": [
         {
             "splitTerminals": [

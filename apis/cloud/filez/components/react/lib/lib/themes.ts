@@ -6,9 +6,9 @@ export interface FilezTheme {
 
 export const loadThemeCSS = (href: string): Promise<HTMLLinkElement> => {
     return new Promise((resolve, reject) => {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.type = "text/css";
+        const link = document.createElement(`link`);
+        link.rel = `stylesheet`;
+        link.type = `text/css`;
         link.href = href;
 
         link.onload = () => resolve(link);
@@ -20,25 +20,25 @@ export const loadThemeCSS = (href: string): Promise<HTMLLinkElement> => {
 
 export const themes: FilezTheme[] = [
     {
-        id: "system",
-        name: "System"
+        id: `system`,
+        name: `System`
     },
     {
-        id: "light",
-        name: "Light"
+        id: `light`,
+        name: `Light`
     },
     {
-        id: "dark",
-        name: "Dark"
+        id: `dark`,
+        name: `Dark`
     },
     {
-        id: "neo-brutalist",
-        name: "Neo Brutalist",
-        url: "/themes/neo-brutalist.css"
+        id: `neo-brutalist`,
+        name: `Neo Brutalist`,
+        url: `/themes/neo-brutalist.css`
     },
     {
-        id: "neo-brutalist-dark",
-        name: "Neo Brutalist Dark",
-        url: "/themes/neo-brutalist-dark.css"
+        id: `neo-brutalist-dark`,
+        name: `Neo Brutalist Dark`,
+        url: `/themes/neo-brutalist-dark.css`
     }
 ];

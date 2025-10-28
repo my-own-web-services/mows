@@ -65,7 +65,16 @@ fn schema_to_rust_type(
         Schema::Array(array) => match &array.items {
             ArrayItems::RefOrSchema(ref_or) => {
                 let item_type = ref_or_schema_to_rust_type(all_types, maybe_struct_name, ref_or)?;
-                format!("Vec<{}>", item_type)
+                match &array.schema_type {
+                    SchemaType::Array(items) => {
+                        if items.contains(&Type::Null) {
+                            format!("Option<Vec<{}>>", item_type)
+                        } else {
+                            format!("Vec<{}>", item_type)
+                        }
+                    }
+                    _ => format!("Vec<{}>", item_type),
+                }
             }
             ArrayItems::False => todo!(),
         },

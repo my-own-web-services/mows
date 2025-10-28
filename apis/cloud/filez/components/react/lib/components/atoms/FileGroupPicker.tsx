@@ -90,7 +90,7 @@ export default class FileGroupPicker extends PureComponent<
             this.setState({
                 fileGroups: [],
                 loading: false,
-                error: error instanceof Error ? error.message : "Failed to load file groups"
+                error: error instanceof Error ? error.message : `Failed to load file groups`
             });
         }
     };
@@ -133,7 +133,7 @@ export default class FileGroupPicker extends PureComponent<
 
         if (loading) {
             return (
-                <div className="py-6 text-center text-sm">
+                <div className={`py-6 text-center text-sm`}>
                     {t.fileGroupPicker.loading}
                 </div>
             );
@@ -141,7 +141,7 @@ export default class FileGroupPicker extends PureComponent<
 
         if (error) {
             return (
-                <div className="py-6 text-center text-sm text-destructive">
+                <div className={`py-6 text-center text-sm text-destructive`}>
                     {error}
                 </div>
             );
@@ -154,7 +154,7 @@ export default class FileGroupPicker extends PureComponent<
                     autoFocus={autofocus}
                 />
                 <CommandList>
-                    <CommandEmpty className="py-6 text-center text-sm select-none">
+                    <CommandEmpty className={`py-6 text-center text-sm select-none`}>
                         {t.fileGroupPicker.noFileGroupFound}
                     </CommandEmpty>
                     <CommandGroup>
@@ -162,26 +162,26 @@ export default class FileGroupPicker extends PureComponent<
                             <CommandItem
                                 key={fileGroup.id}
                                 value={fileGroup.id}
-                                className="cursor-pointer"
+                                className={`cursor-pointer`}
                                 onSelect={() => this.handleSelect(fileGroup)}
                             >
-                                <div className="flex items-center gap-2">
-                                    <Folder className="h-4 w-4" />
-                                    <div className="flex flex-col">
-                                        <span className="font-medium">
+                                <div className={`flex items-center gap-2`}>
+                                    <Folder className={`h-4 w-4`} />
+                                    <div className={`flex flex-col`}>
+                                        <span className={`font-medium`}>
                                             {fileGroup.name}
                                         </span>
-                                        <span className="text-muted-foreground text-xs">
+                                        <span className={`text-muted-foreground text-xs`}>
                                             {fileGroup.id}
                                         </span>
                                     </div>
                                 </div>
                                 <Check
                                     className={cn(
-                                        "ml-auto h-4 w-4",
+                                        `ml-auto h-4 w-4`,
                                         value?.id === fileGroup.id
-                                            ? "opacity-100"
-                                            : "opacity-0"
+                                            ? `opacity-100`
+                                            : `opacity-0`
                                     )}
                                 />
                             </CommandItem>
@@ -210,7 +210,7 @@ export default class FileGroupPicker extends PureComponent<
         // If standalone (used in modal), render the command directly without popover
         if (standalone) {
             return (
-                <div className={cn(className, "w-full")} style={style}>
+                <div className={cn(className, `w-full`)} style={style}>
                     {this.renderContent()}
                 </div>
             );
@@ -222,37 +222,37 @@ export default class FileGroupPicker extends PureComponent<
                     <div
                         className={cn(
                             className,
-                            "flex w-full cursor-pointer items-center justify-between px-3 py-2 border rounded-md",
-                            disabled && "pointer-events-none cursor-not-allowed opacity-50"
+                            `flex w-full cursor-pointer items-center justify-between px-3 py-2 border rounded-md`,
+                            disabled && `pointer-events-none cursor-not-allowed opacity-50`
                         )}
                         style={style}
                         title={displayPlaceholder}
                     >
                         {triggerComponent || (
                             <>
-                                <div className="flex items-center gap-2">
-                                    <Folder className="h-4 w-4" />
+                                <div className={`flex items-center gap-2`}>
+                                    <Folder className={`h-4 w-4`} />
                                     {value ? (
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">
+                                        <div className={`flex flex-col`}>
+                                            <span className={`font-medium`}>
                                                 {value.name}
                                             </span>
-                                            <span className="text-muted-foreground text-xs">
+                                            <span className={`text-muted-foreground text-xs`}>
                                                 {value.id}
                                             </span>
                                         </div>
                                     ) : (
-                                        <span className="text-muted-foreground">
+                                        <span className={`text-muted-foreground`}>
                                             {displayPlaceholder}
                                         </span>
                                     )}
                                 </div>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                <ChevronsUpDown className={`ml-2 h-4 w-4 opacity-50`} />
                             </>
                         )}
                     </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0">
+                <PopoverContent className={`w-[300px] p-0`}>
                     {this.renderContent()}
                 </PopoverContent>
             </Popover>

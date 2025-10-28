@@ -52,7 +52,7 @@ export default class OptionPicker extends PureComponent<OptionPickerProps, Optio
     render = () => {
         const {
             options,
-            triggerComponent: trigger = "Options",
+            triggerComponent: trigger = `Options`,
             disabled = false,
             showCount = true,
             header
@@ -64,26 +64,26 @@ export default class OptionPicker extends PureComponent<OptionPickerProps, Optio
             <DropdownMenu open={this.state.open} onOpenChange={this.handleOpenChange}>
                 <DropdownMenuTrigger asChild>
                     <Button
-                        variant="iconStandalone"
-                        size={"icon-xs"}
+                        variant={`iconStandalone`}
+                        size={`icon-xs`}
                         disabled={disabled}
                         style={{ ...this.props.style }}
                         className={cn(
-                            "OptionPicker flex cursor-pointer items-center justify-between",
+                            `OptionPicker flex cursor-pointer items-center justify-between`,
                             this.props.className
                         )}
                     >
-                        <span className="flex w-full items-center justify-center">
+                        <span className={`flex w-full items-center justify-center`}>
                             {trigger}
                             {showCount && (
-                                <span className="text-muted-foreground ml-2">
+                                <span className={`text-muted-foreground ml-2`}>
                                     ({enabledCount}/{totalCount})
                                 </span>
                             )}
                         </span>
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
+                <DropdownMenuContent align={`start`}>
                     {header && (
                         <>
                             <DropdownMenuLabel>{header}</DropdownMenuLabel>
@@ -93,7 +93,7 @@ export default class OptionPicker extends PureComponent<OptionPickerProps, Optio
                     {options.map((option) => (
                         <DropdownMenuCheckboxItem
                             key={option.id}
-                            className="cursor-pointer"
+                            className={`cursor-pointer`}
                             checked={option.enabled}
                             onCheckedChange={(checked) =>
                                 this.handleOptionToggle(option.id, checked || false)

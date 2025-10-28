@@ -22,7 +22,7 @@ use axum::{
     params(
         (
             "file_version_id" = FileVersionId,
-            Path, 
+            Path,
             description = "The ID of the file version to delete"
         )
     ),

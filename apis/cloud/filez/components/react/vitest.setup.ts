@@ -10,14 +10,14 @@ afterEach(() => {
 // Mock fetch for client-config.json requests and matchMedia
 beforeAll(() => {
     global.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url === "/client-config.json") {
+        if (url === `/client-config.json`) {
             return Promise.resolve({
                 ok: true,
                 json: () =>
                     Promise.resolve({
-                        oidcClientId: "331760958303175012",
-                        oidcIssuerUrl: "https://zitadel.vindelicorum.eu",
-                        serverUrl: "https://filez-server.vindelicorum.eu"
+                        oidcClientId: `331760958303175012`,
+                        oidcIssuerUrl: `https://zitadel.vindelicorum.eu`,
+                        serverUrl: `https://filez-server.vindelicorum.eu`
                     })
             });
         }
@@ -25,7 +25,7 @@ beforeAll(() => {
     });
 
     // Mock matchMedia
-    Object.defineProperty(window, "matchMedia", {
+    Object.defineProperty(window, `matchMedia`, {
         writable: true,
         value: vi.fn().mockImplementation((query) => ({
             matches: false,

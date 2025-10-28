@@ -9,83 +9,83 @@ export const defineApplicationActions = (
     return [
         new Action({
             id: ActionIds.OPEN_COMMAND_PALETTE,
-            category: "General",
+            category: `General`,
             doNotTrackUsage: true
         }),
         new Action({
             id: ActionIds.DELETE_FILES,
-            category: "File List",
+            category: `File List`,
             doNotTrackUsage: false
         }),
         new Action({
             id: ActionIds.OPEN_KEYBOARD_SHORTCUTS,
-            category: "General",
+            category: `General`,
             actionHandlers: new Map([
                 [
-                    "GlobalOpenKeyboardShortcuts",
+                    `GlobalOpenKeyboardShortcuts`,
                     {
-                        id: "GlobalOpenKeyboardShortcuts",
+                        id: `GlobalOpenKeyboardShortcuts`,
                         executeAction: () =>
-                            filezContextProvider.changeActiveModal("keyboardShortcutEditor"),
-                        getState: () => ({ visibility: "active" })
+                            filezContextProvider.changeActiveModal(`keyboardShortcutEditor`),
+                        getState: () => ({ visibility: `active` })
                     }
                 ]
             ])
         }),
         new Action({
             id: ActionIds.OPEN_LANGUAGE_SETTINGS,
-            category: "General",
+            category: `General`,
             actionHandlers: new Map([
                 [
-                    "GlobalOpenLanguageSettings",
+                    `GlobalOpenLanguageSettings`,
                     {
-                        id: "GlobalOpenLanguageSettings",
+                        id: `GlobalOpenLanguageSettings`,
                         executeAction: () =>
-                            filezContextProvider.changeActiveModal("languageSelector"),
-                        getState: () => ({ visibility: "active" })
+                            filezContextProvider.changeActiveModal(`languageSelector`),
+                        getState: () => ({ visibility: `active` })
                     }
                 ]
             ])
         }),
         new Action({
             id: ActionIds.OPEN_THEME_SELECTOR,
-            category: "General",
+            category: `General`,
             actionHandlers: new Map([
                 [
-                    "GlobalOpenThemeSelector",
+                    `GlobalOpenThemeSelector`,
                     {
-                        id: "GlobalOpenThemeSelector",
+                        id: `GlobalOpenThemeSelector`,
                         executeAction: () =>
-                            filezContextProvider.changeActiveModal("themeSelector"),
-                        getState: () => ({ visibility: "active" })
+                            filezContextProvider.changeActiveModal(`themeSelector`),
+                        getState: () => ({ visibility: `active` })
                     }
                 ]
             ])
         }),
         new Action({
             id: ActionIds.OPEN_PRIMARY_MENU,
-            category: "General"
+            category: `General`
         }),
         new Action({
             id: ActionIds.LOGIN,
-            category: "User",
+            category: `User`,
             actionHandlers: new Map([
                 [
-                    "GlobalLogin",
+                    `GlobalLogin`,
                     {
-                        id: "GlobalLogin",
+                        id: `GlobalLogin`,
                         getState: () => {
                             if (filezContextProvider.props.auth?.isAuthenticated) {
                                 return {
-                                    visibility: "disabled",
-                                    disabledReason: "Already logged in"
+                                    visibility: `disabled`,
+                                    disabledReason: `Already logged in`
                                 };
                             }
-                            return { visibility: "active" };
+                            return { visibility: `active` };
                         },
                         executeAction: () => {
                             if (!filezContextProvider.props.auth) {
-                                log.warn("No authentication provider configured");
+                                log.warn(`No authentication provider configured`);
                                 return;
                             }
                             signinRedirectSavePath(filezContextProvider.props.auth.signinRedirect);
@@ -96,17 +96,17 @@ export const defineApplicationActions = (
         }),
         new Action({
             id: ActionIds.LOGOUT,
-            category: "User",
+            category: `User`,
             actionHandlers: new Map([
                 [
-                    "GlobalLogout",
+                    `GlobalLogout`,
                     {
-                        id: "GlobalLogout",
+                        id: `GlobalLogout`,
                         getState: () => {
                             if (!filezContextProvider.props.auth?.isAuthenticated) {
-                                return { visibility: "disabled", disabledReason: "Not logged in" };
+                                return { visibility: `disabled`, disabledReason: `Not logged in` };
                             }
-                            return { visibility: "active" };
+                            return { visibility: `active` };
                         },
                         executeAction: () => {
                             filezContextProvider.props.auth?.signoutRedirect();
@@ -117,15 +117,15 @@ export const defineApplicationActions = (
         }),
         new Action({
             id: ActionIds.CREATE_FILE_GROUP,
-            category: "File Groups",
+            category: `File Groups`,
             actionHandlers: new Map([
                 [
-                    "GlobalCreateFileGroup",
+                    `GlobalCreateFileGroup`,
                     {
-                        id: "GlobalCreateFileGroup",
+                        id: `GlobalCreateFileGroup`,
                         executeAction: () =>
-                            filezContextProvider.changeActiveModal("fileGroupCreate"),
-                        getState: () => ({ visibility: "active" })
+                            filezContextProvider.changeActiveModal(`fileGroupCreate`),
+                        getState: () => ({ visibility: `active` })
                     }
                 ]
             ])
@@ -134,13 +134,13 @@ export const defineApplicationActions = (
 };
 
 export enum ActionIds {
-    OPEN_COMMAND_PALETTE = "filez.openCommandPalette",
-    OPEN_KEYBOARD_SHORTCUTS = "filez.openKeyboardShortcuts",
-    OPEN_LANGUAGE_SETTINGS = "filez.openLanguageSettings",
-    OPEN_THEME_SELECTOR = "filez.openThemeSelector",
-    OPEN_PRIMARY_MENU = "filez.openPrimaryMenu",
-    LOGIN = "filez.user.login",
-    LOGOUT = "filez.user.logout",
-    DELETE_FILES = "filez.files.delete",
-    CREATE_FILE_GROUP = "filez.fileGroups.create"
+    OPEN_COMMAND_PALETTE = `filez.openCommandPalette`,
+    OPEN_KEYBOARD_SHORTCUTS = `filez.openKeyboardShortcuts`,
+    OPEN_LANGUAGE_SETTINGS = `filez.openLanguageSettings`,
+    OPEN_THEME_SELECTOR = `filez.openThemeSelector`,
+    OPEN_PRIMARY_MENU = `filez.openPrimaryMenu`,
+    LOGIN = `filez.user.login`,
+    LOGOUT = `filez.user.logout`,
+    DELETE_FILES = `filez.files.delete`,
+    CREATE_FILE_GROUP = `filez.fileGroups.create`
 }

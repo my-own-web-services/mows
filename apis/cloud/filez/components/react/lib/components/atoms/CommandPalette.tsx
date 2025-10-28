@@ -39,12 +39,12 @@ export default class CommandPalette extends PureComponent<
     }
 
     componentDidMount = async () => {
-        log.debug("CommandPalette mounted:", this.props);
+        log.debug(`CommandPalette mounted:`, this.props);
         this.registerActionHandler();
     };
 
-    componentDidUpdate = (prevProps: CommandPaletteProps) => {
-        log.debug("CommandPalette props updated:", this.props);
+    componentDidUpdate = (_prevProps: CommandPaletteProps) => {
+        log.debug(`CommandPalette props updated:`, this.props);
 
         this.registerActionHandler();
     };
@@ -52,7 +52,7 @@ export default class CommandPalette extends PureComponent<
     componentWillUnmount = () => {
         this.context?.actionManager?.unregisterActionHandler(
             ActionIds.OPEN_COMMAND_PALETTE,
-            "GlobalCommandPalette"
+            `GlobalCommandPalette`
         );
     };
 
@@ -62,8 +62,8 @@ export default class CommandPalette extends PureComponent<
                 this.handleOpenChange(true);
             },
 
-            id: "GlobalCommandPalette",
-            getState: () => ({ visibility: "active" })
+            id: `GlobalCommandPalette`,
+            getState: () => ({ visibility: `active` })
         });
     };
 
@@ -92,7 +92,7 @@ export default class CommandPalette extends PureComponent<
                 byCategory.set(category, []);
             }
             if (action.hideInCommandPalette) return;
-            if (action.getState()?.visibility === "inactive") return;
+            if (action.getState()?.visibility === `inactive`) return;
             byCategory.get(category)!.push(action);
         });
 
@@ -107,13 +107,13 @@ export default class CommandPalette extends PureComponent<
         return byCategory;
     };
 
-    renderCommandItem = (action: Action, keyPrefix: string = "") => {
+    renderCommandItem = (action: Action, keyPrefix: string = ``) => {
         const itemState = action.getState();
         return (
             <CommandItem
                 key={`${keyPrefix}${action.id}`}
                 onSelect={() => this.executeCommand(action.id)}
-                disabled={itemState?.visibility === "disabled"}
+                disabled={itemState?.visibility === `disabled`}
             >
                 <ActionComponent action={action} />
             </CommandItem>
@@ -128,7 +128,7 @@ export default class CommandPalette extends PureComponent<
         const recentCommands = this.context?.actionManager?.getRecentCommands() || [];
         const recentCommandIds = new Set(recentCommands.map((cmd) => cmd.actionId));
 
-        log.debug("Rendering CommandPalette:", {
+        log.debug(`Rendering CommandPalette:`, {
             open,
             recentCommands,
             categories,
@@ -138,20 +138,20 @@ export default class CommandPalette extends PureComponent<
         return (
             <CommandDialog open={open} onOpenChange={this.handleOpenChange}>
                 <CommandInput placeholder={t!.commandPalette.placeholder} />
-                <CommandList className="overflow-y-scroll">
+                <CommandList className={`overflow-y-scroll`}>
                     <CommandEmpty>{t?.commandPalette?.noResults}</CommandEmpty>
 
                     {/* Recent Commands Section */}
                     {recentCommands.length > 0 && (
                         <CommandGroup
-                            className="select-none"
+                            className={`select-none`}
                             heading={t?.commandPalette?.recentCommands}
                         >
                             {recentCommands.map((recentCmd) => {
                                 const action = this.context?.actionManager?.getAction(
                                     recentCmd.actionId
                                 );
-                                return action ? this.renderCommandItem(action, "recent-") : null;
+                                return action ? this.renderCommandItem(action, `recent-`) : null;
                             })}
                         </CommandGroup>
                     )}
@@ -165,7 +165,7 @@ export default class CommandPalette extends PureComponent<
                             return categoryActions.length > 0;
                         })
                         .map((category) => (
-                            <CommandGroup className="select-none" key={category} heading={category}>
+                            <CommandGroup className={`select-none`} key={category} heading={category}>
                                 {commandsByCategory
                                     .get(category)!
                                     .filter((action) => !recentCommandIds.has(action.id))

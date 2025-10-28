@@ -8,9 +8,9 @@ use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer}
 use filez_server_lib::{
     background_tasks::run_background_tasks,
     config::{config, IMPERSONATE_USER_HEADER_NAME},
-    kubernetes_controller,
     database::Database,
     http_api::{self, authentication::middleware::authentication_middleware},
+    kubernetes_controller,
     models::apps::MowsApp,
     state::ServerState,
     types::FilezApiDoc,
@@ -185,6 +185,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .routes(routes!(http_api::health::get_health))
         // SESSIONS
         .routes(routes!(http_api::sessions::start::start_session))
+        .routes(routes!(http_api::sessions::end::end_session))
         // DEV
         .routes(routes!(http_api::dev::reset_database::reset_database))
         .with_state(server_state.clone())

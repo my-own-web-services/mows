@@ -310,6 +310,12 @@ export interface ApiResponseEmptyApiResponse {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseEndSessionResponseBody {
+  data?: object;
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseFileVersionSizeExceededErrorBody {
   data?: {
     /**
@@ -928,6 +934,10 @@ export type DynamicGroupRule = object;
 
 export type EmptyApiResponse = object;
 
+export type EndSessionRequestBody = object;
+
+export type EndSessionResponseBody = object;
+
 export interface FileGroup {
   /** @format date-time */
   created_time: string;
@@ -1238,6 +1248,7 @@ export interface JobStatusDetailsFailed {
 
 export interface JobStatusDetailsInProgress {
   message: string;
+  steps?: any[] | null;
 }
 
 export type JobType =
@@ -1590,6 +1601,12 @@ export interface PoolStatus {
   max_size: number;
   /** @min 0 */
   size: number;
+}
+
+export interface ProgressStep {
+  completed: boolean;
+  description?: string | null;
+  name: string;
 }
 
 export type StartSessionRequestBody = object;
@@ -2424,10 +2441,10 @@ export class Api<
       }),
 
     /**
-     * @description Get the offset of a file version for resuming a Tus upload
+     * @description Get the offset of a file version for resuming a upload
      *
      * @name FileVersionsContentTusHead
-     * @request HEAD:/api/file_versions/content/tus/{file_id}/{version}/{app_id}/{app_path}
+     * @request HEAD:/api/file_versions/content/{file_id}/{version}/{app_id}/{app_path}
      */
     fileVersionsContentTusHead: (
       fileId: string,
@@ -2437,18 +2454,18 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
-        path: `/api/file_versions/content/tus/${fileId}/${version}/${appId}/${appPath}`,
+        path: `/api/file_versions/content/${fileId}/${version}/${appId}/${appPath}`,
         method: "HEAD",
         format: "json",
         ...params,
       }),
 
     /**
-     * @description Patch a file version using the TUS protocol. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.
+     * @description Patch a file version. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.
      *
      * @tags FileVersion
      * @name FileVersionsContentTusPatch
-     * @request PATCH:/api/file_versions/content/tus/{file_id}/{version}/{app_path}
+     * @request PATCH:/api/file_versions/content/{file_id}/{version}/{app_path}
      */
     fileVersionsContentTusPatch: (
       fileId: string,
@@ -2470,7 +2487,7 @@ export class Api<
         | ApiResponseEmptyApiResponse
         | ApiResponseFileVersionSizeExceededErrorBody
       >({
-        path: `/api/file_versions/content/tus/${fileId}/${version}/${appPath}`,
+        path: `/api/file_versions/content/${fileId}/${version}/${appPath}`,
         method: "PATCH",
         query: query,
         body: data,
@@ -2767,6 +2784,25 @@ export class Api<
         ApiResponseEmptyApiResponse
       >({
         path: `/api/jobs/update`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Ends the current session
+     *
+     * @name EndSession
+     * @request POST:/api/sessions/end
+     */
+    endSession: (data: EndSessionRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseEndSessionResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/sessions/end`,
         method: "POST",
         body: data,
         type: ContentType.Json,

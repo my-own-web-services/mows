@@ -1,1 +1,1 @@
-export default async (count: number) => {};
+export default async (_count: number) => {};

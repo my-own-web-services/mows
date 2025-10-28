@@ -1,23 +1,21 @@
-use std::path::{Path, PathBuf};
-
 use crate::{
     config::config,
     errors::{ImageError, InnerImageError},
 };
 use filez_server_client::{
     client::ApiClient,
-    futures::StreamExt,
     reqwest::Body,
     tokio_util::codec::{BytesCodec, FramedRead},
     types::{
         CreateFileVersionRequestBody, FileVersionMetadata, FilezJob, JobType, JobTypeCreatePreview,
     },
+    utils::stream_file_to_path,
 };
 use image::{imageops::FilterType, ImageFormat, ImageReader};
 use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 use thiserror_context::Context;
-use tokio::io::AsyncWriteExt;
 use tracing::trace;
 pub mod config;
 pub mod errors;
@@ -79,51 +77,20 @@ async fn create_previews(
         .join(&job_execution_information.file_version_number.to_string())
         .join("source");
 
-    // Ensure the source path exists
-    if !source_path.exists() {
-        tokio::fs::create_dir_all(&source_path.parent().unwrap()).await?;
-    }
+    let source_mime_type = stream_file_to_path(
+        filez_client,
+        job_execution_information.file_id,
+        job_execution_information.file_version_number,
+        &source_path,
+    )
+    .await?;
 
     let target_path = Path::new(&config.working_directory)
         .join(&job_execution_information.file_id.to_string())
         .join(&job_execution_information.file_version_number.to_string())
         .join("target");
 
-    let get_file_version_content_request = filez_client
-        .get_file_version_content(
-            job_execution_information.file_id,
-            Some(job_execution_information.file_version_number),
-            None,
-            None,
-            false,
-            0,
-        )
-        .await
-        .context("Failed to get file version content")?;
-
-    let source_mime_type = get_file_version_content_request
-        .headers()
-        .get("Content-Type")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("application/octet-stream")
-        .to_string();
-
-    let mut stream = get_file_version_content_request.bytes_stream();
-
-    // write the file by streaming it to the source path
-    let mut file = tokio::fs::File::create(&source_path).await?;
-    while let Some(chunk) = stream.next().await {
-        file.write_all(&chunk.map_err(|e| anyhow::Error::new(e))?)
-            .await?;
-    }
-    file.flush().await?;
-
-    // Create target directory if it does not exist
-    if !target_path.exists() {
-        tokio::fs::create_dir_all(&target_path)
-            .await
-            .context("Failed to create parent full directory")?;
-    }
+    std::fs::create_dir_all(&target_path)?;
 
     create_basic_versions(
         &source_path,
@@ -189,47 +156,44 @@ async fn create_basic_versions(
             let filez_client = filez_client.clone();
             let job_execution_information = job_execution_information.clone();
 
-            tokio::spawn(async move {
-                trace!("Creating file version for: {:?}", preview_file.app_path);
-                filez_client
-                    .create_file_version(CreateFileVersionRequestBody {
-                        file_id: job_execution_information.file_id,
-                        file_version_number: Some(job_execution_information.file_version_number),
-                        app_path: Some(preview_file.app_path.clone()),
-                        file_version_mime_type: preview_file.mime_type.clone(),
-                        content_expected_sha256_digest: None,
-                        file_version_size: std::fs::metadata(&preview_file.path)
-                            .map_err(|e| InnerImageError::IoError(e.into()))?
-                            .len(),
-                        storage_quota_id: job_execution_information.storage_quota_id,
-                        file_version_metadata: FileVersionMetadata {},
-                    })
-                    .await
-                    .context("Failed to create file version")?;
+            trace!("Creating file version for: {:?}", preview_file.app_path);
+            filez_client
+                .create_file_version(CreateFileVersionRequestBody {
+                    file_id: job_execution_information.file_id,
+                    file_version_number: Some(job_execution_information.file_version_number),
+                    app_path: Some(preview_file.app_path.clone()),
+                    file_version_mime_type: preview_file.mime_type.clone(),
+                    content_expected_sha256_digest: None,
+                    file_version_size: std::fs::metadata(&preview_file.path)
+                        .map_err(|e| InnerImageError::IoError(e.into()))?
+                        .len(),
+                    storage_quota_id: job_execution_information.storage_quota_id,
+                    file_version_metadata: FileVersionMetadata {},
+                })
+                .await
+                .context("Failed to create file version")?;
 
-                trace!("Uploading content for: {:?}", preview_file.app_path);
+            trace!("Uploading content for: {:?}", preview_file.app_path);
 
-                let file = tokio::fs::File::open(&preview_file.path).await?;
+            let file = tokio::fs::File::open(&preview_file.path).await?;
 
-                let stream = FramedRead::new(file, BytesCodec::new());
+            let stream = FramedRead::new(file, BytesCodec::new());
 
-                let body = Body::wrap_stream(stream);
+            let body = Body::wrap_stream(stream);
 
-                filez_client
-                    .file_versions_content_tus_patch(
-                        job_execution_information.file_id,
-                        Some(job_execution_information.file_version_number),
-                        Some(preview_file.app_path.clone()),
-                        0,
-                        std::fs::metadata(&preview_file.path)
-                            .map_err(|e| InnerImageError::IoError(e.into()))?
-                            .len(),
-                        body,
-                    )
-                    .await
-                    .context("Failed to upload to file version")?;
-                Ok::<(), ImageError>(())
-            });
+            filez_client
+                .file_versions_content_tus_patch(
+                    job_execution_information.file_id,
+                    Some(job_execution_information.file_version_number),
+                    Some(preview_file.app_path.clone()),
+                    0,
+                    std::fs::metadata(&preview_file.path)
+                        .map_err(|e| InnerImageError::IoError(e.into()))?
+                        .len(),
+                    body,
+                )
+                .await
+                .context("Failed to upload to file version")?;
         }
     }
 

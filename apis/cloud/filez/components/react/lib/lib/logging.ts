@@ -1,11 +1,11 @@
-type LogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
+type LogLevel = `TRACE` | `DEBUG` | `INFO` | `WARN` | `ERROR`;
 
 export class Logger {
     static fileFilter: Record<string, LogLevel> = {
-        HotkeyManager: "DEBUG"
+        HotkeyManager: `DEBUG`
     };
 
-    static defaultLevel: LogLevel = "ERROR";
+    static defaultLevel: LogLevel = `ERROR`;
     enableCallerInfo: boolean = true;
 
     private logLevels: Record<LogLevel, number> = {
@@ -18,23 +18,23 @@ export class Logger {
 
     private getTimestamp = (): string => {
         const now = new Date();
-        return now.toTimeString().split(" ")[0];
+        return now.toTimeString().split(` `)[0];
     };
 
     private getCallerInfo = (): { file: string; line: number; stack?: string } | null => {
-        const stackLines = Error().stack?.split("\n");
+        const stackLines = Error().stack?.split(`\n`);
         if (!stackLines) return null;
 
         const callerLine = stackLines[4];
         if (!callerLine) return null;
 
-        const match = callerLine.match(/([^\/]+):(\d+):\d+/);
+        const match = callerLine.match(/([^/]+):(\d+):\d+/);
         if (!match) return null;
 
         return {
-            file: match[1].replace(/\?.*$/, ""),
+            file: match[1].replace(/\?.*$/, ``),
             line: parseInt(match[2]),
-            stack: this.enableCallerInfo ? stackLines.slice(4).join("\n") : undefined
+            stack: this.enableCallerInfo ? stackLines.slice(4).join(`\n`) : undefined
         };
     };
 
@@ -59,22 +59,22 @@ export class Logger {
         }
 
         const timestamp = this.getTimestamp();
-        const styles: string[] = ["color:gray;", `color:${color};`, "color:gray;"];
+        const styles: string[] = [`color:gray;`, `color:${color};`, `color:gray;`];
 
         let messagePart = `${timestamp} %c${level.padEnd(5)} %c${caller.file}:${caller.line}: `;
         args.forEach((arg) => {
-            if (typeof arg === "object" && arg !== null) {
-                messagePart += "%c[expand] ";
-                styles.push("color:lightcoral;");
+            if (typeof arg === `object` && arg !== null) {
+                messagePart += `%c[expand] `;
+                styles.push(`color:lightcoral;`);
             } else {
                 messagePart += `%c${arg} `;
-                styles.push(arg === null ? "color:gray;" : "");
+                styles.push(arg === null ? `color:gray;` : ``);
             }
         });
 
         console.groupCollapsed(`%c${messagePart.trim()}`, ...styles);
         args.forEach((arg) => {
-            if (typeof arg === "object" && arg !== null) console.log(arg);
+            if (typeof arg === `object` && arg !== null) console.log(arg);
         });
         if (caller.stack) {
             console.log(caller.stack);
@@ -83,23 +83,23 @@ export class Logger {
     };
 
     info = (...args: any[]): void => {
-        this.log("INFO", "lime", ...args);
+        this.log(`INFO`, `lime`, ...args);
     };
 
     warn = (...args: any[]): void => {
-        this.log("WARN", "yellow", ...args);
+        this.log(`WARN`, `yellow`, ...args);
     };
 
     error = (...args: any[]): void => {
-        this.log("ERROR", "red", ...args);
+        this.log(`ERROR`, `red`, ...args);
     };
 
     debug = (...args: any[]): void => {
-        this.log("DEBUG", "blue", ...args);
+        this.log(`DEBUG`, `blue`, ...args);
     };
 
     trace = (...args: any[]): void => {
-        this.log("TRACE", "cyan", ...args);
+        this.log(`TRACE`, `cyan`, ...args);
     };
 }
 

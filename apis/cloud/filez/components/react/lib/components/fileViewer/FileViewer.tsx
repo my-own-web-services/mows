@@ -14,7 +14,7 @@ interface FileViewerProps {
     readonly height?: number;
 }
 
-interface FileViewerState {}
+type FileViewerState = Record<string, never>;
 
 export default class FileViewer extends PureComponent<FileViewerProps, FileViewerState> {
     static contextType = FilezContext;
@@ -35,7 +35,7 @@ export default class FileViewer extends PureComponent<FileViewerProps, FileViewe
             >
                 {(() => {
                     const fileType = file.mime_type;
-                    if (fileType.startsWith("image/")) {
+                    if (fileType.startsWith(`image/`)) {
                         return <ImageViewer width={width} height={height} file={file} />;
                     } else {
                         return <span>{file.name}</span>;

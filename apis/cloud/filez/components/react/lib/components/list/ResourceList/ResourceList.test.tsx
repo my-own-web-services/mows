@@ -23,7 +23,7 @@ const createTestResources = (count: number): TestResource[] => {
         id: `resource-${i}`,
         name: `Test Resource ${i + 1}`,
         size: (i + 1) * 1000,
-        type: i % 2 === 0 ? "file" : "folder",
+        type: i % 2 === 0 ? `file` : `folder`,
         dateModified: new Date(2024, 0, i + 1).toISOString(),
         created_time: new Date(2024, 0, i + 1).toISOString(),
         modified_time: new Date(2024, 0, i + 1).toISOString()
@@ -33,8 +33,8 @@ const createTestResources = (count: number): TestResource[] => {
 // Helper function to create test columns
 const createTestColumns = (): Column<TestResource>[] => [
     {
-        field: "name",
-        label: "Name",
+        field: `name`,
+        label: `Name`,
         direction: SortDirection.Ascending,
         widthPercent: 40,
         minWidthPixels: 200,
@@ -42,8 +42,8 @@ const createTestColumns = (): Column<TestResource>[] => [
         render: (item) => <span>{item.name}</span>
     },
     {
-        field: "size",
-        label: "Size",
+        field: `size`,
+        label: `Size`,
         direction: SortDirection.Neutral,
         widthPercent: 20,
         minWidthPixels: 100,
@@ -51,8 +51,8 @@ const createTestColumns = (): Column<TestResource>[] => [
         render: (item) => <span>{item.size} bytes</span>
     },
     {
-        field: "type",
-        label: "Type",
+        field: `type`,
+        label: `Type`,
         direction: SortDirection.Neutral,
         widthPercent: 20,
         minWidthPixels: 100,
@@ -60,8 +60,8 @@ const createTestColumns = (): Column<TestResource>[] => [
         render: (item) => <span>{item.type}</span>
     },
     {
-        field: "dateModified",
-        label: "Date Modified",
+        field: `dateModified`,
+        label: `Date Modified`,
         direction: SortDirection.Neutral,
         widthPercent: 20,
         minWidthPixels: 150,
@@ -70,7 +70,7 @@ const createTestColumns = (): Column<TestResource>[] => [
     }
 ];
 
-test("ColumnListRowHandler creates correctly with proper configuration", () => {
+test(`ColumnListRowHandler creates correctly with proper configuration`, () => {
     const columns = createTestColumns();
 
     const columnHandler = new ColumnListRowHandler({
@@ -79,17 +79,17 @@ test("ColumnListRowHandler creates correctly with proper configuration", () => {
     });
 
     // Test basic properties
-    expect(columnHandler.id).toBe("ColumnListRowHandler");
+    expect(columnHandler.id).toBe(`ColumnListRowHandler`);
     expect(columnHandler.state.columns).toHaveLength(4);
     expect(columnHandler.props.hideSelectionCheckboxColumn).toBe(true);
 
     // Test that columns are correctly copied
-    expect(columnHandler.state.columns[0].field).toBe("name");
+    expect(columnHandler.state.columns[0].field).toBe(`name`);
     expect(columnHandler.state.columns[0].enabled).toBe(true);
     expect(columnHandler.state.columns[3].enabled).toBe(false); // Date Modified is disabled
 });
 
-test("ResourceList renders with data and calls API correctly", async () => {
+test(`ResourceList renders with data and calls API correctly`, async () => {
     const testResources = createTestResources(5);
     const columns = createTestColumns();
 
@@ -109,11 +109,11 @@ test("ResourceList renders with data and calls API correctly", async () => {
             <div style={{ width: 800, height: 600 }}>
                 <FilezProvider>
                     <ResourceList<TestResource>
-                        listInstanceId="test-resource-list-1"
-                        resourceType="TestResource"
-                        defaultSortBy="name"
+                        listInstanceId={`test-resource-list-1`}
+                        resourceType={`TestResource`}
+                        defaultSortBy={`name`}
                         defaultSortDirection={SortDirection.Ascending}
-                        initialRowHandler="ColumnListRowHandler"
+                        initialRowHandler={`ColumnListRowHandler`}
                         getResourcesList={mockGetResourcesList}
                         rowHandlers={[columnHandler]}
                     />
@@ -134,7 +134,7 @@ test("ResourceList renders with data and calls API correctly", async () => {
     // Verify API was called with correct parameters
     expect(mockGetResourcesList).toHaveBeenCalledWith(
         expect.objectContaining({
-            sortBy: "name",
+            sortBy: `name`,
             sortDirection: SortDirection.Ascending,
             fromIndex: 0,
             limit: expect.any(Number)
@@ -142,19 +142,19 @@ test("ResourceList renders with data and calls API correctly", async () => {
     );
 
     // Verify component structure is rendered
-    expect(container.querySelector(".ResourceList")).toBeInTheDocument();
+    expect(container.querySelector(`.ResourceList`)).toBeInTheDocument();
 
     // Check headers are present
-    expect(screen.getByText("Name")).toBeInTheDocument();
-    expect(screen.getByText("Size")).toBeInTheDocument();
-    expect(screen.getByText("Type")).toBeInTheDocument();
+    expect(screen.getByText(`Name`)).toBeInTheDocument();
+    expect(screen.getByText(`Size`)).toBeInTheDocument();
+    expect(screen.getByText(`Type`)).toBeInTheDocument();
 
     // Check checkbox is present
-    const checkboxes = screen.getAllByRole("checkbox");
+    const checkboxes = screen.getAllByRole(`checkbox`);
     expect(checkboxes.length).toBeGreaterThan(0);
 });
 
-test("ResourceList keyboard navigation setup works", async () => {
+test(`ResourceList keyboard navigation setup works`, async () => {
     const testResources = createTestResources(3);
     const columns = createTestColumns();
 
@@ -174,11 +174,11 @@ test("ResourceList keyboard navigation setup works", async () => {
         <div style={{ width: 800, height: 600 }}>
             <FilezProvider>
                 <ResourceList<TestResource>
-                    listInstanceId="test-resource-list-1"
-                    resourceType="TestResource"
-                    defaultSortBy="name"
+                    listInstanceId={`test-resource-list-1`}
+                    resourceType={`TestResource`}
+                    defaultSortBy={`name`}
                     defaultSortDirection={SortDirection.Ascending}
-                    initialRowHandler="ColumnListRowHandler"
+                    initialRowHandler={`ColumnListRowHandler`}
                     getResourcesList={mockGetResourcesList}
                     rowHandlers={[columnHandler]}
                     handlers={{
@@ -198,19 +198,19 @@ test("ResourceList keyboard navigation setup works", async () => {
     );
 
     // Verify the ResourceList container is present
-    const resourceListContainer = container.querySelector(".ResourceList");
+    const resourceListContainer = container.querySelector(`.ResourceList`);
     expect(resourceListContainer).toBeInTheDocument();
 
     // Verify headers are present for keyboard navigation context
-    expect(screen.getByText("Name")).toBeInTheDocument();
-    expect(screen.getByText("Size")).toBeInTheDocument();
+    expect(screen.getByText(`Name`)).toBeInTheDocument();
+    expect(screen.getByText(`Size`)).toBeInTheDocument();
 
     // Test that the column handler has the getSelectedItemsAfterKeypress method for keyboard handling
-    expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe("function");
+    expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe(`function`);
 
     // Test that keyboard handler method exists and can be called
     const keyboardResult = columnHandler.getSelectedItemsAfterKeypress(
-        { key: "ArrowDown" } as React.KeyboardEvent<HTMLDivElement>,
+        { key: `ArrowDown` } as React.KeyboardEvent<HTMLDivElement>,
         testResources,
         testResources.length,
         [false, false, false],
@@ -218,13 +218,13 @@ test("ResourceList keyboard navigation setup works", async () => {
         undefined
     );
 
-    console.log("Keyboard navigation result:", keyboardResult);
+    console.log(`Keyboard navigation result:`, keyboardResult);
 
     // Should return keyboard navigation result or be callable
-    expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe("function");
+    expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe(`function`);
 });
 
-test("Column sorting callback works correctly", () => {
+test(`Column sorting callback works correctly`, () => {
     const columns = createTestColumns();
 
     const columnHandler = new ColumnListRowHandler({
@@ -242,27 +242,27 @@ test("Column sorting callback works correctly", () => {
     columnHandler.resourceList = mockResourceList as any;
 
     // Test setting column sorting
-    columnHandler.setColumSorting("size", SortDirection.Ascending);
+    columnHandler.setColumSorting(`size`, SortDirection.Ascending);
 
     // Check that the column direction was updated
-    const sizeColumn = columnHandler.state.columns.find((c) => c.field === "size");
+    const sizeColumn = columnHandler.state.columns.find((c) => c.field === `size`);
     expect(sizeColumn?.direction).toBe(SortDirection.Ascending);
 
     // Check that other columns were reset to Neutral
-    const nameColumn = columnHandler.state.columns.find((c) => c.field === "name");
+    const nameColumn = columnHandler.state.columns.find((c) => c.field === `name`);
     expect(nameColumn?.direction).toBe(SortDirection.Neutral);
 
     // Check that the resource list setState was called
     expect(mockResourceList.setState).toHaveBeenCalledWith(
         {
-            sortBy: "size",
+            sortBy: `size`,
             sortDirection: SortDirection.Ascending
         },
         expect.any(Function)
     );
 });
 
-test("ResourceList click handler integration works", async () => {
+test(`ResourceList click handler integration works`, async () => {
     const testResources = createTestResources(3);
     const columns = createTestColumns();
 
@@ -282,11 +282,11 @@ test("ResourceList click handler integration works", async () => {
         <div style={{ width: 800, height: 600 }}>
             <FilezProvider>
                 <ResourceList<TestResource>
-                    listInstanceId="test-resource-list-1"
-                    resourceType="TestResource"
-                    defaultSortBy="name"
+                    listInstanceId={`test-resource-list-1`}
+                    resourceType={`TestResource`}
+                    defaultSortBy={`name`}
                     defaultSortDirection={SortDirection.Ascending}
-                    initialRowHandler="ColumnListRowHandler"
+                    initialRowHandler={`ColumnListRowHandler`}
                     getResourcesList={mockGetResourcesList}
                     rowHandlers={[columnHandler]}
                     handlers={{
@@ -306,21 +306,21 @@ test("ResourceList click handler integration works", async () => {
     );
 
     // Verify ResourceList is present and ready for interactions
-    const resourceListContainer = container.querySelector(".ResourceList");
+    const resourceListContainer = container.querySelector(`.ResourceList`);
     expect(resourceListContainer).toBeInTheDocument();
 
     // Verify checkbox selection functionality exists
-    const checkboxes = screen.getAllByRole("checkbox");
+    const checkboxes = screen.getAllByRole(`checkbox`);
     expect(checkboxes.length).toBeGreaterThan(0);
 
     // Test row renderer function exists
-    expect(typeof columnHandler.rowRenderer).toBe("function");
+    expect(typeof columnHandler.rowRenderer).toBe(`function`);
 
     // Test that onSelect handler is set up correctly
     expect(mockOnSelect).toBeInstanceOf(Function);
 });
 
-test("ResourceList checkbox functionality setup", async () => {
+test(`ResourceList checkbox functionality setup`, async () => {
     const testResources = createTestResources(3);
     const columns = createTestColumns();
 
@@ -340,11 +340,11 @@ test("ResourceList checkbox functionality setup", async () => {
         <div style={{ width: 800, height: 600 }}>
             <FilezProvider>
                 <ResourceList<TestResource>
-                    listInstanceId="test-resource-list-1"
-                    resourceType="TestResource"
-                    defaultSortBy="name"
+                    listInstanceId={`test-resource-list-1`}
+                    resourceType={`TestResource`}
+                    defaultSortBy={`name`}
                     defaultSortDirection={SortDirection.Ascending}
-                    initialRowHandler="ColumnListRowHandler"
+                    initialRowHandler={`ColumnListRowHandler`}
                     getResourcesList={mockGetResourcesList}
                     rowHandlers={[columnHandler]}
                     handlers={{
@@ -367,19 +367,19 @@ test("ResourceList checkbox functionality setup", async () => {
     expect(columnHandler.props.hideSelectionCheckboxColumn).toBe(false);
 
     // Find checkboxes - should have at least the header checkbox
-    const checkboxes = screen.getAllByRole("checkbox");
+    const checkboxes = screen.getAllByRole(`checkbox`);
     expect(checkboxes.length).toBeGreaterThan(0);
 
     // Verify the header checkbox (select all) is present
     const headerCheckbox = checkboxes[0];
-    expect(headerCheckbox).toHaveAttribute("data-state", "unchecked");
+    expect(headerCheckbox).toHaveAttribute(`data-state`, `unchecked`);
 
     // Verify ResourceList container structure
-    const resourceListContainer = container.querySelector(".ResourceList");
+    const resourceListContainer = container.querySelector(`.ResourceList`);
     expect(resourceListContainer).toBeInTheDocument();
 });
 
-test("ResourceList selection state management", async () => {
+test(`ResourceList selection state management`, async () => {
     const testResources = createTestResources(3);
     const columns = createTestColumns();
 
@@ -399,11 +399,11 @@ test("ResourceList selection state management", async () => {
         <div style={{ width: 800, height: 600 }}>
             <FilezProvider>
                 <ResourceList<TestResource>
-                    listInstanceId="test-resource-list-1"
-                    resourceType="TestResource"
-                    defaultSortBy="name"
+                    listInstanceId={`test-resource-list-1`}
+                    resourceType={`TestResource`}
+                    defaultSortBy={`name`}
                     defaultSortDirection={SortDirection.Ascending}
-                    initialRowHandler="ColumnListRowHandler"
+                    initialRowHandler={`ColumnListRowHandler`}
                     getResourcesList={mockGetResourcesList}
                     rowHandlers={[columnHandler]}
                     handlers={{
@@ -426,16 +426,16 @@ test("ResourceList selection state management", async () => {
     expect(mockOnSelect).toBeInstanceOf(Function);
 
     // Test keyboard navigation support for multi-selection exists
-    expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe("function");
+    expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe(`function`);
 
     // Test that keyboard navigation method can handle different scenarios
     const testCases = [
-        { key: "ArrowDown", selectedItems: [false, false, false] },
-        { key: "ArrowUp", selectedItems: [true, false, false] }
+        { key: `ArrowDown`, selectedItems: [false, false, false] },
+        { key: `ArrowUp`, selectedItems: [true, false, false] }
     ];
 
     testCases.forEach((testCase) => {
-        const result = columnHandler.getSelectedItemsAfterKeypress(
+        const _result = columnHandler.getSelectedItemsAfterKeypress(
             { key: testCase.key } as React.KeyboardEvent<HTMLDivElement>,
             testResources,
             testResources.length,
@@ -444,19 +444,19 @@ test("ResourceList selection state management", async () => {
             undefined
         );
         // Method should be callable (result can be undefined for some cases)
-        expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe("function");
+        expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe(`function`);
     });
 
     // Verify component structure supports selection
-    const resourceListContainer = container.querySelector(".ResourceList");
+    const resourceListContainer = container.querySelector(`.ResourceList`);
     expect(resourceListContainer).toBeInTheDocument();
 
     // Verify checkboxes support multi-selection
-    const checkboxes = screen.getAllByRole("checkbox");
+    const checkboxes = screen.getAllByRole(`checkbox`);
     expect(checkboxes.length).toBeGreaterThan(0);
 });
 
-test("Column handler implements required ListRowHandler methods", () => {
+test(`Column handler implements required ListRowHandler methods`, () => {
     const columns = createTestColumns();
 
     const columnHandler = new ColumnListRowHandler({
@@ -465,21 +465,21 @@ test("Column handler implements required ListRowHandler methods", () => {
     });
 
     // Test required methods exist
-    expect(typeof columnHandler.getRowHeight).toBe("function");
-    expect(typeof columnHandler.getRowCount).toBe("function");
-    expect(typeof columnHandler.isItemLoaded).toBe("function");
-    expect(typeof columnHandler.getItemKey).toBe("function");
-    expect(typeof columnHandler.getStartIndexAndLimit).toBe("function");
-    expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe("function");
-    expect(typeof columnHandler.rowRenderer).toBe("function");
-    expect(typeof columnHandler.headerRenderer).toBe("function");
+    expect(typeof columnHandler.getRowHeight).toBe(`function`);
+    expect(typeof columnHandler.getRowCount).toBe(`function`);
+    expect(typeof columnHandler.isItemLoaded).toBe(`function`);
+    expect(typeof columnHandler.getItemKey).toBe(`function`);
+    expect(typeof columnHandler.getStartIndexAndLimit).toBe(`function`);
+    expect(typeof columnHandler.getSelectedItemsAfterKeypress).toBe(`function`);
+    expect(typeof columnHandler.rowRenderer).toBe(`function`);
+    expect(typeof columnHandler.headerRenderer).toBe(`function`);
 
     // Test some basic method calls
     expect(columnHandler.getRowHeight(800, 600)).toBe(24);
     expect(columnHandler.getRowCount(10)).toBe(10);
 });
 
-test("Column handler without checkbox selection column", () => {
+test(`Column handler without checkbox selection column`, () => {
     const columns = createTestColumns();
 
     const columnHandler = new ColumnListRowHandler({
@@ -500,11 +500,11 @@ test("Column handler without checkbox selection column", () => {
     });
 
     // Should not have any checkboxes when disabled
-    const checkboxes = screen.queryAllByRole("checkbox");
+    const checkboxes = screen.queryAllByRole(`checkbox`);
     expect(checkboxes).toHaveLength(0);
 });
 
-test("ResourceList handles empty data gracefully", async () => {
+test(`ResourceList handles empty data gracefully`, async () => {
     const columns = createTestColumns();
 
     const mockGetResourcesList = vi.fn().mockResolvedValue({
@@ -520,11 +520,11 @@ test("ResourceList handles empty data gracefully", async () => {
     render(
         <FilezProvider>
             <ResourceList<TestResource>
-                listInstanceId="test-resource-list-1"
-                resourceType="TestResource"
-                defaultSortBy="name"
+                listInstanceId={`test-resource-list-1`}
+                resourceType={`TestResource`}
+                defaultSortBy={`name`}
                 defaultSortDirection={SortDirection.Ascending}
-                initialRowHandler="ColumnListRowHandler"
+                initialRowHandler={`ColumnListRowHandler`}
                 getResourcesList={mockGetResourcesList}
                 rowHandlers={[columnHandler]}
             />
@@ -540,7 +540,7 @@ test("ResourceList handles empty data gracefully", async () => {
     );
 
     // Should not crash and should not display any resource items
-    expect(screen.queryByText("Test Resource 1")).not.toBeInTheDocument();
+    expect(screen.queryByText(`Test Resource 1`)).not.toBeInTheDocument();
 });
 
 /*
@@ -579,7 +579,7 @@ test("ResourceList handles API errors gracefully", async () => {
     expect(screen.queryByText("Test Resource 1")).not.toBeInTheDocument();
 });
 */
-test("ResourceList calls API with correct parameters on sort change", async () => {
+test(`ResourceList calls API with correct parameters on sort change`, async () => {
     const testResources = createTestResources(3);
     const columns = createTestColumns();
 
@@ -602,11 +602,11 @@ test("ResourceList calls API with correct parameters on sort change", async () =
     render(
         <FilezProvider>
             <ResourceList<TestResource>
-                listInstanceId="test-resource-list-1"
-                resourceType="TestResource"
-                defaultSortBy="name"
+                listInstanceId={`test-resource-list-1`}
+                resourceType={`TestResource`}
+                defaultSortBy={`name`}
                 defaultSortDirection={SortDirection.Ascending}
-                initialRowHandler="ColumnListRowHandler"
+                initialRowHandler={`ColumnListRowHandler`}
                 getResourcesList={mockGetResourcesList}
                 rowHandlers={[columnHandler]}
             />
@@ -624,14 +624,14 @@ test("ResourceList calls API with correct parameters on sort change", async () =
     // Verify initial API call parameters
     expect(mockGetResourcesList).toHaveBeenCalledWith(
         expect.objectContaining({
-            sortBy: "name",
+            sortBy: `name`,
             sortDirection: SortDirection.Ascending
         })
     );
 
     // Simulate sorting change by calling the column handler's sort method
     act(() => {
-        columnHandler.setColumSorting("size", SortDirection.Descending);
+        columnHandler.setColumSorting(`size`, SortDirection.Descending);
     });
 
     // Wait for the sort change to trigger a new API call
@@ -645,7 +645,7 @@ test("ResourceList calls API with correct parameters on sort change", async () =
     // Verify the new API call has updated sort parameters
     expect(mockGetResourcesList).toHaveBeenLastCalledWith(
         expect.objectContaining({
-            sortBy: "size",
+            sortBy: `size`,
             sortDirection: SortDirection.Descending
         })
     );

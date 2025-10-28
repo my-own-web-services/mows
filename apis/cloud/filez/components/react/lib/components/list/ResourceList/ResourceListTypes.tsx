@@ -133,8 +133,8 @@ export interface ResourceListHandlers<FilezResourceType> {
     readonly onSelect?: ResourceListHandlersOnSelect<FilezResourceType>;
 }
 export enum RowRendererDirection {
-    Vertical = "vertical",
-    Horizontal = "horizontal"
+    Vertical = `vertical`,
+    Horizontal = `horizontal`
 }
 
 export interface RowComponentProps<FilezResourceType> {

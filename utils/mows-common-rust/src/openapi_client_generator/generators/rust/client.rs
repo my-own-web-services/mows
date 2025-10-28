@@ -67,7 +67,10 @@ pub fn generate_client_function(
         let response = self.client.{method}(full_url){}.headers(self.add_auth_headers()?){}.send().await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {{
-            return Err(ApiClientError::ApiError(response.text().await?));
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
         }}
             
         {}"#,
@@ -76,7 +79,16 @@ pub fn generate_client_function(
         if result_type == "reqwest::Response" {
             ""
         } else {
-            "let response = response.json().await?;"
+            r#"let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => parsed_response,
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };"#
         }
     );
 

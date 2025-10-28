@@ -95,6 +95,7 @@ pub mod authentication;
 pub mod health;
 
 pub mod sessions {
+    pub mod end;
     pub mod start;
 }
 

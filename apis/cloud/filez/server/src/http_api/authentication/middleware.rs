@@ -8,7 +8,6 @@ use crate::{
         users::FilezUser,
     },
     state::ServerState,
-    with_timing,
 };
 use axum::{extract::State, middleware::Next, response::Response, Extension};
 use axum_extra::{

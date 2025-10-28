@@ -1,8 +1,8 @@
+use crate::validation::Json;
 use axum::{
     extract::{Path, State},
     Extension,
 };
-use crate::validation::Json;
 
 use crate::{
     errors::FilezError,
