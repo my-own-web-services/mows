@@ -20,12 +20,12 @@ use utoipa::ToSchema;
     post,
     path = "/api/users/get",
     description = "Get users by their IDs",
-    request_body = GetUsersReqBody,
+    request_body = GetUsersRequestBody,
     responses(
         (
             status = 200,
             description = "Got Users",
-            body = ApiResponse<GetUsersResBody>
+            body = ApiResponse<GetUsersResponseBody>
         ),
         (
             status = 500,
@@ -35,13 +35,12 @@ use utoipa::ToSchema;
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
-
 pub async fn get_users(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState { database, .. }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
-    Json(request_body): Json<GetUsersReqBody>,
-) -> Result<Json<ApiResponse<GetUsersResBody>>, FilezError> {
+    Json(request_body): Json<GetUsersRequestBody>,
+) -> Result<Json<ApiResponse<GetUsersResponseBody>>, FilezError> {
     with_timing!(
         AccessPolicy::check(
             &database,
@@ -85,17 +84,17 @@ pub async fn get_users(
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Successfully retrieved users".to_string(),
-        data: Some(GetUsersResBody { users_meta }),
+        data: Some(GetUsersResponseBody { users_meta }),
     }))
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
-pub struct GetUsersReqBody {
+pub struct GetUsersRequestBody {
     pub user_ids: Vec<FilezUserId>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
-pub struct GetUsersResBody {
+pub struct GetUsersResponseBody {
     pub users_meta: HashMap<FilezUserId, UserMeta>,
 }
 

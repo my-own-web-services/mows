@@ -108,8 +108,13 @@ fn schema_to_rust_type(
                     .collect::<Vec<_>>()
                     .join(",\n    ");
 
+                let description = match &object.description {
+                    Some(desc) => format!("/// {}\n", desc.replace('\n', "\n/// ")),
+                    None => "".to_string(),
+                };
+
                 format!(
-                    r#"#[derive(Debug, Clone, Serialize, Deserialize)]
+                    r#"{description}#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum {name} {{
     {enum_variants}
 }}"#,
@@ -126,7 +131,6 @@ pub enum {name} {{
                 format!("bool")
             }
             (SchemaType::Type(Type::Null), _) => {
-                // Null type can be represented as Option<T>
                 if maybe_struct_name.is_some() {
                     format!("Option<{}>", maybe_struct_name.unwrap())
                 } else {
@@ -181,8 +185,13 @@ pub enum {name} {{
                         return Ok("pub type EmptyApiResponse=serde_json::Value;".to_string());
                     }
 
+                    let description = match &object.description {
+                        Some(desc) => format!("/// {}\n", desc.replace('\n', "\n/// ")),
+                        None => "".to_string(),
+                    };
+
                     format!(
-                        r#"#[derive(Debug, Clone, Serialize, Deserialize)]
+                        r#"{description}#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct {struct_name} {{
     {fields}
 }}"#,
@@ -206,7 +215,6 @@ pub struct {struct_name} {{
             },
         },
         Schema::OneOf(one_of) => {
-            // a enum with inner types
             let mut rust_enum_variants = Vec::new();
 
             if one_of.items.len() == 2 {
@@ -246,7 +254,6 @@ pub struct {struct_name} {{
                         Some(enum_name) => match object.properties.get(&enum_name) {
                             Some(obj) => {
                                 let enum_type = ref_or_schema_to_rust_type(all_types, None, obj)?;
-                                // if the enum name starts with a lowercase letter, capitalize it and add the serde rename attribute
 
                                 let enum_name = if enum_name.starts_with(char::is_lowercase) {
                                     format!(

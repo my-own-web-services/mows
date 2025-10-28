@@ -122,6 +122,7 @@ impl ApiClient {
         Ok(headers)
     }
 
+    /// Check if the user has access to the requested resources
     #[tracing::instrument(level = "trace")]
     pub async fn check_resource_access(
         &self,
@@ -158,6 +159,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Create a new access policy
     #[tracing::instrument(level = "trace")]
     pub async fn create_access_policy(
         &self,
@@ -194,6 +196,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Delete an access policy by its ID
     #[tracing::instrument(level = "trace")]
     pub async fn delete_access_policy(
         &self,
@@ -232,6 +235,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get access policies from the server by their IDs
     #[tracing::instrument(level = "trace")]
     pub async fn get_access_policy(
         &self,
@@ -268,6 +272,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List access policies from the server
     #[tracing::instrument(level = "trace")]
     pub async fn list_access_policies(
         &self,
@@ -304,6 +309,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Update an existing access policy
     #[tracing::instrument(level = "trace")]
     pub async fn update_access_policy(
         &self,
@@ -340,6 +346,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get apps from the server
     #[tracing::instrument(level = "trace")]
     pub async fn get_apps(
         &self,
@@ -376,6 +383,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List apps from the server
     #[tracing::instrument(level = "trace")]
     pub async fn list_apps(
         &self,
@@ -412,6 +420,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Resets the database to its initial state (for development purposes only)
     #[tracing::instrument(level = "trace")]
     pub async fn reset_database(
         &self,
@@ -448,6 +457,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Create a new file group
     #[tracing::instrument(level = "trace")]
     pub async fn create_file_group(
         &self,
@@ -484,6 +494,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Delete a file group by its ID
     #[tracing::instrument(level = "trace")]
     pub async fn delete_file_group(
         &self,
@@ -519,6 +530,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Gets file groups by their IDs
     #[tracing::instrument(level = "trace")]
     pub async fn get_file_group(
         &self,
@@ -555,6 +567,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List file groups
     #[tracing::instrument(level = "trace")]
     pub async fn list_file_groups(
         &self,
@@ -591,6 +604,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Lists files in a file group
     #[tracing::instrument(level = "trace")]
     pub async fn list_files_in_file_group(
         &self,
@@ -627,6 +641,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Update a file group
     #[tracing::instrument(level = "trace")]
     pub async fn update_file_group(
         &self,
@@ -663,6 +678,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Update the members of a file group
     #[tracing::instrument(level = "trace")]
     pub async fn update_file_group_members(
         &self,
@@ -699,6 +715,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get the content of a file version.
     #[tracing::instrument(level = "trace")]
     pub async fn get_file_version_content(
         &self,
@@ -741,6 +758,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get the offset of a file version for resuming a upload
     #[tracing::instrument(level = "trace")]
     pub async fn file_versions_content_tus_head(
         &self,
@@ -785,6 +803,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Patch a file version. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.
     #[tracing::instrument(level = "trace")]
     pub async fn file_versions_content_tus_patch(
         &self,
@@ -838,6 +857,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Create a new file version entry in the database
     #[tracing::instrument(level = "trace")]
     pub async fn create_file_version(
         &self,
@@ -874,6 +894,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Delete file versions in the database
     #[tracing::instrument(level = "trace")]
     pub async fn delete_file_versions(
         &self,
@@ -912,6 +933,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get file versions from the server for the given file version IDs
     #[tracing::instrument(level = "trace")]
     pub async fn get_file_versions(
         &self,
@@ -948,6 +970,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Updates a file version in the database
     #[tracing::instrument(level = "trace")]
     pub async fn update_file_version(
         &self,
@@ -984,6 +1007,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Create a new file entry in the database
     #[tracing::instrument(level = "trace")]
     pub async fn create_file(
         &self,
@@ -1020,6 +1044,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Delete a file entry in the database
     #[tracing::instrument(level = "trace")]
     pub async fn delete_file(
         &self,
@@ -1055,6 +1080,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get files from the server, NOT their content
     #[tracing::instrument(level = "trace")]
     pub async fn get_files(
         &self,
@@ -1091,6 +1117,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Update a file entry in the database, NOT the content of the file itself.
     #[tracing::instrument(level = "trace")]
     pub async fn update_file(
         &self,
@@ -1127,6 +1154,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get the health status of the service
     #[tracing::instrument(level = "trace")]
     pub async fn get_health(
         &self,
@@ -1162,6 +1190,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Pickup a job from the server
     #[tracing::instrument(level = "trace")]
     pub async fn pickup_job(
         &self,
@@ -1198,6 +1227,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Updates the status of a job on the server
     #[tracing::instrument(level = "trace")]
     pub async fn update_job_status(
         &self,
@@ -1234,6 +1264,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Create a new job in the database
     #[tracing::instrument(level = "trace")]
     pub async fn create_job(
         &self,
@@ -1270,6 +1301,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Delete a job from the database
     #[tracing::instrument(level = "trace")]
     pub async fn delete_job(
         &self,
@@ -1305,6 +1337,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get a job from the database
     #[tracing::instrument(level = "trace")]
     pub async fn get_job(
         &self,
@@ -1341,6 +1374,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List jobs from the database
     #[tracing::instrument(level = "trace")]
     pub async fn list_jobs(
         &self,
@@ -1377,6 +1411,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Update a job in the database
     #[tracing::instrument(level = "trace")]
     pub async fn update_job(
         &self,
@@ -1413,6 +1448,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Ends the current session
     #[tracing::instrument(level = "trace")]
     pub async fn end_session(
         &self,
@@ -1449,6 +1485,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Starts a new session valid for get requests from the same origin
     #[tracing::instrument(level = "trace")]
     pub async fn start_session(
         &self,
@@ -1485,6 +1522,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List storage locations from the database
     #[tracing::instrument(level = "trace")]
     pub async fn list_storage_locations(
         &self,
@@ -1521,6 +1559,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Create a new storage quota in the database
     #[tracing::instrument(level = "trace")]
     pub async fn create_storage_quota(
         &self,
@@ -1557,6 +1596,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Delete a storage quota by its ID
     #[tracing::instrument(level = "trace")]
     pub async fn delete_storage_quota(
         &self,
@@ -1595,6 +1635,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get storage quotas by their IDs
     #[tracing::instrument(level = "trace")]
     pub async fn get_storage_quotas(
         &self,
@@ -1631,6 +1672,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get storage quota usage information
     #[tracing::instrument(level = "trace")]
     pub async fn get_storage_quota_usage(
         &self,
@@ -1667,6 +1709,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List storage quotas
     #[tracing::instrument(level = "trace")]
     pub async fn list_storage_quotas(
         &self,
@@ -1703,6 +1746,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Update an existing storage quota in the database
     #[tracing::instrument(level = "trace")]
     pub async fn update_storage_quota(
         &self,
@@ -1739,6 +1783,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get the tags for the specified resources, resources must be of the same type per query.
     #[tracing::instrument(level = "trace")]
     pub async fn get_tags(
         &self,
@@ -1775,6 +1820,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List tags across resources with pagination and filtering
     #[tracing::instrument(level = "trace")]
     pub async fn list_tags(
         &self,
@@ -1811,6 +1857,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Update the tags for the specified resources, resources must be of the same type per query. The same operation is applied to all resources in the list.
     #[tracing::instrument(level = "trace")]
     pub async fn update_tags(
         &self,
@@ -1847,6 +1894,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Create a new user group in the database
     #[tracing::instrument(level = "trace")]
     pub async fn create_user_group(
         &self,
@@ -1883,6 +1931,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Delete a user group by its ID
     #[tracing::instrument(level = "trace")]
     pub async fn delete_user_group(
         &self,
@@ -1918,6 +1967,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get user groups by their IDs
     #[tracing::instrument(level = "trace")]
     pub async fn get_user_groups(
         &self,
@@ -1990,6 +2040,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List users in a user group by the user group ID
     #[tracing::instrument(level = "trace")]
     pub async fn list_users_by_user_group(
         &self,
@@ -2026,6 +2077,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Update an existing user group in the database
     #[tracing::instrument(level = "trace")]
     pub async fn update_user_group(
         &self,
@@ -2062,6 +2114,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Update the members of a user group by adding or removing users
     #[tracing::instrument(level = "trace")]
     pub async fn update_user_group_members(
         &self,
@@ -2098,6 +2151,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Create a new user in the database
     #[tracing::instrument(level = "trace")]
     pub async fn create_user(
         &self,
@@ -2134,6 +2188,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Delete a user from the database
     #[tracing::instrument(level = "trace")]
     pub async fn delete_user(
         &self,
@@ -2170,11 +2225,12 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get users by their IDs
     #[tracing::instrument(level = "trace")]
     pub async fn get_users(
         &self,
-        request_body: GetUsersReqBody,
-    ) -> Result<ApiResponseGetUsersResBody, ApiClientError> {
+        request_body: GetUsersRequestBody,
+    ) -> Result<ApiResponseGetUsersResponseBody, ApiClientError> {
         let full_url = format!("{}/api/users/get", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
 
@@ -2206,6 +2262,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Get own user
     #[tracing::instrument(level = "trace")]
     pub async fn get_own_user(&self) -> Result<ApiResponseGetOwnUserBody, ApiClientError> {
         let full_url = format!("{}/api/users/get_own", self.base_url);
@@ -2238,6 +2295,7 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List users in the database with pagination and sorting
     #[tracing::instrument(level = "trace")]
     pub async fn list_users(
         &self,

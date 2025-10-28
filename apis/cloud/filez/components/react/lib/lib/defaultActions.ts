@@ -129,6 +129,20 @@ export const defineApplicationActions = (
                     }
                 ]
             ])
+        }),
+        new Action({
+            id: ActionIds.OPEN_DEV_TOOLS,
+            category: `Developer`,
+            actionHandlers: new Map([
+                [
+                    `GlobalOpenDevTools`,
+                    {
+                        id: `GlobalOpenDevTools`,
+                        executeAction: () => filezContextProvider.changeActiveModal(`devTools`),
+                        getState: () => ({ visibility: `active` })
+                    }
+                ]
+            ])
         })
     ];
 };
@@ -142,5 +156,6 @@ export enum ActionIds {
     LOGIN = `filez.user.login`,
     LOGOUT = `filez.user.logout`,
     DELETE_FILES = `filez.files.delete`,
-    CREATE_FILE_GROUP = `filez.fileGroups.create`
+    CREATE_FILE_GROUP = `filez.fileGroups.create`,
+    OPEN_DEV_TOOLS = `filez.developer.openDevTools`
 }

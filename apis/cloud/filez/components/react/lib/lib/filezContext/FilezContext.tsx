@@ -49,7 +49,8 @@ export type ModalType =
     | `keyboardShortcutEditor`
     | `themeSelector`
     | `languageSelector`
-    | `fileGroupCreate`;
+    | `fileGroupCreate`
+    | `devTools`;
 
 interface FilezClientManagerProps {
     readonly children: ReactNode;

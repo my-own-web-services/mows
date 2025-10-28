@@ -427,7 +427,7 @@ export interface ApiResponseGetUserGroupsResponseBody {
   status: ApiResponseStatus;
 }
 
-export interface ApiResponseGetUsersResBody {
+export interface ApiResponseGetUsersResponseBody {
   data?: {
     users_meta: Record<string, UserMeta>;
   };
@@ -1186,11 +1186,11 @@ export interface GetUserGroupsResponseBody {
   user_groups: UserGroup[];
 }
 
-export interface GetUsersReqBody {
+export interface GetUsersRequestBody {
   user_ids: FilezUserId[];
 }
 
-export interface GetUsersResBody {
+export interface GetUsersResponseBody {
   users_meta: Record<string, UserMeta>;
 }
 
@@ -3216,8 +3216,11 @@ export class Api<
      * @name GetUsers
      * @request POST:/api/users/get
      */
-    getUsers: (data: GetUsersReqBody, params: RequestParams = {}) =>
-      this.request<ApiResponseGetUsersResBody, ApiResponseEmptyApiResponse>({
+    getUsers: (data: GetUsersRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseGetUsersResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
         path: `/api/users/get`,
         method: "POST",
         body: data,

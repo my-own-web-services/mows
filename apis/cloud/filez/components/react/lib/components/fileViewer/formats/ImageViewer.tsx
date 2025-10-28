@@ -51,10 +51,10 @@ export default class ImageViewer extends PureComponent<ImageViewerProps, ImageVi
     };
 
     render = () => {
-        const appId = `019a1146-f11c-78d4-8d70-b289b97b8514`;
+        const appId = `019a2b1e-4ec6-72ce-a71f-396e4bf90d56`;
         const appPath = this.getImageVersion();
 
-        const url = `${this.context?.filezClient.baseUrl}/api/file_versions/content/get/${this.props.file.id}/${this.props.fileVersion || 0}/${appId}/${appPath}`;
+        const url = `${this.context?.filezClient.baseUrl}/api/file_versions/content/get/${this.props.file.id}/${this.props.fileVersion || 0}/${appId}/${appPath}?cache=3600`;
 
         return (
             <div

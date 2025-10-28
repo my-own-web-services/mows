@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use filez_server_client::client::{ApiClient};
+    use filez_server_client::client::ApiClient;
 
     #[tokio::test]
     async fn test_api_client() {
@@ -9,9 +9,9 @@ mod tests {
             None,
             None,
             None,
-        ).unwrap();
+        )
+        .unwrap();
 
         client.get_health(true).await.unwrap();
     }
-
 }

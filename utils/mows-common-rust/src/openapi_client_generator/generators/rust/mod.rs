@@ -11,6 +11,7 @@ use utoipa::openapi::OpenApi;
 
 mod client;
 mod schema;
+mod types;
 
 pub struct RustGenerator {
     pub config: RustGeneratorConfig,
@@ -261,7 +262,10 @@ mod tests {
                 let mut rust_type =
                     ref_or_schema_to_rust_type(&mut types, Some(struct_name.to_string()), schema)?;
 
-                if !rust_type.starts_with("#[derive(") && !rust_type.starts_with("pub type") {
+                if !rust_type.contains("pub struct ")
+                    && !rust_type.contains("pub enum ")
+                    && !rust_type.starts_with("pub type")
+                {
                     rust_type = format!("pub type {} = {};", struct_name, rust_type);
                 }
                 types.insert(struct_name.to_string(), rust_type);

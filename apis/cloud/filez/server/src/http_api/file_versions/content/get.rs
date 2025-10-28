@@ -62,7 +62,7 @@ pub struct GetFileVersionContentQuery {
         (
             "cache" = Option<u64>,
             Query,
-            description = "If set, the cache control header will be set to public, max-age={c}"
+            description = "If set, the cache control header will be set to public, max-age={cache}"
         )
     ),
     responses(

@@ -1,4 +1,4 @@
-import ButtonSelect from "@/components/atoms/ButtonSelect/ButtonSelect";
+import ButtonSelect from "@/components/atoms/buttonSelect/ButtonSelect";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
@@ -536,7 +536,9 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
     debugBar = () => {
         if (this.props.displayDebugBar !== true) return null;
         return (
-            <div className={`DebugBar text-primary/30 flex gap-2 border-t-1 border-b-1 p-1 text-xs`}>
+            <div
+                className={`DebugBar text-primary/30 flex gap-2 border-t-1 border-b-1 p-1 text-xs`}
+            >
                 <span>
                     {this.state.resources.length} / {this.state.totalItemCount} items loaded.
                 </span>

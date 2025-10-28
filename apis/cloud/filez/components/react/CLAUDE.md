@@ -14,10 +14,14 @@
 
 - backward compatibility is NOT required yet, nobody is currently using this library, just check if it breaks something internally and fix it
 
+- All components should be exported from main
+
 # Style
 
 - use only arrow functions where possible especially in classes
 - All constants should be defined in constants.ts, for example local storage access keys
+- run pnpm lint:fix to format the files
+- Don't use `bg-gray-50` or similar classes but the foreground and background colors
 
 # Building
 
