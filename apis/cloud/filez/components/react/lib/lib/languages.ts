@@ -132,6 +132,55 @@ export interface Translation {
             delete: (fileCount: number) => string;
         };
     };
+    devPanel: {
+        tasks: {
+            title: string;
+            description: string;
+            searchPlaceholder: string;
+            runAllTitle: string;
+            runAllButton: string;
+            running: string;
+            individualTitle: string;
+            noTasksFound: string;
+            tasksCount: string;
+        };
+        apiTests: {
+            title: string;
+            description: string;
+            searchPlaceholder: string;
+            runAllTitle: string;
+            runAllButton: string;
+            running: string;
+            individualTitle: string;
+            noTestsFound: string;
+            testsCount: string;
+            runMode: {
+                sequential: string;
+                parallel: string;
+            };
+        };
+        status: {
+            idle: string;
+            running: string;
+            success: string;
+            error: string;
+        };
+    };
+    loggingConfig: {
+        title: string;
+        description: string;
+        defaultLevel: string;
+        fileFilters: string;
+        noFileFilters: string;
+        addFileFilter: string;
+        filePatternPlaceholder: string;
+        remove: string;
+        add: string;
+    };
+    devTools: {
+        title: string;
+        description: string;
+    };
 }
 
 export const getBrowserLanguage = (): Language => {

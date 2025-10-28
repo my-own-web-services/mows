@@ -1,15 +1,7 @@
-import CommandPalette from "@/components/atoms/CommandPalette";
-import { ResourceTagsMap } from "@/components/atoms/ResourceTags/ResourceTags";
+import CommandPalette from "@/components/atoms/commandPalette/CommandPalette";
+import { ResourceTagsMap } from "@/components/atoms/resourceTags/ResourceTags";
 import PrimaryMenu from "@/components/PrimaryMenu";
-import {
-    FileList,
-    FilezContext,
-    GlobalContextMenu,
-    JobsProgress,
-    ModalHandler,
-    Toaster,
-    Upload
-} from "@/main";
+import { FileList, FilezContext, GlobalContextMenu, ModalHandler, Toaster, Upload } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
 
 interface AppProps {
@@ -60,23 +52,21 @@ export default class App extends PureComponent<AppProps, AppState> {
                 ></FileList>
                 <GlobalContextMenu></GlobalContextMenu>
                 <Upload className={`h-[800px] w-full`}></Upload>
-                <JobsProgress></JobsProgress>
             </div>
         );
     };
 }
 
 /*
-                              <Upload className="h-[800px] w-full"></Upload>
-                <JobsProgress></JobsProgress>
+<Upload className="h-[800px] w-full"></Upload>
+<JobsProgress></JobsProgress>
 
-                <ResourceTags
-                    className="w-[500px] p-4"
-                    tagsMap={this.state.tagsMap}
-                    resourceType={TagResourceType.File}
-                    onCommit={(changes) => {
-                        log.debug("Committed changes:", changes);
-                    }}
-                ></ResourceTags>
-
+<ResourceTags
+    className="w-[500px] p-4"
+    tagsMap={this.state.tagsMap}
+    resourceType={TagResourceType.File}
+    onCommit={(changes) => {
+        log.debug("Committed changes:", changes);
+    }}
+></ResourceTags>
 */

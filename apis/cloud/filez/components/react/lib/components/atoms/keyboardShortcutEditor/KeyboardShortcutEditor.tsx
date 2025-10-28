@@ -5,10 +5,10 @@ import { FilezContext } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
 import { MdDelete, MdEdit, MdRestartAlt } from "react-icons/md";
 import { RiResetLeftFill } from "react-icons/ri";
-import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Input } from "../ui/input";
-import { KeyComboDisplay } from "./KeyComboDisplay";
+import { Button } from "../../ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../ui/dialog";
+import { Input } from "../../ui/input";
+import { KeyComboDisplay } from "../keyComboDisplay/KeyComboDisplay";
 
 interface KeyboardShortcutEditorProps {
     readonly className?: string;

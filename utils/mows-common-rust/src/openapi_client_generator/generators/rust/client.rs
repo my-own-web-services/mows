@@ -37,8 +37,14 @@ pub fn generate_client_function(
     let function_arguments: Vec<FunctionArgument> = parse_function_arguments(&operation)?;
     let result_type = get_result_type(&operation.responses)?;
 
+    let description = if let Some(desc) = &operation.description {
+        format!("/// {}\n", desc)
+    } else {
+        "".to_string()
+    };
+
     let function_top_line = format!(
-        "#[tracing::instrument(level = \"trace\")]
+        "{description}    #[tracing::instrument(level = \"trace\")]
     pub async fn {}(&self{} {}) -> Result<{}, ApiClientError> {{",
         operation
             .operation_id

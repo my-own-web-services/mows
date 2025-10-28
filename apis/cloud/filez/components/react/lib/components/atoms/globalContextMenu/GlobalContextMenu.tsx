@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { PureComponent, type CSSProperties } from "react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "../ui/dropdown-menu";
-import ActionComponent from "./ActionDisplay";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "../../ui/dropdown-menu";
+import ActionComponent from "../actionDisplay/ActionDisplay";
 
 interface GlobalContextMenuProps {
     readonly className?: string;

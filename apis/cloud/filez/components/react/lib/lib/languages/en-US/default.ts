@@ -56,7 +56,8 @@ const translation: Translation = {
         [ActionIds.LOGIN]: `Login`,
         [ActionIds.LOGOUT]: `Logout`,
         [ActionIds.DELETE_FILES]: `Delete files`,
-        [ActionIds.CREATE_FILE_GROUP]: `Create file group`
+        [ActionIds.CREATE_FILE_GROUP]: `Create file group`,
+        [ActionIds.OPEN_DEV_TOOLS]: `Open developer tools`
     },
     commandPalette: {
         placeholder: `Type a command or search...`,
@@ -137,6 +138,55 @@ const translation: Translation = {
         files: {
             delete: (fileCount: number) => fileCount === 1 ? `Delete file` : `Delete ${fileCount} files`
         }
+    },
+    devPanel: {
+        tasks: {
+            title: `Tasks`,
+            description: `Search, run, and monitor development tasks`,
+            searchPlaceholder: `Search tasks...`,
+            runAllTitle: `Run All Tasks`,
+            runAllButton: `Run All Tasks`,
+            running: `Running...`,
+            individualTitle: `Individual Tasks`,
+            noTasksFound: `No tasks found matching`,
+            tasksCount: `tasks`
+        },
+        apiTests: {
+            title: `API Tests`,
+            description: `Search, run, and monitor API integration tests`,
+            searchPlaceholder: `Search tests...`,
+            runAllTitle: `Run All Tests`,
+            runAllButton: `Run All Tests`,
+            running: `Running...`,
+            individualTitle: `Individual Tests`,
+            noTestsFound: `No tests found matching`,
+            testsCount: `tests`,
+            runMode: {
+                sequential: `Sequential (one at a time)`,
+                parallel: `Parallel (all at once)`
+            }
+        },
+        status: {
+            idle: `Idle`,
+            running: `Running`,
+            success: `Success`,
+            error: `Error`
+        }
+    },
+    loggingConfig: {
+        title: `Logging Configuration`,
+        description: `Configure logging levels and file-specific filters`,
+        defaultLevel: `Default Log Level`,
+        fileFilters: `File-Specific Filters`,
+        noFileFilters: `No file-specific filters configured`,
+        addFileFilter: `Add File Filter`,
+        filePatternPlaceholder: `e.g., HotkeyManager, FileViewer`,
+        remove: `Remove`,
+        add: `Add`
+    },
+    devTools: {
+        title: `Developer Tools`,
+        description: `Development tasks, API tests, and logging configuration`
     }
 };
 

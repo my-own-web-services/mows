@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { FilezUser } from "filez-client-typescript";
 import { type CSSProperties, PureComponent } from "react";
-import { Skeleton } from "../ui/skeleton";
+import { Skeleton } from "../../ui/skeleton";
 
 interface AvatarProps {
     readonly className?: string;

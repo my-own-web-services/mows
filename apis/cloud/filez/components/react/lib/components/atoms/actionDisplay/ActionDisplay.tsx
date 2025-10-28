@@ -2,7 +2,7 @@ import { Action } from "@/lib/filezContext/ActionManager";
 import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
 import { PureComponent, type CSSProperties } from "react";
-import KeyComboDisplay from "./KeyComboDisplay";
+import KeyComboDisplay from "../keyComboDisplay/KeyComboDisplay";
 
 interface ActionDisplayProps {
     readonly className?: string;

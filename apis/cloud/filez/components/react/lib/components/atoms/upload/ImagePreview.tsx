@@ -1,4 +1,4 @@
-import FileIcon from "@/components/atoms/FileIcon/FileIcon";
+import FileIcon from "@/components/atoms/fileIcon/FileIcon";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilezContext } from "@/lib/filezContext/FilezContext";

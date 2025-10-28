@@ -27,7 +27,7 @@ pub struct AuthenticationInformation {
     pub requesting_app_runtime_instance_id: Option<String>,
 }
 
-#[tracing::instrument(skip(database), level = "trace")]
+#[tracing::instrument(skip(database, session), level = "trace")]
 pub async fn authentication_middleware(
     State(ServerState {
         introspection_state,

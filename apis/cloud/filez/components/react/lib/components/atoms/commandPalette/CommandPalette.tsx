@@ -10,8 +10,8 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "../ui/command";
-import ActionComponent from "./ActionDisplay";
+} from "../../ui/command";
+import ActionComponent from "../actionDisplay/ActionDisplay";
 
 interface CommandPaletteProps {
     readonly className?: string;

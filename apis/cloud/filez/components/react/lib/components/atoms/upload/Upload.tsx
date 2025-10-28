@@ -13,9 +13,9 @@ import { cn, formatFileSizeToHumanReadable, generateRandomId } from "@/lib/utils
 import { FileGroup, SortDirection, StorageQuota } from "filez-client-typescript";
 import { Folder, Upload as UploadIcon } from "lucide-react";
 import { createRef, PureComponent, type CSSProperties, type ReactNode } from "react";
-import DateTime from "../DateTime/DateTime";
-import FileGroupPicker from "../FileGroupPicker";
-import StorageQuotaPicker from "../StorageQuotaPicker";
+import DateTime from "../dateTime/DateTime";
+import FileGroupPicker from "../fileGroupPicker/FileGroupPicker";
+import StorageQuotaPicker from "../storageQuotaPicker/StorageQuotaPicker";
 import { handleFileUpload, UploadFileRequest, UploadProgressData } from "./handleUpload";
 import ImagePreview from "./ImagePreview";
 
@@ -592,7 +592,9 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                                         if (status === `pending`) {
                                             return (
                                                 <div className={`flex items-center gap-2`}>
-                                                    <span className={`text-muted-foreground text-sm`}>
+                                                    <span
+                                                        className={`text-muted-foreground text-sm`}
+                                                    >
                                                         {t.upload.status.pending}
                                                     </span>
                                                 </div>
@@ -606,7 +608,9 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                                                         value={progress || 0}
                                                         className={`flex-1`}
                                                     />
-                                                    <span className={`text-muted-foreground min-w-[40px] text-sm`}>
+                                                    <span
+                                                        className={`text-muted-foreground min-w-[40px] text-sm`}
+                                                    >
                                                         {progress || 0}%
                                                     </span>
                                                 </div>
@@ -637,7 +641,9 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                                         }
 
                                         return (
-                                            <span className={`text-muted-foreground text-sm`}>-</span>
+                                            <span className={`text-muted-foreground text-sm`}>
+                                                -
+                                            </span>
                                         );
                                     }
                                 }

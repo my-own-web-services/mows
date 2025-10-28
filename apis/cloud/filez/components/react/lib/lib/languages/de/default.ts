@@ -57,7 +57,8 @@ const translation: Translation = {
         [ActionIds.LOGIN]: `Anmelden`,
         [ActionIds.LOGOUT]: `Abmelden`,
         [ActionIds.DELETE_FILES]: `Dateien löschen`,
-        [ActionIds.CREATE_FILE_GROUP]: `Dateigruppe erstellen`
+        [ActionIds.CREATE_FILE_GROUP]: `Dateigruppe erstellen`,
+        [ActionIds.OPEN_DEV_TOOLS]: `Entwicklerwerkzeuge öffnen`
     },
     commandPalette: {
         placeholder: `Befehl eingeben oder suchen...`,
@@ -138,6 +139,55 @@ const translation: Translation = {
         files: {
             delete: (fileCount: number) => fileCount === 1 ? `Datei löschen` : `${fileCount} Dateien löschen`
         }
+    },
+    devPanel: {
+        tasks: {
+            title: `Aufgaben`,
+            description: `Entwicklungsaufgaben suchen, ausführen und überwachen`,
+            searchPlaceholder: `Aufgaben durchsuchen...`,
+            runAllTitle: `Alle Aufgaben ausführen`,
+            runAllButton: `Alle Aufgaben ausführen`,
+            running: `Wird ausgeführt...`,
+            individualTitle: `Einzelne Aufgaben`,
+            noTasksFound: `Keine Aufgaben gefunden, die übereinstimmen mit`,
+            tasksCount: `Aufgaben`
+        },
+        apiTests: {
+            title: `API-Tests`,
+            description: `API-Integrationstests suchen, ausführen und überwachen`,
+            searchPlaceholder: `Tests durchsuchen...`,
+            runAllTitle: `Alle Tests ausführen`,
+            runAllButton: `Alle Tests ausführen`,
+            running: `Wird ausgeführt...`,
+            individualTitle: `Einzelne Tests`,
+            noTestsFound: `Keine Tests gefunden, die übereinstimmen mit`,
+            testsCount: `Tests`,
+            runMode: {
+                sequential: `Sequenziell (nacheinander)`,
+                parallel: `Parallel (gleichzeitig)`
+            }
+        },
+        status: {
+            idle: `Bereit`,
+            running: `Läuft`,
+            success: `Erfolgreich`,
+            error: `Fehler`
+        }
+    },
+    loggingConfig: {
+        title: `Logging-Konfiguration`,
+        description: `Log-Level und dateispezifische Filter konfigurieren`,
+        defaultLevel: `Standard-Log-Level`,
+        fileFilters: `Dateispezifische Filter`,
+        noFileFilters: `Keine dateispezifischen Filter konfiguriert`,
+        addFileFilter: `Dateifilter hinzufügen`,
+        filePatternPlaceholder: `z.B. HotkeyManager, FileViewer`,
+        remove: `Entfernen`,
+        add: `Hinzufügen`
+    },
+    devTools: {
+        title: `Entwicklerwerkzeuge`,
+        description: `Entwicklungsaufgaben, API-Tests und Logging-Konfiguration`
     }
 };
 

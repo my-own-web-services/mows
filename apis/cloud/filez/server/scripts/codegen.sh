@@ -39,3 +39,4 @@ docker remove filez-server-codegen-server --force
 # rust
 
 cargo run --bin clientgen
+cd ../clients/rust/ && cargo fmt && cd -

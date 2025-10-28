@@ -1,4 +1,4 @@
-import OptionPicker from "@/components/atoms/OptionPicker";
+import OptionPicker from "@/components/atoms/optionPicker/OptionPicker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";

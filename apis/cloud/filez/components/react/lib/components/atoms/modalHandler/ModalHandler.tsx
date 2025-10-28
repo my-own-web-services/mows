@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
 import { FilezContext, ModalType } from "@/main";
 import { PureComponent, type CSSProperties, type ReactNode } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
-import FileGroupCreate from "./FileGroupCreate";
-import KeyboardShortcuts from "./KeyboardShortcutEditor";
-import LanguagePicker from "./LanguagePicker";
-import ThemePicker from "./ThemePicker";
+import DevPanel from "../../development/DevPanel";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../ui/dialog";
+import FileGroupCreate from "../fileGroupCreate/FileGroupCreate";
+import KeyboardShortcuts from "../keyboardShortcutEditor/KeyboardShortcutEditor";
+import LanguagePicker from "../languagePicker/LanguagePicker";
+import ThemePicker from "../themePicker/ThemePicker";
 
 interface ModalHandlerProps {
     readonly className?: string;
@@ -21,48 +22,64 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
     modals: Record<ModalType, { component: () => ReactNode }> = {
         keyboardShortcutEditor: {
             component: () => (
-                <DialogContent className={`max-h-[90vh] max-w-4xl w-full overflow-y-auto select-none`}>
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{this.context?.t.keyboardShortcuts.title}</DialogTitle>
                         <DialogDescription aria-describedby={undefined} />
                     </DialogHeader>
-                    <KeyboardShortcuts />
+                    <KeyboardShortcuts className={`overflow-y-auto p-6`} />
                 </DialogContent>
             )
         },
         themeSelector: {
             component: () => (
-                <DialogContent className={`max-h-[90vh] overflow-y-auto select-none`}>
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{this.context?.t.themePicker.title}</DialogTitle>
                         <DialogDescription aria-describedby={undefined} />
                     </DialogHeader>
-                    <ThemePicker standalone />
+                    <ThemePicker className={`overflow-y-auto px-6 pb-6`} standalone />
                 </DialogContent>
             )
         },
         languageSelector: {
             component: () => (
-                <DialogContent className={`max-h-[90vh] overflow-y-auto select-none`}>
+                <DialogContent className={`max-h-52`}>
                     <DialogHeader>
                         <DialogTitle>{this.context?.t.languagePicker.title}</DialogTitle>
                         <DialogDescription aria-describedby={undefined} />
                     </DialogHeader>
-                    <LanguagePicker standalone />
+                    <LanguagePicker className={`overflow-y-auto px-6 pb-6`} standalone />
                 </DialogContent>
             )
         },
         fileGroupCreate: {
             component: () => (
-                <DialogContent className={`max-h-[90vh] overflow-y-auto select-none`}>
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{this.context?.t.fileGroupCreate.title}</DialogTitle>
-                        <DialogDescription>{this.context?.t.fileGroupCreate.description}</DialogDescription>
+                        <DialogDescription>
+                            {this.context?.t.fileGroupCreate.description}
+                        </DialogDescription>
                     </DialogHeader>
                     <FileGroupCreate
+                        className={`overflow-y-auto px-6 pb-6`}
                         onCancel={() => this.context?.changeActiveModal(undefined)}
                         onFileGroupCreated={() => this.context?.changeActiveModal(undefined)}
                     />
+                </DialogContent>
+            )
+        },
+        devTools: {
+            component: () => (
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{this.context?.t.devTools.title}</DialogTitle>
+                        <DialogDescription>
+                            {this.context?.t.devTools.description}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DevPanel className={`overflow-y-auto select-none`} />
                 </DialogContent>
             )
         }
@@ -81,7 +98,7 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
         return (
             <div
                 style={{ ...this.props.style }}
-                className={cn(`ModalHandler`, this.props.className)}
+                className={cn(`ModalHandler w-full`, this.props.className)}
             >
                 <Dialog
                     open={true}

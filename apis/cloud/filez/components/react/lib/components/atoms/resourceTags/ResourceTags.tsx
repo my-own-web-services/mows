@@ -16,7 +16,7 @@ import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../../ui/input-group";
 import { Textarea } from "../../ui/textarea";
-import ButtonSelect from "../ButtonSelect/ButtonSelect";
+import ButtonSelect from "../buttonSelect/ButtonSelect";
 
 export interface ResourceTagsChangeset {
     resourceIds: string[];
@@ -441,7 +441,9 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
         const { t } = this.context!;
         const allTags = this.convertMapToCommonTags(this.props.tagsMap);
         return (
-            <div className={`outline-muted flex min-h-[40px] flex-wrap gap-2 rounded-lg p-2 outline-1`}>
+            <div
+                className={`outline-muted flex min-h-[40px] flex-wrap gap-2 rounded-lg p-2 outline-1`}
+            >
                 {allTags.map((tag, index) => {
                     const matches = this.tagMatchesSearch(tag);
                     return (
@@ -493,7 +495,9 @@ export default class ResourceTags extends PureComponent<ResourceTagsProps, Resou
         }
 
         return (
-            <div className={`bg-popover absolute top-full right-0 left-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border shadow-md`}>
+            <div
+                className={`bg-popover absolute top-full right-0 left-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border shadow-md`}
+            >
                 {this.state.searchResults.map((tag, index) => (
                     <button
                         key={`${tag.key}-${tag.value}-${index}`}

@@ -16,10 +16,10 @@ import { LiaKeyboard } from "react-icons/lia";
 import { PiUserSwitchFill } from "react-icons/pi";
 import { match } from "ts-pattern";
 import { FilezContext } from "../lib/filezContext/FilezContext";
-import Avatar from "./atoms/Avatar";
-import CopyValueButton from "./atoms/CopyValueButton";
-import LanguagePicker from "./atoms/LanguagePicker";
-import ThemePicker from "./atoms/ThemePicker";
+import Avatar from "./atoms/avatar/Avatar";
+import CopyValueButton from "./atoms/copyValueButton/CopyValueButton";
+import LanguagePicker from "./atoms/languagePicker/LanguagePicker";
+import ThemePicker from "./atoms/themePicker/ThemePicker";
 
 interface PrimaryMenuProps {
     readonly className?: string;

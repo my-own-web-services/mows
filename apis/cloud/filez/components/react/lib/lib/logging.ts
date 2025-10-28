@@ -1,12 +1,48 @@
+import { FILEZ_LOG_LEVEL_LOCAL_STORAGE_KEY } from "./constants";
+
 type LogLevel = `TRACE` | `DEBUG` | `INFO` | `WARN` | `ERROR`;
 
-export class Logger {
-    static fileFilter: Record<string, LogLevel> = {
-        HotkeyManager: `DEBUG`
-    };
+interface LogConfig {
+	defaultLevel: LogLevel;
+	fileFilter: Record<string, LogLevel>;
+}
 
-    static defaultLevel: LogLevel = `ERROR`;
-    enableCallerInfo: boolean = true;
+export class Logger {
+	static fileFilter: Record<string, LogLevel> = {
+		HotkeyManager: `DEBUG`
+	};
+
+	static defaultLevel: LogLevel = `ERROR`;
+	enableCallerInfo: boolean = true;
+
+	static loadConfig = (): void => {
+		if (typeof window === `undefined`) return;
+
+		try {
+			const stored = localStorage.getItem(FILEZ_LOG_LEVEL_LOCAL_STORAGE_KEY);
+			if (stored) {
+				const config: LogConfig = JSON.parse(stored);
+				Logger.defaultLevel = config.defaultLevel;
+				Logger.fileFilter = config.fileFilter;
+			}
+		} catch (error) {
+			console.error(`Failed to load logging config from localStorage:`, error);
+		}
+	};
+
+	static saveConfig = (): void => {
+		if (typeof window === `undefined`) return;
+
+		try {
+			const config: LogConfig = {
+				defaultLevel: Logger.defaultLevel,
+				fileFilter: Logger.fileFilter
+			};
+			localStorage.setItem(FILEZ_LOG_LEVEL_LOCAL_STORAGE_KEY, JSON.stringify(config));
+		} catch (error) {
+			console.error(`Failed to save logging config to localStorage:`, error);
+		}
+	};
 
     private logLevels: Record<LogLevel, number> = {
         TRACE: 0,
@@ -104,3 +140,19 @@ export class Logger {
 }
 
 export const log = new Logger();
+
+// Load saved configuration from localStorage
+Logger.loadConfig();
+
+// Expose Logger to window for configuration in tests and debugging
+declare global {
+	interface Window {
+		FilezLogger?: typeof Logger;
+		filezLog?: Logger;
+	}
+}
+
+if (typeof window !== `undefined`) {
+	window.FilezLogger = Logger;
+	window.filezLog = log;
+}
