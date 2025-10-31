@@ -1,10 +1,12 @@
 import ButtonSelect from "@/components/atoms/buttonSelect/ButtonSelect";
+import { Button } from "@/components/ui/button";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { SortDirection } from "filez-client-typescript";
 import update from "immutability-helper";
 import cloneDeep from "lodash/cloneDeep";
+import { RefreshCw } from "lucide-react";
 import React, { CSSProperties, Component, JSX, createRef } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
@@ -554,10 +556,19 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
     };
 
     listHeader = () => {
+        const { t } = this.context!;
         if (this.props.displayListHeader === false) return null;
         if (this.props.listHeaderElement) return this.props.listHeaderElement;
         return (
-            <div className={`flex h-12 w-full items-center justify-end pr-4`}>
+            <div className={`flex h-12 w-full items-center justify-end gap-2 pr-4`}>
+                <Button
+                    size={`icon-sm`}
+                    variant={`outline`}
+                    onClick={this.refreshList}
+                    title={t.resourceList.reload}
+                >
+                    <RefreshCw />
+                </Button>
                 {this.props.rowHandlers.length > 1 && (
                     <ButtonSelect
                         size={`icon-sm`}

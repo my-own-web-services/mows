@@ -1,17 +1,17 @@
 use crate::openapi_client_generator::{
     generators::rust::{
         client::{generate_client_function, get_operations},
-        schema::ref_or_schema_to_rust_type,
+        schema::openapi_schema_to_rust_type,
+        types::ToRustCode,
     },
     ClientGeneratorError, VirtualFileSystem,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use utoipa::openapi::OpenApi;
 
 mod client;
 mod schema;
-mod types;
+pub mod types;
 
 pub struct RustGenerator {
     pub config: RustGeneratorConfig,
@@ -97,7 +97,7 @@ use reqwest::Url;
 use reqwest::header::HeaderMap;
 use reqwest_middleware::{{ClientBuilder, ClientWithMiddleware}};
 use reqwest_tracing::TracingMiddleware;
-use tracing::error;
+use tracing::{{error,trace}};
 
 
 #[derive(Debug, Clone)]
@@ -255,20 +255,16 @@ mod tests {
     }
 
     fn generate_and_write_types(&mut self) -> Result<(), ClientGeneratorError> {
-        let mut types = HashMap::new();
+        let mut type_definitions = Vec::new();
 
         if let Some(components) = &self.spec.components {
-            for (struct_name, schema) in &components.schemas {
-                let mut rust_type =
-                    ref_or_schema_to_rust_type(&mut types, Some(struct_name.to_string()), schema)?;
-
-                if !rust_type.contains("pub struct ")
-                    && !rust_type.contains("pub enum ")
-                    && !rust_type.starts_with("pub type")
+            for (type_name, schema) in &components.schemas {
+                if let Some(rust_type) =
+                    openapi_schema_to_rust_type(Some(type_name.to_string()), schema)?
                 {
-                    rust_type = format!("pub type {} = {};", struct_name, rust_type);
+                    type_definitions.push((type_name.clone(), rust_type.to_rust_code()));
                 }
-                types.insert(struct_name.to_string(), rust_type);
+                // If None, skip this type (it's just a reference or something we don't generate)
             }
         }
 
@@ -277,16 +273,16 @@ mod tests {
 use serde::{{Deserialize, Serialize}};
 use serde_json::Value;
 use uuid::Uuid;
-use chrono::NaiveDateTime;
+use chrono::{{NaiveDateTime}};
 use std::collections::HashMap;
 
 {}
 "#,
-            types
+            type_definitions
                 .iter()
-                .map(|(key, value)| format!(
-                    r#"// {key}
-{value}
+                .map(|(name, code)| format!(
+                    r#"// {name}
+{code}
 "#
                 ))
                 .collect::<Vec<_>>()

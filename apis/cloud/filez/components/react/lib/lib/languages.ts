@@ -181,6 +181,18 @@ export interface Translation {
         title: string;
         description: string;
     };
+    resourceList: {
+        reload: string;
+    };
+    jobList: {
+        columns: {
+            name: string;
+            status: string;
+            app: string;
+            created: string;
+            modified: string;
+        };
+    };
 }
 
 export const getBrowserLanguage = (): Language => {

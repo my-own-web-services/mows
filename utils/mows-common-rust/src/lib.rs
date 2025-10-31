@@ -9,4 +9,5 @@ pub mod macros;
 pub mod templating;
 pub mod utils;
 
+pub mod diesel;
 pub mod openapi_client_generator;

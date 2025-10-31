@@ -134,11 +134,11 @@ export const handleFileUpload = async (
                         file_version_number: fileVersionResponse.version,
                         storage_location_id: fileVersionResponse.storage_location_id,
                         storage_quota_id: storageQuota.id,
-                        allowed_number_of_previews: 5,
+                        allowed_number_of_previews: 3,
                         allowed_size_bytes: 10_000_000,
                         allowed_mime_types: [`image/avif`],
                         preview_config: {
-                            widths: [100, 250, 500, 1000, 2000],
+                            widths: [100, 250, 500],
                             formats: [`Avif`]
                         }
                     }

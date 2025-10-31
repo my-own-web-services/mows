@@ -120,6 +120,10 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     return;
                 }
                 log.debug(`Delete files action triggered for files:`, selectedItems);
+                for (const file of selectedItems) {
+                    log.info(`Deleting file: ${file.name} (${file.id})`);
+                    this.context?.filezClient.api.deleteFile(file.id);
+                }
             },
             id: this.listId,
             scopes: [this.listActionScopeId],

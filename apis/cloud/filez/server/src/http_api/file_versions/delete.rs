@@ -91,11 +91,11 @@ pub async fn delete_file_versions(
         timing
     );
 
-    FileVersion::delete(
-        &storage_location_providers,
+    FileVersion::delete_one(
         &database,
-        &file_version,
+        &storage_location_providers,
         &timing,
+        &file_version,
     )
     .await?;
 

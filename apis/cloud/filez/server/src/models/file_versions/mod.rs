@@ -206,12 +206,26 @@ impl FileVersion {
     #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_many_by_file_version_id(
         database: &Database,
-        file_id: &Vec<FileVersionId>,
+        file_version_id: &Vec<FileVersionId>,
     ) -> Result<Vec<FileVersion>, FilezError> {
         let mut connection = database.get_connection().await?;
 
         let file_versions = file_versions::table
-            .filter(file_versions::id.eq_any(file_id))
+            .filter(file_versions::id.eq_any(file_version_id))
+            .load::<FileVersion>(&mut connection)
+            .await?;
+
+        Ok(file_versions)
+    }
+
+    pub async fn get_all_by_file_id(
+        database: &Database,
+        file_id: FilezFileId,
+    ) -> Result<Vec<FileVersion>, FilezError> {
+        let mut connection = database.get_connection().await?;
+
+        let file_versions = file_versions::table
+            .filter(file_versions::file_id.eq(file_id))
             .load::<FileVersion>(&mut connection)
             .await?;
 
@@ -426,11 +440,11 @@ impl FileVersion {
     }
 
     #[tracing::instrument(skip(database), level = "trace")]
-    pub async fn delete(
-        storage_locations_provider_state: &StorageLocationState,
+    pub async fn delete_one(
         database: &Database,
-        file_version_to_delete: &FileVersion,
+        storage_locations_provider_state: &StorageLocationState,
         timing: &axum_server_timing::ServerTimingExtension,
+        file_version_to_delete: &FileVersion,
     ) -> Result<(), FilezError> {
         if file_version_to_delete
             .existing_content_bytes
@@ -455,7 +469,6 @@ impl FileVersion {
     async fn delete_database_entry(&self, database: &Database) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
 
-        // delete by id
         diesel::delete(file_versions::table.filter(file_versions::id.eq(self.id)))
             .execute(&mut connection)
             .await?;

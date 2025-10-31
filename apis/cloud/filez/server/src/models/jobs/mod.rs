@@ -342,7 +342,6 @@ impl FilezJob {
         sort_order: Option<SortDirection>,
     ) -> Result<(Vec<FilezJob>, u64), FilezError> {
         let mut connection = database.get_connection().await?;
-        let mut query = schema::jobs::table.into_boxed();
 
         let resources_with_access = AccessPolicy::get_all_resources_with_user_access(
             database,
@@ -352,6 +351,11 @@ impl FilezJob {
             AccessPolicyAction::FilezJobsList,
         )
         .await?;
+
+        let mut query = schema::jobs::table
+            .filter(schema::jobs::id.eq_any(resources_with_access.clone()))
+            .select(FilezJob::as_select())
+            .into_boxed();
 
         if let Some(from) = from_index {
             query = query.offset(from as i64);
@@ -366,24 +370,36 @@ impl FilezJob {
 
         match (sort_by, sort_order) {
             (ListJobsSortBy::CreatedTime, SortDirection::Ascending) => {
-                query = query.order(schema::jobs::created_time.asc())
+                query = query.order_by(schema::jobs::created_time.asc())
             }
             (ListJobsSortBy::CreatedTime, SortDirection::Descending) => {
-                query = query.order(schema::jobs::created_time.desc())
+                query = query.order_by(schema::jobs::created_time.desc())
             }
             (ListJobsSortBy::ModifiedTime, SortDirection::Ascending) => {
-                query = query.order(schema::jobs::modified_time.asc())
+                query = query.order_by(schema::jobs::modified_time.asc())
             }
             (ListJobsSortBy::ModifiedTime, SortDirection::Descending) => {
-                query = query.order(schema::jobs::modified_time.desc())
+                query = query.order_by(schema::jobs::modified_time.desc())
             }
             (ListJobsSortBy::Name, SortDirection::Ascending) => {
-                query = query.order(schema::jobs::name.asc())
+                query = query.order_by(schema::jobs::name.asc())
             }
             (ListJobsSortBy::Name, SortDirection::Descending) => {
-                query = query.order(schema::jobs::name.desc())
+                query = query.order_by(schema::jobs::name.desc())
             }
-            _ => query = query.order(schema::jobs::created_time.desc()),
+            (ListJobsSortBy::Status, SortDirection::Ascending) => {
+                query = query.order_by(schema::jobs::status.asc())
+            }
+            (ListJobsSortBy::Status, SortDirection::Descending) => {
+                query = query.order_by(schema::jobs::status.desc())
+            }
+            (ListJobsSortBy::AppId, SortDirection::Ascending) => {
+                query = query.order_by(schema::jobs::app_id.asc())
+            }
+            (ListJobsSortBy::AppId, SortDirection::Descending) => {
+                query = query.order_by(schema::jobs::app_id.desc())
+            }
+            _ => query = query.order_by(schema::jobs::created_time.desc()),
         }
 
         let jobs = query.load::<FilezJob>(&mut connection).await?;

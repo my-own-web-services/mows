@@ -3,7 +3,7 @@ use reqwest::header::HeaderMap;
 use reqwest::Url;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use tracing::error;
+use tracing::{error, trace};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -149,7 +149,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -186,7 +189,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -225,7 +231,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -262,7 +271,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -299,7 +311,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -336,7 +351,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -373,7 +391,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -410,7 +431,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -447,7 +471,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -484,7 +511,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -520,7 +550,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -557,7 +590,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -594,7 +630,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -631,7 +670,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -668,7 +710,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -705,7 +750,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -721,10 +769,10 @@ impl ApiClient {
         &self,
         file_id: Uuid,
         version: Option<u32>,
-        app_id: Option<String>,
+        app_id: Option<Uuid>,
         app_path: Option<String>,
-        disposition: bool,
-        cache: u64,
+        disposition: Option<bool>,
+        cache: Option<u64>,
     ) -> Result<reqwest::Response, ApiClientError> {
         let version = OptionAsNull(version);
         let app_id = OptionAsNull(app_id);
@@ -733,13 +781,17 @@ impl ApiClient {
             "{}/api/file_versions/content/get/{file_id}/{version}/{app_id}/{app_path}",
             self.base_url
         );
-        let full_url = Url::parse(&full_url)
-            .unwrap()
-            .query_pairs_mut()
-            .append_pair("disposition", &disposition.to_string())
-            .append_pair("cache", &cache.to_string())
-            .finish()
-            .clone();
+        let mut full_url = Url::parse(&full_url).unwrap();
+        if let Some(ref value) = disposition {
+            full_url
+                .query_pairs_mut()
+                .append_pair("disposition", &value.to_string());
+        }
+        if let Some(ref value) = cache {
+            full_url
+                .query_pairs_mut()
+                .append_pair("cache", &value.to_string());
+        }
 
         let response = self
             .client
@@ -764,7 +816,7 @@ impl ApiClient {
         &self,
         file_id: Uuid,
         version: Option<u32>,
-        app_id: Option<String>,
+        app_id: Option<Uuid>,
         app_path: Option<String>,
     ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let version = OptionAsNull(version);
@@ -793,7 +845,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -820,12 +875,10 @@ impl ApiClient {
             "{}/api/file_versions/content/{file_id}/{version}/{app_path}",
             self.base_url
         );
-        let full_url = Url::parse(&full_url)
-            .unwrap()
+        let mut full_url = Url::parse(&full_url).unwrap();
+        full_url
             .query_pairs_mut()
-            .append_pair("upload_offset", &upload_offset.to_string())
-            .finish()
-            .clone();
+            .append_pair("upload_offset", &upload_offset.to_string());
 
         let response = self
             .client
@@ -847,7 +900,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -884,7 +940,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -923,7 +982,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -960,7 +1022,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -997,7 +1062,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1034,7 +1102,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1070,7 +1141,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1107,7 +1181,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1144,7 +1221,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1180,7 +1260,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1217,7 +1300,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1254,7 +1340,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1291,7 +1380,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1327,7 +1419,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1364,7 +1459,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1401,7 +1499,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1438,7 +1539,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1475,7 +1579,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1512,7 +1619,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1549,7 +1659,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1586,7 +1699,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1625,7 +1741,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1662,7 +1781,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1699,7 +1821,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1736,7 +1861,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1773,7 +1901,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1810,7 +1941,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1847,7 +1981,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1884,7 +2021,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1921,7 +2061,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1957,7 +2100,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -1994,7 +2140,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -2030,7 +2179,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -2067,7 +2219,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -2104,7 +2259,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -2141,7 +2299,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -2178,7 +2339,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -2215,7 +2379,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -2252,7 +2419,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -2285,7 +2455,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -2322,7 +2495,10 @@ impl ApiClient {
         let text_response = response.text().await?;
 
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");

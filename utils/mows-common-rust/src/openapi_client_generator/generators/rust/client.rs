@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use utoipa::openapi::{path::Operation, PathItem, Responses};
+use utoipa::openapi::{path::Operation, PathItem, Required, Responses};
 
 use crate::openapi_client_generator::{
-    generators::rust::schema::ref_or_schema_to_rust_type, ClientGeneratorError,
+    generators::rust::schema::ref_or_to_rust_type_string, ClientGeneratorError,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,11 +61,18 @@ pub fn generate_client_function(
 
     let optional_path_conversion = function_arguments_optional_conversion(&function_arguments);
 
+    let query_params_code = append_query_parameters(&function_arguments);
+
     let url_section = format!(
         r#"let full_url = format!("{{}}{}", self.base_url);
-        let full_url = Url::parse(&full_url).unwrap(){};"#,
+        let {}full_url = Url::parse(&full_url).unwrap();{}"#,
         path,
-        append_query_parameters(&function_arguments),
+        if query_params_code.is_empty() {
+            ""
+        } else {
+            "mut "
+        },
+        query_params_code,
     );
 
     let request_section = format!(
@@ -87,8 +94,13 @@ pub fn generate_client_function(
         } else {
             r#"let text_response = response.text().await?;
 
+        
+
         let response = match serde_json::from_str(&text_response) {
-            Ok(parsed_response) => parsed_response,
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            },
             Err(parse_error) => {
                 error!(parse_error = ?parse_error, "Failed to parse API response");
                 error!(text_response = %text_response, "API response text");
@@ -123,7 +135,7 @@ fn function_arguments_to_string(function_arguments: &Vec<FunctionArgument>) -> S
 fn function_arguments_optional_conversion(function_arguments: &Vec<FunctionArgument>) -> String {
     function_arguments
         .iter()
-        .filter(|arg| arg.optional)
+        .filter(|arg| arg.optional && arg.parameter_in == ParameterIn::Path)
         .map(|arg| format!(r#"let {} = OptionAsNull({});"#, arg.name, arg.name))
         .collect::<Vec<_>>()
         .join("\n        ")
@@ -154,16 +166,31 @@ fn append_query_parameters(function_arguments: &Vec<FunctionArgument>) -> String
     let query_params: Vec<String> = function_arguments
         .iter()
         .filter(|arg| arg.parameter_in == ParameterIn::Query)
-        .map(|arg| format!(r#".append_pair("{}", &{}.to_string())"#, arg.name, arg.name))
+        .map(|arg| {
+            if arg.optional {
+                // For optional parameters, only append if Some
+                format!(
+                    r#"
+        if let Some(ref value) = {} {{
+             full_url.query_pairs_mut().append_pair("{}", &value.to_string());
+        }}"#,
+                    arg.name, arg.name
+                )
+            } else {
+                // For required parameters, always append
+                format!(
+                    r#"
+         full_url.query_pairs_mut().append_pair("{}", &{}.to_string());"#,
+                    arg.name, arg.name
+                )
+            }
+        })
         .collect();
 
     if query_params.is_empty() {
         "".to_string()
     } else {
-        format!(
-            ".query_pairs_mut(){}.finish().clone()",
-            query_params.join("")
-        )
+        query_params.join("")
     }
 }
 
@@ -194,12 +221,7 @@ fn get_result_type(responses: &Responses) -> Result<String, ClientGeneratorError
                 for (content_type, content) in &response.content {
                     if content_type == "application/json" {
                         if let Some(schema) = &content.schema {
-                            return Ok(ref_or_schema_to_rust_type(
-                                &mut HashMap::new(),
-                                None,
-                                schema,
-                            )?
-                            .replace("_", ""));
+                            return Ok(ref_or_to_rust_type_string(schema)?.replace("_", ""));
                         }
                     } else if content_type == "application/octet-stream" {
                         return Ok("reqwest::Response".to_string());
@@ -225,14 +247,20 @@ fn parse_function_arguments(
     if let Some(parameters) = &operation.parameters {
         for param in parameters {
             if param.parameter_in == utoipa::openapi::path::ParameterIn::Path {
-                let rust_type = ref_or_schema_to_rust_type(
-                    &mut HashMap::new(),
-                    Some(param.name.clone()),
-                    &param.schema.clone().unwrap(),
-                )?;
+                let mut rust_type = ref_or_to_rust_type_string(&param.schema.clone().unwrap())?;
+
+                // Check if parameter is optional (not required OR schema allows null)
+                let is_required = matches!(param.required, Required::True);
+                let is_optional = !is_required || rust_type.starts_with("Option<");
+
+                // If not required but type isn't already Option, wrap it
+                if !is_required && !rust_type.starts_with("Option<") {
+                    rust_type = format!("Option<{}>", rust_type);
+                }
+
                 parsed_arguments.push(FunctionArgument {
                     name: param.name.clone(),
-                    optional: rust_type.contains("Option<"),
+                    optional: is_optional,
                     rust_type,
                     parameter_in: ParameterIn::Path,
                 });
@@ -244,14 +272,20 @@ fn parse_function_arguments(
     if let Some(query_params) = &operation.parameters {
         for param in query_params {
             if param.parameter_in == utoipa::openapi::path::ParameterIn::Query {
-                let rust_type = ref_or_schema_to_rust_type(
-                    &mut HashMap::new(),
-                    Some(param.name.clone()),
-                    &param.schema.clone().unwrap(),
-                )?;
+                let mut rust_type = ref_or_to_rust_type_string(&param.schema.clone().unwrap())?;
+
+                // Check if parameter is optional (not required OR schema allows null)
+                let is_required = matches!(param.required, Required::True);
+                let is_optional = !is_required || rust_type.starts_with("Option<");
+
+                // If not required but type isn't already Option, wrap it
+                if !is_required && !rust_type.starts_with("Option<") {
+                    rust_type = format!("Option<{}>", rust_type);
+                }
+
                 parsed_arguments.push(FunctionArgument {
                     name: param.name.clone(),
-                    optional: rust_type.contains("Option<"),
+                    optional: is_optional,
                     rust_type,
                     parameter_in: ParameterIn::Query,
                 });
@@ -264,7 +298,7 @@ fn parse_function_arguments(
         for (media_type, media_type_content) in &request_body.content {
             if media_type == "application/json" {
                 if let Some(schema) = &media_type_content.schema {
-                    let rust_type = ref_or_schema_to_rust_type(&mut HashMap::new(), None, schema)?;
+                    let rust_type = ref_or_to_rust_type_string(schema)?;
                     parsed_arguments.push(FunctionArgument {
                         name: "request_body".to_string(),
                         optional: false,
