@@ -43,7 +43,11 @@ use axum::{
 #[tracing::instrument(skip(database, timing), level = "trace")]
 pub async fn delete_file(
     Extension(authentication_information): Extension<AuthenticationInformation>,
-    State(ServerState { database, .. }): State<ServerState>,
+    State(ServerState {
+        database,
+        storage_location_providers,
+        ..
+    }): State<ServerState>,
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(file_id): Path<FilezFileId>,
 ) -> Result<impl IntoResponse, FilezError> {
@@ -62,7 +66,7 @@ pub async fn delete_file(
     );
 
     with_timing!(
-        FilezFile::delete_one(&database, file_id).await?,
+        FilezFile::delete_one(&database, &storage_location_providers, &timing, file_id).await?,
         "Database operation to delete file",
         timing
     );

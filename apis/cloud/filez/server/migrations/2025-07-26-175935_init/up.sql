@@ -105,7 +105,7 @@ CREATE TABLE "file_versions"(
 	"content_valid" BOOL NOT NULL,
 	"content_expected_sha256_digest" TEXT,
 	"existing_content_bytes" BIGINT,
-	PRIMARY KEY("file_id", "version", "app_id", "app_path"),
+	PRIMARY KEY ("file_id", "version", "app_id", "app_path"),
 	FOREIGN KEY ("file_id") REFERENCES "files"("id"),
 	FOREIGN KEY ("app_id") REFERENCES "apps"("id"),
 	FOREIGN KEY ("storage_location_id") REFERENCES "storage_locations"("id"),
@@ -116,7 +116,7 @@ CREATE TABLE "file_file_group_members"(
 	"file_id" UUID NOT NULL,
 	"file_group_id" UUID NOT NULL,
 	"created_time" TIMESTAMP NOT NULL,
-	PRIMARY KEY("file_id", "file_group_id"),
+	PRIMARY KEY ("file_id", "file_group_id"),
 	FOREIGN KEY ("file_id") REFERENCES "files"("id"),
 	FOREIGN KEY ("file_group_id") REFERENCES "file_groups"("id")
 );
@@ -135,7 +135,7 @@ CREATE TABLE "tag_members"(
 	"tag_id" UUID NOT NULL,
 	"created_time" TIMESTAMP NOT NULL,
 	"created_by_user_id" UUID NOT NULL,
-	PRIMARY KEY("resource_id", "resource_type", "tag_id"),
+	PRIMARY KEY ("resource_id", "resource_type", "tag_id"),
 	FOREIGN KEY ("tag_id") REFERENCES "tags"("id"),
 	FOREIGN KEY ("created_by_user_id") REFERENCES "users"("id")
 );
@@ -146,7 +146,7 @@ CREATE TABLE "file_group_file_sort_order_items"(
 	"sort_order_id" UUID NOT NULL,
 	"file_id" UUID NOT NULL,
 	"position" INTEGER NOT NULL,
-	PRIMARY KEY("sort_order_id", "file_id", "position"),
+	PRIMARY KEY ("sort_order_id", "file_id", "position"),
 	FOREIGN KEY ("sort_order_id") REFERENCES "file_group_file_sort_orders"("id"),
 	FOREIGN KEY ("file_id") REFERENCES "files"("id")
 );
@@ -169,15 +169,6 @@ CREATE TABLE "user_groups"(
 	"description" TEXT,
 	FOREIGN KEY ("owner_id") REFERENCES "users"("id")
 );
-
-
-
-
-
-
-
-
-
 
 CREATE TABLE "events"(
 	"id" UUID NOT NULL PRIMARY KEY,

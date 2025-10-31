@@ -16,7 +16,7 @@ pub async fn stream_file_to_path(
     }
 
     let get_file_version_content_request = filez_client
-        .get_file_version_content(file_id, Some(file_version_number), None, None, false, 0)
+        .get_file_version_content(file_id, Some(file_version_number), None, None, None, None)
         .await
         .context("Failed to get file version content")?;
 

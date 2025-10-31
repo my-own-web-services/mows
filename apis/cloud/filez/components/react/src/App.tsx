@@ -1,7 +1,15 @@
 import CommandPalette from "@/components/atoms/commandPalette/CommandPalette";
 import { ResourceTagsMap } from "@/components/atoms/resourceTags/ResourceTags";
 import PrimaryMenu from "@/components/PrimaryMenu";
-import { FileList, FilezContext, GlobalContextMenu, ModalHandler, Toaster, Upload } from "@/main";
+import {
+    FileList,
+    FilezContext,
+    GlobalContextMenu,
+    JobList,
+    ModalHandler,
+    Toaster,
+    Upload
+} from "@/main";
 import { type CSSProperties, PureComponent } from "react";
 
 interface AppProps {
@@ -52,6 +60,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                 ></FileList>
                 <GlobalContextMenu></GlobalContextMenu>
                 <Upload className={`h-[800px] w-full`}></Upload>
+                <JobList className={`h-[500px] w-full`}></JobList>
             </div>
         );
     };

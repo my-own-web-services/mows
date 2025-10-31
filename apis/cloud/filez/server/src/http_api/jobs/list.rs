@@ -96,4 +96,6 @@ pub enum ListJobsSortBy {
     Name,
     CreatedTime,
     ModifiedTime,
+    Status,
+    AppId,
 }

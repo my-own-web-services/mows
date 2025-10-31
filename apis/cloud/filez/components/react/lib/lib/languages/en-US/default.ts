@@ -187,6 +187,18 @@ const translation: Translation = {
     devTools: {
         title: `Developer Tools`,
         description: `Development tasks, API tests, and logging configuration`
+    },
+    resourceList: {
+        reload: `Reload`
+    },
+    jobList: {
+        columns: {
+            name: `Name`,
+            status: `Status`,
+            app: `App`,
+            created: `Created`,
+            modified: `Modified`
+        }
     }
 };
 

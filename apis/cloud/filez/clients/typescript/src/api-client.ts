@@ -70,6 +70,8 @@ export enum ListJobsSortBy {
   Name = "Name",
   CreatedTime = "CreatedTime",
   ModifiedTime = "ModifiedTime",
+  Status = "Status",
+  AppId = "AppId",
 }
 
 export enum ListFilesSortBy {
@@ -2425,7 +2427,7 @@ export class Api<
         /** If set to true, the content disposition header will be set to attachment */
         disposition?: boolean;
         /**
-         * If set, the cache control header will be set to public, max-age={c}
+         * If set, the cache control header will be set to public, max-age={cache}
          * @format int64
          * @min 0
          */

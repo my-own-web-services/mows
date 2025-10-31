@@ -10,6 +10,7 @@ export { default as ResourceTags } from "./components/atoms/resourceTags/Resourc
 export { default as Upload } from "./components/atoms/upload/Upload";
 export { default as DevPanel } from "./components/development/DevPanel";
 export { default as FileList } from "./components/list/FileList";
+export { default as JobList } from "./components/list/JobList";
 export { default as LoggingConfig } from "./components/loggingConfig/LoggingConfig";
 export { default as PrimaryMenu } from "./components/PrimaryMenu";
 export * from "./components/ui/sonner";

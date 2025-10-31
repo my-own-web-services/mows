@@ -127,7 +127,7 @@ thiserror-context = "0.1.2"
 
 opentelemetry_sdk = { workspace = true }
 tracing-opentelemetry = { workspace = true }
-serde_valid = { version = "1.0.5" }
+serde_valid = { version = "2.0.0" }
 serde_with = "3.14.0"
 
 tower-sessions = "0.14.0"

@@ -16,8 +16,9 @@ use crate::{
     database::Database,
     errors::FilezError,
     impl_typed_uuid,
-    models::{apps::MowsAppId, users::FilezUserId},
+    models::{apps::MowsAppId, file_versions::FileVersion, users::FilezUserId},
     schema,
+    state::StorageLocationState,
     utils::get_current_timestamp,
     validation::validate_optional_mime_type,
 };
@@ -109,8 +110,27 @@ impl FilezFile {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    pub async fn delete_one(database: &Database, file_id: FilezFileId) -> Result<(), FilezError> {
+    pub async fn delete_one(
+        database: &Database,
+        storage_locations_provider_state: &StorageLocationState,
+        timing: &axum_server_timing::ServerTimingExtension,
+        file_id: FilezFileId,
+    ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
+
+        let file_versions = FileVersion::get_all_by_file_id(database, file_id).await?;
+        for file_version in file_versions {
+            FileVersion::delete_one(
+                database,
+                storage_locations_provider_state,
+                timing,
+                &file_version,
+            )
+            .await?;
+        }
+
+        // TODO: Remove from groups, jobs and access policies or use cascade
+
         diesel::delete(schema::file_versions::table)
             .filter(schema::file_versions::file_id.eq(file_id))
             .execute(&mut connection)

@@ -3,7 +3,7 @@ set -euo pipefail
 
 export SERVICE_NAME="filez-server"
 
-export BAKE_ARGS="${BAKE_ARGS:-default} --allow=fs.read=/home/paul/projects/mows"
+export BAKE_ARGS="${BAKE_ARGS:-default} --allow=fs.read=/home/paul/projects/mows --set *.args.APP_STAGE_IMAGE=alpine"
 
 export BUILDKIT_PROGRESS="plain"
 
