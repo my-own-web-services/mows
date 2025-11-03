@@ -8,6 +8,9 @@ pub struct TableDefinition {
     pub name: String,
     pub columns: Vec<ColumnDefinition>,
     pub primary_key: Vec<String>,
+    pub custom_sql: Vec<String>,
+    pub indexes: Vec<Vec<String>>,
+    pub unique_constraints: Vec<Vec<String>>,
 }
 
 #[derive(Debug, Clone)]
@@ -59,6 +62,9 @@ fn parse_diesel_schema(content: &str) -> Result<SchemaInfo> {
     // First, parse cascade options from regular comments
     let cascade_map = parse_cascade_comments_from_source(content);
 
+    // Parse table annotations (SQL and INDEX comments)
+    let table_annotations = parse_table_annotations_from_source(content);
+
     let mut tables = Vec::new();
     let mut foreign_keys = Vec::new();
 
@@ -74,7 +80,7 @@ fn parse_diesel_schema(content: &str) -> Result<SchemaInfo> {
                 .join("::");
 
             if macro_path == "diesel::table" {
-                if let Some(table) = parse_table_macro(&macro_item.mac)? {
+                if let Some(table) = parse_table_macro(&macro_item.mac, &table_annotations)? {
                     tables.push(table);
                 }
             } else if macro_path == "diesel::joinable" {
@@ -91,7 +97,7 @@ fn parse_diesel_schema(content: &str) -> Result<SchemaInfo> {
     })
 }
 
-fn parse_table_macro(mac: &Macro) -> Result<Option<TableDefinition>> {
+fn parse_table_macro(mac: &Macro, table_annotations: &TableAnnotationsMap) -> Result<Option<TableDefinition>> {
     let tokens = mac.tokens.to_string();
 
     // Parse the table name and columns
@@ -198,14 +204,24 @@ fn parse_table_macro(mac: &Macro) -> Result<Option<TableDefinition>> {
         }
     };
 
+    // Get custom SQL, indexes, and unique constraints from annotations
+    let (custom_sql, indexes, unique_constraints) = table_annotations
+        .get(&table_name)
+        .cloned()
+        .unwrap_or((Vec::new(), Vec::new(), Vec::new()));
+
     Ok(Some(TableDefinition {
         name: table_name,
         columns,
         primary_key,
+        custom_sql,
+        indexes,
+        unique_constraints,
     }))
 }
 
 type CascadeMap = HashMap<(String, String, String), (Option<CascadeOption>, Option<CascadeOption>)>;
+type TableAnnotationsMap = HashMap<String, (Vec<String>, Vec<Vec<String>>, Vec<Vec<String>>)>;
 
 fn parse_cascade_comments_from_source(content: &str) -> CascadeMap {
     let mut map = HashMap::new();
@@ -249,14 +265,14 @@ fn parse_cascade_comments_from_source(content: &str) -> CascadeMap {
                                     if comment_line.starts_with("//") {
                                         let comment_text = comment_line.trim_start_matches("//").trim().to_uppercase();
 
-                                        if comment_text.starts_with("ON DELETE") {
-                                            let rest = comment_text.strip_prefix("ON DELETE").unwrap().trim();
+                                        if comment_text.starts_with("ON_DELETE") {
+                                            let rest = comment_text.strip_prefix("ON_DELETE").unwrap().trim();
                                             let rest = rest.strip_prefix(':').unwrap_or(rest).trim();
                                             on_delete = parse_cascade_option(rest);
                                         }
 
-                                        if comment_text.starts_with("ON UPDATE") {
-                                            let rest = comment_text.strip_prefix("ON UPDATE").unwrap().trim();
+                                        if comment_text.starts_with("ON_UPDATE") {
+                                            let rest = comment_text.strip_prefix("ON_UPDATE").unwrap().trim();
                                             let rest = rest.strip_prefix(':').unwrap_or(rest).trim();
                                             on_update = parse_cascade_option(rest);
                                         }
@@ -271,6 +287,137 @@ fn parse_cascade_comments_from_source(content: &str) -> CascadeMap {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    map
+}
+
+fn parse_table_annotations_from_source(content: &str) -> TableAnnotationsMap {
+    let mut map = HashMap::new();
+    let lines: Vec<&str> = content.lines().collect();
+
+    for (i, line) in lines.iter().enumerate() {
+        // Look for diesel::table! lines
+        if line.contains("diesel::table!") {
+            // Extract the table name from the macro
+            // Format: diesel::table! { table_name { ... } }
+            // or: diesel::table! { table_name (pk) { ... } }
+
+            // Find the opening brace after diesel::table!
+            let mut table_name = None;
+
+            // Look for the table name in the next few lines if not on the same line
+            for j in i..=(i + 5).min(lines.len().saturating_sub(1)) {
+                let search_line = lines[j];
+                if let Some(brace_pos) = search_line.find('{') {
+                    // Try to find the table name between the macro and the brace
+                    let before_brace = if j == i {
+                        // Same line as diesel::table!
+                        if let Some(macro_end) = search_line.find("diesel::table!") {
+                            &search_line[macro_end + "diesel::table!".len()..brace_pos]
+                        } else {
+                            &search_line[..brace_pos]
+                        }
+                    } else {
+                        &search_line[..brace_pos]
+                    };
+
+                    // Remove any opening braces and whitespace
+                    let cleaned = before_brace.trim().trim_start_matches('{').trim();
+
+                    if !cleaned.is_empty() {
+                        // Extract just the table name (before any parenthesis for PK)
+                        let name = if let Some(paren_pos) = cleaned.find('(') {
+                            cleaned[..paren_pos].trim()
+                        } else {
+                            cleaned
+                        };
+
+                        if !name.is_empty() {
+                            table_name = Some(name.to_string());
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if let Some(table_name) = table_name {
+                let mut custom_sql = Vec::new();
+                let mut indexes = Vec::new();
+                let mut unique_constraints = Vec::new();
+
+                // Look backwards for SQL:, INDEX:, and UNIQUE: comments
+                // Check up to 50 lines before for comments
+                let start_line = if i >= 50 { i - 50 } else { 0 };
+                for j in (start_line..i).rev() {
+                    let comment_line = lines[j].trim();
+
+                    // Stop if we hit a non-comment, non-empty line that's not whitespace
+                    if !comment_line.starts_with("//") && !comment_line.is_empty() {
+                        break;
+                    }
+
+                    if comment_line.starts_with("//") {
+                        let comment_text = comment_line.trim_start_matches("//").trim();
+
+                        // Check for SQL: comments
+                        if comment_text.starts_with("SQL:") {
+                            let sql = comment_text.strip_prefix("SQL:").unwrap().trim();
+                            if !sql.is_empty() {
+                                // Insert at the beginning since we're going backwards
+                                custom_sql.insert(0, sql.to_string());
+                            }
+                        }
+
+                        // Check for INDEX: comments
+                        if comment_text.starts_with("INDEX:") {
+                            let index_spec = comment_text.strip_prefix("INDEX:").unwrap().trim();
+
+                            // Parse the index spec: (COLUMN1, COLUMN2, ...)
+                            if let Some(start_paren) = index_spec.find('(') {
+                                if let Some(end_paren) = index_spec.find(')') {
+                                    let columns_str = &index_spec[start_paren + 1..end_paren];
+                                    let columns: Vec<String> = columns_str
+                                        .split(',')
+                                        .map(|s| s.trim().to_string())
+                                        .filter(|s| !s.is_empty())
+                                        .collect();
+
+                                    if !columns.is_empty() {
+                                        // Insert at the beginning since we're going backwards
+                                        indexes.insert(0, columns);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Check for UNIQUE: comments
+                        if comment_text.starts_with("UNIQUE:") {
+                            let unique_spec = comment_text.strip_prefix("UNIQUE:").unwrap().trim();
+
+                            // Parse the unique spec: (COLUMN1, COLUMN2, ...)
+                            if let Some(start_paren) = unique_spec.find('(') {
+                                if let Some(end_paren) = unique_spec.find(')') {
+                                    let columns_str = &unique_spec[start_paren + 1..end_paren];
+                                    let columns: Vec<String> = columns_str
+                                        .split(',')
+                                        .map(|s| s.trim().to_string())
+                                        .filter(|s| !s.is_empty())
+                                        .collect();
+
+                                    if !columns.is_empty() {
+                                        // Insert at the beginning since we're going backwards
+                                        unique_constraints.insert(0, columns);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                map.insert(table_name, (custom_sql, indexes, unique_constraints));
             }
         }
     }
@@ -352,7 +499,8 @@ fn generate_sql_migration(schema: &SchemaInfo) -> Result<String> {
         // Determine if we need additional constraints
         let has_composite_pk = table.primary_key.len() > 1;
         let has_fks = !table_fks.is_empty();
-        let needs_trailing_items = has_composite_pk || has_fks;
+        let has_unique_constraints = !table.unique_constraints.is_empty();
+        let needs_trailing_items = has_composite_pk || has_fks || has_unique_constraints;
 
         // Add columns
         for (i, column) in table.columns.iter().enumerate() {
@@ -403,7 +551,7 @@ fn generate_sql_migration(schema: &SchemaInfo) -> Result<String> {
                     .collect::<Vec<_>>()
                     .join(", ")
             ));
-            if has_fks {
+            if has_fks || has_unique_constraints {
                 sql.push(',');
             }
             sql.push('\n');
@@ -426,13 +574,68 @@ fn generate_sql_migration(schema: &SchemaInfo) -> Result<String> {
                 sql.push_str(&format!(" ON UPDATE {}", cascade_option_to_sql(on_update)));
             }
 
-            if i < table_fks.len() - 1 {
+            if i < table_fks.len() - 1 || has_unique_constraints {
+                sql.push(',');
+            }
+            sql.push('\n');
+        }
+
+        // Add unique constraints for this table
+        for (i, unique_cols) in table.unique_constraints.iter().enumerate() {
+            sql.push_str(&format!(
+                "    UNIQUE ({})",
+                unique_cols
+                    .iter()
+                    .map(|col| format!("\"{}\"", col))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+            if i < table.unique_constraints.len() - 1 {
                 sql.push(',');
             }
             sql.push('\n');
         }
 
         sql.push_str(");\n\n");
+
+        // Add custom SQL statements for this table
+        for custom_sql_stmt in &table.custom_sql {
+            sql.push_str(custom_sql_stmt);
+            if !custom_sql_stmt.ends_with(';') {
+                sql.push(';');
+            }
+            sql.push_str("\n\n");
+        }
+
+        // Add index creation statements for this table
+        for (i, index_columns) in table.indexes.iter().enumerate() {
+            let index_name = format!(
+                "idx_{}_{}_{}",
+                table.name,
+                index_columns.join("_"),
+                i
+            );
+
+            // Check if these columns match a unique constraint
+            let is_unique = table.unique_constraints.iter().any(|unique_cols| {
+                unique_cols.len() == index_columns.len() &&
+                unique_cols.iter().all(|col| index_columns.contains(col))
+            });
+
+            let unique_keyword = if is_unique { "UNIQUE " } else { "" };
+
+            sql.push_str(&format!(
+                "CREATE {}INDEX \"{}\" ON \"{}\" ({});\n\n",
+                unique_keyword,
+                index_name,
+                table.name,
+                index_columns
+                    .iter()
+                    .map(|col| format!("\"{}\"", col))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
     }
 
     Ok(sql)
@@ -546,5 +749,37 @@ mod tests {
         assert_eq!(result.tables.len(), 1);
         assert_eq!(result.tables[0].name, "users");
         assert_eq!(result.tables[0].columns.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_parse_table_with_annotations() {
+        let schema = r#"
+            // INDEX: (email)
+            // INDEX: (name, created_at)
+            // SQL: CREATE UNIQUE INDEX idx_users_email ON "users" ("email") WHERE "email" IS NOT NULL
+            // UNIQUE: (external_id, tenant_id)
+            diesel::table! {
+                users {
+                    id -> Uuid,
+                    name -> Text,
+                    email -> Nullable<Text>,
+                    created_at -> Timestamp,
+                    external_id -> Text,
+                    tenant_id -> Uuid,
+                }
+            }
+        "#;
+
+        let result = parse_diesel_schema(schema).unwrap();
+        assert_eq!(result.tables.len(), 1);
+        let table = &result.tables[0];
+        assert_eq!(table.name, "users");
+        assert_eq!(table.columns.len(), 6);
+        assert_eq!(table.custom_sql.len(), 1);
+        assert_eq!(table.indexes.len(), 2);
+        assert_eq!(table.indexes[0], vec!["email"]);
+        assert_eq!(table.indexes[1], vec!["name", "created_at"]);
+        assert_eq!(table.unique_constraints.len(), 1);
+        assert_eq!(table.unique_constraints[0], vec!["external_id", "tenant_id"]);
     }
 }
