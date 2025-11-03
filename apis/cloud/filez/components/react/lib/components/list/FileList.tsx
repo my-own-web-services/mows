@@ -3,7 +3,7 @@ import { CSSProperties, PureComponent, createRef } from "react";
 import { FileGroupType, FilezFile, ListFilesSortBy, SortDirection } from "filez-client-typescript";
 
 import { ActionIds } from "@/lib/defaultActions";
-import { ActionHandler } from "@/lib/filezContext/ActionManager";
+import { ActionHandler, ActionVisibility } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
@@ -113,7 +113,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
         this.listActionScopeId = `FileList-${this.listId}`;
 
         this.actionHandler = {
-            executeAction: () => {
+            executeAction: async () => {
                 const selectedItems = this.resourceListRef.current?.getSelectedItems() || [];
                 if (selectedItems.length === 0) {
                     log.debug(`No files selected, cannot delete`);
@@ -122,7 +122,8 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                 log.debug(`Delete files action triggered for files:`, selectedItems);
                 for (const file of selectedItems) {
                     log.info(`Deleting file: ${file.name} (${file.id})`);
-                    this.context?.filezClient.api.deleteFile(file.id);
+                    await this.context?.filezClient.api.deleteFile(file.id);
+                    this.resourceListRef.current?.refreshList();
                 }
             },
             id: this.listId,
@@ -130,11 +131,14 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             getState: () => {
                 const selectedItems = this.resourceListRef.current?.getSelectedItems() || [];
                 if (selectedItems.length === 0) {
-                    return { visibility: `inactive`, disabledReasonText: `No files selected` };
+                    return {
+                        visibility: ActionVisibility.Hidden,
+                        disabledReasonText: `No files selected`
+                    };
                 }
                 const { t } = this.context!;
                 return {
-                    visibility: `active`,
+                    visibility: ActionVisibility.Shown,
                     component: () => <span>{t.common.files.delete(selectedItems.length)}</span>
                 };
             }
@@ -181,7 +185,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
             return { totalCount: 0, items: [] };
         }
 
-        const apiRequest = {
+        const res = await this.context.filezClient.api.listFilesInFileGroup({
             file_group_id: this.props.fileGroupId,
             from_index: request.fromIndex,
             limit: request.limit,
@@ -191,9 +195,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     sort_order: request.sortDirection
                 }
             }
-        };
-
-        const res = await this.context.filezClient.api.listFilesInFileGroup(apiRequest);
+        });
 
         if (res.status === 200 && res.data.data) {
             const result = { totalCount: res.data.data.total_count, items: res.data.data.files };
@@ -222,7 +224,6 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                     defaultSortDirection={SortDirection.Ascending}
                     initialRowHandler={`GridListRowHandler`}
                     getResourcesList={this.getFilesList}
-                    dropTargetAcceptsTypes={[`File`]}
                     listInstanceId={this.listId}
                     rowHandlers={[
                         new ColumnListRowHandler({

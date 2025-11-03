@@ -15,7 +15,7 @@ use diesel::{
     deserialize::FromSqlRow,
     expression::AsExpression,
     pg::Pg,
-    prelude::{Insertable, Queryable},
+    prelude::{Insertable, Queryable, QueryableByName},
     sql_types::SmallInt,
     AsChangeset, ExpressionMethods, JoinOnDsl, QueryDsl, Selectable, SelectableHelper,
 };
@@ -36,13 +36,24 @@ use super::{
 
 impl_typed_uuid!(FileGroupId);
 
-#[derive(Serialize, Deserialize, Queryable, Selectable, ToSchema, Clone, Insertable, Debug)]
-#[diesel(table_name = crate::schema::file_groups)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Queryable,
+    Selectable,
+    ToSchema,
+    Clone,
+    Insertable,
+    Debug,
+    QueryableByName,
+)]
+#[diesel(table_name = schema::file_groups)]
 #[diesel(check_for_backend(Pg))]
 pub struct FileGroup {
     pub id: FileGroupId,
-    pub owner_id: FilezUserId,
     pub name: String,
+    pub owner_id: FilezUserId,
+
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
     pub group_type: FileGroupType,

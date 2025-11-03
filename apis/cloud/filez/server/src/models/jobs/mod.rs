@@ -17,8 +17,12 @@ use crate::{
 };
 use chrono::NaiveDateTime;
 use diesel::{
-    deserialize::FromSqlRow, expression::AsExpression, pg::Pg, prelude::*, sql_types::SmallInt,
-    AsChangeset,
+    deserialize::FromSqlRow,
+    expression::AsExpression,
+    pg::Pg,
+    prelude::{Insertable, Queryable, QueryableByName},
+    sql_types::SmallInt,
+    AsChangeset, ExpressionMethods, OptionalExtension, QueryDsl, Selectable, SelectableHelper,
 };
 use diesel_as_jsonb::AsJsonb;
 use diesel_async::RunQueryDsl;
@@ -69,9 +73,9 @@ impl_typed_uuid!(FilezJobId);
 )]
 #[diesel(table_name = schema::jobs)]
 #[diesel(check_for_backend(Pg))]
-#[diesel(treat_none_as_null = true)]
 pub struct FilezJob {
     pub id: FilezJobId,
+    pub name: String,
     pub owner_id: FilezUserId,
     /// The app that should handle the job
     pub app_id: MowsAppId,
@@ -80,7 +84,7 @@ pub struct FilezJob {
     /// The last time the app instance has been seen by the server
     /// This is used to determine if the app instance is still alive and can handle the job
     pub app_instance_last_seen_time: Option<chrono::NaiveDateTime>,
-    pub name: String,
+
     /// The current status of the job
     pub status: JobStatus,
     /// Additional details about the current status of the job
@@ -98,6 +102,8 @@ pub struct FilezJob {
     pub end_time: Option<chrono::NaiveDateTime>,
     /// After the deadline the job will be marked as finished and failed if not completed
     pub deadline_time: Option<chrono::NaiveDateTime>,
+    /// Priority of the job (1-10), higher values are picked up first
+    pub priority: i16,
 }
 
 #[derive(Serialize, Deserialize, AsChangeset, Validate, ToSchema, Clone, Debug)]
@@ -118,6 +124,10 @@ pub struct UpdateJobChangeset {
         with = "::serde_with::rust::double_option"
     )]
     pub new_job_deadline_time: Option<Option<NaiveDateTime>>,
+    #[diesel(column_name = priority)]
+    #[validate(minimum = 1)]
+    #[validate(maximum = 10)]
+    pub new_job_priority: Option<i16>,
 }
 
 #[derive(
@@ -141,12 +151,14 @@ pub enum JobStatus {
     Created = 0,
     /// The job is currently being processed by the app
     InProgress = 1,
+    /// The job was paused
+    Paused = 2,
     /// The job was successfully completed by the app
-    Completed = 2,
+    Completed = 3,
     /// The job failed to be processed by the app it can be automatically retried
-    Failed = 3,
+    Failed = 4,
     /// The job was cancelled by the user or the system
-    Cancelled = 4,
+    Cancelled = 5,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, AsJsonb)]
@@ -235,6 +247,7 @@ impl FilezJob {
         execution_details: JobExecutionInformation,
         persistence: JobPersistenceType,
         deadline_time: Option<chrono::NaiveDateTime>,
+        priority: i16,
     ) -> Self {
         Self {
             id: FilezJobId::new(),
@@ -252,7 +265,104 @@ impl FilezJob {
             start_time: None,
             end_time: None,
             deadline_time,
+            priority,
         }
+    }
+
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn cancel_by_file_id(
+        database: &Database,
+        file_id: &FilezFileId,
+    ) -> Result<usize, FilezError> {
+        let mut connection = database.get_connection().await?;
+
+        // Get all jobs that are not in terminal state (without transaction, just to get IDs)
+        let jobs = schema::jobs::table
+            .filter(schema::jobs::status.ne(JobStatus::Completed))
+            .filter(schema::jobs::status.ne(JobStatus::Failed))
+            .filter(schema::jobs::status.ne(JobStatus::Cancelled))
+            .load::<FilezJob>(&mut connection)
+            .await?;
+
+        // Filter jobs that have matching file_id in their execution information
+        let job_ids: Vec<FilezJobId> = jobs
+            .into_iter()
+            .filter(|job| match &job.execution_information.job_type {
+                JobType::CreatePreview(preview) => preview.file_id == *file_id,
+                JobType::ExtractMetadata(metadata) => metadata.file_id == *file_id,
+            })
+            .map(|job| job.id)
+            .collect();
+
+        let mut cancelled_count = 0;
+
+        // Update each matching job to cancelled status in its own transaction
+        for job_id in job_ids {
+            let result = connection
+                .build_transaction()
+                .serializable()
+                .run(|conn| {
+                    Box::pin(async move {
+                        // Fetch the job within the transaction to ensure consistency
+                        let job = schema::jobs::table
+                            .find(job_id)
+                            .for_update()
+                            .first::<FilezJob>(conn)
+                            .await
+                            .optional()?;
+
+                        // Check if job exists and is still in a non-terminal state
+                        if let Some(job) = job {
+                            if job.status != JobStatus::Completed
+                                && job.status != JobStatus::Failed
+                                && job.status != JobStatus::Cancelled
+                            {
+                                diesel::update(schema::jobs::table.find(job_id))
+                                    .set((
+                                        schema::jobs::status.eq(JobStatus::Cancelled),
+                                        schema::jobs::status_details.eq(Some(
+                                            JobStatusDetails::Cancelled(
+                                                JobStatusDetailsCancelled {
+                                                    message: "Job cancelled due to file operation"
+                                                        .to_string(),
+                                                    reason: Some(
+                                                        "Associated file was deleted or modified"
+                                                            .to_string(),
+                                                    ),
+                                                },
+                                            ),
+                                        )),
+                                        schema::jobs::end_time.eq(Some(get_current_timestamp())),
+                                        schema::jobs::modified_time.eq(get_current_timestamp()),
+                                        schema::jobs::assigned_app_runtime_instance_id
+                                            .eq(None::<String>),
+                                    ))
+                                    .execute(conn)
+                                    .await
+                            } else {
+                                Ok(0)
+                            }
+                        } else {
+                            Ok(0)
+                        }
+                    })
+                })
+                .await?;
+
+            if result > 0 {
+                cancelled_count += 1;
+            }
+        }
+
+        trace!(
+            file_id=?file_id,
+            cancelled_count=cancelled_count,
+            "Cancelled {} job(s) for file_id: {:?}",
+            cancelled_count,
+            file_id
+        );
+
+        Ok(cancelled_count)
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
@@ -264,6 +374,7 @@ impl FilezJob {
         execution_details: JobExecutionInformation,
         persistence: JobPersistenceType,
         deadline_time: Option<chrono::NaiveDateTime>,
+        priority: i16,
     ) -> Result<FilezJob, FilezError> {
         let job = FilezJob::new(
             owner_id,
@@ -272,6 +383,7 @@ impl FilezJob {
             execution_details,
             persistence,
             deadline_time,
+            priority,
         );
         let mut connection = database.get_connection().await?;
 
@@ -331,7 +443,7 @@ impl FilezJob {
         Ok(jobs.into_iter().map(|job| (job.id, job)).collect())
     }
 
-    #[tracing::instrument(level = "trace", skip(database, maybe_requesting_user, requesting_app))]
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn list_with_user_access(
         database: &Database,
         maybe_requesting_user: Option<&FilezUser>,
@@ -352,18 +464,12 @@ impl FilezJob {
         )
         .await?;
 
+        let total_count = resources_with_access.len().try_into()?;
+
         let mut query = schema::jobs::table
-            .filter(schema::jobs::id.eq_any(resources_with_access.clone()))
+            .filter(schema::jobs::id.eq_any(resources_with_access))
             .select(FilezJob::as_select())
             .into_boxed();
-
-        if let Some(from) = from_index {
-            query = query.offset(from as i64);
-        }
-
-        if let Some(lim) = limit {
-            query = query.limit(lim as i64);
-        }
 
         let sort_order = sort_order.unwrap_or(SortDirection::Ascending);
         let sort_by = sort_by.unwrap_or(ListJobsSortBy::CreatedTime);
@@ -402,11 +508,17 @@ impl FilezJob {
             _ => query = query.order_by(schema::jobs::created_time.desc()),
         }
 
+        if let Some(from) = from_index {
+            query = query.offset(from as i64);
+        }
+
+        if let Some(lim) = limit {
+            query = query.limit(lim as i64);
+        }
+
         let jobs = query.load::<FilezJob>(&mut connection).await?;
 
-        let total_count = resources_with_access.len();
-
-        Ok((jobs, total_count.try_into()?))
+        Ok((jobs, total_count))
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
@@ -553,7 +665,7 @@ impl FilezJob {
                         .filter(schema::jobs::app_id.eq(app.id))
                         .filter(schema::jobs::assigned_app_runtime_instance_id.is_null())
                         .filter(schema::jobs::status.eq(JobStatus::Created))
-                        .order(schema::jobs::created_time.asc())
+                        .order((schema::jobs::priority.desc(), schema::jobs::created_time.asc()))
                         .for_update() // Lock the selected row(s).
                         .first::<FilezJob>(connection)
                         .await

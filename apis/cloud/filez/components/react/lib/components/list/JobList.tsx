@@ -2,9 +2,12 @@ import { CSSProperties, PureComponent, createRef } from "react";
 
 import { FilezJob, JobStatus, ListJobsSortBy, SortDirection } from "filez-client-typescript";
 
+import { ActionIds } from "@/lib/defaultActions";
+import { ActionHandler, ActionVisibility } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
+import DateTime from "../atoms/dateTime/DateTime";
 import ResourceList from "./ResourceList/ResourceList";
 import {
     ListResourceRequestBody,
@@ -42,11 +45,13 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
     listId: string;
     listActionScopeId: string;
 
+    actionHandler: ActionHandler;
+
     defaultColumns: Column<FilezJob>[] = [
         {
             field: `Name`,
             label: `Name`,
-            direction: SortDirection.Ascending,
+            direction: SortDirection.Neutral,
             widthPercent: 30,
             minWidthPixels: 50,
             enabled: true,
@@ -108,14 +113,14 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
         {
             field: `CreatedTime`,
             label: `Created`,
-            direction: SortDirection.Neutral,
+            direction: SortDirection.Ascending,
             widthPercent: 20,
             minWidthPixels: 50,
             enabled: true,
             render: (item: FilezJob, style: CSSProperties, className: string) => {
                 return (
                     <span style={{ ...style }} className={className}>
-                        {new Date(item.created_time).toLocaleString()}
+                        <DateTime utcTime dateTimeNaive={item.created_time} />
                     </span>
                 );
             }
@@ -130,7 +135,7 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
             render: (item: FilezJob, style: CSSProperties, className: string) => {
                 return (
                     <span style={{ ...style }} className={className}>
-                        {new Date(item.modified_time).toLocaleString()}
+                        <DateTime utcTime dateTimeNaive={item.modified_time} />
                     </span>
                 );
             }
@@ -145,14 +150,64 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
 
         this.listId = Math.random().toString(36).substring(2, 15);
         this.listActionScopeId = `JobList-${this.listId}`;
+
+        this.actionHandler = {
+            executeAction: async () => {
+                const selectedItems = this.resourceListRef.current?.getSelectedItems() || [];
+                if (selectedItems.length === 0) {
+                    log.debug(`No jobs selected, cannot delete`);
+                    return;
+                }
+                log.debug(`Delete jobs action triggered for jobs:`, selectedItems);
+                for (const job of selectedItems) {
+                    log.info(`Deleting job: ${job.name} (${job.id})`);
+                    await this.context?.filezClient.api.deleteJob(job.id);
+                    this.resourceListRef.current?.refreshList();
+                }
+            },
+            id: this.listId,
+            scopes: [this.listActionScopeId],
+            getState: () => {
+                const selectedItems = this.resourceListRef.current?.getSelectedItems() || [];
+                if (selectedItems.length === 0) {
+                    return {
+                        visibility: ActionVisibility.Hidden,
+                        disabledReasonText: `No jobs selected`
+                    };
+                }
+                const { t } = this.context!;
+                return {
+                    visibility: ActionVisibility.Shown,
+                    component: () => <span>{t.common.jobs.delete(selectedItems.length)}</span>
+                };
+            }
+        };
     }
 
     componentDidMount = async () => {
         log.debug(`JobList mounted:`, this.props);
+        this.registerActionHandler();
     };
 
     componentDidUpdate = (_prevProps: JobListProps) => {
         log.debug(`JobList props updated:`, this.props);
+        this.registerActionHandler();
+    };
+
+    registerActionHandler = () => {
+        if (this.context?.actionManager?.registerActionHandler) {
+            this.context?.actionManager?.registerActionHandler(
+                ActionIds.DELETE_JOBS,
+                this.actionHandler
+            );
+        }
+    };
+
+    componentWillUnmount = () => {
+        this.context?.actionManager?.unregisterActionHandler(
+            ActionIds.DELETE_JOBS,
+            this.actionHandler.id
+        );
     };
 
     getJobsList = async (
@@ -168,18 +223,12 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
             return { totalCount: 0, items: [] };
         }
 
-        const apiRequest = {
+        const res = await this.context.filezClient.api.listJobs({
             from_index: request.fromIndex,
             limit: request.limit,
-            sort: {
-                SortOrder: {
-                    sort_by: request.sortBy as ListJobsSortBy,
-                    sort_order: request.sortDirection
-                }
-            }
-        };
-
-        const res = await this.context.filezClient.api.listJobs(apiRequest);
+            sort_by: request.sortBy as ListJobsSortBy,
+            sort_order: request.sortDirection
+        });
 
         if (res.status === 200 && res.data.data) {
             const result = { totalCount: res.data.data.total_count, items: res.data.data.jobs };
@@ -205,7 +254,7 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
                     ref={this.resourceListRef}
                     resourceType={`Job`}
                     defaultSortBy={`CreatedTime`}
-                    defaultSortDirection={SortDirection.Descending}
+                    defaultSortDirection={SortDirection.Ascending}
                     initialRowHandler={`ColumnListRowHandler`}
                     getResourcesList={this.getJobsList}
                     listInstanceId={this.listId}

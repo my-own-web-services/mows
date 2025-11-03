@@ -68,6 +68,7 @@ pub async fn create_job(
             request_body.job_execution_details,
             request_body.job_persistence,
             request_body.job_deadline_time,
+            request_body.job_priority,
         )
         .await?,
         "Database operation to create a new job",
@@ -93,6 +94,9 @@ pub struct CreateJobRequestBody {
     pub job_execution_details: JobExecutionInformation,
     pub job_persistence: JobPersistenceType,
     pub job_deadline_time: Option<NaiveDateTime>,
+    #[validate(minimum = 1)]
+    #[validate(maximum = 10)]
+    pub job_priority: i16,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]

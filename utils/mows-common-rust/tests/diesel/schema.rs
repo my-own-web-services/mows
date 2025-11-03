@@ -34,6 +34,7 @@ diesel::table! {
         metadata -> Jsonb,
     }
 }
+// ON DELETE: CASCADE
 diesel::joinable!(files -> users (owner_id));
 
 diesel::table! {
@@ -55,8 +56,11 @@ diesel::table! {
         existing_content_bytes -> Nullable<BigInt>,
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_versions -> files (file_id));
 diesel::joinable!(file_versions -> apps (app_id));
+// ON DELETE: RESTRICT
 diesel::joinable!(file_versions -> storage_locations (storage_location_id));
 diesel::joinable!(file_versions -> storage_quotas (storage_quota_id));
 

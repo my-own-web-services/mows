@@ -1,4 +1,4 @@
-import { Action } from "./filezContext/ActionManager";
+import { Action, ActionVisibility } from "./filezContext/ActionManager";
 import type { FilezClientManagerBase } from "./filezContext/FilezContext";
 import { log } from "./logging";
 import { signinRedirectSavePath } from "./utils";
@@ -18,6 +18,11 @@ export const defineApplicationActions = (
             doNotTrackUsage: false
         }),
         new Action({
+            id: ActionIds.DELETE_JOBS,
+            category: `Job List`,
+            doNotTrackUsage: false
+        }),
+        new Action({
             id: ActionIds.OPEN_KEYBOARD_SHORTCUTS,
             category: `General`,
             actionHandlers: new Map([
@@ -27,7 +32,7 @@ export const defineApplicationActions = (
                         id: `GlobalOpenKeyboardShortcuts`,
                         executeAction: () =>
                             filezContextProvider.changeActiveModal(`keyboardShortcutEditor`),
-                        getState: () => ({ visibility: `active` })
+                        getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
             ])
@@ -42,7 +47,7 @@ export const defineApplicationActions = (
                         id: `GlobalOpenLanguageSettings`,
                         executeAction: () =>
                             filezContextProvider.changeActiveModal(`languageSelector`),
-                        getState: () => ({ visibility: `active` })
+                        getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
             ])
@@ -57,7 +62,7 @@ export const defineApplicationActions = (
                         id: `GlobalOpenThemeSelector`,
                         executeAction: () =>
                             filezContextProvider.changeActiveModal(`themeSelector`),
-                        getState: () => ({ visibility: `active` })
+                        getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
             ])
@@ -77,11 +82,11 @@ export const defineApplicationActions = (
                         getState: () => {
                             if (filezContextProvider.props.auth?.isAuthenticated) {
                                 return {
-                                    visibility: `disabled`,
+                                    visibility: ActionVisibility.Disabled,
                                     disabledReason: `Already logged in`
                                 };
                             }
-                            return { visibility: `active` };
+                            return { visibility: ActionVisibility.Shown };
                         },
                         executeAction: () => {
                             if (!filezContextProvider.props.auth) {
@@ -104,9 +109,12 @@ export const defineApplicationActions = (
                         id: `GlobalLogout`,
                         getState: () => {
                             if (!filezContextProvider.props.auth?.isAuthenticated) {
-                                return { visibility: `disabled`, disabledReason: `Not logged in` };
+                                return {
+                                    visibility: ActionVisibility.Disabled,
+                                    disabledReason: `Not logged in`
+                                };
                             }
-                            return { visibility: `active` };
+                            return { visibility: ActionVisibility.Shown };
                         },
                         executeAction: () => {
                             filezContextProvider.props.auth?.signoutRedirect();
@@ -125,7 +133,7 @@ export const defineApplicationActions = (
                         id: `GlobalCreateFileGroup`,
                         executeAction: () =>
                             filezContextProvider.changeActiveModal(`fileGroupCreate`),
-                        getState: () => ({ visibility: `active` })
+                        getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
             ])
@@ -139,7 +147,7 @@ export const defineApplicationActions = (
                     {
                         id: `GlobalOpenDevTools`,
                         executeAction: () => filezContextProvider.changeActiveModal(`devTools`),
-                        getState: () => ({ visibility: `active` })
+                        getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
             ])
@@ -156,6 +164,7 @@ export enum ActionIds {
     LOGIN = `filez.user.login`,
     LOGOUT = `filez.user.logout`,
     DELETE_FILES = `filez.files.delete`,
+    DELETE_JOBS = `filez.jobs.delete`,
     CREATE_FILE_GROUP = `filez.fileGroups.create`,
     OPEN_DEV_TOOLS = `filez.developer.openDevTools`
 }

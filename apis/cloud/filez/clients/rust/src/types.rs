@@ -276,6 +276,14 @@ pub struct ApiResponseGetOwnUserBody {
     pub status: ApiResponseStatus,
 }
 
+// ApiResponse_GetSessionTimeoutResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiResponseGetSessionTimeoutResponseBody {
+    pub data: GetSessionTimeoutResponseBody,
+    pub message: String,
+    pub status: ApiResponseStatus,
+}
+
 // ApiResponse_GetStorageQuotaResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponseGetStorageQuotaResponseBody {
@@ -408,6 +416,14 @@ pub struct ApiResponseListUsersResponseBody {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponsePickupJobResponseBody {
     pub data: PickupJobResponseBody,
+    pub message: String,
+    pub status: ApiResponseStatus,
+}
+
+// ApiResponse_RefreshSessionResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiResponseRefreshSessionResponseBody {
+    pub data: RefreshSessionResponseBody,
     pub message: String,
     pub status: ApiResponseStatus,
 }
@@ -677,6 +693,7 @@ pub struct CreateJobRequestBody {
     pub job_handling_app_id: MowsAppId,
     pub job_name: String,
     pub job_persistence: JobPersistenceType,
+    pub job_priority: i32,
 }
 
 // CreateJobResponseBody
@@ -886,6 +903,8 @@ pub struct FilezJob {
     pub name: String,
     pub owner_id: FilezUserId,
     pub persistence: JobPersistenceType,
+    /// Priority of the job (1-10), higher values are picked up first
+    pub priority: i32,
     /// When the job was started, either automatically or manually
     pub start_time: Option<NaiveDateTime>,
     pub status: JobStatus,
@@ -1002,6 +1021,12 @@ pub struct GetOwnUserBody {
     pub user: FilezUser,
 }
 
+// GetSessionTimeoutResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GetSessionTimeoutResponseBody {
+    pub inactivity_timeout_seconds: i64,
+}
+
 // GetStorageQuotaRequestBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetStorageQuotaRequestBody {
@@ -1101,6 +1126,7 @@ pub enum JobPersistenceType {
 pub enum JobStatus {
     Created,
     InProgress,
+    Paused,
     Completed,
     Failed,
     Cancelled,
@@ -1518,6 +1544,16 @@ pub struct ProgressStep {
     pub name: String,
 }
 
+// RefreshSessionRequestBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefreshSessionRequestBody {}
+
+// RefreshSessionResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefreshSessionResponseBody {
+    pub inactivity_timeout_seconds: i64,
+}
+
 // SortDirection
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SortDirection {
@@ -1532,7 +1568,9 @@ pub struct StartSessionRequestBody {}
 
 // StartSessionResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StartSessionResponseBody {}
+pub struct StartSessionResponseBody {
+    pub inactivity_timeout_seconds: i64,
+}
 
 // StorageLocationId
 pub type StorageLocationId = Uuid;
@@ -1688,6 +1726,7 @@ pub struct UpdateJobChangeset {
     pub new_job_execution_information: Option<JobExecutionInformation>,
     pub new_job_name: Option<String>,
     pub new_job_persistence: Option<JobPersistenceType>,
+    pub new_job_priority: Option<i32>,
 }
 
 // UpdateJobRequestBody

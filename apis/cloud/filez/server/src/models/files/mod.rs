@@ -16,7 +16,7 @@ use crate::{
     database::Database,
     errors::FilezError,
     impl_typed_uuid,
-    models::{apps::MowsAppId, file_versions::FileVersion, users::FilezUserId},
+    models::{apps::MowsAppId, file_versions::FileVersion, jobs::FilezJob, users::FilezUserId},
     schema,
     state::StorageLocationState,
     utils::get_current_timestamp,
@@ -114,7 +114,7 @@ impl FilezFile {
         database: &Database,
         storage_locations_provider_state: &StorageLocationState,
         timing: &axum_server_timing::ServerTimingExtension,
-        file_id: FilezFileId,
+        file_id: &FilezFileId,
     ) -> Result<(), FilezError> {
         let mut connection = database.get_connection().await?;
 
@@ -129,7 +129,7 @@ impl FilezFile {
             .await?;
         }
 
-        // TODO: Remove from groups, jobs and access policies or use cascade
+        FilezJob::cancel_by_file_id(database, file_id).await?;
 
         diesel::delete(schema::file_versions::table)
             .filter(schema::file_versions::file_id.eq(file_id))

@@ -1,4 +1,4 @@
-import { Action } from "@/lib/filezContext/ActionManager";
+import { Action, ActionVisibility } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { FilezContext } from "@/main";
@@ -84,8 +84,9 @@ export default class GlobalContextMenu extends PureComponent<
                             log.debug(`Rendering action in context menu:`, action.id);
                             return (
                                 <DropdownMenuItem
+                                    className={`cursor-pointer`}
                                     key={action.id}
-                                    disabled={itemState?.visibility === `disabled`}
+                                    disabled={itemState?.visibility === ActionVisibility.Disabled}
                                     onClick={() => {
                                         this.context?.actionManager.dispatchAction(action.id);
                                         this.setState({ open: false });

@@ -131,6 +131,9 @@ export interface Translation {
         files: {
             delete: (fileCount: number) => string;
         };
+        jobs: {
+            delete: (jobCount: number) => string;
+        };
     };
     devPanel: {
         tasks: {

@@ -34,6 +34,8 @@ diesel::table! {
         metadata -> Jsonb,
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(files -> users (owner_id));
 
 diesel::table! {
@@ -55,9 +57,17 @@ diesel::table! {
         existing_content_bytes -> Nullable<BigInt>,
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_versions -> files (file_id));
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_versions -> apps (app_id));
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_versions -> storage_locations (storage_location_id));
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_versions -> storage_quotas (storage_quota_id));
 
 diesel::table! {
@@ -73,8 +83,8 @@ diesel::table! {
 diesel::table! {
     file_groups {
         id -> Uuid,
-        owner_id -> Uuid,
         name -> Text,
+        owner_id -> Uuid,
         created_time -> Timestamp,
         modified_time -> Timestamp,
         description -> Nullable<Text>,
@@ -82,6 +92,8 @@ diesel::table! {
         dynamic_group_rule -> Nullable<Jsonb>,
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_groups -> users (owner_id));
 
 diesel::table! {
@@ -91,7 +103,12 @@ diesel::table! {
         created_time -> Timestamp,
     }
 }
+
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_file_group_members -> files (file_id));
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_file_group_members -> file_groups (file_group_id));
 
 diesel::table! {
@@ -104,6 +121,8 @@ diesel::table! {
         description -> Nullable<Text>,
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(user_groups -> users (owner_id));
 
 diesel::table! {
@@ -132,6 +151,8 @@ diesel::table! {
     }
 }
 diesel::joinable!(tag_members -> users (created_by_user_id));
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(tag_members -> tags (tag_id));
 
 diesel::table! {
@@ -157,7 +178,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    storage_quotas  {
+    storage_quotas {
         id -> Uuid,
         owner_id -> Uuid,
         name -> Text,
@@ -172,6 +193,8 @@ diesel::table! {
         quota_bytes -> BigInt,
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(storage_quotas -> storage_locations (storage_location_id));
 
 diesel::table! {
@@ -183,6 +206,8 @@ diesel::table! {
         created_by_user_id -> Uuid,
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_group_file_sort_orders -> file_groups (file_group_id));
 diesel::joinable!(file_group_file_sort_orders -> users (created_by_user_id));
 
@@ -193,17 +218,21 @@ diesel::table! {
         position -> Integer
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_group_file_sort_order_items -> files (file_id));
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(file_group_file_sort_order_items -> file_group_file_sort_orders (sort_order_id));
 
 diesel::table! {
     jobs {
         id -> Uuid,
+        name -> Text,
         owner_id -> Uuid,
         app_id -> Uuid,
         assigned_app_runtime_instance_id -> Nullable<Text>,
         app_instance_last_seen_time -> Nullable<Timestamp>,
-        name -> Text,
         status -> SmallInt,
         status_details -> Nullable<Jsonb>,
         execution_information -> Jsonb,
@@ -213,9 +242,14 @@ diesel::table! {
         start_time -> Nullable<Timestamp>,
         end_time -> Nullable<Timestamp>,
         deadline_time -> Nullable<Timestamp>,
+        priority -> SmallInt,
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(jobs -> users (owner_id));
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(jobs -> apps (app_id));
 
 diesel::table! {
@@ -244,6 +278,8 @@ diesel::table! {
         expiration_time -> Nullable<Timestamp>,
     }
 }
+// ON DELETE: CASCADE
+// ON UPDATE: CASCADE
 diesel::joinable!(key_access -> users (owner_id));
 
 diesel::table! {

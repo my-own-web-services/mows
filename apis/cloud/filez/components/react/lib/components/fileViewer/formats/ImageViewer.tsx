@@ -38,7 +38,7 @@ export default class ImageViewer extends PureComponent<ImageViewerProps, ImageVi
 
     getImageVersion = () => {
         const formats = [`avif`];
-        const sizes = [100, 250, 500, 1000, 2000];
+        const sizes = [100, 250, 500, 1000];
         const containerWidth = this.props.width || 0;
 
         let selectedSize = sizes.find((size) => size >= containerWidth);
@@ -51,7 +51,7 @@ export default class ImageViewer extends PureComponent<ImageViewerProps, ImageVi
     };
 
     render = () => {
-        const appId = `019a2b1e-4ec6-72ce-a71f-396e4bf90d56`;
+        const appId = `019a3b08-ab20-7c2f-8430-eb2e60cc9081`;
         const appPath = this.getImageVersion();
 
         const url = `${this.context?.filezClient.baseUrl}/api/file_versions/content/get/${this.props.file.id}/${this.props.fileVersion || 0}/${appId}/${appPath}?cache=3600`;

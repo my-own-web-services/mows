@@ -11,7 +11,7 @@ use filez_server_client::{
     },
     utils::stream_file_to_path,
 };
-use image::{imageops::FilterType, ImageFormat, ImageReader};
+use image::{imageops::FilterType, ImageEncoder, ImageFormat, ImageReader};
 use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -25,6 +25,10 @@ pub struct ImagePreviewConfig {
     pub widths: Vec<u32>,
     pub formats: Vec<ImageFormat>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub quality: Option<u8>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speed: Option<u8>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deep_zoom_image: Option<DeepZoomImageConfig>,
 }
 
@@ -33,6 +37,8 @@ impl ImagePreviewConfig {
         Self {
             widths: vec![100, 250, 500, 1000],
             formats: vec![ImageFormat::Jpeg, ImageFormat::Avif],
+            quality: Some(95),
+            speed: Some(4),
             deep_zoom_image: None,
         }
     }
@@ -140,7 +146,33 @@ async fn create_basic_versions(
 
             trace!("Target file path for resized image: {:?}", target_file_path);
 
-            resized_image.save_with_format(&target_file_path, *format)?;
+            // Save with quality control
+            let quality = config.quality.unwrap_or(95);
+            let speed = config.speed.unwrap_or(4);
+            let output_file = std::fs::File::create(&target_file_path)?;
+            let mut writer = std::io::BufWriter::new(output_file);
+
+            match format {
+                ImageFormat::Jpeg => {
+                    use image::codecs::jpeg::JpegEncoder;
+                    let mut encoder = JpegEncoder::new_with_quality(&mut writer, quality);
+                    encoder.encode_image(&resized_image)?;
+                }
+                ImageFormat::Avif => {
+                    use image::codecs::avif::AvifEncoder;
+                    let encoder = AvifEncoder::new_with_speed_quality(&mut writer, speed, quality);
+                    encoder.write_image(
+                        resized_image.as_bytes(),
+                        resized_image.width(),
+                        resized_image.height(),
+                        resized_image.color().into(),
+                    )?;
+                }
+                _ => {
+                    // For formats without quality support, use default encoding
+                    resized_image.write_to(&mut writer, *format)?;
+                }
+            }
 
             let preview_file = PreviewFile {
                 path: target_file_path.clone(),

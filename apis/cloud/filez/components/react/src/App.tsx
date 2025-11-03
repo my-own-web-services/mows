@@ -54,11 +54,12 @@ export default class App extends PureComponent<AppProps, AppState> {
                 <CommandPalette />
                 <ModalHandler />
                 <Toaster></Toaster>
+                <GlobalContextMenu></GlobalContextMenu>
                 <FileList
-                    fileGroupId={`019a2b1f-5a16-75d7-9233-03733b464229`}
+                    fileGroupId={`019a3b0a-f060-7eb2-ab16-751e746de116`}
                     className={`h-[500px] w-full`}
                 ></FileList>
-                <GlobalContextMenu></GlobalContextMenu>
+
                 <Upload className={`h-[800px] w-full`}></Upload>
                 <JobList className={`h-[500px] w-full`}></JobList>
             </div>

@@ -1,5 +1,4 @@
 use crate::{
-    config::SESSION_INFO_KEY,
     errors::FilezError,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -35,9 +34,6 @@ pub async fn end_session(
     session: Session,
     Json(request_body): Json<EndSessionRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
-    // Remove the session info from the session store
-    session.remove::<()>(SESSION_INFO_KEY).await?;
-
     // Delete the entire session
     session.delete().await?;
 

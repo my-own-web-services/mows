@@ -4,7 +4,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { cn } from "@/lib/utils";
 import { SortDirection } from "filez-client-typescript";
 import { LucideColumns3 } from "lucide-react";
-import { Component, CSSProperties, JSX } from "react";
+import { CSSProperties, JSX } from "react";
 import { FaThList } from "react-icons/fa";
 import { IoChevronUp } from "react-icons/io5";
 import { match } from "ts-pattern";
@@ -35,10 +35,6 @@ export interface ColumnListRowHandlerState<FilezResourceType> {
 }
 
 export default class ColumnListRowHandler<FilezResourceType extends BaseResource>
-    extends Component<
-        ColumnListRowHandlerProps<FilezResourceType>,
-        ColumnListRowHandlerState<FilezResourceType>
-    >
     implements ListRowHandler<FilezResourceType>
 {
     id = `ColumnListRowHandler`;
@@ -49,9 +45,9 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
     resourceList: InstanceType<typeof ResourceList> | undefined;
     rowHeightPixels = 24;
     props: ColumnListRowHandlerProps<FilezResourceType>;
+    columns: Column<FilezResourceType>[];
 
     constructor(props: ColumnListRowHandlerProps<FilezResourceType>) {
-        super(props);
         this.props = props;
 
         if (props.rowHeightPixels !== undefined) {
@@ -59,7 +55,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
         }
 
         this.checkColumns(props.columns);
-        this.state = { columns: props.columns };
+        this.columns = props.columns;
     }
 
     checkColumns = (columns: Column<FilezResourceType>[]) => {
@@ -90,18 +86,14 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
 
     setColumSorting = (field: string, newDirection: SortDirection) => {
         // Only update state if component is mounted
-        if (this.state) {
-            this.setState({
-                columns: this.state.columns.map((c) => {
-                    if (c.field === field) {
-                        c.direction = newDirection;
-                    } else {
-                        c.direction = SortDirection.Neutral;
-                    }
-                    return c;
-                })
-            });
-        }
+        this.columns = this.columns.map((c) => {
+            if (c.field === field) {
+                c.direction = newDirection;
+            } else {
+                c.direction = SortDirection.Neutral;
+            }
+            return c;
+        });
 
         this.resourceList?.setState(
             {
@@ -116,7 +108,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
     };
 
     headerRenderer = () => {
-        const columns = this.state.columns;
+        const columns = this.columns;
         const activeColumns = columns.filter((c) => c.enabled);
 
         if (this.props.hideColumnHeader === true) return <></>;
@@ -228,13 +220,11 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                             header={`Columns`}
                             showCount={false}
                             onOptionChange={(id: string, enabled: boolean) => {
-                                this.setState({
-                                    columns: columns.map((c) => {
-                                        if (c.field === id) {
-                                            c.enabled = enabled;
-                                        }
-                                        return c;
-                                    })
+                                this.columns = columns.map((c) => {
+                                    if (c.field === id) {
+                                        c.enabled = enabled;
+                                    }
+                                    return c;
                                 });
                                 this.resourceList?.forceUpdate();
                             }}
@@ -269,7 +259,7 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
             return rowProps.data?.items?.[rowProps.index]!;
         };
 
-        const columns = this.state.columns;
+        const columns = this.columns;
 
         return (
             <div
@@ -300,7 +290,6 @@ export default class ColumnListRowHandler<FilezResourceType extends BaseResource
                         return (
                             <span
                                 onClick={onItemClick}
-                                onContextMenu={onItemClick}
                                 key={column.field + index}
                                 className={`flex h-full items-center overflow-hidden text-ellipsis whitespace-nowrap`}
                                 style={{

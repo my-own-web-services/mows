@@ -7,10 +7,7 @@ use utoipa::ToSchema;
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
-    models::{
-        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        jobs::FilezJob,
-    },
+    models::jobs::FilezJob,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse, SortDirection},
     with_timing,
@@ -41,20 +38,6 @@ pub async fn list_jobs(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Json(request_body): Json<ListJobsRequestBody>,
 ) -> Result<Json<ApiResponse<ListJobsResponseBody>>, FilezError> {
-    with_timing!(
-        AccessPolicy::check(
-            &database,
-            &authentication_information,
-            AccessPolicyResourceType::FilezJob,
-            None,
-            AccessPolicyAction::FilezJobsList,
-        )
-        .await?
-        .verify_allow_type_level()?,
-        "Checking access policy for user and app",
-        timing
-    );
-
     let (jobs, total_count) = with_timing!(
         FilezJob::list_with_user_access(
             &database,

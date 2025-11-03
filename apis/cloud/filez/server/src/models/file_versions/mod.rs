@@ -220,7 +220,7 @@ impl FileVersion {
 
     pub async fn get_all_by_file_id(
         database: &Database,
-        file_id: FilezFileId,
+        file_id: &FilezFileId,
     ) -> Result<Vec<FileVersion>, FilezError> {
         let mut connection = database.get_connection().await?;
 

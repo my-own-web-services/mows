@@ -95,6 +95,7 @@ export enum ListAccessPoliciesSortBy {
 export enum JobStatus {
   Created = "Created",
   InProgress = "InProgress",
+  Paused = "Paused",
   Completed = "Completed",
   Failed = "Failed",
   Cancelled = "Cancelled",
@@ -391,6 +392,15 @@ export interface ApiResponseGetOwnUserBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseGetSessionTimeoutResponseBody {
+  data?: {
+    /** @format int64 */
+    inactivity_timeout_seconds: number;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseGetStorageQuotaResponseBody {
   data?: {
     storage_quotas: StorageQuota[];
@@ -577,8 +587,20 @@ export interface ApiResponsePickupJobResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseRefreshSessionResponseBody {
+  data?: {
+    /** @format int64 */
+    inactivity_timeout_seconds: number;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseStartSessionResponseBody {
-  data?: object;
+  data?: {
+    /** @format int64 */
+    inactivity_timeout_seconds: number;
+  };
   message: string;
   status: ApiResponseStatus;
 }
@@ -851,6 +873,8 @@ export interface CreateJobRequestBody {
   /** @maxLength 256 */
   job_name: string;
   job_persistence: JobPersistenceType;
+  /** @format int32 */
+  job_priority: number;
 }
 
 export interface CreateJobResponseBody {
@@ -1062,6 +1086,11 @@ export interface FilezJob {
   owner_id: FilezUserId;
   persistence: JobPersistenceType;
   /**
+   * Priority of the job (1-10), higher values are picked up first
+   * @format int32
+   */
+  priority: number;
+  /**
    * When the job was started, either automatically or manually
    * @format date-time
    */
@@ -1146,6 +1175,11 @@ export interface GetJobResponseBody {
 
 export interface GetOwnUserBody {
   user: FilezUser;
+}
+
+export interface GetSessionTimeoutResponseBody {
+  /** @format int64 */
+  inactivity_timeout_seconds: number;
 }
 
 export interface GetStorageQuotaRequestBody {
@@ -1611,9 +1645,19 @@ export interface ProgressStep {
   name: string;
 }
 
+export type RefreshSessionRequestBody = object;
+
+export interface RefreshSessionResponseBody {
+  /** @format int64 */
+  inactivity_timeout_seconds: number;
+}
+
 export type StartSessionRequestBody = object;
 
-export type StartSessionResponseBody = object;
+export interface StartSessionResponseBody {
+  /** @format int64 */
+  inactivity_timeout_seconds: number;
+}
 
 /** @format uuid */
 export type StorageLocationId = string;
@@ -1733,6 +1777,8 @@ export interface UpdateJobChangeset {
   /** @maxLength 256 */
   new_job_name?: string | null;
   new_job_persistence?: null | JobPersistenceType;
+  /** @format int32 */
+  new_job_priority?: number | null;
 }
 
 export interface UpdateJobRequestBody {
@@ -2813,6 +2859,28 @@ export class Api<
       }),
 
     /**
+     * @description Refreshes an existing session by updating the last_seen timestamp
+     *
+     * @name RefreshSession
+     * @request POST:/api/sessions/refresh
+     */
+    refreshSession: (
+      data: RefreshSessionRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        ApiResponseRefreshSessionResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/sessions/refresh`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Starts a new session valid for get requests from the same origin
      *
      * @name StartSession
@@ -2827,6 +2895,23 @@ export class Api<
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Get the session timeout on inactivity in seconds
+     *
+     * @name GetSessionTimeout
+     * @request GET:/api/sessions/timeout
+     */
+    getSessionTimeout: (params: RequestParams = {}) =>
+      this.request<
+        ApiResponseGetSessionTimeoutResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/sessions/timeout`,
+        method: "GET",
         format: "json",
         ...params,
       }),
