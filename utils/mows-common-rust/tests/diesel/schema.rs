@@ -1,3 +1,7 @@
+// INDEX: (external_user_id)
+// INDEX: (display_name, created_time)
+// SQL: CREATE UNIQUE INDEX idx_users_email ON "users" ("pre_identifier_email") WHERE "pre_identifier_email" IS NOT NULL
+// SQL: CREATE INDEX idx_users_deleted_created ON "users" ("deleted", "created_time")
 diesel::table! {
     users {
         id -> Uuid,
@@ -13,6 +17,8 @@ diesel::table! {
     }
 }
 
+// UNIQUE: (user_id, friend_id)
+// INDEX: (user_id, friend_id)
 diesel::table! {
     user_relations (user_id, friend_id) {
         user_id -> Uuid,
@@ -34,9 +40,11 @@ diesel::table! {
         metadata -> Jsonb,
     }
 }
-// ON DELETE: CASCADE
+// ON_DELETE: CASCADE
 diesel::joinable!(files -> users (owner_id));
 
+// UNIQUE: (file_id, version, app_id, app_path)
+// INDEX: (file_id, version, app_id, app_path)
 diesel::table! {
     file_versions (file_id, version, app_id, app_path) {
         id -> Uuid,
@@ -56,11 +64,11 @@ diesel::table! {
         existing_content_bytes -> Nullable<BigInt>,
     }
 }
-// ON DELETE: CASCADE
-// ON UPDATE: CASCADE
+// ON_DELETE: CASCADE
+// ON_UPDATE: CASCADE
 diesel::joinable!(file_versions -> files (file_id));
 diesel::joinable!(file_versions -> apps (app_id));
-// ON DELETE: RESTRICT
+// ON_DELETE: RESTRICT
 diesel::joinable!(file_versions -> storage_locations (storage_location_id));
 diesel::joinable!(file_versions -> storage_quotas (storage_quota_id));
 
