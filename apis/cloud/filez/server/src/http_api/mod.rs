@@ -96,6 +96,8 @@ pub mod health;
 
 pub mod sessions {
     pub mod end;
+    pub mod get_timeout;
+    pub mod refresh;
     pub mod start;
 }
 

@@ -126,7 +126,7 @@ export const handleFileUpload = async (
             throw new Error(`Preview generator app not found`);
         }
 
-        const _jobResponse = await filezClient.api.createJob({
+        await filezClient.api.createJob({
             job_execution_details: {
                 job_type: {
                     CreatePreview: {
@@ -139,14 +139,42 @@ export const handleFileUpload = async (
                         allowed_mime_types: [`image/avif`],
                         preview_config: {
                             widths: [100, 250, 500],
-                            formats: [`Avif`]
+                            formats: [`Avif`],
+                            speed: 10
                         }
                     }
                 }
             },
             job_handling_app_id: previewGeneratorApp?.id,
-            job_name: `Generate Previews`,
-            job_persistence: JobPersistenceType.Temporary
+            job_name: `Generate Fast Previews for ${createFileResponse.created_file.name}`,
+            job_persistence: JobPersistenceType.Temporary,
+            job_priority: 10
+        });
+
+        await filezClient.api.createJob({
+            job_execution_details: {
+                job_type: {
+                    CreatePreview: {
+                        file_id: createFileResponse.created_file.id,
+                        file_version_number: fileVersionResponse.version,
+                        storage_location_id: fileVersionResponse.storage_location_id,
+                        storage_quota_id: storageQuota.id,
+                        allowed_number_of_previews: 3,
+                        allowed_size_bytes: 10_000_000,
+                        allowed_mime_types: [`image/avif`],
+
+                        preview_config: {
+                            widths: [100, 250, 500],
+                            formats: [`Avif`],
+                            speed: 1
+                        }
+                    }
+                }
+            },
+            job_handling_app_id: previewGeneratorApp?.id,
+            job_name: `Generate well compressed Previews for ${createFileResponse.created_file.name}`,
+            job_persistence: JobPersistenceType.Temporary,
+            job_priority: 1
         });
     }
 

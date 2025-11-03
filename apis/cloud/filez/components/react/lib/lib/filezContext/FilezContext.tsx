@@ -67,6 +67,7 @@ interface FilezClientManagerState {
     readonly currentLanguage?: Language;
     readonly currentlyOpenModal?: ModalType;
     readonly clientAuthenticated?: boolean;
+    readonly sessionTimeoutSeconds?: number;
 }
 
 export class FilezClientManagerBase extends Component<
@@ -75,6 +76,7 @@ export class FilezClientManagerBase extends Component<
 > {
     private actionManager: ActionManager;
     private hotkeyManager: HotkeyManager;
+    private sessionRefreshInterval?: NodeJS.Timeout;
 
     constructor(props: FilezClientManagerProps) {
         super(props);
@@ -123,7 +125,9 @@ export class FilezClientManagerBase extends Component<
         this.setState({ currentlyOpenModal: modalType });
     };
 
-    componentWillUnmount = () => {};
+    componentWillUnmount = () => {
+        this.clearSessionRefreshInterval();
+    };
 
     restoreRedirectPath = () => {
         const redirectPath = localStorage.getItem(FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY);
@@ -159,15 +163,7 @@ export class FilezClientManagerBase extends Component<
                 }
             });
 
-            await filezClient.api.startSession(
-                {},
-                {
-                    credentials: `include`,
-                    headers: {
-                        Cookie: ``
-                    }
-                }
-            );
+            await this.startAndSetupSessionRefresh(filezClient);
 
             if (ownUserRes?.data?.data?.user) {
                 this.setState({ ownUser: ownUserRes?.data?.data?.user, clientAuthenticated: true });
@@ -179,6 +175,67 @@ export class FilezClientManagerBase extends Component<
                 }),
                 ownUser: null
             });
+            this.clearSessionRefreshInterval();
+        }
+    };
+
+    startAndSetupSessionRefresh = async (filezClient: FilezClient) => {
+        // Start the session and get the timeout from the response
+        const sessionRes = await filezClient.api.startSession(
+            {},
+            {
+                credentials: `include`
+            }
+        );
+
+        const timeoutSeconds = sessionRes?.data?.data?.inactivity_timeout_seconds;
+
+        if (timeoutSeconds) {
+            // Store the timeout if we don't have it or if it changed
+            if (this.state.sessionTimeoutSeconds !== timeoutSeconds) {
+                this.setState({ sessionTimeoutSeconds: timeoutSeconds });
+                log.debug(`Session timeout: ${timeoutSeconds} seconds`);
+            }
+
+            // Set up refresh interval at 75% of the timeout duration
+            this.setupSessionRefreshInterval(filezClient, timeoutSeconds);
+        } else {
+            log.warn(`Session timeout not returned from startSession`);
+        }
+    };
+
+    setupSessionRefreshInterval = (filezClient: FilezClient, timeoutSeconds: number) => {
+        // Clear any existing interval
+        this.clearSessionRefreshInterval();
+
+        // Refresh at 75% of the timeout duration to ensure the session stays active
+        const refreshIntervalMs = timeoutSeconds * 0.75 * 1000;
+
+        log.debug(
+            `Setting up session refresh interval: ${refreshIntervalMs}ms (${refreshIntervalMs / 1000}s)`
+        );
+
+        this.sessionRefreshInterval = setInterval(async () => {
+            try {
+                log.debug(`Refreshing session...`);
+                await filezClient.api.refreshSession(
+                    {},
+                    {
+                        credentials: `include`
+                    }
+                );
+                log.debug(`Session refreshed successfully`);
+            } catch (error) {
+                log.error(`Failed to refresh session`, error);
+            }
+        }, refreshIntervalMs);
+    };
+
+    clearSessionRefreshInterval = () => {
+        if (this.sessionRefreshInterval) {
+            clearInterval(this.sessionRefreshInterval);
+            this.sessionRefreshInterval = undefined;
+            log.debug(`Session refresh interval cleared`);
         }
     };
 

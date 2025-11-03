@@ -31,6 +31,7 @@ pub struct FilezServerConfig {
     pub oidc_issuer: String,
     pub reconcile_interval_seconds: u64,
     pub listen_port: u16,
+    pub session_timeout_on_inactivity_seconds: i64,
 }
 
 #[tracing::instrument(level = "trace")]
@@ -60,5 +61,12 @@ pub fn from_env() -> anyhow::Result<FilezServerConfig> {
         reconcile_interval_seconds: load_env("60", "RECONCILE_INTERVAL_SECONDS", false, true)?
             .parse::<u64>()?,
         listen_port: load_env("8080", "LISTEN_PORT", false, true)?.parse::<u16>()?,
+        session_timeout_on_inactivity_seconds: load_env(
+            "600",
+            "SESSION_TIMEOUT_SECONDS_ON_INACTIVITY",
+            false,
+            true,
+        )?
+        .parse::<i64>()?,
     })
 }

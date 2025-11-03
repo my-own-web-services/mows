@@ -1592,6 +1592,46 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Refreshes an existing session by updating the last_seen timestamp
+    #[tracing::instrument(level = "trace")]
+    pub async fn refresh_session(
+        &self,
+        request_body: RefreshSessionRequestBody,
+    ) -> Result<ApiResponseRefreshSessionResponseBody, ApiClientError> {
+        let full_url = format!("{}/api/sessions/refresh", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .json(&request_body)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
     /// Starts a new session valid for get requests from the same origin
     #[tracing::instrument(level = "trace")]
     pub async fn start_session(
@@ -1606,6 +1646,44 @@ impl ApiClient {
             .post(full_url)
             .headers(self.add_auth_headers()?)
             .json(&request_body)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Get the session timeout on inactivity in seconds
+    #[tracing::instrument(level = "trace")]
+    pub async fn get_session_timeout(
+        &self,
+    ) -> Result<ApiResponseGetSessionTimeoutResponseBody, ApiClientError> {
+        let full_url = format!("{}/api/sessions/timeout", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .get(full_url)
+            .headers(self.add_auth_headers()?)
             .send()
             .await?;
 

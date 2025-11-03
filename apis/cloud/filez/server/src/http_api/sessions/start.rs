@@ -4,12 +4,14 @@ use crate::{
     http_api::authentication::{middleware::AuthenticationInformation, sessions::SessionInfo},
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
+    utils::get_current_timestamp,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
+use mows_common_rust::get_current_config_cloned;
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use tower_sessions::Session;
@@ -53,16 +55,21 @@ pub async fn start_session(
                     SessionInfo {
                         user_id: user.id,
                         app_id: authentication_information.requesting_app.id,
+                        last_seen: get_current_timestamp(),
                     },
                 )
                 .await?;
+
+            let config = get_current_config_cloned!(crate::config::config());
 
             Ok((
                 StatusCode::CREATED,
                 Json(ApiResponse {
                     status: ApiResponseStatus::Success {},
                     message: "Created Session".to_string(),
-                    data: Some(StartSessionResponseBody {}),
+                    data: Some(StartSessionResponseBody {
+                        inactivity_timeout_seconds: config.session_timeout_on_inactivity_seconds,
+                    }),
                 }),
             ))
         }
@@ -76,4 +83,6 @@ pub async fn start_session(
 pub struct StartSessionRequestBody {}
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
-pub struct StartSessionResponseBody {}
+pub struct StartSessionResponseBody {
+    pub inactivity_timeout_seconds: i64,
+}

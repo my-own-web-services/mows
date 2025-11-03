@@ -98,6 +98,11 @@ const tasks: TestMetadata[] = [
         id: `createAdminStorageQuota`,
         name: `Create Admin Storage Quota`,
         description: `Create a storage quota for the admin user`
+    },
+    {
+        id: `resetDatabase`,
+        name: `Reset Database`,
+        description: `Resets the database, DELETES ALL DATA (Only works in development mode, set in the server config)`
     }
 ];
 

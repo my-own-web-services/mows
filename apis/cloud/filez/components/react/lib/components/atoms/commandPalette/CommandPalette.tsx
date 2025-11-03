@@ -1,5 +1,6 @@
 import { ActionIds } from "@/lib/defaultActions";
 import type { Action } from "@/lib/filezContext/ActionManager";
+import { ActionVisibility } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { FilezContext } from "@/main";
 import { PureComponent, type CSSProperties } from "react";
@@ -63,7 +64,7 @@ export default class CommandPalette extends PureComponent<
             },
 
             id: `GlobalCommandPalette`,
-            getState: () => ({ visibility: `active` })
+            getState: () => ({ visibility: ActionVisibility.Shown })
         });
     };
 
@@ -92,7 +93,7 @@ export default class CommandPalette extends PureComponent<
                 byCategory.set(category, []);
             }
             if (action.hideInCommandPalette) return;
-            if (action.getState()?.visibility === `inactive`) return;
+            if (action.getState()?.visibility === ActionVisibility.Hidden) return;
             byCategory.get(category)!.push(action);
         });
 
@@ -113,7 +114,7 @@ export default class CommandPalette extends PureComponent<
             <CommandItem
                 key={`${keyPrefix}${action.id}`}
                 onSelect={() => this.executeCommand(action.id)}
-                disabled={itemState?.visibility === `disabled`}
+                disabled={itemState?.visibility === ActionVisibility.Disabled}
             >
                 <ActionComponent action={action} />
             </CommandItem>

@@ -28,7 +28,7 @@ export default async (filezClient: Api<unknown>) => {
             storage_quota_subject_type: StorageQuotaSubjectType.User,
             storage_quota_subject_id: ownUser.id,
             storage_location_id,
-            storage_quota_name: `Alice's Storage Quota`
+            storage_quota_name: `Admin's Storage Quota`
         })
     ).data?.data?.created_storage_quota;
 

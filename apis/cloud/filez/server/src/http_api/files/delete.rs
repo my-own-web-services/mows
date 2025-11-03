@@ -66,7 +66,7 @@ pub async fn delete_file(
     );
 
     with_timing!(
-        FilezFile::delete_one(&database, &storage_location_providers, &timing, file_id).await?,
+        FilezFile::delete_one(&database, &storage_location_providers, &timing, &file_id).await?,
         "Database operation to delete file",
         timing
     );

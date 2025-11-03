@@ -21,6 +21,10 @@ path = "src/client_gen/mod.rs"
 name = "schemagen"
 path = "src/kubernetes_controller/schemagen.rs"
 
+[[bin]]
+name = "gen_migrations"
+path = "src/gen_migrations.rs"
+
 
 [lib]
 name = "filez_server_lib"

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionIds } from "@/lib/defaultActions";
+import { ActionVisibility } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn, signinRedirectSavePath } from "@/lib/utils";
 import { type CSSProperties, PureComponent } from "react";
@@ -59,7 +60,7 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
 
     registerActionHandler = () => {
         this.context?.actionManager?.registerActionHandler(ActionIds.OPEN_PRIMARY_MENU, {
-            getState: () => ({ visibility: `active` }),
+            getState: () => ({ visibility: ActionVisibility.Shown }),
             id: `GlobalOpenPrimaryMenu`,
             executeAction: async () => {
                 this.setState({ menuOpen: true });

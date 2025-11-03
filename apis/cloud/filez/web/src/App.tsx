@@ -1,7 +1,6 @@
 import { PrimaryMenu } from "filez-components-react";
 import { Component, CSSProperties } from "preact";
 import Router, { Route } from "preact-router";
-import Dev from "./routes/Dev";
 import Home from "./routes/Home";
 
 interface AppProps {
@@ -25,7 +24,6 @@ export default class App extends Component<AppProps, AppState> {
                 <PrimaryMenu />
                 <Router>
                     <Route path="/" component={Home} />
-                    <Dev path="/dev" />
                 </Router>
             </div>
         );

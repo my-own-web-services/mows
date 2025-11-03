@@ -13,6 +13,8 @@ mv FilezResourceCRD.yaml ../charts/filez/templates/server/FilezResourceCRD.yaml
 
 cargo run --bin schemagen > FilezResourceCRDSchema.json
 
+cargo run --bin gen_migrations
+
 
 docker buildx bake ${BAKE_ARGS:-default} 
 

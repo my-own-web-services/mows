@@ -56,6 +56,7 @@ const translation: Translation = {
         [ActionIds.LOGIN]: `Login`,
         [ActionIds.LOGOUT]: `Logout`,
         [ActionIds.DELETE_FILES]: `Delete files`,
+        [ActionIds.DELETE_JOBS]: `Delete jobs`,
         [ActionIds.CREATE_FILE_GROUP]: `Create file group`,
         [ActionIds.OPEN_DEV_TOOLS]: `Open developer tools`
     },
@@ -137,6 +138,9 @@ const translation: Translation = {
     common: {
         files: {
             delete: (fileCount: number) => fileCount === 1 ? `Delete file` : `Delete ${fileCount} files`
+        },
+        jobs: {
+            delete: (jobCount: number) => jobCount === 1 ? `Delete job` : `Delete ${jobCount} jobs`
         }
     },
     devPanel: {

@@ -186,6 +186,10 @@ async fn main() -> Result<(), anyhow::Error> {
         // SESSIONS
         .routes(routes!(http_api::sessions::start::start_session))
         .routes(routes!(http_api::sessions::end::end_session))
+        .routes(routes!(http_api::sessions::refresh::refresh_session))
+        .routes(routes!(
+            http_api::sessions::get_timeout::get_session_timeout
+        ))
         // DEV
         .routes(routes!(http_api::dev::reset_database::reset_database))
         .with_state(server_state.clone())
@@ -196,7 +200,9 @@ async fn main() -> Result<(), anyhow::Error> {
                         .with_secure(true)
                         .with_http_only(true)
                         .with_same_site(tower_sessions::cookie::SameSite::None)
-                        .with_expiry(Expiry::OnInactivity(Duration::seconds(600))),
+                        .with_expiry(Expiry::OnInactivity(Duration::seconds(
+                            config.session_timeout_on_inactivity_seconds,
+                        ))),
                 )
                 .layer(OtelAxumLayer::default())
                 .layer(OtelInResponseLayer::default())
