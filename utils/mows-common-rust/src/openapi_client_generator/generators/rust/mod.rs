@@ -260,7 +260,7 @@ mod tests {
         if let Some(components) = &self.spec.components {
             for (type_name, schema) in &components.schemas {
                 if let Some(rust_type) =
-                    openapi_schema_to_rust_type(Some(type_name.to_string()), schema)?
+                    openapi_schema_to_rust_type(Some(type_name.to_string()), schema, &self.config)?
                 {
                     type_definitions.push((type_name.clone(), rust_type.to_rust_code()));
                 }
@@ -296,4 +296,8 @@ use std::collections::HashMap;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct RustGeneratorConfig {}
+pub struct RustGeneratorConfig {
+    /// Add Default derive to structs where all fields are optional
+    #[serde(default)]
+    pub derive_default_for_all_optional_structs: bool,
+}

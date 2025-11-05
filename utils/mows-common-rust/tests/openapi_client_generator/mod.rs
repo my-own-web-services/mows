@@ -38,3 +38,43 @@ async fn test() {
         .output()
         .expect("Failed to run cargo check");
 }
+
+#[tokio::test]
+async fn test_derive_default_for_all_optional_structs() {
+    let path = Path::new("../../apis/cloud/filez/server/openapi.json");
+
+    // Test with feature disabled
+    let config_disabled = RustGeneratorConfig {
+        derive_default_for_all_optional_structs: false,
+    };
+
+    let vfs_disabled =
+        generate_openapi_client(path, GeneratorType::Rust(config_disabled))
+            .await
+            .unwrap();
+
+    let types_disabled = vfs_disabled.get("src/types.rs").expect("types.rs should exist");
+
+    // Test with feature enabled
+    let config_enabled = RustGeneratorConfig {
+        derive_default_for_all_optional_structs: true,
+    };
+
+    let vfs_enabled =
+        generate_openapi_client(path, GeneratorType::Rust(config_enabled))
+            .await
+            .unwrap();
+
+    let types_enabled = vfs_enabled.get("src/types.rs").expect("types.rs should exist");
+
+    // Count structs with Default derive in both versions
+    let default_count_disabled = types_disabled.matches("#[derive(Debug, Clone, Serialize, Deserialize, Default)]").count();
+    let default_count_enabled = types_enabled.matches("#[derive(Debug, Clone, Serialize, Deserialize, Default)]").count();
+
+    println!("Default derives when disabled: {}", default_count_disabled);
+    println!("Default derives when enabled: {}", default_count_enabled);
+
+    // With feature enabled, there should be more structs with Default derive
+    assert!(default_count_enabled >= default_count_disabled,
+        "Feature should add Default derive to structs with all optional fields");
+}
