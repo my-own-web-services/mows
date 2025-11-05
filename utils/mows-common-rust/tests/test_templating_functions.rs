@@ -1,9 +1,13 @@
+// Integration tests for template functions
+//
+// These tests verify that template functions work correctly when used through
+// the template system. Unit tests for individual functions are located in
+// their respective source files in src/templating/functions/
+
 use gtmpl::{Context as GtmplContext, Template, Value as GtmplValue};
 use gtmpl_derive::Gtmpl;
 use mows_common_rust::templating::functions::TEMPLATE_FUNCTIONS;
 use std::collections::HashMap;
-
-// TODO test with the actual helm output and compare
 
 #[derive(Gtmpl)]
 struct LocalContext {
@@ -113,64 +117,6 @@ fn variables_work() {
     assert_eq!(result, "bar");
 }
 
-#[test]
-fn test_trim() {
-    let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
-    let mut variables = HashMap::new();
-
-    let multiline = r#"-----BEGIN CERTIFICATE-----
-MIIBbjCCARSgAwIBAgIUUsAyLp9qn6FM3flE6wyCf6dIi20wCgYIKoZIzj0EAwIw
-ITEfMB0GA1UEAwwWcmNnZW4gc2VsZiBzaWduZWQgY2VydDAgFw03NTAxMDEwMDAw
-MDBaGA80MDk2MDEwMTAwMDAwMFowITEfMB0GA1UEAwwWcmNnZW4gc2VsZiBzaWdu
-ZWQgY2VydDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABGoK877ePyDs5B1+nXQo
-Qo4EnVPRqGj84ht6mIrZF4JwAPa67MXLfsL6GRhjFW5FNYj9Rne7BSeMLU0OG5JC
-IAajKDAmMCQGA1UdEQQdMBuCB3ppdGFkZWyCB3ppdGFkZWyCB3ppdGFkZWwwCgYI
-KoZIzj0EAwIDSAAwRQIgLcqDHZpvt09CDxrFlOnwXpW7LolxQx2nAwAjAvDwaHEC
-IQDSSxvE4LxzzFINETpZmR4iceGpGeqdnJge+hZn6kbW7A==
------END CERTIFICATE-----"#;
-
-    variables.insert(
-        "cert".to_string(),
-        GtmplValue::String(multiline.to_string()),
-    );
-
-    let context = GtmplContext::from(LocalContext { variables });
-
-    let template = r#"{{ trim .variables.cert  }}"#;
-
-    template_creator.parse(template).unwrap();
-
-    let result = template_creator.render(&context).unwrap();
-
-    assert_eq!(result, multiline);
-}
-
-#[test]
-fn indent_works() {
-    let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
-    let mut variables = HashMap::new();
-
-    let multiline = r#"123
-abc
-xyz"#;
-
-    variables.insert(
-        "multiline".to_string(),
-        GtmplValue::String(multiline.to_string()),
-    );
-
-    let context = GtmplContext::from(LocalContext { variables });
-
-    let template = r#"{{ .variables.multiline | indent 6 }}"#;
-
-    template_creator.parse(template).unwrap();
-
-    let result = template_creator.render(&context).unwrap();
-
-    assert_eq!(result, "      123\n      abc\n      xyz");
-}
 
 #[test]
 fn gen_ca_and_sign_cert() {
@@ -242,3 +188,4 @@ fn gen_signed_cert() {
         true
     );
 }
+

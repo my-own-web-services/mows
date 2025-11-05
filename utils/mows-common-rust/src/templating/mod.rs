@@ -1,4 +1,5 @@
 pub mod functions;
+
 pub use gtmpl;
 pub use gtmpl_derive;
 pub use gtmpl_value;
@@ -16,5 +17,3 @@ pub enum TemplateError {
     #[error("TemplateExecError: {0}")]
     TemplateExecError(#[source] gtmpl::error::ExecError),
 }
-
-// TODO: the error handling is a mess with much copy paste, need to refactor

@@ -6,12 +6,13 @@ use utoipa::openapi::{
 
 use crate::openapi_client_generator::ClientGeneratorError;
 
-use super::types::*;
+use super::{types::*, RustGeneratorConfig};
 
 /// Convert an OpenAPI schema to a Rust type definition
 pub fn openapi_schema_to_rust_type(
     type_name: Option<String>,
     schema: &RefOr<Schema>,
+    config: &RustGeneratorConfig,
 ) -> Result<Option<RustType>, ClientGeneratorError> {
     match schema {
         RefOr::Ref(_reference) => {
@@ -20,7 +21,7 @@ pub fn openapi_schema_to_rust_type(
         }
         RefOr::T(schema_obj) => {
             if let Some(name) = type_name {
-                schema_to_rust_type(name, schema_obj)
+                schema_to_rust_type(name, schema_obj, config)
             } else {
                 // Inline schema without a name, can't create a top-level type
                 Ok(None)
@@ -32,13 +33,14 @@ pub fn openapi_schema_to_rust_type(
 fn schema_to_rust_type(
     type_name: String,
     schema: &Schema,
+    config: &RustGeneratorConfig,
 ) -> Result<Option<RustType>, ClientGeneratorError> {
     match schema {
         Schema::Array(_array) => {
             // Arrays don't create new types, they use Vec<T>
             Ok(None)
         }
-        Schema::Object(object) => object_schema_to_rust_type(type_name, object),
+        Schema::Object(object) => object_schema_to_rust_type(type_name, object, config),
         Schema::OneOf(one_of) => one_of_schema_to_rust_enum(type_name, one_of),
         Schema::AllOf(_all_of) => {
             // TODO: Implement AllOf support
@@ -56,6 +58,7 @@ fn schema_to_rust_type(
 fn object_schema_to_rust_type(
     type_name: String,
     object: &utoipa::openapi::Object,
+    config: &RustGeneratorConfig,
 ) -> Result<Option<RustType>, ClientGeneratorError> {
     match (&object.schema_type, &object.enum_values) {
         // String enum
@@ -74,7 +77,7 @@ fn object_schema_to_rust_type(
 
         // Regular struct with properties
         (SchemaType::Type(Type::Object), _) if !object.properties.is_empty() => Ok(Some(
-            RustType::Struct(object_to_rust_struct(type_name, object)?),
+            RustType::Struct(object_to_rust_struct(type_name, object, config)?),
         )),
 
         // HashMap with additionalProperties
@@ -212,6 +215,7 @@ fn string_to_enum_variant(s: &str) -> RustEnumVariant {
 fn object_to_rust_struct(
     type_name: String,
     object: &utoipa::openapi::Object,
+    config: &RustGeneratorConfig,
 ) -> Result<RustStruct, ClientGeneratorError> {
     let fields = object
         .properties
@@ -281,16 +285,28 @@ fn object_to_rust_struct(
         })
         .collect::<Result<Vec<_>, ClientGeneratorError>>()?;
 
+    // Check if all fields are optional
+    let all_fields_optional = !fields.is_empty() &&
+        fields.iter().all(|field| field.rust_type.starts_with("Option<"));
+
+    // Build derives list
+    let mut derives = vec![
+        "Debug".to_string(),
+        "Clone".to_string(),
+        "Serialize".to_string(),
+        "Deserialize".to_string(),
+    ];
+
+    // Add Default if config option is enabled and all fields are optional
+    if config.derive_default_for_all_optional_structs && all_fields_optional {
+        derives.push("Default".to_string());
+    }
+
     Ok(RustStruct {
         name: to_pascal_case(&type_name),
         comment: object.description.clone(),
         fields,
-        derives: vec![
-            "Debug".to_string(),
-            "Clone".to_string(),
-            "Serialize".to_string(),
-            "Deserialize".to_string(),
-        ],
+        derives,
         visibility: Visibility::Public,
         serde_container_attrs: vec![],
     })
