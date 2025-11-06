@@ -32,6 +32,8 @@ cp tmp/api-client.ts ../clients/typescript/src/
 
 cd ../clients/typescript/ && yalc publish --push && cd -
 
+
+
 rm -rf tmp
 
 docker remove filez-server-codegen-server --force
@@ -40,3 +42,4 @@ docker remove filez-server-codegen-server --force
 
 cargo run --bin clientgen
 cd ../clients/rust/ && cargo fmt && cd -
+

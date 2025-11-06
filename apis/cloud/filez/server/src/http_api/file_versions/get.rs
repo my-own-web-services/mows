@@ -3,7 +3,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        file_versions::{FileVersion, FileVersionId},
+        file_versions::{FileVersion, FileVersionId, FileVersionQuadIdentifier},
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -61,7 +61,17 @@ pub async fn get_file_versions(
     Json(request_body): Json<GetFileVersionsRequestBody>,
 ) -> Result<impl IntoResponse, FilezError> {
     let file_versions = with_timing!(
-        FileVersion::get_many_by_file_version_id(&database, &request_body.file_version_ids).await?,
+        match &request_body.selector {
+            GetFileVersionsSelector::FileVersionIds(ids) => {
+                FileVersion::get_many_by_file_version_id(&database, ids).await?
+            }
+            GetFileVersionsSelector::FileVersionQuadIdentifiers(identifiers) => {
+                FileVersion::get_many_by_quad_identifiers(&database, identifiers).await?
+            }
+            GetFileVersionsSelector::FileVersionDigests(digests) => {
+                FileVersion::get_many_by_digests(&database, digests).await?
+            }
+        },
         "Database operation to get file versions",
         timing
     );
@@ -96,7 +106,14 @@ pub async fn get_file_versions(
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct GetFileVersionsRequestBody {
-    pub file_version_ids: Vec<FileVersionId>,
+    pub selector: GetFileVersionsSelector,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
+pub enum GetFileVersionsSelector {
+    FileVersionIds(Vec<FileVersionId>),
+    FileVersionQuadIdentifiers(Vec<FileVersionQuadIdentifier>),
+    FileVersionDigests(Vec<String>),
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]

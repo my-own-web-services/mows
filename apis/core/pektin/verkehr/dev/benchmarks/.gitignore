@@ -1,0 +1,7 @@
+# Ignore benchmark results
+results/*.txt
+results/*.json
+results/*.csv
+
+# Keep the directory
+!results/.gitkeep

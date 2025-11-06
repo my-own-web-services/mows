@@ -1,0 +1,14 @@
+docker:
+  network: bench
+log:
+  level: INFO
+api:
+  enabled: true
+  dashboard: true
+  readonly: true
+  address: :9090
+providers:
+  docker:
+    exposedbydefault: false
+  file:
+    file: /dynamic.yml

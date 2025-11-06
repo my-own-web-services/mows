@@ -1,0 +1,19 @@
+entryPoints:
+  web:
+    address: :8081
+  websecure:
+    address: :8444
+
+api:
+  insecure: true
+  dashboard: true
+
+providers:
+  docker:
+    exposedbydefault: false
+    network: bench
+  file:
+    filename: /dynamic.yml
+
+log:
+  level: INFO

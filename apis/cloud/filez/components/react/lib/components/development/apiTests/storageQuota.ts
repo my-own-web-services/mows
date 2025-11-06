@@ -33,7 +33,7 @@ export default async (filezClient: Api<unknown>) => {
             {
                 file_id: aliceFileResponse.created_file.id,
                 file_version_metadata: {},
-                file_version_size: 200,
+                file_version_content_size_bytes: 200,
                 storage_quota_id: alice_quota.id,
                 file_version_mime_type: `text/html`
             },
@@ -62,7 +62,7 @@ export default async (filezClient: Api<unknown>) => {
             {
                 file_id: aliceFileResponse.created_file.id,
                 file_version_metadata: {},
-                file_version_size: 50,
+                file_version_content_size_bytes: 50,
                 storage_quota_id: alice_quota.id,
                 file_version_mime_type: `text/html`
             },
@@ -81,7 +81,7 @@ export default async (filezClient: Api<unknown>) => {
             {
                 file_id: aliceFileResponse.created_file.id,
                 file_version_metadata: {},
-                file_version_size: 40,
+                file_version_content_size_bytes: 40,
                 storage_quota_id: alice_quota.id,
                 file_version_mime_type: `text/html`
             },
@@ -98,7 +98,7 @@ export default async (filezClient: Api<unknown>) => {
             {
                 file_id: aliceFileResponse.created_file.id,
                 file_version_metadata: {},
-                file_version_size: 50,
+                file_version_content_size_bytes: 50,
                 storage_quota_id: alice_quota.id,
                 file_version_mime_type: `text/html`
             },
@@ -134,7 +134,7 @@ export default async (filezClient: Api<unknown>) => {
             {
                 file_id: aliceFileResponse.created_file.id,
                 file_version_metadata: {},
-                file_version_size: 50,
+                file_version_content_size_bytes: 50,
                 storage_quota_id: alice_quota.id,
                 file_version_mime_type: `text/html`
             },

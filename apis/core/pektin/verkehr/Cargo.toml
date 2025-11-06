@@ -1,0 +1,61 @@
+[package]
+name = "verkehr"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
+tokio = { version = "1.48.0", default-features = false, features = [
+    "rt-multi-thread",
+    "macros",
+] }
+anyhow = "1"
+tokio-rustls = { version = "0.26" }
+futures-util = "0.3.23"
+rustls = { version = "0.23.35", features = ["ring"] }
+rustls-pemfile = "2"
+http = "1"
+serde = { version = "1.0", features = [
+    "derive",
+    "std",
+], default-features = false }
+serde_json = { version = "1.0" }
+serde_yaml = { version = "0.9" }
+nom = "7.1.3"
+url = "2.3.1"
+regex = "1.6.0"
+ipnet = { version = "2.5.0", features = ["serde"] }
+bollard = { version = "0.19.4" }
+serde_urlencoded = "0.7.1"
+data-encoding = { version = "2.3.2" }
+bcrypt = "0.17.1"
+sha-1 = "0.10.0"
+md-5 = "0.10.1"
+reqwest = { version = "0.12.24", default-features = false, features = [
+    "rustls-tls",
+] }
+webpki = "0.22.4"
+hyper-rustls = { version = "0.27", features = ["http1", "http2"] }
+flate2 = "1.0.24"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+mows-common-rust = { workspace = true }
+
+include_dir = { version = "0.7.2" }
+serde_regex = "1.1.0"
+lazy_static = "1.4"
+base64 = "0.22"
+urlencoding = "2.1"
+
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.6"

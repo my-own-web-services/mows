@@ -1,0 +1,22 @@
+# Optional: Use this file to expose ports for debugging/monitoring
+# Usage: docker compose -f docker-compose.bench.yml -f docker-compose.expose-ports.yml up -d
+
+services:
+  verkehr:
+    ports:
+      - "8080:8080"  # HTTP entrypoint
+      - "8443:8443"  # HTTPS entrypoint
+      - "9090:9090"  # API/metrics
+
+  traefik:
+    ports:
+      - "8081:8081"  # HTTP entrypoint
+      - "8091:8080"  # Dashboard/API
+
+  whoami:
+    ports:
+      - "8092:80"    # Direct access to whoami
+
+  nginx-static:
+    ports:
+      - "8093:80"    # Direct access to nginx

@@ -68,7 +68,7 @@ use axum::{
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
-pub async fn file_versions_content_tus_head(
+pub async fn file_versions_content_head(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState {
         database,
@@ -129,7 +129,7 @@ pub async fn file_versions_content_tus_head(
     response_headers.insert("Cache-Control", "no-store".parse().unwrap());
     response_headers.insert(
         "Upload-Length",
-        file_version.size.to_string().parse().unwrap(),
+        file_version.content_size_bytes.to_string().parse().unwrap(),
     );
 
     Ok((

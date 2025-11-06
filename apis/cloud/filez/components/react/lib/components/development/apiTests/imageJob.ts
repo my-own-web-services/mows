@@ -93,7 +93,9 @@ export default async (filezClient: Api<unknown>) => {
                 file_id: aliceFile.created_file.id,
                 file_version_mime_type: `image/jpeg`,
                 file_version_metadata: {},
-                file_version_size: parseInt(image_response.headers.get(`content-length`) || `0`),
+                file_version_content_size_bytes: parseInt(
+                    image_response.headers.get(`content-length`) || `0`
+                ),
                 storage_quota_id: alice_quota.id
             },
             impersonateAliceParams
@@ -106,9 +108,9 @@ export default async (filezClient: Api<unknown>) => {
 
     const blob = await image_response.blob();
 
-    const _uploadFileRes = await filezClient.api.fileVersionsContentTusPatch(
+    const _uploadFileRes = await filezClient.api.fileVersionsContentPatch(
         aliceFile.created_file.id,
-        aliceFileVersion.version,
+        aliceFileVersion.file_revision_index,
         null,
         {
             upload_offset: 0
@@ -127,6 +129,7 @@ export default async (filezClient: Api<unknown>) => {
             job_handling_app_id: imageApp.id,
             job_name: `Image conversion job`,
             job_persistence: JobPersistenceType.Temporary,
+            job_priority: 5,
             job_execution_details: {
                 job_type: {
                     CreatePreview: {
@@ -134,7 +137,7 @@ export default async (filezClient: Api<unknown>) => {
                         file_id: aliceFile.created_file.id,
                         allowed_number_of_previews: 2,
                         allowed_size_bytes: 10_000_000,
-                        file_version_number: aliceFileVersion.version,
+                        file_revision_index: aliceFileVersion.file_revision_index,
                         storage_location_id: storage_location_id,
                         storage_quota_id: alice_quota.id,
                         preview_config: {
@@ -172,7 +175,7 @@ export default async (filezClient: Api<unknown>) => {
 
     const _content = await filezClient.api.getFileVersionContent(
         aliceFile.created_file.id,
-        aliceFileVersion.version,
+        aliceFileVersion.file_revision_index,
         imageApp.id,
         `250.avif`,
         undefined,
@@ -181,7 +184,9 @@ export default async (filezClient: Api<unknown>) => {
 
     await filezClient.api.getFileVersions(
         {
-            file_version_ids: [aliceFileVersion.id]
+            selector: {
+                FileVersionIds: [aliceFileVersion.id]
+            }
         },
         impersonateAliceParams
     );

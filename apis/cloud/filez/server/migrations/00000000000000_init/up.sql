@@ -33,6 +33,14 @@ CREATE TABLE "files"(
     FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE TABLE "storage_locations"(
+    "id" UUID NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "provider_config" JSONB NOT NULL,
+    "created_time" TIMESTAMP NOT NULL,
+    "modified_time" TIMESTAMP NOT NULL
+);
+
 CREATE TABLE "apps"(
     "id" UUID NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
@@ -42,14 +50,6 @@ CREATE TABLE "apps"(
     "created_time" TIMESTAMP NOT NULL,
     "modified_time" TIMESTAMP NOT NULL,
     "app_type" SMALLINT NOT NULL
-);
-
-CREATE TABLE "storage_locations"(
-    "id" UUID NOT NULL PRIMARY KEY,
-    "name" TEXT NOT NULL,
-    "provider_config" JSONB NOT NULL,
-    "created_time" TIMESTAMP NOT NULL,
-    "modified_time" TIMESTAMP NOT NULL
 );
 
 CREATE TABLE "storage_quotas"(
@@ -66,27 +66,31 @@ CREATE TABLE "storage_quotas"(
 );
 
 CREATE TABLE "file_versions"(
-    "id" UUID NOT NULL UNIQUE,
+    "id" UUID NOT NULL PRIMARY KEY,
     "file_id" UUID NOT NULL,
-    "version" INTEGER NOT NULL,
+    "file_revision_index" INTEGER NOT NULL,
     "app_id" UUID NOT NULL,
     "app_path" TEXT NOT NULL,
     "mime_type" TEXT NOT NULL,
     "metadata" JSONB NOT NULL,
     "created_time" TIMESTAMP NOT NULL,
     "modified_time" TIMESTAMP NOT NULL,
-    "size" BIGINT NOT NULL,
+    "content_size_bytes" BIGINT NOT NULL,
+    "existing_content_size_bytes" BIGINT,
     "storage_location_id" UUID NOT NULL,
     "storage_quota_id" UUID NOT NULL,
-    "content_valid" BOOL NOT NULL,
     "content_expected_sha256_digest" TEXT,
-    "existing_content_bytes" BIGINT,
-    PRIMARY KEY ("file_id", "version", "app_id", "app_path"),
+    "content_matches_expected_sha256_digest" BOOL NOT NULL,
     FOREIGN KEY ("file_id") REFERENCES "files"("id") ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY ("app_id") REFERENCES "apps"("id") ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY ("storage_location_id") REFERENCES "storage_locations"("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY ("storage_quota_id") REFERENCES "storage_quotas"("id") ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY ("storage_quota_id") REFERENCES "storage_quotas"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE ("file_id", "file_revision_index", "app_id", "app_path")
 );
+
+CREATE UNIQUE INDEX "idx_file_versions_file_id_file_revision_index_app_id_app_path_0" ON "file_versions" ("file_id", "file_revision_index", "app_id", "app_path");
+
+CREATE INDEX "idx_file_versions_content_expected_sha256_digest_1" ON "file_versions" ("content_expected_sha256_digest");
 
 CREATE TABLE "file_groups"(
     "id" UUID NOT NULL PRIMARY KEY,

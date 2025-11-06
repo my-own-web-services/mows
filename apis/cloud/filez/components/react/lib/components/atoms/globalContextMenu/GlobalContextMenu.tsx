@@ -1,7 +1,7 @@
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { Action, ActionVisibility } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
-import { FilezContext } from "@/main";
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { PureComponent, type CSSProperties } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "../../ui/dropdown-menu";

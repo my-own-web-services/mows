@@ -812,7 +812,7 @@ impl ApiClient {
 
     /// Get the offset of a file version for resuming a upload
     #[tracing::instrument(level = "trace")]
-    pub async fn file_versions_content_tus_head(
+    pub async fn file_versions_content_head(
         &self,
         file_id: Uuid,
         version: Option<u32>,
@@ -860,7 +860,7 @@ impl ApiClient {
 
     /// Patch a file version. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.
     #[tracing::instrument(level = "trace")]
-    pub async fn file_versions_content_tus_patch(
+    pub async fn file_versions_content_patch(
         &self,
         file_id: Uuid,
         version: Option<u32>,

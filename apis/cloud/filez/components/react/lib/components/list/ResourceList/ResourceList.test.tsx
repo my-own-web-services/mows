@@ -1,4 +1,4 @@
-import { FilezProvider } from "@/main";
+import { FilezProvider } from "@/lib/filezContext/FilezContext";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { SortDirection } from "filez-client-typescript";
 import { expect, test, vi } from "vitest";
@@ -80,13 +80,13 @@ test(`ColumnListRowHandler creates correctly with proper configuration`, () => {
 
     // Test basic properties
     expect(columnHandler.id).toBe(`ColumnListRowHandler`);
-    expect(columnHandler.state.columns).toHaveLength(4);
+    expect(columnHandler.columns).toHaveLength(4);
     expect(columnHandler.props.hideSelectionCheckboxColumn).toBe(true);
 
     // Test that columns are correctly copied
-    expect(columnHandler.state.columns[0].field).toBe(`name`);
-    expect(columnHandler.state.columns[0].enabled).toBe(true);
-    expect(columnHandler.state.columns[3].enabled).toBe(false); // Date Modified is disabled
+    expect(columnHandler.columns[0].field).toBe(`name`);
+    expect(columnHandler.columns[0].enabled).toBe(true);
+    expect(columnHandler.columns[3].enabled).toBe(false); // Date Modified is disabled
 });
 
 test(`ResourceList renders with data and calls API correctly`, async () => {
@@ -245,11 +245,11 @@ test(`Column sorting callback works correctly`, () => {
     columnHandler.setColumSorting(`size`, SortDirection.Ascending);
 
     // Check that the column direction was updated
-    const sizeColumn = columnHandler.state.columns.find((c) => c.field === `size`);
+    const sizeColumn = columnHandler.columns.find((c) => c.field === `size`);
     expect(sizeColumn?.direction).toBe(SortDirection.Ascending);
 
     // Check that other columns were reset to Neutral
-    const nameColumn = columnHandler.state.columns.find((c) => c.field === `name`);
+    const nameColumn = columnHandler.columns.find((c) => c.field === `name`);
     expect(nameColumn?.direction).toBe(SortDirection.Neutral);
 
     // Check that the resource list setState was called

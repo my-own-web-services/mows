@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use utoipa::ToSchema;
 
-use super::file_versions::FileVersionIdentifier;
+use super::file_versions::FileVersionQuadIdentifier;
 
 impl_typed_uuid!(StorageLocationId);
 
@@ -156,7 +156,7 @@ impl StorageLocation {
     pub async fn delete_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        file_version_identifier: &FileVersionIdentifier,
+        file_version_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), FilezError> {
         let provider = self
@@ -168,10 +168,26 @@ impl StorageLocation {
     }
 
     #[tracing::instrument(level = "trace")]
+    pub async fn truncate_content(
+        &self,
+        storage_locations_provider_state: &StorageLocationState,
+        file_version_identifier: &FileVersionQuadIdentifier,
+        timing: &axum_server_timing::ServerTimingExtension,
+        length: u64,
+    ) -> Result<(), FilezError> {
+        let provider = self
+            .get_provider_from_state(storage_locations_provider_state)
+            .await?;
+        Ok(provider
+            .truncate_content(file_version_identifier, timing, length)
+            .await?)
+    }
+
+    #[tracing::instrument(level = "trace")]
     pub async fn get_content_sha256_digest(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        file_version_identifier: &FileVersionIdentifier,
+        file_version_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<String, FilezError> {
         let provider = self
@@ -346,7 +362,7 @@ impl StorageLocation {
     pub async fn get_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        file_version_identifier: &FileVersionIdentifier,
+        file_version_identifier: &FileVersionQuadIdentifier,
         timing: axum_server_timing::ServerTimingExtension,
         range: &Option<ContentRange>,
     ) -> Result<axum::body::Body, FilezError> {
@@ -362,7 +378,7 @@ impl StorageLocation {
     pub async fn get_file_size(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        file_version_identifier: &FileVersionIdentifier,
+        file_version_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<u64, FilezError> {
         let provider = self
@@ -377,7 +393,7 @@ impl StorageLocation {
     pub async fn set_content(
         &self,
         storage_locations_provider_state: &StorageLocationState,
-        file_version_identifier: &FileVersionIdentifier,
+        file_version_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
         request: Request,
         mime_type: &str,

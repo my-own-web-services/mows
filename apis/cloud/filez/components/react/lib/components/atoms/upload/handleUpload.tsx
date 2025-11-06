@@ -65,7 +65,7 @@ export const handleFileUpload = async (
         await filezClient.api.createFileVersion({
             file_id: createFileResponse.created_file.id,
             file_version_metadata: {},
-            file_version_size: fileToUpload.file.size,
+            file_version_content_size_bytes: fileToUpload.file.size,
             storage_quota_id: storageQuota.id,
             content_expected_sha256_digest: await getBlobSha256Digest(fileToUpload.file),
             file_version_mime_type: mimeType
@@ -88,9 +88,9 @@ export const handleFileUpload = async (
 
     while (offset < fileToUpload.file.size) {
         const chunk = fileToUpload.file.slice(offset, offset + maxChunkSize);
-        const uploadResponse = await filezClient.api.fileVersionsContentTusPatch(
+        const uploadResponse = await filezClient.api.fileVersionsContentPatch(
             createFileResponse.created_file.id,
-            fileVersionResponse.version,
+            fileVersionResponse.file_revision_index,
             null,
             {
                 upload_offset: offset
@@ -131,14 +131,14 @@ export const handleFileUpload = async (
                 job_type: {
                     CreatePreview: {
                         file_id: createFileResponse.created_file.id,
-                        file_version_number: fileVersionResponse.version,
+                        file_revision_index: fileVersionResponse.file_revision_index,
                         storage_location_id: fileVersionResponse.storage_location_id,
                         storage_quota_id: storageQuota.id,
                         allowed_number_of_previews: 3,
                         allowed_size_bytes: 10_000_000,
                         allowed_mime_types: [`image/avif`],
                         preview_config: {
-                            widths: [100, 250, 500],
+                            widths: [500],
                             formats: [`Avif`],
                             speed: 10
                         }
@@ -156,7 +156,7 @@ export const handleFileUpload = async (
                 job_type: {
                     CreatePreview: {
                         file_id: createFileResponse.created_file.id,
-                        file_version_number: fileVersionResponse.version,
+                        file_revision_index: fileVersionResponse.file_revision_index,
                         storage_location_id: fileVersionResponse.storage_location_id,
                         storage_quota_id: storageQuota.id,
                         allowed_number_of_previews: 3,
@@ -164,7 +164,7 @@ export const handleFileUpload = async (
                         allowed_mime_types: [`image/avif`],
 
                         preview_config: {
-                            widths: [100, 250, 500],
+                            widths: [100, 250, 500, 1000],
                             formats: [`Avif`],
                             speed: 1
                         }

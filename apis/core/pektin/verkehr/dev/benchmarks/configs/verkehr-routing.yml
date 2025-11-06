@@ -1,0 +1,60 @@
+http:
+  entrypoints:
+    web:
+      address: :8080
+      tls: false
+    websecure:
+      address: :8443
+      tls: true
+      cert_resolver: default
+
+  routers:
+    # Simple host-based routing
+    whoami-simple:
+      rule: Host(`whoami.localhost`)
+      entrypoints:
+        - web
+      service: whoami
+      priority: 10
+
+    # Path-based routing
+    whoami-path:
+      rule: PathPrefix(`/whoami`)
+      entrypoints:
+        - web
+      service: whoami
+      priority: 20
+
+    # Regex routing
+    whoami-regex:
+      rule: HostRegexp(`^whoami.*\.localhost$`)
+      entrypoints:
+        - web
+      service: whoami
+      priority: 15
+
+    # Static content
+    static-simple:
+      rule: Host(`static.localhost`)
+      entrypoints:
+        - web
+      service: nginx-static
+      priority: 10
+
+    static-path:
+      rule: PathPrefix(`/static`)
+      entrypoints:
+        - web
+      service: nginx-static
+      priority: 20
+
+  services:
+    whoami:
+      loadbalancer:
+        servers:
+          - url: http://whoami:80
+
+    nginx-static:
+      loadbalancer:
+        servers:
+          - url: http://nginx-static:80

@@ -1,0 +1,51 @@
+http:
+  routers:
+    # Simple host-based routing
+    whoami-simple:
+      rule: Host(`whoami.localhost`)
+      entryPoints:
+        - web
+      service: whoami
+      priority: 10
+
+    # Path-based routing
+    whoami-path:
+      rule: PathPrefix(`/whoami`)
+      entryPoints:
+        - web
+      service: whoami
+      priority: 20
+
+    # Regex routing
+    whoami-regex:
+      rule: HostRegexp(`^whoami.*\.localhost$`)
+      entryPoints:
+        - web
+      service: whoami
+      priority: 15
+
+    # Static content
+    static-simple:
+      rule: Host(`static.localhost`)
+      entryPoints:
+        - web
+      service: nginx-static
+      priority: 10
+
+    static-path:
+      rule: PathPrefix(`/static`)
+      entryPoints:
+        - web
+      service: nginx-static
+      priority: 20
+
+  services:
+    whoami:
+      loadBalancer:
+        servers:
+          - url: http://whoami:80
+
+    nginx-static:
+      loadBalancer:
+        servers:
+          - url: http://nginx-static:80

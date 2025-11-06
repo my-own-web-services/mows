@@ -147,20 +147,22 @@ impl StorageQuota {
         database: &Database,
         requesting_user_id: &FilezUserId,
         storage_quota_id: &StorageQuotaId,
-        requested_size: u64,
+        requested_file_version_content_size_bytes: u64,
     ) -> Result<(), FilezError> {
         let (storage_quota, used_size_bytes) =
             Self::get_usage(database, requesting_user_id, storage_quota_id).await?;
 
         let quota_allowed_bytes: u64 = storage_quota.quota_bytes.try_into()?;
 
-        if used_size_bytes + requested_size > quota_allowed_bytes {
+        if used_size_bytes + requested_file_version_content_size_bytes > quota_allowed_bytes {
             return Err(FilezError::StorageQuotaExceeded {
                 quota_label: get_resource_label!(storage_quota),
-                requested_bytes: requested_size,
+                requested_bytes: requested_file_version_content_size_bytes,
                 quota_allowed_bytes,
                 quota_used_bytes: used_size_bytes,
-                request_over_quota_bytes: requested_size + used_size_bytes - quota_allowed_bytes,
+                request_over_quota_bytes: requested_file_version_content_size_bytes
+                    + used_size_bytes
+                    - quota_allowed_bytes,
             });
         }
 
@@ -204,7 +206,7 @@ impl StorageQuota {
 
         let used_size: u64 = schema::file_versions::table
             .filter(schema::file_versions::storage_quota_id.eq(storage_quota.id))
-            .select(diesel::dsl::sum(schema::file_versions::size))
+            .select(diesel::dsl::sum(schema::file_versions::content_size_bytes))
             .first::<Option<BigDecimal>>(&mut connection)
             .await?
             .unwrap_or_else(|| i64::from(0).into())

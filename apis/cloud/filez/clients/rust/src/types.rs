@@ -670,12 +670,12 @@ pub struct CreateFileVersionRequestBody {
     /// After successful validation, the versions content_valid field is set to true.
     pub content_expected_sha256_digest: Option<String>,
     pub file_id: FilezFileId,
+    /// The size of the file version in bytes.
+    pub file_version_content_size_bytes: u64,
     pub file_version_metadata: FileVersionMetadata,
     /// The MIME type of the file version.
     pub file_version_mime_type: String,
     pub file_version_number: Option<u32>,
-    /// The size of the file version in bytes.
-    pub file_version_size: u64,
     pub storage_quota_id: StorageQuotaId,
 }
 
@@ -837,19 +837,23 @@ pub struct FileMetadata {
 pub struct FileVersion {
     pub app_id: MowsAppId,
     pub app_path: String,
+    /// The expected SHA256 digest of the content, if provided by the creator
     pub content_expected_sha256_digest: Option<String>,
-    pub content_valid: bool,
+    /// Whether the content has been fully uploaded and matches the expected digest (if provided)
+    pub content_matches_expected_sha256_digest: bool,
+    /// The size of the content in bytes, as expected by the creator
+    pub content_size_bytes: i64,
     pub created_time: NaiveDateTime,
-    pub existing_content_bytes: Option<i64>,
+    /// The number of bytes that currently exist for this file version in storage
+    pub existing_content_size_bytes: Option<i64>,
     pub file_id: FilezFileId,
+    pub file_revision_index: i32,
     pub id: FileVersionId,
     pub metadata: FileVersionMetadata,
     pub mime_type: String,
     pub modified_time: NaiveDateTime,
-    pub size: i64,
     pub storage_location_id: StorageLocationId,
     pub storage_quota_id: StorageQuotaId,
-    pub version: i32,
 }
 
 // FileVersionId
@@ -858,6 +862,15 @@ pub type FileVersionId = Uuid;
 // FileVersionMetadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileVersionMetadata {}
+
+// FileVersionQuadIdentifier
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileVersionQuadIdentifier {
+    pub app_id: MowsAppId,
+    pub app_path: String,
+    pub file_id: FilezFileId,
+    pub file_revision_index: u32,
+}
 
 // FileVersionSizeExceededErrorBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -888,7 +901,8 @@ pub struct FilezJob {
     /// The last time the app instance has been seen by the server
     /// This is used to determine if the app instance is still alive and can handle the job
     pub app_instance_last_seen_time: Option<NaiveDateTime>,
-    /// After the job is picked up by the app, this field will be set to the app instance id, created from the kubernetes pod UUID and a random string that the app generates on startup
+    /// After the job is picked up by the app, this field will be set to the app instance id, a random string that the app generates on startup
+    /// A app can only be assigned to one job at a time that is in progress
     pub assigned_app_runtime_instance_id: Option<String>,
     /// When the job was created in the database
     pub created_time: NaiveDateTime,
@@ -982,13 +996,21 @@ pub struct GetFileGroupsResponseBody {
 // GetFileVersionsRequestBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetFileVersionsRequestBody {
-    pub file_version_ids: Vec<FileVersionId>,
+    pub selector: GetFileVersionsSelector,
 }
 
 // GetFileVersionsResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetFileVersionsResponseBody {
     pub file_versions: Vec<FileVersion>,
+}
+
+// GetFileVersionsSelector
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GetFileVersionsSelector {
+    FileVersionIds(Vec<FileVersionId>),
+    FileVersionQuadIdentifiers(Vec<FileVersionQuadIdentifier>),
+    FileVersionDigests(Vec<String>),
 }
 
 // GetFilesRequestBody
@@ -1190,7 +1212,7 @@ pub struct JobTypeCreatePreview {
     pub allowed_number_of_previews: u32,
     pub allowed_size_bytes: u64,
     pub file_id: FilezFileId,
-    pub file_version_number: u32,
+    pub file_revision_index: u32,
     pub preview_config: Value,
     pub storage_location_id: StorageLocationId,
     pub storage_quota_id: StorageQuotaId,
@@ -1201,11 +1223,11 @@ pub struct JobTypeCreatePreview {
 pub struct JobTypeExtractMetadata {
     pub extract_metadata_config: Value,
     pub file_id: FilezFileId,
-    pub file_version_number: u32,
+    pub file_revision_index: u32,
 }
 
 // ListAccessPoliciesRequestBody
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListAccessPoliciesRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -1239,7 +1261,7 @@ pub struct ListAppsResponseBody {
 }
 
 // ListFileGroupsRequestBody
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListFileGroupsRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -1308,7 +1330,7 @@ pub struct ListFilesStoredSortOrder {
 }
 
 // ListJobsRequestBody
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListJobsRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -1334,7 +1356,7 @@ pub enum ListJobsSortBy {
 }
 
 // ListStorageLocationsRequestBody
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListStorageLocationsRequestBody {
     pub sort_by: Option<ListStorageLocationsSortBy>,
     pub sort_order: Option<SortDirection>,
@@ -1355,7 +1377,7 @@ pub enum ListStorageLocationsSortBy {
 }
 
 // ListStorageQuotasRequestBody
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListStorageQuotasRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -1408,7 +1430,7 @@ pub struct ListTagsResponseBody {
 }
 
 // ListTagsSearch
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListTagsSearch {
     pub plain_string: Option<String>,
     pub search_context: Option<ListTagsSearchContext>,
@@ -1434,7 +1456,7 @@ pub enum ListTagsSortBy {
 }
 
 // ListUserGroupsRequestBody
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListUserGroupsRequestBody {
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
@@ -1523,7 +1545,7 @@ pub type MowsAppId = Uuid;
 pub struct PickupJobRequestBody {}
 
 // PickupJobResponseBody
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PickupJobResponseBody {
     pub job: Option<FilezJob>,
 }
@@ -1625,7 +1647,7 @@ pub enum TagResourceType {
 }
 
 // UpdateAccessPolicyChangeset
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateAccessPolicyChangeset {
     pub new_access_policy_actions: Option<Vec<AccessPolicyAction>>,
     pub new_access_policy_effect: Option<AccessPolicyEffect>,
@@ -1651,7 +1673,7 @@ pub struct UpdateAccessPolicyResponseBody {
 }
 
 // UpdateFileChangeset
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateFileChangeset {
     pub new_file_metadata: Option<FileMetadata>,
     pub new_file_mime_type: Option<String>,
@@ -1659,7 +1681,7 @@ pub struct UpdateFileChangeset {
 }
 
 // UpdateFileGroupChangeset
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateFileGroupChangeset {
     pub new_file_group_name: Option<String>,
 }
@@ -1699,18 +1721,26 @@ pub struct UpdateFileResponseBody {
 }
 
 // UpdateFileVersionChangeset
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateFileVersionChangeset {
     pub new_content_expected_sha256_digest: Option<String>,
+    pub new_file_version_content_size_bytes: Option<u64>,
     pub new_file_version_metadata: Option<FileVersionMetadata>,
     pub new_file_version_mime_type: Option<String>,
+}
+
+// UpdateFileVersionSelector
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UpdateFileVersionSelector {
+    FileVersionId(FileVersionId),
+    FileVersionQuadIdentifier(FileVersionQuadIdentifier),
 }
 
 // UpdateFileVersionsRequestBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateFileVersionsRequestBody {
     pub changeset: UpdateFileVersionChangeset,
-    pub file_version_id: FileVersionId,
+    pub selector: UpdateFileVersionSelector,
 }
 
 // UpdateFileVersionsResponseBody
@@ -1720,7 +1750,7 @@ pub struct UpdateFileVersionsResponseBody {
 }
 
 // UpdateJobChangeset
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateJobChangeset {
     pub new_job_deadline_time: Option<NaiveDateTime>,
     pub new_job_execution_information: Option<JobExecutionInformation>,
@@ -1756,7 +1786,7 @@ pub struct UpdateJobStatusResponseBody {
 }
 
 // UpdateStorageQuotaChangeset
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateStorageQuotaChangeset {
     pub new_storage_quota_bytes: Option<i64>,
 }
@@ -1792,7 +1822,7 @@ pub struct UpdateTagsRequestBody {
 }
 
 // UpdateUserGroupChangeset
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateUserGroupChangeset {
     pub new_user_group_name: Option<String>,
 }

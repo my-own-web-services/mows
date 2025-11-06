@@ -1,5 +1,5 @@
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
-import { FilezContext } from "@/main";
 import { PureComponent, type CSSProperties } from "react";
 
 interface DateTimeProps {

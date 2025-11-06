@@ -89,7 +89,7 @@ pub struct PatchQueryParams {
     )
 )]
 #[tracing::instrument(skip(database, timing), level = "trace")]
-pub async fn file_versions_content_tus_patch(
+pub async fn file_versions_content_patch(
     Extension(authentication_information): Extension<AuthenticationInformation>,
     State(ServerState {
         database,
@@ -160,7 +160,7 @@ pub async fn file_versions_content_tus_patch(
         timing
     );
 
-    let file_version_size: u64 = file_version.size.try_into()?;
+    let file_version_size: u64 = file_version.content_size_bytes.try_into()?;
 
     if request_upload_offset + content_length > file_version_size {
         return Err(FilezError::FileVersionSizeExceeded {

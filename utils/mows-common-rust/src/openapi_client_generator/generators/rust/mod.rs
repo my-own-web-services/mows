@@ -295,9 +295,21 @@ use std::collections::HashMap;
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RustGeneratorConfig {
-    /// Add Default derive to structs where all fields are optional
-    #[serde(default)]
+    /// Derive Default for structs where all fields are optional
+    #[serde(default = "default_true")]
     pub derive_default_for_all_optional_structs: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+impl Default for RustGeneratorConfig {
+    fn default() -> Self {
+        Self {
+            derive_default_for_all_optional_structs: true,
+        }
+    }
 }

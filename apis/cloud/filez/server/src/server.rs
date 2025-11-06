@@ -91,10 +91,10 @@ async fn main() -> Result<(), anyhow::Error> {
             http_api::file_versions::content::get::get_file_version_content
         ))
         .routes(routes!(
-            http_api::file_versions::content::head::file_versions_content_tus_head
+            http_api::file_versions::content::head::file_versions_content_head
         ))
         .routes(routes!(
-            http_api::file_versions::content::patch::file_versions_content_tus_patch
+            http_api::file_versions::content::patch::file_versions_content_patch
         ))
         // FILE GROUPS
         .routes(routes!(http_api::file_groups::create::create_file_group))

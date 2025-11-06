@@ -1,0 +1,5 @@
+target/
+tests/
+certs/
+build/
+node_modules/
