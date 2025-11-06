@@ -1,7 +1,9 @@
 import tailwindcssPostcss from "@tailwindcss/postcss";
 import tailwindcssVite from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { resolve } from "node:path";
+import { glob } from "glob";
+import { extname, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig, UserConfig } from "vite";
@@ -25,12 +27,6 @@ const libraryConfig: UserConfig = {
         }
     },
     build: {
-        lib: {
-            entry: resolve(__dirname, `lib/main.ts`),
-            fileName: `filez-components-react`,
-            name: `filez-components-react`,
-            formats: [`es`]
-        },
         rollupOptions: {
             external: [
                 `react`,
@@ -38,7 +34,25 @@ const libraryConfig: UserConfig = {
                 `react/jsx-runtime`,
                 `tailwindcss`,
                 `filez-client-typescript`
-            ]
+            ],
+            input: Object.fromEntries(
+                glob
+                    .sync(`lib/**/*.{ts,tsx}`, {
+                        ignore: [`lib/**/*.d.ts`]
+                    })
+                    .map((file) => [
+                        // The name of the entry point
+                        // lib/nested/foo.ts becomes nested/foo
+                        relative(`lib`, file.slice(0, file.length - extname(file).length)),
+                        // The absolute path to the entry file
+                        // lib/nested/foo.ts becomes /project/lib/nested/foo.ts
+                        fileURLToPath(new URL(file, import.meta.url))
+                    ])
+            ),
+            output: {
+                assetFileNames: `assets/[name][extname]`,
+                entryFileNames: `[name].js`
+            }
         },
         sourcemap: true,
         emptyOutDir: true,

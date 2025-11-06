@@ -4,7 +4,7 @@ use axum::extract::Request;
 
 use crate::{
     http_api::health::HealthStatus,
-    models::file_versions::{ContentRange, FileVersionIdentifier},
+    models::file_versions::{ContentRange, FileVersionQuadIdentifier},
 };
 
 use super::{
@@ -46,7 +46,7 @@ impl StorageProvider {
     #[tracing::instrument(level = "trace")]
     pub async fn get_content(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         timing: axum_server_timing::ServerTimingExtension,
         range: &Option<ContentRange>,
     ) -> Result<axum::body::Body, StorageError> {
@@ -67,7 +67,7 @@ impl StorageProvider {
     #[tracing::instrument(level = "trace")]
     pub async fn get_file_size(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<u64, StorageError> {
         match self {
@@ -83,7 +83,7 @@ impl StorageProvider {
     #[tracing::instrument(level = "trace")]
     pub async fn get_content_sha256_digest(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<String, StorageError> {
         match self {
@@ -103,7 +103,7 @@ impl StorageProvider {
     #[tracing::instrument(level = "trace")]
     pub async fn set_content(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
         request: Request,
         mime_type: &str,
@@ -141,7 +141,7 @@ impl StorageProvider {
     #[tracing::instrument(level = "trace")]
     pub async fn delete_content(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), StorageError> {
         match self {
@@ -150,6 +150,27 @@ impl StorageProvider {
             }
             StorageProvider::Filesystem(provider) => {
                 provider.delete_content(full_file_identifier, timing).await
+            }
+        }
+    }
+
+    #[tracing::instrument(level = "trace")]
+    pub async fn truncate_content(
+        &self,
+        full_file_identifier: &FileVersionQuadIdentifier,
+        timing: &axum_server_timing::ServerTimingExtension,
+        new_content_size_bytes: u64,
+    ) -> Result<(), StorageError> {
+        match self {
+            StorageProvider::Minio(provider) => {
+                provider
+                    .truncate_content(full_file_identifier, timing, new_content_size_bytes)
+                    .await
+            }
+            StorageProvider::Filesystem(provider) => {
+                provider
+                    .truncate_content(full_file_identifier, timing, new_content_size_bytes)
+                    .await
             }
         }
     }

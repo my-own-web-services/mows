@@ -7,7 +7,10 @@ use filez_server_client::{
     reqwest::Body,
     tokio_util::codec::{BytesCodec, FramedRead},
     types::{
-        CreateFileVersionRequestBody, FileVersionMetadata, FilezJob, JobType, JobTypeCreatePreview,
+        CreateFileVersionRequestBody, FileVersionMetadata, FileVersionQuadIdentifier, FilezJob,
+        GetFileVersionsRequestBody, GetFileVersionsSelector, JobType, JobTypeCreatePreview,
+        MowsAppId, UpdateFileVersionChangeset, UpdateFileVersionSelector,
+        UpdateFileVersionsRequestBody,
     },
     utils::stream_file_to_path,
 };
@@ -61,7 +64,13 @@ pub async fn handle_job(job: FilezJob, filez_client: &ApiClient) -> Result<(), I
             let preview_config = serde_json::from_value::<ImagePreviewConfig>(
                 create_preview_infos.preview_config.clone(),
             )?;
-            create_previews(preview_config, &create_preview_infos, filez_client).await
+            create_previews(
+                preview_config,
+                &create_preview_infos,
+                filez_client,
+                job.app_id,
+            )
+            .await
         }
         _ => {
             return Err(
@@ -76,24 +85,25 @@ async fn create_previews(
     image_preview_config: ImagePreviewConfig,
     job_execution_information: &JobTypeCreatePreview,
     filez_client: &ApiClient,
+    app_id: MowsAppId,
 ) -> Result<(), ImageError> {
     let config = get_current_config_cloned!(config());
     let source_path = Path::new(&config.working_directory)
         .join(&job_execution_information.file_id.to_string())
-        .join(&job_execution_information.file_version_number.to_string())
+        .join(&job_execution_information.file_revision_index.to_string())
         .join("source");
 
     let source_mime_type = stream_file_to_path(
         filez_client,
         job_execution_information.file_id,
-        job_execution_information.file_version_number,
+        job_execution_information.file_revision_index,
         &source_path,
     )
     .await?;
 
     let target_path = Path::new(&config.working_directory)
         .join(&job_execution_information.file_id.to_string())
-        .join(&job_execution_information.file_version_number.to_string())
+        .join(&job_execution_information.file_revision_index.to_string())
         .join("target");
 
     std::fs::create_dir_all(&target_path)?;
@@ -105,6 +115,7 @@ async fn create_previews(
         &source_mime_type,
         job_execution_information,
         filez_client,
+        app_id,
     )
     .await?;
 
@@ -119,6 +130,7 @@ async fn create_basic_versions(
     source_mime_type: &str,
     job_execution_information: &JobTypeCreatePreview,
     filez_client: &ApiClient,
+    app_id: MowsAppId,
 ) -> Result<(), ImageError> {
     let file_handle = std::fs::File::open(source_path)?;
     let buffered_reader = std::io::BufReader::new(file_handle);
@@ -189,21 +201,61 @@ async fn create_basic_versions(
             let job_execution_information = job_execution_information.clone();
 
             trace!("Creating file version for: {:?}", preview_file.app_path);
-            filez_client
-                .create_file_version(CreateFileVersionRequestBody {
-                    file_id: job_execution_information.file_id,
-                    file_version_number: Some(job_execution_information.file_version_number),
-                    app_path: Some(preview_file.app_path.clone()),
-                    file_version_mime_type: preview_file.mime_type.clone(),
-                    content_expected_sha256_digest: None,
-                    file_version_size: std::fs::metadata(&preview_file.path)
-                        .map_err(|e| InnerImageError::IoError(e.into()))?
-                        .len(),
-                    storage_quota_id: job_execution_information.storage_quota_id,
-                    file_version_metadata: FileVersionMetadata {},
+
+            let existing_file_versions = filez_client
+                .get_file_versions(GetFileVersionsRequestBody {
+                    selector: GetFileVersionsSelector::FileVersionQuadIdentifiers(vec![
+                        FileVersionQuadIdentifier {
+                            file_id: job_execution_information.file_id,
+                            file_revision_index: job_execution_information.file_revision_index,
+                            app_path: preview_file.app_path.clone(),
+                            app_id,
+                        },
+                    ]),
                 })
                 .await
-                .context("Failed to create file version")?;
+                .context("Failed to get existing file versions")?;
+
+            let maybe_existing_version =
+                existing_file_versions.data.file_versions.into_iter().next();
+
+            match maybe_existing_version {
+                Some(existing_version) => {
+                    filez_client
+                        .update_file_version(UpdateFileVersionsRequestBody {
+                            selector: UpdateFileVersionSelector::FileVersionId(existing_version.id),
+                            changeset: UpdateFileVersionChangeset {
+                                new_file_version_content_size_bytes: Some(
+                                    std::fs::metadata(&preview_file.path)
+                                        .map_err(|e| InnerImageError::IoError(e.into()))?
+                                        .len(),
+                                ),
+                                ..Default::default()
+                            },
+                        })
+                        .await
+                        .context("Failed to update existing file version")?;
+                }
+                None => {
+                    filez_client
+                        .create_file_version(CreateFileVersionRequestBody {
+                            file_id: job_execution_information.file_id,
+                            file_version_number: Some(
+                                job_execution_information.file_revision_index,
+                            ),
+                            app_path: Some(preview_file.app_path.clone()),
+                            file_version_mime_type: preview_file.mime_type.clone(),
+                            content_expected_sha256_digest: None,
+                            file_version_content_size_bytes: std::fs::metadata(&preview_file.path)
+                                .map_err(|e| InnerImageError::IoError(e.into()))?
+                                .len(),
+                            storage_quota_id: job_execution_information.storage_quota_id,
+                            file_version_metadata: FileVersionMetadata {},
+                        })
+                        .await
+                        .context("Failed to create file version")?;
+                }
+            }
 
             trace!("Uploading content for: {:?}", preview_file.app_path);
 
@@ -214,9 +266,9 @@ async fn create_basic_versions(
             let body = Body::wrap_stream(stream);
 
             filez_client
-                .file_versions_content_tus_patch(
+                .file_versions_content_patch(
                     job_execution_information.file_id,
-                    Some(job_execution_information.file_version_number),
+                    Some(job_execution_information.file_revision_index),
                     Some(preview_file.app_path.clone()),
                     0,
                     std::fs::metadata(&preview_file.path)

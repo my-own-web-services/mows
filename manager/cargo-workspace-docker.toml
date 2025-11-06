@@ -213,6 +213,11 @@ default-features = false
 features = ["axum"]
 version = "9.0.2"
 
+[workspace.dependencies.uuid]
+default-features = false
+features = ["v4"]
+version = "1.17.0"
+
 [workspace.dependencies.vaultrs]
 default-features = false
 features = ["rustls"]

@@ -182,6 +182,11 @@ default-features = false
 features = ["default", "uuid", "chrono"]
 version = "5.4.0"
 
+[workspace.dependencies.uuid]
+default-features = false
+features = ["v4"]
+version = "1.17.0"
+
 [workspace.dependencies.vaultrs]
 default-features = false
 features = ["rustls"]

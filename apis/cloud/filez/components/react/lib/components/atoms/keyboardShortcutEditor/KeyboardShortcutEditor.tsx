@@ -1,12 +1,18 @@
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import type { Action } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
-import { FilezContext } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
 import { MdDelete, MdEdit, MdRestartAlt } from "react-icons/md";
 import { RiResetLeftFill } from "react-icons/ri";
 import { Button } from "../../ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from "../../ui/dialog";
 import { Input } from "../../ui/input";
 import { KeyComboDisplay } from "../keyComboDisplay/KeyComboDisplay";
 
@@ -334,7 +340,9 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                 key={action.id}
                                                 className={`space-y-2 rounded-lg border p-3`}
                                             >
-                                                <div className={`flex items-center justify-between`}>
+                                                <div
+                                                    className={`flex items-center justify-between`}
+                                                >
                                                     <h4 className={`text-sm font-medium`}>
                                                         {description}
                                                     </h4>
@@ -356,11 +364,15 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                 key={hotkey}
                                                                 className={`flex min-w-0 items-center justify-between gap-4 pl-4`}
                                                             >
-                                                                <div className={`flex w-full items-center justify-between`}>
+                                                                <div
+                                                                    className={`flex w-full items-center justify-between`}
+                                                                >
                                                                     <KeyComboDisplay
                                                                         keyCombo={hotkey}
                                                                     />
-                                                                    <div className={`flex items-center`}>
+                                                                    <div
+                                                                        className={`flex items-center`}
+                                                                    >
                                                                         <Button
                                                                             variant={`ghost`}
                                                                             size={`icon`}
@@ -375,7 +387,9 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                                     .edit
                                                                             }
                                                                         >
-                                                                            <MdEdit className={`h-4 w-4`} />
+                                                                            <MdEdit
+                                                                                className={`h-4 w-4`}
+                                                                            />
                                                                         </Button>
                                                                         <Button
                                                                             variant={`ghost`}
@@ -390,7 +404,9 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                                     .reset
                                                                             }
                                                                         >
-                                                                            <RiResetLeftFill className={`h-4 w-4`} />
+                                                                            <RiResetLeftFill
+                                                                                className={`h-4 w-4`}
+                                                                            />
                                                                         </Button>
                                                                         <Button
                                                                             variant={`ghost`}
@@ -407,7 +423,9 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                                             }
                                                                             className={`hover:text-destructive`}
                                                                         >
-                                                                            <MdDelete className={`h-4 w-4`} />
+                                                                            <MdDelete
+                                                                                className={`h-4 w-4`}
+                                                                            />
                                                                         </Button>
                                                                     </div>
                                                                 </div>

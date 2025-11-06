@@ -4,9 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
-import { FilezContext } from "@/main";
 import { Check, Loader2, Play, Search, X } from "lucide-react";
 import { PureComponent, type CSSProperties } from "react";
 import LoggingConfig from "../loggingConfig/LoggingConfig";

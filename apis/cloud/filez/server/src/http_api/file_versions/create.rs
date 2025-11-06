@@ -84,7 +84,7 @@ pub async fn create_file_version(
                 .id
                 .into(),
             &request_body.storage_quota_id,
-            request_body.file_version_size.into()
+            request_body.file_version_content_size_bytes.into()
         )
         .await?,
         "Database operation to check storage quota",
@@ -100,7 +100,7 @@ pub async fn create_file_version(
             request_body.app_path,
             request_body.file_version_mime_type,
             request_body.file_version_metadata,
-            request_body.file_version_size.into(),
+            request_body.file_version_content_size_bytes.into(),
             request_body.storage_quota_id,
             request_body.content_expected_sha256_digest
         )
@@ -131,7 +131,7 @@ pub struct CreateFileVersionRequestBody {
     pub file_version_mime_type: String,
     pub file_version_metadata: FileVersionMetadata,
     /// The size of the file version in bytes.
-    pub file_version_size: u64,
+    pub file_version_content_size_bytes: u64,
     /// The ID of the storage quota to use for this file version.
     pub storage_quota_id: StorageQuotaId,
     /// Optional SHA256 digest of the file content as a lowercase hexadecimal string.

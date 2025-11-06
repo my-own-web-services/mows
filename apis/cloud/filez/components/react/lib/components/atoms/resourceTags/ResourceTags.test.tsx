@@ -1,4 +1,4 @@
-import { FilezProvider } from "@/main";
+import { FilezProvider } from "@/lib/filezContext/FilezContext";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { TagResourceType } from "filez-client-typescript";
 import { beforeEach, describe, expect, it, vi } from "vitest";

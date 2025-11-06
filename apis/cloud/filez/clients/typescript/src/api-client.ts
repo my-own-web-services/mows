@@ -843,6 +843,12 @@ export interface CreateFileVersionRequestBody {
   content_expected_sha256_digest?: string | null;
   /** The ID of the file to create a version for. */
   file_id: FilezFileId;
+  /**
+   * The size of the file version in bytes.
+   * @format int64
+   * @min 0
+   */
+  file_version_content_size_bytes: number;
   file_version_metadata: FileVersionMetadata;
   /** The MIME type of the file version. */
   file_version_mime_type: string;
@@ -851,12 +857,6 @@ export interface CreateFileVersionRequestBody {
    * @min 0
    */
   file_version_number?: number | null;
-  /**
-   * The size of the file version in bytes.
-   * @format int64
-   * @min 0
-   */
-  file_version_size: number;
   /** The ID of the storage quota to use for this file version. */
   storage_quota_id: StorageQuotaId;
 }
@@ -995,30 +995,49 @@ export interface FileMetadata {
 export interface FileVersion {
   app_id: MowsAppId;
   app_path: string;
+  /** The expected SHA256 digest of the content, if provided by the creator */
   content_expected_sha256_digest?: string | null;
-  content_valid: boolean;
+  /** Whether the content has been fully uploaded and matches the expected digest (if provided) */
+  content_matches_expected_sha256_digest: boolean;
+  /**
+   * The size of the content in bytes, as expected by the creator
+   * @format int64
+   */
+  content_size_bytes: number;
   /** @format date-time */
   created_time: string;
-  /** @format int64 */
-  existing_content_bytes?: number | null;
+  /**
+   * The number of bytes that currently exist for this file version in storage
+   * @format int64
+   */
+  existing_content_size_bytes?: number | null;
   file_id: FilezFileId;
+  /** @format int32 */
+  file_revision_index: number;
   id: FileVersionId;
   metadata: FileVersionMetadata;
   mime_type: string;
   /** @format date-time */
   modified_time: string;
-  /** @format int64 */
-  size: number;
   storage_location_id: StorageLocationId;
   storage_quota_id: StorageQuotaId;
-  /** @format int32 */
-  version: number;
 }
 
 /** @format uuid */
 export type FileVersionId = string;
 
 export type FileVersionMetadata = object;
+
+export interface FileVersionQuadIdentifier {
+  app_id: MowsAppId;
+  app_path: string;
+  file_id: FilezFileId;
+  /**
+   * @format int32
+   * @min 0
+   */
+  file_revision_index: number;
+}
 
 export interface FileVersionSizeExceededErrorBody {
   /**
@@ -1057,7 +1076,10 @@ export interface FilezJob {
    * @format date-time
    */
   app_instance_last_seen_time?: string | null;
-  /** After the job is picked up by the app, this field will be set to the app instance id, created from the kubernetes pod UUID and a random string that the app generates on startup */
+  /**
+   * After the job is picked up by the app, this field will be set to the app instance id, a random string that the app generates on startup
+   * A app can only be assigned to one job at a time that is in progress
+   */
   assigned_app_runtime_instance_id?: string | null;
   /**
    * When the job was created in the database
@@ -1150,12 +1172,23 @@ export interface GetFileGroupsResponseBody {
 }
 
 export interface GetFileVersionsRequestBody {
-  file_version_ids: FileVersionId[];
+  selector: GetFileVersionsSelector;
 }
 
 export interface GetFileVersionsResponseBody {
   file_versions: FileVersion[];
 }
+
+export type GetFileVersionsSelector =
+  | {
+      FileVersionIds: FileVersionId[];
+    }
+  | {
+      FileVersionQuadIdentifiers: FileVersionQuadIdentifier[];
+    }
+  | {
+      FileVersionDigests: string[];
+    };
 
 export interface GetFilesRequestBody {
   file_ids: FilezFileId[];
@@ -1314,7 +1347,7 @@ export interface JobTypeCreatePreview {
    * @format int32
    * @min 0
    */
-  file_version_number: number;
+  file_revision_index: number;
   preview_config: object;
   storage_location_id: StorageLocationId;
   storage_quota_id: StorageQuotaId;
@@ -1327,7 +1360,7 @@ export interface JobTypeExtractMetadata {
    * @format int32
    * @min 0
    */
-  file_version_number: number;
+  file_revision_index: number;
 }
 
 export interface ListAccessPoliciesRequestBody {
@@ -1757,13 +1790,26 @@ export interface UpdateFileVersionChangeset {
    * @pattern ^[a-f0-9]{64}$
    */
   new_content_expected_sha256_digest?: string | null;
+  /**
+   * @format int64
+   * @min 0
+   */
+  new_file_version_content_size_bytes?: number | null;
   new_file_version_metadata?: null | FileVersionMetadata;
   new_file_version_mime_type?: string | null;
 }
 
+export type UpdateFileVersionSelector =
+  | {
+      FileVersionId: FileVersionId;
+    }
+  | {
+      FileVersionQuadIdentifier: FileVersionQuadIdentifier;
+    };
+
 export interface UpdateFileVersionsRequestBody {
   changeset: UpdateFileVersionChangeset;
-  file_version_id: FileVersionId;
+  selector: UpdateFileVersionSelector;
 }
 
 export interface UpdateFileVersionsResponseBody {
@@ -2491,10 +2537,10 @@ export class Api<
     /**
      * @description Get the offset of a file version for resuming a upload
      *
-     * @name FileVersionsContentTusHead
+     * @name FileVersionsContentHead
      * @request HEAD:/api/file_versions/content/{file_id}/{version}/{app_id}/{app_path}
      */
-    fileVersionsContentTusHead: (
+    fileVersionsContentHead: (
       fileId: string,
       version: number | null,
       appId: string | null,
@@ -2512,10 +2558,10 @@ export class Api<
      * @description Patch a file version. The file and the file version must exist. If the file version is marked as verified it cannot be patched, unless the expected checksum is updated or removed.
      *
      * @tags FileVersion
-     * @name FileVersionsContentTusPatch
+     * @name FileVersionsContentPatch
      * @request PATCH:/api/file_versions/content/{file_id}/{version}/{app_path}
      */
-    fileVersionsContentTusPatch: (
+    fileVersionsContentPatch: (
       fileId: string,
       version: number | null,
       appPath: string | null,

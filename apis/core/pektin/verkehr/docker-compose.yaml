@@ -1,0 +1,14 @@
+services:
+    verkehr:
+        build:
+            context: "."
+            dockerfile: Dockerfile
+            tags:
+                - ${REGISTRY:-localhost:5000}/${SERVICE_NAME}
+            additional_contexts:
+                lock: ../../../../
+                mows-common-rust: ../../../../utils/mows-common-rust
+            args:
+                - PROFILE=dev # dev or release
+                - SERVICE_NAME=${SERVICE_NAME}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}

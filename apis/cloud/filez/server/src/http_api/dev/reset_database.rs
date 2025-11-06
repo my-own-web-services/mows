@@ -69,9 +69,15 @@ pub async fn reset_database(
 
     database.dev_full_reset().await?;
 
+    // Exit the process so it can be restarted by the orchestrator
+    tokio::spawn(async {
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        std::process::exit(0);
+    });
+
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
-        message: "Database reset".to_string(),
+        message: "Database reset, server restarting...".to_string(),
         data: None,
     }))
 }

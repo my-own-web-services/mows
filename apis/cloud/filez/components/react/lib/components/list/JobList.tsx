@@ -2,11 +2,11 @@ import { CSSProperties, PureComponent, createRef } from "react";
 
 import { FilezJob, JobStatus, ListJobsSortBy, SortDirection } from "filez-client-typescript";
 
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { ActionIds } from "@/lib/defaultActions";
 import { ActionHandler, ActionVisibility } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
-import { FilezContext } from "@/main";
 import DateTime from "../atoms/dateTime/DateTime";
 import ResourceList from "./ResourceList/ResourceList";
 import {

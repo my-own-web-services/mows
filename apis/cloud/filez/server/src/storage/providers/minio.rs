@@ -18,7 +18,7 @@ use sha2::Digest;
 use std::str::FromStr;
 use utoipa::ToSchema;
 
-use super::{FileVersionIdentifier, StorageProvider};
+use super::{FileVersionQuadIdentifier, StorageProvider};
 
 #[derive(Debug, Clone, Serialize, ToSchema, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct StorageProviderConfigMinio {
@@ -91,7 +91,7 @@ impl StorageProviderMinio {
     #[tracing::instrument(level = "trace")]
     pub async fn get_content(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         timing: axum_server_timing::ServerTimingExtension,
         maybe_range: &Option<ContentRange>,
     ) -> Result<Body, StorageError> {
@@ -119,7 +119,7 @@ impl StorageProviderMinio {
     #[tracing::instrument(level = "trace")]
     pub async fn get_content_sha256_digest(
         &self,
-        _full_file_identifier: &FileVersionIdentifier,
+        _full_file_identifier: &FileVersionQuadIdentifier,
         _timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<String, StorageError> {
         // stream the content through the MinIO client and calculate the SHA256 digest
@@ -145,7 +145,7 @@ impl StorageProviderMinio {
     #[tracing::instrument(level = "trace")]
     pub async fn get_file_size(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<u64, StorageError> {
         let full_file_path = full_file_identifier.to_string();
@@ -173,7 +173,7 @@ impl StorageProviderMinio {
     #[tracing::instrument(level = "trace")]
     pub async fn delete_content(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), StorageError> {
         let full_file_path = full_file_identifier.to_string();
@@ -192,7 +192,7 @@ impl StorageProviderMinio {
     #[tracing::instrument(level = "trace")]
     pub async fn set_content(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         timing: &axum_server_timing::ServerTimingExtension,
         request: Request,
         mime_type: &str,
@@ -275,6 +275,45 @@ impl StorageProviderMinio {
                 Err(e.into())
             }
         }
+    }
+
+    #[tracing::instrument(level = "trace")]
+    pub async fn truncate_content(
+        &self,
+        full_file_identifier: &FileVersionQuadIdentifier,
+        timing: &axum_server_timing::ServerTimingExtension,
+        length: u64,
+    ) -> Result<(), StorageError> {
+        let full_file_path = full_file_identifier.to_string();
+
+        // Get the current file
+        let get_object_response = with_timing!(
+            self.client
+                .get_object(&self.bucket, &full_file_path)
+                .length(Some(length))
+                .send()
+                .await?,
+            "MinIO operation to get file content for truncation",
+            timing
+        );
+
+        let (content_stream, _size) = get_object_response.content.to_stream().await?;
+        let content_stream =
+            content_stream.map_err(|e| tokio::io::Error::new(tokio::io::ErrorKind::Other, e));
+
+        // Re-upload the truncated content
+        let object_content = ObjectContent::new_from_stream(content_stream, Some(length));
+
+        with_timing!(
+            self.client
+                .put_object_content(&self.bucket, &full_file_path, object_content)
+                .send()
+                .await?,
+            "MinIO operation to upload truncated file content",
+            timing
+        );
+
+        Ok(())
     }
 
     #[tracing::instrument(level = "trace")]

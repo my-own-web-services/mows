@@ -1,5 +1,5 @@
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
-import { FilezContext } from "@/main";
 import { FilezFile } from "filez-client-typescript";
 import { PureComponent, type CSSProperties } from "react";
 import ImageViewer from "./formats/ImageViewer";

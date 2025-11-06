@@ -1,5 +1,4 @@
 import CommandPalette from "@/components/atoms/commandPalette/CommandPalette";
-import { ResourceTagsMap } from "@/components/atoms/resourceTags/ResourceTags";
 import PrimaryMenu from "@/components/PrimaryMenu";
 import {
     FileList,
@@ -11,15 +10,12 @@ import {
     Upload
 } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
-
 interface AppProps {
     readonly className?: string;
     readonly style?: CSSProperties;
 }
 
-interface AppState {
-    readonly tagsMap: ResourceTagsMap;
-}
+interface AppState {}
 
 export default class App extends PureComponent<AppProps, AppState> {
     static contextType = FilezContext;
@@ -27,19 +23,7 @@ export default class App extends PureComponent<AppProps, AppState> {
 
     constructor(props: AppProps) {
         super(props);
-        this.state = {
-            tagsMap: {
-                bildVonNürnberg: [
-                    { key: `City`, value: `Nürnberg` },
-                    { key: `Country`, value: `Germany` },
-                    { key: `People`, value: `Paul Hennig` }
-                ],
-                bildVonAugsburg: [
-                    { key: `City`, value: `Augsburg` },
-                    { key: `Country`, value: `Germany` }
-                ]
-            }
-        };
+        this.state = {};
     }
 
     componentDidMount = async () => {};
@@ -56,7 +40,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                 <Toaster></Toaster>
                 <GlobalContextMenu></GlobalContextMenu>
                 <FileList
-                    fileGroupId={`019a3b0a-f060-7eb2-ab16-751e746de116`}
+                    fileGroupId={`019a4a37-26bd-7079-866b-f9bf90531c1c`}
                     className={`h-[500px] w-full`}
                 ></FileList>
 

@@ -11,19 +11,19 @@ path = "src/server.rs"
 
 [[bin]]
 name = "crdgen"
-path = "src/kubernetes_controller/crdgen.rs"
+path = "src/build/crdgen.rs"
 
 [[bin]]
 name = "clientgen"
-path = "src/client_gen/mod.rs"
+path = "src/build/client_gen/mod.rs"
 
 [[bin]]
 name = "schemagen"
-path = "src/kubernetes_controller/schemagen.rs"
+path = "src/build/schemagen.rs"
 
 [[bin]]
 name = "gen_migrations"
-path = "src/gen_migrations.rs"
+path = "src/build/gen_migrations.rs"
 
 
 [lib]

@@ -1,8 +1,8 @@
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { ActionIds } from "@/lib/defaultActions";
 import type { Action } from "@/lib/filezContext/ActionManager";
 import { ActionVisibility } from "@/lib/filezContext/ActionManager";
 import { log } from "@/lib/logging";
-import { FilezContext } from "@/main";
 import { PureComponent, type CSSProperties } from "react";
 import {
     CommandDialog,
@@ -166,7 +166,11 @@ export default class CommandPalette extends PureComponent<
                             return categoryActions.length > 0;
                         })
                         .map((category) => (
-                            <CommandGroup className={`select-none`} key={category} heading={category}>
+                            <CommandGroup
+                                className={`select-none`}
+                                key={category}
+                                heading={category}
+                            >
                                 {commandsByCategory
                                     .get(category)!
                                     .filter((action) => !recentCommandIds.has(action.id))

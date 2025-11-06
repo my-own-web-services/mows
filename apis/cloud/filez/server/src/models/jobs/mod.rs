@@ -79,11 +79,12 @@ pub struct FilezJob {
     pub owner_id: FilezUserId,
     /// The app that should handle the job
     pub app_id: MowsAppId,
-    /// After the job is picked up by the app, this field will be set to the app instance id, created from the kubernetes pod UUID and a random string that the app generates on startup
+    /// After the job is picked up by the app, this field will be set to the app instance id, a random string that the app generates on startup
+    /// A app can only be assigned to one job at a time that is in progress
     pub assigned_app_runtime_instance_id: Option<String>,
     /// The last time the app instance has been seen by the server
     /// This is used to determine if the app instance is still alive and can handle the job
-    pub app_instance_last_seen_time: Option<chrono::NaiveDateTime>,
+    pub app_instance_last_seen_time: Option<NaiveDateTime>,
 
     /// The current status of the job
     pub status: JobStatus,
@@ -93,15 +94,15 @@ pub struct FilezJob {
     pub execution_information: JobExecutionInformation,
     pub persistence: JobPersistenceType,
     /// When the job was created in the database
-    pub created_time: chrono::NaiveDateTime,
+    pub created_time: NaiveDateTime,
     /// When the job was last modified in the database
-    pub modified_time: chrono::NaiveDateTime,
+    pub modified_time: NaiveDateTime,
     /// When the job was started, either automatically or manually
-    pub start_time: Option<chrono::NaiveDateTime>,
+    pub start_time: Option<NaiveDateTime>,
     /// When the job was finished, either successfully or failed
-    pub end_time: Option<chrono::NaiveDateTime>,
+    pub end_time: Option<NaiveDateTime>,
     /// After the deadline the job will be marked as finished and failed if not completed
-    pub deadline_time: Option<chrono::NaiveDateTime>,
+    pub deadline_time: Option<NaiveDateTime>,
     /// Priority of the job (1-10), higher values are picked up first
     pub priority: i16,
 }
@@ -220,7 +221,7 @@ pub enum JobType {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct JobTypeCreatePreview {
     pub file_id: FilezFileId,
-    pub file_version_number: u32,
+    pub file_revision_index: u32,
     pub storage_location_id: StorageLocationId,
     pub storage_quota_id: StorageQuotaId,
     pub allowed_size_bytes: u64,
@@ -233,7 +234,7 @@ pub struct JobTypeCreatePreview {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct JobTypeExtractMetadata {
     pub file_id: FilezFileId,
-    pub file_version_number: u32,
+    pub file_revision_index: u32,
     #[schema(value_type = Object)]
     pub extract_metadata_config: Value,
 }
@@ -246,7 +247,7 @@ impl FilezJob {
         name: String,
         execution_details: JobExecutionInformation,
         persistence: JobPersistenceType,
-        deadline_time: Option<chrono::NaiveDateTime>,
+        deadline_time: Option<NaiveDateTime>,
         priority: i16,
     ) -> Self {
         Self {
@@ -373,7 +374,7 @@ impl FilezJob {
         name: String,
         execution_details: JobExecutionInformation,
         persistence: JobPersistenceType,
-        deadline_time: Option<chrono::NaiveDateTime>,
+        deadline_time: Option<NaiveDateTime>,
         priority: i16,
     ) -> Result<FilezJob, FilezError> {
         let job = FilezJob::new(

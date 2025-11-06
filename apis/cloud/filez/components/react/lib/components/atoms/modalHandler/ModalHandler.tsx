@@ -1,8 +1,14 @@
+import { FilezContext, type ModalType } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
-import { FilezContext, ModalType } from "@/main";
 import { PureComponent, type CSSProperties, type ReactNode } from "react";
 import DevPanel from "../../development/DevPanel";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from "../../ui/dialog";
 import FileGroupCreate from "../fileGroupCreate/FileGroupCreate";
 import KeyboardShortcuts from "../keyboardShortcutEditor/KeyboardShortcutEditor";
 import LanguagePicker from "../languagePicker/LanguagePicker";

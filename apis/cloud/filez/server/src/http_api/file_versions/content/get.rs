@@ -212,7 +212,7 @@ pub async fn get_file_version_content(
                 "timeout=5, max=100".parse().unwrap(),
             );
 
-            let file_version_meta_size: u64 = file_version_meta.size.try_into()?;
+            let file_version_meta_size: u64 = file_version_meta.content_size_bytes.try_into()?;
 
             let end = parsed_range.end.unwrap_or(file_version_meta_size - 1);
 
@@ -220,7 +220,7 @@ pub async fn get_file_version_content(
                 header::CONTENT_RANGE,
                 format!(
                     "bytes {}-{}/{}",
-                    parsed_range.start, end, file_version_meta.size
+                    parsed_range.start, end, file_version_meta.content_size_bytes
                 )
                 .parse()
                 .expect("String to HeaderValue conversion failed"),

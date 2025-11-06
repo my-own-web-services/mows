@@ -115,7 +115,7 @@ export default async (filezClient: Api<unknown>) => {
             {
                 file_id: aliceFileResponse.created_file.id,
                 file_version_metadata: {},
-                file_version_size: aliceFileVersionContent.size,
+                file_version_content_size_bytes: aliceFileVersionContent.size,
                 storage_quota_id: alice_quota.id,
                 content_expected_sha256_digest: await getBlobSha256Digest(aliceFileVersionContent),
                 file_version_mime_type: `text/html`
@@ -132,9 +132,9 @@ export default async (filezClient: Api<unknown>) => {
 
     const firstAliceFileVersionContent = aliceFileVersionContent.slice(0, 50);
 
-    const firstUpload = await filezClient.api.fileVersionsContentTusPatch(
+    const firstUpload = await filezClient.api.fileVersionsContentPatch(
         aliceFileResponse.created_file.id,
-        aliceFileVersion.version,
+        aliceFileVersion.file_revision_index,
         null,
         {
             upload_offset: 0
@@ -156,9 +156,9 @@ export default async (filezClient: Api<unknown>) => {
     // Now upload the rest of the content
 
     const secondAliceFileVersionContent = aliceFileVersionContent.slice(50);
-    const secondUpload = await filezClient.api.fileVersionsContentTusPatch(
+    const secondUpload = await filezClient.api.fileVersionsContentPatch(
         aliceFileResponse.created_file.id,
-        aliceFileVersion.version,
+        aliceFileVersion.file_revision_index,
         null,
         {
             upload_offset: firstAliceFileVersionContent.size
@@ -227,9 +227,9 @@ export default async (filezClient: Api<unknown>) => {
     );
 
     const updateUploadTooBig = await filezClient.api
-        .fileVersionsContentTusPatch(
+        .fileVersionsContentPatch(
             aliceFileResponse.created_file.id,
-            aliceFileVersion.version,
+            aliceFileVersion.file_revision_index,
             null,
             {
                 upload_offset: 0
@@ -260,9 +260,9 @@ export default async (filezClient: Api<unknown>) => {
     const aliceUpdatedFileVersionContent = new Blob([`Hi!`], { type: `text/html` });
 
     const updateUploadAlreadyValid = await filezClient.api
-        .fileVersionsContentTusPatch(
+        .fileVersionsContentPatch(
             aliceFileResponse.created_file.id,
-            aliceFileVersion.version,
+            aliceFileVersion.file_revision_index,
             null,
             {
                 upload_offset: 0

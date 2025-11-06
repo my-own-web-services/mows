@@ -1,5 +1,5 @@
+import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
-import { FilezContext } from "@/main";
 import { FilezFile } from "filez-client-typescript";
 import { PureComponent, type CSSProperties } from "react";
 
@@ -51,7 +51,7 @@ export default class ImageViewer extends PureComponent<ImageViewerProps, ImageVi
     };
 
     render = () => {
-        const appId = `019a3b08-ab20-7c2f-8430-eb2e60cc9081`;
+        const appId = `019a4a36-abf3-7f62-9df9-cdf5f60331cf`;
         const appPath = this.getImageVersion();
 
         const url = `${this.context?.filezClient.baseUrl}/api/file_versions/content/get/${this.props.file.id}/${this.props.fileVersion || 0}/${appId}/${appPath}?cache=3600`;

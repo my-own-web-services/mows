@@ -11,8 +11,8 @@ use crate::{
 use crate::{impl_typed_uuid, schema};
 use axum::extract::Request;
 
+use diesel::pg::Pg;
 use diesel::{
-    pg::Pg,
     prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
     query_dsl::methods::{FilterDsl, SelectDsl},
     ExpressionMethods, Selectable,
@@ -29,31 +29,31 @@ use super::{files::FilezFile, storage_locations::StorageLocation, storage_quotas
 // macro to select a file version by its identifier
 
 #[macro_export]
-macro_rules! filter_file_version_by_identifier {
-    ($file_version:expr) => {{
-        let version: i32 = $file_version.version.try_into()?;
+macro_rules! filter_file_version_by_quad_identifier {
+    ($file_version: expr) => {{
+        let file_revision_index: i32 = $file_version.file_revision_index.try_into()?;
 
         file_versions::table
             .filter(file_versions::file_id.eq($file_version.file_id))
-            .filter(file_versions::version.eq(version))
+            .filter(file_versions::file_revision_index.eq(file_revision_index))
             .filter(file_versions::app_id.eq($file_version.app_id))
             .filter(file_versions::app_path.eq(&$file_version.app_path))
     }};
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
-pub struct FileVersionIdentifier {
+pub struct FileVersionQuadIdentifier {
     pub file_id: FilezFileId,
-    pub version: u32,
+    pub file_revision_index: u32,
     pub app_id: MowsAppId,
     pub app_path: String,
 }
 
-impl FileVersionIdentifier {
+impl FileVersionQuadIdentifier {
     pub fn to_string(&self) -> String {
         format!(
             "{}/{}/{}/{}",
-            self.file_id, self.version, self.app_id, self.app_path
+            self.file_id, self.file_revision_index, self.app_id, self.app_path
         )
     }
 }
@@ -88,20 +88,30 @@ impl_typed_uuid!(FileVersionId);
 #[diesel(check_for_backend(Pg))]
 pub struct FileVersion {
     pub id: FileVersionId,
+
     pub file_id: FilezFileId,
-    pub version: i32,
+    pub file_revision_index: i32,
     pub app_id: MowsAppId,
     pub app_path: String,
+
     pub mime_type: String,
     pub metadata: FileVersionMetadata,
+
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
-    pub size: i64,
+
+    /// The size of the content in bytes, as expected by the creator
+    pub content_size_bytes: i64,
+    /// The number of bytes that currently exist for this file version in storage
+    pub existing_content_size_bytes: Option<i64>,
+
     pub storage_location_id: StorageLocationId,
     pub storage_quota_id: StorageQuotaId,
-    pub content_valid: bool,
+
+    /// The expected SHA256 digest of the content, if provided by the creator
     pub content_expected_sha256_digest: Option<String>,
-    pub existing_content_bytes: Option<i64>,
+    /// Whether the content has been fully uploaded and matches the expected digest (if provided)
+    pub content_matches_expected_sha256_digest: bool,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate, AsChangeset)]
@@ -121,6 +131,10 @@ pub struct UpdateFileVersionChangeset {
     #[validate(custom = validate_optional_mime_type)]
     #[diesel(column_name = mime_type)]
     pub new_file_version_mime_type: Option<String>,
+    #[validate(minimum = 0)]
+    #[schema(minimum = 0)]
+    #[diesel(column_name = content_size_bytes)]
+    pub new_file_version_content_size_bytes: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, AsJsonb, Clone, Debug, ToSchema)]
@@ -130,7 +144,7 @@ impl FileVersion {
     #[tracing::instrument(level = "trace")]
     pub fn new(
         file_id: FilezFileId,
-        version: i32,
+        file_revision_index: i32,
         app_id: MowsAppId,
         app_path: Option<String>,
         mime_type: String,
@@ -142,20 +156,26 @@ impl FileVersion {
     ) -> Result<Self, FilezError> {
         Ok(Self {
             id: FileVersionId::new(),
+
             file_id,
-            version,
+            file_revision_index,
             app_id,
             app_path: app_path.unwrap_or("".to_string()),
+
             mime_type,
             metadata,
+
             created_time: get_current_timestamp(),
             modified_time: get_current_timestamp(),
-            size: size.try_into()?,
+
+            content_size_bytes: size.try_into()?,
+            existing_content_size_bytes: None,
+
             storage_location_id,
             storage_quota_id,
+
             content_expected_sha256_digest,
-            content_valid: false,
-            existing_content_bytes: None,
+            content_matches_expected_sha256_digest: false,
         })
     }
 
@@ -163,7 +183,7 @@ impl FileVersion {
     pub async fn get_one_by_identifier(
         database: &Database,
         file_id: &FilezFileId,
-        version: Option<u32>,
+        file_revision_index: Option<u32>,
         app_id: &MowsAppId,
         app_path: &Option<String>,
     ) -> Result<FileVersion, FilezError> {
@@ -172,22 +192,22 @@ impl FileVersion {
         let app_path = app_path.as_ref().map(|path| path.as_str()).unwrap_or("");
 
         // if the version is None, we fetch the latest version
-        let version = if version.is_none() {
+        let version = if file_revision_index.is_none() {
             file_versions::table
                 .filter(file_versions::file_id.eq(file_id))
                 .filter(file_versions::app_id.eq(app_id))
                 .filter(file_versions::app_path.eq(app_path))
-                .select(diesel::dsl::max(file_versions::version))
+                .select(diesel::dsl::max(file_versions::file_revision_index))
                 .first::<Option<i32>>(&mut connection)
                 .await?
                 .unwrap_or(0)
         } else {
-            version.unwrap() as i32
+            file_revision_index.unwrap() as i32
         };
 
         let file_version = file_versions::table
             .filter(file_versions::file_id.eq(file_id))
-            .filter(file_versions::version.eq(version))
+            .filter(file_versions::file_revision_index.eq(version))
             .filter(file_versions::app_id.eq(app_id))
             .filter(file_versions::app_path.eq(app_path))
             .first::<FileVersion>(&mut connection)
@@ -218,6 +238,49 @@ impl FileVersion {
         Ok(file_versions)
     }
 
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_many_by_quad_identifiers(
+        database: &Database,
+        quad_identifiers: &Vec<FileVersionQuadIdentifier>,
+    ) -> Result<Vec<FileVersion>, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let mut file_versions = Vec::new();
+
+        for quad_identifier in quad_identifiers {
+            let file_revision_index: i32 = quad_identifier.file_revision_index.try_into()?;
+
+            let file_version = file_versions::table
+                .filter(file_versions::file_id.eq(quad_identifier.file_id))
+                .filter(file_versions::file_revision_index.eq(file_revision_index))
+                .filter(file_versions::app_id.eq(quad_identifier.app_id))
+                .filter(file_versions::app_path.eq(&quad_identifier.app_path))
+                .first::<FileVersion>(&mut connection)
+                .await
+                .ok();
+
+            if let Some(fv) = file_version {
+                file_versions.push(fv);
+            }
+        }
+
+        Ok(file_versions)
+    }
+
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_many_by_digests(
+        database: &Database,
+        digests: &Vec<String>,
+    ) -> Result<Vec<FileVersion>, FilezError> {
+        let mut connection = database.get_connection().await?;
+
+        let file_versions = file_versions::table
+            .filter(file_versions::content_expected_sha256_digest.eq_any(digests))
+            .load::<FileVersion>(&mut connection)
+            .await?;
+
+        Ok(file_versions)
+    }
+
     pub async fn get_all_by_file_id(
         database: &Database,
         file_id: &FilezFileId,
@@ -233,10 +296,10 @@ impl FileVersion {
     }
 
     #[tracing::instrument(level = "trace")]
-    fn get_file_version_identifier(&self) -> Result<FileVersionIdentifier, FilezError> {
-        Ok(FileVersionIdentifier {
+    fn get_file_version_quad_identifier(&self) -> Result<FileVersionQuadIdentifier, FilezError> {
+        Ok(FileVersionQuadIdentifier {
             file_id: self.file_id,
-            version: self.version.try_into()?,
+            file_revision_index: self.file_revision_index.try_into()?,
             app_id: self.app_id,
             app_path: self.app_path.clone(),
         })
@@ -255,7 +318,7 @@ impl FileVersion {
         let content = storage_location
             .get_content(
                 storage_locations_provider_state,
-                &self.get_file_version_identifier()?,
+                &self.get_file_version_quad_identifier()?,
                 timing,
                 range,
             )
@@ -276,12 +339,37 @@ impl FileVersion {
         let size = storage_location
             .get_file_size(
                 storage_locations_provider_state,
-                &self.get_file_version_identifier()?,
+                &self.get_file_version_quad_identifier()?,
                 timing,
             )
             .await?;
 
         Ok(size)
+    }
+
+    #[tracing::instrument(skip(database), level = "trace")]
+    pub async fn truncate_content(
+        &self,
+        storage_locations_provider_state: &StorageLocationState,
+        database: &Database,
+        timing: &axum_server_timing::ServerTimingExtension,
+        new_length_bytes: u64,
+    ) -> Result<(), FilezError> {
+        let storage_location =
+            StorageLocation::get_by_id(database, &self.storage_location_id).await?;
+
+        let file_version_quad_identifier = self.get_file_version_quad_identifier()?;
+
+        storage_location
+            .truncate_content(
+                storage_locations_provider_state,
+                &file_version_quad_identifier,
+                timing,
+                new_length_bytes,
+            )
+            .await?;
+
+        Ok(())
     }
 
     #[tracing::instrument(skip(database), level = "trace")]
@@ -294,7 +382,7 @@ impl FileVersion {
         offset: u64,
         length: u64,
     ) -> Result<(), FilezError> {
-        if self.content_valid {
+        if self.content_matches_expected_sha256_digest {
             return Err(FilezError::FileVersionContentAlreadyValid);
         }
 
@@ -303,12 +391,12 @@ impl FileVersion {
 
         let file = FilezFile::get_one_by_id(database, self.file_id).await?;
 
-        let file_version_identifier = self.get_file_version_identifier()?;
+        let file_version_quad_identifier = self.get_file_version_quad_identifier()?;
 
         storage_location
             .set_content(
                 storage_locations_provider_state,
-                &file_version_identifier,
+                &file_version_quad_identifier,
                 timing,
                 request,
                 &file.mime_type,
@@ -320,24 +408,25 @@ impl FileVersion {
         let stored_file_size: i64 = storage_location
             .get_file_size(
                 storage_locations_provider_state,
-                &file_version_identifier,
+                &file_version_quad_identifier,
                 timing,
             )
             .await?
             .try_into()?;
 
-        // update the existing_content_bytes field in the database
         let mut connection = database.get_connection().await?;
-        diesel::update(filter_file_version_by_identifier!(file_version_identifier))
-            .set((
-                file_versions::existing_content_bytes.eq(stored_file_size),
-                file_versions::modified_time.eq(get_current_timestamp()),
-            ))
-            .execute(&mut connection)
-            .await?;
+        diesel::update(filter_file_version_by_quad_identifier!(
+            file_version_quad_identifier
+        ))
+        .set((
+            file_versions::existing_content_size_bytes.eq(stored_file_size),
+            file_versions::modified_time.eq(get_current_timestamp()),
+        ))
+        .execute(&mut connection)
+        .await?;
 
         // once the last bytes are written, we verify the content and update the content_valid flag
-        let file_version_size: u64 = self.size.try_into()?;
+        let file_version_size: u64 = self.content_size_bytes.try_into()?;
 
         trace!(
             "Got offset: {}, length: {}, file_version_size: {} for file version: {:?}",
@@ -358,7 +447,7 @@ impl FileVersion {
                 let content_digest = storage_location
                     .get_content_sha256_digest(
                         storage_locations_provider_state,
-                        &file_version_identifier,
+                        &file_version_quad_identifier,
                         timing,
                     )
                     .await?;
@@ -371,13 +460,15 @@ impl FileVersion {
 
                 if &content_digest == expected_sha256_digest {
                     let mut connection = database.get_connection().await?;
-                    diesel::update(filter_file_version_by_identifier!(file_version_identifier))
-                        .set((
-                            file_versions::content_valid.eq(true),
-                            file_versions::modified_time.eq(get_current_timestamp()),
-                        ))
-                        .execute(&mut connection)
-                        .await?;
+                    diesel::update(filter_file_version_by_quad_identifier!(
+                        file_version_quad_identifier
+                    ))
+                    .set((
+                        file_versions::content_matches_expected_sha256_digest.eq(true),
+                        file_versions::modified_time.eq(get_current_timestamp()),
+                    ))
+                    .execute(&mut connection)
+                    .await?;
                 } else {
                     return Err(FilezError::FileVersionContentDigestMismatch {
                         expected: expected_sha256_digest.clone(),
@@ -411,7 +502,7 @@ impl FileVersion {
             None => {
                 let version_number = file_versions::table
                     .filter(file_versions::file_id.eq(file_id))
-                    .select(diesel::dsl::max(file_versions::version))
+                    .select(diesel::dsl::max(file_versions::file_revision_index))
                     .first::<Option<i32>>(&mut connection)
                     .await?;
                 version_number.map_or(0, |v| v + 1)
@@ -447,8 +538,8 @@ impl FileVersion {
         file_version_to_delete: &FileVersion,
     ) -> Result<(), FilezError> {
         if file_version_to_delete
-            .existing_content_bytes
-            .is_some_and(|b| b > 0)
+            .existing_content_size_bytes
+            .is_some_and(|existing_content_size_bytes| existing_content_size_bytes > 0)
         {
             file_version_to_delete
                 .delete_content(storage_locations_provider_state, database, timing)
@@ -500,7 +591,7 @@ impl FileVersion {
         storage_location
             .delete_content(
                 storage_locations_provider_state,
-                &self.get_file_version_identifier()?,
+                &self.get_file_version_quad_identifier()?,
                 timing,
             )
             .await?;
@@ -513,6 +604,7 @@ impl FileVersion {
         database: &Database,
         file_version_id: &FileVersionId,
         changeset: &UpdateFileVersionChangeset,
+        existing_content_bytes: Option<i64>,
     ) -> Result<FileVersion, FilezError> {
         let mut connection = database.get_connection().await?;
 
@@ -524,6 +616,7 @@ impl FileVersion {
                 ))
                 .get_result::<FileVersion>(&mut connection)
                 .await?;
+
         Ok(updated_file_version)
     }
 }

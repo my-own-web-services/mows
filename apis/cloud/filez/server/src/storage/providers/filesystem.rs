@@ -17,7 +17,7 @@ use tokio_util::io::ReaderStream;
 use tracing::trace;
 use utoipa::ToSchema;
 
-use super::{FileVersionIdentifier, StorageProvider};
+use super::{FileVersionQuadIdentifier, StorageProvider};
 
 #[derive(Debug, Clone, Serialize, ToSchema, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct StorageProviderConfigFileSystem {
@@ -65,7 +65,7 @@ impl StorageProviderFilesystem {
     }
 
     #[tracing::instrument(level = "trace")]
-    fn get_full_path(&self, file_identifier: &FileVersionIdentifier) -> PathBuf {
+    fn get_full_path(&self, file_identifier: &FileVersionQuadIdentifier) -> PathBuf {
         // the file path is constructed like this:
         // - root_path
         // - last 3 characters of file_id as separate folders
@@ -82,7 +82,7 @@ impl StorageProviderFilesystem {
             .join(last_three_chars[1].to_string())
             .join(last_three_chars[2].to_string())
             .join(file_id_string)
-            .join(file_identifier.version.to_string())
+            .join(file_identifier.file_revision_index.to_string())
             .join(file_identifier.app_id.to_string());
 
         match &file_identifier.app_path.len() {
@@ -102,7 +102,7 @@ impl StorageProviderFilesystem {
     #[tracing::instrument(level = "trace")]
     pub async fn get_content(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         _timing: axum_server_timing::ServerTimingExtension,
         maybe_range: &Option<ContentRange>,
     ) -> Result<Body, StorageError> {
@@ -128,7 +128,7 @@ impl StorageProviderFilesystem {
     #[tracing::instrument(level = "trace")]
     pub async fn get_file_size(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         _timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<u64, StorageError> {
         let path = self.get_full_path(full_file_identifier);
@@ -141,7 +141,7 @@ impl StorageProviderFilesystem {
     #[tracing::instrument(level = "trace")]
     pub async fn delete_content(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         _timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<(), StorageError> {
         let path = self.get_full_path(full_file_identifier);
@@ -171,7 +171,7 @@ impl StorageProviderFilesystem {
     #[tracing::instrument(level = "trace")]
     pub async fn get_content_sha256_digest(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         _timing: &axum_server_timing::ServerTimingExtension,
     ) -> Result<String, StorageError> {
         let path = self.get_full_path(full_file_identifier);
@@ -194,7 +194,7 @@ impl StorageProviderFilesystem {
     #[tracing::instrument(level = "trace")]
     pub async fn set_content(
         &self,
-        full_file_identifier: &FileVersionIdentifier,
+        full_file_identifier: &FileVersionQuadIdentifier,
         _timing: &axum_server_timing::ServerTimingExtension,
         request: Request,
         _mime_type: &str,
@@ -220,6 +220,27 @@ impl StorageProviderFilesystem {
         while let Some(chunk) = request_stream.try_next().await? {
             file.write_all(&chunk).await?;
         }
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "trace")]
+    pub async fn truncate_content(
+        &self,
+        full_file_identifier: &FileVersionQuadIdentifier,
+        _timing: &axum_server_timing::ServerTimingExtension,
+        length: u64,
+    ) -> Result<(), StorageError> {
+        let path = self.get_full_path(full_file_identifier);
+        let file = OpenOptions::new()
+            .write(true)
+            .open(&path)
+            .await
+            .context("Failed to open file for truncation")?;
+
+        file.set_len(length)
+            .await
+            .context("Failed to truncate file")?;
 
         Ok(())
     }
