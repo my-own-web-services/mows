@@ -1,5 +1,5 @@
 use super::MiddlewareError;
-use crate::routing_config::Chain;
+use crate::config::routing_config::Chain;
 use http::{Request, Response};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};

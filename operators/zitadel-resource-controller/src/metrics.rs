@@ -9,7 +9,7 @@ use prometheus_client::{
 use std::sync::Arc;
 use tokio::time::Instant;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Metrics {
     pub reconcile: ReconcileMetrics,
     pub registry: Arc<Registry>,
@@ -43,7 +43,7 @@ impl TryFrom<&TraceId> for TraceLabel {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ReconcileMetrics {
     pub runs: Family<(), Counter>,
     pub failures: Family<ErrorLabels, Counter>,

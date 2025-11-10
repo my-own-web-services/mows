@@ -1,7 +1,11 @@
-use crate::cert_resolver::get_http_cert_resolver;
-use crate::check_http_rule::check_http_rule;
-use crate::middleware_http::{handle_middleware_incoming, handle_middleware_outgoing};
-use crate::routing_config::{HttpMiddleware, HttpRouter, HttpService, RoutingConfig};
+use crate::certificates::get_http_cert_resolver;
+use crate::config::routing_config::{HttpMiddleware, HttpRouter, HttpService, RoutingConfig};
+use crate::config::rules::check::http::check_http_rule;
+use crate::middleware::http::{
+    handle_middleware_incoming, handle_middleware_outgoing, requires_body_buffering,
+    MiddlewareError,
+};
+use crate::routing_cache::RoutingCache;
 use crate::some_or_bail;
 use crate::utils::{get_host_from_uri_or_header, host_addr, parse_addr, tunnel};
 use anyhow::bail;
@@ -25,20 +29,23 @@ use std::sync::Arc;
 use std::vec;
 use tokio::net::TcpListener;
 use tokio::sync::RwLock;
+use tracing::{error, info, warn};
 
 pub async fn create_http_server(
     listen_addr: String,
     tls: bool,
     config: Arc<RwLock<RoutingConfig>>,
     entrypoint_name: String,
+    routing_cache: Arc<RoutingCache>,
 ) -> anyhow::Result<Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send>>> {
-    tracing::info!(entrypoint = %entrypoint_name, "creating HTTP server");
+    info!(entrypoint = %entrypoint_name, "creating HTTP server");
 
     let addr = parse_addr(&listen_addr)?;
     let http_addr = SocketAddr::from_str(&addr)?;
 
+    // Use webpki-roots (embedded Mozilla CA certificates) for consistency across all environments
     let https_connector = HttpsConnectorBuilder::new()
-        .with_native_roots()?
+        .with_webpki_roots()
         .https_or_http()
         .enable_http1()
         .build();
@@ -66,7 +73,7 @@ pub async fn create_http_server(
                 let (tcp_stream, client_addr) = match listener.accept().await {
                     Ok(conn) => conn,
                     Err(e) => {
-                        tracing::error!(error = %e, "failed to accept connection");
+                        error!(error = %e, "failed to accept connection");
                         continue;
                     }
                 };
@@ -74,7 +81,7 @@ pub async fn create_http_server(
                 let tls_stream = match tls_acceptor.accept(tcp_stream).await {
                     Ok(s) => s,
                     Err(e) => {
-                        tracing::error!(error = %e, "TLS handshake failed");
+                        error!(error = %e, "TLS handshake failed");
                         continue;
                     }
                 };
@@ -82,6 +89,7 @@ pub async fn create_http_server(
                 let io = TokioIo::new(tls_stream);
                 let client_clone = client.clone();
                 let config_clone = Arc::clone(&config);
+                let cache_clone = Arc::clone(&routing_cache);
                 let entrypoint_clone = entrypoint_name_clone.clone();
 
                 tokio::spawn(async move {
@@ -92,6 +100,7 @@ pub async fn create_http_server(
                             Arc::clone(&config_clone),
                             entrypoint_clone.clone(),
                             client_addr,
+                            Arc::clone(&cache_clone),
                         )
                     });
 
@@ -102,7 +111,7 @@ pub async fn create_http_server(
                         .with_upgrades()
                         .await
                     {
-                        tracing::error!(error = %e, "error serving connection");
+                        error!(error = %e, "error serving connection");
                     }
                 });
             }
@@ -118,7 +127,7 @@ pub async fn create_http_server(
                 let (tcp_stream, client_addr) = match listener.accept().await {
                     Ok(conn) => conn,
                     Err(e) => {
-                        tracing::error!(error = %e, "failed to accept connection");
+                        error!(error = %e, "failed to accept connection");
                         continue;
                     }
                 };
@@ -126,6 +135,7 @@ pub async fn create_http_server(
                 let io = TokioIo::new(tcp_stream);
                 let client_clone = client.clone();
                 let config_clone = Arc::clone(&config);
+                let cache_clone = Arc::clone(&routing_cache);
                 let entrypoint_clone = entrypoint_name_clone.clone();
 
                 tokio::spawn(async move {
@@ -136,6 +146,7 @@ pub async fn create_http_server(
                             Arc::clone(&config_clone),
                             entrypoint_clone.clone(),
                             client_addr,
+                            Arc::clone(&cache_clone),
                         )
                     });
 
@@ -146,7 +157,7 @@ pub async fn create_http_server(
                         .with_upgrades()
                         .await
                     {
-                        tracing::error!(error = %e, "error serving connection");
+                        error!(error = %e, "error serving connection");
                     }
                 });
             }
@@ -162,11 +173,21 @@ async fn proxy(
     config: Arc<RwLock<RoutingConfig>>,
     entrypoint_name: String,
     client_addr: SocketAddr,
+    routing_cache: Arc<RoutingCache>,
 ) -> Result<Response<BoxBody<Bytes, std::convert::Infallible>>, Infallible> {
-    match route_or_internal_error(client, req, config, &entrypoint_name, client_addr).await {
+    match route_or_internal_error(
+        client,
+        req,
+        config,
+        &entrypoint_name,
+        client_addr,
+        routing_cache,
+    )
+    .await
+    {
         Ok(response) => Ok(response),
         Err(e) => {
-            tracing::error!(error = %e, "internal server error");
+            error!(error = %e, "internal server error");
             Ok(Response::builder()
                 .status(500)
                 .body(
@@ -185,21 +206,52 @@ pub async fn route_or_internal_error(
     config: Arc<RwLock<RoutingConfig>>,
     entrypoint_name: &str,
     client_addr: SocketAddr,
+    routing_cache: Arc<RoutingCache>,
 ) -> anyhow::Result<Response<BoxBody<Bytes, std::convert::Infallible>>> {
+    // Check cache version and invalidate if needed (lock-free fast path)
+    routing_cache.check_version(config.clone()).await;
+
+    // Try to get cached routing decision (lock-free)
     let (_router_to_use, service_to_use, middlewares_to_use) =
-        match decide_routing(config, entrypoint_name, &req, client_addr).await {
-            Ok(r) => r,
-            Err(e) => {
-                tracing::warn!(error = %e, "no router found");
-                // TODO  http1 connections can currently match no routers
-                return Ok(Response::builder()
-                    .status(404)
-                    .body(
-                        Full::new(Bytes::from("Not found"))
-                            .map_err(|never| match never {})
-                            .boxed(),
-                    )
-                    .unwrap());
+        match routing_cache.get(&req, entrypoint_name, client_addr) {
+            Some(entry) => {
+                // Cache hit - use cached routing decision (cheap Arc clone)
+                (entry.router, entry.service, entry.middlewares)
+            }
+            None => {
+                // Cache miss - compute routing decision
+                match decide_routing(config.clone(), entrypoint_name, &req, client_addr).await {
+                    Ok(result) => {
+                        // Store in cache for future requests (lock-free)
+                        routing_cache.insert(
+                            &req,
+                            entrypoint_name,
+                            client_addr,
+                            crate::routing_cache::RoutingCacheEntry {
+                                router: Arc::new(result.0.clone()),
+                                service: result.1.clone().map(Arc::new),
+                                middlewares: Arc::new(result.2.clone()),
+                            },
+                        );
+                        (
+                            Arc::new(result.0),
+                            result.1.map(Arc::new),
+                            Arc::new(result.2),
+                        )
+                    }
+                    Err(e) => {
+                        warn!(error = %e, "no router found");
+                        // TODO  http1 connections can currently match no routers
+                        return Ok(Response::builder()
+                            .status(404)
+                            .body(
+                                Full::new(Bytes::from("Not found"))
+                                    .map_err(|never| match never {})
+                                    .boxed(),
+                            )
+                            .unwrap());
+                    }
+                }
             }
         };
 
@@ -209,10 +261,10 @@ pub async fn route_or_internal_error(
                 match hyper::upgrade::on(req).await {
                     Ok(upgraded) => {
                         if let Err(e) = tunnel(upgraded, addr).await {
-                            tracing::error!(error = %e, "tunnel IO error");
+                            error!(error = %e, "tunnel IO error");
                         };
                     }
-                    Err(e) => tracing::error!(error = %e, "upgrade error"),
+                    Err(e) => error!(error = %e, "upgrade error"),
                 }
             });
 
@@ -220,7 +272,7 @@ pub async fn route_or_internal_error(
                 Empty::new().map_err(|never| match never {}).boxed(),
             ))
         } else {
-            tracing::error!(uri = ?req.uri(), "CONNECT host is not socket addr");
+            error!(uri = ?req.uri(), "CONNECT host is not socket addr");
             let mut resp = Response::new(
                 Full::new(Bytes::from("CONNECT must be to a socket address"))
                     .map_err(|never| match never {})
@@ -231,17 +283,17 @@ pub async fn route_or_internal_error(
             Ok(resp)
         }
     } else {
-        match handle_middleware_incoming(&mut req, middlewares_to_use.clone()).await {
+        match handle_middleware_incoming(&mut req, middlewares_to_use.as_ref().clone()).await {
             Ok(req) => req,
             Err(e) => match e {
-                crate::middleware_http::MiddlewareError::Default { res } => return Ok(res),
+                MiddlewareError::Default { res } => return Ok(res),
             },
         };
 
         let mut res_builder_cors = Response::builder();
 
         if !middlewares_to_use.is_empty() {
-            for (i, middleware) in middlewares_to_use.iter().enumerate() {
+            for (i, middleware) in middlewares_to_use.as_ref().iter().enumerate() {
                 #[allow(clippy::single_match)]
                 match middleware {
                     HttpMiddleware::Cors(args) => {
@@ -268,7 +320,11 @@ pub async fn route_or_internal_error(
         }
 
         let service_url = match &service_to_use {
-            Some(service) => service.loadbalancer.as_ref().map(|lb| &lb.servers[0].url),
+            Some(service) => service
+                .as_ref()
+                .loadbalancer
+                .as_ref()
+                .map(|lb| &lb.servers[0].url),
             None => None,
         };
 
@@ -277,7 +333,7 @@ pub async fn route_or_internal_error(
             None => {
                 // when the service url cannot be found we try to find a middleware that returns a redirect request
                 if !middlewares_to_use.is_empty() {
-                    for middleware in middlewares_to_use {
+                    for middleware in middlewares_to_use.as_ref().iter() {
                         #[allow(clippy::single_match)]
                         match middleware {
                             HttpMiddleware::RedirectScheme(args) => {
@@ -362,7 +418,7 @@ pub async fn route_or_internal_error(
         let res = match client.request(req).await {
             Ok(resp) => resp,
             Err(e) => {
-                tracing::error!(error = %e, "backend request failed");
+                error!(error = %e, "backend request failed");
                 return Ok(res_builder_cors
                     .status(502)
                     .body(
@@ -374,13 +430,14 @@ pub async fn route_or_internal_error(
             }
         };
 
-        // Convert Response<Incoming> to Response<BoxBody<Bytes, Infallible>>
-        // We need to consume the entire body since we can't properly stream with error conversion
+        // TODO: Implement streaming for better performance
+        // For now, buffer all responses to ensure stability
+        // Streaming can be added later with proper error handling
         let (parts, body) = res.into_parts();
         let body_bytes = match body.collect().await {
             Ok(collected) => collected.to_bytes(),
             Err(e) => {
-                tracing::error!(error = %e, "failed to collect response body");
+                error!(error = %e, "failed to collect response body");
                 return Ok(res_builder_cors
                     .status(502)
                     .body(
@@ -396,10 +453,10 @@ pub async fn route_or_internal_error(
             .boxed();
         let mut res = Response::from_parts(parts, boxed_body);
 
-        match handle_middleware_outgoing(&mut res, middlewares_to_use).await {
+        match handle_middleware_outgoing(&mut res, middlewares_to_use.as_ref().clone()).await {
             Ok(resp) => resp,
             Err(e) => match e {
-                crate::middleware_http::MiddlewareError::Default { res } => return Ok(res),
+                MiddlewareError::Default { res } => return Ok(res),
             },
         };
         Ok(res)

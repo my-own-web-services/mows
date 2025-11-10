@@ -15,6 +15,11 @@ default-features = false
 features = ["default"]
 version = "1.0.98"
 
+[workspace.dependencies.chrono]
+default-features = false
+features = ["serde"]
+version = "0.4.41"
+
 [workspace.dependencies.data-encoding]
 default-features = false
 features = ["default"]
@@ -66,6 +71,10 @@ default-features = false
 features = ["rt-tokio"]
 version = "=0.26.0"
 
+[workspace.dependencies.prometheus-client]
+default-features = false
+version = "0.22.3"
+
 [workspace.dependencies.rand]
 default-features = false
 features = ["default"]
@@ -85,6 +94,11 @@ version = "0.12.15"
 default-features = false
 features = ["opentelemetry_0_28"]
 version = "0.5.7"
+
+[workspace.dependencies.schemars]
+default-features = false
+features = ["chrono"]
+version = "0.8.22"
 
 [workspace.dependencies.serde]
 default-features = false

@@ -1,5 +1,5 @@
 use super::MiddlewareError;
-use crate::routing_config::Buffering;
+use crate::config::routing_config::Buffering;
 use http::{Request, Response};
 use http_body_util::{BodyExt, combinators::BoxBody, Full};
 use hyper::body::{Bytes, Incoming};
@@ -52,8 +52,8 @@ pub async fn handle_outgoing(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::middleware_http::handle_middleware_outgoing;
-    use crate::routing_config::HttpMiddleware;
+    use crate::middleware::http::handle_middleware_outgoing;
+    use crate::config::routing_config::HttpMiddleware;
     use http::Response;
     use http_body_util::{BodyExt, Full};
     use hyper::body::Bytes;

@@ -15,7 +15,7 @@
 // ```
 
 use super::{ok_or_internal_error, MiddlewareError};
-use crate::routing_config::PassTLSClientCert;
+use crate::config::routing_config::PassTLSClientCert;
 use http::Request;
 use hyper::body::Incoming;
 
@@ -113,8 +113,8 @@ fn extract_cert_info(der: &[u8], info_fields: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::middleware_http::handle_middleware_incoming;
-    use crate::routing_config::HttpMiddleware;
+    use crate::middleware::http::handle_middleware_incoming;
+    use crate::config::routing_config::HttpMiddleware;
     use http::{Request, Response as HttpResponse, StatusCode};
     use http_body_util::Full;
     use hyper::body::{Bytes, Incoming};

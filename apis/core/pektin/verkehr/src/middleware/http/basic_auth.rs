@@ -1,14 +1,11 @@
-use crate::routing_config::BasicAuth;
-use super::{MiddlewareError, ok_or_internal_error, true_or_internal_error};
+use super::{ok_or_internal_error, true_or_internal_error, MiddlewareError};
+use crate::config::routing_config::BasicAuth;
 use http::{header::HeaderName, HeaderValue, Request, Response};
 use http_body_util::{BodyExt, Full};
 use hyper::body::{Bytes, Incoming};
 use std::str::{from_utf8, FromStr};
 
-pub fn handle_incoming(
-    req: &mut Request<Incoming>,
-    arg: BasicAuth,
-) -> Result<(), MiddlewareError> {
+pub fn handle_incoming(req: &mut Request<Incoming>, arg: BasicAuth) -> Result<(), MiddlewareError> {
     let users = &arg.users;
     let default_header_field = "Authorization".to_string();
     let default_realm = "".to_string();
@@ -172,10 +169,8 @@ mod tests {
         let auth_header = "Basic dGVzdDp0ZXN0"; // test:test
 
         // SHA1 hash of "test" = a94a8fe5ccb19ba61c4c0873d391e987982fbbd3
-        let (username, valid) = check_user_basic_auth(
-            "test:{SHA}qUqP5cyxm6YcTAhz05Hph5gvu9M=",
-            auth_header,
-        );
+        let (username, valid) =
+            check_user_basic_auth("test:{SHA}qUqP5cyxm6YcTAhz05Hph5gvu9M=", auth_header);
 
         assert_eq!(valid, true);
         assert_eq!(username, Some("test".to_string()));
@@ -184,10 +179,8 @@ mod tests {
     #[test]
     fn test_check_user_basic_auth_wrong_username() {
         let auth_header = "Basic d3Jvbmc6dGVzdA=="; // wrong:test
-        let (username, valid) = check_user_basic_auth(
-            "test:{SHA}qUqP5cyxm6YcTAhz05Hph5gvu9M=",
-            auth_header,
-        );
+        let (username, valid) =
+            check_user_basic_auth("test:{SHA}qUqP5cyxm6YcTAhz05Hph5gvu9M=", auth_header);
 
         assert_eq!(valid, false);
         assert_eq!(username, None);
@@ -196,10 +189,8 @@ mod tests {
     #[test]
     fn test_check_user_basic_auth_no_basic_prefix() {
         let auth_header = "dGVzdDp0ZXN0"; // Missing "Basic " prefix
-        let (username, valid) = check_user_basic_auth(
-            "test:{SHA}qUqP5cyxm6YcTAhz05Hph5gvu9M=",
-            auth_header,
-        );
+        let (username, valid) =
+            check_user_basic_auth("test:{SHA}qUqP5cyxm6YcTAhz05Hph5gvu9M=", auth_header);
 
         assert_eq!(valid, false);
         assert_eq!(username, None);
@@ -208,25 +199,23 @@ mod tests {
     #[test]
     fn test_check_user_basic_auth_no_colon_in_credentials() {
         let auth_header = "Basic dGVzdA=="; // "test" without colon
-        let (username, valid) = check_user_basic_auth(
-            "test:{SHA}qUqP5cyxm6YcTAhz05Hph5gvu9M=",
-            auth_header,
-        );
+        let (username, valid) =
+            check_user_basic_auth("test:{SHA}qUqP5cyxm6YcTAhz05Hph5gvu9M=", auth_header);
 
         assert_eq!(valid, false);
         assert_eq!(username, None);
     }
 
     // Integration tests with actual HTTP requests
-    use crate::routing_config::HttpMiddleware;
-    use crate::middleware_http::handle_middleware_incoming;
-    use hyper::service::service_fn;
-    use hyper::server::conn::http1;
-    use hyper_util::rt::TokioIo;
-    use tokio::net::TcpListener;
+    use crate::config::routing_config::HttpMiddleware;
+    use crate::middleware::http::handle_middleware_incoming;
     use http::{Response as HttpResponse, StatusCode};
     use http_body_util::{BodyExt, Full};
+    use hyper::server::conn::http1;
+    use hyper::service::service_fn;
+    use hyper_util::rt::TokioIo;
     use std::convert::Infallible;
+    use tokio::net::TcpListener;
 
     async fn test_service_basic_auth(
         mut req: Request<Incoming>,
@@ -256,7 +245,7 @@ mod tests {
                     .body(Full::new(Bytes::from(response_body)))
                     .unwrap())
             }
-            Err(crate::middleware_http::MiddlewareError::Default { res }) => {
+            Err(crate::middleware::http::MiddlewareError::Default { res }) => {
                 // Authentication failed, collect the body and return the error response
                 let (parts, body) = res.into_parts();
                 let body_bytes = body.collect().await.unwrap().to_bytes();

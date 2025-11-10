@@ -5,6 +5,7 @@ use std::str::FromStr;
 use anyhow::bail;
 use ipnet::IpNet;
 use nom::branch::alt;
+use schemars::JsonSchema;
 use nom::bytes::complete::{tag, tag_no_case, take_until1};
 use nom::character::complete::multispace0;
 use nom::combinator::{all_consuming, map, opt, recognize};
@@ -35,13 +36,13 @@ impl<I> ParseError<I> for CustomHttpParseError<I> {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 pub struct ParsedHttpRoutingRule {
     pub len: usize,
     pub rule: HttpRoutingRule,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 pub enum HttpRoutingRule {
     Function(HttpRoutingFunction),
     NegatedRule(Box<HttpRoutingRule>),
@@ -49,7 +50,7 @@ pub enum HttpRoutingRule {
     And(Vec<HttpRoutingRule>),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 pub enum HttpRoutingFunction {
     Headers {
         key: String,
@@ -59,6 +60,7 @@ pub enum HttpRoutingFunction {
     HeadersRegexp {
         key: String,
         #[serde(with = "serde_regex")]
+        #[schemars(with = "String")]
         value: Regex,
     },
     Host {
@@ -70,6 +72,7 @@ pub enum HttpRoutingFunction {
 
     HostRegexp {
         #[serde(with = "serde_regex")]
+        #[schemars(with = "Vec<String>")]
         hosts: Vec<Regex>,
     },
     Method {
@@ -78,11 +81,13 @@ pub enum HttpRoutingFunction {
 
     Path {
         #[serde(with = "serde_regex")]
+        #[schemars(with = "Vec<String>")]
         paths: Vec<Regex>,
     },
 
     PathPrefix {
         #[serde(with = "serde_regex")]
+        #[schemars(with = "Vec<String>")]
         paths: Vec<Regex>,
     },
     Query {
@@ -93,7 +98,7 @@ pub enum HttpRoutingFunction {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 pub enum HttpMethod {
     Get,
     Post,

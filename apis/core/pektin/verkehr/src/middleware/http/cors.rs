@@ -1,4 +1,4 @@
-use crate::routing_config::Cors;
+use crate::config::routing_config::Cors;
 use super::{MiddlewareError, ok_or_internal_error};
 use http::{header::HeaderName, HeaderValue, Response};
 use http_body_util::combinators::BoxBody;

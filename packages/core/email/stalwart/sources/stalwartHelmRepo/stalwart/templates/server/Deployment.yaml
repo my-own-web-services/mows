@@ -24,6 +24,9 @@ spec:
                 -   name: default-certificates
                     secret:
                         secretName: stalwart-default-certificates
+                -   name: oidc-secrets
+                    secret:
+                        secretName: {{ .Values.server.name }}-auth
 
             containers:
                 -   name: {{ .Values.server.name }}
@@ -54,6 +57,8 @@ spec:
                             subPath: config.toml
                         -   name: default-certificates
                             mountPath: /certs/default/
+                        -   name: oidc-secrets
+                            mountPath: /secrets/oidc/
                     command: 
                         - bash 
                         - -c

@@ -1,5 +1,5 @@
 use super::{ok_or_internal_error, MiddlewareError};
-use crate::routing_config::ReplacePath;
+use crate::config::routing_config::ReplacePath;
 use http::{Request, Uri};
 use hyper::body::Incoming;
 use std::str::FromStr;
@@ -21,8 +21,8 @@ pub fn handle_incoming(req: &mut Request<Incoming>, arg: ReplacePath) -> Result<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::middleware_http::handle_middleware_incoming;
-    use crate::routing_config::HttpMiddleware;
+    use crate::middleware::http::handle_middleware_incoming;
+    use crate::config::routing_config::HttpMiddleware;
     use http::{Request, Response as HttpResponse, StatusCode};
     use http_body_util::Full;
     use hyper::body::{Bytes, Incoming};

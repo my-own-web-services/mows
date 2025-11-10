@@ -1,0 +1,90 @@
+# Default values for verkehr
+replicaCount: 1
+
+image:
+    repository: 192.168.112.5:5000/verkehr
+    pullPolicy: Always
+    tag: "latest"
+
+autoUpdate: true
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+
+rbac:
+    # Specifies whether RBAC resources should be created
+    create: true
+
+podAnnotations: {}
+
+podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+        drop:
+            - ALL
+    readOnlyRootFilesystem: true
+
+service:
+    type: ClusterIP
+    port: 8080
+    metricsPort: 9090
+
+ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+        - host: verkehr.local
+          paths:
+              - path: /
+                pathType: Prefix
+    tls: []
+
+resources:
+    limits:
+        cpu: 1000m
+        memory: 512Mi
+    requests:
+        cpu: 100m
+        memory: 128Mi
+
+autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Verkehr specific configuration
+config:
+    reconcileIntervalSeconds: 300
+    logLevel: "info"
+
+    # HTTP proxy configuration
+    httpPort: 8080
+    httpsPort: 8443
+
+    # TLS configuration
+    tls:
+        enabled: true
+        # certificatesPath: /certs

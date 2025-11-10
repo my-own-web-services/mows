@@ -21,7 +21,7 @@ use kube::{
 use mows_common_rust::{get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
 use serde_json::json;
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
 
@@ -56,6 +56,7 @@ pub async fn apply_resource(
     Ok(())
 }
 
+#[instrument(skip(kube_client)level = "trace")]
 pub async fn cleanup_resource(
     zitadel_resource: &ZitadelResource,
     kube_client: &kube::Client,
@@ -117,6 +118,7 @@ async fn reconcile(resource: Arc<ZitadelResource>, ctx: Arc<Context>) -> Result<
     .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
 }
 
+#[instrument(skip(ctx), level = "trace")]
 fn error_policy(
     resource: Arc<ZitadelResource>,
     error: &ControllerError,
@@ -231,7 +233,7 @@ impl ZitadelResource {
 }
 
 /// Diagnostics to be exposed by the web server
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct Diagnostics {
     #[serde(deserialize_with = "from_ts")]
     pub last_event: DateTime<Utc>,
@@ -253,7 +255,7 @@ impl Diagnostics {
 }
 
 /// State shared between the controller and the web server
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct State {
     /// Diagnostics populated by the reconciler
     diagnostics: Arc<RwLock<Diagnostics>>,
@@ -285,8 +287,8 @@ impl State {
         })
     }
 }
-
 /// Initialize the controller and shared state (given the crd is installed)
+#[instrument(level = "trace")]
 pub async fn run(state: State) {
     let client = Client::try_default().await.expect("failed to create kube Client");
     let zitadel_resource = Api::<ZitadelResource>::all(client.clone());

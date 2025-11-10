@@ -1,7 +1,8 @@
-use crate::{routing_config::RoutingConfig, some_or_bail};
+use crate::{config::routing_config::RoutingConfig, some_or_bail};
 use anyhow::{bail, Context, Result};
 use serde_yaml::{Mapping, Value};
 use std::collections::HashMap;
+use tracing::debug;
 
 pub fn convert_traefik_labels_to_config(
     old_labels: HashMap<String, String>,
@@ -251,7 +252,7 @@ pub fn convert_traefik_labels_to_structure(
         }
     }
 
-    tracing::debug!(
+    debug!(
         labels = %serde_json::to_string_pretty(&new_labels).unwrap(),
         "converted traefik labels to structure"
     );

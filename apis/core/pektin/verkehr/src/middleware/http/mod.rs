@@ -1,4 +1,4 @@
-use crate::routing_config::HttpMiddleware;
+use crate::config::routing_config::HttpMiddleware;
 use http::{Request, Response};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
@@ -28,6 +28,16 @@ mod replace_path_regex;
 mod retry;
 mod strip_prefix;
 mod strip_prefix_regex;
+
+/// Checks if any middleware requires buffering the response body
+pub fn requires_body_buffering(middlewares: &[HttpMiddleware]) -> bool {
+    middlewares.iter().any(|m| match m {
+        HttpMiddleware::Compress(_) => true,
+        HttpMiddleware::Buffering(_) => true,
+        HttpMiddleware::Errors(_) => true,
+        _ => false,
+    })
+}
 
 // Public interface
 pub async fn handle_middleware_outgoing(
@@ -78,7 +88,7 @@ macro_rules! some_or_internal_error {
         if let Some(val) = $option {
             val
         } else {
-            return Err($crate::middleware_http::MiddlewareError::Default {
+            return Err($crate::middleware::http::MiddlewareError::Default {
                 res: http::Response::builder()
                     .status(500)
                     .body({
@@ -98,7 +108,7 @@ macro_rules! ok_or_internal_error {
         if let Ok(val) = $result {
             val
         } else {
-            return Err($crate::middleware_http::MiddlewareError::Default {
+            return Err($crate::middleware::http::MiddlewareError::Default {
                 res: http::Response::builder()
                     .status(500)
                     .body({
@@ -116,7 +126,7 @@ macro_rules! ok_or_internal_error {
 macro_rules! true_or_internal_error {
     ( $bool:expr ) => {{
         if !$bool {
-            return Err($crate::middleware_http::MiddlewareError::Default {
+            return Err($crate::middleware::http::MiddlewareError::Default {
                 res: http::Response::builder()
                     .status(500)
                     .body({

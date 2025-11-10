@@ -3,7 +3,7 @@ kind: Cluster
 metadata:
     name: zitadel-postgres
 spec:
-    instances: 2
+    instances: 1
     storage:
         size: 2Gi
     primaryUpdateStrategy: unsupervised

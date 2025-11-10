@@ -1,5 +1,5 @@
 use super::{ok_or_internal_error, MiddlewareError};
-use crate::routing_config::DigestAuth;
+use crate::config::routing_config::DigestAuth;
 use data_encoding::HEXLOWER;
 use http::{Request, Response, StatusCode};
 use http_body_util::{BodyExt, Full};

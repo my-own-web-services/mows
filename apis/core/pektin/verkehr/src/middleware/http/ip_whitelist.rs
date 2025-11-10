@@ -1,5 +1,5 @@
 use super::MiddlewareError;
-use crate::routing_config::IpWhiteList;
+use crate::config::routing_config::IpWhiteList;
 use http::{Request, Response, StatusCode};
 use http_body_util::{BodyExt, Full};
 use hyper::body::{Bytes, Incoming};
@@ -109,8 +109,8 @@ fn get_client_ip(req: &Request<Incoming>, arg: &IpWhiteList) -> Option<IpAddr> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::middleware_http::handle_middleware_incoming;
-    use crate::routing_config::{HttpMiddleware, IpStrategy};
+    use crate::middleware::http::handle_middleware_incoming;
+    use crate::config::routing_config::{HttpMiddleware, IpStrategy};
     use http::{Request, Response as HttpResponse};
     use http_body_util::{BodyExt, Full};
     use hyper::body::Incoming;

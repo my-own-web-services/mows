@@ -1,5 +1,5 @@
 use super::MiddlewareError;
-use crate::routing_config::Errors;
+use crate::config::routing_config::Errors;
 use http::Response;
 use http_body_util::{BodyExt, combinators::BoxBody, Full};
 use hyper::body::Bytes;
@@ -104,8 +104,8 @@ fn matches_status_pattern(status_code: u16, pattern: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::middleware_http::handle_middleware_outgoing;
-    use crate::routing_config::HttpMiddleware;
+    use crate::middleware::http::handle_middleware_outgoing;
+    use crate::config::routing_config::HttpMiddleware;
     use http::Response;
     use http_body_util::{BodyExt, Full};
     use hyper::body::Bytes;

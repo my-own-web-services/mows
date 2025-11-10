@@ -1,0 +1,74 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "verkehr.fullname" . }}
+  labels:
+    {{- include "verkehr.labels" . | nindent 4 }}
+rules:
+  # VerkehrResource CRD permissions
+  - apiGroups:
+      - verkehr.k8s.mows.cloud
+    resources:
+      - verkehrresources
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  # VerkehrResource status permissions
+  - apiGroups:
+      - verkehr.k8s.mows.cloud
+    resources:
+      - verkehrresources/status
+    verbs:
+      - get
+      - update
+      - patch
+  # VerkehrResource finalizers permissions
+  - apiGroups:
+      - verkehr.k8s.mows.cloud
+    resources:
+      - verkehrresources/finalizers
+    verbs:
+      - update
+  # Event permissions for the event recorder
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+  # Service and Endpoint discovery for routing
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - endpoints
+    verbs:
+      - get
+      - list
+      - watch
+  # Secret access for TLS certificates
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  # Pod discovery (for potential docker provider)
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+{{- end }}

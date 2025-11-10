@@ -1,4 +1,4 @@
-use crate::routing_config::{Headers, MiddlewareDirection};
+use crate::config::routing_config::{Headers, MiddlewareDirection};
 use super::{MiddlewareError, ok_or_internal_error};
 use http::{header::HeaderName, HeaderValue, Request, Response};
 use http_body_util::combinators::BoxBody;
@@ -170,8 +170,8 @@ mod tests {
     // created in unit tests. These should be tested via integration tests with actual HTTP requests.
 
     // Integration tests for incoming direction
-    use crate::routing_config::HttpMiddleware;
-    use crate::middleware_http::handle_middleware_incoming;
+    use crate::config::routing_config::HttpMiddleware;
+    use crate::middleware::http::handle_middleware_incoming;
     use hyper::service::service_fn;
     use hyper::server::conn::http1;
     use hyper_util::rt::TokioIo;

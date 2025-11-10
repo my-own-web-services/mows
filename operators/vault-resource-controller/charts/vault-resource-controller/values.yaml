@@ -6,8 +6,11 @@ image:
     repository: 192.168.112.5:5000/vault-resource-controller
     pullPolicy: Always
 
-vault: 
+vault:
     url: http://vault.mows-core-secrets-vault:8200
+
+dev:
+    autoUpdate: true
 
 imagePullSecrets: []
 
@@ -16,11 +19,9 @@ serviceAccount:
     annotations: {}
 podAnnotations: {}
 
-podSecurityContext:
-    {}
+podSecurityContext: {}
     # fsGroup: 2000
-securityContext:
-    {}
+securityContext: {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -51,7 +52,7 @@ networkPolicy:
         app: prometheus
         port: http
 
-logging:    
+logging:
     log_filter: warn,vault_resource_controller::handlers::secret_sync=trace,vaultrs=warn
     tracing_filter: trace
 env: []
@@ -72,4 +73,3 @@ serviceMonitor:
     enabled: false
     path: /metrics
     scheme: http
-

@@ -1,6 +1,7 @@
 use anyhow::bail;
 use ipnet::IpNet;
 use nom::branch::alt;
+use schemars::JsonSchema;
 use nom::bytes::complete::{tag, tag_no_case, take_until1};
 use nom::character::complete::multispace0;
 use nom::combinator::{all_consuming, map, opt};
@@ -31,13 +32,13 @@ impl<I> ParseError<I> for CustomTcpParseError<I> {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 pub struct ParsedTcpRoutingRule {
     pub len: usize,
     pub rule: TcpRoutingRule,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 pub enum TcpRoutingRule {
     Function(TcpRoutingFunction),
     NegatedRule(Box<TcpRoutingRule>),
@@ -45,12 +46,13 @@ pub enum TcpRoutingRule {
     And(Vec<TcpRoutingRule>),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 pub enum TcpRoutingFunction {
     HostSNI {
         hosts: Vec<String>,
     },
     #[serde(with = "serde_regex")]
+    #[schemars(with = "Vec<String>")]
     HostSNIRegexp {
         hosts: Vec<Regex>,
     },

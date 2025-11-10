@@ -6,6 +6,12 @@ metadata:
   namespace: {{ required "namespace is required" .Values.namespace }}
   labels:
     {{- include "controller.labels" . | nindent 4 }}
+    {{- if .Values.dev.autoUpdate }}
+    annotations:
+        keel.sh/policy: force
+        keel.sh/trigger: poll
+        keel.sh/pollSchedule: "@every 1s"
+    {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:

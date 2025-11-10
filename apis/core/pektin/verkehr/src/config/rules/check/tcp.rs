@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use tokio::net::TcpStream;
 
-use crate::routing_config::{TcpRoutingFunction, TcpRoutingRule};
+use crate::config::rules::parse::tcp::{TcpRoutingFunction, TcpRoutingRule};
 
 pub fn check_tcp_rule(
     client_conn: &TcpStream,

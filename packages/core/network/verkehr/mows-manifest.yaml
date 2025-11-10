@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/mows-package-manager/schemas/manifest-schema.json?ref_type=heads
+manifestVersion: "0.1"
+metadata:
+    name: verkehr
+    description: "verkehr"
+    version: "0.1"
+spec:
+    raw:
+        sources:
+            verkehrHelmRepository:
+                helm:
+                    releaseName: verkehr
+                    chartName: verkehr
+            additional:
+                files: {}
