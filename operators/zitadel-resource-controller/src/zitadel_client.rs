@@ -10,7 +10,7 @@ use crate::{config::config, crd::RawZitadelProjectRole};
 use mows_common_rust::get_current_config_cloned;
 use serde_json::json;
 use tonic::{service::interceptor::InterceptedService, transport::Channel};
-use tracing::debug;
+use tracing::{debug, instrument};
 use zitadel::api::zitadel::app::v1::App;
 use zitadel::api::zitadel::management;
 use zitadel::api::zitadel::management::v1::SetTriggerActionsRequest;
@@ -30,6 +30,7 @@ pub type ManagementClient = ManagementServiceClient<InterceptedService<Channel, 
 pub type AdminClient = AdminServiceClient<InterceptedService<Channel, AccessTokenInterceptor>>;
 pub type UserClient = UserServiceClient<InterceptedService<Channel, AccessTokenInterceptor>>;
 
+#[derive(Clone, Debug)]
 pub struct ZitadelClient {
     pub api_endpoint: String,
     pub pa_token: String,
@@ -37,6 +38,7 @@ pub struct ZitadelClient {
 }
 
 impl ZitadelClient {
+    #[instrument(level = "trace")]
     pub async fn new() -> anyhow::Result<ZitadelClient> {
         let config = get_current_config_cloned!(config());
 
@@ -47,6 +49,7 @@ impl ZitadelClient {
         })
     }
 
+    #[instrument(level = "trace")]
     pub async fn management_client(&self, org_id: Option<&str>) -> anyhow::Result<ManagementClient> {
         let client_builder =
             ClientBuilder::new(&self.api_endpoint).with_access_token_and_org(&self.pa_token.trim(), org_id);
@@ -61,6 +64,7 @@ impl ZitadelClient {
             .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))
     }
 
+    #[instrument(level = "trace")]
     pub async fn admin_client(&self, org_id: Option<&str>) -> anyhow::Result<AdminClient> {
         let client_builder =
             ClientBuilder::new(&self.api_endpoint).with_access_token_and_org(&self.pa_token.trim(), org_id);
@@ -75,6 +79,7 @@ impl ZitadelClient {
             .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))
     }
 
+    #[instrument(level = "trace")]
     pub async fn user_client(&self, org_id: Option<&str>) -> anyhow::Result<UserClient> {
         let client_builder =
             ClientBuilder::new(&self.api_endpoint).with_access_token_and_org(&self.pa_token.trim(), org_id);
@@ -89,6 +94,7 @@ impl ZitadelClient {
             .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_org(&self, org_name: &str) -> anyhow::Result<String> {
         use zitadel::api::zitadel::admin::v1::ListOrgsRequest;
         use zitadel::api::zitadel::org::v1::org_query::Query::NameQuery;
@@ -136,6 +142,7 @@ impl ZitadelClient {
         Ok(org_id)
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_project(
         &self,
         org_id: &str,
@@ -190,6 +197,7 @@ impl ZitadelClient {
         Ok(project_id)
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_project_roles(
         &self,
         org_id: &str,
@@ -226,6 +234,8 @@ impl ZitadelClient {
 
         Ok(())
     }
+
+    #[instrument(level = "trace")]
     pub async fn get_admin_org(&self) -> anyhow::Result<Org> {
         use zitadel::api::zitadel::admin::v1::ListOrgsRequest;
         use zitadel::api::zitadel::org::v1::org_query::Query::NameQuery;
@@ -259,6 +269,7 @@ impl ZitadelClient {
         Ok(org)
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_admin_org_project_grant(
         &self,
         project_org_id: &str,
@@ -319,6 +330,7 @@ impl ZitadelClient {
         Ok(project_grant_id)
     }
 
+    #[instrument(level = "trace")]
     pub async fn get_admin_user(&self, admin_org: &Org) -> anyhow::Result<User> {
         use zitadel::api::zitadel::user::v2::search_query::Query;
         use zitadel::api::zitadel::user::v2::ListUsersRequest;
@@ -354,6 +366,7 @@ impl ZitadelClient {
         Ok(admin_user)
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_admin_grant(
         &self,
         project_org_id: &str,
@@ -401,6 +414,7 @@ impl ZitadelClient {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     pub async fn get_project_applications(
         &self,
         project_org_id: &str,
@@ -422,6 +436,7 @@ impl ZitadelClient {
         Ok(apps.into_inner().result)
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_api_application(
         &self,
         resource_namespace: &str,
@@ -495,6 +510,7 @@ impl ZitadelClient {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_oidc_application(
         &self,
         resource_namespace: &str,
@@ -595,6 +611,7 @@ impl ZitadelClient {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_actions(
         &self,
         project_org_id: &str,
@@ -610,6 +627,7 @@ impl ZitadelClient {
         Ok(action_ids)
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_action(
         &self,
         project_org_id: &str,
@@ -662,6 +680,7 @@ impl ZitadelClient {
         )
     }
 
+    #[instrument(level = "trace")]
     pub async fn apply_flow(
         &self,
         project_org_id: &str,
@@ -760,6 +779,7 @@ impl ZitadelClient {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     pub async fn delete_org(&self, org_id: &str) -> anyhow::Result<()> {
         use zitadel::api::zitadel::admin::v1::RemoveOrgRequest;
         let mut admin_client = self.admin_client(None).await?;
@@ -773,6 +793,7 @@ impl ZitadelClient {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     pub async fn get_org_by_name(&self, org_name: &str) -> anyhow::Result<Org> {
         use zitadel::api::zitadel::admin::v1::ListOrgsRequest;
         use zitadel::api::zitadel::org::v1::org_query::Query::NameQuery;

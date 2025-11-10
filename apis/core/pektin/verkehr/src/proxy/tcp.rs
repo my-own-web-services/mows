@@ -7,11 +7,12 @@ use tokio::{
 };
 
 use crate::{
-    check_tcp_rule::check_tcp_rule,
-    routing_config::{RoutingConfig, TcpMiddleware, TcpRouter, TcpService},
+    config::rules::check::tcp::check_tcp_rule,
+    config::routing_config::{RoutingConfig, TcpMiddleware, TcpRouter, TcpService},
     some_or_bail,
     utils::parse_addr,
 };
+use tracing::{debug, error, info, warn};
 
 pub async fn create_tcp_server(
     listen_addr: &str,
@@ -21,7 +22,7 @@ pub async fn create_tcp_server(
 ) -> anyhow::Result<()> {
     let addr = parse_addr(listen_addr)?;
     if tls {
-        tracing::warn!(
+        warn!(
             entrypoint = %entrypoint_name,
             listen_addr = %listen_addr,
             "TLS support for TCP proxy not yet implemented"
@@ -29,14 +30,14 @@ pub async fn create_tcp_server(
         Ok(())
     } else {
         let proxy_server = TcpListener::bind(addr).await?;
-        tracing::info!(
+        info!(
             entrypoint = %entrypoint_name,
             listen_addr = %listen_addr,
             "TCP proxy server started"
         );
 
         while let Ok((client, client_addr)) = proxy_server.accept().await {
-            tracing::debug!(
+            debug!(
                 entrypoint = %entrypoint_name,
                 client_addr = %client_addr,
                 "accepted TCP connection"
@@ -46,7 +47,7 @@ pub async fn create_tcp_server(
             tokio::spawn(async move {
                 let entrypoint_name = entrypoint_name.to_string();
                 if let Err(e) = proxy(client, config, &entrypoint_name).await {
-                    tracing::error!(
+                    error!(
                         entrypoint = %entrypoint_name,
                         error = %e,
                         "TCP proxy error"
@@ -85,7 +86,7 @@ async fn route_or_abort(
     );
 
     let backend_addr = &lb.servers[0].address;
-    tracing::debug!(
+    debug!(
         client_addr = %client_addr,
         backend_addr = %backend_addr,
         service = %router_to_use.service,
@@ -102,7 +103,7 @@ async fn route_or_abort(
 
     let (from_server, from_client) = try_join!(handle_one, handle_two)?;
 
-    tracing::debug!(
+    debug!(
         client_addr = %client_addr,
         backend_addr = %backend_addr,
         from_client = %from_client,
@@ -159,7 +160,7 @@ async fn decide_routing(
         "no router found for entrypoint {entrypoint_name}"
     );
 
-    tracing::debug!(
+    debug!(
         entrypoint = %entrypoint_name,
         router = %selected_router_name,
         service = %selected_router.service,

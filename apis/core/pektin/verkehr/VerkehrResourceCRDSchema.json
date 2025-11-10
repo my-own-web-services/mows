@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VerkehrResource",
+  "description": "Custom kubernetes resource for applying verkehr configurations.",
+  "type": "object",
+  "required": [
+    "spec"
+  ],
+  "properties": {
+    "spec": {
+      "$ref": "#/definitions/VerkehrResourceSpec"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/VerkehrResourceStatus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "IngressRouteHttp": {
+      "type": "object",
+      "required": [
+        "entrypoints",
+        "routes"
+      ],
+      "properties": {
+        "entrypoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IngressRouteHttpRoute"
+          }
+        }
+      }
+    },
+    "IngressRouteHttpRoute": {
+      "type": "object",
+      "required": [
+        "kind",
+        "match",
+        "services"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "match": {
+          "type": "string"
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IngressRouteHttpRouteService"
+          }
+        }
+      }
+    },
+    "IngressRouteHttpRouteService": {
+      "type": "object",
+      "required": [
+        "name",
+        "port"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "weight": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    },
+    "VerkehrResourceSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ingressRouteHttp"
+          ],
+          "properties": {
+            "ingressRouteHttp": {
+              "$ref": "#/definitions/IngressRouteHttp"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "VerkehrResourceStatus": {
+      "type": "object",
+      "required": [
+        "created"
+      ],
+      "properties": {
+        "created": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

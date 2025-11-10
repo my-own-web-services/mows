@@ -10,7 +10,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
 };
-use tracing::{debug, trace};
+use tracing::{debug, instrument, trace};
 use vaultrs::client::VaultClient;
 
 use crate::{crd::VaultSecretSync, FINALIZER};
@@ -37,6 +37,7 @@ struct RenderedConfigmap {
     annotations: Option<BTreeMap<String, String>>,
 }
 
+#[instrument(skip(kube_client), level = "trace")]
 pub async fn cleanup_secret_sync(
     kube_client: &kube::Client,
     resource_namespace: &str,
@@ -89,6 +90,7 @@ pub async fn cleanup_secret_sync(
     Ok(())
 }
 
+#[instrument(skip(vault_client, kube_client), level = "trace")]
 pub async fn apply_secret_sync(
     vault_client: &VaultClient,
     resource_namespace: &str,
@@ -207,6 +209,7 @@ pub async fn apply_secret_sync(
     Ok(())
 }
 
+#[instrument(skip(kube_client), level = "trace")]
 async fn create_configmap_in_k8s(
     kube_client: &kube::Client,
     resource_namespace: &str,
@@ -272,6 +275,7 @@ async fn create_configmap_in_k8s(
     Ok(())
 }
 
+#[instrument(skip(kube_client), level = "trace")]
 async fn create_secret_in_k8s(
     kube_client: &kube::Client,
     resource_namespace: &str,

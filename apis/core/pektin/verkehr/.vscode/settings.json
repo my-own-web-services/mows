@@ -1,4 +1,17 @@
 {
     "window.title": "🚦${rootName}",
-    "cSpell.words": ["Jemalloc", "traefik", "verkehr"]
+    "cSpell.words": [
+        "alpn",
+        "chrono",
+        "combinators",
+        "FINALIZER",
+        "hasher",
+        "Jemalloc",
+        "loadbalancer",
+        "opentelemetry",
+        "rustls",
+        "traefik",
+        "verkehr",
+        "webpki"
+    ]
 }

@@ -101,6 +101,78 @@ spec:
                             user = "admin"
                             secret = "$2a$12$nVW88Csi1t3fwKd7iSXHf.Cw8lAkoUokBTzIoQhZl74tNaS74DPCe"
 
+                            [directory."oidc-userinfo"]
+                            type = "oidc"
+                            timeout = "2s"
+                            endpoint.url = "https://zitadel.{§ .config.domain §}/"
+                            endpoint.method = "introspect"
+                            auth.method = "basic"
+                            auth.username = "%{file:/oidc-username.txt}%"
+                            auth.secret = "%{file:/oidc-secret.txt}%"
+                            fields.email = "email"
+                            fields.username = "preferred_username"
+                            fields.full-name = "name"
 
 
 
+---
+
+# create the engine for the auth secrets to be stored in
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: stalwart-auth
+spec:
+    secretEngine:
+        kv-v2:
+            kvData: {}
+
+---
+# create the policy for the zitadel controller to access the auth secrets
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: zitadel-controller-allow-auth-access
+spec:
+    engineAccessPolicy:
+        subPolicies:
+            - engineId: stalwart-auth
+              engineType: secret
+              subPath: "*"
+              capabilities: ["update","read","create","delete","list"]
+---
+# create a kubernetes service account binding to the policy
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: zitadel-controller-service-account
+spec:
+    authEngine:
+        kubernetes:
+            roles:
+                zitadel-resource-controller:
+                    serviceAccountName: zitadel-resource-controller
+                    namespace: mows-core-auth-zitadel
+                    policyIds: ["zitadel-controller-allow-auth-access"]
+---
+# sync the secrets 
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/vault-resource-controller/VaultResourceCRDSchema.json?ref_type=heads
+apiVersion: vault.k8s.mows.cloud/v1
+kind: VaultResource
+metadata:
+    name: {{ .Values.server.name }}-auth-sync
+spec:
+    secretSync:
+        kvMapping:
+            server:
+                engine: stalwart-auth
+                path: "{{ .Values.server.name }}"
+        targets:
+            secrets:
+                {{ .Values.server.name }}-auth:
+                    data:
+                        serverClientId: "{% .secrets.server.clientId %}"
+                        serverClientSecret: "{% .secrets.server.clientSecret %}"

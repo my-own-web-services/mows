@@ -3,6 +3,7 @@ set -euo pipefail
 
 
 export SERVICE_NAME="vault-resource-controller"
+export BUILDX_BAKE_ENTITLEMENTS_FS=0
 
 cargo run --bin crdgen > charts/${SERVICE_NAME}/templates/VaultResourceCRD.yaml
 

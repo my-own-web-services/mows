@@ -5,20 +5,23 @@ version: "" # pin a specific version
 image:
     repository: 192.168.112.5:5000/zitadel-resource-controller
     pullPolicy: Always
+dev:
+    autoUpdate: true
 
 internal_zitadel_api_endpoint: "http://zitadel.mows-core-auth-zitadel:8080"
 
-vault: 
+vault:
     url: http://vault.mows-core-secrets-vault:8200
-
 
 logging:
     log_filter: >
         warn,
         zitadel-resource-controller::handlers::raw=trace,
         zitadel-resource-controller::zitadel_client=trace,
-
-    tracing_filter: info
+    tracing_filter: >
+        warn,
+        zitadel-resource-controller::handlers::raw=trace,
+        zitadel-resource-controller::zitadel_client=trace,
 
 imagePullSecrets: []
 
@@ -27,11 +30,9 @@ serviceAccount:
     annotations: {}
 podAnnotations: {}
 
-podSecurityContext:
-    {}
+podSecurityContext: {}
     # fsGroup: 2000
-securityContext:
-    {}
+securityContext: {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -61,8 +62,6 @@ networkPolicy:
         namespace: monitoring
         app: prometheus
         port: http
-
-
 
 env: []
 

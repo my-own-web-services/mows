@@ -1,76 +1,78 @@
 services:
-  # Backend services for testing
-  whoami:
-    image: traefik/whoami
-    container_name: bench-whoami
-    networks:
-      - bench
-    restart: unless-stopped
+    # Backend services for testing
+    whoami:
+        image: traefik/whoami
+        container_name: bench-whoami
+        networks:
+            - bench
+        restart: unless-stopped
 
-  nginx-static:
-    image: nginx:alpine
-    container_name: bench-nginx
-    networks:
-      - bench
-    volumes:
-      - ./static-content:/usr/share/nginx/html:ro
-    restart: unless-stopped
+    nginx-static:
+        image: nginx:alpine
+        container_name: bench-nginx
+        networks:
+            - bench
+        volumes:
+            - ./static-content:/usr/share/nginx/html:ro
+        restart: unless-stopped
 
-  # Verkehr reverse proxy
-  verkehr:
-    image: pektin/verkehr:latest
-    # Note: Build verkehr separately before running benchmarks
-    # The Dockerfile requires special build context
-    container_name: bench-verkehr
-    networks:
-      - bench
-    # No ports exposed - all testing happens inside container network
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./configs/verkehr.yml:/config.yml:ro
-      - ./configs/verkehr-routing.yml:/dynamic.yml:ro
-    depends_on:
-      - whoami
-      - nginx-static
-    restart: unless-stopped
+    # Verkehr reverse proxy
+    verkehr:
+        image: localhost:5000/verkehr
+        # Note: Build verkehr separately before running benchmarks
+        # The Dockerfile requires special build context
+        container_name: bench-verkehr
+        networks:
+            - bench
+        # No ports exposed - all testing happens inside container network
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ./configs/verkehr-routing.yml:/routingConfig/dynamic.yml:ro
+        environment:
+            - FILE_PROVIDER_DIRECTORY_PATH=/routingConfig/
+            - LOG_FILTER=info
+        depends_on:
+            - whoami
+            - nginx-static
+        restart: unless-stopped
 
-  # Traefik reverse proxy (for comparison)
-  traefik:
-    image: traefik:latest
-    container_name: bench-traefik
-    networks:
-      - bench
-    # No ports exposed - all testing happens inside container network
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./configs/traefik-static.yml:/traefik.yml:ro
-      - ./configs/traefik-dynamic.yml:/dynamic.yml:ro
-    command:
-      - --configFile=/traefik.yml
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.file.filename=/dynamic.yml
-    depends_on:
-      - whoami
-      - nginx-static
-    restart: unless-stopped
+    # Traefik reverse proxy (for comparison)
+    traefik:
+        image: traefik:latest
+        container_name: bench-traefik
+        networks:
+            - bench
+        # No ports exposed - all testing happens inside container network
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ./configs/traefik-static.yml:/traefik.yml:ro
+            - ./configs/traefik-dynamic.yml:/dynamic.yml:ro
+        command:
+            - --configFile=/traefik.yml
+            - --providers.docker=true
+            - --providers.docker.exposedbydefault=false
+            - --providers.file.filename=/dynamic.yml
+        depends_on:
+            - whoami
+            - nginx-static
+        restart: unless-stopped
 
-  # Load generator
-  wrk:
-    image: williamyeh/wrk
-    container_name: bench-wrk
-    networks:
-      - bench
-    volumes:
-      - ./scripts:/scripts:ro
-      - ./results:/results
-    entrypoint: ["/bin/sh"]
-    command: ["-c", "while true; do sleep 3600; done"]
-    depends_on:
-      - verkehr
-      - traefik
+    # Load generator
+    wrk:
+        image: williamyeh/wrk
+        container_name: bench-wrk
+        networks:
+            - bench
+        volumes:
+            - ./scripts:/scripts:ro
+            - ./results:/results
+        entrypoint: ["/bin/sh"]
+        command: ["-c", "while true; do sleep 3600; done"]
+        depends_on:
+            - verkehr
+            - traefik
 
 networks:
-  bench:
-    name: bench
-    driver: bridge
+    bench:
+        name: bench
+        driver: bridge

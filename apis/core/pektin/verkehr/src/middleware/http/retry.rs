@@ -21,7 +21,7 @@
 // ```
 
 use super::MiddlewareError;
-use crate::routing_config::Retry;
+use crate::config::routing_config::Retry;
 use http::{Request, Response};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};

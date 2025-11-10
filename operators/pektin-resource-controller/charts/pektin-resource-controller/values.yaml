@@ -6,13 +6,15 @@ image:
     repository: 192.168.112.5:5000/pektin-resource-controller
     pullPolicy: Always
 
-vault: 
+vault:
     url: http://vault.mows-core-secrets-vault:8200
+
+dev:
+    autoUpdate: true
 
 logging:
     log_filter: info
     tracing_filter: info
-
 
 imagePullSecrets: []
 
@@ -21,11 +23,9 @@ serviceAccount:
     annotations: {}
 podAnnotations: {}
 
-podSecurityContext:
-    {}
+podSecurityContext: {}
     # fsGroup: 2000
-securityContext:
-    {}
+securityContext: {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -55,7 +55,6 @@ networkPolicy:
         namespace: monitoring
         app: prometheus
         port: http
-
 
 env: []
 

@@ -1,5 +1,5 @@
 use super::MiddlewareError;
-use crate::routing_config::RateLimit;
+use crate::config::routing_config::RateLimit;
 use http::{Request, Response, StatusCode};
 use http_body_util::{BodyExt, Full};
 use hyper::body::{Bytes, Incoming};
@@ -142,8 +142,8 @@ fn get_source_identifier(req: &Request<Incoming>, arg: &RateLimit) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::middleware_http::handle_middleware_incoming;
-    use crate::routing_config::{HttpMiddleware, SourceCriterion};
+    use crate::middleware::http::handle_middleware_incoming;
+    use crate::config::routing_config::{HttpMiddleware, SourceCriterion};
     use http::{Request, Response as HttpResponse};
     use http_body_util::{BodyExt, Full};
     use hyper::body::Incoming;

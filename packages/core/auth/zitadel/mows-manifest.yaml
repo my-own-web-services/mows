@@ -11,8 +11,8 @@ spec:
                 helm:
                     urls:
                         - https://charts.zitadel.com
-                    sha256Digest: 9fa648ae44aaba4f33e356106164dd39efe096cb737cb117162933f983e95eff
-                    version: "8.13.4"
+                    sha256Digest: 792a6acb6bcad6d269d028b6d11efecc62df50328fb8a3b3d625b2bdac2a1297
+                    version: "9.12.3"
                     releaseName: zitadel
                     chartName: zitadel
             additional:
@@ -23,39 +23,39 @@ spec:
                     chartName: zitadel-resource-controller
         transformations:
             patches:
-            -   target:
-                -   field: "/metadata/name"
-                    regex: "zitadel-setup"
-                patches:
-                -   op: replace
-                    path: /spec/template/spec/containers/1/command
-                    value:
-                    - "sh"
-                    - "-c"
-                    - |
-                         until [ "$(kubectl -n mows-core-auth-zitadel get po ${POD_NAME} -o jsonpath="{.status.containerStatuses[?(@.name=='zitadel-setup')].state.terminated.reason}")" = "Completed" ]; do echo 'waiting for zitadel-setup container to terminate'; sleep 5; done && echo 'zitadel-setup container terminated'  && kubectl -n ${NAMESPACE} create secret generic zitadel-admin-pat --from-file=zitadel-admin-pat=/machinekey/pat
-                # kubectl -n ${NAMESPACE} create secret generic zitadel-admin-sa --from-file=zitadel-admin-sa.json=/machinekey/sa.json ; 
-                -   op: replace
-                    path: /spec/backoffLimit
-                    value: 10
-                -   op: add
-                    path: /spec/template/spec/containers/1/env/-
-                    value:
-                        name: NAMESPACE
-                        valueFrom:
-                            fieldRef:
-                                fieldPath: metadata.namespace
-            -   target:
-                -   field: "/metadata/name"
-                    regex: "^zitadel$"
-                -   field: "/kind"
-                    regex: "^Deployment$"
-                patches:
-                -   op: add
-                    path: /spec
-                    value: 
-                        revisionHistoryLimit: 0
-                    
+                - target:
+                      - field: "/metadata/name"
+                        regex: "zitadel-setup"
+                  patches:
+                      - op: replace
+                        path: /spec/template/spec/containers/1/command
+                        value:
+                            - "sh"
+                            - "-c"
+                            - |
+                                until [ "$(kubectl -n mows-core-auth-zitadel get po ${POD_NAME} -o jsonpath="{.status.containerStatuses[?(@.name=='zitadel-setup')].state.terminated.reason}")" = "Completed" ]; do echo 'waiting for zitadel-setup container to terminate'; sleep 5; done && echo 'zitadel-setup container terminated'  && kubectl -n ${NAMESPACE} create secret generic zitadel-admin-pat --from-file=zitadel-admin-pat=/machinekey/pat
+                      # kubectl -n ${NAMESPACE} create secret generic zitadel-admin-sa --from-file=zitadel-admin-sa.json=/machinekey/sa.json ;
+                      - op: replace
+                        path: /spec/backoffLimit
+                        value: 10
+                      - op: add
+                        path: /spec/template/spec/containers/1/env/-
+                        value:
+                            name: NAMESPACE
+                            valueFrom:
+                                fieldRef:
+                                    fieldPath: metadata.namespace
+                - target:
+                      - field: "/metadata/name"
+                        regex: "^zitadel$"
+                      - field: "/kind"
+                        regex: "^Deployment$"
+                  patches:
+                      - op: add
+                        path: /spec
+                        value:
+                            revisionHistoryLimit: 0
+
         type: core
         namespaces:
             - zitadel

@@ -1,10 +1,11 @@
-use crate::routing_config::{Compress, MiddlewareDirection};
+use crate::config::routing_config::{Compress, MiddlewareDirection};
 use super::{MiddlewareError, ok_or_internal_error};
 use http::{header::HeaderName, HeaderValue, Response};
 use http_body_util::{combinators::BoxBody, BodyExt, Full};
 use hyper::body::Bytes;
 use std::str::FromStr;
 use flate2::{write::GzEncoder, Compression};
+use tracing::{debug, error};
 
 pub async fn handle_outgoing(
     res: &mut Response<BoxBody<Bytes, std::convert::Infallible>>,
@@ -28,7 +29,7 @@ pub async fn handle_outgoing(
     if let Some(excluded_types) = &arg.excluded_content_types {
         for excluded in excluded_types {
             if content_type.contains(excluded) {
-                tracing::debug!("Skipping compression for excluded content-type: {}", content_type);
+                debug!("Skipping compression for excluded content-type: {}", content_type);
                 return Ok(());
             }
         }
@@ -41,7 +42,7 @@ pub async fn handle_outgoing(
     // Check minimum size
     let min_size = arg.min_response_body_bytes.unwrap_or(1024);
     if body_bytes.len() < min_size as usize {
-        tracing::debug!("Response body too small for compression: {} < {}", body_bytes.len(), min_size);
+        debug!("Response body too small for compression: {} < {}", body_bytes.len(), min_size);
         *res.body_mut() = Full::new(body_bytes).map_err(|never| match never {}).boxed();
         return Ok(());
     }
@@ -49,14 +50,14 @@ pub async fn handle_outgoing(
     // Compress using gzip
     let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
     if let Err(e) = std::io::Write::write_all(&mut encoder, &body_bytes) {
-        tracing::error!("Failed to compress response: {}", e);
+        error!("Failed to compress response: {}", e);
         *res.body_mut() = Full::new(body_bytes).map_err(|never| match never {}).boxed();
         return Ok(());
     }
 
     let compressed = ok_or_internal_error!(encoder.finish());
 
-    tracing::debug!("Compressed response from {} to {} bytes", body_bytes.len(), compressed.len());
+    debug!("Compressed response from {} to {} bytes", body_bytes.len(), compressed.len());
 
     // Update headers
     res.headers_mut().insert(

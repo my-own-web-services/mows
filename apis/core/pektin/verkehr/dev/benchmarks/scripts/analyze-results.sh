@@ -1,8 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Analyze and compare benchmark results
 
-RESULTS_DIR="/results"
+# Determine results directory based on where script is run
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$SCRIPT_DIR/../results" ]; then
+    RESULTS_DIR="$SCRIPT_DIR/../results"
+elif [ -d "/results" ]; then
+    RESULTS_DIR="/results"
+else
+    RESULTS_DIR="./results"
+fi
 
 # Function to extract metrics from wrk output
 extract_metrics() {
@@ -24,6 +32,23 @@ echo ""
 declare -A verkehr_results
 declare -A traefik_results
 declare -A baseline_results
+
+# Check if results directory exists and has files
+if [ ! -d "$RESULTS_DIR" ]; then
+    echo "Error: Results directory not found: $RESULTS_DIR"
+    exit 1
+fi
+
+# Count result files
+result_count=$(find "$RESULTS_DIR" -name "*.txt" 2>/dev/null | wc -l)
+if [ "$result_count" -eq 0 ]; then
+    echo "No result files found in: $RESULTS_DIR"
+    echo "Run benchmarks first to generate results."
+    exit 0
+fi
+
+echo "Found $result_count result file(s) in: $RESULTS_DIR"
+echo ""
 
 # Process all result files
 for file in "$RESULTS_DIR"/*.txt; do
@@ -57,10 +82,14 @@ for scenario in "${!verkehr_results[@]}"; do
     traefik_rps=$(echo "$traefik_data" | cut -d'|' -f1)
     baseline_rps=$(echo "$baseline_data" | cut -d'|' -f1)
 
-    # Calculate percentage difference
-    if [ -n "$verkehr_rps" ] && [ -n "$traefik_rps" ]; then
-        diff=$(echo "scale=2; ($verkehr_rps - $traefik_rps) / $traefik_rps * 100" | bc 2>/dev/null || echo "N/A")
-        diff_str="${diff}%"
+    # Calculate percentage difference using awk
+    if [ -n "$verkehr_rps" ] && [ -n "$traefik_rps" ] && [ "$traefik_rps" != "0" ]; then
+        diff=$(awk -v v="$verkehr_rps" -v t="$traefik_rps" 'BEGIN {printf "%.2f", ((v - t) / t * 100)}' 2>/dev/null)
+        if [ -n "$diff" ]; then
+            diff_str="${diff}%"
+        else
+            diff_str="N/A"
+        fi
     else
         diff_str="N/A"
     fi
@@ -96,6 +125,68 @@ for scenario in "${!verkehr_results[@]}"; do
         "${verkehr_lat:-N/A}" \
         "${traefik_lat:-N/A}"
 done
+
+echo ""
+
+# Memory usage analysis
+echo "========================================="
+echo "Memory Usage Statistics"
+echo "========================================="
+echo ""
+
+# Find the latest memory CSV file
+MEMORY_FILE=$(ls -t "$RESULTS_DIR"/memory_*.csv 2>/dev/null | head -1)
+
+if [ -f "$MEMORY_FILE" ]; then
+    echo "Data from: $(basename "$MEMORY_FILE")"
+    echo ""
+
+    # Calculate statistics
+    verkehr_stats=$(tail -n +2 "$MEMORY_FILE" | awk -F',' '{
+        sum+=$2
+        if(NR==1 || $2<min) min=$2
+        if(NR==1 || $2>max) max=$2
+    } END {
+        printf "%.1f,%.1f,%.1f", min, max, sum/NR
+    }')
+
+    traefik_stats=$(tail -n +2 "$MEMORY_FILE" | awk -F',' '{
+        sum+=$3
+        if(NR==1 || $3<min) min=$3
+        if(NR==1 || $3>max) max=$3
+    } END {
+        printf "%.1f,%.1f,%.1f", min, max, sum/NR
+    }')
+
+    verkehr_min=$(echo "$verkehr_stats" | cut -d',' -f1)
+    verkehr_max=$(echo "$verkehr_stats" | cut -d',' -f2)
+    verkehr_avg=$(echo "$verkehr_stats" | cut -d',' -f3)
+
+    traefik_min=$(echo "$traefik_stats" | cut -d',' -f1)
+    traefik_max=$(echo "$traefik_stats" | cut -d',' -f2)
+    traefik_avg=$(echo "$traefik_stats" | cut -d',' -f3)
+
+    printf "%-15s %10s %10s %10s\n" "Proxy" "Min (MB)" "Max (MB)" "Avg (MB)"
+    echo "------------------------------------------------------"
+    printf "%-15s %10s %10s %10s\n" "Verkehr" "$verkehr_min" "$verkehr_max" "$verkehr_avg"
+    printf "%-15s %10s %10s %10s\n" "Traefik" "$traefik_min" "$traefik_max" "$traefik_avg"
+
+    # Calculate difference using awk
+    if [ -n "$verkehr_avg" ] && [ -n "$traefik_avg" ] && [ "$traefik_avg" != "0" ]; then
+        mem_diff=$(awk -v v="$verkehr_avg" -v t="$traefik_avg" 'BEGIN {printf "%.2f", ((v - t) / t * 100)}' 2>/dev/null)
+        if [ -n "$mem_diff" ]; then
+            echo ""
+            if awk "BEGIN {exit !($mem_diff >= 0)}"; then
+                printf "Verkehr vs Traefik memory: +%.2f%%\n" "$mem_diff"
+            else
+                printf "Verkehr vs Traefik memory: %.2f%%\n" "$mem_diff"
+            fi
+        fi
+    fi
+else
+    echo "No memory monitoring data found"
+    echo "Memory statistics are collected automatically during benchmark runs"
+fi
 
 echo ""
 echo "All result files are available in: $RESULTS_DIR"

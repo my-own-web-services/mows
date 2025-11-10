@@ -1,8 +1,5 @@
-use crate::{config::config, ControllerError};
-use anyhow::Context;
-use mows_common_rust::get_current_config_cloned;
+use crate::ControllerError;
 use std::fmt::{Debug, Formatter};
-use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
 struct TypedDebugWrapper<'a, T: ?Sized>(&'a T);
 

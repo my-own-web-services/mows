@@ -1,5 +1,5 @@
 use super::{ok_or_internal_error, MiddlewareError};
-use crate::routing_config::ForwardAuth;
+use crate::config::routing_config::ForwardAuth;
 use http::{Request, Response, StatusCode};
 use http_body_util::{BodyExt, Full};
 use hyper::body::{Bytes, Incoming};

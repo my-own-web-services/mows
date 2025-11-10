@@ -3,7 +3,7 @@ use hyper::body::Incoming;
 use std::{collections::HashMap, net::SocketAddr};
 
 use crate::{
-    routing_config::{HttpRoutingFunction, HttpRoutingRule},
+    config::rules::parse::http::{HttpRoutingFunction, HttpRoutingRule},
     utils::get_host_from_uri_or_header,
 };
 

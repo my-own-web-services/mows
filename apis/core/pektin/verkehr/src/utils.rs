@@ -7,6 +7,7 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use rustls::sign::CertifiedKey;
 use std::io::BufReader;
 use tokio::net::TcpStream;
+use tracing::debug;
 
 pub fn host_addr(uri: &http::Uri) -> Option<String> {
     uri.authority().map(|auth| auth.to_string())
@@ -58,7 +59,7 @@ pub async fn tunnel(upgraded: Upgraded, addr: String) -> std::io::Result<()> {
         tokio::io::copy_bidirectional(&mut upgraded_io, &mut server).await?;
 
     // Log when done
-    tracing::debug!(
+    debug!(
         from_client = %from_client,
         from_server = %from_server,
         "tunnel closed"

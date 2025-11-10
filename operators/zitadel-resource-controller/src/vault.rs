@@ -1,8 +1,10 @@
 use crate::{config::config, crd::ClientDataTargetVault, ControllerError};
 use anyhow::Context;
 use mows_common_rust::get_current_config_cloned;
+use tracing::instrument;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
+#[instrument(level = "trace")]
 pub async fn handle_vault_target(
     vault_target: &ClientDataTargetVault,
     resource_namespace: &str,
@@ -30,6 +32,7 @@ pub async fn handle_vault_target(
     Ok(())
 }
 
+#[instrument(level = "trace")]
 pub async fn create_vault_client(auth_path: &str, auth_role: &str) -> Result<VaultClient, ControllerError> {
     let mut client_builder = VaultClientSettingsBuilder::default();
 

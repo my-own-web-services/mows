@@ -2,6 +2,7 @@ use std::fmt::{Debug, Formatter};
 
 use anyhow::Context;
 use mows_common_rust::get_current_config_cloned;
+use tracing::instrument;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
 use crate::{config::config, ControllerError};
@@ -27,6 +28,7 @@ pub fn get_error_type(e: &ControllerError) -> String {
     reason.to_string()
 }
 
+#[instrument(level = "trace")]
 pub async fn create_vault_client() -> Result<VaultClient, ControllerError> {
     let mut client_builder = VaultClientSettingsBuilder::default();
 

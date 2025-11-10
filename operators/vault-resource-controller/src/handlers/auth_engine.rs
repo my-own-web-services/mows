@@ -10,6 +10,7 @@ use vaultrs::{
 
 use crate::crd::{KubernetesAuthEngineParams, KubernetesAuthEngineRole, VaultAuthEngine};
 
+#[instrument(skip(vault_client), level = "trace")]
 pub async fn cleanup_auth_engine(
     vault_client: &VaultClient,
     resource_namespace: &str,
@@ -69,6 +70,7 @@ pub async fn apply_auth_engine(
 
     Ok(())
 }
+
 #[instrument(skip(vault_client), level = "trace")]
 pub async fn apply_k8s_auth_engine(
     vault_client: &VaultClient,
@@ -96,6 +98,7 @@ pub async fn apply_k8s_auth_engine(
 
     Ok(())
 }
+
 #[instrument(skip(vault_client), level = "trace")]
 pub async fn apply_k8s_auth_role(
     vault_client: &VaultClient,

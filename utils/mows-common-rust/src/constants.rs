@@ -71,8 +71,8 @@ impl MowsConstants {
                     ),
                 },
                 ingress: CoreComponentIngress {
-                    namespace: s!("mows-core-network-ingress"),
-                    service_name: s!("traefik"),
+                    namespace: s!("mows-core-network-verkehr"),
+                    service_name: s!("verkehr"),
                 },
                 dns: CoreComponentDns {
                     namespace: s!("mows-core-dns-pektin"),

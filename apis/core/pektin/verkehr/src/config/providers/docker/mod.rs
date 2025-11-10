@@ -1,6 +1,5 @@
-use crate::{
-    docker_labels::traefik_labels::convert_traefik_labels_to_config, routing_config::RoutingConfig,
-};
+use crate::config::routing_config::RoutingConfig;
+use traefik_labels::convert_traefik_labels_to_config;
 use anyhow::bail;
 use bollard::{query_parameters::ListContainersOptions, Docker};
 use std::{collections::HashMap, vec};

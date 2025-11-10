@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+export BUILDX_BAKE_ENTITLEMENTS_FS=0
+
 export SERVICE_NAME="zitadel-resource-controller"
 
 

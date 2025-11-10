@@ -1,238 +1,14 @@
-use anyhow::bail;
 use ipnet::IpNet;
+use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
-use std::{
-    collections::HashMap,
-    time::{SystemTime, UNIX_EPOCH},
-};
-#[path = "rules/parse/http.rs"]
-mod parse_http_rule;
-#[path = "rules/parse/tcp.rs"]
-mod parse_tcp_rule;
-use crate::{
-    config::VerkehrConfig, docker_labels::get_config_from_docker_labels,
-    file_provider::load_file_config, some_or_bail,
-};
-pub use parse_http_rule::{
-    parse_http_routing_rule, HttpRoutingFunction, HttpRoutingRule, ParsedHttpRoutingRule,
-};
-pub use parse_tcp_rule::{
-    parse_tcp_routing_rule, ParsedTcpRoutingRule, TcpRoutingFunction, TcpRoutingRule,
+use std::collections::HashMap;
+
+use crate::config::rules::parse::{
+    http::{parse_http_routing_rule, ParsedHttpRoutingRule},
+    tcp::{parse_tcp_routing_rule, ParsedTcpRoutingRule},
 };
 
-pub async fn load_routing_config(verkehr_config: &VerkehrConfig) -> anyhow::Result<RoutingConfig> {
-    let mut routing_configs: Vec<RoutingConfig> = Vec::new();
-
-    if let Some(file_provider) = &verkehr_config.providers.file {
-        if let Some(file) = &file_provider.file {
-            match load_file_config(file) {
-                Ok(lfc) => routing_configs.push(lfc),
-                Err(e) => bail!("could not load file config: {}", e),
-            }
-        }
-        if let Some(directory) = &file_provider.directory {
-            // get file list from directory recursively
-            match get_files_from_directory(directory, &mut Vec::new()) {
-                Ok(files) => {
-                    for file in files {
-                        match load_file_config(&file) {
-                            Ok(loaded_file_config) => routing_configs.push(loaded_file_config),
-                            Err(e) => bail!("could not load file config: {}", e),
-                        }
-                    }
-                }
-                Err(e) => {
-                    bail!("could not load file config: {}", e);
-                }
-            }
-        }
-    }
-    if let Some(docker_config) = &verkehr_config.providers.docker {
-        if let Some(enabled) = docker_config.enabled {
-            if enabled {
-                let docker_label_config = get_config_from_docker_labels().await;
-                match docker_label_config {
-                    Ok(dlc) => {
-                        for config in dlc {
-                            routing_configs.push(config);
-                        }
-                    }
-                    Err(e) => {
-                        bail!("Error while loading docker label config: {}", e);
-                    }
-                }
-            }
-        }
-    }
-    match merge_routing_configs(routing_configs) {
-        Ok(merged_config) => {
-            let arc = merged_config;
-            Ok(arc)
-        }
-        Err(e) => {
-            bail!("Error while merging routing configs: {}", e);
-        }
-    }
-}
-
-// get file list from directory recursively
-pub fn get_files_from_directory(
-    directory: &str,
-    file_list: &mut Vec<String>,
-) -> anyhow::Result<Vec<String>> {
-    let paths = std::fs::read_dir(directory)?;
-    for path in paths {
-        let path = path?.path();
-        let path_str = some_or_bail!(path.to_str(), "Could not convert path to string");
-        if path.is_dir() {
-            let sub_files = get_files_from_directory(path_str, file_list)?;
-            for sub_file in sub_files {
-                file_list.push(sub_file);
-            }
-        } else {
-            file_list.push(path_str.to_string());
-        }
-    }
-    Ok(file_list.clone())
-}
-
-// merge config without conflicts or fail
-pub fn merge_routing_configs(routing_configs: Vec<RoutingConfig>) -> anyhow::Result<RoutingConfig> {
-    let time = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-
-    // TODO this works but is ugly
-
-    let mut merged_config = RoutingConfig {
-        version: Some(time),
-        http: None,
-        tcp: None,
-        udp: None,
-    };
-
-    for config in routing_configs {
-        if let Some(http) = config.http {
-            if let Some(merged_http) = &mut merged_config.http {
-                if let Some(entrypoints) = http.entrypoints {
-                    for (key, value) in entrypoints {
-                        if merged_http.entrypoints.is_none() {
-                            merged_http.entrypoints = Some(HashMap::new());
-                        }
-                        merged_http.entrypoints.as_mut().unwrap().insert(key, value);
-                    }
-                }
-                if let Some(routers) = http.routers {
-                    for (key, value) in routers {
-                        if merged_http.routers.is_none() {
-                            merged_http.routers = Some(HashMap::new());
-                        }
-                        merged_http.routers.as_mut().unwrap().insert(key, value);
-                    }
-                }
-                if let Some(middlewares) = http.middlewares {
-                    for (key, value) in middlewares {
-                        if merged_http.middlewares.is_none() {
-                            merged_http.middlewares = Some(HashMap::new());
-                        }
-                        merged_http.middlewares.as_mut().unwrap().insert(key, value);
-                    }
-                }
-                if let Some(services) = http.services {
-                    for (key, value) in services {
-                        if merged_http.services.is_none() {
-                            merged_http.services = Some(HashMap::new());
-                        }
-                        merged_http.services.as_mut().unwrap().insert(key, value);
-                    }
-                }
-            } else {
-                merged_config.http = Some(http);
-            }
-        }
-        if let Some(tcp) = config.tcp {
-            if let Some(merged_tcp) = &mut merged_config.tcp {
-                if let Some(entrypoints) = tcp.entrypoints {
-                    for (key, value) in entrypoints {
-                        if merged_tcp.entrypoints.is_none() {
-                            merged_tcp.entrypoints = Some(HashMap::new());
-                        }
-                        merged_tcp.entrypoints.as_mut().unwrap().insert(key, value);
-                    }
-                }
-                if let Some(routers) = tcp.routers {
-                    for (key, value) in routers {
-                        if merged_tcp.routers.is_none() {
-                            merged_tcp.routers = Some(HashMap::new());
-                        }
-                        merged_tcp.routers.as_mut().unwrap().insert(key, value);
-                    }
-                }
-                if let Some(middlewares) = tcp.middlewares {
-                    for (key, value) in middlewares {
-                        if merged_tcp.middlewares.is_none() {
-                            merged_tcp.middlewares = Some(HashMap::new());
-                        }
-                        merged_tcp.middlewares.as_mut().unwrap().insert(key, value);
-                    }
-                }
-                if let Some(services) = tcp.services {
-                    for (key, value) in services {
-                        if merged_tcp.services.is_none() {
-                            merged_tcp.services = Some(HashMap::new());
-                        }
-                        merged_tcp.services.as_mut().unwrap().insert(key, value);
-                    }
-                }
-            } else {
-                merged_config.tcp = Some(tcp);
-            }
-        }
-        if let Some(udp) = config.udp {
-            if let Some(merged_udp) = &mut merged_config.udp {
-                if let Some(entrypoints) = udp.entrypoints {
-                    for (key, value) in entrypoints {
-                        if merged_udp.entrypoints.is_none() {
-                            merged_udp.entrypoints = Some(HashMap::new());
-                        }
-                        merged_udp.entrypoints.as_mut().unwrap().insert(key, value);
-                    }
-                }
-                if let Some(routers) = udp.routers {
-                    for (key, value) in routers {
-                        if merged_udp.routers.is_none() {
-                            merged_udp.routers = Some(HashMap::new());
-                        }
-                        merged_udp.routers.as_mut().unwrap().insert(key, value);
-                    }
-                }
-                if let Some(middlewares) = udp.middlewares {
-                    for (key, value) in middlewares {
-                        if merged_udp.middlewares.is_none() {
-                            merged_udp.middlewares = Some(HashMap::new());
-                        }
-                        merged_udp.middlewares.as_mut().unwrap().insert(key, value);
-                    }
-                }
-                if let Some(services) = udp.services {
-                    for (key, value) in services {
-                        if merged_udp.services.is_none() {
-                            merged_udp.services = Some(HashMap::new());
-                        }
-                        merged_udp.services.as_mut().unwrap().insert(key, value);
-                    }
-                }
-            } else {
-                merged_config.udp = Some(udp);
-            }
-        }
-    }
-
-    Ok(merged_config)
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default, JsonSchema)]
 pub struct RoutingConfig {
     pub version: Option<u64>,
     pub http: Option<HttpConfig>,
@@ -240,48 +16,131 @@ pub struct RoutingConfig {
     pub udp: Option<UdpConfig>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+impl RoutingConfig {
+    /// Merges another RoutingConfig into this one
+    /// If there are conflicts, the other config takes precedence
+    pub fn merge(&mut self, other: RoutingConfig) {
+        // Update version to the maximum
+        if let Some(other_version) = other.version {
+            self.version = Some(self.version.unwrap_or(0).max(other_version));
+        }
+
+        // Merge HTTP config
+        if let Some(other_http) = other.http {
+            match &mut self.http {
+                Some(http) => http.merge(other_http),
+                None => self.http = Some(other_http),
+            }
+        }
+
+        // Merge TCP config
+        if let Some(other_tcp) = other.tcp {
+            match &mut self.tcp {
+                Some(tcp) => tcp.merge(other_tcp),
+                None => self.tcp = Some(other_tcp),
+            }
+        }
+
+        // Merge UDP config
+        if let Some(other_udp) = other.udp {
+            match &mut self.udp {
+                Some(udp) => udp.merge(other_udp),
+                None => self.udp = Some(other_udp),
+            }
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CertResolverConfig {
     pub resolver_type: Option<String>,
     pub fallback_domain: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct HttpConfig {
     pub entrypoints: Option<HashMap<String, Entrypoint>>,
     pub routers: Option<HashMap<String, HttpRouter>>,
     #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    #[schemars(with = "Option<HashMap<String, HttpMiddleware>>")]
     pub middlewares: Option<HashMap<String, HttpMiddleware>>,
     pub services: Option<HashMap<String, HttpService>>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+impl HttpConfig {
+    fn merge(&mut self, other: HttpConfig) {
+        merge_hashmap(&mut self.entrypoints, other.entrypoints);
+        merge_hashmap(&mut self.routers, other.routers);
+        merge_hashmap(&mut self.middlewares, other.middlewares);
+        merge_hashmap(&mut self.services, other.services);
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct TcpConfig {
     pub entrypoints: Option<HashMap<String, Entrypoint>>,
     pub routers: Option<HashMap<String, TcpRouter>>,
     #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    #[schemars(with = "Option<HashMap<String, TcpMiddleware>>")]
     pub middlewares: Option<HashMap<String, TcpMiddleware>>,
     pub services: Option<HashMap<String, TcpService>>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+impl TcpConfig {
+    fn merge(&mut self, other: TcpConfig) {
+        merge_hashmap(&mut self.entrypoints, other.entrypoints);
+        merge_hashmap(&mut self.routers, other.routers);
+        merge_hashmap(&mut self.middlewares, other.middlewares);
+        merge_hashmap(&mut self.services, other.services);
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct UdpConfig {
     pub entrypoints: Option<HashMap<String, Entrypoint>>,
     pub routers: Option<HashMap<String, UdpRouter>>,
     #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    #[schemars(with = "Option<HashMap<String, UdpMiddleware>>")]
     pub middlewares: Option<HashMap<String, UdpMiddleware>>,
     pub services: Option<HashMap<String, HttpService>>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+impl UdpConfig {
+    fn merge(&mut self, other: UdpConfig) {
+        merge_hashmap(&mut self.entrypoints, other.entrypoints);
+        merge_hashmap(&mut self.routers, other.routers);
+        merge_hashmap(&mut self.middlewares, other.middlewares);
+        merge_hashmap(&mut self.services, other.services);
+    }
+}
+
+/// Helper function to merge two optional HashMaps
+/// If there are duplicate keys, the value from `other` takes precedence
+fn merge_hashmap<K, V>(target: &mut Option<HashMap<K, V>>, other: Option<HashMap<K, V>>)
+where
+    K: std::hash::Hash + Eq,
+{
+    if let Some(other_map) = other {
+        match target {
+            Some(target_map) => {
+                target_map.extend(other_map);
+            }
+            None => {
+                *target = Some(other_map);
+            }
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entrypoint {
     pub address: String,
     pub cert_resolver: Option<CertResolverConfig>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TcpRouter {
     #[serde(deserialize_with = "tcp_routing_rule_from_string")]
@@ -292,7 +151,7 @@ pub struct TcpRouter {
     pub priority: Option<i32>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct UdpRouter {
     pub entrypoints: Vec<String>,
@@ -301,7 +160,7 @@ pub struct UdpRouter {
     pub priority: Option<i32>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct HttpRouter {
     #[serde(deserialize_with = "http_routing_rule_from_string")]
@@ -328,13 +187,13 @@ where
     parse_tcp_routing_rule(&s).map_err(serde::de::Error::custom)
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub enum TcpMiddleware {}
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub enum UdpMiddleware {}
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum HttpMiddleware {
     AddPrefix(AddPrefix),
@@ -363,13 +222,13 @@ pub enum HttpMiddleware {
 }
 
 // Adds a Path Prefix                            Path Modifier
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct AddPrefix {
     pub prefix: String,
 }
 
 // Adds Basic Authentication                     Security, Authentication
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BasicAuth {
     pub users: Vec<String>,
@@ -386,7 +245,7 @@ pub struct BasicAuth {
 }
 
 // Buffers the request/response                  Request Lifecycle
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Buffering {
     pub max_request_body_bytes: Option<u64>,
@@ -396,32 +255,32 @@ pub struct Buffering {
     pub retry_expression: Option<RetryExpression>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct RetryExpression {
     //TODO
 }
 
 // Combines multiple pieces of middleware        Misc
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct Chain {
     pub middlewares: Vec<String>,
 }
 
 // Prevents calling unhealthy services           Request Lifecycle
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct CircuitBreaker {
     pub expression: String,
 }
 
 // Compresses the response                       Content Modifier
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Compress {
     pub excluded_content_types: Option<Vec<String>>,
     pub min_response_body_bytes: Option<u64>, //default 1024
     pub direction: Option<MiddlewareDirection>,
 }
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum MiddlewareDirection {
     Outgoing,
@@ -429,13 +288,13 @@ pub enum MiddlewareDirection {
 }
 
 // Handles Content-Type auto-detection           Misc
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentType {
     pub auto_detect: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Cors {
     pub methods: String,
@@ -445,7 +304,7 @@ pub struct Cors {
 }
 
 // Adds Digest Authentication                    Security, Authentication
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct DigestAuth {
     pub users: Vec<String>,
@@ -456,7 +315,7 @@ pub struct DigestAuth {
 }
 
 // Defines custom error pages                    Request Lifecycle
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct Errors {
     /*
     You can define either a status code as a number (500), as multiple comma-separated numbers (500,502), as ranges by separating two codes with a dash (500-599), or a combination of the two (404,418,500-599).
@@ -467,7 +326,7 @@ pub struct Errors {
 }
 
 // Delegates Authentication                      Security, Authentication
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ForwardAuth {
     pub address: String,
@@ -478,7 +337,7 @@ pub struct ForwardAuth {
     pub tls: Option<ForwardAuthTls>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ForwardAuthTls {
     pub ca: String,
@@ -489,7 +348,7 @@ pub struct ForwardAuthTls {
 
 // Adds / Updates headers                        Security
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Headers {
     pub fields: HashMap<String, String>,
@@ -497,34 +356,34 @@ pub struct Headers {
 }
 
 // Limits the allowed client IPs                 Security, Request lifecycle
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct IpWhiteList {
     pub source_range: Vec<String>,
     pub ip_strategy: Option<IpStrategy>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct IpStrategy {
     pub depth: Option<u8>,
     pub excluded_ips: Option<Vec<String>>,
 }
 
 // Limits the number of simultaneous connections Security, Request lifecycle
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct InFlightReq {
     pub amount: u64,
     pub source_criterion: Option<SourceCriterion>,
 }
 
 // Adds Client Certificates in a Header          Security
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct PassTLSClientCert {
     pub pem: String,
     pub info: Option<String>,
 }
 
 // Limits the call frequency                     Security, Request lifecycle
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RateLimit {
     pub average: Option<u64>,
@@ -533,7 +392,7 @@ pub struct RateLimit {
     pub source_criterion: Option<SourceCriterion>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct SourceCriterion {
     pub ip_strategy: Option<IpStrategy>,
     pub excluded_ips: Option<Vec<IpNet>>,
@@ -542,7 +401,7 @@ pub struct SourceCriterion {
 }
 
 // Redirects based on scheme                     Request lifecycle
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct RedirectScheme {
     pub scheme: String,
     pub permanent: Option<bool>,
@@ -550,27 +409,27 @@ pub struct RedirectScheme {
 }
 
 // Redirects based on regex                      Request lifecycle
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct RedirectRegex {
     pub regex: String,
     pub replacement: String,
 }
 
 // Changes the path of the request               Path Modifier
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct ReplacePath {
     pub path: String,
 }
 
 // Changes the path of the request               Path Modifier
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct ReplacePathRegex {
     pub regex: String,
     pub replacement: String,
 }
 
 // Automatically retries in case of error        Request lifecycle
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Retry {
     pub attempts: u64,
@@ -578,7 +437,7 @@ pub struct Retry {
 }
 
 // Changes the path of the request               Path Modifier
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct StripPrefix {
     pub prefix: String,
@@ -586,38 +445,38 @@ pub struct StripPrefix {
 }
 
 // Changes the path of the request               Path Modifier
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct StripPrefixRegex {
     pub regex: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct HttpService {
     pub loadbalancer: Option<HttpLoadbalancer>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct HttpLoadbalancer {
     pub servers: Vec<HttpServiceServer>,
-    pub passhostheader: Option<bool>,
+    pub pass_host_header: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct HttpServiceServer {
     pub url: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct TcpService {
     pub loadbalancer: Option<TcpLoadbalancer>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct TcpLoadbalancer {
     pub servers: Vec<TcpServiceServer>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct TcpServiceServer {
     pub name: Option<String>,
     pub address: String,

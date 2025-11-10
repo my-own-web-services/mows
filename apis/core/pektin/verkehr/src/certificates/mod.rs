@@ -1,11 +1,15 @@
+mod handlers {
+    pub mod zertificat;
+}
+
 use crate::{
-    routing_config::{CertResolverConfig, RoutingConfig},
+    config::routing_config::{CertResolverConfig, RoutingConfig},
     some_or_bail,
     utils::de_absolute_name,
-    zertificat::{
-        get_certificates, get_zertificat_consumer_auth, get_zertificate, list_kv, login_userpass,
-        VaultCertInfo,
-    },
+};
+use handlers::zertificat::{
+    get_certificates, get_zertificat_consumer_auth, get_zertificate, list_kv, login_userpass,
+    VaultCertInfo,
 };
 use anyhow::bail;
 use rustls::{
