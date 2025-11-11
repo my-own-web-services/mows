@@ -17,6 +17,7 @@ use vaultrs::api::transit::requests::{
 use vaultrs::api::transit::{HashAlgorithm, KeyType};
 use vaultrs::api::AuthInfo;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
+use mows_common_rust::vault::ManagedVaultClient;
 
 use crate::get_current_config_cloned;
 use crate::{
@@ -88,7 +89,7 @@ pub async fn get_health(uri: &str) -> u16 {
 pub async fn create_signer_if_not_existent(zone: &Name, vault_token: &str) -> PektinApiResult<()> {
     let api_config = get_current_config_cloned!();
 
-    let vault_client = create_vault_client_with_token(vault_token).await?;
+    let (vault_client, managed_client) = create_vault_client_with_token(vault_token).await?;
 
     let crypto_key_name = get_crypto_key_name_from_zone(&zone);
 
@@ -101,7 +102,7 @@ pub async fn create_signer_if_not_existent(zone: &Name, vault_token: &str) -> Pe
     )
     .await;
 
-    if signer_res.is_err() {
+    let result = if signer_res.is_err() {
         let mut create_key_request_builder = CreateKeyRequestBuilder::default();
         create_key_request_builder
             .key_type(KeyType::EcdsaP256)
@@ -113,10 +114,19 @@ pub async fn create_signer_if_not_existent(zone: &Name, vault_token: &str) -> Pe
             &crypto_key_name,
             Some(&mut create_key_request_builder),
         )
-        .await?;
+        .await
+        .map(|_| ())
+        .map_err(|e| e.into())
+    } else {
+        Ok(())
+    };
+
+    // Revoke token to prevent lease accumulation
+    if let Err(e) = managed_client.revoke_token().await {
+        tracing::warn!("Failed to revoke vault token: {}", e);
     }
 
-    Ok(())
+    result
 }
 
 pub fn get_crypto_key_name_from_zone(zone: &Name) -> String {
@@ -305,36 +315,64 @@ pub async fn vault_k8s_login() -> PektinApiResult<AuthInfo> {
     Ok(vault_auth)
 }
 
-pub async fn create_vault_client_with_k8s_login() -> Result<VaultClient, PektinApiError> {
+/// Create a managed vault client with K8s login
+///
+/// Returns both the VaultClient and ManagedVaultClient. Call `revoke_token()` on
+/// the managed client when done to prevent lease accumulation.
+pub async fn create_vault_client_with_k8s_login() -> Result<(VaultClient, ManagedVaultClient), PektinApiError> {
+    use mows_common_rust::vault::{ManagedVaultClient, VaultAuthMethod, VaultConfig};
+
     let api_config = get_current_config_cloned!();
 
-    let mut client_builder = VaultClientSettingsBuilder::default();
+    let vault_config = VaultConfig {
+        address: api_config.vault_url.clone(),
+        auth_method: VaultAuthMethod::Kubernetes {
+            service_account_token_path: api_config.service_account_token_path.clone(),
+            auth_path: api_config.vault_kubernetes_auth_path.clone(),
+            auth_role: api_config.vault_kubernetes_auth_role.clone(),
+        },
+        renewal_threshold: 0.8,
+    };
 
-    client_builder.address(api_config.vault_url.clone());
+    let managed_client = ManagedVaultClient::new(vault_config)
+        .await
+        .map_err(|e| PektinApiError::GenericError(format!("Failed to create managed vault client: {}", e)))?;
 
-    let vc = VaultClient::new(
-        client_builder
-            .token(vault_k8s_login().await?.client_token)
-            .build()
-            .context("Failed to create vault client")?,
-    )?;
+    let client = managed_client
+        .get_client()
+        .await
+        .map_err(|e| PektinApiError::GenericError(format!("Failed to get vault client: {}", e)))?;
 
-    Ok(vc)
+    // Return both client and managed client so token can be revoked after use
+    Ok((client, managed_client))
 }
 
-pub async fn create_vault_client_with_token(token: &str) -> Result<VaultClient, PektinApiError> {
+/// Create a managed vault client with an existing token
+///
+/// Returns both the VaultClient and ManagedVaultClient. Call `revoke_token()` on
+/// the managed client when done to prevent lease accumulation.
+pub async fn create_vault_client_with_token(token: &str) -> Result<(VaultClient, ManagedVaultClient), PektinApiError> {
+    use mows_common_rust::vault::{ManagedVaultClient, VaultAuthMethod, VaultConfig};
+
     let api_config = get_current_config_cloned!();
 
-    let mut client_builder = VaultClientSettingsBuilder::default();
+    let vault_config = VaultConfig {
+        address: api_config.vault_url.clone(),
+        auth_method: VaultAuthMethod::Token {
+            token: token.to_string(),
+        },
+        renewal_threshold: 0.8,
+    };
 
-    client_builder.address(api_config.vault_url.clone());
+    let managed_client = ManagedVaultClient::new(vault_config)
+        .await
+        .map_err(|e| PektinApiError::GenericError(format!("Failed to create managed vault client: {}", e)))?;
 
-    let vc = VaultClient::new(
-        client_builder
-            .token(token)
-            .build()
-            .context("Failed to create vault client")?,
-    )?;
+    let client = managed_client
+        .get_client()
+        .await
+        .map_err(|e| PektinApiError::GenericError(format!("Failed to get vault client: {}", e)))?;
 
-    Ok(vc)
+    // Return both client and managed client so token can be revoked after use
+    Ok((client, managed_client))
 }

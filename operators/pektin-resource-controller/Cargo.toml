@@ -64,6 +64,6 @@ reqwest-tracing = { workspace = true }
 tracing-actix-web = { workspace = true, features = ["default"] }
 
 pektin-common = { workspace = true, features = ["default"] }
-mows-common-rust = { workspace = true, features = ["default"] }
+mows-common-rust = { workspace = true, features = ["default", "vault"] }
 
 kube = { workspace = true, features = ["runtime", "default", "derive"] }

@@ -27,7 +27,7 @@ pub async fn auth(
 
     debug!("Creating Vault client with client token: {}", client_token);
 
-    let vc = return_if_err!(
+    let (vc, managed_client) = return_if_err!(
         create_vault_client_with_token(client_token).await,
         err,
         format!("Could not create Vault client: {}", err)
@@ -77,7 +77,7 @@ pub async fn auth(
         format!("Could not evaluate client policy: {}", err)
     );
 
-    AuthAnswer {
+    let result = AuthAnswer {
         success: ribston_answer.status == "SUCCESS" && ribston_answer.data.status == "SUCCESS",
         message: if ribston_answer.status == "SUCCESS" {
             format!(
@@ -87,7 +87,14 @@ pub async fn auth(
         } else {
             ribston_answer.message
         },
+    };
+
+    // Revoke token to prevent lease accumulation
+    if let Err(e) = managed_client.revoke_token().await {
+        tracing::warn!("Failed to revoke vault token: {}", e);
     }
+
+    result
 }
 
 #[instrument(skip(req, request_body, state, client_token))]

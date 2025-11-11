@@ -50,7 +50,7 @@ itertools = { workspace = true, features = ["default"] }
 
 tracing-actix-web = { workspace = true, features = ["default"] }
 
-mows-common-rust = { workspace = true, features = ["default"] }
+mows-common-rust = { workspace = true, features = ["default", "vault"] }
 
 zitadel = { workspace = true, features = [
     "api",

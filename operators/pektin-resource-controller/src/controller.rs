@@ -20,39 +20,50 @@ use kube::{
     Resource,
 };
 
-use mows_common_rust::{get_current_config_cloned, observability::get_trace_id};
+use mows_common_rust::{
+    get_current_config_cloned,
+    observability::get_trace_id,
+    vault::{ManagedVaultClient, VaultAuthMethod, VaultConfig},
+};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::{sync::RwLock, time::Duration};
 use tracing::*;
-use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
 pub static FINALIZER: &str = "pektin.k8s.mows.cloud";
 
-pub async fn get_vault_token() -> Result<String, Error> {
+pub async fn get_vault_token() -> Result<(String, ManagedVaultClient), Error> {
     let config = get_current_config_cloned!(config());
-    let mut client_builder = VaultClientSettingsBuilder::default();
 
-    client_builder.address(config.vault_url);
+    let vault_config = VaultConfig {
+        address: config.vault_url,
+        auth_method: VaultAuthMethod::Kubernetes {
+            service_account_token_path: config.service_account_token_path,
+            auth_path: config.vault_kubernetes_api_auth_path,
+            auth_role: config.pektin_username,
+        },
+        renewal_threshold: 0.8,
+    };
 
-    let vc =
-        VaultClient::new(client_builder.build().map_err(|_| {
-            Error::GenericError("Failed to create vault client settings builder".to_string())
-        })?)?;
+    let managed_client = ManagedVaultClient::new(vault_config)
+        .await
+        .map_err(|e| Error::GenericError(format!("Failed to create managed vault client: {}", e)))?;
 
-    let service_account_jwt = std::fs::read_to_string(&config.service_account_token_path)
-        .context("Failed to read service account token")?;
+    // Get the token from the managed client's state
+    let client = managed_client
+        .get_client()
+        .await
+        .map_err(|e| Error::GenericError(format!("Failed to get vault client: {}", e)))?;
 
-    let vault_auth = vaultrs::auth::kubernetes::login(
-        &vc,
-        &config.vault_kubernetes_api_auth_path,
-        &config.pektin_username,
-        &service_account_jwt,
-    )
-    .await?;
+    // Unfortunately, we can't extract the token from VaultClient directly
+    // For now, we'll need to use a different approach - let's look up the token
+    let token_info = vaultrs::token::lookup_self(&client)
+        .await
+        .map_err(|e| Error::GenericError(format!("Failed to lookup token: {}", e)))?;
 
-    Ok(vault_auth.client_token)
+    // Return both token and managed client so the token can be revoked later
+    Ok((token_info.id, managed_client))
 }
 
 #[instrument(skip(kube_client))]
@@ -60,7 +71,7 @@ pub async fn reconcile_resource(
     pektin_dns: &PektinResource,
     kube_client: &kube::Client,
 ) -> Result<(), Error> {
-    let vault_token = get_vault_token().await?;
+    let (vault_token, managed_client) = get_vault_token().await?;
     let resource_namespace = pektin_dns.metadata.namespace.as_deref().unwrap_or("default");
 
     let resource_name = match pektin_dns.metadata.name.as_deref() {
@@ -72,11 +83,16 @@ pub async fn reconcile_resource(
         }
     };
 
-    match &pektin_dns.spec {
-        PektinResourceSpec::Plain(db_entries) => handle_plain(&vault_token, db_entries).await?,
+    let result = match &pektin_dns.spec {
+        PektinResourceSpec::Plain(db_entries) => handle_plain(&vault_token, db_entries).await,
+    };
+
+    // Revoke the token to prevent lease accumulation
+    if let Err(e) = managed_client.revoke_token().await {
+        warn!("Failed to revoke vault token: {}", e);
     }
 
-    Ok(())
+    result
 }
 
 // Context for our reconciler

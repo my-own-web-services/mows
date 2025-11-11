@@ -72,7 +72,7 @@ serde_variant = { workspace = true }
 itertools = { workspace = true, features = ["default"] }
 
 
-mows-common-rust = { workspace = true, features = ["default"] }
+mows-common-rust = { workspace = true, features = ["default", "vault"] }
 gtmpl_value = { workspace = true }
 
 kube = { workspace = true, features = ["runtime", "default", "derive"] }
