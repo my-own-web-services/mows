@@ -16,7 +16,7 @@ import {
 import { configSignal, machineStatusSignal } from "../config";
 import { withToasterHook } from "../utils";
 import Notes from "./Notes";
-import TerminalComponent from "./Terminal";
+import TabbedTerminal from "./TabbedTerminal";
 import ClusterComp from "./cluster/ClusterComp";
 import MachineComponent from "./machine/Machine";
 
@@ -298,7 +298,7 @@ export default withToasterHook(
                             </div>
 
                             <div className="h-full w-3/5">
-                                <TerminalComponent id="manager" />
+                                <TabbedTerminal defaultTerminalId="manager" defaultTitle="Manager" />
                             </div>
                             <div className={"h-full w-1/5"}>
                                 <Notes className="h-full" />
