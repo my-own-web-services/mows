@@ -6,7 +6,7 @@ import { TbSnowflake } from "react-icons/tb";
 import { VscDebugStart, VscDebugStop, VscSync, VscSyncIgnored, VscTrash } from "react-icons/vsc";
 import { Button } from "rsuite";
 import { Api, Machine, MachineSignal, MachineStatus, VncWebsocket } from "../../api-client";
-import TerminalComponent from "../Terminal";
+import TabbedTerminal from "../TabbedTerminal";
 import MachineProviderIcon from "./MachineProviderIcon";
 import MachineScreen from "./MachineScreen";
 import MachineStatusComp from "./MachineStatusComp";
@@ -160,7 +160,11 @@ export default class MachineComponent extends Component<
                     </div>
                     <div className="w-2/3">
                         {this.state.sshOpen ? (
-                            <TerminalComponent className="w-full" id={this.props.machine.id} />
+                            <TabbedTerminal
+                                className="w-full"
+                                defaultTerminalId={this.props.machine.id}
+                                defaultTitle={this.props.machine.id}
+                            />
                         ) : (
                             ""
                         )}

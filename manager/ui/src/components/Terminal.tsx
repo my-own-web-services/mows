@@ -88,7 +88,14 @@ export default class TerminalComponent extends Component<
     init = async () => {
         this.createWebSocket();
         if (this.terminalRef.current && this.statusBanner.current && this.ws) {
-            this.terminal = new Terminal({ cursorBlink: false });
+            this.terminal = new Terminal({
+                cursorBlink: true,
+                allowProposedApi: true,
+                scrollback: 10000,
+                fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+                fontSize: 14,
+                lineHeight: 1.2,
+            });
             this.fitAddon = new FitAddon();
             this.searchAddon = new SearchAddon();
             this.webLinksAddon = new WebLinksAddon();
@@ -100,7 +107,13 @@ export default class TerminalComponent extends Component<
             this.terminal.loadAddon(this.clipboardAddon);
             this.terminal.loadAddon(this.searchAddon);
             this.terminal.loadAddon(this.webLinksAddon);
-            this.terminal.loadAddon(this.webglAddon);
+
+            // Try WebGL, fallback to canvas if it fails
+            try {
+                this.terminal.loadAddon(this.webglAddon);
+            } catch (e) {
+                console.warn("WebGL renderer failed to load, using canvas fallback:", e);
+            }
 
             this.terminal.open(this.terminalRef.current);
             this.fitAddon.fit();
@@ -143,6 +156,10 @@ const DELIMITER = ";";
 const START_PREFIX = "0";
 const INPUT_PREFIX = "1";
 const RESIZE_PREFIX = "2";
+const ACK_PREFIX = "3";
+
+// Flow control constants matching backend
+const ACK_THRESHOLD = 100000; // Send ACK every 100KB processed
 
 export class WebSocketAddon implements ITerminalAddon {
     private _socket: WebSocket;
@@ -151,6 +168,8 @@ export class WebSocketAddon implements ITerminalAddon {
     private _reconnect: number = -1;
     private _status: StatusBanner;
     private _disposables: IDisposable[] = [];
+    private _bytesReceived: number = 0;
+    private _lastAckBytes: number = 0;
 
     constructor(ws: WebSocket, statusBanner: HTMLElement) {
         this._status = new StatusBanner(statusBanner);
@@ -217,7 +236,23 @@ export class WebSocketAddon implements ITerminalAddon {
     private _onMessage(ev: MessageEvent): void {
         const data: ArrayBuffer | string = ev.data;
 
-        this._terminal.write(typeof data === "string" ? data : new Uint8Array(data));
+        // Calculate data size
+        const dataSize = typeof data === "string" ? data.length : data.byteLength;
+        this._bytesReceived += dataSize;
+
+        // Write data to terminal with callback for flow control
+        const dataToWrite = typeof data === "string" ? data : new Uint8Array(data);
+
+        this._terminal.write(dataToWrite, () => {
+            // Data has been processed by xterm.js
+            // Send ACK if we've processed enough data since last ACK
+            const bytesSinceLastAck = this._bytesReceived - this._lastAckBytes;
+
+            if (bytesSinceLastAck >= ACK_THRESHOLD) {
+                this._sendAck(bytesSinceLastAck);
+                this._lastAckBytes = this._bytesReceived;
+            }
+        });
     }
 
     private _sendData(data: string): void {
@@ -251,6 +286,16 @@ export class WebSocketAddon implements ITerminalAddon {
             buffer[i + 2] = data.charCodeAt(i) & 255;
         }
         this._socket!.send(buffer);
+    }
+
+    private _sendAck(bytes: number): void {
+        if (!this._checkOpenSocket()) {
+            return;
+        }
+
+        // Send ACK message to backend for flow control
+        const ackMessage = `${ACK_PREFIX}${DELIMITER}${bytes}`;
+        this._socket!.send(ackMessage);
     }
 
     private _checkOpenSocket(): boolean {
