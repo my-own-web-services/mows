@@ -47,12 +47,23 @@ async fn main() -> anyhow::Result<()> {
     debug!("Connecting to db at {}", db_uri);
 
     // check if connection with vault works
-    while let Err(e) = create_vault_client_with_k8s_login().await {
-        tracing::error!(
-            "Failed to create vault client, retrying in 5 seconds: {:?}",
-            e
-        );
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    loop {
+        match create_vault_client_with_k8s_login().await {
+            Ok((_, managed_client)) => {
+                // Successfully connected to vault, revoke the test token
+                if let Err(e) = managed_client.revoke_token().await {
+                    tracing::warn!("Failed to revoke test vault token: {}", e);
+                }
+                break;
+            }
+            Err(e) => {
+                tracing::error!(
+                    "Failed to create vault client, retrying in 5 seconds: {:?}",
+                    e
+                );
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            }
+        }
     }
 
     let db_uri_dnssec = format!(

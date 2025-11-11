@@ -1,8 +1,6 @@
 use crate::{config::config, crd::ClientDataTargetVault, ControllerError};
-use anyhow::Context;
-use mows_common_rust::get_current_config_cloned;
+use mows_common_rust::{get_current_config_cloned, vault::{ManagedVaultClient, VaultAuthMethod, VaultConfig}};
 use tracing::instrument;
-use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
 #[instrument(level = "trace")]
 pub async fn handle_vault_target(
@@ -15,47 +13,53 @@ pub async fn handle_vault_target(
         "mows-core-secrets-vrc/{}/{}",
         resource_namespace, vault_target.kubernetes_auth_engine_name
     );
-    let vault_client = create_vault_client(&auth_path, &auth_role).await?;
+    let (vault_client, managed_client) = create_vault_client(&auth_path, &auth_role).await?;
 
     let mount_path = format!(
         "mows-core-secrets-vrc/{}/{}",
         resource_namespace, vault_target.secret_engine_name
     );
 
-    vaultrs::kv2::set(
+    let result = vaultrs::kv2::set(
         &vault_client,
         &mount_path,
         &vault_target.secret_engine_sub_path,
         &data,
     )
-    .await?;
-    Ok(())
+    .await
+    .map_err(|e| e.into());
+
+    // Revoke the token to prevent lease accumulation
+    if let Err(e) = managed_client.revoke_token().await {
+        tracing::warn!("Failed to revoke vault token: {}", e);
+    }
+
+    result.map(|_| ())
 }
 
 #[instrument(level = "trace")]
-pub async fn create_vault_client(auth_path: &str, auth_role: &str) -> Result<VaultClient, ControllerError> {
-    let mut client_builder = VaultClientSettingsBuilder::default();
-
+pub async fn create_vault_client(auth_path: &str, auth_role: &str) -> Result<(vaultrs::client::VaultClient, ManagedVaultClient), ControllerError> {
     let config = get_current_config_cloned!(config());
 
-    client_builder.address(config.vault_url);
+    let vault_config = VaultConfig {
+        address: config.vault_url,
+        auth_method: VaultAuthMethod::Kubernetes {
+            service_account_token_path: config.service_account_token_path,
+            auth_path: auth_path.to_string(),
+            auth_role: auth_role.to_string(),
+        },
+        renewal_threshold: 0.8,
+    };
 
-    let vc = VaultClient::new(client_builder.build().map_err(|_| {
-        ControllerError::GenericError("Failed to create vault client settings builder".to_string())
-    })?)?;
+    let managed_client = ManagedVaultClient::new(vault_config)
+        .await
+        .map_err(|e| ControllerError::GenericError(format!("Failed to create managed vault client: {}", e)))?;
 
-    let service_account_jwt = std::fs::read_to_string(config.service_account_token_path)
-        .context("Failed to read service account token")?;
+    let vault_client = managed_client
+        .get_client()
+        .await
+        .map_err(|e| ControllerError::GenericError(format!("Failed to get vault client: {}", e)))?;
 
-    let vault_auth =
-        vaultrs::auth::kubernetes::login(&vc, auth_path, auth_role, &service_account_jwt).await?;
-
-    let vc = VaultClient::new(
-        client_builder
-            .token(&vault_auth.client_token)
-            .build()
-            .context("Failed to create vault client")?,
-    )?;
-
-    Ok(vc)
+    // Return both the client and the managed client so the token can be revoked later
+    Ok((vault_client, managed_client))
 }

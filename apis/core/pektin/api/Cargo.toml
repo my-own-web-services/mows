@@ -54,7 +54,7 @@ opentelemetry = { workspace = true, features = ["trace"] }
 tracing-actix-web = { workspace = true, features = ["opentelemetry_0_24"] }
 
 pektin-common = { workspace = true, features = ["default"] }
-mows-common-rust = { workspace = true, features = ["default"] }
+mows-common-rust = { workspace = true, features = ["default", "vault"] }
 
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]

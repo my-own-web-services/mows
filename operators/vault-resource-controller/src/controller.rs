@@ -7,7 +7,7 @@ use crate::{
         secret_engine::{apply_secret_engine, cleanup_secret_engine},
         secret_sync::{apply_secret_sync, cleanup_secret_sync},
     },
-    utils::{create_vault_client, get_error_type},
+    utils::get_error_type,
     ControllerError, Metrics, Result,
 };
 use anyhow::{anyhow, Context as AnyhowContext};
@@ -24,6 +24,7 @@ use kube::{
     },
     Resource,
 };
+use mows_common_rust::vault::ManagedVaultClient;
 use mows_common_rust::{get_current_config_cloned, observability::get_trace_id};
 use serde::Serialize;
 use serde_json::json;
@@ -41,6 +42,8 @@ pub struct Context {
     pub diagnostics: Arc<RwLock<Diagnostics>>,
     /// Prometheus metrics
     pub metrics: Arc<Metrics>,
+    /// Managed Vault client with automatic token renewal
+    pub vault_client: ManagedVaultClient,
 }
 
 #[instrument(skip(ctx, vault_resource), fields(trace_id), level = "trace")]
@@ -65,12 +68,16 @@ async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Res
     .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
 }
 
-#[instrument(skip(kube_client), level = "trace")]
+#[instrument(skip(kube_client, vault_client), level = "trace")]
 pub async fn cleanup_resource(
     vault_resource: &VaultResource,
     kube_client: &kube::Client,
+    vault_client: &ManagedVaultClient,
 ) -> Result<(), ControllerError> {
-    let vault_client = create_vault_client().await?;
+    let vault_client = vault_client
+        .get_client()
+        .await
+        .map_err(|e| ControllerError::GenericError(anyhow!("Failed to get vault client: {}", e)))?;
 
     let resource_namespace = vault_resource.metadata.namespace.as_deref().unwrap_or("default");
 
@@ -107,12 +114,16 @@ pub async fn cleanup_resource(
     Ok(())
 }
 
-#[instrument(skip(kube_client), level = "trace")]
+#[instrument(skip(kube_client, vault_client), level = "trace")]
 pub async fn apply_resource(
     vault_resource: &VaultResource,
     kube_client: &kube::Client,
+    vault_client: &ManagedVaultClient,
 ) -> Result<(), ControllerError> {
-    let vault_client = create_vault_client().await?;
+    let vault_client = vault_client
+        .get_client()
+        .await
+        .map_err(|e| ControllerError::GenericError(anyhow!("Failed to get vault client: {}", e)))?;
 
     let resource_namespace = vault_resource.metadata.namespace.as_deref().unwrap_or("default");
 
@@ -207,7 +218,7 @@ impl VaultResource {
         let name = self.name_any();
         let vault_resources: Api<VaultResource> = Api::namespaced(kube_client.clone(), &ns);
 
-        match apply_resource(self, &kube_client).await {
+        match apply_resource(self, &kube_client, &ctx.vault_client).await {
             Ok(_) => {
                 let new_status = Patch::Apply(json!({
                     "apiVersion": "vault.k8s.mows.cloud/v1",
@@ -281,7 +292,7 @@ impl VaultResource {
     async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
         let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
 
-        cleanup_resource(self, &ctx.client).await?;
+        cleanup_resource(self, &ctx.client, &ctx.vault_client).await?;
 
         let res = recorder
             .publish(Event {
@@ -327,16 +338,18 @@ impl Diagnostics {
 }
 
 /// State shared between the controller and the web server
-#[derive(Clone, Default)]
-pub struct State {
+#[derive(Clone)]
+pub struct ControllerState {
     /// Diagnostics populated by the reconciler
     diagnostics: Arc<RwLock<Diagnostics>>,
     /// Metrics
     metrics: Arc<Metrics>,
+    /// Managed Vault client with automatic token renewal
+    vault_client: ManagedVaultClient,
 }
 
 /// State wrapper around the controller outputs for the web server
-impl State {
+impl ControllerState {
     /// Metrics getter
     pub fn metrics(&self) -> String {
         let mut buffer = String::new();
@@ -356,12 +369,36 @@ impl State {
             client,
             metrics: self.metrics.clone(),
             diagnostics: self.diagnostics.clone(),
+            vault_client: self.vault_client.clone(),
+        })
+    }
+
+    /// Create a new controller state with vault client
+    pub async fn new() -> Result<Self, mows_common_rust::vault::VaultError> {
+        let config = get_current_config_cloned!(config());
+
+        let vault_config = mows_common_rust::vault::VaultConfig {
+            address: config.vault_url,
+            auth_method: mows_common_rust::vault::VaultAuthMethod::Kubernetes {
+                service_account_token_path: config.service_account_token_path,
+                auth_path: config.vault_kubernetes_auth_path,
+                auth_role: config.vault_kubernetes_auth_role,
+            },
+            renewal_threshold: 0.8,
+        };
+
+        let vault_client = ManagedVaultClient::new(vault_config).await?;
+
+        Ok(Self {
+            diagnostics: Arc::new(RwLock::new(Diagnostics::default())),
+            metrics: Arc::new(Metrics::default()),
+            vault_client,
         })
     }
 }
 
 /// Initialize the controller and shared state (given the crd is installed)
-pub async fn run(state: State) {
+pub async fn run(state: ControllerState) {
     let client = Client::try_default().await.expect("failed to create kube Client");
     let object = Api::<VaultResource>::all(client.clone());
     if let Err(e) = object.list(&ListParams::default().limit(1)).await {

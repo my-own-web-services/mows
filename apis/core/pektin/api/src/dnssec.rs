@@ -51,7 +51,7 @@ pub async fn sign_db_entry(
 ) -> PektinApiResult<DbEntry> {
     let signer_name = zone.clone();
 
-    let vc = create_vault_client_with_token(vault_token).await?;
+    let (vc, managed_client) = create_vault_client_with_token(vault_token).await?;
 
     // TODO think about RRSIG signature validity period
     let sig_valid_from = chrono::Utc::now();
@@ -105,14 +105,21 @@ pub async fn sign_db_entry(
         signature: BASE64.encode(&signature),
     };
 
-    Ok(DbEntry {
+    let result = Ok(DbEntry {
         name: entry.name,
         ttl: entry.ttl,
         meta: "".to_string(),
         rr_set: RrSet::RRSIG {
             rr_set: vec![rrsig_entry],
         },
-    })
+    });
+
+    // Revoke token to prevent lease accumulation
+    if let Err(e) = managed_client.revoke_token().await {
+        tracing::warn!("Failed to revoke vault token: {}", e);
+    }
+
+    result
 }
 
 /// Takes a zone name and constructs NSEC3 records for all records in the zone. The corresponding NSEC3PARAM record is also returned.

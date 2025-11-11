@@ -12,3 +12,6 @@ pub mod utils;
 
 pub mod diesel;
 pub mod openapi_client_generator;
+
+#[cfg(feature = "vault")]
+pub mod vault;
