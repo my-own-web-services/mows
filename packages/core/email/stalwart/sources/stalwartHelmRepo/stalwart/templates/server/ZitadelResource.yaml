@@ -9,14 +9,6 @@ spec:
             project:
                 projectRoleAssertion: true
                 projectRoleCheck: true
-                roles:
-                    - key: users
-                      group: users
-                      displayName: Users
-                    - key: superadmins
-                      group: superadmins
-                      displayName: Super Admins
-                adminRoles: ["users", "superadmins"]
                 applications:
                     - name: "stalwart-web"
                       clientDataTarget:

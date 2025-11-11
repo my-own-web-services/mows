@@ -41,17 +41,6 @@ CREATE TABLE "storage_locations"(
     "modified_time" TIMESTAMP NOT NULL
 );
 
-CREATE TABLE "apps"(
-    "id" UUID NOT NULL PRIMARY KEY,
-    "name" TEXT NOT NULL,
-    "origins" TEXT[],
-    "trusted" BOOL NOT NULL,
-    "description" TEXT,
-    "created_time" TIMESTAMP NOT NULL,
-    "modified_time" TIMESTAMP NOT NULL,
-    "app_type" SMALLINT NOT NULL
-);
-
 CREATE TABLE "storage_quotas"(
     "id" UUID NOT NULL PRIMARY KEY,
     "owner_id" UUID NOT NULL,
@@ -63,6 +52,17 @@ CREATE TABLE "storage_quotas"(
     "modified_time" TIMESTAMP NOT NULL,
     "quota_bytes" BIGINT NOT NULL,
     FOREIGN KEY ("storage_location_id") REFERENCES "storage_locations"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE "apps"(
+    "id" UUID NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "origins" TEXT[],
+    "trusted" BOOL NOT NULL,
+    "description" TEXT,
+    "created_time" TIMESTAMP NOT NULL,
+    "modified_time" TIMESTAMP NOT NULL,
+    "app_type" SMALLINT NOT NULL
 );
 
 CREATE TABLE "file_versions"(

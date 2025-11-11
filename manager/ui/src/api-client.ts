@@ -781,6 +781,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @name DirectTerminal
+     * @summary Main WebSocket handler for terminal connections
      * @request GET:/api/terminal/{id}
      */
     directTerminal: (id: string, params: RequestParams = {}) =>

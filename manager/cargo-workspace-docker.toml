@@ -20,6 +20,11 @@ default-features = false
 features = ["ws", "tokio", "default"]
 version = "=0.8.4"
 
+[workspace.dependencies.chrono]
+default-features = false
+features = ["default"]
+version = "0.4.41"
+
 [workspace.dependencies.data-encoding]
 default-features = false
 features = ["default"]

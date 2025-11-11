@@ -424,21 +424,31 @@ async fn ws_sender_loop(
     loop {
         tokio::select! {
             Some(data) = pty_rx.recv() => {
-                // Wait if flow control is paused
-                flow_control.wait_if_paused().await;
+                // Wait if flow control is paused (with timeout to prevent indefinite blocking)
+                let flow_timeout = tokio::time::Duration::from_secs(2);
+                if tokio::time::timeout(flow_timeout, flow_control.wait_if_paused()).await.is_err() {
+                    warn!("Flow control wait timeout - client may be stalled, forcing resume");
+                    // Force resume to prevent indefinite hang
+                    flow_control.paused.store(false, Ordering::Relaxed);
+                }
 
                 let data_len = data.len();
 
-                // Send to WebSocket
+                // Send to WebSocket with timeout to prevent hanging
                 let message = Message::Binary(data.into());
-                match ws_sender.lock().await.send(message).await {
-                    Ok(_) => {
+                let send_timeout = tokio::time::Duration::from_millis(500);
+                match tokio::time::timeout(send_timeout, ws_sender.lock().await.send(message)).await {
+                    Ok(Ok(_)) => {
                         trace!("Sent {} bytes to WebSocket", data_len);
                         flow_control.bytes_sent(data_len);
                     }
-                    Err(e) => {
+                    Ok(Err(e)) => {
                         warn!("WebSocket send error: {}", e);
                         break;
+                    }
+                    Err(_) => {
+                        warn!("WebSocket send timeout after 500ms, dropping {} bytes", data_len);
+                        // Continue processing - client may have stalled
                     }
                 }
             }
@@ -462,20 +472,25 @@ async fn ws_receiver_loop(
             Ok(msg) => {
                 match TerminalMessage::parse(msg) {
                     Some(TerminalMessage::Input(data)) => {
-                        // Write input to PTY
-                        match pty_writer.lock().await.write(&data).await {
-                            Ok(_) => {
+                        // Write input to PTY with timeout to prevent hanging
+                        let write_timeout = tokio::time::Duration::from_millis(100);
+                        match tokio::time::timeout(write_timeout, pty_writer.lock().await.write_all(&data)).await {
+                            Ok(Ok(_)) => {
                                 trace!("Wrote {} bytes to PTY", data.len());
                             }
-                            Err(e) => {
+                            Ok(Err(e)) => {
                                 error!("PTY write error: {}", e);
                                 break;
+                            }
+                            Err(_) => {
+                                warn!("PTY write timeout after 100ms, dropping {} bytes", data.len());
+                                // Don't break - continue processing other messages
                             }
                         }
                     }
                     Some(TerminalMessage::Resize(rows, cols)) => {
                         // Resize PTY
-                        debug!("Resizing PTY to {}x{}", rows, cols);
+                        trace!("Resizing PTY to {}x{}", rows, cols);
                         if let Err(e) = pty_writer.lock().await.resize(Size::new(rows, cols)) {
                             error!("PTY resize error: {}", e);
                         }
