@@ -89,7 +89,7 @@ export default class TerminalComponent extends Component<
         this.createWebSocket();
         if (this.terminalRef.current && this.statusBanner.current && this.ws) {
             this.terminal = new Terminal({
-                cursorBlink: true,
+                cursorBlink: false,
                 allowProposedApi: true,
                 scrollback: 10000,
                 fontFamily: 'Menlo, Monaco, "Courier New", monospace',

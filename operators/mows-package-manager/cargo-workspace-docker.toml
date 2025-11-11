@@ -20,6 +20,11 @@ default-features = false
 features = ["ws", "tokio", "default"]
 version = "=0.8.4"
 
+[workspace.dependencies.chrono]
+default-features = false
+features = ["default"]
+version = "0.4.41"
+
 [workspace.dependencies.data-encoding]
 default-features = false
 features = ["default"]
@@ -203,6 +208,11 @@ version = "9.0.2"
 default-features = false
 features = ["v4"]
 version = "1.17.0"
+
+[workspace.dependencies.vaultrs]
+default-features = false
+features = ["rustls"]
+version = "0.7.4"
 
 [workspace.lints.clippy]
 cast_lossless = "deny"

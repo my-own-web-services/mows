@@ -17,7 +17,7 @@ version = "1.0.98"
 
 [workspace.dependencies.chrono]
 default-features = false
-features = ["serde"]
+features = ["default"]
 version = "0.4.41"
 
 [workspace.dependencies.data-encoding]
@@ -158,6 +158,11 @@ version = "5.4.0"
 default-features = false
 features = ["v4"]
 version = "1.17.0"
+
+[workspace.dependencies.vaultrs]
+default-features = false
+features = ["rustls"]
+version = "0.7.4"
 
 [workspace.lints.clippy]
 cast_lossless = "deny"
