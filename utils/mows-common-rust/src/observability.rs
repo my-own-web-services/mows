@@ -82,6 +82,13 @@ pub async fn init_observability() {
 }
 
 pub async fn init_minimal_observability(level: &str) -> anyhow::Result<()> {
-    tracing_subscriber::fmt().with_env_filter(level).init();
+    init_minimal_observability_with_color(level, true).await
+}
+
+pub async fn init_minimal_observability_with_color(level: &str, use_color: bool) -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(level)
+        .with_ansi(use_color)
+        .init();
     Ok(())
 }

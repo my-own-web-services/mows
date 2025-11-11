@@ -82,43 +82,45 @@ impl HelmRepoSpec {
 
             let mut result_documents: Vec<RenderedDocument> = Vec::new();
 
+            // Parse the Helm output to extract source paths and YAML documents
+            // Helm output format: ---\n# Source: path/to/file.yaml\n<yaml content>
             let mut raw_documents: Vec<String> = output
                 .split("\n---\n# Source:")
                 .map(|s| s.to_string())
                 .collect();
 
-            // remove the first empty string
+            // remove the first empty string (before first ---)
             raw_documents.remove(0);
 
-            let relative_source_paths = raw_documents
-                .iter()
-                .map(|doc| {
-                    let mut lines = doc.lines();
-                    let source_path_comment = lines.next().unwrap_or("");
-                    //debug!("source_path_comment: {}", source_path_comment);
-                    let source_path = source_path_comment.split(": ").last().unwrap_or("");
-                    //remove first character which is a space
-                    let source_path = &source_path[1..];
+            // Extract paths and clean YAML content for each document
+            let mut documents_with_paths: Vec<(String, String)> = Vec::new();
 
-                    source_path.to_string()
-                })
-                .collect::<Vec<String>>();
+            for doc in raw_documents {
+                let mut lines = doc.lines();
+                let source_path_comment = lines.next().unwrap_or("");
+                let source_path = source_path_comment.split(": ").last().unwrap_or("");
+                // Remove first character which is a space
+                let source_path = if !source_path.is_empty() && source_path.len() > 1 {
+                    &source_path[1..]
+                } else {
+                    source_path
+                };
 
-            for (i, document_deserializer) in
-                serde_yaml_ng::Deserializer::from_str(&output).enumerate()
+                // Reconstruct the YAML content without the source comment
+                let yaml_content = lines.collect::<Vec<_>>().join("\n");
+
+                documents_with_paths.push((source_path.to_string(), yaml_content));
+            }
+
+            for (source_path, yaml_content) in documents_with_paths.iter()
             {
-                // get the resource path from the only comment in the document
-
-                let resource =
-                    serde_yaml_ng::Value::deserialize(document_deserializer).map_err(|e| {
+                let resource = serde_yaml_ng::from_str::<serde_yaml_ng::Value>(yaml_content)
+                    .map_err(|e| {
                         HelmRepoError::RenderHelmError(format!(
-                            "Error serializing yaml to json: {}",
-                            e
+                            "Error parsing YAML document from {}: {}",
+                            source_path, e
                         ))
                     })?;
-
-                let relative_resource_source_path =
-                    relative_source_paths.get(i).map(|p| p.to_string());
 
                 if resource.is_null() {
                     continue;
@@ -128,39 +130,36 @@ impl HelmRepoSpec {
                     HelmRepoError::RenderHelmError(format!("Error converting yaml to json: {}", e))
                 })?;
 
-                let method_specific: Option<MethodSpecificRenderedDocumentDebug> =
-                    if let Some(rrsp) = relative_resource_source_path.clone() {
-                        // for some reason there is a very very strange bug that get triggered when using tokio::fs::read_to_string here see at the bottom of the file (*1)
+                let method_specific: Option<MethodSpecificRenderedDocumentDebug> = {
+                    // for some reason there is a very very strange bug that get triggered when using tokio::fs::read_to_string here see at the bottom of the file (*1)
 
-                        let template_path = repo_paths
-                            .mows_repo_source_path
-                            .join("sources")
-                            .join(source_name)
-                            .join(rrsp);
-                        let original_template = std::fs::read_to_string(&template_path)
-                            .map_err(|e| {
-                                HelmRepoError::RenderHelmError(format!(
-                                    "Error reading original template file from path `{}` : {} ",
-                                    e,
-                                    &template_path.to_string_lossy()
-                                ))
-                            })?
-                            .to_string();
+                    let template_path = repo_paths
+                        .mows_repo_source_path
+                        .join("sources")
+                        .join(source_name)
+                        .join(source_path);
+                    let original_template = std::fs::read_to_string(&template_path)
+                        .map_err(|e| {
+                            HelmRepoError::RenderHelmError(format!(
+                                "Error reading original template file from path `{}` : {} ",
+                                e,
+                                &template_path.to_string_lossy()
+                            ))
+                        })?
+                        .to_string();
 
-                        Some(MethodSpecificRenderedDocumentDebug::Helm(
-                            MethodSpecificRenderedDocumentDebugHelm { original_template },
-                        ))
-                    } else {
-                        None
-                    };
+                    Some(MethodSpecificRenderedDocumentDebug::Helm(
+                        MethodSpecificRenderedDocumentDebugHelm { original_template },
+                    ))
+                };
 
                 result_documents.push(RenderedDocument {
                     resource,
                     source_name: source_name.to_string(),
                     source_type: ManifestSource::Helm(self.clone()),
                     debug: RenderedDocumentDebug {
-                        resource_string_before_parse: raw_documents.get(i).map(|s| s.to_string()),
-                        resource_source_path: relative_resource_source_path,
+                        resource_string_before_parse: Some(yaml_content.clone()),
+                        resource_source_path: Some(source_path.clone()),
                         method_specific,
                     },
                 });
@@ -191,32 +190,70 @@ impl HelmRepoSpec {
         match &self.urls {
             Some(uris) => {
                 let mut helm_repository_index_and_url: Option<(HelmRepositoryIndex, String)> = None;
+                let mut fetch_errors: Vec<String> = Vec::new();
+                const MAX_RETRIES: u32 = 3;
+                const RETRY_DELAY_MS: u64 = 1000;
 
                 for remote_repository_url in uris {
-                    match self
-                        .fetch_remote_repository_index(remote_repository_url)
-                        .await
-                    {
-                        Ok(index) => {
-                            helm_repository_index_and_url =
-                                Some((index, remote_repository_url.to_string()));
-                            break;
+                    let mut last_error = None;
+
+                    for attempt in 1..=MAX_RETRIES {
+                        match self
+                            .fetch_remote_repository_index(remote_repository_url)
+                            .await
+                        {
+                            Ok(index) => {
+                                if attempt > 1 {
+                                    debug!(
+                                        "Successfully fetched Helm Repository Index from {} on attempt {}",
+                                        remote_repository_url, attempt
+                                    );
+                                }
+                                helm_repository_index_and_url =
+                                    Some((index, remote_repository_url.to_string()));
+                                break;
+                            }
+                            Err(e) => {
+                                debug!(
+                                    "Attempt {}/{} failed to fetch from {}: {}",
+                                    attempt, MAX_RETRIES, remote_repository_url, e
+                                );
+                                last_error = Some(e);
+
+                                if attempt < MAX_RETRIES {
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(
+                                        RETRY_DELAY_MS * attempt as u64,
+                                    ))
+                                    .await;
+                                }
+                            }
                         }
-                        Err(e) => {
-                            debug!(
-                                "Error fetching Helm Repository Index from: {:?}, error: {}",
-                                remote_repository_url, e
-                            );
-                            continue;
-                        }
+                    }
+
+                    if helm_repository_index_and_url.is_some() {
+                        break;
+                    }
+
+                    if let Some(e) = last_error {
+                        let error_msg = format!(
+                            "Failed to fetch from {} after {} attempts: {}",
+                            remote_repository_url, MAX_RETRIES, e
+                        );
+                        debug!("{}", error_msg);
+                        fetch_errors.push(error_msg);
                     }
                 }
 
                 self.fetch_remote_chart(
                     repo_paths,
-                    &helm_repository_index_and_url.ok_or(HelmRepoError::FetchHelmChartError(
-                        format!("Error fetching HelmChart: {}", self.chart_name),
-                    ))?,
+                    &helm_repository_index_and_url.ok_or_else(|| {
+                        HelmRepoError::FetchHelmChartError(format!(
+                            "Error fetching HelmChart '{}' from all {} repository URL(s). Errors:\n  - {}",
+                            self.chart_name,
+                            uris.len(),
+                            fetch_errors.join("\n  - ")
+                        ))
+                    })?,
                     source_name,
                 )
                 .await?;

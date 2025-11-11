@@ -182,7 +182,6 @@ pub enum GetRemoteFileError {
     AnyhowError(#[from] anyhow::Error),
 }
 
-// TODO add retry logic
 pub async fn download_or_get_cached_file(
     urls: &Vec<Url>,
     temp_target_directory: &Path,
@@ -194,28 +193,47 @@ pub async fn download_or_get_cached_file(
     if target_file_path.exists() {
         read_local_file(expected_sha256_digest, &target_file_path).await
     } else {
+        const MAX_RETRIES: u32 = 3;
+        const RETRY_DELAY_MS: u64 = 1000;
         let mut errors = Vec::new();
+
         for url in urls {
-            match fetch_from_url(url, &target_file_path, expected_sha256_digest, size_limit).await {
-                Ok(v) => return Ok(v),
-                Err(e) => {
-                    debug!("Error downloading file from url: {}", e);
-                    errors.push(e);
+            let mut last_error = None;
+
+            for attempt in 1..=MAX_RETRIES {
+                match fetch_from_url(url, &target_file_path, expected_sha256_digest, size_limit).await {
+                    Ok(v) => {
+                        if attempt > 1 {
+                            debug!("Successfully downloaded file from {} on attempt {}", url, attempt);
+                        }
+                        return Ok(v);
+                    }
+                    Err(e) => {
+                        debug!(
+                            "Attempt {}/{} failed to download file from {}: {}",
+                            attempt, MAX_RETRIES, url, e
+                        );
+                        last_error = Some(e);
+
+                        if attempt < MAX_RETRIES {
+                            tokio::time::sleep(tokio::time::Duration::from_millis(
+                                RETRY_DELAY_MS * attempt as u64
+                            ))
+                            .await;
+                        }
+                    }
                 }
+            }
+
+            if let Some(e) = last_error {
+                errors.push(format!("Failed after {} attempts: {}", MAX_RETRIES, e));
             }
         }
 
         Err(GetRemoteFileError::AnyhowError(anyhow::anyhow!(
-            "Failed to download file from any of the urls: {} because of errors: {}",
-            urls.iter()
-                .map(|url| url.to_string())
-                .collect::<Vec<String>>()
-                .join(", "),
-            errors
-                .iter()
-                .map(|e| e.to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
+            "Failed to download file from any of the {} URL(s). Errors:\n  - {}",
+            urls.len(),
+            errors.join("\n  - ")
         )))
     }
 }

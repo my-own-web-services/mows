@@ -77,3 +77,5 @@ jsonptr = "0.7.1"
 toml = "0.8.20"
 serde_variant = { workspace = true }
 schemars = { workspace = true, features = ["default"] }
+syntect = "5.2.0"
+atty = "0.2"
