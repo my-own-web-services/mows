@@ -1,5 +1,6 @@
 pub mod config;
 pub mod dev;
+pub mod error_formatter;
 pub mod errors;
 pub mod rendered_document;
 

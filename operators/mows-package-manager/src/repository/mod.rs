@@ -1,5 +1,9 @@
 use crate::{
     dev::get_fake_cluster_config,
+    error_formatter::{
+        error_prefix, extract_line_number_from_error, find_field_in_yaml, format_yaml_highlighted,
+        format_yaml_with_error_line, hint_prefix, label,
+    },
     rendered_document::{
         CrdHandling, KubernetesResourceError, RenderedDocument, RenderedDocumentFilter,
     },
@@ -197,16 +201,109 @@ impl Repository {
             }
             let resource: DynamicObject =
                 serde_json::from_value(rendered_document.resource.clone())
-                    .context("Error parsing resource as DynamicObject")?;
+                    .map_err(|e| {
+                        let error_msg = e.to_string();
+                        let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
+                            .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
+
+                        // Try to extract line number from error and highlight it
+                        let line_num = extract_line_number_from_error(&error_msg)
+                            .or_else(|| find_field_in_yaml(&resource_yaml, &error_msg));
+
+                        let highlighted_content = if let Some(line_num) = line_num {
+                            format_yaml_with_error_line(&resource_yaml, line_num, &error_msg)
+                        } else {
+                            format_yaml_highlighted(&resource_yaml, true)
+                        };
+
+                        {
+                            let path_info = if let Some(path) = &rendered_document.debug.resource_source_path {
+                                format!("{} {}\n", label("Resource Path"), path)
+                            } else {
+                                String::new()
+                            };
+
+                            anyhow::anyhow!(
+                                "\n{} Error parsing resource as DynamicObject\n\
+\n\
+{} {}\n\
+{}{}\n{}\n\
+{} {}\n\
+\n\
+Resource content:\n\
+{}",
+                                error_prefix(),
+                                label("Source"),
+                                rendered_document.source_name,
+                                path_info,
+                                label("Source Type"),
+                                rendered_document.source_type,
+                                label("Error"),
+                                error_msg,
+                                highlighted_content
+                            )
+                        }
+                    })?;
 
             let group_version_kind = match &resource.types {
                 Some(type_meta) => GroupVersionKind::try_from(type_meta)
-                    .context("Error converting type meta to GroupVersionKind")?,
+                    .with_context(|| {
+                        let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
+                            .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
+                        let highlighted_content = format_yaml_highlighted(&resource_yaml, true);
+
+                        let path_info = if let Some(path) = &rendered_document.debug.resource_source_path {
+                            format!("{} {}\n", label("Resource Path"), path)
+                        } else {
+                            String::new()
+                        };
+
+                        format!(
+                            "\n{} Error converting type meta to GroupVersionKind\n\
+\n\
+{} {}\n\
+{}{} {:?}\n\
+\n\
+Resource content:\n\
+{}",
+                            error_prefix(),
+                            label("Source"),
+                            rendered_document.source_name,
+                            path_info,
+                            label("Type meta"),
+                            type_meta,
+                            highlighted_content
+                        )
+                    })?,
                 None => {
+                    let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
+                        .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
+                    let highlighted_content = format_yaml_highlighted(&resource_yaml, true);
+
+                    let path_info = if let Some(path) = &rendered_document.debug.resource_source_path {
+                        format!("{} {}\n", label("Resource Path"), path)
+                    } else {
+                        String::new()
+                    };
+
                     return Err(InstallError::AnyhowError(anyhow::anyhow!(
-                        "No type meta found in object: {:?} {:?}",
-                        rendered_document.resource,
-                        rendered_document.debug,
+                        "\n{} No type meta (apiVersion/kind) found in resource\n\
+\n\
+{} {}\n\
+{}{}\n{}\n\
+\n\
+Resource content:\n\
+{}\n\
+\n\
+{} Make sure your resource has 'apiVersion' and 'kind' fields defined.",
+                        error_prefix(),
+                        label("Source"),
+                        rendered_document.source_name,
+                        path_info,
+                        label("Source Type"),
+                        rendered_document.source_type,
+                        highlighted_content,
+                        hint_prefix()
                     )))
                 }
             };
@@ -237,10 +334,50 @@ impl Repository {
                             &Patch::Apply(&rendered_document.resource),
                         )
                         .await
-                        .context(format!(
-                            "Error applying object: \n{}",
-                            &serde_yaml_ng::to_string(&rendered_document.resource)?
-                        ))?;
+                        .map_err(|e| {
+                            let kube_error = e.to_string();
+                            let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
+                                .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
+
+                            // Try to extract line number from Kubernetes validation error
+                            let line_num = extract_line_number_from_error(&kube_error)
+                                .or_else(|| find_field_in_yaml(&resource_yaml, &kube_error));
+
+                            let highlighted_content = if let Some(line_num) = line_num {
+                                format_yaml_with_error_line(&resource_yaml, line_num, &kube_error)
+                            } else {
+                                format_yaml_highlighted(&resource_yaml, true)
+                            };
+
+                            let path_info = if let Some(path) = &rendered_document.debug.resource_source_path {
+                                format!("{} {}\n", label("Resource Path"), path)
+                            } else {
+                                String::new()
+                            };
+
+                            anyhow::anyhow!(
+                                "\n{} Error applying resource '{}' of kind '{}'\n\
+\n\
+{} {}\n\
+{}{} {}\n\
+{} Kubernetes error:\n\
+{}\n\
+\n\
+Resource content:\n\
+{}",
+                                error_prefix(),
+                                object_name,
+                                group_version_kind.kind,
+                                label("Source"),
+                                rendered_document.source_name,
+                                path_info,
+                                label("Namespace"),
+                                namespace_to_use.unwrap_or("<cluster-scoped>"),
+                                label(""),
+                                kube_error,
+                                highlighted_content
+                            )
+                        })?;
                 }
                 None => {
                     return Err(InstallError::AnyhowError(anyhow::anyhow!(
