@@ -39,10 +39,57 @@ default-features = false
 features = ["default"]
 version = "0.11.8"
 
+[workspace.dependencies.futures]
+default-features = false
+features = ["default"]
+version = "0.3.31"
+
 [workspace.dependencies.futures-util]
 default-features = false
 features = ["default"]
 version = "0.3.31"
+
+[workspace.dependencies.gtmpl]
+default-features = false
+version = "0.7"
+
+[workspace.dependencies.gtmpl_derive]
+default-features = false
+version = "0.5.0"
+
+[workspace.dependencies.gtmpl_value]
+default-features = false
+version = "0.5.1"
+
+[workspace.dependencies.k8s-openapi]
+default-features = false
+features = ["latest"]
+version = "=0.23.0"
+
+[workspace.dependencies.kube]
+default-features = false
+features = ["runtime", "derive", "default"]
+version = "=0.96.0"
+
+[workspace.dependencies.mows-common-rust]
+default-features = false
+features = ["default", "vault"]
+path = "./mows-common-rust"
+
+[workspace.dependencies.opentelemetry]
+default-features = false
+features = ["trace"]
+version = "=0.26.0"
+
+[workspace.dependencies.opentelemetry-otlp]
+default-features = false
+features = ["trace", "logs", "grpc-tonic", "metrics"]
+version = "=0.26.0"
+
+[workspace.dependencies.opentelemetry_sdk]
+default-features = false
+features = ["rt-tokio"]
+version = "=0.26.0"
 
 [workspace.dependencies.parking_lot]
 default-features = false
@@ -53,6 +100,26 @@ version = "0.12.4"
 default-features = false
 features = ["default"]
 path = "./pektin-common"
+
+[workspace.dependencies.rand]
+default-features = false
+features = ["default"]
+version = "0.9.1"
+
+[workspace.dependencies.rcgen]
+default-features = false
+features = ["pem", "x509-parser", "default", "crypto"]
+version = "0.13.2"
+
+[workspace.dependencies.reqwest]
+default-features = false
+features = ["json", "rustls-tls", "stream"]
+version = "0.12.15"
+
+[workspace.dependencies.reqwest-tracing]
+default-features = false
+features = ["opentelemetry_0_28"]
+version = "0.5.7"
 
 [workspace.dependencies.schemars]
 default-features = false
@@ -69,10 +136,24 @@ default-features = false
 features = ["default"]
 version = "1.0.141"
 
+[workspace.dependencies.serde_yaml]
+default-features = false
+version = "0.9.34"
+
+[workspace.dependencies.sha2]
+default-features = false
+features = ["default"]
+version = "0.10.9"
+
 [workspace.dependencies.thiserror]
 default-features = false
 features = ["default"]
 version = "2.0.12"
+
+[workspace.dependencies.time]
+default-features = false
+features = ["default"]
+version = "0.3.41"
 
 [workspace.dependencies.tokio]
 default-features = false
@@ -84,10 +165,35 @@ default-features = false
 features = ["default"]
 version = "0.1.40"
 
+[workspace.dependencies.tracing-opentelemetry]
+default-features = false
+features = ["metrics", "tracing-log"]
+version = "=0.27.0"
+
+[workspace.dependencies.tracing-subscriber]
+default-features = false
+features = ["json", "env-filter", "chrono", "default"]
+version = "0.3.20"
+
 [workspace.dependencies.url]
 default-features = false
 features = ["serde"]
 version = "2.5.4"
+
+[workspace.dependencies.utoipa]
+default-features = false
+features = ["default", "uuid", "chrono"]
+version = "5.4.0"
+
+[workspace.dependencies.uuid]
+default-features = false
+features = ["v4"]
+version = "1.17.0"
+
+[workspace.dependencies.vaultrs]
+default-features = false
+features = ["rustls"]
+version = "0.7.4"
 
 [workspace.lints.clippy]
 cast_lossless = "deny"

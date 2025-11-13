@@ -1,3 +1,7 @@
+use mows_common_rust::get_current_config_cloned;
+use mows_common_rust::observability::init_observability;
+use pektin_server::config::config;
+use pektin_server::errors::PektinServerResult;
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
 
@@ -5,102 +9,27 @@ use tikv_jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-mod doh;
-
-use std::io::Write;
-use std::net::Ipv6Addr;
 use std::time::Duration;
 
 use futures_util::StreamExt;
 use hickory_server::server::TimeoutStream;
 use pektin_common::deadpool_redis::{self, Pool};
-use pektin_common::load_env;
 use pektin_common::proto::iocompat::AsyncIoTokioAsStd;
 use pektin_common::proto::op::Message;
 use pektin_common::proto::tcp::TcpStream;
 use pektin_common::proto::udp::UdpStream;
 use pektin_common::proto::xfer::{BufDnsStreamHandle, SerialMessage};
 use pektin_common::proto::DnsStreamHandle;
-use pektin_server::{process_request, PektinResult};
+use pektin_server::{doh, process_request};
 use tokio::net::{TcpListener, UdpSocket};
 use tokio::signal::unix::{signal, SignalKind};
-use tracing::{error, warn};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct Config {
-    pub bind_address: Ipv6Addr,
-    pub bind_port: u16,
-    pub db_hostname: String,
-    pub db_username: String,
-    pub db_password: String,
-    pub db_port: u16,
-    pub db_retry_seconds: u64,
-    pub tcp_timeout_seconds: u64,
-    pub use_doh: bool,
-    pub doh_bind_address: Ipv6Addr,
-    pub doh_bind_port: u16,
-}
-
-impl Config {
-    pub fn from_env() -> PektinResult<Self> {
-        Ok(Self {
-            bind_address: load_env("::", "BIND_ADDRESS", false)?
-                .parse()
-                .map_err(|_| {
-                    pektin_common::PektinCommonError::InvalidEnvVar("BIND_ADDRESS".into())
-                })?,
-            bind_port: load_env("53", "BIND_PORT", false)?
-                .parse()
-                .map_err(|_| pektin_common::PektinCommonError::InvalidEnvVar("BIND_PORT".into()))?,
-            db_hostname: load_env("pektin-db", "DB_HOSTNAME", false)?,
-            db_port: load_env("6379", "DB_PORT", false)?
-                .parse()
-                .map_err(|_| pektin_common::PektinCommonError::InvalidEnvVar("DB_PORT".into()))?,
-            db_username: load_env("db-pektin-server", "DB_USERNAME", false)?,
-            db_password: load_env("", "DB_PASSWORD", true)?,
-            db_retry_seconds: load_env("1", "DB_RETRY_SECONDS", false)?
-                .parse()
-                .map_err(|_| {
-                    pektin_common::PektinCommonError::InvalidEnvVar("DB_RETRY_SECONDS".into())
-                })?,
-            tcp_timeout_seconds: load_env("3", "TCP_TIMEOUT_SECONDS", false)?
-                .parse()
-                .map_err(|_| {
-                    pektin_common::PektinCommonError::InvalidEnvVar("TCP_TIMEOUT_SECONDS".into())
-                })?,
-            use_doh: load_env("true", "USE_DOH", false)? == "true",
-            doh_bind_port: load_env("80", "DOH_BIND_PORT", false)?
-                .parse()
-                .map_err(|_| {
-                    pektin_common::PektinCommonError::InvalidEnvVar("DOH_BIND_PORT".into())
-                })?,
-            doh_bind_address: load_env("::", "DOH_BIND_ADDRESS", false)?
-                .parse()
-                .map_err(|_| {
-                    pektin_common::PektinCommonError::InvalidEnvVar("DOH_BIND_ADDRESS".into())
-                })?,
-        })
-    }
-}
+use tracing::{error, instrument, warn};
 
 #[tokio::main]
-async fn main() -> PektinResult<()> {
-    env_logger::builder()
-        .format(|buf, record| {
-            let ts = chrono::Local::now().format("%d.%m.%y %H:%M:%S");
-            writeln!(
-                buf,
-                "[{} {} {}]\n{}\n",
-                ts,
-                record.level(),
-                record.target(),
-                record.args()
-            )
-        })
-        .init();
-
-    println!("Started Pektin with these globals:");
-    let config = Config::from_env()?;
+#[instrument(level = "trace")]
+async fn main() -> PektinServerResult<()> {
+    init_observability().await;
+    let config = get_current_config_cloned!(config());
 
     let db_pool_conf = deadpool_redis::Config {
         url: Some(format!(
@@ -184,6 +113,7 @@ async fn main() -> PektinResult<()> {
     }
 }
 
+#[instrument(level = "trace")]
 async fn message_loop_udp(socket: UdpSocket, db_pool: Pool, db_pool_dnssec: Pool) {
     // see trust_dns_server::server::ServerFuture::register_socket
     let (mut udp_stream, udp_handle) =
@@ -207,6 +137,7 @@ async fn message_loop_udp(socket: UdpSocket, db_pool: Pool, db_pool_dnssec: Pool
     }
 }
 
+#[instrument(level = "trace")]
 async fn message_loop_tcp(listener: TcpListener, db_pool: Pool, db_pool_dnssec: Pool) {
     // see trust_dns_server::server::ServerFuture::register_listener
     loop {
@@ -255,6 +186,7 @@ async fn message_loop_tcp(listener: TcpListener, db_pool: Pool, db_pool_dnssec: 
     }
 }
 
+#[instrument(level = "trace", skip(msg, stream_handle))]
 async fn handle_request_udp_tcp(
     msg: SerialMessage,
     stream_handle: BufDnsStreamHandle,

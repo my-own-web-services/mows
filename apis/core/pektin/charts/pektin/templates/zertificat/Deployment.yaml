@@ -1,41 +1,45 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.zertificat.name }}
+    name: "{{ .Values.zertificat.name }}"
+    {{- if .Values.zertificat.dev.autoUpdate }}
+    annotations:
+        keel.sh/policy: force
+        keel.sh/trigger: poll
+        keel.sh/pollSchedule: "@every 1s"
+    {{- end }}
 spec:
-  replicas: {{ .Values.zertificat.replicaCount }}
-  selector:
-    matchLabels:
-      app: {{ .Values.zertificat.name }}
-  template:
-    metadata:
-      labels:
-        app: {{ .Values.zertificat.name }}
-    spec:
-      serviceAccountName: {{ .Values.zertificat.name }}
-      securityContext:
-      containers:
-        - name: {{ .Values.zertificat.name }}
-          image: "{{ .Values.zertificat.image }}"
-          imagePullPolicy: {{ .Values.zertificat.imagePullPolicy }}
-          resources:
-            limits:
-              memory: 128Mi
-              cpu: 500m
-          env:
-            - name: VAULT_KUBERNETES_AUTH_PATH
-              value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes"
-            - name: VAULT_URL
-              value: "{{ .Values.zertificat.vaultUrl }}"
-            - name: VAULT_KUBERNETES_AUTH_ROLE
-              value: "pektin-zertificat"
-            - name: ACME_URL
-              value: "{{ .Values.zertificat.acmeUrl }}"
-            - name: ACME_EMAIL
-              value: "{{ .Values.zertificat.acmeEmail }}"
-            - name: LOG_FILTER
-              value: "{{ .Values.zertificat.logFilter }}"
-            - name: TRACING_FILTER
-              value: "{{ .Values.zertificat.tracingFilter }}"
-              
-
+    replicas: {{ .Values.zertificat.replicaCount }}
+    selector:
+        matchLabels:
+            app: "{{ .Values.zertificat.name }}"
+    template:
+        metadata:
+            labels:
+                app: "{{ .Values.zertificat.name }}"
+        spec:
+            serviceAccountName: "{{ .Values.zertificat.name }}"
+            securityContext:
+            containers:
+                - name: "{{ .Values.zertificat.name }}"
+                  image: "{{ .Values.zertificat.image }}"
+                  imagePullPolicy: "{{ .Values.zertificat.imagePullPolicy }}"
+                  resources:
+                      limits:
+                          memory: 128Mi
+                          cpu: 500m
+                  env:
+                      - name: VAULT_KUBERNETES_AUTH_PATH
+                        value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes"
+                      - name: VAULT_URL
+                        value: "{{ .Values.zertificat.vaultUrl }}"
+                      - name: VAULT_KUBERNETES_AUTH_ROLE
+                        value: "pektin-zertificat"
+                      - name: ACME_URL
+                        value: "{{ .Values.zertificat.acmeUrl }}"
+                      - name: ACME_EMAIL
+                        value: "{{ .Values.zertificat.acmeEmail }}"
+                      - name: LOG_FILTER
+                        value: "{{ .Values.zertificat.logging.logFilter }}"
+                      - name: TRACING_FILTER
+                        value: "{{ .Values.zertificat.logging.tracingFilter }}"

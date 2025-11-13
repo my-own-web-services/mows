@@ -3,12 +3,12 @@ use actix_web::{
     cookie::time::error, get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use anyhow::Context;
-pub use controller::{self, ControllerState};
+pub use controller::{self, ControllerWevServerSharedState};
 use mows_common_rust::observability::init_observability;
 use tracing_actix_web::TracingLogger;
 
 #[get("/metrics")]
-async fn metrics(c: Data<ControllerState>, _req: HttpRequest) -> impl Responder {
+async fn metrics(c: Data<ControllerWevServerSharedState>, _req: HttpRequest) -> impl Responder {
     let metrics = c.metrics();
     HttpResponse::Ok()
         .content_type("application/openmetrics-text; version=1.0.0; charset=utf-8")
@@ -21,7 +21,7 @@ async fn health(_: HttpRequest) -> impl Responder {
 }
 
 #[get("/")]
-async fn index(c: Data<ControllerState>, _req: HttpRequest) -> impl Responder {
+async fn index(c: Data<ControllerWevServerSharedState>, _req: HttpRequest) -> impl Responder {
     let d = c.diagnostics().await;
     HttpResponse::Ok().json(&d)
 }
@@ -30,7 +30,7 @@ async fn index(c: Data<ControllerState>, _req: HttpRequest) -> impl Responder {
 async fn main() -> anyhow::Result<()> {
     init_observability().await;
 
-    let state = ControllerState::new()
+    let state = ControllerWevServerSharedState::new()
         .await
         .context("Failed to initialize controller state with vault client")?;
     let controller = controller::run(state.clone());

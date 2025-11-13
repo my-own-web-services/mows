@@ -1,3 +1,4 @@
+use mows_common_rust::vault::ManagedVaultClient;
 use pektin_common::{
     deadpool_redis::Pool,
     proto::rr::{Name, RecordType},
@@ -73,9 +74,9 @@ pub struct HealthRequestBody {
 pub struct AppState {
     pub db_pool: Pool,
     pub db_pool_dnssec: Pool,
-    pub vault_uri: String,
     pub ribston_uri: String,
     pub skip_auth: String,
+    pub vault_client: ManagedVaultClient,
 }
 
 impl_from_request_body!(GetRequestBody, Get, records);

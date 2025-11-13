@@ -87,7 +87,7 @@ pub async fn cleanup_resource(
 
 // Context for our reconciler
 #[derive(Clone)]
-pub struct Context {
+pub struct ControllerContext {
     /// Kubernetes client
     pub client: Client,
     /// Diagnostics read by the web server
@@ -96,47 +96,54 @@ pub struct Context {
     pub metrics: Arc<Metrics>,
 }
 
-#[instrument(skip(ctx), fields(trace_id))]
-async fn reconcile(resource: Arc<ZitadelResource>, ctx: Arc<Context>) -> Result<Action> {
+#[instrument(skip(controller_context), fields(trace_id))]
+async fn reconcile(
+    resource: Arc<ZitadelResource>,
+    controller_context: Arc<ControllerContext>,
+) -> Result<Action> {
     let trace_id = get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
-    let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
-    ctx.diagnostics.write().await.last_event = Utc::now();
+    let _timer = controller_context.metrics.reconcile.count_and_measure(&trace_id);
+    controller_context.diagnostics.write().await.last_event = Utc::now();
     let ns = resource.namespace().unwrap();
-    let zitadel_resource_api: Api<ZitadelResource> = Api::namespaced(ctx.client.clone(), &ns);
+    let zitadel_resource_api: Api<ZitadelResource> = Api::namespaced(controller_context.client.clone(), &ns);
 
     info!("Reconciling Document \"{}\" in {}", resource.name_any(), ns);
     finalizer(&zitadel_resource_api, FINALIZER, resource, |event| async {
         match event {
-            Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
-            Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
+            Finalizer::Apply(doc) => doc.reconcile(controller_context.clone()).await,
+            Finalizer::Cleanup(doc) => doc.cleanup(controller_context.clone()).await,
         }
     })
     .await
     .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
 }
 
-#[instrument(skip(ctx), level = "trace")]
+#[instrument(skip(controller_context), level = "trace")]
 fn error_policy(
     resource: Arc<ZitadelResource>,
     error: &ControllerError,
-    ctx: Arc<Context>,
+    controller_context: Arc<ControllerContext>,
     reconcile_interval_seconds: u64,
 ) -> Action {
     warn!("reconcile failed: {:?}", error);
-    ctx.metrics.reconcile.set_failure(&resource, error);
+    controller_context.metrics.reconcile.set_failure(&resource, error);
 
     Action::requeue(Duration::from_secs(reconcile_interval_seconds))
 }
 
 impl ZitadelResource {
     // Reconcile (for non-finalizer related changes)
-    #[instrument(skip(ctx))]
-    async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
-        let kube_client = ctx.client.clone();
-        let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);
+    #[instrument(skip(controller_context))]
+    async fn reconcile(&self, controller_context: Arc<ControllerContext>) -> Result<Action> {
+        let kube_client = controller_context.client.clone();
+        let recorder = controller_context
+            .diagnostics
+            .read()
+            .await
+            .recorder(kube_client.clone(), self);
         let ns = self.namespace().unwrap();
         let name = self.name_any();
         let zitadel_resource_api: Api<ZitadelResource> = Api::namespaced(kube_client.clone(), &ns);
@@ -161,9 +168,9 @@ impl ZitadelResource {
                 recorder
                     .publish(Event {
                         type_: EventType::Normal,
-                        reason: "ObjectCreated".into(),
-                        note: Some(format!("Object Created: {name}")),
-                        action: "CreateObject".into(),
+                        reason: "ResourceCreated".into(),
+                        note: Some(format!("Resource created: {name}")),
+                        action: "CreateZitadelResource".into(),
                         secondary: None,
                     })
                     .await
@@ -186,14 +193,16 @@ impl ZitadelResource {
                     .map_err(ControllerError::KubeError)?;
 
                 let mut reason = get_error_type(&e);
-                reason.truncate(1000);
+                reason.truncate(128);
+                let mut note = e.to_string();
+                note.truncate(1024);
 
                 recorder
                     .publish(Event {
                         type_: EventType::Warning,
                         reason,
-                        note: Some(e.to_string()),
-                        action: "CreateObject".into(),
+                        note: Some(note),
+                        action: "CreateZitadelResource".into(),
                         secondary: None,
                     })
                     .await
@@ -211,8 +220,12 @@ impl ZitadelResource {
     }
 
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)
-    async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
-        let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
+    async fn cleanup(&self, controller_context: Arc<ControllerContext>) -> Result<Action> {
+        let recorder = controller_context
+            .diagnostics
+            .read()
+            .await
+            .recorder(controller_context.client.clone(), self);
 
         // Document doesn't have any real cleanup, so we just publish an event
         let res = recorder
@@ -256,7 +269,7 @@ impl Diagnostics {
 
 /// State shared between the controller and the web server
 #[derive(Clone, Default, Debug)]
-pub struct State {
+pub struct ControllerWebServerSharedState {
     /// Diagnostics populated by the reconciler
     diagnostics: Arc<RwLock<Diagnostics>>,
     /// Metrics
@@ -264,7 +277,7 @@ pub struct State {
 }
 
 /// State wrapper around the controller outputs for the web server
-impl State {
+impl ControllerWebServerSharedState {
     /// Metrics getter
     pub fn metrics(&self) -> String {
         let mut buffer = String::new();
@@ -279,8 +292,8 @@ impl State {
     }
 
     // Create a Controller Context that can update State
-    pub fn to_context(&self, client: Client) -> Arc<Context> {
-        Arc::new(Context {
+    pub fn to_context(&self, client: Client) -> Arc<ControllerContext> {
+        Arc::new(ControllerContext {
             client,
             metrics: self.metrics.clone(),
             diagnostics: self.diagnostics.clone(),
@@ -289,7 +302,7 @@ impl State {
 }
 /// Initialize the controller and shared state (given the crd is installed)
 #[instrument(level = "trace")]
-pub async fn run(state: State) {
+pub async fn run(shared_state: ControllerWebServerSharedState) {
     let client = Client::try_default().await.expect("failed to create kube Client");
     let zitadel_resource = Api::<ZitadelResource>::all(client.clone());
     if let Err(e) = zitadel_resource.list(&ListParams::default().limit(1)).await {
@@ -304,10 +317,15 @@ pub async fn run(state: State) {
         .shutdown_on_signal()
         .run(
             reconcile,
-            |zitadel_resource, error, ctx| {
-                error_policy(zitadel_resource, error, ctx, config.reconcile_interval_seconds)
+            |zitadel_resource, error, controller_context| {
+                error_policy(
+                    zitadel_resource,
+                    error,
+                    controller_context,
+                    config.reconcile_interval_seconds,
+                )
             },
-            state.to_context(client),
+            shared_state.to_context(client),
         )
         .filter_map(|x| async move { std::result::Result::ok(x) })
         .for_each(|_| futures::future::ready(()))

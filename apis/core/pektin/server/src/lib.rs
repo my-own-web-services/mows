@@ -1,4 +1,6 @@
+pub mod config;
 pub mod doh;
+pub mod errors;
 pub mod persistence;
 
 use anyhow::{anyhow, bail, ensure, Context};
@@ -9,33 +11,12 @@ use pektin_common::proto::op::{Edns, Message, MessageType, Query, ResponseCode};
 use pektin_common::proto::rr::{Name, RData, Record, RecordType};
 use pektin_common::{get_authoritative_zones, DbEntry, RrSet};
 use persistence::{get_rrset, get_rrsig, QueryResponse};
-use thiserror::Error;
-use tracing::{error, info};
+use tracing::{error, info, instrument};
 
-#[derive(Debug, Error)]
-pub enum PektinError {
-    #[error("{0}")]
-    CommonError(#[from] pektin_common::PektinCommonError),
-    #[error("db error")]
-    DbError(#[from] pektin_common::deadpool_redis::redis::RedisError),
-    #[error("could not create db connection pool: `{0}`")]
-    PoolError(#[from] pektin_common::deadpool_redis::CreatePoolError),
-    #[error("io error: `{0}`")]
-    IoError(#[from] std::io::Error),
-    #[error("could not (de)serialize JSON: `{0}`")]
-    JsonError(#[from] serde_json::Error),
-    #[error("invalid DNS data")]
-    ProtoError(#[from] pektin_common::proto::error::ProtoError),
-    #[error("data in db invalid")]
-    InvalidDbData,
-    #[error("requested db key had an unexpected type")]
-    WickedDbValue,
-    #[error("This is a bug, please report it: {0}")]
-    Bug(&'static str),
-}
-pub type PektinResult<T> = Result<T, PektinError>;
+use crate::errors::{PektinServerError, PektinServerResult};
 
 /// Takes the given query message, processes it, and returns an appropriate response message.
+#[instrument(level = "trace")]
 pub async fn process_request(mut message: Message, db_pool: Pool, db_pool_dnssec: Pool) -> Message {
     let mut response = Message::new();
     response.set_id(message.id());
@@ -72,6 +53,7 @@ pub async fn process_request(mut message: Message, db_pool: Pool, db_pool_dnssec
 /// Does most of the work for process_request(), but is allowed to return an error.
 ///
 /// This error is logged in process_request(), and then a SERVFAIL response is returned.
+#[instrument(level = "trace")]
 async fn process_request_internal(
     response: &mut Message,
     message: &Message,
@@ -169,9 +151,9 @@ async fn find_answers<'c, 'n, O, F>(
     query: &'n Query,
     get_fn: F,
     con: &'c mut MultiplexedConnection,
-) -> PektinResult<Vec<Record>>
+) -> PektinServerResult<Vec<Record>>
 where
-    O: futures_util::Future<Output = PektinResult<QueryResponse>>,
+    O: futures_util::Future<Output = PektinServerResult<QueryResponse>>,
     F: Fn(&'c mut MultiplexedConnection, &'n Name, RecordType) -> O,
 {
     let db_response = get_fn(con, query.name(), query.query_type()).await?;
@@ -181,13 +163,14 @@ where
         QueryResponse::Wildcard(wild) => wild,
         QueryResponse::Both { definitive, .. } => definitive,
     };
-    Ok(db_entry
-        .convert()
-        .map_err(|e| PektinError::CommonError(pektin_common::PektinCommonError::GenericError(e)))?)
+    Ok(db_entry.convert().map_err(|e| {
+        PektinServerError::CommonError(pektin_common::PektinCommonError::GenericError(e))
+    })?)
 }
 
 /// Assumes the given query matched no known records. Adds the SOA record for the given zone to the
 /// response, and if `do_flag` is true, also appropriate NSEC3 and RRSIG records.
+#[instrument(level = "trace")]
 async fn add_soa_and_nsec3(
     response: &mut Message,
     query: &Query,
@@ -203,7 +186,7 @@ async fn add_soa_and_nsec3(
         .context("Could not get SOA record")?;
 
     let db_entry = match db_response {
-        QueryResponse::Empty => bail!(PektinError::Bug(
+        QueryResponse::Empty => bail!(PektinServerError::Bug(
             "No SOA record for a zone that we're supposedly authoritative for",
         )),
         QueryResponse::Definitive(def) => def,
@@ -216,7 +199,7 @@ async fn add_soa_and_nsec3(
             ttl,
             ..
         } => (ttl, rr_set),
-        _ => bail!(PektinError::Bug(
+        _ => bail!(PektinServerError::Bug(
             "DB response for SOA query gave non-SOA DbEntry",
         )),
     };

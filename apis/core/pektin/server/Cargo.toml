@@ -40,6 +40,7 @@ thiserror = { workspace = true, features = ["default"] }
 tokio = { workspace = true, features = ["full"] }
 hickory-server = "0.24.1"
 url = { workspace = true, features = ["serde"] }
+mows-common-rust = { workspace = true, features = ["default", "vault"] }
 
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]

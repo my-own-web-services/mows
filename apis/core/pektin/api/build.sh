@@ -3,6 +3,7 @@ set -euo pipefail
 
 
 export SERVICE_NAME="pektin-api"
+export BUILDX_BAKE_ENTITLEMENTS_FS=0
 
 docker buildx bake ${BAKE_ARGS:-default}
 

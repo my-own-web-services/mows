@@ -13,8 +13,8 @@ dev:
     autoUpdate: true
 
 logging:
-    log_filter: info
-    tracing_filter: info
+    logFilter: info
+    tracingFilter: trace
 
 imagePullSecrets: []
 

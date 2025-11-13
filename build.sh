@@ -3,7 +3,9 @@
 set -euo pipefail
 
 export BUILDX_BAKE_ENTITLEMENTS_FS=0
-export BAKE_ARGS="--set *.args.PROFILE=dev --set *.args.APP_STAGE_IMAGE=scratch"
+#export BAKE_ARGS="--set *.args.PROFILE=dev --set *.args.APP_STAGE_IMAGE=scratch"
+export PROFILE="release"
+export APP_STAGE_IMAGE="scratch"
 export REGISTRY="localhost:5000"
 
 export MOWS_ROOT=$(pwd)

@@ -94,13 +94,13 @@ async fn extract_metadata(
     let config = get_current_config_cloned!(config());
     let source_path = Path::new(&config.working_directory)
         .join(&job_execution_information.file_id.to_string())
-        .join(&job_execution_information.file_version_number.to_string())
+        .join(&job_execution_information.file_revision_index.to_string())
         .join("source");
 
     stream_file_to_path(
         filez_client,
         job_execution_information.file_id,
-        job_execution_information.file_version_number,
+        job_execution_information.file_revision_index,
         &source_path,
     )
     .await?;

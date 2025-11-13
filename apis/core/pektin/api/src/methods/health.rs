@@ -1,16 +1,13 @@
-use std::ops::Deref;
-
-use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
-use serde_json::json;
-use tracing::{info_span, instrument, Instrument};
-
 use crate::{
     auth::auth_ok,
     errors_and_responses::success_with_toplevel_data,
     ribston,
     types::{AppState, HealthRequestBody},
-    vault,
 };
+use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
+use serde_json::json;
+use std::ops::Deref;
+use tracing::{info_span, instrument, Instrument};
 
 #[post("/health")]
 #[instrument(skip(state))]
@@ -29,9 +26,23 @@ pub async fn health(
             &req_body.confidant_password,
         )
         .await;
+
         if auth.success {
             let db_con = state.db_pool.get().await;
-            let vault_status = vault::get_health(&state.vault_uri).await;
+            let vault_status = match state.vault_client.get_client().await {
+                Err(_) => 500,
+                Ok(vault_client) => vaultrs::sys::health(&vault_client)
+                    .await
+                    .map(|health| {
+                        if health.initialized && !health.sealed && !health.standby {
+                            200
+                        } else {
+                            500
+                        }
+                    })
+                    .unwrap_or(500),
+            };
+
             let ribston_status = match ribston::get_health(&state.ribston_uri).await {
                 Ok(v) => v,
                 Err(_) => 500,

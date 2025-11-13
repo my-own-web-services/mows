@@ -35,9 +35,9 @@ pub static FINALIZER: &str = "vaultresources.k8s.mows.cloud";
 
 // Context for our reconciler
 #[derive(Clone)]
-pub struct Context {
+pub struct ControllerContext {
     /// Kubernetes client
-    pub client: Client,
+    pub kubernetes_client: Client,
     /// Diagnostics read by the web server
     pub diagnostics: Arc<RwLock<Diagnostics>>,
     /// Prometheus metrics
@@ -46,22 +46,26 @@ pub struct Context {
     pub vault_client: ManagedVaultClient,
 }
 
-#[instrument(skip(ctx, vault_resource), fields(trace_id), level = "trace")]
-async fn reconcile(vault_resource: Arc<VaultResource>, ctx: Arc<Context>) -> Result<Action> {
+#[instrument(skip(controller_context), fields(trace_id), level = "trace")]
+async fn reconcile(
+    vault_resource: Arc<VaultResource>,
+    controller_context: Arc<ControllerContext>,
+) -> Result<Action> {
     let trace_id = get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
-    let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
-    ctx.diagnostics.write().await.last_event = Utc::now();
+    let _timer = controller_context.metrics.reconcile.count_and_measure(&trace_id);
+    controller_context.diagnostics.write().await.last_event = Utc::now();
     let ns = vault_resource.namespace().unwrap(); // vault resources are namespace scoped
-    let vault_resources: Api<VaultResource> = Api::namespaced(ctx.client.clone(), &ns);
+    let vault_resources: Api<VaultResource> =
+        Api::namespaced(controller_context.kubernetes_client.clone(), &ns);
 
     //info!("Reconciling Object \"{}\" in {}", vault_resource.name_any(), ns);
     finalizer(&vault_resources, FINALIZER, vault_resource, |event| async {
         match event {
-            Finalizer::Apply(res) => res.reconcile(ctx.clone()).await,
-            Finalizer::Cleanup(res) => res.cleanup(ctx.clone()).await,
+            Finalizer::Apply(res) => res.reconcile(controller_context.clone()).await,
+            Finalizer::Cleanup(res) => res.cleanup(controller_context.clone()).await,
         }
     })
     .await
@@ -199,26 +203,33 @@ pub async fn apply_resource(
 fn error_policy(
     vault_resource: Arc<VaultResource>,
     error: &ControllerError,
-    ctx: Arc<Context>,
+    controller_context: Arc<ControllerContext>,
     reconcile_interval_seconds: u64,
 ) -> Action {
     warn!("reconcile failed: {:?}", error);
-    ctx.metrics.reconcile.set_failure(&vault_resource, error);
+    controller_context
+        .metrics
+        .reconcile
+        .set_failure(&vault_resource, error);
 
     Action::requeue(Duration::from_secs(reconcile_interval_seconds))
 }
 
 impl VaultResource {
     // Reconcile (for non-finalizer related changes)
-    #[instrument(skip(ctx), level = "trace")]
-    async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
-        let kube_client = ctx.client.clone();
-        let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);
+    #[instrument(skip(controller_context), level = "trace")]
+    async fn reconcile(&self, controller_context: Arc<ControllerContext>) -> Result<Action> {
+        let kube_client = controller_context.kubernetes_client.clone();
+        let recorder = controller_context
+            .diagnostics
+            .read()
+            .await
+            .recorder(kube_client.clone(), self);
         let ns = self.namespace().unwrap();
         let name = self.name_any();
         let vault_resources: Api<VaultResource> = Api::namespaced(kube_client.clone(), &ns);
 
-        match apply_resource(self, &kube_client, &ctx.vault_client).await {
+        match apply_resource(self, &kube_client, &controller_context.vault_client).await {
             Ok(_) => {
                 let new_status = Patch::Apply(json!({
                     "apiVersion": "vault.k8s.mows.cloud/v1",
@@ -239,8 +250,8 @@ impl VaultResource {
                 recorder
                     .publish(Event {
                         type_: EventType::Normal,
-                        reason: "ObjectCreated".into(),
-                        note: Some(format!("Object Created: `{name}`")),
+                        reason: "ResourceCreated".into(),
+                        note: Some(format!("Resource created: `{name}`")),
                         action: "CreateObject".into(),
                         secondary: None,
                     })
@@ -263,14 +274,17 @@ impl VaultResource {
                     .await
                     .map_err(ControllerError::KubeError)?;
 
-                let reason = get_error_type(&e);
+                let mut reason = get_error_type(&e);
+                reason.truncate(128);
+                let mut note = e.to_string();
+                note.truncate(1024);
 
                 recorder
                     .publish(Event {
                         type_: EventType::Warning,
                         reason,
-                        note: Some(e.to_string()),
-                        action: "CreateObject".into(),
+                        note: Some(note),
+                        action: "CreateVaultResource".into(),
                         secondary: None,
                     })
                     .await
@@ -288,11 +302,20 @@ impl VaultResource {
     }
 
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)
-    #[instrument(skip(ctx), level = "trace")]
-    async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
-        let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
+    #[instrument(skip(controller_context), level = "trace")]
+    async fn cleanup(&self, controller_context: Arc<ControllerContext>) -> Result<Action> {
+        let recorder = controller_context
+            .diagnostics
+            .read()
+            .await
+            .recorder(controller_context.kubernetes_client.clone(), self);
 
-        cleanup_resource(self, &ctx.client, &ctx.vault_client).await?;
+        cleanup_resource(
+            self,
+            &controller_context.kubernetes_client,
+            &controller_context.vault_client,
+        )
+        .await?;
 
         let res = recorder
             .publish(Event {
@@ -339,7 +362,7 @@ impl Diagnostics {
 
 /// State shared between the controller and the web server
 #[derive(Clone)]
-pub struct ControllerState {
+pub struct ControllerWevServerSharedState {
     /// Diagnostics populated by the reconciler
     diagnostics: Arc<RwLock<Diagnostics>>,
     /// Metrics
@@ -349,7 +372,7 @@ pub struct ControllerState {
 }
 
 /// State wrapper around the controller outputs for the web server
-impl ControllerState {
+impl ControllerWevServerSharedState {
     /// Metrics getter
     pub fn metrics(&self) -> String {
         let mut buffer = String::new();
@@ -364,9 +387,9 @@ impl ControllerState {
     }
 
     // Create a Controller Context that can update State
-    pub fn to_context(&self, client: Client) -> Arc<Context> {
-        Arc::new(Context {
-            client,
+    pub fn to_context(&self, client: Client) -> Arc<ControllerContext> {
+        Arc::new(ControllerContext {
+            kubernetes_client: client,
             metrics: self.metrics.clone(),
             diagnostics: self.diagnostics.clone(),
             vault_client: self.vault_client.clone(),
@@ -374,7 +397,7 @@ impl ControllerState {
     }
 
     /// Create a new controller state with vault client
-    pub async fn new() -> Result<Self, mows_common_rust::vault::VaultError> {
+    pub async fn new() -> Result<Self, mows_common_rust::vault::ManagedVaultError> {
         let config = get_current_config_cloned!(config());
 
         let vault_config = mows_common_rust::vault::VaultConfig {
@@ -398,7 +421,7 @@ impl ControllerState {
 }
 
 /// Initialize the controller and shared state (given the crd is installed)
-pub async fn run(state: ControllerState) {
+pub async fn run(state: ControllerWevServerSharedState) {
     let client = Client::try_default().await.expect("failed to create kube Client");
     let object = Api::<VaultResource>::all(client.clone());
     if let Err(e) = object.list(&ListParams::default().limit(1)).await {
@@ -413,8 +436,13 @@ pub async fn run(state: ControllerState) {
         .shutdown_on_signal()
         .run(
             reconcile,
-            |vault_resource, error, ctx| {
-                error_policy(vault_resource, error, ctx, config.reconcile_interval_seconds)
+            |vault_resource, error, controller_context| {
+                error_policy(
+                    vault_resource,
+                    error,
+                    controller_context,
+                    config.reconcile_interval_seconds,
+                )
             },
             state.to_context(client),
         )

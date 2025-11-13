@@ -8,10 +8,10 @@ use tracing_actix_web::TracingLogger;
 use zitadel::api::zitadel::management::v1::{GetIamRequest, GetMyOrgRequest};
 use zitadel_resource_controller::config::config;
 use zitadel_resource_controller::zitadel_client::ZitadelClient;
-use zitadel_resource_controller::{self, State};
+use zitadel_resource_controller::{self, ControllerWebServerSharedState};
 
 #[get("/metrics")]
-async fn metrics(c: Data<State>, _req: HttpRequest) -> impl Responder {
+async fn metrics(c: Data<ControllerWebServerSharedState>, _req: HttpRequest) -> impl Responder {
     let metrics = c.metrics();
     HttpResponse::Ok()
         .content_type("application/openmetrics-text; version=1.0.0; charset=utf-8")
@@ -24,7 +24,7 @@ async fn health(_: HttpRequest) -> impl Responder {
 }
 
 #[get("/")]
-async fn index(c: Data<State>, _req: HttpRequest) -> impl Responder {
+async fn index(c: Data<ControllerWebServerSharedState>, _req: HttpRequest) -> impl Responder {
     let d = c.diagnostics().await;
     HttpResponse::Ok().json(&d)
 }
@@ -34,7 +34,7 @@ async fn main() -> anyhow::Result<()> {
     init_observability().await;
 
     // Initialize Kubernetes controller state
-    let state = State::default();
+    let state = ControllerWebServerSharedState::default();
     let controller = zitadel_resource_controller::run(state.clone());
 
     let mut zitadel_client = ZitadelClient::new().await?.management_client(None).await?;

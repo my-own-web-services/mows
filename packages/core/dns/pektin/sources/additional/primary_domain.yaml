@@ -9,31 +9,42 @@ spec:
           meta: ""
           ttl: 60
           rr_set:
-            SOA:
-                - mname: ns1.{§ .config.domain §}.
-                  rname: hostmaster.{§ .config.domain §}.
-                  serial: 0
-                  refresh: 0
-                  retry: 0
-                  expire: 0
-                  minimum: 0
-        - name: vindelicorum.eu.
+              SOA:
+                  - mname: ns1.{§ .config.domain §}.
+                    rname: hostmaster.{§ .config.domain §}.
+                    serial: 0
+                    refresh: 0
+                    retry: 0
+                    expire: 0
+                    minimum: 0
+        - name: "{§ .config.domain §}."
           meta: ""
           ttl: 60
           rr_set:
-            NS:
-                - value: ns1.{§ .config.domain §}.
-                - value: ns2.{§ .config.domain §}.
+              NS:
+                  - value: ns1.{§ .config.domain §}.
+                  - value: ns2.{§ .config.domain §}.
         - name: ns1.{§ .config.domain §}.
           meta: ""
           ttl: 60
           rr_set:
-            A:
-                - value: "{§ .config.legacy_ip §}"
+              A:
+                  - value: "{§ .config.legacy_ip §}"
         - name: ns2.{§ .config.domain §}.
           meta: ""
           ttl: 60
           rr_set:
-            AAAA:
-                - value: "2a01:4f8:1c1b:b783::1"
-
+              AAAA:
+                  - value: "2a01:4f8:1c1b:b783::1"
+        - name: "{§ .config.domain §}."
+          meta: ""
+          ttl: 60
+          rr_set:
+              A:
+                  - value: "{§ .config.legacy_ip §}"
+        - name: "*.{§ .config.domain §}."
+          meta: ""
+          ttl: 60
+          rr_set:
+              A:
+                  - value: "{§ .config.legacy_ip §}"

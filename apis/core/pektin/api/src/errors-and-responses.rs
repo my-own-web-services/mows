@@ -2,7 +2,7 @@ use actix_web::{
     error::{ErrorBadRequest, JsonPayloadError},
     HttpRequest, HttpResponse,
 };
-use mows_common_rust::reqwest_middleware;
+use mows_common_rust::{errors::MowsError, reqwest_middleware, vault::ManagedVaultError};
 use serde::Serialize;
 use serde_json::json;
 use thiserror::Error;
@@ -112,9 +112,7 @@ pub enum PektinApiError {
     Json(#[from] serde_json::Error),
     #[error("I/O error")]
     IoError(#[from] std::io::Error),
-    // TODO: change this to a manual From impl, also this is not really Vault-specific
-    #[error("Error contacting Vault: {0}")]
-    VaultOldImpl(#[from] reqwest::Error),
+
     #[error("Invalid Base64")]
     Base64(#[from] data_encoding::DecodeError),
     #[error("Could not parse the signature received from Vault")]
@@ -141,34 +139,22 @@ pub enum PektinApiError {
     GetRibstonPolicy,
 
     #[error("VaultError: {0}")]
-    VaultError(#[source] vaultrs::error::ClientError),
+    VaultError(#[from] vaultrs::error::ClientError),
 
     #[error("Generic: {0}")]
     GenericError(String),
 
     #[error("ReqwestMiddlewareError: {0}")]
-    ReqwestMiddlewareError(#[source] reqwest_middleware::Error),
+    ReqwestMiddlewareError(#[from] reqwest_middleware::Error),
 
     #[error("ReqwestError: {0}")]
-    ReqwestError(#[source] reqwest::Error),
-}
+    ReqwestError(#[from] reqwest::Error),
 
-impl From<vaultrs::error::ClientError> for PektinApiError {
-    fn from(error: vaultrs::error::ClientError) -> Self {
-        PektinApiError::VaultError(error)
-    }
-}
+    #[error(transparent)]
+    ManagedVaultError(#[from] ManagedVaultError),
 
-impl From<reqwest_middleware::Error> for PektinApiError {
-    fn from(error: reqwest_middleware::Error) -> Self {
-        PektinApiError::ReqwestMiddlewareError(error)
-    }
-}
-
-impl From<anyhow::Error> for PektinApiError {
-    fn from(error: anyhow::Error) -> Self {
-        PektinApiError::GenericError(error.to_string())
-    }
+    #[error(transparent)]
+    MowsError(#[from] MowsError),
 }
 
 pub type PektinApiResult<T> = Result<T, PektinApiError>;

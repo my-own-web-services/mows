@@ -33,10 +33,10 @@ pub mod metrics;
 
 pub static FINALIZER: &str = "filez.k8s.mows.cloud";
 
-#[instrument(skip(ctx), level = "trace")]
+#[instrument(skip(controller_context), level = "trace")]
 async fn inner_reconcile(
     resource: &FilezResource,
-    ctx: &ControllerContext,
+    controller_context: &ControllerContext,
     name: &str,
     namespace: &str,
 ) -> Result<(), FilezError> {
@@ -50,7 +50,8 @@ async fn inner_reconcile(
             );
 
             let filez_secrets =
-                SecretReadableByFilezController::fetch_map(&ctx.client, namespace).await?;
+                SecretReadableByFilezController::fetch_map(&controller_context.client, namespace)
+                    .await?;
             debug!("Fetched secrets for resource: {}", full_name);
             debug!(
                 "Creating or updating StorageLocation for resource: {} with config: {:?}",
@@ -58,8 +59,8 @@ async fn inner_reconcile(
             );
 
             StorageLocation::create_or_update(
-                &ctx.storage_location_providers,
-                &ctx.database,
+                &controller_context.storage_location_providers,
+                &controller_context.database,
                 &full_name,
                 filez_secrets,
                 &incoming_provider_config,
@@ -67,17 +68,21 @@ async fn inner_reconcile(
             .await?;
         }
         FilezResourceSpec::MowsApp(incoming_app) => {
-            MowsApp::create_or_update(&ctx.database, incoming_app, &full_name).await?;
+            MowsApp::create_or_update(&controller_context.database, incoming_app, &full_name)
+                .await?;
         }
     }
     Ok(())
 }
 
 impl FilezResource {
-    #[instrument(skip(ctx), level = "trace")]
-    async fn reconcile(&self, ctx: Arc<ControllerContext>) -> Result<Action, FilezError> {
+    #[instrument(skip(controller_context), level = "trace")]
+    async fn reconcile(
+        &self,
+        controller_context: Arc<ControllerContext>,
+    ) -> Result<Action, FilezError> {
         debug!("Starting reconcile for FilezResource");
-        let kube_client = ctx.client.clone();
+        let kube_client = controller_context.client.clone();
 
         let config = get_current_config_cloned!(config());
         let filez_resources_api: Api<FilezResource> =
@@ -94,13 +99,13 @@ impl FilezResource {
             .clone()
             .unwrap_or_else(|| "default".to_string());
 
-        let recorder = ctx
+        let recorder = controller_context
             .diagnostics
             .read()
             .await
             .recorder(kube_client.clone(), self);
 
-        if let Err(e) = inner_reconcile(self, &ctx, &name, &namespace).await {
+        if let Err(e) = inner_reconcile(self, &controller_context, &name, &namespace).await {
             error!("Reconcile failed: {:?}", e);
             let new_status = Patch::Apply(json!({
                 "apiVersion": "filez.k8s.mows.cloud/v1",
@@ -115,14 +120,17 @@ impl FilezResource {
                 .patch_status(&name, &ps, &new_status)
                 .await?;
 
-            let reason = get_error_type(&e);
+            let mut reason = get_error_type(&e);
+            reason.truncate(128);
+            let mut note = e.to_string();
+            note.truncate(1024);
 
             recorder
                 .publish(Event {
                     type_: EventType::Warning,
                     reason,
-                    note: Some(e.to_string()),
-                    action: "CreateObject".into(),
+                    note: Some(note),
+                    action: "CreateFilezResource".into(),
                     secondary: None,
                 })
                 .await?;
@@ -146,9 +154,9 @@ impl FilezResource {
         recorder
             .publish(Event {
                 type_: EventType::Normal,
-                reason: "ObjectCreated".into(),
-                note: Some(format!("Object Created: `{name}`")),
-                action: "CreateObject".into(),
+                reason: "ResourceCreated".into(),
+                note: Some(format!("Resource created: `{name}`")),
+                action: "CreateFilezResource".into(),
                 secondary: None,
             })
             .await?;
@@ -158,8 +166,11 @@ impl FilezResource {
         )))
     }
 
-    #[instrument(skip(ctx), level = "trace")]
-    async fn cleanup(&self, ctx: Arc<ControllerContext>) -> Result<Action, FilezError> {
+    #[instrument(skip(controller_context), level = "trace")]
+    async fn cleanup(
+        &self,
+        controller_context: Arc<ControllerContext>,
+    ) -> Result<Action, FilezError> {
         let full_name = format!(
             "{}-{}",
             self.namespace().unwrap_or_default(),
@@ -167,19 +178,23 @@ impl FilezResource {
         );
         match self.spec {
             FilezResourceSpec::StorageLocation(_) => {
-                StorageLocation::delete(&ctx.storage_location_providers, &ctx.database, &full_name)
-                    .await?;
+                StorageLocation::delete(
+                    &controller_context.storage_location_providers,
+                    &controller_context.database,
+                    &full_name,
+                )
+                .await?;
             }
             FilezResourceSpec::MowsApp(_) => {
-                MowsApp::delete(&ctx.database, &full_name).await?;
+                MowsApp::delete(&controller_context.database, &full_name).await?;
             }
         }
 
-        let recorder = ctx
+        let recorder = controller_context
             .diagnostics
             .read()
             .await
-            .recorder(ctx.client.clone(), self);
+            .recorder(controller_context.client.clone(), self);
 
         if let Err(e) = recorder
             .publish(Event {
@@ -247,7 +262,7 @@ pub async fn get_controller_health() -> Result<ControllerHealthDetails, FilezErr
 }
 
 pub async fn get_controller_health_with_state(
-    controller_state: &crate::kubernetes_controller::ControllerState,
+    controller_state: &ControllerState,
 ) -> Result<ControllerHealthDetails, FilezError> {
     let mut details = get_controller_health().await?;
 
@@ -314,7 +329,7 @@ impl Diagnostics {
 }
 
 #[instrument(level = "trace")]
-pub async fn run_controller(state: ServerState) -> Result<(), FilezError> {
+pub async fn run_controller(shared_state: ServerState) -> Result<(), FilezError> {
     let client = Client::try_default().await.map_err(|e| {
         error!("Failed to create Kubernetes client: {e:?}");
         FilezError::ControllerKubeError(e)
@@ -362,15 +377,15 @@ pub async fn run_controller(state: ServerState) -> Result<(), FilezError> {
     Ok(controller
         .run(
             reconcile,
-            |filez_resource, error, ctx| {
+            |filez_resource, error, controller_context| {
                 error_policy(
                     filez_resource,
                     error,
-                    ctx,
+                    controller_context,
                     config.reconcile_interval_seconds,
                 )
             },
-            state.to_context(client),
+            shared_state.to_context(client),
         )
         .filter_map(|x| async move {
             match &x {
@@ -383,25 +398,28 @@ pub async fn run_controller(state: ServerState) -> Result<(), FilezError> {
         .await)
 }
 
-#[instrument(skip(ctx), fields(trace_id))]
+#[instrument(skip(controller_context), fields(trace_id))]
 async fn reconcile(
     resource: Arc<FilezResource>,
-    ctx: Arc<ControllerContext>,
+    controller_context: Arc<ControllerContext>,
 ) -> Result<Action, FilezError> {
     let trace_id = get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
-    let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
-    ctx.diagnostics.write().await.last_event = Utc::now();
+    let _timer = controller_context
+        .metrics
+        .reconcile
+        .count_and_measure(&trace_id);
+    controller_context.diagnostics.write().await.last_event = Utc::now();
     let ns = resource.namespace().unwrap();
-    let resources: Api<FilezResource> = Api::namespaced(ctx.client.clone(), &ns);
+    let resources: Api<FilezResource> = Api::namespaced(controller_context.client.clone(), &ns);
 
     info!("Reconciling resource \"{}\" in {}", resource.name_any(), ns);
     finalizer(&resources, FINALIZER, resource, |event| async {
         match event {
-            Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
-            Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
+            Finalizer::Apply(doc) => doc.reconcile(controller_context.clone()).await,
+            Finalizer::Cleanup(doc) => doc.cleanup(controller_context.clone()).await,
         }
     })
     .await
@@ -411,11 +429,14 @@ async fn reconcile(
 fn error_policy(
     resource: Arc<FilezResource>,
     error: &FilezError,
-    ctx: Arc<ControllerContext>,
+    controller_context: Arc<ControllerContext>,
     reconcile_interval_seconds: u64,
 ) -> Action {
     error!("reconcile failed: {:?}", error);
-    ctx.metrics.reconcile.set_failure(&resource, error);
+    controller_context
+        .metrics
+        .reconcile
+        .set_failure(&resource, error);
 
     Action::requeue(Duration::from_secs(reconcile_interval_seconds))
 }

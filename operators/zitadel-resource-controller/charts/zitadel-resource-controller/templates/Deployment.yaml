@@ -50,9 +50,9 @@ spec:
           protocol: TCP
         env:
         - name: LOG_FILTER
-          value: {{ .Values.logging.log_filter }}
+          value: {{ .Values.logging.logFilter }}
         - name: TRACING_FILTER
-          value: {{ .Values.logging.tracing_filter }}
+          value: {{ .Values.logging.tracingFilter }}
         - name: ZITADEL_API_ENDPOINT
           value: {{ .Values.internal_zitadel_api_endpoint }}
         - name: VAULT_URL
@@ -72,10 +72,6 @@ spec:
             secretKeyRef:
               name: zitadel-ca
               key: ca.pem
-        {{- if .Values.tracing.enabled }}
-        - name: OPENTELEMETRY_ENDPOINT_URL
-          value: http://{{ .Values.tracing.service }}.{{ .Values.tracing.namespace }}.svc:{{ .Values.tracing.port }}
-        {{- end }}
         {{- with .Values.env }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

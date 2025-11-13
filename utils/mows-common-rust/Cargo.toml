@@ -8,7 +8,6 @@ name = "mozart"
 path = "src/cli/main.rs"
 
 [features]
-
 default = []
 vault = ["vaultrs", "chrono"]
 

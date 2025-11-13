@@ -1,51 +1,55 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.server.name }}
+    name: "{{ .Values.server.name }}"
+    {{- if .Values.server.dev.autoUpdate }}
+    annotations:
+        keel.sh/policy: force
+        keel.sh/trigger: poll
+        keel.sh/pollSchedule: "@every 1s"
+    {{- end }}
 spec:
-  replicas: {{ .Values.server.replicaCount }}
-  selector:
-    matchLabels:
-      app: {{ .Values.server.name }}
-  template:
-    metadata:
-      labels:
-        app: {{ .Values.server.name }}
-    spec:
-      serviceAccountName: {{ .Values.server.name }}
+    replicas: {{ .Values.server.replicaCount }}
+    selector:
+        matchLabels:
+            app: "{{ .Values.server.name }}"
+    template:
+        metadata:
+            labels:
+                app: "{{ .Values.server.name }}"
+        spec:
+            serviceAccountName: "{{ .Values.server.name }}"
 
-      containers:
-        - name: {{ .Values.server.name }}
-          image: "{{ .Values.server.image }}"
-          imagePullPolicy: {{ .Values.server.imagePullPolicy }}
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 50003
-          ports:
-            - name: http
-              containerPort: 80
-              protocol: TCP
-            - name: dns-udp
-              containerPort: 53
-              protocol: UDP
-            - name: dns-tcp
-              containerPort: 53
-              protocol: TCP
-          resources:
-            limits:
-              memory: 128Mi
-              cpu: 500m
-          env:
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: pektin-db-server-password
-                  key: data
-            - name: LOG_FILTER
-              value: "{{ .Values.server.logFilter }}"
-            - name: TRACING_FILTER
-              value: "{{ .Values.server.tracingFilter }}"
-
-
+            containers:
+                - name: "{{ .Values.server.name }}"
+                  image: "{{ .Values.server.image }}"
+                  imagePullPolicy: "{{ .Values.server.imagePullPolicy }}"
+                  securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      runAsNonRoot: true
+                      runAsUser: 50003
+                  ports:
+                      - name: http
+                        containerPort: 80
+                        protocol: TCP
+                      - name: dns-udp
+                        containerPort: 53
+                        protocol: UDP
+                      - name: dns-tcp
+                        containerPort: 53
+                        protocol: TCP
+                  resources:
+                      limits:
+                          memory: 128Mi
+                          cpu: 500m
+                  env:
+                      - name: DB_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: pektin-db-server-password
+                                key: data
+                      - name: LOG_FILTER
+                        value: "{{ .Values.server.logging.logFilter }}"
+                      - name: TRACING_FILTER
+                        value: "{{ .Values.server.logging.tracingFilter }}"

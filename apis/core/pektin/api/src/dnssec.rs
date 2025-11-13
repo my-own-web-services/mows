@@ -1,6 +1,9 @@
-use std::collections::HashMap;
-
+use crate::db::get_zone_keys;
+use crate::errors_and_responses::PektinApiError;
+use crate::types::RecordIdentifier;
+use crate::{errors_and_responses::PektinApiResult, vault};
 use data_encoding::BASE64;
+use mows_common_rust::vault::ManagedVaultClient;
 use pektin_common::deadpool_redis::Connection;
 use pektin_common::proto::rr::dnssec::rdata::{DNSSECRData, SIG};
 use pektin_common::proto::rr::dnssec::tbs::rrset_tbs_with_sig;
@@ -11,18 +14,15 @@ use pektin_common::{
     DbEntry, DnskeyRecord, DnssecAlgorithm, HashAlgorithm, Nsec3ParamRecord, Nsec3Record, RrSet,
     RrsigRecord,
 };
+use std::collections::HashMap;
 use tracing::instrument;
-use vaultrs::client::VaultClient;
 
-use crate::db::get_zone_keys;
-use crate::errors_and_responses::PektinApiError;
-use crate::types::RecordIdentifier;
-use crate::vault::create_vault_client_with_token;
-use crate::{errors_and_responses::PektinApiResult, vault};
-
-#[instrument(skip(vault_token))]
-pub async fn get_dnskey_for_zone(zone: &Name, vault_token: &str) -> PektinApiResult<DnskeyRecord> {
-    let mut dnssec_keys = vault::get_zone_dnssec_keys(zone, vault_token).await?;
+#[instrument(skip(managed_vault_client))]
+pub async fn get_dnskey_for_zone(
+    zone: &Name,
+    managed_vault_client: &ManagedVaultClient,
+) -> PektinApiResult<DnskeyRecord> {
+    let mut dnssec_keys = vault::get_zone_dnssec_keys(zone, managed_vault_client).await?;
     let dnssec_key = dnssec_keys.pop().expect("Vault returned no DNSSEC keys");
 
     use p256::pkcs8::DecodePublicKey;
@@ -42,16 +42,14 @@ pub async fn get_dnskey_for_zone(zone: &Name, vault_token: &str) -> PektinApiRes
     Ok(dnskey)
 }
 
-#[instrument(skip(vault_token))]
+#[instrument(skip(managed_vault_client))]
 pub async fn sign_db_entry(
     zone: &Name,
     entry: DbEntry,
     dnskey: &DnskeyRecord,
-    vault_token: &str,
+    managed_vault_client: &ManagedVaultClient,
 ) -> PektinApiResult<DbEntry> {
     let signer_name = zone.clone();
-
-    let (vc, managed_client) = create_vault_client_with_token(vault_token).await?;
 
     // TODO think about RRSIG signature validity period
     let sig_valid_from = chrono::Utc::now();
@@ -91,7 +89,7 @@ pub async fn sign_db_entry(
     let records_tbs: Vec<Record> = entry.clone().try_into().unwrap();
     let tbs = rrset_tbs_with_sig(&entry.name, DNSClass::IN, &sig, &records_tbs).unwrap();
     // dbg!(tbs.as_ref());
-    let signature = vault::sign_with_vault(&tbs, &signer_name, &vc).await?;
+    let signature = vault::sign_with_vault(&tbs, &signer_name, managed_vault_client).await?;
 
     let rrsig_entry = RrsigRecord {
         type_covered: sig.type_covered(),
@@ -113,11 +111,6 @@ pub async fn sign_db_entry(
             rr_set: vec![rrsig_entry],
         },
     });
-
-    // Revoke token to prevent lease accumulation
-    if let Err(e) = managed_client.revoke_token().await {
-        tracing::warn!("Failed to revoke vault token: {}", e);
-    }
 
     result
 }

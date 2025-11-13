@@ -5369,6 +5369,7 @@ dependencies = [
  "env_logger",
  "futures-util",
  "hickory-server",
+ "mows-common-rust",
  "parking_lot",
  "pektin-common",
  "serde",
@@ -5378,6 +5379,23 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "pektin-zertificat"
+version = "0.1.0"
+dependencies = [
+ "acme-rs",
+ "anyhow",
+ "chrono",
+ "data-encoding",
+ "mows-common-rust",
+ "reqwest 0.12.24",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "vaultrs",
 ]
 
 [[package]]
@@ -9629,23 +9647,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.104",
-]
-
-[[package]]
-name = "zertificat"
-version = "0.1.0"
-dependencies = [
- "acme-rs",
- "anyhow",
- "chrono",
- "data-encoding",
- "mows-common-rust",
- "reqwest 0.12.24",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "vaultrs",
 ]
 
 [[package]]

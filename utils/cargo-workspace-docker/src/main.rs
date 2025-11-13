@@ -8,7 +8,12 @@ extern crate toml;
 
 const MAX_DEPTH: usize = 5;
 
-const EXCLUDE_DIRS: [&str; 1] = ["/mows/manager/temp/"];
+const EXCLUDE_DIRS: &[&str] = &[
+    "/mows/manager/temp/",
+    "/target/",
+    "/.git/",
+    "/node_modules/",
+];
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = std::env::args().collect();

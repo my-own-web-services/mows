@@ -1,4 +1,5 @@
-use crate::{constants::MowsConstants, errors::MowsError};
+use crate::constants::MowsConstants;
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use tokio::sync::RwLock;
@@ -32,7 +33,7 @@ pub fn better_trace_filter(filter: String) -> String {
         .to_string()
 }
 
-pub fn from_env(log_vars: bool) -> Result<CommonConfig, MowsError> {
+pub fn from_env(log_vars: bool) -> Result<CommonConfig, MowsConfigError> {
     Ok(CommonConfig {
         otel_endpoint_url: load_env(
             "http://mows-core-tracing-jaeger-collector.mows-core-tracing:4317",
@@ -60,20 +61,24 @@ pub fn load_env(
     param_name: &str,
     confidential: bool,
     log_vars: bool,
-) -> Result<String, MowsError> {
+) -> Result<String, MowsConfigError> {
     let param_value = if let Ok(param) = std::env::var(param_name) {
         if param_name.ends_with("_FROM_FILE_PATH") {
             return match std::fs::read_to_string(&param) {
                 Ok(val) => Ok(val),
-                Err(err) => Err(MowsError::ConfigError(format!(
+                Err(err) => Err(MowsConfigError::Generic(anyhow!(
                     "Failed to read file {}: {}",
-                    param, err
+                    param,
+                    err
                 ))),
             };
         }
         param
     } else if default.is_empty() {
-        return Err(MowsError::ConfigError(param_name.into()));
+        return Err(MowsConfigError::Generic(anyhow!(
+            "Environment variable {} is not set and no default value provided",
+            param_name
+        )));
     } else {
         default.into()
     };
@@ -131,4 +136,16 @@ pub fn make_whitespace_visible(s: &str) -> String {
             _ => c,
         })
         .collect()
+}
+
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum MowsConfigError {
+    #[error("Configuration error: {0}")]
+    Generic(#[from] anyhow::Error),
+    #[error("Error parsing integer: {0}")]
+    ParseIntError(#[from] std::num::ParseIntError),
+    #[error("Error parsing address: {0}")]
+    AddrParseError(#[from] std::net::AddrParseError),
 }

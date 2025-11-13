@@ -674,36 +674,6 @@ impl TryFrom<DbEntry> for Vec<hickory_proto::rr::Record> {
     }
 }
 
-pub fn load_env(
-    default: &str,
-    param_name: &str,
-    confidential: bool,
-) -> Result<String, PektinCommonError> {
-    let res = if let Ok(param) = env::var(param_name) {
-        if param_name.ends_with("_FILE") {
-            return match fs::read_to_string(&param) {
-                Ok(val) => Ok(val),
-                Err(err) => Err(PektinCommonError::InvalidEnvVarFilePath(
-                    param_name.into(),
-                    param,
-                    err.to_string(),
-                )),
-            };
-        }
-        param
-    } else if default.is_empty() {
-        return Err(PektinCommonError::MissingEnvVar(param_name.into()));
-    } else {
-        default.into()
-    };
-    if !confidential {
-        println!("\t{}={}", param_name, res);
-    } else {
-        println!("\t{}=<REDACTED (len={})>", param_name, res.len());
-    }
-    Ok(res)
-}
-
 // find all zones that we are authoritative for
 #[instrument(skip(con))]
 pub async fn get_authoritative_zones(

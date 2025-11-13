@@ -1,22 +1,23 @@
 {
-  "window.title": "🕴️ ${rootName}",
-  "cSpell.words": [
-    "additionals",
-    "chrono",
-    "deadpool",
-    "dnssec",
-    "Edns",
-    "iocompat",
-    "NSEC",
-    "proto",
-    "rdata",
-    "rrset",
-    "RRSIG",
-    "Serv",
-    "SERVFAIL",
-    "SIGINT",
-    "SIGTERM",
-    "thiserror",
-    "xfer"
-  ]
+    "window.title": "🕴️ pektin-server",
+    "cSpell.words": [
+        "additionals",
+        "chrono",
+        "deadpool",
+        "dnssec",
+        "Edns",
+        "iocompat",
+        "NSEC",
+        "Pektin",
+        "proto",
+        "rdata",
+        "rrset",
+        "RRSIG",
+        "Serv",
+        "SERVFAIL",
+        "SIGINT",
+        "SIGTERM",
+        "thiserror",
+        "xfer"
+    ]
 }

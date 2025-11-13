@@ -63,12 +63,12 @@ UserId, TagId
 
 - Create a realistic load
 - Don't worry about large scale yet!
-- Add user sessions
 
-# Sessions
+mode:
+owner: 1
+server: 2
+public: 3
 
-- OIDC flow can create a session for a bearer token from zitadel to authenticate a user with a frontend app the token is per user and frontend site
+type, id, mode, action
 
-- key authentication can create a session to authenticate a api user
-
-- a service account token can create a session to authenticate as a backend app user
+file, photo1, 3, read

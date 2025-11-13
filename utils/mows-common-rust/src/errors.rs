@@ -1,9 +1,11 @@
 use thiserror::Error;
 
+use crate::config::MowsConfigError;
+
 #[derive(Debug, Error)]
 pub enum MowsError {
-    #[error("Config error: {0}")]
-    ConfigError(String),
+    #[error(transparent)]
+    MowsConfigError(MowsConfigError),
     #[error("Generic error: {0}")]
     GenericError(String),
 }
