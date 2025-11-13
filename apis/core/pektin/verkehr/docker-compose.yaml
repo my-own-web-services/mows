@@ -11,4 +11,4 @@ services:
             args:
                 - PROFILE=${PROFILE} # dev or release
                 - SERVICE_NAME=${SERVICE_NAME}
-                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-alpine}

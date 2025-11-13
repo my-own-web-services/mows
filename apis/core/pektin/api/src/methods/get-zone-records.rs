@@ -1,9 +1,3 @@
-use std::ops::Deref;
-
-use actix_web::{post, web, HttpRequest, Responder};
-use serde_json::json;
-use tracing::{info_span, instrument, Instrument};
-
 use crate::{
     auth::auth_ok,
     db::{get_or_mget_records, get_zone_keys},
@@ -12,6 +6,10 @@ use crate::{
     },
     types::{AppState, GetZoneRecordsRequestBody, ResponseType},
 };
+use actix_web::{post, web, HttpRequest, Responder};
+use serde_json::json;
+use std::ops::Deref;
+use tracing::{info_span, instrument, Instrument};
 
 #[post("/get-zone-records")]
 #[instrument(skip(state))]

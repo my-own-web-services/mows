@@ -1,9 +1,3 @@
-use std::ops::Deref;
-
-use actix_web::{post, web, HttpRequest, Responder};
-use pektin_common::{deadpool_redis::redis::AsyncCommands, proto::rr::RecordType};
-use tracing::{info_span, instrument, Instrument};
-
 use crate::{
     auth::auth_ok,
     db::get_zone_keys,
@@ -11,6 +5,10 @@ use crate::{
     types::{AppState, DeleteRequestBody},
     validation::RecordValidationError,
 };
+use actix_web::{post, web, HttpRequest, Responder};
+use pektin_common::{deadpool_redis::redis::AsyncCommands, proto::rr::RecordType};
+use std::ops::Deref;
+use tracing::{info_span, instrument, Instrument};
 
 #[post("/delete")]
 #[instrument(skip(state))]

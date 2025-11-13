@@ -1,4 +1,3 @@
-use opentelemetry::trace;
 use pektin_common::deadpool_redis::redis::{AsyncCommands, FromRedisValue, Value};
 use pektin_common::proto::rr::Name;
 use pektin_common::{deadpool_redis, DnskeyRecord, PektinCommonError, RrSet};

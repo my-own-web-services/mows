@@ -7,15 +7,15 @@ use mows_common_rust::{
     get_current_config_cloned, observability::init_observability, reqwest::new_reqwest_client,
 };
 
-use serde::Deserialize;
-use serde_json::json;
-use std::vec;
-use tracing::{debug, info, instrument};
-use zertificat::{
+use pektin_zertificat::{
     config::config,
     types::{MaybeVaultCert, VaultCert, VaultCertInfo},
     vault::{get_kv_value, update_kv_value, vault_k8s_login},
 };
+use serde::Deserialize;
+use serde_json::json;
+use std::vec;
+use tracing::{debug, info, instrument};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

@@ -1,12 +1,10 @@
-use std::time::Duration;
-
+use crate::errors_and_responses::PektinApiError;
+use crate::types::RequestBody;
 use mows_common_rust::reqwest::new_reqwest_client;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 use tracing::instrument;
-
-use crate::errors_and_responses::PektinApiError;
-use crate::types::RequestBody;
 
 pub type RibstonResult<T> = Result<T, PektinApiError>;
 
@@ -23,11 +21,6 @@ pub struct RibstonRequestData {
     pub utc_millis: u128,
     pub user_agent: String,
     pub request_body: RequestBody,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-struct RibstonResultWrapper {
-    result: RibstonResponseData,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

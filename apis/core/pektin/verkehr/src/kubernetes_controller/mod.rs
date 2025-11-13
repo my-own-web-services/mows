@@ -42,10 +42,7 @@ async fn inner_reconcile(
     debug!("Reconcile resource: {}", full_name);
     match &resource.spec {
         VerkehrResourceSpec::IngressRouteHttp(ingress_route) => {
-            info!(
-                "Applying IngressRouteHttp configuration for {}",
-                full_name
-            );
+            info!("Applying IngressRouteHttp configuration for {}", full_name);
 
             // Convert the IngressRouteHttp to a RoutingConfig
             let new_routing_config = ingress_route
@@ -139,8 +136,8 @@ impl VerkehrResource {
         recorder
             .publish(Event {
                 type_: EventType::Normal,
-                reason: "ObjectCreated".into(),
-                note: Some(format!("Object Created: `{name}`")),
+                reason: "ResourceCreated".into(),
+                note: Some(format!("Resource created: `{name}`")),
                 action: "CreateObject".into(),
                 secondary: None,
             })
@@ -186,7 +183,10 @@ impl VerkehrResource {
                     }
                 }
 
-                info!("Successfully cleaned up IngressRouteHttp configuration for {}", full_name);
+                info!(
+                    "Successfully cleaned up IngressRouteHttp configuration for {}",
+                    full_name
+                );
                 debug!(config = ?*routing_config, "Updated routing config after cleanup");
             }
         }

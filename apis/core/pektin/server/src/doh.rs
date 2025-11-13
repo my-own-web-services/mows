@@ -1,4 +1,5 @@
-use crate::{process_request, PektinResult};
+use crate::errors::PektinServerResult;
+use crate::process_request;
 use actix_cors::Cors;
 use actix_web::dev::Server;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer};
@@ -7,23 +8,26 @@ use pektin_common::deadpool_redis::Pool;
 use pektin_common::proto::op::Message;
 use serde::Deserialize;
 use std::net::Ipv6Addr;
+use tracing::instrument;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct GetQueries {
     dns: String,
 }
 
+#[derive(Clone, Debug)]
 struct AppState {
     pub db_pool: Pool,
     pub db_pool_dnssec: Pool,
 }
 
+#[instrument(level = "trace")]
 pub async fn use_doh(
     bind_address: Ipv6Addr,
     bind_port: u16,
     db_pool: Pool,
     db_pool_dnssec: Pool,
-) -> PektinResult<Server> {
+) -> PektinServerResult<Server> {
     Ok(HttpServer::new(move || {
         App::new()
             .wrap(
@@ -44,11 +48,13 @@ pub async fn use_doh(
 }
 
 #[post("/dns-query")]
+#[instrument(level = "trace")]
 async fn doh_post(body: web::Bytes, state: web::Data<AppState>) -> HttpResponse {
     handle_request(&body, state).await
 }
 
 #[get("/dns-query")]
+#[instrument(level = "trace")]
 async fn doh_get(queries: web::Query<GetQueries>, state: web::Data<AppState>) -> HttpResponse {
     let query_bytes = match BASE64URL_NOPAD.decode(queries.dns.as_bytes()) {
         Ok(b) => b,
@@ -61,6 +67,7 @@ async fn doh_get(queries: web::Query<GetQueries>, state: web::Data<AppState>) ->
     handle_request(&query_bytes, state).await
 }
 
+#[instrument(level = "trace")]
 async fn handle_request(bytes: &[u8], state: web::Data<AppState>) -> HttpResponse {
     let message = match Message::from_vec(bytes) {
         Ok(m) => m,

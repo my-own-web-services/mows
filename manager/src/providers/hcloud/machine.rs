@@ -1,6 +1,6 @@
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-use anyhow::{bail, Context};
+use anyhow::Context;
 use hcloud::{
     apis::{
         configuration::Configuration,

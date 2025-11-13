@@ -10,6 +10,6 @@ services:
                 filez-server-client: ../../../clients/rust
                 lock: ../../../../../../
             args:
-                - PROFILE=dev # dev or release
+                - PROFILE=${PROFILE:-dev} # dev or release
                 - SERVICE_NAME=${SERVICE_NAME}
-                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-alpine}

@@ -1,5 +1,5 @@
 {
-    "window.title": "🤖 ${rootName}",
+    "window.title": "🤖 pektin-api",
     "cSpell.words": [
         "actix",
         "deabsolute",

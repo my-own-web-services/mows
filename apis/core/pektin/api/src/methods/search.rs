@@ -1,10 +1,3 @@
-use std::ops::Deref;
-
-use actix_web::{post, web, HttpRequest, Responder};
-use pektin_common::deadpool_redis::redis::AsyncCommands;
-use serde_json::json;
-use tracing::{info_span, instrument, Instrument};
-
 use crate::{
     auth::auth_ok,
     errors_and_responses::{
@@ -12,6 +5,11 @@ use crate::{
     },
     types::{AppState, Glob, RecordIdentifier, ResponseType, SearchRequestBody},
 };
+use actix_web::{post, web, HttpRequest, Responder};
+use pektin_common::deadpool_redis::redis::AsyncCommands;
+use serde_json::json;
+use std::ops::Deref;
+use tracing::{info_span, instrument, Instrument};
 
 #[post("/search")]
 #[instrument(skip(state))]

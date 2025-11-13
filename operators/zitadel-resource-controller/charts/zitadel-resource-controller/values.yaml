@@ -5,6 +5,7 @@ version: "" # pin a specific version
 image:
     repository: 192.168.112.5:5000/zitadel-resource-controller
     pullPolicy: Always
+
 dev:
     autoUpdate: true
 
@@ -14,11 +15,11 @@ vault:
     url: http://vault.mows-core-secrets-vault:8200
 
 logging:
-    log_filter: >
+    logFilter: >
         warn,
         zitadel-resource-controller::handlers::raw=trace,
         zitadel-resource-controller::zitadel_client=trace,
-    tracing_filter: >
+    tracingFilter: >
         warn,
         zitadel-resource-controller::handlers::raw=trace,
         zitadel-resource-controller::zitadel_client=trace,

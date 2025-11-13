@@ -40,7 +40,6 @@ async fn signing_task_run(state: &AppState, threshold: Duration) -> PektinApiRes
 
     let mut con = state.db_pool.get().await?;
     let mut dnssec_con = state.db_pool_dnssec.get().await?;
-    let vault_api_token = crate::vault::ApiTokenCache::get().await?;
 
     let authoritative_zones: Vec<_> = get_authoritative_zones(&mut con)
         .await?
@@ -70,7 +69,7 @@ async fn signing_task_run(state: &AppState, threshold: Duration) -> PektinApiRes
         let dnskey = dnskey_for_zone
             .get(&record_zone)
             .expect("failed to get dnskey for zone");
-        let rec = sign_db_entry(&record_zone, record.clone(), dnskey, &vault_api_token).await;
+        let rec = sign_db_entry(&record_zone, record.clone(), dnskey, &state.vault_client).await;
         rrsig_records.push(rec);
     }
     let rrsig_records: Result<Vec<_>, _> = rrsig_records.into_iter().collect();

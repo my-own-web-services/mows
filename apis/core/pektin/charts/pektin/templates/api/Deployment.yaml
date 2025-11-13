@@ -1,56 +1,58 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.api.name }}
+    name: "{{ .Values.api.name }}"
+    {{- if .Values.api.dev.autoUpdate }}
+    annotations:
+        keel.sh/policy: force
+        keel.sh/trigger: poll
+        keel.sh/pollSchedule: "@every 1s"
+    {{- end }}
 spec:
-  replicas: {{ .Values.api.replicaCount }}
-  selector:
-    matchLabels:
-      app: {{ .Values.api.name }}
-  template:
-    metadata:
-      labels:
-        app: {{ .Values.api.name }}
-    spec:
-      serviceAccountName: {{ .Values.api.name }}
-      containers:
-        - name: {{ .Values.api.name }}
-          image: "{{ .Values.api.image }}"
-          imagePullPolicy: {{ .Values.api.imagePullPolicy }}
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 50003
-          ports:
-            - name: http
-              containerPort: 80
-              protocol: TCP
-          resources:
-            limits:
-              memory: 128Mi
-              cpu: 500m
-          env:
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: pektin-db-api-password
-                  key: data
-            - name: VAULT_KUBERNETES_AUTH_PATH
-              value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes"
-            - name: VAULT_URL
-              value: {{ .Values.api.vaultUrl }}
-            - name: POLICY_VAULT_PATH
-              value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-policies"
-            - name: DB_USERNAME
-              value: "db-pektin-api"
-            - name: DB_HOSTNAME
-              value: "pektin-db.{{ .Release.Namespace }}.svc.cluster.local"
-            - name: LOG_FILTER
-              value: "{{ .Values.api.logFilter }}"
-            - name: TRACING_FILTER
-              value: "{{ .Values.api.tracingFilter }}"
-
-          
-            
-
+    replicas: {{ .Values.api.replicaCount }}
+    selector:
+        matchLabels:
+            app: "{{ .Values.api.name }}"
+    template:
+        metadata:
+            labels:
+                app: "{{ .Values.api.name }}"
+        spec:
+            serviceAccountName: "{{ .Values.api.name }}"
+            containers:
+                - name: "{{ .Values.api.name }}"
+                  image: "{{ .Values.api.image }}"
+                  imagePullPolicy: "{{ .Values.api.imagePullPolicy }}"
+                  securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      runAsNonRoot: true
+                      runAsUser: 50003
+                  ports:
+                      - name: http
+                        containerPort: 80
+                        protocol: TCP
+                  resources:
+                      limits:
+                          memory: 128Mi
+                          cpu: 500m
+                  env:
+                      - name: DB_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: pektin-db-api-password
+                                key: data
+                      - name: VAULT_KUBERNETES_AUTH_PATH
+                        value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-kubernetes"
+                      - name: VAULT_URL
+                        value: "{{ .Values.api.vaultUrl }}"
+                      - name: POLICY_VAULT_PATH
+                        value: "mows-core-secrets-vrc/mows-core-dns-pektin/pektin-policies"
+                      - name: DB_USERNAME
+                        value: "db-pektin-api"
+                      - name: DB_HOSTNAME
+                        value: "pektin-db.{{ .Release.Namespace }}.svc.cluster.local"
+                      - name: LOG_FILTER
+                        value: "{{ .Values.api.logging.logFilter }}"
+                      - name: TRACING_FILTER
+                        value: "{{ .Values.api.logging.tracingFilter }}"

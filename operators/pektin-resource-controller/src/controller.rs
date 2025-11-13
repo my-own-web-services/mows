@@ -3,9 +3,8 @@ use crate::{
     crd::{PektinResource, PektinResourceSpec, PektinResourceStatus},
     reconcile::plain::handle_plain,
     utils::get_error_type,
-    Error, Metrics, Result,
+    ControllerError, Metrics, Result,
 };
-use anyhow::Context as anyhow_context;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use kube::{
@@ -19,12 +18,7 @@ use kube::{
     },
     Resource,
 };
-
-use mows_common_rust::{
-    get_current_config_cloned,
-    observability::get_trace_id,
-    vault::{ManagedVaultClient, VaultAuthMethod, VaultConfig},
-};
+use mows_common_rust::{get_current_config_cloned, observability::get_trace_id, vault::ManagedVaultClient};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -33,124 +27,96 @@ use tracing::*;
 
 pub static FINALIZER: &str = "pektin.k8s.mows.cloud";
 
-pub async fn get_vault_token() -> Result<(String, ManagedVaultClient), Error> {
-    let config = get_current_config_cloned!(config());
-
-    let vault_config = VaultConfig {
-        address: config.vault_url,
-        auth_method: VaultAuthMethod::Kubernetes {
-            service_account_token_path: config.service_account_token_path,
-            auth_path: config.vault_kubernetes_api_auth_path,
-            auth_role: config.pektin_username,
-        },
-        renewal_threshold: 0.8,
-    };
-
-    let managed_client = ManagedVaultClient::new(vault_config)
-        .await
-        .map_err(|e| Error::GenericError(format!("Failed to create managed vault client: {}", e)))?;
-
-    // Get the token from the managed client's state
-    let client = managed_client
-        .get_client()
-        .await
-        .map_err(|e| Error::GenericError(format!("Failed to get vault client: {}", e)))?;
-
-    // Unfortunately, we can't extract the token from VaultClient directly
-    // For now, we'll need to use a different approach - let's look up the token
-    let token_info = vaultrs::token::lookup_self(&client)
-        .await
-        .map_err(|e| Error::GenericError(format!("Failed to lookup token: {}", e)))?;
-
-    // Return both token and managed client so the token can be revoked later
-    Ok((token_info.id, managed_client))
-}
-
-#[instrument(skip(kube_client))]
+#[instrument(skip(controller_context), fields(trace_id), level = "trace")]
 pub async fn reconcile_resource(
+    controller_context: &Arc<ControllerContext>,
     pektin_dns: &PektinResource,
-    kube_client: &kube::Client,
-) -> Result<(), Error> {
-    let (vault_token, managed_client) = get_vault_token().await?;
-    let resource_namespace = pektin_dns.metadata.namespace.as_deref().unwrap_or("default");
+) -> Result<(), ControllerError> {
+    // let resource_namespace = pektin_dns.metadata.namespace.as_deref().unwrap_or("default");
 
-    let resource_name = match pektin_dns.metadata.name.as_deref() {
-        Some(v) => v,
-        None => {
-            return Err(Error::GenericError(
-                "Failed to get resource name from PektinResource metadata".to_string(),
-            ))
-        }
-    };
+    // let resource_name = match pektin_dns.metadata.name.as_deref() {
+    //     Some(v) => v,
+    //     None => {
+    //         return Err(ControllerError::GenericError(
+    //             "Failed to get resource name from PektinResource metadata".to_string(),
+    //         ))
+    //     }
+    // };
+    let vault_token = controller_context.vault_client.get_token().await?;
 
     let result = match &pektin_dns.spec {
         PektinResourceSpec::Plain(db_entries) => handle_plain(&vault_token, db_entries).await,
     };
-
-    // Revoke the token to prevent lease accumulation
-    if let Err(e) = managed_client.revoke_token().await {
-        warn!("Failed to revoke vault token: {}", e);
-    }
 
     result
 }
 
 // Context for our reconciler
 #[derive(Clone)]
-pub struct Context {
+pub struct ControllerContext {
     /// Kubernetes client
-    pub client: Client,
+    pub kubernetes_client: Client,
     /// Diagnostics read by the web server
     pub diagnostics: Arc<RwLock<Diagnostics>>,
     /// Prometheus metrics
     pub metrics: Arc<Metrics>,
+    /// Managed Vault client with automatic token renewal
+    pub vault_client: ManagedVaultClient,
 }
 
-#[instrument(skip(ctx), fields(trace_id))]
-async fn reconcile(resource: Arc<PektinResource>, ctx: Arc<Context>) -> Result<Action> {
+#[instrument(skip(controller_context), fields(trace_id))]
+async fn reconcile(
+    resource: Arc<PektinResource>,
+    controller_context: Arc<ControllerContext>,
+) -> Result<Action> {
     let trace_id = get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
     }
-    let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
-    ctx.diagnostics.write().await.last_event = Utc::now();
+    let _timer = controller_context.metrics.reconcile.count_and_measure(&trace_id);
+    controller_context.diagnostics.write().await.last_event = Utc::now();
     let ns = resource.namespace().unwrap();
-    let pektin_dns_resources_api: Api<PektinResource> = Api::namespaced(ctx.client.clone(), &ns);
+    let pektin_dns_resources_api: Api<PektinResource> =
+        Api::namespaced(controller_context.kubernetes_client.clone(), &ns);
 
     info!("Reconciling Document \"{}\" in {}", resource.name_any(), ns);
     finalizer(&pektin_dns_resources_api, FINALIZER, resource, |event| async {
         match event {
-            Finalizer::Apply(doc) => doc.reconcile(ctx.clone()).await,
-            Finalizer::Cleanup(doc) => doc.cleanup(ctx.clone()).await,
+            Finalizer::Apply(doc) => doc.reconcile(controller_context.clone()).await,
+            Finalizer::Cleanup(doc) => doc.cleanup(controller_context.clone()).await,
         }
     })
     .await
-    .map_err(|e| Error::FinalizerError(Box::new(e)))
+    .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
 }
 
 fn error_policy(
     resource: Arc<PektinResource>,
-    error: &Error,
-    ctx: Arc<Context>,
+    error: &ControllerError,
+    controller_context: Arc<ControllerContext>,
     reconcile_interval_seconds: u64,
 ) -> Action {
     warn!("reconcile failed: {:?}", error);
-    ctx.metrics.reconcile.set_failure(&resource, error);
+    controller_context.metrics.reconcile.set_failure(&resource, error);
 
     Action::requeue(Duration::from_secs(reconcile_interval_seconds))
 }
 
 impl PektinResource {
     // Reconcile (for non-finalizer related changes)
-    #[instrument(skip(ctx))]
-    async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
-        let kube_client = ctx.client.clone();
-        let recorder = ctx.diagnostics.read().await.recorder(kube_client.clone(), self);
+    #[instrument(skip(controller_context))]
+    async fn reconcile(&self, controller_context: Arc<ControllerContext>) -> Result<Action> {
+        let kube_client = controller_context.kubernetes_client.clone();
+        let recorder = controller_context
+            .diagnostics
+            .read()
+            .await
+            .recorder(kube_client.clone(), self);
         let ns = self.namespace().unwrap();
         let name = self.name_any();
         let pektin_resources_api: Api<PektinResource> = Api::namespaced(kube_client.clone(), &ns);
 
-        match reconcile_resource(self, &kube_client).await {
+        match reconcile_resource(&controller_context, self).await {
             Ok(_) => {
                 info!("Reconcile successful");
                 let new_status = Patch::Apply(json!({
@@ -165,18 +131,18 @@ impl PektinResource {
                 let _o = pektin_resources_api
                     .patch_status(&name, &ps, &new_status)
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
 
                 recorder
                     .publish(Event {
                         type_: EventType::Normal,
-                        reason: "ObjectCreated".into(),
-                        note: Some(format!("Object Created: `{name}`")),
+                        reason: "ResourceCreated".into(),
+                        note: Some(format!("Resource created: `{name}`")),
                         action: "CreateObject".into(),
                         secondary: None,
                     })
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
             }
             Err(e) => {
                 error!("Reconcile failed: {:?}", e);
@@ -192,20 +158,23 @@ impl PektinResource {
                 let _o = pektin_resources_api
                     .patch_status(&name, &ps, &new_status)
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
 
-                let reason = get_error_type(&e);
+                let mut reason = get_error_type(&e);
+                reason.truncate(128);
+                let mut note = e.to_string();
+                note.truncate(1024);
 
                 recorder
                     .publish(Event {
                         type_: EventType::Warning,
                         reason,
-                        note: Some(e.to_string()),
-                        action: "CreateObject".into(),
+                        note: Some(note),
+                        action: "CreatePektinResource".into(),
                         secondary: None,
                     })
                     .await
-                    .map_err(Error::KubeError)?;
+                    .map_err(ControllerError::KubeError)?;
                 return Err(e);
             }
         }
@@ -218,8 +187,12 @@ impl PektinResource {
     }
 
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)
-    async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
-        let recorder = ctx.diagnostics.read().await.recorder(ctx.client.clone(), self);
+    async fn cleanup(&self, controller_context: Arc<ControllerContext>) -> Result<Action> {
+        let recorder = controller_context
+            .diagnostics
+            .read()
+            .await
+            .recorder(controller_context.kubernetes_client.clone(), self);
         if let Err(e) = recorder
             .publish(Event {
                 type_: EventType::Normal,
@@ -259,16 +232,18 @@ impl Diagnostics {
 }
 
 /// State shared between the controller and the web server
-#[derive(Clone, Default)]
-pub struct State {
+#[derive(Clone)]
+pub struct ControllerWebServerSharedState {
     /// Diagnostics populated by the reconciler
     diagnostics: Arc<RwLock<Diagnostics>>,
     /// Metrics
     metrics: Arc<Metrics>,
+    /// Managed Vault client with automatic token renewal
+    vault_client: ManagedVaultClient,
 }
 
 /// State wrapper around the controller outputs for the web server
-impl State {
+impl ControllerWebServerSharedState {
     /// Metrics getter
     pub fn metrics(&self) -> String {
         let mut buffer = String::new();
@@ -283,17 +258,41 @@ impl State {
     }
 
     // Create a Controller Context that can update State
-    pub fn to_context(&self, client: Client) -> Arc<Context> {
-        Arc::new(Context {
-            client,
+    pub fn to_context(&self, client: Client) -> Arc<ControllerContext> {
+        Arc::new(ControllerContext {
+            kubernetes_client: client,
             metrics: self.metrics.clone(),
             diagnostics: self.diagnostics.clone(),
+            vault_client: self.vault_client.clone(),
+        })
+    }
+
+    /// Create a new controller state with vault client
+    pub async fn new() -> Result<Self, mows_common_rust::vault::ManagedVaultError> {
+        let config = get_current_config_cloned!(config());
+
+        let vault_config = mows_common_rust::vault::VaultConfig {
+            address: config.vault_url,
+            auth_method: mows_common_rust::vault::VaultAuthMethod::Kubernetes {
+                service_account_token_path: config.service_account_token_path,
+                auth_path: config.vault_kubernetes_api_auth_path,
+                auth_role: config.pektin_username,
+            },
+            renewal_threshold: 0.8,
+        };
+
+        let vault_client = ManagedVaultClient::new(vault_config).await?;
+
+        Ok(Self {
+            diagnostics: Arc::new(RwLock::new(Diagnostics::default())),
+            metrics: Arc::new(Metrics::default()),
+            vault_client,
         })
     }
 }
 
 /// Initialize the controller and shared state (given the crd is installed)
-pub async fn run(state: State) {
+pub async fn run(shared_state: ControllerWebServerSharedState) {
     let client = Client::try_default().await.expect("failed to create kube Client");
     let pektin_resource = Api::<PektinResource>::all(client.clone());
     if let Err(e) = pektin_resource.list(&ListParams::default().limit(1)).await {
@@ -308,10 +307,15 @@ pub async fn run(state: State) {
         .shutdown_on_signal()
         .run(
             reconcile,
-            |pektin_resource, error, ctx| {
-                error_policy(pektin_resource, error, ctx, config.reconcile_interval_seconds)
+            |pektin_resource, error, controller_context| {
+                error_policy(
+                    pektin_resource,
+                    error,
+                    controller_context,
+                    config.reconcile_interval_seconds,
+                )
             },
-            state.to_context(client),
+            shared_state.to_context(client),
         )
         .filter_map(|x| async move { std::result::Result::ok(x) })
         .for_each(|_| futures::future::ready(()))

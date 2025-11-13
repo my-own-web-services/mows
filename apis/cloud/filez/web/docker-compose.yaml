@@ -9,6 +9,6 @@ services:
                 filez-client-typescript: ../clients/typescript
                 filez-components-react: ../components/react
             args:
-                - PROFILE=dev
+                - PROFILE=${PROFILE:-dev} # dev or release
                 - SERVICE_NAME=${SERVICE_NAME}
-                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-alpine}

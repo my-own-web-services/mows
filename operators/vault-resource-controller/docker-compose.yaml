@@ -3,13 +3,12 @@ services:
         build:
             context: "."
             dockerfile: Dockerfile
-            tags: 
+            tags:
                 - ${REGISTRY:-localhost:5000}/${SERVICE_NAME}
             additional_contexts:
                 mows-common-rust: ../../utils/mows-common-rust
                 lock: ../../
             args:
-                - PROFILE=dev # dev or release
+                - PROFILE=${PROFILE:-dev} # dev or release
                 - SERVICE_NAME=${SERVICE_NAME}
-                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-scratch}
-
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-alpine}

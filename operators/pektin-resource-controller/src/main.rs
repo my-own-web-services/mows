@@ -1,13 +1,12 @@
 #![allow(unused_imports, unused_variables)]
 use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::Context;
-use controller::get_vault_token;
-pub use controller::{self, State};
+pub use controller::{self, ControllerWebServerSharedState};
 use mows_common_rust::observability::init_observability;
 use tracing_actix_web::TracingLogger;
 
 #[get("/metrics")]
-async fn metrics(c: Data<State>, _req: HttpRequest) -> impl Responder {
+async fn metrics(c: Data<ControllerWebServerSharedState>, _req: HttpRequest) -> impl Responder {
     let metrics = c.metrics();
     HttpResponse::Ok()
         .content_type("application/openmetrics-text; version=1.0.0; charset=utf-8")
@@ -20,7 +19,7 @@ async fn health(_: HttpRequest) -> impl Responder {
 }
 
 #[get("/")]
-async fn index(c: Data<State>, _req: HttpRequest) -> impl Responder {
+async fn index(c: Data<ControllerWebServerSharedState>, _req: HttpRequest) -> impl Responder {
     let d = c.diagnostics().await;
     HttpResponse::Ok().json(&d)
 }
@@ -30,13 +29,8 @@ async fn main() -> anyhow::Result<()> {
     init_observability().await;
 
     // Initialize Kubernetes controller state
-    let state = State::default();
+    let state = ControllerWebServerSharedState::new().await?;
     let controller = controller::run(state.clone());
-
-    while let Err(e) = get_vault_token().await {
-        tracing::error!("Failed to create vault client, retrying in 5 seconds: {:?}", e);
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-    }
 
     // Start web server
     let server = HttpServer::new(move || {

@@ -2,10 +2,13 @@ use mows_common_rust::{get_current_config_cloned, reqwest::new_reqwest_client};
 use serde_json::{json, Value};
 use tracing::{debug, instrument};
 
-use crate::{config::config, kube_fix::KubePektinDbEntry, Error};
+use crate::{config::config, kube_fix::KubePektinDbEntry, ControllerError};
 
 #[instrument(skip(vault_token))]
-pub async fn handle_plain(vault_token: &str, db_entries: &Vec<KubePektinDbEntry>) -> Result<(), Error> {
+pub async fn handle_plain(
+    vault_token: &str,
+    db_entries: &Vec<KubePektinDbEntry>,
+) -> Result<(), ControllerError> {
     let client = new_reqwest_client().await?;
     let config = get_current_config_cloned!(config());
 
@@ -30,7 +33,7 @@ pub async fn handle_plain(vault_token: &str, db_entries: &Vec<KubePektinDbEntry>
     if !res.status().is_success() {
         let res_text = res.text().await?;
         debug!("Failed to set records: {}", res_text);
-        return Err(Error::GenericError(format!(
+        return Err(ControllerError::GenericError(format!(
             "Failed to set records: {}",
             res_text
         )));

@@ -124,7 +124,7 @@ impl ManagedVaultClient {
     /// This will immediately authenticate to Vault using Kubernetes auth
     /// and create the initial client.
     #[instrument(skip(config), level = "debug")]
-    pub async fn new(config: VaultConfig) -> Result<Self, VaultError> {
+    pub async fn new(config: VaultConfig) -> Result<Self, ManagedVaultError> {
         let state = Self::create_client_state(&config).await?;
 
         Ok(Self {
@@ -133,9 +133,17 @@ impl ManagedVaultClient {
         })
     }
 
+    #[instrument(skip(self), level = "trace")]
+    pub async fn get_token(&self) -> Result<String, ManagedVaultError> {
+        let state = self.state.read().await;
+        Ok(state.token.clone())
+    }
+
     /// Create a new client state by authenticating to Vault
     #[instrument(skip(config), level = "trace")]
-    async fn create_client_state(config: &VaultConfig) -> Result<ManagedVaultClientState, VaultError> {
+    async fn create_client_state(
+        config: &VaultConfig,
+    ) -> Result<ManagedVaultClientState, ManagedVaultError> {
         let mut client_builder = VaultClientSettingsBuilder::default();
         client_builder.address(&config.address);
 
@@ -145,16 +153,17 @@ impl ManagedVaultClient {
                 auth_path,
                 auth_role,
             } => {
+                debug!("Authenticating to Vault using Kubernetes auth");
                 let temp_client = VaultClient::new(
                     client_builder
                         .build()
-                        .map_err(|e| VaultError::ClientCreation(e.to_string()))?,
+                        .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?,
                 )
-                .map_err(|e| VaultError::ClientCreation(e.to_string()))?;
+                .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?;
 
                 // Read the Kubernetes service account token
                 let service_account_jwt = std::fs::read_to_string(service_account_token_path)
-                    .map_err(|e| VaultError::ServiceAccountToken(e.to_string()))?;
+                    .map_err(|e| ManagedVaultError::ServiceAccountToken(e.to_string()))?;
 
                 // Authenticate using Kubernetes auth
                 let auth_info = vaultrs::auth::kubernetes::login(
@@ -164,7 +173,7 @@ impl ManagedVaultClient {
                     &service_account_jwt,
                 )
                 .await
-                .map_err(|e| VaultError::Authentication(e.to_string()))?;
+                .map_err(|e| ManagedVaultError::Authentication(e.to_string()))?;
 
                 let token = auth_info.client_token.clone();
                 let token_created_at = Utc::now();
@@ -181,19 +190,22 @@ impl ManagedVaultClient {
                 })
             }
             VaultAuthMethod::Token { token } => {
+                debug!("Using pre-existing token for Vault authentication");
                 // For token-based auth, we need to look up the token to get its info
                 let temp_client = VaultClient::new(
                     client_builder
                         .token(token)
                         .build()
-                        .map_err(|e| VaultError::ClientCreation(e.to_string()))?,
+                        .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?,
                 )
-                .map_err(|e| VaultError::ClientCreation(e.to_string()))?;
+                .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?;
 
                 // Lookup token information to get TTL
                 let token_info = vaultrs::token::lookup_self(&temp_client)
                     .await
-                    .map_err(|e| VaultError::Authentication(format!("Failed to lookup token: {}", e)))?;
+                    .map_err(|e| {
+                        ManagedVaultError::Authentication(format!("Failed to lookup token: {}", e))
+                    })?;
 
                 let auth_info = AuthInfo {
                     client_token: token.clone(),
@@ -230,7 +242,7 @@ impl ManagedVaultClient {
     /// renewal threshold. If renewal is needed, it will attempt to renew the
     /// token before returning the client.
     #[instrument(skip(self), level = "trace")]
-    pub async fn get_client(&self) -> Result<VaultClient, VaultError> {
+    pub async fn get_client(&self) -> Result<VaultClient, ManagedVaultError> {
         // Check if we need to renew
         if self.should_renew().await {
             self.renew_token().await?;
@@ -246,9 +258,9 @@ impl ManagedVaultClient {
             client_builder
                 .token(&state.token)
                 .build()
-                .map_err(|e| VaultError::ClientCreation(e.to_string()))?,
+                .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?,
         )
-        .map_err(|e| VaultError::ClientCreation(e.to_string()))?;
+        .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?;
 
         Ok(client)
     }
@@ -283,7 +295,7 @@ impl ManagedVaultClient {
     /// endpoint. If renewal fails, it will attempt to re-authenticate using
     /// Kubernetes auth to get a fresh token.
     #[instrument(skip(self), level = "debug")]
-    pub async fn renew_token(&self) -> Result<(), VaultError> {
+    pub async fn renew_token(&self) -> Result<(), ManagedVaultError> {
         let mut state = self.state.write().await;
 
         info!("Attempting to renew vault token");
@@ -296,9 +308,9 @@ impl ManagedVaultClient {
             client_builder
                 .token(&state.token)
                 .build()
-                .map_err(|e| VaultError::ClientCreation(e.to_string()))?,
+                .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?,
         )
-        .map_err(|e| VaultError::ClientCreation(e.to_string()))?;
+        .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?;
 
         // Try to renew the existing token
         match vaultrs::token::renew_self(&temp_client, None).await {
@@ -335,7 +347,7 @@ impl ManagedVaultClient {
     /// Force a token renewal regardless of TTL
     ///
     /// This can be useful for testing or when you know the token needs to be refreshed.
-    pub async fn force_renew(&self) -> Result<(), VaultError> {
+    pub async fn force_renew(&self) -> Result<(), ManagedVaultError> {
         self.renew_token().await
     }
 
@@ -364,7 +376,7 @@ impl ManagedVaultClient {
     /// short-lived clients (e.g., one per API request). For long-lived clients
     /// stored in controller state, this is less critical as they renew their tokens.
     #[instrument(skip(self), level = "debug")]
-    pub async fn revoke_token(&self) -> Result<(), VaultError> {
+    pub async fn revoke_token(&self) -> Result<(), ManagedVaultError> {
         let state = self.state.read().await;
 
         info!("Revoking vault token");
@@ -377,9 +389,9 @@ impl ManagedVaultClient {
             client_builder
                 .token(&state.token)
                 .build()
-                .map_err(|e| VaultError::ClientCreation(e.to_string()))?,
+                .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?,
         )
-        .map_err(|e| VaultError::ClientCreation(e.to_string()))?;
+        .map_err(|e| ManagedVaultError::ClientCreation(e.to_string()))?;
 
         // Try to revoke the token
         match vaultrs::token::revoke_self(&temp_client).await {
@@ -388,8 +400,11 @@ impl ManagedVaultClient {
                 Ok(())
             }
             Err(e) => {
-                warn!("Failed to revoke token: {}. This may lead to lease accumulation.", e);
-                Err(VaultError::VaultClient(e))
+                warn!(
+                    "Failed to revoke token: {}. This may lead to lease accumulation.",
+                    e
+                );
+                Err(ManagedVaultError::VaultClient(e))
             }
         }
     }
@@ -398,7 +413,7 @@ impl ManagedVaultClient {
 #[cfg(feature = "vault")]
 /// Errors that can occur when using the managed vault client
 #[derive(Debug, thiserror::Error)]
-pub enum VaultError {
+pub enum ManagedVaultError {
     #[error("Failed to create vault client: {0}")]
     ClientCreation(String),
 
