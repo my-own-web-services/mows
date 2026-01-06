@@ -25,71 +25,24 @@ pub mod labels;
 pub mod templating;
 EOF
 
-# Update Cargo.toml - remove mows-common-rust, add required dependencies
-cat > "$MOZART_DIR/Cargo.toml" << 'EOF'
-[package]
-name = "mozart"
-version = "0.1.0"
-edition = "2021"
-description = "Docker Compose label utilities and template rendering"
-license = "MIT"
-repository = "https://github.com/my-own-web-services/mows"
-keywords = ["docker", "compose", "templates", "labels"]
-categories = ["command-line-utilities", "template-engine"]
+# Update Cargo.toml
+# 1. Replace workspace edition with actual value
+sed -i 's/edition = { workspace = true }/edition = "2021"/' "$MOZART_DIR/Cargo.toml"
 
-[[bin]]
-name = "mozart"
-path = "src/main.rs"
+# 2. Replace workspace dependencies with actual versions
+sed -i 's/serde = { workspace = true, features = \["derive"\] }/serde = { version = "1.0", features = ["derive"] }/' "$MOZART_DIR/Cargo.toml"
+sed -i 's/serde_json = { workspace = true, features = \["default"\] }/serde_json = "1.0"/' "$MOZART_DIR/Cargo.toml"
+sed -i 's/serde_yaml = { workspace = true }/serde_yaml = "0.9"/' "$MOZART_DIR/Cargo.toml"
+sed -i 's/gtmpl = { workspace = true }/gtmpl = "0.7"/' "$MOZART_DIR/Cargo.toml"
 
-[lib]
-name = "mozart"
-path = "src/lib.rs"
+# 3. Replace mows-common-rust dependency with inlined dependencies
+sed -i 's/mows-common-rust = { workspace = true }/# Inlined from mows-common-rust\nthiserror = "2.0"\nanyhow = "1.0"\ngtmpl_value = "0.5"\ngtmpl_derive = "0.5"\nbcrypt = "0.15"\nmd5 = "0.7"\nsha2 = "0.10"\nsha1 = "0.10"\ndata-encoding = "2.9"\nrand = "0.9"\nregex = "1.10"\npath-clean = "1.0"\nrcgen = { version = "0.13", features = ["pem", "x509-parser"] }\ntime = "0.3"\npem = "3.0"\nuuid = { version = "1.17", features = ["v4"] }/' "$MOZART_DIR/Cargo.toml"
 
-[dependencies]
-clap = { version = "4.5", features = ["derive"] }
+# 4. Add package metadata after version line
+sed -i '/^version = /a description = "Docker Compose label utilities and template rendering"\nlicense = "MIT"\nrepository = "https://github.com/my-own-web-services/mows"\nkeywords = ["docker", "compose", "templates", "labels"]\ncategories = ["command-line-utilities", "template-engine"]' "$MOZART_DIR/Cargo.toml"
 
-thiserror = "2.0"
-anyhow = "1.0"
+# 5. Add bin and lib sections after package section
+sed -i '/^\[dependencies\]/i [[bin]]\nname = "mozart"\npath = "src/main.rs"\n\n[lib]\nname = "mozart"\npath = "src/lib.rs"\n' "$MOZART_DIR/Cargo.toml"
 
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-serde_yaml = "0.9"
-
-gtmpl = "0.7"
-gtmpl_value = "0.5"
-gtmpl_derive = "0.5"
-
-jaq-core = "1.5"
-jaq-std = "1.6"
-jaq-parse = "1.0"
-jaq-interpret = "1.5"
-
-# For crypto functions
-bcrypt = "0.15"
-md5 = "0.7"
-sha2 = "0.10"
-sha1 = "0.10"
-data-encoding = "2.9"
-
-# For random string generation
-rand = "0.9"
-
-# For regex functions
-regex = "1.10"
-
-# For path functions
-path-clean = "1.0"
-
-# For certificate generation
-rcgen = { version = "0.13", features = ["pem", "x509-parser"] }
-time = "0.3"
-pem = "3.0"
-
-# For UUID generation
-uuid = { version = "1.17", features = ["v4"] }
-
-[dev-dependencies]
-tempfile = "3.8"
-EOF
-
-echo "Done! Mozart is ready for publishing."
+VERSION=$(grep '^version' "$MOZART_DIR/Cargo.toml" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+echo "Done! Mozart v$VERSION is ready for publishing."
