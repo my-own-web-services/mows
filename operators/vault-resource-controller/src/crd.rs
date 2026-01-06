@@ -119,6 +119,7 @@ pub struct KubernetesAuthEngineRole {
     pub namespace: Option<String>,
     /// The vault policy id to attach to the service account without namespace
     pub policy_ids: Vec<String>,
+    pub audience: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]

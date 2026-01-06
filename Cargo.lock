@@ -4538,17 +4538,12 @@ dependencies = [
  "anyhow",
  "bcrypt 0.15.1",
  "chrono",
- "clap",
  "data-encoding",
  "futures",
  "gtmpl",
  "gtmpl_derive",
  "gtmpl_value",
  "http 1.3.1",
- "jaq-core",
- "jaq-interpret",
- "jaq-parse",
- "jaq-std",
  "k8s-openapi",
  "kube",
  "md5",
@@ -4623,6 +4618,23 @@ dependencies = [
  "utoipa",
  "utoipa-axum",
  "utoipa-swagger-ui",
+]
+
+[[package]]
+name = "mozart"
+version = "0.2.0"
+dependencies = [
+ "clap",
+ "gtmpl",
+ "jaq-core",
+ "jaq-interpret",
+ "jaq-parse",
+ "jaq-std",
+ "mows-common-rust",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
 ]
 
 [[package]]

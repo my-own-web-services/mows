@@ -126,6 +126,7 @@ pub async fn apply_k8s_auth_role(
                 .bound_service_account_namespaces(vec![namespace.clone()])
                 .token_policies(policy_ids)
                 .token_ttl("1h")
+                .audience(role.audience.clone().unwrap_or("vault".to_string()))
                 .token_max_ttl("1h"),
         ),
     )

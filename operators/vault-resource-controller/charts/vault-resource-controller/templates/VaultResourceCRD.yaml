@@ -40,6 +40,9 @@ spec:
                       roles:
                         additionalProperties:
                           properties:
+                            audience:
+                              nullable: true
+                              type: string
                             namespace:
                               nullable: true
                               type: string

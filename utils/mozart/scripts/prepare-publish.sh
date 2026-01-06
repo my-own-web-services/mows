@@ -33,7 +33,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Docker Compose label utilities and template rendering"
 license = "MIT"
-repository = "https://github.com/mows-io/mows"
+repository = "https://github.com/my-own-web-services/mows"
 keywords = ["docker", "compose", "templates", "labels"]
 categories = ["command-line-utilities", "template-engine"]
 
