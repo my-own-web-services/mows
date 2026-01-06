@@ -54,4 +54,4 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cd utils/mozart
-          cargo publish
+          cargo publish --allow-dirty
