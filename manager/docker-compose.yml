@@ -10,7 +10,7 @@ services:
                 mows-common-rust: ../utils/mows-common-rust
                 lock: ../
             args:
-                - PROFILE=release # dev or release
+                - PROFILE=${PROFILE:-dev} # dev or release
                 - SERVICE_NAME=${SERVICE_NAME:-mows-manager}
                 - BUILD_UI=${BUILD_UI:-true}
                 - BUILD_PACKAGE_MANAGER_CLI=${BUILD_PACKAGE_MANAGER_CLI:-true}

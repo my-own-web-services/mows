@@ -18,8 +18,8 @@ docker run -d --rm -p 3001:80  -e PRIMARY_ORIGIN="http://localhost:1234" --netwo
 
 sleep 2
 
-rm -f swagger.json
-curl -o swagger.json http://localhost:3001/apidoc/openapi.json
+rm -f openapi.json
+curl -o openapi.json http://localhost:3001/apidoc/openapi.json
 
 
 # generate clients

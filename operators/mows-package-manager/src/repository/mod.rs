@@ -327,6 +327,74 @@ Resource content:\n\
                         is_namespace,
                     );
 
+                    // First, validate with dry-run to catch errors before actually applying
+                    let dry_run_params = PatchParams::apply("mows-package-manager")
+                        .force()
+                        .dry_run();
+
+                    debug!(
+                        "Validating resource '{}' of kind '{}' with dry-run",
+                        object_name, group_version_kind.kind
+                    );
+
+                    // Try dry-run validation first
+                    api.patch(
+                        &object_name,
+                        &dry_run_params,
+                        &Patch::Apply(&rendered_document.resource),
+                    )
+                    .await
+                    .map_err(|e| {
+                        let kube_error = e.to_string();
+                        let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
+                            .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
+
+                        // Try to extract line number from Kubernetes validation error
+                        let line_num = extract_line_number_from_error(&kube_error)
+                            .or_else(|| find_field_in_yaml(&resource_yaml, &kube_error));
+
+                        let highlighted_content = if let Some(line_num) = line_num {
+                            format_yaml_with_error_line(&resource_yaml, line_num, &kube_error)
+                        } else {
+                            format_yaml_highlighted(&resource_yaml, true)
+                        };
+
+                        let path_info = if let Some(path) = &rendered_document.debug.resource_source_path {
+                            format!("{} {}\n", label("Resource Path"), path)
+                        } else {
+                            String::new()
+                        };
+
+                        anyhow::anyhow!(
+                            "\n{} Resource validation failed for '{}' of kind '{}'\n\
+\n\
+{} {}\n\
+{}{} {}\n\
+{} Kubernetes API validation error:\n\
+{}\n\
+\n\
+Resource content:\n\
+{}",
+                            error_prefix(),
+                            object_name,
+                            group_version_kind.kind,
+                            label("Source"),
+                            rendered_document.source_name,
+                            path_info,
+                            label("Namespace"),
+                            namespace_to_use.unwrap_or("<cluster-scoped>"),
+                            label(""),
+                            kube_error,
+                            highlighted_content
+                        )
+                    })?;
+
+                    debug!(
+                        "Dry-run validation passed for '{}', applying resource",
+                        object_name
+                    );
+
+                    // Validation passed, now actually apply the resource
                     let _response = api
                         .patch(
                             &object_name,
@@ -335,47 +403,27 @@ Resource content:\n\
                         )
                         .await
                         .map_err(|e| {
+                            // This error should be rare since we validated with dry-run
+                            // It could happen due to race conditions or cluster state changes
                             let kube_error = e.to_string();
-                            let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
-                                .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
-
-                            // Try to extract line number from Kubernetes validation error
-                            let line_num = extract_line_number_from_error(&kube_error)
-                                .or_else(|| find_field_in_yaml(&resource_yaml, &kube_error));
-
-                            let highlighted_content = if let Some(line_num) = line_num {
-                                format_yaml_with_error_line(&resource_yaml, line_num, &kube_error)
-                            } else {
-                                format_yaml_highlighted(&resource_yaml, true)
-                            };
-
-                            let path_info = if let Some(path) = &rendered_document.debug.resource_source_path {
-                                format!("{} {}\n", label("Resource Path"), path)
-                            } else {
-                                String::new()
-                            };
-
                             anyhow::anyhow!(
-                                "\n{} Error applying resource '{}' of kind '{}'\n\
+                                "\n{} Error applying resource '{}' of kind '{}' (validation passed but apply failed)\n\
 \n\
 {} {}\n\
-{}{} {}\n\
+{} {}\n\
+{} This may indicate a race condition or cluster state change.\n\
 {} Kubernetes error:\n\
-{}\n\
-\n\
-Resource content:\n\
 {}",
                                 error_prefix(),
                                 object_name,
                                 group_version_kind.kind,
                                 label("Source"),
                                 rendered_document.source_name,
-                                path_info,
                                 label("Namespace"),
                                 namespace_to_use.unwrap_or("<cluster-scoped>"),
+                                hint_prefix(),
                                 label(""),
-                                kube_error,
-                                highlighted_content
+                                kube_error
                             )
                         })?;
                 }

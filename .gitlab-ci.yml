@@ -5,6 +5,9 @@ stages:
 
 docker-build-web:
     stage: docker-build
+    rules:
+        - changes:
+              - website/**/*
     image:
         name: gcr.io/kaniko-project/executor:debug
         entrypoint: [""]

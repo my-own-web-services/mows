@@ -1,5 +1,8 @@
+#!/bin/bash
 
-cluster_interface=enp3s0f0u2u3
+set -euo pipefail
+
+cluster_interface=enp14s0f4u2u2
 
 
 # check if the interface is available

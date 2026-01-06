@@ -3,7 +3,7 @@
 set -euo pipefail
 
 /usr/local/bin/docker-entrypoint.sh generate \
-    -i /app/swagger.json \
+    -i /app/openapi.json \
     -g rust \
     -o /local/out/rust \
     --skip-validate-spec \

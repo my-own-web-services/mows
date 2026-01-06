@@ -238,9 +238,112 @@ pub fn extract_line_number_from_error(error: &str) -> Option<usize> {
     None
 }
 
+/// Extract field path from Kubernetes error messages
+/// Examples:
+/// - ".spec.replicas: expected numeric" -> ["spec", "replicas"]
+/// - "failed to create typed patch object (/name; apps/v1, Kind=Deployment): .spec.template.spec.containers[0].name: invalid" -> ["spec", "template", "spec", "containers", "name"]
+pub fn extract_field_path_from_error(error_message: &str) -> Option<Vec<String>> {
+    // Try to find patterns like: .field.path: error message
+    // or: .field.path[index]: error message
+    if let Some(field_start) = error_message.find("): .") {
+        // Pattern: "...): .spec.replicas: error"
+        let after_paren = &error_message[field_start + 3..];
+        if let Some(colon_pos) = after_paren.find(':') {
+            let field_path = &after_paren[..colon_pos];
+            return Some(parse_field_path(field_path));
+        }
+    } else if let Some(dot_pos) = error_message.find(": .") {
+        // Pattern: "error: .spec.replicas: message"
+        let after_dot = &error_message[dot_pos + 3..];
+        if let Some(colon_pos) = after_dot.find(':') {
+            let field_path = &after_dot[..colon_pos];
+            return Some(parse_field_path(field_path));
+        }
+    }
+
+    None
+}
+
+/// Parse field path string into components
+/// ".spec.replicas" -> ["spec", "replicas"]
+/// ".spec.template.spec.containers[0].name" -> ["spec", "template", "spec", "containers", "name"]
+fn parse_field_path(path: &str) -> Vec<String> {
+    path.trim_start_matches('.')
+        .split('.')
+        .map(|part| {
+            // Remove array indices like [0] from the field name
+            if let Some(bracket_pos) = part.find('[') {
+                part[..bracket_pos].to_string()
+            } else {
+                part.to_string()
+            }
+        })
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+
+/// Find the line number of a field path in YAML
+/// Example: ["spec", "replicas"] would find the line with "replicas:" under "spec:"
+pub fn find_field_path_in_yaml(yaml_str: &str, field_path: &[String]) -> Option<usize> {
+    if field_path.is_empty() {
+        return None;
+    }
+
+    let lines: Vec<&str> = yaml_str.lines().collect();
+    let mut current_path: Vec<String> = Vec::new();
+    let mut indent_stack: Vec<usize> = Vec::new();
+
+    for (line_num, line) in lines.iter().enumerate() {
+        let trimmed = line.trim_start();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        // Calculate indentation
+        let indent = line.len() - trimmed.len();
+
+        // Pop from stack if we've dedented
+        while !indent_stack.is_empty() && indent <= *indent_stack.last().unwrap() {
+            indent_stack.pop();
+            if !current_path.is_empty() {
+                current_path.pop();
+            }
+        }
+
+        // Check if this is a key line (has a colon)
+        if let Some(colon_pos) = trimmed.find(':') {
+            let key = trimmed[..colon_pos].trim();
+
+            // Push current field to path
+            current_path.push(key.to_string());
+            indent_stack.push(indent);
+
+            // Check if we match the target path
+            if current_path.len() == field_path.len() {
+                let matches = current_path.iter()
+                    .zip(field_path.iter())
+                    .all(|(a, b)| a == b);
+
+                if matches {
+                    return Some(line_num + 1);
+                }
+            }
+        }
+    }
+
+    None
+}
+
 /// Try to find the problematic field in YAML and return its line number
 pub fn find_field_in_yaml(yaml_str: &str, field_hint: &str) -> Option<usize> {
-    // Common problematic patterns in Kubernetes YAML
+    // First try to extract field path from error message
+    if let Some(field_path) = extract_field_path_from_error(field_hint) {
+        if let Some(line_num) = find_field_path_in_yaml(yaml_str, &field_path) {
+            return Some(line_num);
+        }
+    }
+
+    // Fallback: Common problematic patterns in Kubernetes YAML
     let problematic_patterns = [
         "annotations:", // Often misplaced
         "labels:",
@@ -286,5 +389,77 @@ mod tests {
             extract_line_number_from_error("foo.yaml:15: invalid syntax"),
             Some(15)
         );
+    }
+
+    #[test]
+    fn test_extract_field_path_from_error() {
+        // Test Kubernetes API error format
+        let error1 = "failed to create typed patch object (/pektin-api; apps/v1, Kind=Deployment): .spec.replicas: expected numeric (int or float), got string";
+        assert_eq!(
+            extract_field_path_from_error(error1),
+            Some(vec!["spec".to_string(), "replicas".to_string()])
+        );
+
+        // Test with array indices
+        let error2 = "): .spec.template.spec.containers[0].name: invalid value";
+        assert_eq!(
+            extract_field_path_from_error(error2),
+            Some(vec![
+                "spec".to_string(),
+                "template".to_string(),
+                "spec".to_string(),
+                "containers".to_string(),
+                "name".to_string()
+            ])
+        );
+
+        // Test simple format
+        let error3 = "error: .metadata.name: required field is missing";
+        assert_eq!(
+            extract_field_path_from_error(error3),
+            Some(vec!["metadata".to_string(), "name".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_find_field_path_in_yaml() {
+        let yaml = r#"apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+spec:
+  replicas: '1'
+  selector:
+    matchLabels:
+      app: test"#;
+
+        // Test finding spec.replicas
+        let path = vec!["spec".to_string(), "replicas".to_string()];
+        assert_eq!(find_field_path_in_yaml(yaml, &path), Some(6));
+
+        // Test finding metadata.name
+        let path = vec!["metadata".to_string(), "name".to_string()];
+        assert_eq!(find_field_path_in_yaml(yaml, &path), Some(4));
+
+        // Test finding nested field
+        let path = vec!["spec".to_string(), "selector".to_string(), "matchLabels".to_string()];
+        assert_eq!(find_field_path_in_yaml(yaml, &path), Some(8));
+    }
+
+    #[test]
+    fn test_find_field_in_yaml_with_real_error() {
+        let yaml = r#"apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pektin-api
+spec:
+  replicas: '1'
+  selector:
+    matchLabels:
+      app: pektin-api"#;
+
+        let error = "failed to create typed patch object (/pektin-api; apps/v1, Kind=Deployment): .spec.replicas: expected numeric (int or float), got string";
+
+        assert_eq!(find_field_in_yaml(yaml, error), Some(6));
     }
 }
