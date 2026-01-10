@@ -12,9 +12,6 @@ on:
         default: 'false'
         type: boolean
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,14 +26,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Generate cargo-workspace-docker.toml
-        run: |
-          cd utils/cargo-workspace-docker
-          cargo run $(pwd)/../..
 
       - name: Build static binary
         run: |
