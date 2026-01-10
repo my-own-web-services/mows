@@ -9,13 +9,14 @@ MOWS Package Manager - Docker Compose deployments and template rendering CLI.
 Download and install the latest release with checksum verification:
 
 ```bash
-curl -fsSL https://github.com/my-own-web-services/mows/releases/latest/download/checksums-sha256.txt -o /tmp/mpm-checksums.txt && \
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
-VERSION=$(grep -oP 'mpm-\K[0-9]+\.[0-9]+\.[0-9]+' /tmp/mpm-checksums.txt | head -1) && \
-curl -fsSL "https://github.com/my-own-web-services/mows/releases/latest/download/mpm-${VERSION}-linux-${ARCH}" -o /tmp/mpm && \
-cd /tmp && sha256sum -c checksums-sha256.txt --ignore-missing && \
+VERSION=$(curl -fsSL https://api.github.com/repos/my-own-web-services/mows/releases/latest | grep -oP '"tag_name":\s*"mpm-v\K[0-9]+\.[0-9]+\.[0-9]+') && \
+BINARY="mpm-${VERSION}-linux-${ARCH}" && \
+curl -fsSL "https://github.com/my-own-web-services/mows/releases/latest/download/${BINARY}" -o /tmp/mpm && \
+curl -fsSL "https://github.com/my-own-web-services/mows/releases/latest/download/${BINARY}-checksum-sha256.txt" -o /tmp/mpm-checksum.txt && \
+cd /tmp && sha256sum -c mpm-checksum.txt && \
 chmod +x /tmp/mpm && sudo mv /tmp/mpm /usr/local/bin/mpm && \
-rm /tmp/mpm-checksums.txt && \
+rm /tmp/mpm-checksum.txt && \
 echo "mpm ${VERSION} installed successfully"
 ```
 

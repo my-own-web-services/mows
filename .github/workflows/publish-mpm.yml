@@ -88,7 +88,9 @@ jobs:
       - name: Create checksums
         run: |
           cd artifacts
-          sha256sum mpm-* > checksums-sha256.txt
+          for f in mpm-*; do
+            sha256sum "$f" > "${f}-checksum-sha256.txt"
+          done
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -98,5 +100,4 @@ jobs:
           prerelease: false
           files: |
             artifacts/mpm-*
-            artifacts/checksums-sha256.txt
           generate_release_notes: true
