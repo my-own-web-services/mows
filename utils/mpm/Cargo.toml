@@ -1,0 +1,28 @@
+[package]
+name = "mpm"
+version = "0.2.0"
+edition = { workspace = true }
+
+[dependencies]
+mows-common-rust = { workspace = true }
+
+clap = { version = "4.5", features = ["derive"] }
+
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["default"] }
+serde_yaml = { workspace = true }
+
+gtmpl-ng = { workspace = true, features = ["all-functions"] }
+
+jaq-core = "1.5"
+jaq-std = "1.6"
+jaq-parse = "1.0"
+jaq-interpret = "1.5"
+
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+walkdir = "2.5"
+
+[dev-dependencies]
+tempfile = "3.8"

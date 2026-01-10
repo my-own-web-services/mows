@@ -1,0 +1,13 @@
+{
+    "window.title": "${rootName}",
+    "restoreTerminals.terminals": [
+        {
+            "splitTerminals": [
+                {
+                    "name": "claude",
+                    "commands": ["claude --resume"]
+                }
+            ]
+        }
+    ]
+}
