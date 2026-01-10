@@ -4,6 +4,23 @@ MOWS Package Manager - Docker Compose deployments and template rendering CLI.
 
 ## Installation
 
+### Binary (Linux)
+
+Download and install the latest release with checksum verification:
+
+```bash
+curl -fsSL https://github.com/my-own-web-services/mows/releases/latest/download/checksums-sha256.txt -o /tmp/mpm-checksums.txt && \
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
+VERSION=$(grep -oP 'mpm-\K[0-9]+\.[0-9]+\.[0-9]+' /tmp/mpm-checksums.txt | head -1) && \
+curl -fsSL "https://github.com/my-own-web-services/mows/releases/latest/download/mpm-${VERSION}-linux-${ARCH}" -o /tmp/mpm && \
+cd /tmp && sha256sum -c checksums-sha256.txt --ignore-missing && \
+chmod +x /tmp/mpm && sudo mv /tmp/mpm /usr/local/bin/mpm && \
+rm /tmp/mpm-checksums.txt && \
+echo "mpm ${VERSION} installed successfully"
+```
+
+### Cargo
+
 ```bash
 cargo install mpm
 ```
