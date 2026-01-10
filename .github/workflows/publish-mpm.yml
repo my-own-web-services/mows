@@ -1,0 +1,102 @@
+name: Publish mpm binary
+
+on:
+  push:
+    tags:
+      - 'mpm-v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (do not publish release)'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os_name: linux
+            arch: amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Generate cargo-workspace-docker.toml
+        run: |
+          cd utils/cargo-workspace-docker
+          cargo run $(pwd)/../..
+
+      - name: Build static binary
+        run: |
+          cd utils/mpm
+          ./build.sh
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#mpm-v}"
+          else
+            VERSION="dev"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Rename binary with version and platform
+        run: |
+          cd utils/mpm/dist
+          mv mpm mpm-${{ steps.get_version.outputs.version }}-${{ matrix.os_name }}-${{ matrix.arch }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpm-${{ matrix.os_name }}-${{ matrix.arch }}
+          path: utils/mpm/dist/mpm-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' && github.event.inputs.dry_run != 'true'
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#mpm-v}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Create checksums
+        run: |
+          cd artifacts
+          sha256sum mpm-* > checksums-sha256.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: mpm v${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/mpm-*
+            artifacts/checksums-sha256.txt
+          generate_release_notes: true
