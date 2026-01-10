@@ -85,7 +85,7 @@ include_dir = { version = "0.7.3", default-features = false }
 reqwest = { version = "0.12.15", default-features = false }
 vaultrs = { version = "0.7.4", default-features = false }
 rand = { version = "0.9.1", default-features = false }
-gtmpl = { version = "0.7", default-features = false }
+gtmpl-ng = { version = "0.7.5", default-features = false }
 gtmpl_value = { version = "0.5.1", default-features = false }
 gtmpl_derive = { version = "0.5.0", default-features = false }
 
