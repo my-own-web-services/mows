@@ -1,4 +1,5 @@
 pub mod config;
+pub mod error_display;
 pub mod errors;
 pub mod observability;
 pub mod reqwest;
