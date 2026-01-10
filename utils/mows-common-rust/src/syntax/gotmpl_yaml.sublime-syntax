@@ -1,0 +1,172 @@
+%YAML 1.2
+---
+# YAML with Go Templates (Helm-style)
+# Based on Sublime Text YAML syntax with embedded Go template support
+name: YAML (Go Template)
+scope: source.yaml.gotmpl
+version: 2
+file_extensions:
+  - gotmpl
+  - yaml.gotmpl
+  - yml.gotmpl
+
+variables:
+  # Go template keywords
+  gt_keywords: 'if|else|end|range|with|define|template|block|nil'
+  gt_functions: 'and|or|not|eq|ne|lt|le|gt|ge|len|index|call|html|js|urlquery|print|printf|println|slice|ternary|default|empty|fail|coalesce|toJson|toPrettyJson|toYaml|fromJson|fromYaml|include|required|lookup|b64enc|b64dec|quote|squote|nindent|indent|trim|trimAll|trimPrefix|trimSuffix|lower|upper|title|substr|contains|hasPrefix|hasSuffix|repeat|nospace|trunc|list|dict|get|set|unset|hasKey|keys|values|pick|omit|merge|mergeOverwrite|deepCopy|pluck|concat|append|prepend|first|last|rest|initial|reverse|uniq|without|has|chunk|split|splitList|join|sortAlpha|add|sub|mul|div|mod|max|min|floor|ceil|round|now|date|dateModify|toDate|mustToDate|ago|duration|durationRound|htmlDate|htmlDateInZone|dateInZone|env|expandenv|base|dir|ext|clean|isAbs|osBase|osDir|osExt|osClean|osIsAbs|kindOf|kindIs|typeOf|typeIs|typeIsLike|deepEqual|semver|semverCompare|sha1sum|sha256sum|adler32sum|htpasswd|randAlphaNum|randAlpha|randNumeric|randAscii|uuidv4|regexMatch|regexFind|regexFindAll|regexReplaceAll|regexReplaceAllLiteral|regexSplit|encryptAES|decryptAES|buildCustomCert|genPrivateKey|genCA|genSelfSignedCert|genSignedCert|derivePassword|genCAWithKey|genSelfSignedCertWithKey|genSignedCertWithKey'
+
+contexts:
+  main:
+    - include: go-template
+    - include: yaml-content
+
+  go-template:
+    # Template comment
+    - match: '\{\{-?\s*/\*'
+      scope: punctuation.definition.comment.begin.gotmpl
+      push: template-comment
+    # Template block start
+    - match: '\{\{-?'
+      scope: punctuation.section.interpolation.begin.gotmpl keyword.operator.template.gotmpl
+      push: template-content
+
+  template-comment:
+    - meta_scope: comment.block.gotmpl
+    - match: '\*/\s*-?\}\}'
+      scope: punctuation.definition.comment.end.gotmpl
+      pop: true
+
+  template-content:
+    - meta_scope: meta.interpolation.gotmpl
+    # Template block end
+    - match: '-?\}\}'
+      scope: punctuation.section.interpolation.end.gotmpl keyword.operator.template.gotmpl
+      pop: true
+    # Assignment operator
+    - match: ':='
+      scope: keyword.operator.assignment.gotmpl
+    # Pipe operator
+    - match: '\|'
+      scope: keyword.operator.pipe.gotmpl
+    # Keywords
+    - match: '\b({{gt_keywords}})\b'
+      scope: keyword.control.gotmpl
+    # Built-in functions
+    - match: '\b({{gt_functions}})\b'
+      scope: support.function.builtin.gotmpl
+    # Custom functions (any other identifier followed by space or pipe)
+    - match: '\b([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\s+[^|}\s]|\s*\||\s*-?\}\})'
+      captures:
+        1: entity.name.function.gotmpl
+    # Variables starting with $ (e.g., $config) - red
+    - match: '\$[a-zA-Z_][a-zA-Z0-9_]*'
+      scope: variable.other.dollar.gotmpl
+    # Dot access (e.g., .member) - orange
+    - match: '\.([a-zA-Z_][a-zA-Z0-9_]*)'
+      scope: variable.other.member.gotmpl
+    # Just dot (current context) - orange
+    - match: '\.'
+      scope: variable.language.gotmpl
+    # Strings
+    - match: '"'
+      scope: punctuation.definition.string.begin.gotmpl
+      push: template-double-string
+    - match: '`'
+      scope: punctuation.definition.string.begin.gotmpl
+      push: template-raw-string
+    # Numbers
+    - match: '\b\d+(\.\d+)?\b'
+      scope: constant.numeric.gotmpl
+    # Booleans
+    - match: '\b(true|false)\b'
+      scope: constant.language.boolean.gotmpl
+
+  template-double-string:
+    - meta_scope: string.quoted.double.gotmpl
+    - match: '\\.'
+      scope: constant.character.escape.gotmpl
+    - match: '"'
+      scope: punctuation.definition.string.end.gotmpl
+      pop: true
+
+  template-raw-string:
+    - meta_scope: string.quoted.other.gotmpl
+    - match: '`'
+      scope: punctuation.definition.string.end.gotmpl
+      pop: true
+
+  yaml-content:
+    # Comments
+    - match: '(?:^|\s+)(#).*$\n?'
+      captures:
+        1: punctuation.definition.comment.yaml
+      scope: comment.line.number-sign.yaml
+    # Document markers
+    - match: '^---'
+      scope: entity.other.document.begin.yaml
+    - match: '^\.\.\.'
+      scope: entity.other.document.end.yaml
+    # Mapping key
+    - match: '([a-zA-Z_][a-zA-Z0-9_-]*)(:)(?=\s|$)'
+      captures:
+        1: entity.name.tag.yaml
+        2: punctuation.separator.key-value.yaml
+    # Quoted mapping key
+    - match: '(".*?"|''.*?'')(:)(?=\s|$)'
+      captures:
+        1: entity.name.tag.yaml string.quoted.yaml
+        2: punctuation.separator.key-value.yaml
+    # Sequence indicator
+    - match: '^\s*(-)\s'
+      captures:
+        1: punctuation.definition.block.sequence.item.yaml
+    # Anchor
+    - match: '(&)([a-zA-Z0-9_-]+)'
+      captures:
+        1: punctuation.definition.anchor.yaml
+        2: entity.name.other.anchor.yaml
+    # Alias
+    - match: '(\*)([a-zA-Z0-9_-]+)'
+      captures:
+        1: punctuation.definition.alias.yaml
+        2: variable.other.alias.yaml
+    # Boolean values
+    - match: '\b(true|false|yes|no|on|off)\b'
+      scope: constant.language.boolean.yaml
+    # Null values
+    - match: '\b(null|~)\b'
+      scope: constant.language.null.yaml
+    # Numbers
+    - match: '\b\d+(\.\d+)?([eE][+-]?\d+)?\b'
+      scope: constant.numeric.yaml
+    # Double-quoted strings
+    - match: '"'
+      scope: punctuation.definition.string.begin.yaml
+      push: yaml-double-string
+    # Single-quoted strings
+    - match: "'"
+      scope: punctuation.definition.string.begin.yaml
+      push: yaml-single-string
+    # Unquoted string values (after colon or dash)
+    - match: '(?<=:\s)[a-zA-Z0-9_./-][a-zA-Z0-9_./:@-]*(?=\s*$)'
+      scope: string.unquoted.plain.out.yaml
+    - match: '(?<=-\s)[a-zA-Z0-9_./-][a-zA-Z0-9_./:@-]*(?=\s*$)'
+      scope: string.unquoted.plain.out.yaml
+
+  yaml-double-string:
+    - meta_scope: string.quoted.double.yaml
+    - include: go-template
+    - match: '\\.'
+      scope: constant.character.escape.yaml
+    - match: '"'
+      scope: punctuation.definition.string.end.yaml
+      pop: true
+
+  yaml-single-string:
+    - meta_scope: string.quoted.single.yaml
+    - include: go-template
+    - match: "''"
+      scope: constant.character.escape.yaml
+    - match: "'"
+      scope: punctuation.definition.string.end.yaml
+      pop: true

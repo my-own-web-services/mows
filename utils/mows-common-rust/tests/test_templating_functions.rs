@@ -1,12 +1,11 @@
 // Integration tests for template functions
 //
 // These tests verify that template functions work correctly when used through
-// the template system. Unit tests for individual functions are located in
-// their respective source files in src/templating/functions/
+// the template system.
 
-use gtmpl::{Context as GtmplContext, Template, Value as GtmplValue};
+use gtmpl_ng::all_functions::all_functions;
+use gtmpl_ng::{Context as GtmplContext, Template, Value as GtmplValue};
 use gtmpl_derive::Gtmpl;
-use mows_common_rust::templating::functions::TEMPLATE_FUNCTIONS;
 use std::collections::HashMap;
 
 #[derive(Gtmpl)]
@@ -17,7 +16,7 @@ struct LocalContext {
 #[test]
 fn test_gen_self_signed_cert() {
     let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&all_functions());
 
     let context = GtmplContext::from(LocalContext {
         variables: HashMap::new(),
@@ -46,7 +45,7 @@ fn test_gen_self_signed_cert() {
 #[test]
 fn test_from_json_to_json() {
     let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&all_functions());
 
     let context = GtmplContext::from(LocalContext {
         variables: HashMap::new(),
@@ -65,7 +64,7 @@ fn test_from_json_to_json() {
 #[test]
 fn test_value_access_from_json() {
     let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&all_functions());
 
     let context = GtmplContext::from(LocalContext {
         variables: HashMap::new(),
@@ -84,7 +83,7 @@ fn test_value_access_from_json() {
 #[test]
 fn test_value_access_from_json_without_variable() {
     let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&all_functions());
 
     let context = GtmplContext::from(LocalContext {
         variables: HashMap::new(),
@@ -102,7 +101,7 @@ fn test_value_access_from_json_without_variable() {
 #[test]
 fn variables_work() {
     let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&all_functions());
     let mut variables = HashMap::new();
     variables.insert("foo".to_string(), GtmplValue::String("bar".to_string()));
 
@@ -121,7 +120,7 @@ fn variables_work() {
 #[test]
 fn gen_ca_and_sign_cert() {
     let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&all_functions());
 
     let context = GtmplContext::from(LocalContext {
         variables: HashMap::new(),
@@ -150,7 +149,7 @@ fn gen_ca_and_sign_cert() {
 #[test]
 fn gen_signed_cert() {
     let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&all_functions());
 
     let context = GtmplContext::from(LocalContext {
         variables: HashMap::new(),

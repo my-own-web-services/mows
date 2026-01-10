@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>name</key>
+	<string>Go Template Dark (One Dark)</string>
+	<key>settings</key>
+	<array>
+		<!-- Global settings -->
+		<dict>
+			<key>settings</key>
+			<dict>
+				<key>background</key>
+				<string>#282c34</string>
+				<key>foreground</key>
+				<string>#abb2bf</string>
+				<key>caret</key>
+				<string>#528bff</string>
+				<key>selection</key>
+				<string>#3e4451</string>
+				<key>lineHighlight</key>
+				<string>#2c323c</string>
+			</dict>
+		</dict>
+
+		<!-- Go Template: Delimiters {{ }} {{- -}} - Yellow -->
+		<dict>
+			<key>scope</key>
+			<string>punctuation.section.interpolation.begin.gotmpl, punctuation.section.interpolation.end.gotmpl, keyword.operator.template.gotmpl</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#e5c07b</string>
+			</dict>
+		</dict>
+
+		<!-- Go Template: Keywords (if, else, end, range, with) - Purple/Magenta -->
+		<dict>
+			<key>scope</key>
+			<string>keyword.control.gotmpl</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#c678dd</string>
+			</dict>
+		</dict>
+
+		<!-- Go Template: Assignment := and Pipe | - Purple/Magenta -->
+		<dict>
+			<key>scope</key>
+			<string>keyword.operator.assignment.gotmpl, keyword.operator.pipe.gotmpl</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#c678dd</string>
+			</dict>
+		</dict>
+
+		<!-- Go Template: Dollar Variables ($config) - Red -->
+		<dict>
+			<key>scope</key>
+			<string>variable.other.dollar.gotmpl</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#e06c75</string>
+			</dict>
+		</dict>
+
+		<!-- Go Template: Member access (.field) - Orange -->
+		<dict>
+			<key>scope</key>
+			<string>variable.other.member.gotmpl, variable.language.gotmpl</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#d19a66</string>
+			</dict>
+		</dict>
+
+		<!-- Go Template: Functions (eq, ternary, etc) - Cyan -->
+		<dict>
+			<key>scope</key>
+			<string>support.function.builtin.gotmpl, entity.name.function.gotmpl</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#56b6c2</string>
+			</dict>
+		</dict>
+
+		<!-- Go Template: Strings - Green -->
+		<dict>
+			<key>scope</key>
+			<string>string.quoted.double.gotmpl, string.quoted.other.gotmpl</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#98c379</string>
+			</dict>
+		</dict>
+
+		<!-- Go Template: Numbers and Booleans - Orange -->
+		<dict>
+			<key>scope</key>
+			<string>constant.numeric.gotmpl, constant.language.boolean.gotmpl</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#d19a66</string>
+			</dict>
+		</dict>
+
+		<!-- Go Template: Comments - Gray -->
+		<dict>
+			<key>scope</key>
+			<string>comment.block.gotmpl</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5c6370</string>
+			</dict>
+		</dict>
+
+		<!-- YAML: Keys - Red -->
+		<dict>
+			<key>scope</key>
+			<string>entity.name.tag.yaml</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#e06c75</string>
+			</dict>
+		</dict>
+
+		<!-- YAML: All String values - Green -->
+		<dict>
+			<key>scope</key>
+			<string>string.quoted.double.yaml, string.quoted.single.yaml, string.unquoted.plain.out.yaml, string.unquoted.plain.in.yaml, string.unquoted.yaml, string.unquoted.block.yaml</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#98c379</string>
+			</dict>
+		</dict>
+
+		<!-- YAML: Booleans and Numbers - Orange -->
+		<dict>
+			<key>scope</key>
+			<string>constant.language.boolean.yaml, constant.language.null.yaml, constant.numeric.yaml</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#d19a66</string>
+			</dict>
+		</dict>
+
+		<!-- YAML: Comments - Gray -->
+		<dict>
+			<key>scope</key>
+			<string>comment.line.number-sign.yaml</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5c6370</string>
+			</dict>
+		</dict>
+
+		<!-- YAML: Punctuation - Default -->
+		<dict>
+			<key>scope</key>
+			<string>punctuation.separator.key-value.yaml, punctuation.definition.block.sequence.item.yaml</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#abb2bf</string>
+			</dict>
+		</dict>
+
+		<!-- YAML: Anchors and Aliases - Purple -->
+		<dict>
+			<key>scope</key>
+			<string>entity.name.other.anchor.yaml, variable.other.alias.yaml</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#c678dd</string>
+			</dict>
+		</dict>
+
+		<!-- YAML: Document markers - Gray -->
+		<dict>
+			<key>scope</key>
+			<string>entity.other.document.begin.yaml, entity.other.document.end.yaml</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5c6370</string>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

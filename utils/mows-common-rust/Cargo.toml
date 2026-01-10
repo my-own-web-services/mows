@@ -47,30 +47,16 @@ http = "1.1.0"
 
 
 rand = { workspace = true, features = ["default"] }
-gtmpl = { workspace = true }
+gtmpl-ng = { workspace = true, features = ["all-functions"] }
 gtmpl_value = { workspace = true }
 gtmpl_derive = { workspace = true }
-bcrypt = { version = "0.15.1" }
-md5 = { version = "0.7.0" }
-sha2 = { workspace = true, features = ["default"] }
-sha1 = "0.10.6"
-data-encoding = { workspace = true, features = ["default"] }
 serde_yaml = { workspace = true }
 
 kube = { workspace = true, features = ["runtime", "derive", "default"] }
 k8s-openapi = { workspace = true, features = ["latest"] }
-rcgen = { workspace = true, features = [
-    "pem",
-    "x509-parser",
-    "default",
-    "crypto",
-] }
-time = { workspace = true, features = ["default"] }
-pem = "3.0.5"
 
 utoipa = { workspace = true, features = ["default", "uuid", "chrono"] }
 uuid = { workspace = true, features = ["v4"] }
-regex = "1.10"
 path-clean = "1.0.1"
 futures = { workspace = true, features = ["default"] }
 # Vault client
@@ -81,6 +67,10 @@ chrono = { workspace = true, features = ["default"], optional = true }
 syn = { version = "2.0", features = ["full", "parsing", "extra-traits"] }
 quote = "1.0"
 proc-macro2 = "1.0"
+
+# For error display with syntax highlighting
+syntect = "5.2"
+atty = "0.2"
 
 [dev-dependencies]
 tempfile = "3.8"
