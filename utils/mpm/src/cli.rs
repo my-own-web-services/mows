@@ -1,12 +1,25 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+/// Build version string with git info
+fn version_string() -> &'static str {
+    concat!(
+        env!("CARGO_PKG_VERSION"),
+        " (",
+        env!("GIT_HASH"),
+        " ",
+        env!("GIT_DATE"),
+        ")"
+    )
+}
+
 #[derive(Parser)]
 #[command(name = "mpm")]
 #[command(about = "mpm - MOWS Package Manager for Docker Compose deployments", long_about = None)]
+#[command(version = version_string())]
 pub struct Cli {
     /// Enable verbose output (debug logging)
-    #[arg(short = 'V', long, global = true)]
+    #[arg(short = 'v', long, global = true)]
     pub verbose: bool,
 
     #[command(subcommand)]
