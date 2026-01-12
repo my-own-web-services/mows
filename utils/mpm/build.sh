@@ -12,11 +12,15 @@ export PROFILE="${PROFILE:-release}"
 TARGETARCH="${TARGETARCH:-amd64}"
 PLATFORM="linux/${TARGETARCH}"
 
+# Get git info for version embedding
+GIT_HASH="${GIT_HASH:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}"
+GIT_DATE="${GIT_DATE:-$(git log -1 --format=%cs 2>/dev/null || echo 'unknown')}"
+
 # Create dist directory
 mkdir -p dist
 
 # Build and export the static binary directly to dist/
-echo "Building mpm static binary (profile: ${PROFILE}, arch: ${TARGETARCH})..."
+echo "Building mpm static binary (profile: ${PROFILE}, arch: ${TARGETARCH}, git: ${GIT_HASH})..."
 docker buildx build \
     --platform "${PLATFORM}" \
     --file Dockerfile \
@@ -26,6 +30,8 @@ docker buildx build \
     --build-arg PROFILE="${PROFILE}" \
     --build-arg SERVICE_NAME="${SERVICE_NAME}" \
     --build-arg TARGETARCH="${TARGETARCH}" \
+    --build-arg GIT_HASH="${GIT_HASH}" \
+    --build-arg GIT_DATE="${GIT_DATE}" \
     --output type=local,dest=dist/ \
     .
 

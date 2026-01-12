@@ -16,7 +16,7 @@ ensure that the application can be used on different systems and architectures w
 
 when the cli is run it should check in the background without delaying the execution if there is a new version available, it should then write that to its config file and next time its run it should tell the user that there is a new version available
 
-there should be also a fine taste agent that checks for things that i would never allow to have been programmed in the first place
+# there should be also a fine taste agent that checks for things that i would never allow to have been programmed in the first place
 
 - Don't just create hacks or workarounds to solve a problem even if they work, you should always use the canonical approach to solve a problem, always do some research first if you are not 100% sure
 
@@ -26,10 +26,14 @@ there should be also a fine taste agent that checks for things that i would neve
 
 - when using crates ensure that they have a proper userbase and that you are using the last version have in mind that you will need to search the web for the latest version or cargo add it because of your knowledge cutoff
 
+- after publishing a new version check if the pipeline building it actually passes and fix any error that may arise
+
+- when trying to commit or push, the ssh key might not be injected to allow this, prompt me to unlock my password manager so that the ssh key gets injected and the commit can be signed and pushed
+
 - Never advertise for yourself in git commits or anywhere else
 
 - this system is using nixos
 
-there should be one agent that verifies that the documentation is up to date with the implementation, that it is understandable and organized
+# there should be one agent that verifies that the documentation is up to date with the implementation, that it is understandable and organized
 
-there should be one repository agent that verifies that files are well organized in directories and that overall structure is logical, it should also verify that the code is maintainable and has no duplicate code
+# there should be one repository agent that verifies that files are well organized in directories and that overall structure is logical, it should also verify that the code is maintainable and has no duplicate code

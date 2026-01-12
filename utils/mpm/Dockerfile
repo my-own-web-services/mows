@@ -30,6 +30,10 @@ ARG RUSTFLAGS
 ARG BINARY_NAME
 ARG SERVICE_NAME
 ARG TARGETARCH
+ARG GIT_HASH="unknown"
+ARG GIT_DATE="unknown"
+ENV GIT_HASH=${GIT_HASH}
+ENV GIT_DATE=${GIT_DATE}
 USER root
 WORKDIR /build
 RUN apt-get update && apt-get install upx -y
