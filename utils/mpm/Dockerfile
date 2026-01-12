@@ -11,7 +11,7 @@ COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 
 # Using stable version of muslrust for reproducible builds
-FROM clux/muslrust:1.82.0-stable AS chef-builder
+FROM clux/muslrust:1.92.0-stable AS chef-builder
 
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
 
