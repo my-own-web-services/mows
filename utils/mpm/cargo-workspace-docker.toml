@@ -87,6 +87,11 @@ default-features = false
 features = ["derive"]
 version = "1.0.219"
 
+[workspace.dependencies.sha2]
+default-features = false
+features = ["default"]
+version = "0.10.9"
+
 [workspace.dependencies.serde_json]
 default-features = false
 features = ["default"]
