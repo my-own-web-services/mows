@@ -117,6 +117,7 @@ mod tests {
                     },
                 ],
             },
+            update: None,
         }
     }
 

@@ -1,5 +1,11 @@
+// mpm only supports Unix-like operating systems (Linux, macOS)
+// due to Unix-specific features like file permission modes and symlinks
+#[cfg(not(unix))]
+compile_error!("mpm only supports Unix-like operating systems (Linux, macOS)");
+
 mod cli;
 mod compose;
+mod self_update;
 mod template;
 mod tools;
 mod utils;
@@ -9,6 +15,7 @@ use tracing_subscriber::EnvFilter;
 
 use cli::{Cli, Commands, ComposeCommands, SecretsCommands, ToolCommands};
 use compose::{compose_cd, compose_init, compose_install, compose_passthrough, compose_up, compose_update, secrets_regenerate};
+use self_update::{check_for_updates_background, notify_if_update_available, self_update};
 use template::render_template_command;
 use tools::{expand_object_command, flatten_object_command, jq_command, json_to_yaml, prettify_json, yaml_to_json};
 use utils::find_git_root;
@@ -35,6 +42,12 @@ fn main() {
     let cli = Cli::parse();
 
     init_tracing(cli.verbose);
+
+    // Check for update notification from previous check
+    notify_if_update_available();
+
+    // Spawn background update check (won't delay execution)
+    check_for_updates_background();
 
     let result = match cli.command {
         Commands::Build => {
@@ -84,6 +97,9 @@ fn main() {
             variables,
             output,
         } => render_template_command(&input, &variables, &output),
+        Commands::SelfUpdate { build, version } => {
+            self_update(build, version.as_deref())
+        }
     };
 
     if let Err(e) = result {
