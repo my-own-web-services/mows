@@ -4,6 +4,7 @@ use std::process::Command;
 use tracing::{debug, info};
 
 use super::config::{MpmConfig, ProjectEntry};
+use crate::utils::find_git_root;
 
 /// Information about a detected Dockerfile
 #[derive(Debug)]
@@ -62,21 +63,6 @@ fn extract_repo_name_from_url(url: &str) -> Option<String> {
         .or_else(|| url.rsplit(':').next())?;
 
     Some(name.to_string())
-}
-
-/// Get the git repository root
-fn get_git_root() -> Result<PathBuf, String> {
-    let output = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .map_err(|e| format!("Failed to execute git: {}", e))?;
-
-    if !output.status.success() {
-        return Err("Not in a git repository".to_string());
-    }
-
-    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Ok(PathBuf::from(path))
 }
 
 /// Find all Dockerfiles in the repository
@@ -261,7 +247,7 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
     info!("Initializing mpm compose project: {}", project_name);
 
     // Get git root to find Dockerfiles
-    let git_root = get_git_root()?;
+    let git_root = find_git_root()?;
     debug!("Git root: {}", git_root.display());
 
     // Find Dockerfiles

@@ -5,11 +5,28 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info};
 
+/// Environment variable to override the config file path
+pub const MPM_CONFIG_PATH_ENV: &str = "MPM_CONFIG_PATH";
+
 /// Global mpm configuration stored at ~/.config/mows.cloud/mpm.yaml
+/// Can be overridden by setting the MPM_CONFIG_PATH environment variable
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MpmConfig {
     #[serde(default)]
     pub compose: ComposeConfig,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub update: Option<UpdateNotification>,
+}
+
+/// Stores information about available updates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateNotification {
+    /// The new version that is available
+    #[serde(rename = "availableVersion")]
+    pub available_version: String,
+    /// Unix timestamp of when we last checked for updates
+    #[serde(rename = "checkedAt")]
+    pub checked_at: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -43,7 +60,17 @@ impl ProjectEntry {
 
 impl MpmConfig {
     /// Get the config file path
+    ///
+    /// Checks the MPM_CONFIG_PATH environment variable first.
+    /// Falls back to ~/.config/mows.cloud/mpm.yaml if not set.
     pub fn config_path() -> Result<PathBuf, String> {
+        // Check for environment variable override first
+        if let Ok(path) = std::env::var(MPM_CONFIG_PATH_ENV) {
+            debug!("Using config path from {}: {}", MPM_CONFIG_PATH_ENV, path);
+            return Ok(PathBuf::from(path));
+        }
+
+        // Default to ~/.config/mows.cloud/mpm.yaml
         let home = std::env::var("HOME")
             .map_err(|_| "HOME environment variable not set".to_string())?;
         Ok(PathBuf::from(home).join(".config/mows.cloud/mpm.yaml"))
@@ -81,12 +108,12 @@ impl MpmConfig {
         // Write to temporary file first (atomic write pattern)
         let temp_path = path.with_extension("yaml.tmp");
 
-        // Create file with restrictive permissions (644 - owner read/write, others read)
+        // Create file with restrictive permissions (600 - owner read/write only)
         let mut file = File::create(&temp_path)
             .map_err(|e| format!("Failed to create temp config file: {}", e))?;
 
         // Set permissions before writing content
-        let permissions = fs::Permissions::from_mode(0o644);
+        let permissions = fs::Permissions::from_mode(0o600);
         fs::set_permissions(&temp_path, permissions)
             .map_err(|e| format!("Failed to set config file permissions: {}", e))?;
 
@@ -148,6 +175,40 @@ impl MpmConfig {
         }
         false
     }
+
+    /// Set update notification info
+    pub fn set_update_available(&mut self, version: String) {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        self.update = Some(UpdateNotification {
+            available_version: version,
+            checked_at: now,
+        });
+    }
+
+    /// Clear update notification (after user has updated)
+    pub fn clear_update_notification(&mut self) {
+        self.update = None;
+    }
+
+    /// Check if we should check for updates (returns true if no check in last hour)
+    pub fn should_check_for_updates(&self) -> bool {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        match &self.update {
+            Some(notification) => {
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+                // Check at most once per hour
+                now.saturating_sub(notification.checked_at) > 3600
+            }
+            None => true,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -173,6 +234,7 @@ mod tests {
                     },
                 ],
             },
+            update: None,
         };
 
         let yaml = serde_yaml::to_string(&config).unwrap();
@@ -212,6 +274,7 @@ mod tests {
                     },
                 ],
             },
+            update: None,
         };
 
         let projects = config.find_projects("project-a");
@@ -250,5 +313,111 @@ mod tests {
 
         assert_eq!(config.compose.projects.len(), 1);
         assert_eq!(config.compose.projects[0].repo_path, PathBuf::from("/new"));
+    }
+
+    #[test]
+    fn test_set_update_available() {
+        let mut config = MpmConfig::default();
+        assert!(config.update.is_none());
+
+        config.set_update_available("1.2.3".to_string());
+
+        assert!(config.update.is_some());
+        let update = config.update.as_ref().unwrap();
+        assert_eq!(update.available_version, "1.2.3");
+        assert!(update.checked_at > 0);
+    }
+
+    #[test]
+    fn test_clear_update_notification() {
+        let mut config = MpmConfig::default();
+        config.set_update_available("1.2.3".to_string());
+        assert!(config.update.is_some());
+
+        config.clear_update_notification();
+        assert!(config.update.is_none());
+    }
+
+    #[test]
+    fn test_should_check_for_updates_no_previous_check() {
+        let config = MpmConfig::default();
+        // Should check when no previous update info exists
+        assert!(config.should_check_for_updates());
+    }
+
+    #[test]
+    fn test_should_check_for_updates_recent_check() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        let config = MpmConfig {
+            compose: ComposeConfig::default(),
+            update: Some(UpdateNotification {
+                available_version: "1.0.0".to_string(),
+                checked_at: now, // Just checked
+            }),
+        };
+
+        // Should NOT check when recently checked (within 1 hour)
+        assert!(!config.should_check_for_updates());
+    }
+
+    #[test]
+    fn test_should_check_for_updates_old_check() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        let config = MpmConfig {
+            compose: ComposeConfig::default(),
+            update: Some(UpdateNotification {
+                available_version: "1.0.0".to_string(),
+                checked_at: now - 7200, // 2 hours ago
+            }),
+        };
+
+        // Should check when last check was more than 1 hour ago
+        assert!(config.should_check_for_updates());
+    }
+
+    #[test]
+    fn test_should_check_for_updates_boundary() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        // Exactly at the 1-hour boundary
+        let config = MpmConfig {
+            compose: ComposeConfig::default(),
+            update: Some(UpdateNotification {
+                available_version: "1.0.0".to_string(),
+                checked_at: now - 3600, // Exactly 1 hour ago
+            }),
+        };
+
+        // At exactly 3600 seconds, should NOT check (needs to be > 3600)
+        assert!(!config.should_check_for_updates());
+
+        // Just past the boundary
+        let config = MpmConfig {
+            compose: ComposeConfig::default(),
+            update: Some(UpdateNotification {
+                available_version: "1.0.0".to_string(),
+                checked_at: now - 3601, // 1 hour + 1 second ago
+            }),
+        };
+
+        // Should check now
+        assert!(config.should_check_for_updates());
     }
 }

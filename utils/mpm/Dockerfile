@@ -3,13 +3,15 @@ ARG SERVICE_NAME="mpm"
 ARG SERVICE_VERSION="0.2.0"
 ARG BINARY_NAME="mpm"
 ARG APP_STAGE_IMAGE="scratch"
+ARG TARGETARCH="amd64"
 
 FROM scratch AS sources
 COPY --from=mows-common-rust . mows-common-rust
 COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 
-FROM clux/muslrust:nightly AS chef-builder
+# Using stable version of muslrust for reproducible builds
+FROM clux/muslrust:1.82.0-stable AS chef-builder
 
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
 
@@ -27,22 +29,39 @@ ARG PROFILE
 ARG RUSTFLAGS
 ARG BINARY_NAME
 ARG SERVICE_NAME
+ARG TARGETARCH
 USER root
 WORKDIR /build
 RUN apt-get update && apt-get install upx -y
 COPY --from=sources / /build/
 
+# Determine Rust target based on architecture
+# amd64 -> x86_64-unknown-linux-musl, arm64 -> aarch64-unknown-linux-musl
+ENV RUST_TARGET_AMD64=x86_64-unknown-linux-musl
+ENV RUST_TARGET_ARM64=aarch64-unknown-linux-musl
+
 # build deps
 WORKDIR /build/app/
 COPY --from=planner /build/app/recipe.json recipe.json
-RUN  if [ "${PROFILE}" = "release" ];  then cargo chef cook --release --recipe-path recipe.json ;  else cargo chef cook --recipe-path recipe.json ; fi || true
+RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
+    if [ "${PROFILE}" = "release" ]; then \
+      cargo chef cook --release --recipe-path recipe.json --target=${RUST_TARGET}; \
+    else \
+      cargo chef cook --recipe-path recipe.json --target=${RUST_TARGET}; \
+    fi
 
 # build
 COPY --from=sources / /build/
 COPY src src
 
-RUN cargo build --bin ${BINARY_NAME} --profile=${PROFILE}
-RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl/debug/${BINARY_NAME} /${BINARY_NAME}; else mv /build/target/x86_64-unknown-linux-musl/${PROFILE}/${BINARY_NAME} /${BINARY_NAME}; fi
+RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
+    cargo build --bin ${BINARY_NAME} --profile=${PROFILE} --target=${RUST_TARGET}
+RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
+    if [ "${PROFILE}" = "dev" ]; then \
+      mv /build/target/${RUST_TARGET}/debug/${BINARY_NAME} /${BINARY_NAME}; \
+    else \
+      mv /build/target/${RUST_TARGET}/${PROFILE}/${BINARY_NAME} /${BINARY_NAME}; \
+    fi
 RUN if [ "${PROFILE}" = "release" ];  then strip /${BINARY_NAME}; fi
 RUN if [ "${PROFILE}" = "release" ];  then upx --best --lzma /${BINARY_NAME}; fi
 

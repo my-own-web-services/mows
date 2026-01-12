@@ -43,6 +43,30 @@ pub enum Commands {
         #[arg(short, long)]
         output: PathBuf,
     },
+    /// Update mpm to the latest version
+    ///
+    /// By default, downloads the latest pre-built binary from GitHub releases
+    /// and verifies its SHA256 checksum before installation.
+    ///
+    /// Use --build to clone the repository, verify its SSH signature, and
+    /// build from source using Docker (requires git and docker).
+    #[command(name = "self-update")]
+    SelfUpdate {
+        /// Build from source instead of downloading binary
+        ///
+        /// Clones the repository, verifies the SSH signature on the release tag
+        /// against the hardcoded trusted key, and builds the binary using Docker.
+        /// Requires git and docker.
+        #[arg(long)]
+        build: bool,
+
+        /// Specific version to install (e.g., "0.2.0")
+        ///
+        /// By default, installs the latest version. Works with both binary
+        /// download and --build modes.
+        #[arg(long)]
+        version: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]

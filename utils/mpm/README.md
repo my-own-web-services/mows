@@ -1,10 +1,21 @@
-# mpm
+# mpm - MOWS Package Manager
 
-MOWS Package Manager - Docker Compose deployments and template rendering CLI.
+mpm is a deployment tool that brings Helm-like templating to Docker Compose. Manage containerized applications with templated configurations, automatic secret generation, and deployment health checks.
+
+## Features
+
+- **Go Templates for Docker Compose** - Use variables, conditionals, and loops in your docker-compose files
+- **Automatic Secret Generation** - Generate and persist random passwords, API keys, and tokens
+- **Project Management** - Track and navigate between multiple deployments
+- **Label Flattening** - Write Traefik labels as nested YAML, auto-converted to dot notation
+- **Deployment Checks** - Pre and post-deployment validation
+- **Self-Update** - Update mpm with checksum and SSH signature verification
 
 ## Installation
 
 ### Binary (Linux)
+
+Pre-built binaries are available for **x86_64 (amd64)** and **aarch64 (arm64)** architectures.
 
 Download and install the latest release with checksum verification:
 
@@ -20,171 +31,218 @@ rm /tmp/mpm-checksum.txt && \
 echo "mpm ${VERSION} installed successfully"
 ```
 
-### Cargo
+### From Source
+
+Requires Rust toolchain:
 
 ```bash
-cargo install mpm
+cargo install --path .
 ```
 
-## Commands
+## Quick Start
 
-### Template Rendering
-
-Render Go-style templates with variable files.
+### 1. Initialize a Project
 
 ```bash
-mpm template -i <INPUT> -o <OUTPUT> [--variable=<NAME:PATH>...]
+cd your-project
+mpm compose init
 ```
 
-**Options:**
-- `-i, --input` - Template file or directory to render
-- `-o, --output` - Output file or directory
-- `--variable` - Variable file in format `name:path` (can be repeated)
-- `-V, --verbose` - Enable debug logging
+This creates a `deployment/` directory with templates.
 
-**Example:**
+### 2. Configure Values
+
+Edit `deployment/values.yaml`:
+
+```yaml
+hostname: example.com
+port: 8080
+```
+
+### 3. Create Docker Compose Template
+
+Edit `deployment/templates/docker-compose.yaml`:
+
+```yaml
+services:
+  web:
+    image: nginx
+    environment:
+      - HOSTNAME={{ .hostname }}
+      - PORT={{ .port }}
+    labels:
+      traefik:
+        http:
+          routers:
+            web:
+              rule: "Host(`{{ .hostname }}`)"
+```
+
+### 4. Deploy
 
 ```bash
-mpm template -i templates/ -o output/ \
-  --variable=config:./config.yml \
-  --variable=secrets:./secrets.env
+cd deployment
+mpm compose up
 ```
 
-#### Variable Files
+## Documentation
 
-Variables are loaded from files and made available in templates under their specified name. Supported formats:
+### Compose
 
-| Format | Detection | Example |
-|--------|-----------|---------|
-| JSON | Auto-detected | `{"host": "localhost"}` |
-| YAML | Auto-detected | `host: localhost` |
-| .env | `.env` extension | `API_KEY=secret123` |
+- [Getting Started](docs/compose/getting-started.md) - Quick introduction
+- [Project Structure](docs/compose/project-structure.md) - Files and directories explained
+- [Commands Reference](docs/compose/commands.md) - All compose commands
+- [Values and Templating](docs/compose/values-and-templating.md) - Template syntax and functions
+- [Secrets Management](docs/compose/secrets.md) - Generated and provided secrets
+- [Deployment Checks](docs/compose/checks.md) - Pre and post-deployment validation
 
-**.env file format:**
-```env
-# Comments are ignored
-API_KEY=secret123
-DEBUG=true
-QUOTED="hello world"
-```
+### Other Features
 
-#### Template Syntax
+- [Tools Reference](docs/tools/overview.md) - JSON/YAML conversion, jq queries
+- [Self-Update](docs/self-update.md) - Updating mpm
+- [Configuration](docs/configuration.md) - Config file and environment variables
 
-Templates use Go template syntax. Variables are accessed via `$name`:
-
-```
-Server: {{ $config.server.host }}:{{ $config.server.port }}
-API Key: {{ $secrets.API_KEY }}
-
-{{ if $config.debug }}
-Debug mode enabled
-{{ end }}
-
-{{ range $config.items }}
-- {{ . }}
-{{ end }}
-```
-
-#### Template Functions
-
-Mozart includes 155+ template functions from the Sprig-like library:
-
-**String:** `upper`, `lower`, `trim`, `replace`, `contains`, `hasPrefix`, `hasSuffix`, `quote`, `squote`, etc.
-
-**Math:** `add`, `sub`, `mul`, `div`, `mod`, `max`, `min`, `floor`, `ceil`, `round`
-
-**Collections:** `first`, `last`, `append`, `concat`, `reverse`, `uniq`, `slice`, `keys`, `values`, `pick`, `omit`, `merge`
-
-**Encoding:** `b64enc`, `b64dec`, `toJson`, `fromJson`, `toYaml`, `fromYaml`
-
-**Crypto:** `sha256sum`, `sha1sum`, `md5sum`
-
-**Logic:** `default`, `empty`, `coalesce`, `ternary`, `fail`
-
-### Tools
-
-#### JSON/YAML Conversion
+## Command Overview
 
 ```bash
-# JSON to YAML
-mpm tools json-to-yaml -i input.json -o output.yaml
+# Compose commands
+mpm compose init [NAME]              # Initialize new project
+mpm compose up                       # Render and deploy
+mpm compose install <URL>            # Install from git repo
+mpm compose update                   # Update to latest version
+mpm compose cd <PROJECT>             # Get project path
+mpm compose secrets regenerate [KEY] # Regenerate secrets
+mpm compose <docker-compose-cmd>     # Passthrough to docker compose
 
-# YAML to JSON
-mpm tools yaml-to-json -i input.yaml -o output.json
+# Tools
+mpm tools json-to-yaml               # Convert JSON to YAML
+mpm tools yaml-to-json               # Convert YAML to JSON
+mpm tools prettify-json              # Format JSON
+mpm tools expand-object              # Dot notation to nested
+mpm tools flatten-object             # Nested to dot notation
+mpm tools jq <FILTER>                # Query JSON/YAML
 
-# Prettify JSON
-mpm tools prettify-json -i ugly.json -o pretty.json
+# Template
+mpm template -i <IN> -o <OUT>        # Render Go templates
+
+# Self-update
+mpm self-update                      # Update to latest version
+mpm self-update --build              # Build from source with signature verification
 ```
 
-#### Docker Compose Label Conversion
-
-Convert between flat dot-notation labels and nested tree structures:
+## Example: Full Project Setup
 
 ```bash
-# Labels to tree
-echo 'traefik.http.routers.app.rule: "Host(`example.com`)"' | mpm tools labels-to-tree
+# Initialize in a git repository
+cd my-webapp
+mpm compose init
 
-# Tree to labels
-mpm tools tree-to-labels -i tree.yaml -o labels.yaml
+# Edit configuration
+cd deployment
+vim values.yaml
+vim templates/docker-compose.yaml
+
+# Add secrets
+vim provided-secrets.env
+vim templates/generated-secrets.env
+
+# Deploy
+mpm compose up
+
+# View logs
+mpm compose logs -f
+
+# Navigate back later
+cd $(mpm compose cd my-webapp)
 ```
 
-#### JQ Queries
+## Template Features
 
-Run jq-style queries on JSON/YAML:
+### Variables and Conditionals
+
+```yaml
+services:
+  app:
+    {{- if eq .services.app.build.enabled true }}
+    build:
+      context: "{{ .services.app.build.context }}"
+    {{- else }}
+    image: "{{ .services.app.image }}"
+    {{- end }}
+    environment:
+      - PORT={{ .port | default 8080 }}
+```
+
+### Secret Generation
+
+In `templates/generated-secrets.env`:
+```bash
+DB_PASSWORD={{ randAlphaNum 32 }}
+JWT_SECRET={{ randAlphaNum 64 }}
+API_KEY={{ uuidv4 }}
+```
+
+Secrets are generated once and preserved across deployments.
+
+### Automatic Label Flattening
+
+Write labels as nested YAML:
+```yaml
+labels:
+  traefik:
+    http:
+      routers:
+        web:
+          rule: "Host(`{{ .hostname }}`)"
+```
+
+Automatically converted to Docker-compatible format:
+```yaml
+labels:
+  traefik.http.routers.web.rule: "Host(`example.com`)"
+```
+
+## Template Functions
+
+Full list in [Values and Templating](docs/compose/values-and-templating.md). Highlights:
+
+| Function | Example | Description |
+|----------|---------|-------------|
+| `randAlphaNum N` | `{{ randAlphaNum 32 }}` | Random alphanumeric string |
+| `uuidv4` | `{{ uuidv4 }}` | Random UUID v4 |
+| `default` | `{{ .port \| default 8080 }}` | Default value if empty |
+| `upper` | `{{ upper .name }}` | Uppercase string |
+| `b64enc` | `{{ b64enc .data }}` | Base64 encode |
+| `toJson` | `{{ toJson .config }}` | Convert to JSON |
+
+## Self-Update
+
+Update mpm to the latest version:
 
 ```bash
-mpm tools jq '.items[].name' -i data.json
-mpm tools jq '.config.server' -i config.yaml --yaml
+# Binary download with checksum verification
+mpm self-update
+
+# Build from source with SSH signature verification
+mpm self-update --build
 ```
+
+mpm automatically checks for updates in the background and notifies you when a new version is available.
 
 ## Verbose Mode
 
 Enable debug logging with `-V` or `--verbose`:
 
 ```bash
-mpm -V template -i templates/ -o output/ --variable=config:./config.yml
+mpm -V compose up
 ```
 
-For trace-level logging, use the `RUST_LOG` environment variable:
+For trace-level logging:
 
 ```bash
-RUST_LOG=trace mpm template -i templates/ -o output/ --variable=config:./config.yml
+RUST_LOG=trace mpm compose up
 ```
 
-## Examples
+## License
 
-### Render a Single Template
-
-```bash
-# config.yml
-# server:
-#   host: localhost
-#   port: 8080
-
-# template.txt
-# Server URL: http://{{ $config.server.host }}:{{ $config.server.port }}
-
-mpm template -i template.txt -o output.txt --variable=config:./config.yml
-```
-
-### Render a Directory of Templates
-
-```bash
-mpm template -i templates/ -o rendered/ \
-  --variable=config:./config.yml \
-  --variable=secrets:./secrets.env
-```
-
-### Using Environment Variables in Templates
-
-```bash
-# .env
-# DATABASE_URL=postgres://localhost/mydb
-# API_KEY=secret123
-
-# template.txt
-# db: {{ $env.DATABASE_URL }}
-# key: {{ $env.API_KEY }}
-
-mpm template -i template.txt -o output.txt --variable=env:./.env
-```
+MIT

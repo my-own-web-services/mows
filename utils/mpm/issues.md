@@ -12,33 +12,24 @@
 
 # true and := coloring
 
-# more spaces than allowed per tab wrong error location
+ensure that the application can be used on different systems and architectures with all its features, create a comprehensive plan what is needed to do that
 
-```yaml
-version: "3.9"
+when the cli is run it should check in the background without delaying the execution if there is a new version available, it should then write that to its config file and next time its run it should tell the user that there is a new version available
 
-services:
-    qa-web:
-```
+there should be also a fine taste agent that checks for things that i would never allow to have been programmed in the first place
 
-```
-error: indentation error
-  --> results/docker-compose.yml:33:5
+- Don't just create hacks or workarounds to solve a problem even if they work, you should always use the canonical approach to solve a problem, always do some research first if you are not 100% sure
 
- 26 │ ····························entrypoints:·web
- 27 │ ····························service:·qa-web
- 28 │ ····················services:
- 29 │ ························qa-web:
- 30 │ ····························loadbalancer:
- 31 │ ································server:
- 32 │ ····································port:·80
- 33 │ ····qa-server:  indentation error
- 34 │ ········build:
- 35 │ ············context:·../../server/
- 36 │ ············dockerfile:·Dockerfile
- 37 │ ········
- 38 │ ········container_name:·qa-server
- 39 │ ········networks:
- 40 │ ············-·qa-db
- 41 │ ············-·qa-interossea-server
-```
+- when creating any kind of application they should almost always be statically linked and have not external dependencies, for example when some file should be downloaded from the web by an app this should always be done with native application code and not through the use of a spanned child process curl command
+
+- when checking paths, validating urls, parsing json etc. always use the canonical rust libraries that everyone uses, don't just roll it yourself, use the native path module for working with paths, the url crate for urls, serde_json for json and so on
+
+- when using crates ensure that they have a proper userbase and that you are using the last version have in mind that you will need to search the web for the latest version or cargo add it because of your knowledge cutoff
+
+- Never advertise for yourself in git commits or anywhere else
+
+- this system is using nixos
+
+there should be one agent that verifies that the documentation is up to date with the implementation, that it is understandable and organized
+
+there should be one repository agent that verifies that files are well organized in directories and that overall structure is logical, it should also verify that the code is maintainable and has no duplicate code

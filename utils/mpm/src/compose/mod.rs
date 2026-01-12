@@ -1,6 +1,6 @@
 mod cd;
 mod checks;
-mod config;
+pub mod config;
 mod init;
 mod install;
 mod manifest;
@@ -19,8 +19,9 @@ pub use up::compose_up;
 pub use update::compose_update;
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use walkdir::WalkDir;
+
+use crate::utils::find_git_root;
 
 /// Find the first mows-manifest.yaml/yml file in a directory tree
 /// Searches up to 5 levels deep, skipping hidden directories
@@ -62,21 +63,6 @@ fn has_manifest(dir: &Path) -> bool {
     dir.join("mows-manifest.yaml").exists() || dir.join("mows-manifest.yml").exists()
 }
 
-/// Get the git repository root directory
-fn get_git_root() -> Result<PathBuf, String> {
-    let output = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .map_err(|e| format!("Failed to run git: {}", e))?;
-
-    if !output.status.success() {
-        return Err("Not in a git repository".to_string());
-    }
-
-    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Ok(PathBuf::from(path))
-}
-
 /// Find the manifest directory for compose commands
 ///
 /// 1. If current directory contains a manifest, use it
@@ -93,7 +79,7 @@ pub(crate) fn find_manifest_dir() -> Result<PathBuf, String> {
     }
 
     // Try to find git root and search for manifests
-    let git_root = get_git_root()?;
+    let git_root = find_git_root()?;
     let manifests = find_all_manifests_in_repo(&git_root);
 
     match manifests.len() {
