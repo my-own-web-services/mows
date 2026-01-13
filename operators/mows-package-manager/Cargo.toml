@@ -55,6 +55,8 @@ anyhow = { workspace = true, features = ["default"] }
 
 tracing = { workspace = true, features = ["default"] }
 mows-common-rust = { workspace = true, features = ["default"] }
+gtmpl-ng = { workspace = true, features = ["all-functions"] }
+gtmpl_derive = { workspace = true }
 gtmpl_value = { workspace = true }
 
 

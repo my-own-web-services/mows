@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+mpm tools cargo-workspace-docker
+
 export SERVICE_NAME="filez-server"
 
 export BAKE_ARGS="${BAKE_ARGS:-default} --allow=fs.read=/home/paul/projects/mows --set *.args.APP_STAGE_IMAGE=alpine"

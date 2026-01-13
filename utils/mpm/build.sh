@@ -21,6 +21,13 @@ mkdir -p dist
 
 # Build and export the static binary directly to dist/
 echo "Building mpm static binary (profile: ${PROFILE}, arch: ${TARGETARCH}, git: ${GIT_HASH})..."
+
+# Cache options for CI (set BUILDX_CACHE_DIR to enable)
+CACHE_ARGS=""
+if [ -n "${BUILDX_CACHE_DIR:-}" ]; then
+    CACHE_ARGS="--cache-from type=local,src=${BUILDX_CACHE_DIR} --cache-to type=local,dest=${BUILDX_CACHE_DIR}-new,mode=max"
+fi
+
 docker buildx build \
     --platform "${PLATFORM}" \
     --file Dockerfile \
@@ -33,6 +40,7 @@ docker buildx build \
     --build-arg GIT_HASH="${GIT_HASH}" \
     --build-arg GIT_DATE="${GIT_DATE}" \
     --output type=local,dest=dist/ \
+    ${CACHE_ARGS} \
     .
 
 # Make binary executable

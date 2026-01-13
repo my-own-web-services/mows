@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+mpm tools cargo-workspace-docker
 
 export SERVICE_NAME="pektin-server"
 export BUILDX_BAKE_ENTITLEMENTS_FS=0

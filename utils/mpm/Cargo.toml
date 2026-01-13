@@ -1,6 +1,6 @@
 [package]
 name = "mpm"
-version = "0.2.2"
+version = "0.3.0"
 edition = { workspace = true }
 
 [dependencies]
@@ -11,6 +11,7 @@ clap = { version = "4.5", features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["default"] }
 serde_yaml = { workspace = true }
+toml = "0.8"
 
 gtmpl-ng = { workspace = true, features = ["all-functions"] }
 

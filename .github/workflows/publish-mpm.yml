@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - 'mpm-v*'
+    paths:
+      - 'utils/mpm/**'
+      - 'utils/mows-common-rust/**'
+      - '.github/workflows/publish-mpm.yml'
+  pull_request:
+    paths:
+      - 'utils/mpm/**'
+      - 'utils/mows-common-rust/**'
+      - '.github/workflows/publish-mpm.yml'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -13,24 +22,85 @@ on:
         type: boolean
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-musl
-            os_name: linux
-            arch: amd64
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            utils/mpm/target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('utils/mpm/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-test-
+
+      - name: Run unit tests
+        run: |
+          cd utils/mpm
+          cargo test --release
+
+      - name: Build release binary for e2e tests
+        run: |
+          cd utils/mpm
+          cargo build --release
+
+      - name: Run e2e tests
+        run: |
+          cd utils/mpm/tests
+          ./run-all.sh
+        env:
+          MPM_BIN: ${{ github.workspace }}/utils/mpm/target/release/mpm
+
+  build:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            target: x86_64-unknown-linux-musl
+            os_name: linux
+          - arch: arm64
+            target: aarch64-unknown-linux-musl
+            os_name: linux
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ matrix.arch }}-${{ hashFiles('utils/mpm/Cargo.lock', 'utils/mpm/Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-${{ matrix.arch }}-
+
       - name: Build static binary
         run: |
           cd utils/mpm
-          ./build.sh
+          TARGETARCH=${{ matrix.arch }} BUILDX_CACHE_DIR=/tmp/.buildx-cache ./build.sh
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          if [ -d /tmp/.buildx-cache-new ]; then
+            mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          fi
 
       - name: Get version from tag
         id: get_version

@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+mpm tools cargo-workspace-docker
+
 export SERVICE_NAME="filez-apps-backend-metadata"
 
 export BAKE_ARGS="${BAKE_ARGS:-default} --allow=fs.read=/home/paul/projects/mows"
