@@ -66,7 +66,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [amd64, arm64]
         include:
           - arch: amd64
             target: x86_64-unknown-linux-musl
@@ -77,31 +76,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Install cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Cache Docker layers
+      - name: Cache cargo registry
         uses: actions/cache@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ matrix.arch }}-${{ hashFiles('utils/mpm/Cargo.lock', 'utils/mpm/Dockerfile') }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            utils/mpm/target
+          key: ${{ runner.os }}-cargo-${{ matrix.arch }}-${{ hashFiles('utils/mpm/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ matrix.arch }}-
+            ${{ runner.os }}-cargo-${{ matrix.arch }}-
 
       - name: Build static binary
+        env:
+          GIT_HASH: ${{ github.sha }}
+          GIT_DATE: ${{ github.event.head_commit.timestamp }}
+          CROSS_CONTAINER_IN_CONTAINER: "true"
         run: |
           cd utils/mpm
-          TARGETARCH=${{ matrix.arch }} BUILDX_CACHE_DIR=/tmp/.buildx-cache ./build.sh
-
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          if [ -d /tmp/.buildx-cache-new ]; then
-            mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-          fi
+          cross build --release --target ${{ matrix.target }}
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/mpm dist/
 
       - name: Get version from tag
         id: get_version
