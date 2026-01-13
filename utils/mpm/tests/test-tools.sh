@@ -404,6 +404,149 @@ else
 fi
 
 # ============================================================================
+# Workspace Docker Tests
+# ============================================================================
+
+log_test "tools cargo-workspace-docker: generate for package"
+TEST_DIR=$(create_test_dir "workspace-docker")
+# Create a minimal workspace structure
+mkdir -p "$TEST_DIR/workspace"
+cat > "$TEST_DIR/workspace/Cargo.toml" << 'EOF'
+[workspace]
+members = ["app"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+version = "1.0.0"
+
+[workspace.dependencies]
+serde = "1.0"
+tokio = "1.0"
+
+[workspace.lints.clippy]
+enum_glob_use = "deny"
+
+[profile.release]
+lto = true
+EOF
+mkdir -p "$TEST_DIR/workspace/app"
+cat > "$TEST_DIR/workspace/app/Cargo.toml" << 'EOF'
+[package]
+name = "test-app"
+version = "2.0.0"
+edition.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+EOF
+touch "$TEST_DIR/workspace/app/docker-compose.yml"
+cd "$TEST_DIR/workspace/app"
+if $MPM_BIN tools cargo-workspace-docker; then
+    if [[ -f "cargo-workspace-docker.toml" ]]; then
+        # Verify version is copied from package
+        if grep -q 'version = "2.0.0"' cargo-workspace-docker.toml; then
+            pass_test "workspace-docker generates with correct version"
+        else
+            fail_test "workspace-docker version incorrect"
+            cat cargo-workspace-docker.toml
+        fi
+    else
+        fail_test "workspace-docker did not create file"
+    fi
+else
+    fail_test "workspace-docker command failed"
+fi
+cd - > /dev/null
+
+log_test "tools cargo-workspace-docker: deterministic output"
+TEST_DIR=$(create_test_dir "workspace-docker-deterministic")
+mkdir -p "$TEST_DIR/workspace"
+cat > "$TEST_DIR/workspace/Cargo.toml" << 'EOF'
+[workspace]
+members = ["app"]
+resolver = "2"
+
+[workspace.dependencies]
+zebra = "1.0"
+alpha = "1.0"
+middle = "1.0"
+EOF
+mkdir -p "$TEST_DIR/workspace/app"
+cat > "$TEST_DIR/workspace/app/Cargo.toml" << 'EOF'
+[package]
+name = "test-app"
+version = "1.0.0"
+
+[dependencies]
+zebra = { workspace = true }
+alpha = { workspace = true }
+middle = { workspace = true }
+EOF
+touch "$TEST_DIR/workspace/app/docker-compose.yml"
+cd "$TEST_DIR/workspace/app"
+$MPM_BIN tools cargo-workspace-docker
+cp cargo-workspace-docker.toml first.toml
+$MPM_BIN tools cargo-workspace-docker
+if diff -q cargo-workspace-docker.toml first.toml > /dev/null; then
+    pass_test "workspace-docker output is deterministic"
+else
+    fail_test "workspace-docker output differs between runs"
+fi
+cd - > /dev/null
+
+log_test "tools cargo-workspace-docker: sorted dependencies"
+# Check that the previous test output has sorted deps
+cd "$TEST_DIR/workspace/app"
+# Extract dependency names in order
+DEPS=$(grep '^\[workspace.dependencies\.' cargo-workspace-docker.toml | sed 's/.*\.//' | tr -d ']')
+SORTED_DEPS=$(echo "$DEPS" | sort)
+if [[ "$DEPS" == "$SORTED_DEPS" ]]; then
+    pass_test "workspace-docker dependencies are alphabetically sorted"
+else
+    fail_test "workspace-docker dependencies not sorted"
+fi
+cd - > /dev/null
+
+log_test "tools cargo-workspace-docker: no workspace root"
+TEST_DIR=$(create_test_dir "no-workspace")
+mkdir -p "$TEST_DIR/app"
+cat > "$TEST_DIR/app/Cargo.toml" << 'EOF'
+[package]
+name = "test-app"
+version = "1.0.0"
+EOF
+touch "$TEST_DIR/app/docker-compose.yml"
+cd "$TEST_DIR/app"
+if $MPM_BIN tools cargo-workspace-docker 2>&1; then
+    fail_test "Should fail when no workspace root"
+else
+    pass_test "workspace-docker fails gracefully without workspace"
+fi
+cd - > /dev/null
+
+log_test "tools cargo-workspace-docker: no docker-compose"
+TEST_DIR=$(create_test_dir "no-docker-compose")
+mkdir -p "$TEST_DIR/workspace"
+cat > "$TEST_DIR/workspace/Cargo.toml" << 'EOF'
+[workspace]
+members = ["app"]
+EOF
+mkdir -p "$TEST_DIR/workspace/app"
+cat > "$TEST_DIR/workspace/app/Cargo.toml" << 'EOF'
+[package]
+name = "test-app"
+version = "1.0.0"
+EOF
+cd "$TEST_DIR/workspace/app"
+if $MPM_BIN tools cargo-workspace-docker 2>&1; then
+    fail_test "Should fail when no docker-compose"
+else
+    pass_test "workspace-docker fails gracefully without docker-compose"
+fi
+cd - > /dev/null
+
+# ============================================================================
 # Edge Cases
 # ============================================================================
 

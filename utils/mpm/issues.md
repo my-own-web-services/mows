@@ -12,9 +12,14 @@
 
 # true and := coloring
 
-ensure that the application can be used on different systems and architectures with all its features, create a comprehensive plan what is needed to do that
-
-when the cli is run it should check in the background without delaying the execution if there is a new version available, it should then write that to its config file and next time its run it should tell the user that there is a new version available
+add a command to the tools section that recreates this
+/home/paul/projects/mows/utils/cargo-workspace-docker but way more professional and
+less hacked together, no matter where the command is run in a repo it should navigate
+up to the cargo workspace root file, when normally run here in mpm for example it
+should only update the cargo-workspace-docker.toml in the same folder as executed,
+when ran with the flag --all all cargo-workspace-docker.toml files in the repo should
+be recreated, this should also fix the issue with the package version, lets plan it
+together
 
 # there should be also a fine taste agent that checks for things that i would never allow to have been programmed in the first place
 

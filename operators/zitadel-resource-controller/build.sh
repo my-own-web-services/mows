@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+mpm tools cargo-workspace-docker
+
 export BUILDX_BAKE_ENTITLEMENTS_FS=0
 
 export SERVICE_NAME="zitadel-resource-controller"

@@ -247,6 +247,65 @@ server:
   port: 3000
 ```
 
+## mpm tools cargo-workspace-docker
+
+Generate minimal `cargo-workspace-docker.toml` files for Dockerized Rust builds. This creates workspace configuration files containing only the dependencies needed for a specific package, enabling efficient Docker layer caching.
+
+```bash
+# Generate for current package (finds nearest Cargo.toml with docker-compose)
+mpm tools cargo-workspace-docker
+
+# Generate for all packages with docker-compose in the workspace
+mpm tools cargo-workspace-docker --all
+
+# Generate for a specific path
+mpm tools cargo-workspace-docker --path /path/to/package
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--all` | Regenerate for all packages with docker-compose files |
+| `-p, --path <PATH>` | Path to package (default: current directory) |
+
+**Features:**
+- Automatically finds workspace root
+- Resolves transitive dependencies from path dependencies
+- Copies package version to `[workspace.package].version`
+- Uses crate names for path dependencies (Docker-compatible)
+- Deterministic output (sorted dependencies)
+
+**Use Case:**
+
+In Docker builds using cargo-chef, each package needs a minimal workspace with only its required dependencies. Running `mpm tools cargo-workspace-docker` generates this file automatically:
+
+```toml
+# cargo-workspace-docker.toml (generated)
+[workspace]
+members = ["app"]
+resolver = "2"
+
+[workspace.dependencies.serde]
+default-features = false
+version = "1.0.219"
+
+[workspace.package]
+edition = "2021"
+version = "0.2.2"  # Copied from package
+```
+
+**Integration with build scripts:**
+
+Add to your `build.sh`:
+```bash
+#!/bin/bash
+set -euo pipefail
+
+mpm tools cargo-workspace-docker  # Regenerate before Docker build
+
+docker buildx bake ${BAKE_ARGS:-default}
+```
+
 ## Pipeline Examples
 
 Combine tools for complex transformations:

@@ -197,4 +197,18 @@ pub enum ToolCommands {
         #[arg(long)]
         yaml: bool,
     },
+    /// Generate cargo-workspace-docker.toml for Docker builds
+    ///
+    /// Creates minimal workspace configuration files for Dockerized Rust builds.
+    /// Automatically finds the workspace root and resolves all dependencies
+    /// (including transitive ones) needed for the package.
+    #[command(name = "cargo-workspace-docker")]
+    CargoWorkspaceDocker {
+        /// Generate for all packages with docker-compose in the workspace
+        #[arg(long)]
+        all: bool,
+        /// Path to package (default: current directory)
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+    },
 }

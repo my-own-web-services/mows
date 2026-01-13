@@ -1,15 +1,14 @@
 use crate::types::Manifest;
 use anyhow::Context;
 use futures::StreamExt;
+use gtmpl_derive::Gtmpl;
+use gtmpl_ng::all_functions::all_functions;
+use gtmpl_ng::helm_functions::serde_json_hashmap_to_gtmpl_hashmap;
+use gtmpl_ng::{Context as GtmplContext, Template, Value as GtmplValue};
 use kube::{
     api::{ApiResource, DynamicObject},
     discovery::{ApiCapabilities, Scope},
     Api, Client,
-};
-use mows_common_rust::templating::{
-    functions::{serde_json_hashmap_to_gtmpl_hashmap, TEMPLATE_FUNCTIONS},
-    gtmpl::{Context as GtmplContext, Template, Value as GtmplValue},
-    gtmpl_derive::Gtmpl,
 };
 use sha2::Digest;
 use std::{
@@ -138,7 +137,7 @@ pub async fn replace_cluster_variables_in_string(
     cluster_variables: &HashMap<String, serde_json::Value>,
 ) -> anyhow::Result<String> {
     let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&all_functions());
 
     #[derive(Gtmpl)]
     struct LocalContext {

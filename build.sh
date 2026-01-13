@@ -22,10 +22,6 @@ export SCRIPT_RESET_COLOR="\033[0m"
 
 printf "${SCRIPT_INFO_COLOR}Building all MOWS components...${SCRIPT_RESET_COLOR}\n"
 
-# Build and run cargo-workspace-docker
-printf "${SCRIPT_INFO_COLOR}Running cargo-workspace-docker...${SCRIPT_RESET_COLOR}\n"
-cd ./utils/cargo-workspace-docker && cargo run ${MOWS_ROOT}  ; cd ../../
-
 printf "${SCRIPT_INFO_COLOR}Building zitadel-resource-controller...${SCRIPT_RESET_COLOR}\n"
 cd ./operators/zitadel-resource-controller && bash build.sh ; cd ../../
 

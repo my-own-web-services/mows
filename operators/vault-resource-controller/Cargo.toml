@@ -73,6 +73,8 @@ itertools = { workspace = true, features = ["default"] }
 
 
 mows-common-rust = { workspace = true, features = ["default", "vault"] }
+gtmpl-ng = { workspace = true, features = ["all-functions"] }
+gtmpl_derive = { workspace = true }
 gtmpl_value = { workspace = true }
 
 kube = { workspace = true, features = ["runtime", "default", "derive"] }

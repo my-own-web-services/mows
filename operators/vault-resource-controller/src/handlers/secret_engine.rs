@@ -2,10 +2,8 @@ use crate::{
     crd::{KV2SecretEngineParams, VaultSecretEngine},
     ControllerError,
 };
-use mows_common_rust::templating::{
-    functions::TEMPLATE_FUNCTIONS,
-    gtmpl::{Context as GtmplContext, Template},
-};
+use gtmpl_ng::all_functions::all_functions;
+use gtmpl_ng::{Context as GtmplContext, Template};
 use serde_variant::to_variant_name;
 use std::collections::HashMap;
 use tracing::{debug, instrument, trace};
@@ -103,7 +101,7 @@ pub async fn apply_kv2_engine(
             value_changed = true;
 
             let mut template = Template::default();
-            template.add_funcs(&TEMPLATE_FUNCTIONS);
+            template.add_funcs(&all_functions());
             template.parse(new_template.clone().replace("{%", "{{").replace("%}", "}}"))?;
 
             current_secret_kv_data.insert(new_key.to_string(), template.render(&GtmplContext::empty())?);

@@ -1,10 +1,9 @@
+use gtmpl_derive::Gtmpl;
+use gtmpl_ng::all_functions::all_functions;
+use gtmpl_ng::helm_functions::serde_json_value_to_gtmpl_value;
+use gtmpl_ng::{Context as GtmplContext, Template, Value as GtmplValue};
 use k8s_openapi::api::core::v1::{ConfigMap, Secret};
 use kube::api::ObjectMeta;
-use mows_common_rust::templating::{
-    functions::{serde_json_value_to_gtmpl_value, TEMPLATE_FUNCTIONS},
-    gtmpl::{Context as GtmplContext, Template, Value as GtmplValue},
-    gtmpl_derive::Gtmpl,
-};
 
 use std::{
     collections::{BTreeMap, HashMap},
@@ -128,7 +127,7 @@ pub async fn apply_secret_sync(
     let mut rendered_configmaps: HashMap<String, RenderedConfigmap> = HashMap::new();
 
     let mut template_creator = Template::default();
-    template_creator.add_funcs(&TEMPLATE_FUNCTIONS);
+    template_creator.add_funcs(&all_functions());
 
     let context = GtmplContext::from(LocalContext {
         secrets: fetched_secrets.clone(),
