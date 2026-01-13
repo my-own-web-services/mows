@@ -58,7 +58,9 @@ RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"
 COPY --from=sources / /build/
 COPY src src
 
+# Disable LTO for arm64 builds (QEMU can't handle it)
 RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
+    if [ "$TARGETARCH" = "arm64" ]; then export CARGO_PROFILE_RELEASE_LTO=false; fi && \
     cargo build --bin ${BINARY_NAME} --profile=${PROFILE} --target=${RUST_TARGET}
 RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
     if [ "${PROFILE}" = "dev" ]; then \
