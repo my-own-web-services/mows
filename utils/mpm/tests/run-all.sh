@@ -95,12 +95,19 @@ log_error() {
 get_test_files() {
     local filter="${1:-}"
     local files=()
+    local skip_list="${SKIP_TESTS:-}"
 
     for f in "$SCRIPT_DIR"/test-*.sh; do
         [[ -f "$f" ]] || continue
         [[ -x "$f" ]] || continue
+        local test_name=$(basename "$f" .sh)
         # Skip if filter is set and file doesn't match
-        if [[ -n "$filter" ]] && [[ ! "$(basename "$f")" == *"$filter"* ]]; then
+        if [[ -n "$filter" ]] && [[ ! "$test_name" == *"$filter"* ]]; then
+            continue
+        fi
+        # Skip if test is in SKIP_TESTS list
+        if [[ -n "$skip_list" ]] && [[ ",$skip_list," == *",$test_name,"* ]]; then
+            log_warn "Skipping $test_name (in SKIP_TESTS)"
             continue
         fi
         files+=("$f")
