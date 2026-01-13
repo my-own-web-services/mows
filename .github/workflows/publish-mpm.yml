@@ -78,9 +78,16 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
-      - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.13.0
+
+      - name: Install cargo-zigbuild
+        run: cargo install cargo-zigbuild
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -97,10 +104,9 @@ jobs:
         env:
           GIT_HASH: ${{ github.sha }}
           GIT_DATE: ${{ github.event.head_commit.timestamp }}
-          CROSS_CONTAINER_IN_CONTAINER: "true"
         run: |
           cd utils/mpm
-          cross build --release --target ${{ matrix.target }}
+          cargo zigbuild --release --target ${{ matrix.target }}
           mkdir -p dist
           cp target/${{ matrix.target }}/release/mpm dist/
 
