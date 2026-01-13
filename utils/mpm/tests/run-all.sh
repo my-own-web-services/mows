@@ -107,7 +107,7 @@ get_test_files() {
         fi
         # Skip if test is in SKIP_TESTS list
         if [[ -n "$skip_list" ]] && [[ ",$skip_list," == *",$test_name,"* ]]; then
-            log_warn "Skipping $test_name (in SKIP_TESTS)"
+            echo -e "${YELLOW}[WARN]${NC} Skipping $test_name (in SKIP_TESTS)" >&2
             continue
         fi
         files+=("$f")
