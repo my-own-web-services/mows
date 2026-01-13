@@ -82,7 +82,9 @@ setup_isolated_config() {
 # Automatically set up isolated config when sourcing this file
 # unless MPM_CONFIG_PATH is already set (for nested test scenarios)
 if [[ -z "${MPM_CONFIG_PATH:-}" ]]; then
-    _CONFIG_DIR=$(setup_isolated_config)
+    _CONFIG_DIR=$(mktemp -d "/tmp/mpm-test-config-${TEST_ID}-XXXXXX")
+    export MPM_CONFIG_PATH="$_CONFIG_DIR/mpm.yaml"
+    log_debug "Using isolated config: $MPM_CONFIG_PATH"
 fi
 
 # ============================================================================

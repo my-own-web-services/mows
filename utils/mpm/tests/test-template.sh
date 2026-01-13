@@ -263,22 +263,40 @@ else
     fail_test "Template trim function command failed"
 fi
 
-log_test "template: default function"
+log_test "template: default function with empty value"
 TEST_DIR=$(create_test_dir "func-default")
 cat > "$TEST_DIR/template.txt" << 'EOF'
 Port: {{ default 8080 .port }}
 EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
-# port not defined
+port: ""
 EOF
 if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "Port: 8080" "$TEST_DIR/output.txt"; then
-        pass_test "default function"
+        pass_test "default function with empty value"
     else
         fail_test "default function not working"
     fi
 else
     fail_test "Template default function command failed"
+fi
+
+log_test "template: default function with null value"
+TEST_DIR=$(create_test_dir "func-default-null")
+cat > "$TEST_DIR/template.txt" << 'EOF'
+Port: {{ default 8080 .port }}
+EOF
+cat > "$TEST_DIR/values.yaml" << 'EOF'
+port: null
+EOF
+if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+    if grep -q "Port: 8080" "$TEST_DIR/output.txt"; then
+        pass_test "default function with null value"
+    else
+        fail_test "default function not working with null"
+    fi
+else
+    fail_test "Template default function with null command failed"
 fi
 
 log_test "template: randAlphaNum function (generates random string)"
