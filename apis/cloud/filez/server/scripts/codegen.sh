@@ -6,7 +6,7 @@ export BUILDX_BAKE_ENTITLEMENTS_FS=0
 export SERVICE_NAME="filez-server"
 
 docker buildx bake --set "*.args.PROFILE=dev" --set "*.tags=filez-server-codegen"
-docker remove filez-server-codegen-server --force
+docker rm filez-server-codegen-server --force
 docker run -d --rm -p 8088:8080 --name filez-server-codegen-server filez-server-codegen 
 
 sleep 2
@@ -36,7 +36,7 @@ cd ../clients/typescript/ && yalc publish --push && cd -
 
 rm -rf tmp
 
-docker remove filez-server-codegen-server --force
+docker rm filez-server-codegen-server --force
 
 # rust
 
