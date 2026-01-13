@@ -104,11 +104,12 @@ jobs:
         env:
           GIT_HASH: ${{ github.sha }}
           GIT_DATE: ${{ github.event.head_commit.timestamp }}
+          # Disable LTO for cross-compilation (causes SIGILL)
+          CARGO_PROFILE_RELEASE_LTO: "false"
         run: |
-          cd utils/mpm
-          cargo zigbuild --release --target ${{ matrix.target }}
-          mkdir -p dist
-          cp target/${{ matrix.target }}/release/mpm dist/
+          cargo zigbuild --release --target ${{ matrix.target }} -p mpm --manifest-path utils/mpm/Cargo.toml
+          mkdir -p utils/mpm/dist
+          cp target/${{ matrix.target }}/release/mpm utils/mpm/dist/
 
       - name: Get version from tag
         id: get_version
