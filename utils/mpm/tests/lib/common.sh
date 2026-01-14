@@ -325,8 +325,40 @@ ensure_mpm_built() {
 # Cleanup
 # ============================================================================
 
+# Track Docker projects started during tests for cleanup
+_DOCKER_PROJECTS_STARTED=()
+
+# Register a Docker project for cleanup on exit
+register_docker_project() {
+    local project_name="$1"
+    _DOCKER_PROJECTS_STARTED+=("$project_name")
+}
+
+# Cleanup Docker containers started during tests
+cleanup_docker_containers() {
+    for project in "${_DOCKER_PROJECTS_STARTED[@]}"; do
+        log_debug "Cleaning up Docker project: $project"
+        docker compose -p "$project" down --remove-orphans --timeout 5 2>/dev/null || true
+    done
+
+    # Also clean up any containers with test-related names
+    # This catches containers that might have been started without registration
+    if docker_available; then
+        # Find and stop containers with test ID in their name
+        local containers
+        containers=$(docker ps -aq --filter "name=mpm-test-.*-${TEST_ID}" 2>/dev/null || true)
+        if [[ -n "$containers" ]]; then
+            log_debug "Removing orphaned test containers"
+            echo "$containers" | xargs -r docker rm -f 2>/dev/null || true
+        fi
+    fi
+}
+
 # Cleanup function - call this in trap
 cleanup_test_dirs() {
+    # First clean up Docker containers
+    cleanup_docker_containers
+
     if [[ "${KEEP_TEST_DIRS:-}" != "1" ]]; then
         rm -rf /tmp/mpm-test-*-${TEST_ID}-* 2>/dev/null || true
         # Also clean up config directory
